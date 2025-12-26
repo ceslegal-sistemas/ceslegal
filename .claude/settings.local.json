@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan:*)",
+      "Bash(composer require:*)",
+      "Bash(mkdir:*)",
+      "WebSearch",
+      "WebFetch(domain:www.datos.gov.co)",
+      "WebFetch(domain:gist.githubusercontent.com)",
+      "Bash(mysql:*)",
+      "Bash(php check_encoding.php:*)",
+      "Bash(php crear_plantilla_ejemplo.php)",
+      "Bash(php test_citacion.php:*)",
+      "Bash(php:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(git checkout:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
