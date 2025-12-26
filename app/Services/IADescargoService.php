@@ -18,8 +18,8 @@ class IADescargoService
     // Preguntas estándar iniciales
     const PREGUNTAS_INICIALES = [
         '¿Desea hacerse acompañar de algún compañero de trabajo o persona de confianza? (Responda SÍ o NO)',
-        'Si su respuesta anterior fue SÍ, indique el nombre completo de la persona que lo acompañará. (Si respondió NO, escriba: No aplica)',
-        'Si desea hacerse acompañar, indique el cargo o relación de la persona que lo acompañará (compañero de trabajo, familiar, abogado, etc.). (Si respondió NO, escriba: No aplica)',
+        'Indique el nombre completo de la persona que lo acompañará.',
+        'Indique el cargo o relación de la persona que lo acompañará (compañero de trabajo, familiar, abogado, etc.).',
         'Señale por favor para qué empresa labora Usted.',
         '¿Señale por favor cual es el cargo que desempeña actualmente en la Compañía y describa concretamente cuáles son sus funciones?',
         '¿Conoce usted el Reglamento Interno de Trabajo y las normas internas de la Empresa?',
@@ -31,11 +31,9 @@ class IADescargoService
 
     // Preguntas estándar de cierre
     const PREGUNTAS_CIERRE = [
-        '¿Desea aportar alguna justificación, documento, testimonio o evidencia que sustente su versión de los hechos y permita esclarecer su actuación?',
         '¿Informó de esta situación a su jefe inmediato?',
         '¿Había estado en diligencia de descargos anteriormente?',
         '¿Sabe usted que el incumplimiento de sus obligaciones laborales puede acarrear sanciones?',
-        '¿Tiene algo más que agregar a esta diligencia?',
     ];
 
     public function __construct()
@@ -77,7 +75,6 @@ class IADescargoService
             }
 
             return [];
-
         } catch (\Exception $e) {
             Log::error('Error al generar preguntas dinámicas con IA', [
                 'pregunta_id' => $preguntaRespondida->id,
@@ -107,7 +104,7 @@ class IADescargoService
             ->with('respuesta')
             ->respondidas()
             ->get()
-            ->map(function($pregunta) {
+            ->map(function ($pregunta) {
                 $respuesta = $pregunta->respuesta?->respuesta ?? '(Sin respuesta)';
                 return [
                     'pregunta' => $pregunta->pregunta,
@@ -145,7 +142,7 @@ class IADescargoService
         }
 
         return <<<PROMPT
-Eres un abogado laboral experto en procesos disciplinarios en Colombia.
+Eres un abogado especialista en derecho laboral con enfasis y experiencia en procesos disciplinarios y descargos en Colombia.
 
 CONTEXTO DEL PROCESO:
 
@@ -168,14 +165,14 @@ RESPUESTA DEL TRABAJADOR:
 {$respuesta->respuesta}
 
 INSTRUCCIONES:
-- Analiza la respuesta del trabajador en el contexto de los hechos y las normas incumplidas.
-- Genera nuevas preguntas SOLO si existen vacíos, contradicciones o aspectos relevantes por aclarar.
-- Máximo 2 preguntas.
-- Las preguntas deben ser:
-  * Claras y específicas
+Analiza las respuestas del trabajador teniendo en cuenta los hechos que indique en contraste con la conducta realizada que trasgrede las normas internas de la empresa y la ley aplicable en materia laboral.
+•⁠  ⁠Genera nuevas preguntas si y solo si, existen inexactitudes, incongruencias, evasivas y/ contradicciones en los argumentos del trabajador.
+•⁠  ⁠Máximo 2 preguntas.
+•⁠  ⁠Las preguntas deben ser:
+  * Claras, breves y concisas.
   * Neutrales y no sugestivas
-  * Relevantes para el proceso disciplinario
-  * Dirigidas a aclarar la situación, no a inculpar
+  * Relevantes para el proceso disciplinario.
+  * Dirigidas a esclarecer el hecho que dio origen a la diligencia de descargos con una tendencia de juzgamiento a favor del empleador y en contra del trabajador.
 - Si no se requieren más preguntas, responde exactamente: NO_REQUIERE
 
 FORMATO DE RESPUESTA:
@@ -307,6 +304,16 @@ PROMPT;
             throw new \Exception("Respuesta de Gemini sin contenido válido");
         }
 
+        // Verificar si la respuesta fue truncada por límite de tokens
+        $finishReason = $responseData['candidates'][0]['finishReason'] ?? 'UNKNOWN';
+        if ($finishReason === 'MAX_TOKENS') {
+            Log::warning('Respuesta de Gemini truncada por límite de tokens', [
+                'finish_reason' => $finishReason,
+                'max_tokens' => $this->config['max_tokens'],
+                'respuesta_parcial' => substr($responseData['candidates'][0]['content']['parts'][0]['text'], 0, 200),
+            ]);
+        }
+
         return $responseData['candidates'][0]['content']['parts'][0]['text'];
     }
 
@@ -334,14 +341,14 @@ PROMPT;
                     continue;
                 }
 
-                // Validar que la pregunta termine con signo de interrogación
-                // Si no termina con ?, probablemente está incompleta
-                if (!str_ends_with($preguntaLimpia, '?')) {
-                    Log::warning('Pregunta de IA descartada por estar incompleta (no termina en ?)', [
-                        'pregunta_parcial' => $preguntaLimpia,
-                    ]);
-                    continue;
-                }
+                // Si no termina con ?, agregar el signo de interrogación
+                // if (!str_ends_with($preguntaLimpia, '?')) {
+                //     $preguntaLimpia .= '?';
+                //     Log::info('Pregunta de IA corregida (agregado signo ?)', [
+                //         'pregunta_original' => trim($pregunta),
+                //         'pregunta_corregida' => $preguntaLimpia,
+                //     ]);
+                // }
 
                 // Validar longitud mínima (al menos 20 caracteres)
                 if (strlen($preguntaLimpia) < 20) {
@@ -447,12 +454,19 @@ PROMPT;
         $preguntasGuardadas = [];
 
         foreach ($preguntas as $index => $preguntaTexto) {
+            // Para preguntas iniciales, las preguntas 2 y 3 (índices 1 y 2) dependen de la pregunta 1 (índice 0)
+            $preguntaPadreId = null;
+            if ($tipo === 'inicial' && ($index === 1 || $index === 2)) {
+                // La pregunta padre es la primera pregunta creada (índice 0)
+                $preguntaPadreId = $preguntasGuardadas[0]->id ?? null;
+            }
+
             $pregunta = PreguntaDescargo::create([
                 'diligencia_descargo_id' => $diligencia->id,
                 'pregunta' => $preguntaTexto,
                 'orden' => $ordenInicio + $index,
                 'es_generada_por_ia' => false,
-                'pregunta_padre_id' => null,
+                'pregunta_padre_id' => $preguntaPadreId,
                 'estado' => 'activa',
             ]);
 
@@ -530,7 +544,6 @@ PROMPT;
             $ordenInicial += 1;
 
             return $this->guardarPreguntasIA($diligencia, $preguntas, $ordenInicial);
-
         } catch (\Exception $e) {
             Log::error('Error al generar preguntas iniciales con IA', [
                 'diligencia_id' => $diligencia->id,

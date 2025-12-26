@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Timeline extends Model
 {
-    public $timestamps = false;
+    const CREATED_AT = 'created_at';
+    const UPDATED_AT = null;
 
     protected $table = 'timeline';
 

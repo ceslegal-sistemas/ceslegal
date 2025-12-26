@@ -183,4 +183,90 @@ class ProcesoDisciplinario extends Model
         // Formato corto: "Art. 58, Art. 60 Num. 1, Art. 60 Num. 3"
         return $articulos->pluck('codigo')->join(', ');
     }
+
+    /**
+     * Métodos para manejo de estados
+     */
+
+    public function cambiarEstado(string $nuevoEstado, ?string $observacion = null): bool
+    {
+        $estadoService = app(\App\Services\EstadoProcesoService::class);
+        return $estadoService->cambiarEstado($this, $nuevoEstado, $observacion);
+    }
+
+    public function getProximosEstadosValidos(): array
+    {
+        $estadoService = app(\App\Services\EstadoProcesoService::class);
+        return $estadoService->getProximosEstadosValidos($this->estado);
+    }
+
+    public function getDescripcionEstado(): string
+    {
+        $estadoService = app(\App\Services\EstadoProcesoService::class);
+        return $estadoService->getDescripcionEstado($this->estado);
+    }
+
+    public function puedeAvanzarA(string $nuevoEstado): bool
+    {
+        $estadoService = app(\App\Services\EstadoProcesoService::class);
+        return $estadoService->esTransicionValida($this->estado, $nuevoEstado);
+    }
+
+    // Métodos de conveniencia para transiciones comunes
+
+    public function marcarCitado(): bool
+    {
+        $estadoService = app(\App\Services\EstadoProcesoService::class);
+        $estadoService->alEnviarCitacion($this);
+        return true;
+    }
+
+    public function marcarDescargosCompletados(): bool
+    {
+        $estadoService = app(\App\Services\EstadoProcesoService::class);
+        $estadoService->alCompletarDescargos($this);
+        return true;
+    }
+
+    public function marcarEnAnalisis(): bool
+    {
+        $estadoService = app(\App\Services\EstadoProcesoService::class);
+        $estadoService->alCrearAnalisisJuridico($this);
+        return true;
+    }
+
+    public function marcarSancionDefinida(): bool
+    {
+        $estadoService = app(\App\Services\EstadoProcesoService::class);
+        $estadoService->alDefinirSancion($this);
+        return true;
+    }
+
+    public function marcarNotificado(): bool
+    {
+        $estadoService = app(\App\Services\EstadoProcesoService::class);
+        $estadoService->alNotificarTrabajador($this);
+        return true;
+    }
+
+    public function marcarImpugnado(): bool
+    {
+        $estadoService = app(\App\Services\EstadoProcesoService::class);
+        $estadoService->alImpugnar($this);
+        return true;
+    }
+
+    public function cerrarProceso(): bool
+    {
+        $estadoService = app(\App\Services\EstadoProcesoService::class);
+        $estadoService->alCerrarProceso($this);
+        return true;
+    }
+
+    public function archivarProceso(string $motivo): bool
+    {
+        $estadoService = app(\App\Services\EstadoProcesoService::class);
+        $estadoService->alArchivarProceso($this, $motivo);
+        return true;
+    }
 }

@@ -6,6 +6,7 @@ use App\Models\ProcesoDisciplinario;
 use App\Models\SolicitudContrato;
 use App\Models\TerminoLegal;
 use App\Services\TerminoLegalService;
+use App\Services\EstadoProcesoService;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
@@ -17,13 +18,14 @@ class StatsOverviewWidget extends BaseWidget
     protected function getStats(): array
     {
         $terminoService = app(TerminoLegalService::class);
+        $estadoService = app(EstadoProcesoService::class);
         $user = Auth::user();
 
-        // Filtrar por empresa si no es admin
+        // Filtrar por empresa si no es admin o super_admin
         $procesosQuery = ProcesoDisciplinario::query();
         $solicitudesQuery = SolicitudContrato::query();
 
-        if ($user->role !== 'admin') {
+        if (!in_array($user->role, ['admin', 'super_admin'])) {
             $procesosQuery->where('empresa_id', $user->empresa_id);
             $solicitudesQuery->where('empresa_id', $user->empresa_id);
         }
@@ -37,7 +39,9 @@ class StatsOverviewWidget extends BaseWidget
         // Estadísticas de Procesos Disciplinarios
         $totalProcesos = $procesosQuery->count();
         $procesosActivos = (clone $procesosQuery)->whereNotIn('estado', ['cerrado', 'archivado'])->count();
-        $procesosImpugnados = (clone $procesosQuery)->where('impugnado', true)->where('estado', 'impugnado')->count();
+        $procesosDescargos = (clone $procesosQuery)->whereIn('estado', ['descargos_pendientes', 'descargos_realizados'])->count();
+        $procesosAnalisis = (clone $procesosQuery)->whereIn('estado', ['analisis_juridico', 'pendiente_gerencia'])->count();
+        $procesosImpugnados = (clone $procesosQuery)->where('estado', 'impugnado')->count();
 
         // Estadísticas de Solicitudes de Contrato
         $totalSolicitudes = $solicitudesQuery->count();
@@ -54,6 +58,18 @@ class StatsOverviewWidget extends BaseWidget
                 ->color('primary')
                 ->chart([7, 12, 8, 15, 18, 12, $procesosActivos]),
 
+            Stat::make('En Descargos', $procesosDescargos)
+                ->description('Pendientes o realizados')
+                ->descriptionIcon('heroicon-m-document-text')
+                ->color('warning')
+                ->chart([3, 5, 4, 3, 2, 4, $procesosDescargos]),
+
+            Stat::make('En Análisis', $procesosAnalisis)
+                ->description('Análisis jurídico o gerencia')
+                ->descriptionIcon('heroicon-m-scale')
+                ->color('info')
+                ->chart([2, 3, 4, 2, 3, 4, $procesosAnalisis]),
+
             Stat::make('Términos Próximos a Vencer', $terminosProximos)
                 ->description('Requieren atención urgente')
                 ->descriptionIcon('heroicon-m-clock')
@@ -69,13 +85,7 @@ class StatsOverviewWidget extends BaseWidget
             Stat::make('Procesos Impugnados', $procesosImpugnados)
                 ->description('En proceso de revisión')
                 ->descriptionIcon('heroicon-m-arrow-path')
-                ->color('info'),
-
-            Stat::make('Solicitudes de Contrato Pendientes', $solicitudesPendientes)
-                ->description($totalSolicitudes . ' solicitudes en total')
-                ->descriptionIcon('heroicon-m-document-text')
-                ->color('success')
-                ->chart([3, 5, 4, 7, 6, 5, $solicitudesPendientes]),
+                ->color('danger'),
         ];
     }
 }

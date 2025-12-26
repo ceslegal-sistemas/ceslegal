@@ -9,12 +9,12 @@ class DisponibilidadHelper
 {
     // Horario de oficina
     const HORA_INICIO = '08:00';
-    const HORA_FIN = '17:00';
+    const HORA_FIN = '18:00';
     const DURACION_DESCARGO = 45; // minutos
 
     // Horario de almuerzo (no disponible)
     const ALMUERZO_INICIO = '12:00';
-    const ALMUERZO_FIN = '13:00';
+    const ALMUERZO_FIN = '14:00';
 
     /**
      * Obtiene los slots disponibles para un abogado en una fecha específica

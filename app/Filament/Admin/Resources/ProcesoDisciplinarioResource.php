@@ -73,7 +73,7 @@ class ProcesoDisciplinarioResource extends Resource
                             ->live()
                             ->afterStateUpdated(function (Set $set) {
                                 $set('trabajador_id', null);
-                                // $set('abogado_id', null);
+                                $set('abogado_id', null);
                             }),
 
                         Forms\Components\Select::make('trabajador_id')
@@ -92,6 +92,109 @@ class ProcesoDisciplinarioResource extends Resource
                             ->disabled(fn(Get $get) => !$get('empresa_id'))
                             ->helperText('Seleccione primero la empresa')
                             ->suffixIcon('heroicon-o-user-group')
+                            ->createOptionForm(function (Get $get) {
+                                return [
+                                    Forms\Components\Hidden::make('empresa_id')
+                                        ->default(fn() => $get('../../empresa_id')),
+
+                                    Forms\Components\Select::make('tipo_documento')
+                                        ->label('Tipo de Documento')
+                                        ->options([
+                                            'CC' => 'Cédula de Ciudadanía',
+                                            'CE' => 'Cédula de Extranjería',
+                                            'TI' => 'Tarjeta de Identidad',
+                                            'PASS' => 'Pasaporte',
+                                        ])
+                                        ->required()
+                                        ->default('CC')
+                                        ->native(false)
+                                        ->live(),
+
+                                    Forms\Components\TextInput::make('numero_documento')
+                                        ->label('Número de Documento')
+                                        ->required()
+                                        ->maxLength(50)
+                                        ->placeholder('Ej: 1234567890'),
+
+                                    Forms\Components\Select::make('genero')
+                                        ->label('Género')
+                                        ->options([
+                                            'masculino' => 'Masculino',
+                                            'femenino' => 'Femenino',
+                                            'otro' => 'Otro',
+                                        ])
+                                        ->required()
+                                        ->native(false),
+
+                                    Forms\Components\TextInput::make('nombres')
+                                        ->label('Nombres')
+                                        ->required()
+                                        ->maxLength(255)
+                                        ->placeholder('Ej: Juan Carlos'),
+
+                                    Forms\Components\TextInput::make('apellidos')
+                                        ->label('Apellidos')
+                                        ->required()
+                                        ->maxLength(255)
+                                        ->placeholder('Ej: Pérez García'),
+
+                                    Forms\Components\Select::make('cargo_select')
+                                        ->label('Cargo')
+                                        ->searchable()
+                                        ->options([
+                                            'Gerente General' => 'Gerente General',
+                                            'Gerente Administrativo' => 'Gerente Administrativo',
+                                            'Coordinador' => 'Coordinador',
+                                            'Supervisor' => 'Supervisor',
+                                            'Jefe de Área' => 'Jefe de Área',
+                                            'Asistente Administrativo' => 'Asistente Administrativo',
+                                            'Auxiliar Administrativo' => 'Auxiliar Administrativo',
+                                            'Secretaria' => 'Secretaria',
+                                            'Recepcionista' => 'Recepcionista',
+                                            'Contador' => 'Contador',
+                                            'Auxiliar Contable' => 'Auxiliar Contable',
+                                            'Conductor' => 'Conductor',
+                                            'Mensajero' => 'Mensajero',
+                                            'Operario' => 'Operario',
+                                            'Técnico' => 'Técnico',
+                                            'Vendedor' => 'Vendedor',
+                                            '__otro__' => '--- Otro (personalizado) ---',
+                                        ])
+                                        ->live()
+                                        ->required()
+                                        ->placeholder('Seleccione el cargo...'),
+
+                                    Forms\Components\TextInput::make('cargo_otro')
+                                        ->label('Especifique el Cargo')
+                                        ->visible(fn(Get $get) => $get('cargo_select') === '__otro__')
+                                        ->required(fn(Get $get) => $get('cargo_select') === '__otro__')
+                                        ->placeholder('Ej: Jefe de Proyectos Especiales'),
+
+                                    Forms\Components\TextInput::make('email')
+                                        ->label('Correo Electrónico')
+                                        ->email()
+                                        ->required()
+                                        ->maxLength(255)
+                                        ->placeholder('Ej: juan.perez@empresa.com'),
+                                ];
+                            })
+                            ->createOptionUsing(function (array $data, Get $get) {
+                                // Procesar cargo
+                                if (isset($data['cargo_select'])) {
+                                    $data['cargo'] = $data['cargo_select'] === '__otro__'
+                                        ? $data['cargo_otro']
+                                        : $data['cargo_select'];
+                                }
+
+                                // Limpiar campos temporales
+                                unset($data['cargo_select'], $data['cargo_otro']);
+
+                                // Asignar empresa y estado activo
+                                $data['empresa_id'] = $get('empresa_id');
+                                $data['active'] = true;
+
+                                return Trabajador::create($data)->id;
+                            })
                             ->createOptionModalHeading('Crear Nuevo Trabajador'),
 
                         Forms\Components\Select::make('abogado_id')

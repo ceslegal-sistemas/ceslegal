@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Widgets;
 
 use App\Models\ProcesoDisciplinario;
+use App\Services\EstadoProcesoService;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -17,14 +18,15 @@ class RecentProcessesWidget extends BaseWidget
     public function table(Table $table): Table
     {
         $user = Auth::user();
+        $estadoService = app(EstadoProcesoService::class);
 
         $query = ProcesoDisciplinario::query()
             ->whereNotIn('estado', ['cerrado', 'archivado'])
             ->orderBy('created_at', 'desc')
             ->limit(10);
 
-        // Filtrar por empresa si no es admin
-        if ($user->role !== 'admin') {
+        // Filtrar por empresa si no es admin o super_admin
+        if (!in_array($user->role, ['admin', 'super_admin'])) {
             $query->where('empresa_id', $user->empresa_id);
         }
 
@@ -54,7 +56,7 @@ class RecentProcessesWidget extends BaseWidget
                 Tables\Columns\TextColumn::make('empresa.razon_social')
                     ->label('Empresa')
                     ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: $user->role !== 'admin'),
+                    ->toggleable(isToggledHiddenByDefault: !in_array($user->role, ['admin', 'super_admin'])),
 
                 Tables\Columns\BadgeColumn::make('estado')
                     ->label('Estado')
@@ -66,27 +68,19 @@ class RecentProcessesWidget extends BaseWidget
                         'success' => ['notificado'],
                         'danger' => ['impugnado'],
                     ])
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'apertura' => 'Apertura',
-                        'traslado' => 'Traslado',
-                        'descargos_pendientes' => 'Descargos Pendientes',
-                        'descargos_realizados' => 'Descargos Realizados',
-                        'analisis_juridico' => 'Análisis Jurídico',
-                        'pendiente_gerencia' => 'Pendiente Gerencia',
-                        'sancion_definida' => 'Sanción Definida',
-                        'notificado' => 'Notificado',
-                        'impugnado' => 'Impugnado',
-                        default => $state,
+                    ->formatStateUsing(function (string $state) use ($estadoService): string {
+                        return $estadoService->getDescripcionEstado($state);
                     }),
 
                 Tables\Columns\TextColumn::make('abogado.name')
                     ->label('Abogado')
                     ->toggleable(isToggledHiddenByDefault: $user->role === 'abogado'),
 
-                Tables\Columns\TextColumn::make('fecha_ocurrencia')
-                    ->label('Fecha Hechos')
-                    ->date('d/m/Y')
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('fecha_descargos_programada')
+                    ->label('Fecha Descargos')
+                    ->date('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')

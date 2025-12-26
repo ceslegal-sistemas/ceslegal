@@ -7,6 +7,7 @@ use App\Models\PreguntaDescargo;
 use App\Models\RespuestaDescargo;
 use App\Services\IADescargoService;
 use App\Services\ActaDescargosService;
+use App\Services\EstadoProcesoService;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Log;
@@ -19,10 +20,12 @@ class FormularioDescargos extends Component
     public DiligenciaDescargo $diligencia;
     public array $respuestas = [];
     public array $preguntasProcesadas = [];
-    public array $archivosTemporales = [];
+    public array $archivosEvidencia = [];
     public bool $formularioCompletado = false;
     public bool $mostrarMensajeExito = false;
     public int $longitudMinimaRespuesta = 2;
+    public bool $mostrarAdvertencia = true;
+    public bool $timerIniciado = false;
 
     protected $listeners = ['respuestaGuardada' => 'refrescarPreguntas'];
 
@@ -30,18 +33,39 @@ class FormularioDescargos extends Component
     {
         $this->diligencia = $diligencia;
 
+        // Verificar si ya había iniciado previamente
+        if ($this->diligencia->primer_acceso_en) {
+            $this->timerIniciado = true;
+            $this->mostrarAdvertencia = false;
+
+            // Verificar si ya expiró
+            if ($this->diligencia->tiempoHaExpirado()) {
+                $this->diligencia->marcarTiempoExpirado();
+                $this->formularioCompletado = true;
+                session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
+                return;
+            }
+        }
+
+        $this->cargarRespuestasExistentes();
+    }
+
+    /**
+     * Inicia el timer después de que el usuario acepte la advertencia
+     */
+    public function iniciarDiligencia()
+    {
         // Iniciar timer en primer acceso
         $this->diligencia->iniciarTimer();
+        $this->timerIniciado = true;
+        $this->mostrarAdvertencia = false;
 
-        // Verificar si ya expiró
+        // Verificar si ya expiró (por si acaso)
         if ($this->diligencia->tiempoHaExpirado()) {
             $this->diligencia->marcarTiempoExpirado();
             $this->formularioCompletado = true;
             session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
-            return;
         }
-
-        $this->cargarRespuestasExistentes();
     }
 
     /**
@@ -59,6 +83,49 @@ class FormularioDescargos extends Component
                 $this->respuestas[$pregunta->id] = '';
                 $this->preguntasProcesadas[$pregunta->id] = false;
             }
+        }
+    }
+
+    /**
+     * Salta preguntas condicionales si la respuesta padre lo requiere
+     */
+    protected function saltarPreguntasCondicionales(PreguntaDescargo $pregunta, string $respuestaTexto)
+    {
+        // Cargar preguntas hijas si existen
+        $preguntasHijas = $pregunta->preguntasHijas;
+
+        if ($preguntasHijas->isEmpty()) {
+            return; // No hay preguntas condicionales
+        }
+
+        // Verificar si la respuesta es "NO" (case insensitive)
+        $esRespuestaNo = stripos($respuestaTexto, 'no') !== false &&
+                        stripos($respuestaTexto, 'si') === false;
+
+        if ($esRespuestaNo) {
+            // Saltar todas las preguntas hijas automáticamente
+            foreach ($preguntasHijas as $preguntaHija) {
+                // Crear respuesta automática "No aplica"
+                RespuestaDescargo::updateOrCreate(
+                    ['pregunta_descargo_id' => $preguntaHija->id],
+                    [
+                        'respuesta' => 'No aplica',
+                        'respondido_en' => now(),
+                    ]
+                );
+
+                $preguntaHija->update(['estado' => 'respondida']);
+
+                // Marcar como procesada en el componente
+                $this->preguntasProcesadas[$preguntaHija->id] = true;
+                $this->respuestas[$preguntaHija->id] = 'No aplica';
+            }
+
+            Log::info('Preguntas condicionales saltadas automáticamente', [
+                'pregunta_padre_id' => $pregunta->id,
+                'preguntas_hijas_ids' => $preguntasHijas->pluck('id')->toArray(),
+                'respuesta_padre' => $respuestaTexto,
+            ]);
         }
     }
 
@@ -98,34 +165,20 @@ class FormularioDescargos extends Component
                 return;
             }
 
-            // Guardar archivos adjuntos si existen
-            $archivosGuardados = [];
-            if (isset($this->archivosTemporales[$preguntaId]) && !empty($this->archivosTemporales[$preguntaId])) {
-                foreach ($this->archivosTemporales[$preguntaId] as $archivo) {
-                    if ($archivo) {
-                        $path = $archivo->store('descargos/evidencias', 'public');
-                        $archivosGuardados[] = [
-                            'nombre' => $archivo->getClientOriginalName(),
-                            'path' => $path,
-                            'size' => $archivo->getSize(),
-                            'tipo' => $archivo->getMimeType(),
-                        ];
-                    }
-                }
-            }
-
             $respuesta = RespuestaDescargo::updateOrCreate(
                 ['pregunta_descargo_id' => $preguntaId],
                 [
                     'respuesta' => $respuestaTexto,
                     'respondido_en' => now(),
-                    'archivos_adjuntos' => !empty($archivosGuardados) ? $archivosGuardados : null,
                 ]
             );
 
             $pregunta->update(['estado' => 'respondida']);
 
             $this->preguntasProcesadas[$preguntaId] = true;
+
+            // Si es la pregunta sobre acompañantes y respondió NO, saltar preguntas hijas automáticamente
+            $this->saltarPreguntasCondicionales($pregunta, $respuestaTexto);
 
             // Solo generar preguntas dinámicas si es una pregunta generada por IA
             // (no las preguntas estándar que tienen es_generada_por_ia = false)
@@ -205,11 +258,39 @@ class FormularioDescargos extends Component
         }
 
         try {
+            // Guardar archivos de evidencia si existen
+            $archivosGuardados = [];
+            if (!empty($this->archivosEvidencia)) {
+                foreach ($this->archivosEvidencia as $archivo) {
+                    if ($archivo) {
+                        try {
+                            $path = $archivo->store('descargos/evidencias', 'public');
+                            $archivosGuardados[] = [
+                                'nombre' => $archivo->getClientOriginalName(),
+                                'path' => $path,
+                                'size' => $archivo->getSize(),
+                                'tipo' => $archivo->getMimeType(),
+                            ];
+                        } catch (\Exception $e) {
+                            Log::warning('Error al guardar archivo de evidencia', [
+                                'archivo' => $archivo->getClientOriginalName(),
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    }
+                }
+            }
+
             // Actualizar la diligencia
             $this->diligencia->update([
                 'trabajador_asistio' => true,
                 'fecha_diligencia' => now(),
+                'archivos_evidencia' => !empty($archivosGuardados) ? $archivosGuardados : null,
             ]);
+
+            // Cambiar estado del proceso a "descargos_realizados"
+            $estadoService = app(EstadoProcesoService::class);
+            $estadoService->alCompletarDescargos($this->diligencia->proceso);
 
             // Generar el acta de descargos automáticamente
             $actaService = new ActaDescargosService();

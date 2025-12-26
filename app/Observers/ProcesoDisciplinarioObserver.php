@@ -7,6 +7,7 @@ use App\Services\DocumentGeneratorService;
 use App\Services\TimelineService;
 use App\Services\TerminoLegalService;
 use App\Services\NotificacionService;
+use App\Services\EstadoProcesoService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -15,15 +16,21 @@ class ProcesoDisciplinarioObserver
     protected TimelineService $timelineService;
     protected TerminoLegalService $terminoLegalService;
     protected NotificacionService $notificacionService;
+    protected EstadoProcesoService $estadoService;
+
+    // Almacenar cambios de estado temporalmente (no se persiste en BD)
+    protected static array $cambiosEstado = [];
 
     public function __construct(
         TimelineService $timelineService,
         TerminoLegalService $terminoLegalService,
-        NotificacionService $notificacionService
+        NotificacionService $notificacionService,
+        EstadoProcesoService $estadoService
     ) {
         $this->timelineService = $timelineService;
         $this->terminoLegalService = $terminoLegalService;
         $this->notificacionService = $notificacionService;
+        $this->estadoService = $estadoService;
     }
 
     /**
@@ -58,46 +65,6 @@ class ProcesoDisciplinarioObserver
             ]
         );
 
-        // Si tiene fecha programada, enviar citación automáticamente
-        if ($proceso->fecha_descargos_programada) {
-            try {
-                $service = new DocumentGeneratorService();
-                $result = $service->generarYEnviarCitacion($proceso);
-
-                if ($result['success']) {
-                    // Cambiar estado a "Descargos Pendientes"
-                    $estadoOriginal = $proceso->estado;
-                    $proceso->update(['estado' => 'descargos_pendientes']);
-
-                    // Registrar en timeline
-                    $this->timelineService->registrarCambioEstado(
-                        procesoTipo: 'proceso_disciplinario',
-                        procesoId: $proceso->id,
-                        estadoAnterior: $estadoOriginal,
-                        estadoNuevo: 'descargos_pendientes',
-                        observacion: 'Citación enviada automáticamente al crear el proceso'
-                    );
-
-                    Log::info('Citación enviada automáticamente', [
-                        'proceso_id' => $proceso->id,
-                        'proceso_codigo' => $proceso->codigo,
-                        'fecha_descargos' => $proceso->fecha_descargos_programada,
-                    ]);
-                } else {
-                    Log::warning('No se pudo enviar citación automáticamente', [
-                        'proceso_id' => $proceso->id,
-                        'error' => $result['error'] ?? 'Error desconocido',
-                    ]);
-                }
-            } catch (\Exception $e) {
-                Log::error('Error al enviar citación automática', [
-                    'proceso_id' => $proceso->id,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                ]);
-            }
-        }
-
         // Notificar al abogado asignado si existe
         if ($proceso->abogado_id) {
             $this->notificacionService->notificarProcesoAperturado($proceso);
@@ -114,8 +81,8 @@ class ProcesoDisciplinarioObserver
             $estadoAnterior = $proceso->getOriginal('estado');
             $estadoNuevo = $proceso->estado;
 
-            // Registrar cambio de estado en timeline después de guardar
-            $proceso->_cambioEstado = [
+            // Almacenar cambio de estado temporalmente usando static array
+            self::$cambiosEstado[$proceso->id] = [
                 'anterior' => $estadoAnterior,
                 'nuevo' => $estadoNuevo,
             ];
@@ -131,15 +98,18 @@ class ProcesoDisciplinarioObserver
     public function updated(ProcesoDisciplinario $proceso): void
     {
         // Registrar cambio de estado si existe
-        if (isset($proceso->_cambioEstado)) {
+        if (isset(self::$cambiosEstado[$proceso->id])) {
+            $cambio = self::$cambiosEstado[$proceso->id];
+
             $this->timelineService->registrarCambioEstado(
                 procesoTipo: 'proceso_disciplinario',
                 procesoId: $proceso->id,
-                estadoAnterior: $proceso->_cambioEstado['anterior'],
-                estadoNuevo: $proceso->_cambioEstado['nuevo']
+                estadoAnterior: $cambio['anterior'],
+                estadoNuevo: $cambio['nuevo']
             );
 
-            unset($proceso->_cambioEstado);
+            // Limpiar el cambio temporal
+            unset(self::$cambiosEstado[$proceso->id]);
         }
     }
 

@@ -3,27 +3,29 @@
 namespace App\Filament\Admin\Widgets;
 
 use App\Models\ProcesoDisciplinario;
+use App\Services\EstadoProcesoService;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\Auth;
 
 class ProcessesByStatusChart extends ChartWidget
 {
-    protected static ?string $heading = 'Procesos Disciplinarios por Estado';
+    protected static ?string $heading = 'Distribución de Procesos por Estado';
 
     protected static ?int $sort = 4;
 
     protected int | string | array $columnSpan = 'full';
 
-    protected static ?string $maxHeight = '300px';
+    protected static ?string $maxHeight = '350px';
 
     protected function getData(): array
     {
         $user = Auth::user();
+        $estadoService = app(EstadoProcesoService::class);
 
         $query = ProcesoDisciplinario::query();
 
-        // Filtrar por empresa si no es admin
-        if ($user->role !== 'admin') {
+        // Filtrar por empresa si no es admin o super_admin
+        if (!in_array($user->role, ['admin', 'super_admin'])) {
             $query->where('empresa_id', $user->empresa_id);
         }
 
@@ -32,28 +34,52 @@ class ProcessesByStatusChart extends ChartWidget
             $query->where('abogado_id', $user->id);
         }
 
-        $estados = [
-            'apertura' => 'Apertura',
-            'traslado' => 'Traslado',
-            'descargos_pendientes' => 'Descargos Pendientes',
-            'descargos_realizados' => 'Descargos Realizados',
-            'analisis_juridico' => 'Análisis Jurídico',
-            'pendiente_gerencia' => 'Pendiente Gerencia',
-            'sancion_definida' => 'Sanción Definida',
-            'notificado' => 'Notificado',
-            'impugnado' => 'Impugnado',
-            'cerrado' => 'Cerrado',
-            'archivado' => 'Archivado',
+        // Obtener todos los estados posibles
+        $estadosPosibles = [
+            'apertura',
+            'traslado',
+            'descargos_pendientes',
+            'descargos_realizados',
+            'analisis_juridico',
+            'pendiente_gerencia',
+            'sancion_definida',
+            'notificado',
+            'impugnado',
+            'cerrado',
+            'archivado',
         ];
 
         $data = [];
         $labels = [];
+        $backgroundColors = [];
+        $borderColors = [];
 
-        foreach ($estados as $key => $label) {
-            $count = (clone $query)->where('estado', $key)->count();
+        // Mapeo de colores por estado
+        $colorMapping = [
+            'apertura' => ['rgba(156, 163, 175, 0.7)', 'rgb(156, 163, 175)'],
+            'traslado' => ['rgba(251, 191, 36, 0.7)', 'rgb(251, 191, 36)'],
+            'descargos_pendientes' => ['rgba(249, 115, 22, 0.7)', 'rgb(249, 115, 22)'],
+            'descargos_realizados' => ['rgba(14, 165, 233, 0.7)', 'rgb(14, 165, 233)'],
+            'analisis_juridico' => ['rgba(99, 102, 241, 0.7)', 'rgb(99, 102, 241)'],
+            'pendiente_gerencia' => ['rgba(168, 85, 247, 0.7)', 'rgb(168, 85, 247)'],
+            'sancion_definida' => ['rgba(59, 130, 246, 0.7)', 'rgb(59, 130, 246)'],
+            'notificado' => ['rgba(34, 197, 94, 0.7)', 'rgb(34, 197, 94)'],
+            'impugnado' => ['rgba(239, 68, 68, 0.7)', 'rgb(239, 68, 68)'],
+            'cerrado' => ['rgba(107, 114, 128, 0.7)', 'rgb(107, 114, 128)'],
+            'archivado' => ['rgba(75, 85, 99, 0.7)', 'rgb(75, 85, 99)'],
+        ];
+
+        foreach ($estadosPosibles as $estado) {
+            $count = (clone $query)->where('estado', $estado)->count();
+
+            // Solo incluir estados que tengan procesos
             if ($count > 0) {
                 $data[] = $count;
-                $labels[] = $label;
+                $labels[] = $estadoService->getDescripcionEstado($estado);
+
+                $colors = $colorMapping[$estado] ?? ['rgba(156, 163, 175, 0.7)', 'rgb(156, 163, 175)'];
+                $backgroundColors[] = $colors[0];
+                $borderColors[] = $colors[1];
             }
         }
 
@@ -62,33 +88,9 @@ class ProcessesByStatusChart extends ChartWidget
                 [
                     'label' => 'Cantidad de Procesos',
                     'data' => $data,
-                    'backgroundColor' => [
-                        'rgba(59, 130, 246, 0.5)',   // Blue
-                        'rgba(251, 191, 36, 0.5)',   // Amber
-                        'rgba(249, 115, 22, 0.5)',   // Orange
-                        'rgba(14, 165, 233, 0.5)',   // Sky
-                        'rgba(99, 102, 241, 0.5)',   // Indigo
-                        'rgba(168, 85, 247, 0.5)',   // Purple
-                        'rgba(236, 72, 153, 0.5)',   // Pink
-                        'rgba(34, 197, 94, 0.5)',    // Green
-                        'rgba(239, 68, 68, 0.5)',    // Red
-                        'rgba(107, 114, 128, 0.5)',  // Gray
-                        'rgba(156, 163, 175, 0.5)',  // Gray light
-                    ],
-                    'borderColor' => [
-                        'rgb(59, 130, 246)',
-                        'rgb(251, 191, 36)',
-                        'rgb(249, 115, 22)',
-                        'rgb(14, 165, 233)',
-                        'rgb(99, 102, 241)',
-                        'rgb(168, 85, 247)',
-                        'rgb(236, 72, 153)',
-                        'rgb(34, 197, 94)',
-                        'rgb(239, 68, 68)',
-                        'rgb(107, 114, 128)',
-                        'rgb(156, 163, 175)',
-                    ],
-                    'borderWidth' => 1,
+                    'backgroundColor' => $backgroundColors,
+                    'borderColor' => $borderColors,
+                    'borderWidth' => 2,
                 ],
             ],
             'labels' => $labels,
@@ -107,6 +109,24 @@ class ProcessesByStatusChart extends ChartWidget
                 'legend' => [
                     'display' => true,
                     'position' => 'bottom',
+                    'labels' => [
+                        'padding' => 15,
+                        'font' => [
+                            'size' => 11,
+                        ],
+                    ],
+                ],
+                'tooltip' => [
+                    'enabled' => true,
+                    'callbacks' => [
+                        'label' => 'function(context) {
+                            let label = context.label || "";
+                            let value = context.parsed || 0;
+                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            let percentage = ((value / total) * 100).toFixed(1);
+                            return label + ": " + value + " (" + percentage + "%)";
+                        }',
+                    ],
                 ],
             ],
             'maintainAspectRatio' => false,

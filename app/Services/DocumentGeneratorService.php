@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ProcesoDisciplinario;
 use App\Services\TimelineService;
+use App\Services\EstadoProcesoService;
 use PhpOffice\PhpWord\TemplateProcessor;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Settings;
@@ -80,12 +81,13 @@ class DocumentGeneratorService
             'DIA_LETRA' => $fechaActual->isoFormat('dddd'),
 
             // Variables de la empresa
-            'CIUDAD' => $empresa->ciudad . '., ' ?? '',
+            'CIUDAD' => !empty($empresa->ciudad) ? $empresa->ciudad . '., ' : '',
             'CIUDAD_EMPRESA' => $ciudadTexto,
-            'DEPARTAMENTO' => $empresa->departamento . '. ' ?? '',
+            'DEPARTAMENTO' => !empty($empresa->departamento) ? $empresa->departamento . '. ' : '',
             'DEPARTAMENTO_EMPRESA' => $departamentoTexto,
             'NIT' => $empresa->nit ?? '',
             'DIRECCION_EMPRESA' => $direccionTexto,
+            'NOMBRE_EMPRESA' => $empresa->razon_social ?? '',
 
             // Variables del trabajador
             'NOMBRES' => $nombres,
@@ -99,7 +101,7 @@ class DocumentGeneratorService
             'MES_DESCARGOS' => $fechaDescargos ? $fechaDescargos->isoFormat('MMMM') : '',
             'AÑO_DESCARGOS' => $fechaDescargos ? $fechaDescargos->year : '',
             'DIA_LETRA_DESCARGOS' => $fechaDescargos ? $fechaDescargos->isoFormat('dddd') : '',
-            'HORA_DESCARGOS' => $fechaDescargos ? $fechaDescargos->format('H:i A') : '',
+            'HORA_DESCARGOS' => $fechaDescargos ? $fechaDescargos->format('h:i A') : '',
             'MODALIDAD_DESCARGOS' => ucfirst($proceso->modalidad_descargos ?? 'presencial'),
 
             // Variables de la ocurrencia de los hechos
@@ -287,12 +289,21 @@ class DocumentGeneratorService
                 }
             }
 
-            // Generar link de acceso
-            $linkDescargos = route('descargos.acceso', ['token' => $diligencia->token_acceso]);
-            $fechaAccesoPermitida = Carbon::parse($diligencia->fecha_acceso_permitida);
+            // Solo generar link de acceso si la modalidad es virtual
+            $linkDescargos = null;
+            $fechaAccesoPermitida = null;
 
-            // Enviar por email con el link de descargos
+            if ($proceso->modalidad_descargos === 'virtual') {
+                $linkDescargos = route('descargos.acceso', ['token' => $diligencia->token_acceso]);
+                $fechaAccesoPermitida = Carbon::parse($diligencia->fecha_acceso_permitida);
+            }
+
+            // Enviar por email (con o sin link según la modalidad)
             $this->enviarCitacionPorEmail($proceso, $pdfPath, $linkDescargos, $fechaAccesoPermitida);
+
+            // Cambiar estado automáticamente a "descargos_pendientes"
+            $estadoService = app(EstadoProcesoService::class);
+            $estadoService->alEnviarCitacion($proceso);
 
             // Registrar en el timeline
             $timelineService = app(TimelineService::class);

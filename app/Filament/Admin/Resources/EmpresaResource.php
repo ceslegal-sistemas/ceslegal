@@ -77,7 +77,7 @@ class EmpresaResource extends Resource
                         Forms\Components\TextInput::make('telefono')
                             ->label('Teléfono')
                             ->tel()
-                            ->required()
+                            // ->required()
                             ->maxLength(50)
                             ->placeholder('Ej: +57 300 123 4567')
                             ->helperText('Número de contacto principal')
@@ -86,7 +86,7 @@ class EmpresaResource extends Resource
                         Forms\Components\TextInput::make('email_contacto')
                             ->label('Email de Contacto')
                             ->email()
-                            ->required()
+                            // ->required()
                             ->maxLength(255)
                             ->placeholder('contacto@empresa.com')
                             ->helperText('Correo electrónico principal')
@@ -94,7 +94,7 @@ class EmpresaResource extends Resource
 
                         Forms\Components\Textarea::make('direccion')
                             ->label('Dirección')
-                            ->required()
+                            // ->required()
                             ->rows(2)
                             ->placeholder('Ej: Calle 123 # 45-67, Edificio ABC, Piso 3')
                             ->helperText('Dirección completa de la empresa')
@@ -322,6 +322,10 @@ class EmpresaResource extends Resource
             'Vichada' => ['Puerto Carreño', 'La Primavera', 'Cumaribo'],
         ];
 
-        return $ciudades[$departamento] ?? [$departamento];
+        $ciudadesDepartamento = $ciudades[$departamento] ?? [$departamento];
+
+        // Convertir array a formato clave => valor para que Filament guarde el nombre de la ciudad
+        // En lugar de [0 => 'Tunja', 1 => 'Duitama'] se convierte a ['Tunja' => 'Tunja', 'Duitama' => 'Duitama']
+        return array_combine($ciudadesDepartamento, $ciudadesDepartamento);
     }
 }
