@@ -19,32 +19,27 @@ class EditProcesoDisciplinario extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // Al cargar el formulario para editar, separar fecha y hora según modalidad
+        // Al cargar el formulario para editar, poblar campos temporales según modalidad
 
-        if (!empty($data['fecha_descargos_programada'])) {
-            $datetime = \Carbon\Carbon::parse($data['fecha_descargos_programada']);
-
-            if ($data['modalidad_descargos'] === 'virtual') {
-                // Para virtual: separar fecha y hora
-                // La fecha ya está en fecha_descargos_programada
-                // Extraer solo la hora para el campo hora_descargos_programada
-                $data['hora_descargos_programada'] = $datetime->format('H:i');
-            } else if (in_array($data['modalidad_descargos'], ['presencial', 'telefonico'])) {
-                // Para presencial/telefónico: establecer campos temporales
-                $data['fecha_temp_descargos'] = $datetime->format('Y-m-d');
-                $data['hora_temp_descargos'] = $datetime->format('Y-m-d H:i:s');
+        if (in_array($data['modalidad_descargos'], ['presencial', 'telefonico'])) {
+            // Para presencial/telefónico: combinar fecha + hora en hora_temp_descargos
+            if (!empty($data['fecha_descargos_programada']) && !empty($data['hora_descargos_programada'])) {
+                $data['hora_temp_descargos'] = $data['fecha_descargos_programada'] . ' ' . $data['hora_descargos_programada'];
             }
         }
+        // Para virtual: los campos ya están separados, no necesita transformación
 
         return $data;
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Para presencial/telefónico: usar el valor de hora_temp_descargos
+        // Para presencial/telefónico: extraer fecha y hora de hora_temp_descargos
         if (in_array($data['modalidad_descargos'] ?? '', ['presencial', 'telefonico'])) {
             if (!empty($data['hora_temp_descargos'])) {
-                $data['fecha_descargos_programada'] = $data['hora_temp_descargos'];
+                $datetime = \Carbon\Carbon::parse($data['hora_temp_descargos']);
+                $data['fecha_descargos_programada'] = $datetime->format('Y-m-d');
+                $data['hora_descargos_programada'] = $datetime->format('H:i:s');
             }
         }
 
@@ -52,13 +47,12 @@ class EditProcesoDisciplinario extends EditRecord
         \Log::info('EDIT - Datos antes de guardar proceso disciplinario (edición):', [
             'modalidad' => $data['modalidad_descargos'] ?? 'no definido',
             'fecha_descargos_programada' => $data['fecha_descargos_programada'] ?? 'no definido',
-            'hora_temp_descargos' => $data['hora_temp_descargos'] ?? 'no definido',
+            'hora_descargos_programada' => $data['hora_descargos_programada'] ?? 'no definido',
         ]);
 
         // Remover campos temporales del array de datos
         unset($data['fecha_temp_descargos']);
         unset($data['hora_temp_descargos']);
-        unset($data['hora_descargos_programada']); // Este tampoco debe guardarse directamente
 
         return $data;
     }

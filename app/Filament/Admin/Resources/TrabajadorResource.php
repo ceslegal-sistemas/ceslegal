@@ -120,7 +120,7 @@ class TrabajadorResource extends Resource
                             ->options([
                                 'masculino' => 'Masculino',
                                 'femenino' => 'Femenino',
-                                'otro' => 'Otro',
+                                // 'otro' => 'Otro',
                             ])
                             ->required()
                             ->native(false)
@@ -134,16 +134,16 @@ class TrabajadorResource extends Resource
                             ->maxLength(255)
                             ->placeholder('Ej: Juan Carlos')
                             ->live(onBlur: true)
-                            ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                                // Auto-generar email si está vacío
-                                if (empty($get('email')) && !empty($state) && !empty($get('apellidos'))) {
-                                    $nombres = Str::slug(Str::lower($state));
-                                    $apellidos = Str::slug(Str::lower($get('apellidos')));
-                                    $empresa = \App\Models\Empresa::find($get('empresa_id'));
-                                    $dominio = $empresa ? Str::slug($empresa->razon_social) : 'empresa';
-                                    $set('email', "{$nombres}.{$apellidos}@{$dominio}.com");
-                                }
-                            })
+                            // ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
+                            //     // Auto-generar email si está vacío
+                            //     if (empty($get('email')) && !empty($state) && !empty($get('apellidos'))) {
+                            //         $nombres = Str::slug(Str::lower($state));
+                            //         $apellidos = Str::slug(Str::lower($get('apellidos')));
+                            //         $empresa = \App\Models\Empresa::find($get('empresa_id'));
+                            //         $dominio = $empresa ? Str::slug($empresa->razon_social) : 'empresa';
+                            //         $set('email', "{$nombres}.{$apellidos}@{$dominio}.com");
+                            //     }
+                            // })
                             ->helperText('Nombres completos del trabajador'),
 
                         Forms\Components\TextInput::make('apellidos')
@@ -152,20 +152,20 @@ class TrabajadorResource extends Resource
                             ->maxLength(255)
                             ->placeholder('Ej: Pérez García')
                             ->live(onBlur: true)
-                            ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                                // Auto-generar email si está vacío
-                                if (empty($get('email')) && !empty($state) && !empty($get('nombres'))) {
-                                    $nombres = Str::slug(Str::lower($get('nombres')));
-                                    $apellidos = Str::slug(Str::lower($state));
-                                    $empresa = \App\Models\Empresa::find($get('empresa_id'));
-                                    $dominio = $empresa ? Str::slug($empresa->razon_social) : 'empresa';
-                                    $set('email', "{$nombres}.{$apellidos}@{$dominio}.com");
-                                }
-                            })
+                            // ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
+                            //     // Auto-generar email si está vacío
+                            //     if (empty($get('email')) && !empty($state) && !empty($get('nombres'))) {
+                            //         $nombres = Str::slug(Str::lower($get('nombres')));
+                            //         $apellidos = Str::slug(Str::lower($state));
+                            //         $empresa = \App\Models\Empresa::find($get('empresa_id'));
+                            //         $dominio = $empresa ? Str::slug($empresa->razon_social) : 'empresa';
+                            //         $set('email', "{$nombres}.{$apellidos}@{$dominio}.com");
+                            //     }
+                            // })
                             ->helperText('Apellidos completos del trabajador'),
 
                         Forms\Components\Select::make('departamento_nacimiento')
-                            ->label('Departamento de Nacimiento')
+                            ->label('Departamento de Nacimiento (Opcional)')
                             ->options(fn() => DB::table('departamentos')->pluck('nombre', 'nombre')->toArray())
                             ->searchable()
                             ->native(false)
@@ -176,7 +176,7 @@ class TrabajadorResource extends Resource
                             ->suffixIcon('heroicon-o-map'),
 
                         Forms\Components\Select::make('ciudad_nacimiento')
-                            ->label('Ciudad / Municipio de Nacimiento')
+                            ->label('Ciudad / Municipio de Nacimiento (Opcional)')
                             ->options(function (Get $get): array {
                                 $departamento = $get('departamento_nacimiento');
                                 if (!$departamento) return [];
@@ -193,10 +193,19 @@ class TrabajadorResource extends Resource
                             ->disabled(fn(Get $get) => !$get('departamento_nacimiento'))
                             ->helperText('Ciudad o municipio donde nació el trabajador (1,122 municipios disponibles)')
                             ->suffixIcon('heroicon-o-map-pin'),
+
+                        Forms\Components\TextInput::make('email')
+                            ->label('Correo Electrónico')
+                            ->email()
+                            ->required()
+                            ->maxLength(255)
+                            ->placeholder('trabajador@empresa.com')
+                            ->helperText('Correo electrónico del trabajador')
+                            ->suffixIcon('heroicon-o-envelope'),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Información Laboral')
-                    ->description('Cargo, área y fecha de ingreso')
+                    ->description('Cargo y Área')
                     ->icon('heroicon-o-briefcase')
                     ->schema([
                         Forms\Components\Select::make('cargo_select')
@@ -219,8 +228,16 @@ class TrabajadorResource extends Resource
                                     $set('cargo', null);
                                 }
                             })
+                            ->afterStateHydrated(function (Set $set, Get $get, ?string $state) {
+                                // Al cargar el registro (edición), establecer cargo_select basado en el valor de cargo
+                                $cargo = $get('cargo');
+                                if ($cargo && in_array($cargo, self::getCargos())) {
+                                    $set('cargo_select', $cargo);
+                                } elseif ($cargo) {
+                                    $set('cargo_select', '__otro__');
+                                }
+                            })
                             ->dehydrated(false)
-                            ->default(fn(Get $get) => in_array($get('cargo'), self::getCargos()) ? $get('cargo') : '__otro__')
                             ->helperText('Seleccione un cargo de la lista o elija "Otro" para personalizar')
                             ->placeholder('Seleccione el cargo...')
                             ->suffixIcon('heroicon-o-briefcase')
@@ -232,7 +249,13 @@ class TrabajadorResource extends Resource
                             ->required(fn(Get $get) => $get('cargo_select') === '__otro__')
                             ->placeholder('Ej: Jefe de Proyectos Especiales')
                             ->helperText('Escriba el nombre del cargo personalizado')
-                            ->default(fn(Get $get) => !in_array($get('cargo'), self::getCargos()) ? $get('cargo') : null),
+                            ->afterStateHydrated(function (Set $set, Get $get, ?string $state) {
+                                // Al cargar el registro (edición), si el cargo no está en la lista, establecer cargo_otro
+                                $cargo = $get('cargo');
+                                if ($cargo && !in_array($cargo, self::getCargos())) {
+                                    $set('cargo_otro', $cargo);
+                                }
+                            }),
 
                         Forms\Components\Hidden::make('cargo')
                             ->required()
@@ -262,8 +285,16 @@ class TrabajadorResource extends Resource
                                     $set('area', null);
                                 }
                             })
+                            ->afterStateHydrated(function (Set $set, Get $get, ?string $state) {
+                                // Al cargar el registro (edición), establecer area_select basado en el valor de area
+                                $area = $get('area');
+                                if ($area && in_array($area, self::getAreas())) {
+                                    $set('area_select', $area);
+                                } elseif ($area) {
+                                    $set('area_select', '__otro__');
+                                }
+                            })
                             ->dehydrated(false)
-                            ->default(fn(Get $get) => in_array($get('area'), self::getAreas()) ? $get('area') : (empty($get('area')) ? null : '__otro__'))
                             ->helperText('Seleccione un área de la lista o elija "Otro" para personalizar')
                             ->placeholder('Seleccione el área...')
                             ->suffixIcon('heroicon-o-building-office-2'),
@@ -274,7 +305,13 @@ class TrabajadorResource extends Resource
                             ->required(fn(Get $get) => $get('area_select') === '__otro__')
                             ->placeholder('Ej: Innovación y Desarrollo')
                             ->helperText('Escriba el nombre del área personalizada')
-                            ->default(fn(Get $get) => !in_array($get('area'), self::getAreas()) && !empty($get('area')) ? $get('area') : null),
+                            ->afterStateHydrated(function (Set $set, Get $get, ?string $state) {
+                                // Al cargar el registro (edición), si el área no está en la lista, establecer area_otro
+                                $area = $get('area');
+                                if ($area && !in_array($area, self::getAreas())) {
+                                    $set('area_otro', $area);
+                                }
+                            }),
 
                         Forms\Components\Hidden::make('area')
                             ->dehydrateStateUsing(function (Get $get) {
@@ -283,16 +320,16 @@ class TrabajadorResource extends Resource
                                     : $get('area_select');
                             }),
 
-                        Forms\Components\DatePicker::make('fecha_ingreso')
-                            ->label('Fecha de Ingreso')
-                            ->required()
-                            ->maxDate(now())
-                            ->default(now())
-                            ->native(false)
-                            ->displayFormat('d/m/Y')
-                            ->helperText('Fecha en que el trabajador ingresó a la empresa')
-                            ->placeholder('Seleccione la fecha...')
-                            ->suffixIcon('heroicon-o-calendar'),
+                        // Forms\Components\DatePicker::make('fecha_ingreso')
+                        //     ->label('Fecha de Ingreso')
+                        //     ->required()
+                        //     ->maxDate(now())
+                        //     ->default(now())
+                        //     ->native(false)
+                        //     ->displayFormat('d/m/Y')
+                        //     ->helperText('Fecha en que el trabajador ingresó a la empresa')
+                        //     ->placeholder('Seleccione la fecha...')
+                        //     ->suffixIcon('heroicon-o-calendar'),
 
                         Forms\Components\Toggle::make('active')
                             ->label('Trabajador Activo')
@@ -301,22 +338,13 @@ class TrabajadorResource extends Resource
                             ->inline(false),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Datos de Contacto')
-                    ->description('Email, teléfono y dirección (opcional)')
+                Forms\Components\Section::make('Datos de Contacto (Opcional)')
+                    ->description('Teléfono y dirección')
                     ->icon('heroicon-o-phone')
                     ->collapsed()
                     ->schema([
-                        Forms\Components\TextInput::make('email')
-                            ->label('Correo Electrónico')
-                            ->email()
-                            ->required()
-                            ->maxLength(255)
-                            ->placeholder('trabajador@empresa.com')
-                            ->helperText('Correo electrónico del trabajador')
-                            ->suffixIcon('heroicon-o-envelope'),
-
                         Forms\Components\TextInput::make('telefono')
-                            ->label('Teléfono / Celular')
+                            ->label('Teléfono / Celular (Opcional)')
                             ->tel()
                             ->maxLength(50)
                             ->placeholder('Ej: +57 300 123 4567')
@@ -325,11 +353,12 @@ class TrabajadorResource extends Resource
                             ->suffixIcon('heroicon-o-phone'),
 
                         Forms\Components\Textarea::make('direccion')
-                            ->label('Dirección de Residencia')
+                            ->label('Dirección de Residencia (Opcional)')
                             ->rows(2)
                             ->placeholder('Ej: Calle 123 # 45-67, Barrio Centro')
-                            ->helperText('Dirección completa (Opcional)')
-                            ->columnSpanFull(),
+                            ->helperText('Dirección completa')
+                            // ->columnSpanFull()
+                            ,
                     ])->columns(2),
             ]);
     }
@@ -370,15 +399,15 @@ class TrabajadorResource extends Resource
                     ->icon('heroicon-o-building-office-2')
                     ->placeholder('Sin asignar'),
 
-                Tables\Columns\TextColumn::make('fecha_ingreso')
-                    ->label('Fecha Ingreso')
-                    ->date('d/m/Y')
-                    ->sortable()
-                    ->description(
-                        fn(Trabajador $record): ?string =>
-                        $record->fecha_ingreso?->diffForHumans()
-                    )
-                    ->icon('heroicon-o-calendar'),
+                // Tables\Columns\TextColumn::make('fecha_ingreso')
+                //     ->label('Fecha Ingreso')
+                //     ->date('d/m/Y')
+                //     ->sortable()
+                //     ->description(
+                //         fn(Trabajador $record): ?string =>
+                //         $record->fecha_ingreso?->diffForHumans()
+                //     )
+                //     ->icon('heroicon-o-calendar'),
 
                 Tables\Columns\TextColumn::make('email')
                     ->label('Email')
@@ -398,11 +427,13 @@ class TrabajadorResource extends Resource
                     ->boolean()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('procesosDisciplinarios_count')
+                Tables\Columns\TextColumn::make('procesos_disciplinarios_count')
                     ->label('Procesos')
-                    ->counts('procesosDisciplinarios')
                     ->badge()
-                    ->color(fn(int $state): string => $state > 0 ? 'warning' : 'success')
+                    ->sortable()
+                    ->getStateUsing(fn($record) => $record->procesos_disciplinarios_count ?? 0)
+                    ->formatStateUsing(fn($state) => (string) ($state ?? 0))
+                    ->color(fn($state): string => ($state > 0) ? 'warning' : 'success')
                     ->toggleable(),
             ])
             ->filters([
@@ -435,12 +466,56 @@ class TrabajadorResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('Editar'),
                 Tables\Actions\DeleteAction::make()
-                    ->label('Eliminar'),
+                    ->label('Eliminar')
+                    ->before(function (Tables\Actions\DeleteAction $action, \App\Models\Trabajador $record) {
+                        // Verificar si tiene procesos disciplinarios
+                        if ($record->procesosDisciplinarios()->count() > 0) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('No se puede eliminar el trabajador')
+                                ->body("El trabajador '{$record->nombre_completo}' ({$record->tipo_documento}: {$record->numero_documento}) tiene {$record->procesosDisciplinarios()->count()} procesos disciplinarios asociados. Debe eliminar o reasignar esos procesos primero.")
+                                ->persistent()
+                                ->send();
+
+                            $action->cancel();
+                        }
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->label('Eliminar seleccionados'),
+                        ->label('Eliminar seleccionados')
+                        ->action(function (Tables\Actions\DeleteBulkAction $action, \Illuminate\Support\Collection $records) {
+                            $bloqueados = [];
+                            $eliminados = 0;
+
+                            foreach ($records as $record) {
+                                // Verificar si tiene procesos disciplinarios
+                                if ($record->procesosDisciplinarios()->count() > 0) {
+                                    $bloqueados[] = $record->nombre_completo;
+                                } else {
+                                    $record->delete();
+                                    $eliminados++;
+                                }
+                            }
+
+                            if (count($bloqueados) > 0) {
+                                \Filament\Notifications\Notification::make()
+                                    ->warning()
+                                    ->title('Algunos trabajadores no se pudieron eliminar')
+                                    ->body('Los siguientes trabajadores tienen procesos disciplinarios asociados: ' . implode(', ', $bloqueados))
+                                    ->persistent()
+                                    ->send();
+                            }
+
+                            if ($eliminados > 0) {
+                                \Filament\Notifications\Notification::make()
+                                    ->success()
+                                    ->title('Trabajadores eliminados')
+                                    ->body("{$eliminados} trabajador(es) eliminado(s) correctamente.")
+                                    ->send();
+                            }
+                        }),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');

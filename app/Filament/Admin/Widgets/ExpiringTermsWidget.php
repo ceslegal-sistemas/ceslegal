@@ -60,9 +60,7 @@ class ExpiringTermsWidget extends BaseWidget
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'traslado_descargos' => 'Traslado Descargos',
                         'impugnacion' => 'Impugnación',
-                        'analisis_juridico' => 'Análisis Jurídico',
-                        'respuesta_gerencia' => 'Respuesta Gerencia',
-                        default => $state,
+                        default => ucfirst(str_replace('_', ' ', $state)),
                     }),
 
                 Tables\Columns\TextColumn::make('fecha_inicio')
@@ -133,8 +131,6 @@ class ExpiringTermsWidget extends BaseWidget
                     ->options([
                         'traslado_descargos' => 'Traslado Descargos',
                         'impugnacion' => 'Impugnación',
-                        'analisis_juridico' => 'Análisis Jurídico',
-                        'respuesta_gerencia' => 'Respuesta Gerencia',
                     ]),
             ])
             ->actions([

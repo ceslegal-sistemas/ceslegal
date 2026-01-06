@@ -82,14 +82,14 @@
             <p><strong>Empresa:</strong> {{ $empresa->razon_social }}</p>
             <p><strong>Código del Proceso:</strong> {{ $proceso->codigo }}</p>
             <p><strong>Su cargo:</strong> {{ $trabajador->cargo }}</p>
-            <p><strong>Área:</strong> {{ $trabajador->area }}</p>
+            {{-- <p><strong>Área:</strong> {{ $trabajador->area ?? 'N/A' }}</p> --}}
         </div>
 
         @if ($proceso->fecha_descargos_programada)
             <div class="important">
                 <h2>Fecha y Hora de la Audiencia</h2>
                 <p style="font-size: 18px; margin: 10px 0;">
-                    <strong>{{ \Carbon\Carbon::parse($proceso->fecha_descargos_programada)->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY') . ' a las ' . \Carbon\Carbon::parse($proceso->hora_descargos_programada) }}</strong>
+                    <strong>{{ \Carbon\Carbon::parse($proceso->fecha_descargos_programada)->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY') . ' a las ' . \Carbon\Carbon::parse($proceso->hora_descargos_programada)->format('H:i') }}</strong>
                 </p>
                 <p><strong>Modalidad:</strong> {{ ucfirst($proceso->modalidad_descargos ?? 'Presencial') }}</p>
             </div>
@@ -134,7 +134,6 @@
             <ul>
                 <li>Es <strong>obligatoria</strong> su asistencia a la audiencia de descargos</li>
                 <li>Tiene derecho a presentar las pruebas que considere pertinentes</li>
-                <li>Puede hacerse acompañar de un abogado si lo desea</li>
                 <li>Revise el documento adjunto para conocer todos sus derechos</li>
                 @if ($linkDescargos)
                     <li>Podrá presentar sus descargos en línea a través del enlace proporcionado arriba</li>

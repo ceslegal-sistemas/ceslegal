@@ -166,7 +166,7 @@ RESPUESTA DEL TRABAJADOR:
 
 INSTRUCCIONES:
 Analiza las respuestas del trabajador teniendo en cuenta los hechos que indique en contraste con la conducta realizada que trasgrede las normas internas de la empresa y la ley aplicable en materia laboral.
-•⁠  ⁠Genera nuevas preguntas si y solo si, existen inexactitudes, incongruencias, evasivas y/ contradicciones en los argumentos del trabajador.
+•⁠  ⁠Genera nuevas preguntas si y solo si, existen inexactitudes, incongruencias, evasivas y/o contradicciones en los argumentos del trabajador.
 •⁠  ⁠Máximo 2 preguntas.
 •⁠  ⁠Las preguntas deben ser:
   * Claras, breves y concisas.
@@ -516,14 +516,16 @@ Las preguntas deben:
 - Ser claras, específicas y neutrales
 - Permitir al trabajador explicar su versión de los hechos
 - Indagar sobre circunstancias, motivaciones y contexto
-- No ser sugestivas ni inculpatorias
-- Estar orientadas a garantizar el derecho a la defensa
+- Dirigidas a esclarecer el hecho que dio origen a la diligencia de descargos con una tendencia de juzgamiento a favor del empleador y en contra del trabajador.
 
 FORMATO DE RESPUESTA:
 PREGUNTA_1: [texto]
 PREGUNTA_2: [texto]
 ...
 PREGUNTA_{$cantidadPreguntas}: [texto]
+
+Si no se requieren preguntas, responde:
+NO_REQUIERE
 PROMPT;
 
         try {

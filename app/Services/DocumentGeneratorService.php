@@ -41,10 +41,31 @@ class DocumentGeneratorService
         // Formatear fecha actual
         $fechaActual = Carbon::now()->locale('es');
 
-        // Formatear fecha de descargos
+        // Formatear fecha de descargos (campo DATE)
         $fechaDescargos = $proceso->fecha_descargos_programada
             ? Carbon::parse($proceso->fecha_descargos_programada)->locale('es')
             : null;
+
+        // Formatear hora de descargos (campo TIME)
+        $horaDescargos = null;
+        if ($proceso->hora_descargos_programada) {
+            try {
+                // El campo es TIME (H:i:s), convertirlo a formato legible
+                $horaDescargos = Carbon::createFromFormat('H:i:s', $proceso->hora_descargos_programada)
+                    ->locale('es')
+                    ->format('h:i A');
+            } catch (\Exception $e) {
+                // Si falla, intentar parsearlo como string normal
+                try {
+                    $horaDescargos = Carbon::parse($proceso->hora_descargos_programada)
+                        ->locale('es')
+                        ->format('h:i A');
+                } catch (\Exception $e2) {
+                    // Si todo falla, usar el valor tal cual
+                    $horaDescargos = $proceso->hora_descargos_programada;
+                }
+            }
+        }    
 
         // Formatear fecha de ocurrencia
         $fechaOcurrencia = $proceso->fecha_ocurrencia
@@ -101,7 +122,7 @@ class DocumentGeneratorService
             'MES_DESCARGOS' => $fechaDescargos ? $fechaDescargos->isoFormat('MMMM') : '',
             'AÑO_DESCARGOS' => $fechaDescargos ? $fechaDescargos->year : '',
             'DIA_LETRA_DESCARGOS' => $fechaDescargos ? $fechaDescargos->isoFormat('dddd') : '',
-            'HORA_DESCARGOS' => $fechaDescargos ? $fechaDescargos->format('h:i A') : '',
+            'HORA_DESCARGOS' => $horaDescargos ?? '',
             'MODALIDAD_DESCARGOS' => ucfirst($proceso->modalidad_descargos ?? 'presencial'),
 
             // Variables de la ocurrencia de los hechos
@@ -127,7 +148,9 @@ class DocumentGeneratorService
             'TRABAJADOR_CARGO' => $trabajador->cargo ?? '',
             'TRABAJADOR_AREA' => $trabajador->area ?? '',
             'TRABAJADOR_EMAIL' => $trabajador->email ?? '',
-            'FECHA_DESCARGOS' => $fechaDescargos ? $fechaDescargos->isoFormat('dddd, D [de] MMMM [de] YYYY [a las] h:mm A') : '',
+            'FECHA_DESCARGOS' => ($fechaDescargos && $horaDescargos)
+                ? $fechaDescargos->isoFormat('dddd, D [de] MMMM [de] YYYY') . ' a las ' . $horaDescargos
+                : ($fechaDescargos ? $fechaDescargos->isoFormat('dddd, D [de] MMMM [de] YYYY') : ''),
             'MODALIDAD_DESCARGOS' => ucfirst($proceso->modalidad_descargos ?? 'presencial'),
             'HECHOS' => strip_tags($proceso->hechos ?? ''),
             'ANTECEDENTES' => strip_tags($proceso->antecedentes ?? ''),
@@ -275,14 +298,31 @@ class DocumentGeneratorService
             $diligencia->acceso_habilitado = true;
             $diligencia->save();
 
-            // Generar preguntas completas (estándar + IA + cierre) si no existen
+            // Intentar generar preguntas completas (estándar + IA + cierre) si no existen
+            $preguntasGeneradasConIA = false;
             if ($diligencia->preguntas()->count() === 0) {
                 try {
                     $iaService = new IADescargoService();
-                    $iaService->generarPreguntasCompletas($diligencia, 5);
+                    $preguntasGeneradas = $iaService->generarPreguntasCompletas($diligencia, 5);
+
+                    // Verificar si se generaron preguntas con IA
+                    $preguntasConIA = collect($preguntasGeneradas)->filter(function ($pregunta) {
+                        return $pregunta->es_generada_por_ia ?? false;
+                    })->count();
+
+                    if ($preguntasConIA > 0) {
+                        $preguntasGeneradasConIA = true;
+                    } else {
+                        // Si no se generaron preguntas con IA, solo registrar warning
+                        \Illuminate\Support\Facades\Log::warning('No se generaron preguntas con IA', [
+                            'proceso_id' => $proceso->id,
+                            'diligencia_id' => $diligencia->id,
+                            'preguntas_totales' => count($preguntasGeneradas),
+                        ]);
+                    }
                 } catch (\Exception $e) {
-                    // Si falla la IA, continuar sin preguntas
-                    \Illuminate\Support\Facades\Log::warning('No se pudieron generar preguntas con IA', [
+                    // Registrar el error pero NO detener el envío del correo
+                    \Illuminate\Support\Facades\Log::warning('Error al generar preguntas con IA (se continuará con el envío)', [
                         'proceso_id' => $proceso->id,
                         'error' => $e->getMessage(),
                     ]);
@@ -300,6 +340,9 @@ class DocumentGeneratorService
 
             // Enviar por email (con o sin link según la modalidad)
             $this->enviarCitacionPorEmail($proceso, $pdfPath, $linkDescargos, $fechaAccesoPermitida);
+
+            // Refrescar el proceso desde la BD para asegurar que tiene el estado correcto
+            $proceso->refresh();
 
             // Cambiar estado automáticamente a "descargos_pendientes"
             $estadoService = app(EstadoProcesoService::class);
@@ -324,12 +367,19 @@ class DocumentGeneratorService
                 destinatario: $proceso->trabajador->email
             );
 
+            // Preparar mensaje de éxito
+            $mensaje = 'Citación generada y enviada exitosamente. Diligencia de descargos creada con acceso web.';
+            if (!$preguntasGeneradasConIA) {
+                $mensaje .= ' NOTA: No se pudieron generar preguntas con IA. Deberá generarlas manualmente desde el módulo de Descargos.';
+            }
+
             return [
                 'success' => true,
-                'message' => 'Citación generada y enviada exitosamente. Diligencia de descargos creada con acceso web.',
+                'message' => $mensaje,
                 'pdf_path' => $pdfPath,
                 'diligencia_id' => $diligencia->id,
                 'link_descargos' => $linkDescargos,
+                'preguntas_ia_generadas' => $preguntasGeneradasConIA,
             ];
         } catch (\Exception $e) {
             return [

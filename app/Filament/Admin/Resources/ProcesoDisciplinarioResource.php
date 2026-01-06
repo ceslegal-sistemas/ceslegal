@@ -21,6 +21,8 @@ use Filament\Support\Colors\Color;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use HusamTariq\FilamentTimePicker\Forms\Components\TimePickerField;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ProcesoDisciplinarioResource extends Resource
 {
@@ -121,7 +123,6 @@ class ProcesoDisciplinarioResource extends Resource
                                         ->options([
                                             'masculino' => 'Masculino',
                                             'femenino' => 'Femenino',
-                                            'otro' => 'Otro',
                                         ])
                                         ->required()
                                         ->native(false),
@@ -203,10 +204,9 @@ class ProcesoDisciplinarioResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required()
-                            ->default(function () {
-                                // Asignar el primer abogado disponible por defecto
-                                return User::role('abogado')->first()?->id;
-                            })
+                            // ->default(function () {
+                            //     return User::role('abogado')->first()?->id;
+                            // })
                             ->helperText('Seleccione el abogado que llevará el proceso')
                             ->suffixIcon('heroicon-o-user')
                             ->live(),
@@ -268,7 +268,7 @@ class ProcesoDisciplinarioResource extends Resource
                             ->required()
                             ->live()
                             ->visible(fn(Get $get) => in_array($get('modalidad_descargos'), ['presencial', 'telefonico']) && $get('fecha_temp_descargos'))
-                            ->helperText('Disponibilidad de 45 minutos - Horario de oficina: 8:00 AM - 5:00 PM')
+                            ->helperText('Selecciona la hora disponible de 45 minutos - Horario de oficina: 8:00 AM - 5:00 PM')
                             ->descriptions(function (Get $get) {
                                 $fecha = $get('fecha_temp_descargos');
                                 $modalidad = $get('modalidad_descargos');
@@ -310,25 +310,19 @@ class ProcesoDisciplinarioResource extends Resource
                         TimePickerField::make('hora_descargos_programada')
                             ->okLabel("Confirmar")
                             ->cancelLabel("Cancelar")
-                            // Forms\Components\TimePicker::make('hora_descargos_programada')
                             ->label('Hora Programada de Descargos')
                             ->required()
-                            ->dehydrated(false)
                             ->live()
                             ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                 $fecha = $get('fecha_descargos_programada');
                                 $hora = $state;
 
                                 if ($fecha && $hora) {
-                                    // Combinar fecha y hora en un datetime
+                                    // Combinar fecha y hora en un datetime para fecha_descargos_programada
                                     $datetime = \Carbon\Carbon::parse($fecha)->setTimeFromTimeString($hora);
                                     $set('fecha_descargos_programada', $datetime->format('Y-m-d H:i:s'));
                                 }
                             })
-                            // ->minTime('08:00')
-                            // ->maxTime('17:00')
-                            // ->seconds(false)
-                            // ->native(false)
                             ->visible(fn(Get $get) => $get('modalidad_descargos') === 'virtual')
                             ->helperText('Seleccione la hora para la audiencia virtual'),
 
@@ -376,6 +370,13 @@ class ProcesoDisciplinarioResource extends Resource
                             ->required()
                             ->native(false),
 
+                        Forms\Components\DatePicker::make('fecha_ocurrencia')
+                            ->label('Fecha de Ocurrencia de los Hechos')
+                            ->displayFormat('d/m/Y')
+                            ->native(false)
+                            ->required()
+                            ->helperText('Fecha en que ocurrieron los hechos que motivan el proceso'),
+
                         Forms\Components\RichEditor::make('hechos')
                             ->label('Motivo de la citacion a diligencia de descargos')
                             ->required()
@@ -388,14 +389,152 @@ class ProcesoDisciplinarioResource extends Resource
                                 'undo',
                             ])
                             ->helperText('Describa detalladamente los hechos que motivan el proceso disciplinario')
-                            ->columnSpanFull(),
+                            // ->hintIcon('heroicon-o-sparkles')
+                            ->hintColor('primary')
+                            // ->hint('Generar con IA')
+                            ->hintAction(
+                                Forms\Components\Actions\Action::make('generarMotivo')
+                                    ->icon('heroicon-o-sparkles')
+                                    ->label('Generar redacción con IA')
+                                    ->requiresConfirmation()
+                                    ->modalHeading('Generar Motivo con IA')
+                                    ->modalDescription('La IA generará una redacción profesional del motivo basándose en la información ingresada. Puede editarla después.')
+                                    ->modalSubmitActionLabel('Generar')
+                                    ->action(function (Forms\Set $set, Forms\Get $get) {
+                                        try {
+                                            $trabajadorId = $get('trabajador_id');
+                                            $empresaId = $get('empresa_id');
+                                            $articulosLegales = $get('articulos_legales_texto') ?? '';
+                                            $fechaOcurrencia = $get('fecha_ocurrencia');
+                                            $fechaProgramada = $get('fecha_descargos_programada');
+                                            $horaProgramada = $get('hora_descargos_programada');
+                                            $modalidadDescargos = $get('modalidad_descargos');
+                                            $hechos = $get('hechos');
 
-                        Forms\Components\DatePicker::make('fecha_ocurrencia')
-                            ->label('Fecha de Ocurrencia de los Hechos')
-                            ->displayFormat('d/m/Y')
-                            ->native(false)
-                            ->required()
-                            ->helperText('Fecha en que ocurrieron los hechos descritos arriba'),
+                                            if (!$trabajadorId || !$empresaId) {
+                                                \Filament\Notifications\Notification::make()
+                                                    ->warning()
+                                                    ->title('Datos incompletos')
+                                                    ->body('Por favor, seleccione primero el trabajador.')
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            if (!$hechos) {
+                                                \Filament\Notifications\Notification::make()
+                                                    ->warning()
+                                                    ->title('Datos incompletos')
+                                                    ->body('Por favor, describe un poco acerca de los hechos que motivan el proceso disciplinario.')
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            $trabajador = \App\Models\Trabajador::find($trabajadorId);
+                                            $empresa = \App\Models\Empresa::find($empresaId);
+
+                                            // Obtener configuración del proveedor de IA
+                                            $provider = config('services.ia.provider', 'openai');
+                                            $config = config("services.ia.{$provider}", []);
+
+                                            $apiKey = $config['api_key'];
+                                            $model = $config['model'];
+
+                                            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+
+                                            $prompt = "Eres asistente de Recursos Humanos en Colombia especializado en procesos disciplinarios laborales.\n\n" .
+                                                "CONTEXTO DEL CASO:\n" .
+                                                "- Empresa: {$empresa->razon_social}\n" .
+                                                "- Representante Legal: {$empresa->representante_legal}\n" .
+                                                "- Trabajador: {$trabajador->nombre_completo}\n" .
+                                                "- Cargo: {$trabajador->cargo}\n" .
+                                                "- Hechos que motivan el proceso: {$hechos}\n" .
+                                                ($fechaOcurrencia ? "- Fecha de los hechos: {$fechaOcurrencia}\n" : "") .
+                                                ($fechaProgramada ? "- Fecha de audiencia de descargos: {$fechaProgramada}\n" : "") .
+                                                ($horaProgramada ? "- Hora de audiencia: {$horaProgramada}\n" : "") .
+                                                ($modalidadDescargos ? "- Modalidad: {$modalidadDescargos}\n" : "") .
+                                                "\nTU TAREA:\n" .
+                                                "Genera ÚNICAMENTE una descripción detallada de los hechos que motivan el proceso disciplinario en base a la informacion suministrada.\n\n" .
+                                                "REQUISITOS IMPORTANTES:\n" .
+                                                "1. NO escribas formato de correo, saludos ni despedidas\n" .
+                                                "2. Redacta SOLO la narrativa de los hechos en 2-4 párrafos\n" .
+                                                "3. Usa lenguaje profesional de RR.HH., claro y objetivo\n" .
+                                                "4. Escribe dirigido al trabajador o en tercera persona\n" .
+                                                "5. Menciona que estos hechos podrían constituir incumplimiento laboral\n" .
+                                                "6. Formato: HTML simple usando solo etiquetas <p> para separar párrafos\n\n" .
+                                                "EJEMPLO de lo que DEBES generar:\n" .
+                                                "<p>El día [fecha específica], el trabajador {$trabajador->nombre_completo}, quien se desempeña como {$trabajador->cargo}, " .
+                                                "{$hechos}. Esta situación generó [detallar la consecuencia o impacto en la operación].</p>\n\n" .
+                                                "<p>Los hechos descritos podrían constituir un incumplimiento de las obligaciones laborales establecidas en el " .
+                                                "Reglamento Interno de Trabajo y el contrato laboral vigente.</p>";
+
+                                            $response = Http::withHeaders([
+                                                'Content-Type' => 'application/json',
+                                            ])->timeout(30)->post($url, [
+                                                'contents' => [
+                                                    [
+                                                        'parts' => [
+                                                            [
+                                                                'text' => "Eres asistente para personal de Recursos Humanos y empleadores en Colombia. Ayuda a redactar de manera profesional y clara el motivo de citación a audiencia de descargos.\n\n" . $prompt
+                                                            ]
+                                                        ]
+                                                    ]
+                                                ],
+                                                'generationConfig' => [
+                                                    'temperature' => 0.7,
+                                                    'maxOutputTokens' => $config['max_tokens'],
+                                                    'topP' => 0.95,
+                                                ],
+                                            ]);
+
+                                            if (!$response->successful()) {
+                                                throw new \Exception("Error en API Gemini: " . $response->body());
+                                            }
+
+                                            $responseData = $response->json();
+
+                                            // Verificar si hay contenido en la respuesta
+                                            if (!isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
+                                                throw new \Exception("Respuesta de Gemini sin contenido válido");
+                                            }
+
+                                            // Verificar si la respuesta fue truncada por límite de tokens
+                                            $finishReason = $responseData['candidates'][0]['finishReason'] ?? 'UNKNOWN';
+                                            if ($finishReason === 'MAX_TOKENS') {
+                                                Log::warning('Respuesta de Gemini truncada por límite de tokens', [
+                                                    'finish_reason' => $finishReason,
+                                                    'max_tokens' => $config['max_tokens'],
+                                                    'respuesta_parcial' => substr($responseData['candidates'][0]['content']['parts'][0]['text'], 0, 200),
+                                                ]);
+                                            }
+
+
+                                            // Extraer el texto de la respuesta de Gemini
+                                            $motivoGenerado = $responseData['candidates'][0]['content']['parts'][0]['text'];
+
+                                            // Establecer el valor generado en el campo
+                                            $set('hechos', $motivoGenerado);
+
+                                            \Filament\Notifications\Notification::make()
+                                                ->success()
+                                                ->title('Descripción de hechos generada')
+                                                ->body('La IA ha generado una sugerencia. Revise y complete los detalles según el caso específico.')
+                                                ->duration(8000)
+                                                ->send();
+                                        } catch (\Exception $e) {
+                                            \Filament\Notifications\Notification::make()
+                                                ->danger()
+                                                ->title('Error al generar motivo')
+                                                ->body('No se pudo generar el motivo con IA: ' . $e->getMessage())
+                                                ->persistent()
+                                                ->send();
+
+                                            \Illuminate\Support\Facades\Log::error('Error al generar motivo con IA', [
+                                                'error' => $e->getMessage(),
+                                            ]);
+                                        }
+                                    })
+                            )
+                            ->columnSpanFull(),
                     ]),
 
                 Forms\Components\Section::make('Decisión y Sanción')
@@ -498,8 +637,8 @@ class ProcesoDisciplinarioResource extends Resource
                         'descargos_pendientes' => 'Descargos Pendientes',
                         'descargos_realizados' => 'Descargos Realizados',
                         'sancion_emitida' => 'Sanción Emitida',
-                        'impugnacion_realizada' => 'Impugnación Realizada',
                         'cerrado' => 'Cerrado',
+                        'impugnacion_realizada' => 'Impugnación Realizada',
                         'archivado' => 'Archivado',
                         default => $state,
                     }),
@@ -567,8 +706,9 @@ class ProcesoDisciplinarioResource extends Resource
                         'descargos_pendientes' => 'Descargos Pendientes',
                         'descargos_realizados' => 'Descargos Realizados',
                         'sancion_emitida' => 'Sanción Emitida',
-                        'impugnacion_realizada' => 'Impugnación Realizada',
                         'cerrado' => 'Cerrado',
+                        'impugnacion_realizada' => 'Impugnación Realizada',
+                        'archivado' => 'Archivado',
                     ])
                     ->multiple(),
 
@@ -606,7 +746,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->modalCancelActionLabel('Cancelar')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
-                        !empty($record->fecha_descargos_programada) &&
+                        !empty($record->fecha_descargos_programada) && $record->estado === 'apertura' &&
                             auth()->user()?->hasAnyRole(['super_admin', 'abogado'])
                     )
                     ->action(function (ProcesoDisciplinario $record) {
@@ -649,9 +789,8 @@ class ProcesoDisciplinarioResource extends Resource
                     ->modalCancelActionLabel('Cancelar')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
-                        !empty($record->trabajador->email) &&
-                            !empty($record->fecha_descargos_programada) &&
-                            auth()->user()?->hasAnyRole(['super_admin', 'abogado'])
+                        !empty($record->trabajador->email) && !empty($record->fecha_descargos_programada) 
+                        && $record->estado === 'descargos_pendientes' && auth()->user()?->hasAnyRole(['super_admin', 'abogado'])
                     )
                     ->action(function (ProcesoDisciplinario $record) {
                         $service = new \App\Services\DocumentGeneratorService();

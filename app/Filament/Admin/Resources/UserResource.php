@@ -89,11 +89,12 @@ class UserResource extends Resource
                             ->relationship('empresa', 'razon_social')
                             ->searchable()
                             ->preload()
-                            ->required(fn (Get $get) => in_array($get('role'), ['abogado', 'cliente']))
-                            ->hidden(fn (Get $get) => $get('role') === 'super_admin')
-                            ->helperText(fn (Get $get) =>
-                                $get('role') === 'super_admin'
-                                    ? 'Los administradores tienen acceso a todas las empresas'
+                            ->required(fn(Get $get) => in_array($get('role'), ['cliente']))
+                            ->hidden(fn(Get $get) => $get('role') === 'super_admin' || $get('role') === 'abogado')
+                            ->helperText(
+                                fn(Get $get) =>
+                                $get('role') === 'super_admin' || $get('role') === 'abogado'
+                                    ? 'Los administradores y abogados tienen acceso a todas las empresas'
                                     : 'Seleccione la empresa a la que pertenece el usuario'
                             )
                             ->placeholder('Seleccione una empresa...')
@@ -124,9 +125,9 @@ class UserResource extends Resource
                         Forms\Components\TextInput::make('password')
                             ->label('Contraseña')
                             ->password()
-                            ->required(fn (string $context): bool => $context === 'create')
-                            ->dehydrateStateUsing(fn ($state) => !empty($state) ? Hash::make($state) : null)
-                            ->dehydrated(fn ($state) => filled($state))
+                            ->required(fn(string $context): bool => $context === 'create')
+                            ->dehydrateStateUsing(fn($state) => !empty($state) ? Hash::make($state) : null)
+                            ->dehydrated(fn($state) => filled($state))
                             ->revealable()
                             ->placeholder('Mínimo 8 caracteres')
                             ->minLength(8)
@@ -135,7 +136,7 @@ class UserResource extends Resource
                         Forms\Components\TextInput::make('password_confirmation')
                             ->label('Confirmar Contraseña')
                             ->password()
-                            ->required(fn (string $context): bool => $context === 'create')
+                            ->required(fn(string $context): bool => $context === 'create')
                             ->dehydrated(false)
                             ->revealable()
                             ->same('password')
@@ -176,7 +177,7 @@ class UserResource extends Resource
                         'heroicon-o-scale' => 'abogado',
                         'heroicon-o-building-office' => 'cliente',
                     ])
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'super_admin' => 'Administrador',
                         'abogado' => 'Abogado',
                         'cliente' => 'Cliente',

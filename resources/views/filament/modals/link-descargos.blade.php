@@ -11,7 +11,21 @@
             />
             <button
                 type="button"
-                onclick="navigator.clipboard.writeText('{{ $url }}'); alert('Link copiado al portapapeles')"
+                onclick="
+                    const input = this.previousElementSibling;
+                    input.select();
+                    document.execCommand('copy');
+                    const btn = this;
+                    const originalText = btn.textContent;
+                    btn.textContent = '¡Copiado!';
+                    btn.classList.add('bg-success-600');
+                    btn.classList.remove('bg-primary-600');
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.classList.remove('bg-success-600');
+                        btn.classList.add('bg-primary-600');
+                    }, 2000);
+                "
                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
             >
                 Copiar

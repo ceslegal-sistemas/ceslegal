@@ -8,35 +8,35 @@ use Illuminate\Support\Facades\Log;
 class EstadoProcesoService
 {
     /**
-     * Define las transiciones válidas de estado
+     * Define las transiciones válidas de estado (FLUJO SIMPLIFICADO)
+     *
+     * FLUJO PRINCIPAL:
+     * apertura → descargos_pendientes → descargos_realizados → sancion_emitida → cerrado
+     *
+     * FLUJOS ALTERNATIVOS:
+     * - Desde sancion_emitida puede ir a impugnacion_realizada
+     * - Desde impugnacion_realizada puede volver a sancion_emitida o ir a cerrado
+     * - Cualquier estado puede ir a archivado
      */
     const TRANSICIONES_VALIDAS = [
-        'apertura' => ['traslado', 'descargos_pendientes', 'archivado'],
-        'traslado' => ['descargos_pendientes', 'archivado'],
+        'apertura' => ['descargos_pendientes', 'archivado'],
         'descargos_pendientes' => ['descargos_realizados', 'archivado'],
-        'descargos_realizados' => ['analisis_juridico', 'archivado'],
-        'analisis_juridico' => ['pendiente_gerencia', 'sancion_definida', 'archivado'],
-        'pendiente_gerencia' => ['sancion_definida', 'archivado'],
-        'sancion_definida' => ['notificado', 'archivado'],
-        'notificado' => ['impugnado', 'cerrado'],
-        'impugnado' => ['analisis_juridico', 'cerrado'],
+        'descargos_realizados' => ['sancion_emitida', 'archivado'],
+        'sancion_emitida' => ['impugnacion_realizada', 'cerrado', 'archivado'],
+        'impugnacion_realizada' => ['sancion_emitida', 'cerrado', 'archivado'],
         'cerrado' => [],
         'archivado' => [],
     ];
 
     /**
-     * Descripciones de cada estado
+     * Descripciones de cada estado (SIMPLIFICADO)
      */
     const DESCRIPCIONES_ESTADO = [
-        'apertura' => 'Proceso iniciado - En apertura',
-        'traslado' => 'Traslado de cargos al trabajador',
-        'descargos_pendientes' => 'Citación enviada - Descargos pendientes',
-        'descargos_realizados' => 'Descargos realizados por el trabajador',
-        'analisis_juridico' => 'En análisis jurídico',
-        'pendiente_gerencia' => 'Pendiente de decisión de gerencia',
-        'sancion_definida' => 'Sanción definida',
-        'notificado' => 'Trabajador notificado de la decisión',
-        'impugnado' => 'Sanción impugnada por el trabajador',
+        'apertura' => 'Proceso iniciado',
+        'descargos_pendientes' => 'Citación enviada - Esperando diligencia',
+        'descargos_realizados' => 'Diligencia de descargos completada',
+        'sancion_emitida' => 'Sanción emitida y notificada',
+        'impugnacion_realizada' => 'Sanción impugnada por el trabajador',
         'cerrado' => 'Proceso cerrado',
         'archivado' => 'Proceso archivado',
     ];
@@ -78,7 +78,7 @@ class EstadoProcesoService
             procesoId: $proceso->id,
             estadoAnterior: $estadoActual,
             estadoNuevo: $nuevoEstado,
-            observacion: $observacion ?? $this->getDescripcionEstado($nuevoEstado)
+            descripcion: $observacion ?? $this->getDescripcionEstado($nuevoEstado)
         );
 
         Log::info('Estado de proceso cambiado exitosamente', [
@@ -119,9 +119,12 @@ class EstadoProcesoService
     }
 
     /**
-     * Transiciones automáticas basadas en eventos
+     * Transiciones automáticas basadas en eventos (SIMPLIFICADO)
      */
-    
+
+    /**
+     * Cuando se envía la citación al trabajador
+     */
     public function alEnviarCitacion(ProcesoDisciplinario $proceso): void
     {
         $this->cambiarEstado(
@@ -131,6 +134,9 @@ class EstadoProcesoService
         );
     }
 
+    /**
+     * Cuando el trabajador completa la diligencia de descargos
+     */
     public function alCompletarDescargos(ProcesoDisciplinario $proceso): void
     {
         $this->cambiarEstado(
@@ -140,42 +146,33 @@ class EstadoProcesoService
         );
     }
 
-    public function alCrearAnalisisJuridico(ProcesoDisciplinario $proceso): void
+    /**
+     * Cuando se emite y notifica la sanción al trabajador
+     */
+    public function alEmitirSancion(ProcesoDisciplinario $proceso): void
     {
         $this->cambiarEstado(
             $proceso,
-            'analisis_juridico',
-            'Análisis jurídico iniciado'
+            'sancion_emitida',
+            'Sanción emitida y notificada al trabajador'
         );
     }
 
-    public function alDefinirSancion(ProcesoDisciplinario $proceso): void
-    {
-        $this->cambiarEstado(
-            $proceso,
-            'sancion_definida',
-            'Sanción definida y registrada'
-        );
-    }
-
-    public function alNotificarTrabajador(ProcesoDisciplinario $proceso): void
-    {
-        $this->cambiarEstado(
-            $proceso,
-            'notificado',
-            'Trabajador notificado de la decisión'
-        );
-    }
-
+    /**
+     * Cuando el trabajador impugna la sanción
+     */
     public function alImpugnar(ProcesoDisciplinario $proceso): void
     {
         $this->cambiarEstado(
             $proceso,
-            'impugnado',
+            'impugnacion_realizada',
             'Sanción impugnada por el trabajador'
         );
     }
 
+    /**
+     * Cuando el proceso se cierra definitivamente
+     */
     public function alCerrarProceso(ProcesoDisciplinario $proceso): void
     {
         $this->cambiarEstado(
@@ -185,6 +182,9 @@ class EstadoProcesoService
         );
     }
 
+    /**
+     * Cuando el proceso se archiva sin sanción
+     */
     public function alArchivarProceso(ProcesoDisciplinario $proceso, string $motivo): void
     {
         $this->cambiarEstado(
@@ -192,5 +192,37 @@ class EstadoProcesoService
             'archivado',
             "Proceso archivado: {$motivo}"
         );
+    }
+
+    // ============================================
+    // MÉTODOS OBSOLETOS (para compatibilidad)
+    // ============================================
+
+    /**
+     * @deprecated Usar alEmitirSancion() en su lugar
+     */
+    public function alDefinirSancion(ProcesoDisciplinario $proceso): void
+    {
+        $this->alEmitirSancion($proceso);
+    }
+
+    /**
+     * @deprecated Estado eliminado del flujo simplificado
+     */
+    public function alCrearAnalisisJuridico(ProcesoDisciplinario $proceso): void
+    {
+        Log::warning('Método obsoleto alCrearAnalisisJuridico llamado', [
+            'proceso_id' => $proceso->id,
+        ]);
+    }
+
+    /**
+     * @deprecated Estado eliminado del flujo simplificado
+     */
+    public function alNotificarTrabajador(ProcesoDisciplinario $proceso): void
+    {
+        Log::warning('Método obsoleto alNotificarTrabajador llamado', [
+            'proceso_id' => $proceso->id,
+        ]);
     }
 }

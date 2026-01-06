@@ -256,7 +256,7 @@ class DiligenciaDescargoResource extends Resource
                                 ->send();
                         }
                     })
-                    ->visible(fn(DiligenciaDescargo $record) => $record->preguntas()->count() === 0),
+                    ->visible(fn(DiligenciaDescargo $record) => $record->preguntas()->count() === 13),
 
                 Tables\Actions\Action::make('ver_link_acceso')
                     ->label('Ver Link')

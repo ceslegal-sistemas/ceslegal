@@ -29,6 +29,7 @@ class ProcesoDisciplinario extends Model
         'fecha_solicitud',
         'fecha_apertura',
         'fecha_descargos_programada',
+        'hora_descargos_programada',
         'modalidad_descargos',
         'fecha_descargos_realizada',
         'fecha_analisis',

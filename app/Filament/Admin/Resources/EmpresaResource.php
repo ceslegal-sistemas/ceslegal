@@ -248,12 +248,68 @@ class EmpresaResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('Editar'),
                 Tables\Actions\DeleteAction::make()
-                    ->label('Eliminar'),
+                    ->label('Eliminar')
+                    ->before(function (Tables\Actions\DeleteAction $action, \App\Models\Empresa $record) {
+                        // Verificar si tiene procesos disciplinarios
+                        if ($record->procesosDisciplinarios()->count() > 0) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('No se puede eliminar la empresa')
+                                ->body("La empresa '{$record->razon_social}' tiene {$record->procesosDisciplinarios()->count()} procesos disciplinarios asociados. Debe eliminar o reasignar esos procesos primero.")
+                                ->persistent()
+                                ->send();
+
+                            $action->cancel();
+                        }
+
+                        // Verificar si tiene trabajadores
+                        if ($record->trabajadores()->count() > 0) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('No se puede eliminar la empresa')
+                                ->body("La empresa '{$record->razon_social}' tiene {$record->trabajadores()->count()} trabajadores asociados. Debe eliminar o reasignar esos trabajadores primero.")
+                                ->persistent()
+                                ->send();
+
+                            $action->cancel();
+                        }
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->label('Eliminar seleccionadas'),
+                        ->label('Eliminar seleccionadas')
+                        ->action(function (Tables\Actions\DeleteBulkAction $action, \Illuminate\Support\Collection $records) {
+                            $bloqueadas = [];
+                            $eliminadas = 0;
+
+                            foreach ($records as $record) {
+                                // Verificar si tiene relaciones
+                                if ($record->procesosDisciplinarios()->count() > 0 || $record->trabajadores()->count() > 0) {
+                                    $bloqueadas[] = $record->razon_social;
+                                } else {
+                                    $record->delete();
+                                    $eliminadas++;
+                                }
+                            }
+
+                            if (count($bloqueadas) > 0) {
+                                \Filament\Notifications\Notification::make()
+                                    ->warning()
+                                    ->title('Algunas empresas no se pudieron eliminar')
+                                    ->body('Las siguientes empresas tienen procesos o trabajadores asociados: ' . implode(', ', $bloqueadas))
+                                    ->persistent()
+                                    ->send();
+                            }
+
+                            if ($eliminadas > 0) {
+                                \Filament\Notifications\Notification::make()
+                                    ->success()
+                                    ->title('Empresas eliminadas')
+                                    ->body("{$eliminadas} empresa(s) eliminada(s) correctamente.")
+                                    ->send();
+                            }
+                        }),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');

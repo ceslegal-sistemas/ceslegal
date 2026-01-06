@@ -62,11 +62,10 @@ class RecentProcessesWidget extends BaseWidget
                     ->label('Estado')
                     ->colors([
                         'gray' => 'apertura',
-                        'warning' => ['traslado', 'descargos_pendientes'],
-                        'info' => ['descargos_realizados', 'analisis_juridico'],
-                        'primary' => ['pendiente_gerencia', 'sancion_definida'],
-                        'success' => ['notificado'],
-                        'danger' => ['impugnado'],
+                        'warning' => 'descargos_pendientes',
+                        'info' => 'descargos_realizados',
+                        'primary' => 'sancion_emitida',
+                        'danger' => 'impugnacion_realizada',
                     ])
                     ->formatStateUsing(function (string $state) use ($estadoService): string {
                         return $estadoService->getDescripcionEstado($state);

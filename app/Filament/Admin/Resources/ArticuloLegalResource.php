@@ -165,11 +165,11 @@ class ArticuloLegalResource extends Resource
                     ->falseColor('danger')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('orden')
-                    ->label('Orden')
-                    ->numeric()
-                    ->sortable()
-                    ->toggleable(),
+                // Tables\Columns\TextColumn::make('orden')
+                //     ->label('Orden')
+                //     ->numeric()
+                //     ->sortable()
+                //     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
@@ -263,7 +263,7 @@ class ArticuloLegalResource extends Resource
                         ->label('Eliminar seleccionados'),
                 ]),
             ])
-            ->defaultSort('orden', 'asc')
+            ->defaultSort('codigo', 'asc')
             ->striped()
             ->emptyStateHeading('No hay artículos legales registrados')
             ->emptyStateDescription('Comience agregando artículos del Código Sustantivo del Trabajo')

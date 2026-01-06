@@ -107,10 +107,11 @@ class SolicitudContratoResource extends Resource
                                 ->relationship('trabajador', 'nombres')
                                 ->searchable(['nombres', 'apellidos', 'numero_documento'])
                                 ->preload()
-                                ->getOptionLabelFromRecordUsing(fn (Trabajador $record): string =>
+                                ->getOptionLabelFromRecordUsing(
+                                    fn(Trabajador $record): string =>
                                     "{$record->nombres} {$record->apellidos} - {$record->tipo_documento}: {$record->numero_documento}"
                                 )
-                                ->visible(fn (Get $get) => $get('_usar_trabajador_existente'))
+                                ->visible(fn(Get $get) => $get('_usar_trabajador_existente'))
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, ?int $state) {
                                     if ($state) {
@@ -132,7 +133,7 @@ class SolicitudContratoResource extends Resource
                                 ->columnSpanFull(),
 
                             Forms\Components\Section::make('Datos Personales del Trabajador')
-                                ->visible(fn (Get $get) => !$get('_usar_trabajador_existente'))
+                                ->visible(fn(Get $get) => !$get('_usar_trabajador_existente'))
                                 ->schema([
                                     Forms\Components\TextInput::make('trabajador_nombres')
                                         ->label('Nombres')
@@ -167,7 +168,7 @@ class SolicitudContratoResource extends Resource
                                         ->required()
                                         ->numeric()
                                         ->maxLength(50)
-                                        ->placeholder(fn (Get $get) => match ($get('trabajador_documento_tipo')) {
+                                        ->placeholder(fn(Get $get) => match ($get('trabajador_documento_tipo')) {
                                             'CC' => 'Ej: 1234567890',
                                             'CE' => 'Ej: 9876543210',
                                             'TI' => 'Ej: 1234567890123',
@@ -179,6 +180,7 @@ class SolicitudContratoResource extends Resource
                                     Forms\Components\TextInput::make('trabajador_email')
                                         ->label('Correo Electrónico')
                                         ->email()
+                                        ->required()
                                         ->maxLength(255)
                                         ->placeholder('trabajador@empresa.com')
                                         ->helperText('Email de contacto del trabajador')
@@ -205,23 +207,84 @@ class SolicitudContratoResource extends Resource
                         ->description('Información del puesto y responsabilidades')
                         ->icon('heroicon-o-briefcase')
                         ->schema([
+                            // Forms\Components\Select::make('cargo_contrato')
+                            //     ->label('Cargo')
+                            //     ->required()
+                            //     ->searchable()
+                            //     ->options(self::getCargos())
+                            //     ->getSearchResultsUsing(
+                            //         fn(string $search): array =>
+                            //         collect(self::getCargos())
+                            //             ->filter(fn($cargo) => Str::contains(Str::lower($cargo), Str::lower($search)))
+                            //             ->take(10)
+                            //             ->mapWithKeys(fn($cargo) => [$cargo => $cargo])
+                            //             ->toArray()
+                            //     )
+                            //     ->createOptionUsing(fn(string $value) => $value)
+                            //     ->helperText('Seleccione o escriba el cargo para el contrato')
+                            //     ->placeholder('Busque o escriba el cargo...')
+                            //     ->suffixIcon('heroicon-o-briefcase')
+                            //     ->columnSpanFull(),
+
                             Forms\Components\Select::make('cargo_contrato')
                                 ->label('Cargo')
-                                ->required()
                                 ->searchable()
-                                ->options(self::getCargos())
-                                ->getSearchResultsUsing(fn (string $search): array =>
-                                    collect(self::getCargos())
-                                        ->filter(fn ($cargo) => Str::contains(Str::lower($cargo), Str::lower($search)))
-                                        ->take(10)
-                                        ->mapWithKeys(fn ($cargo) => [$cargo => $cargo])
-                                        ->toArray()
-                                )
-                                ->createOptionUsing(fn (string $value) => $value)
-                                ->helperText('Seleccione o escriba el cargo para el contrato')
-                                ->placeholder('Busque o escriba el cargo...')
                                 ->suffixIcon('heroicon-o-briefcase')
-                                ->columnSpanFull(),
+                                ->columnSpanFull()
+                                ->options(function () {
+                                    $cargos = [];
+                                    foreach (self::getCargos() as $cargo) {
+                                        $cargos[$cargo] = $cargo;
+                                    }
+                                    $cargos['__otro__'] = '--- Otro (personalizado) ---';
+                                    return $cargos;
+                                })
+                                ->live()
+                                ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
+                                    if ($state !== '__otro__') {
+                                        $set('cargo', $state);
+                                        $set('cargo_otro', null);
+                                    } else {
+                                        $set('cargo', null);
+                                    }
+                                })
+                                ->afterStateHydrated(function (Set $set, Get $get, ?string $state) {
+                                    // Al cargar el registro (edición), establecer cargo_select basado en el valor de cargo
+                                    $cargo = $get('cargo');
+                                    if ($cargo && in_array($cargo, self::getCargos())) {
+                                        $set('cargo_contrato', $cargo);
+                                    } elseif ($cargo) {
+                                        $set('cargo_contrato', '__otro__');
+                                    }
+                                })
+                                ->dehydrated(false)
+                                ->helperText('Seleccione un cargo de la lista o elija "Otro" para personalizar')
+                                ->placeholder('Seleccione el cargo...')
+                                ->suffixIcon('heroicon-o-briefcase')
+                                ->required(fn(Get $get) => empty($get('cargo_otro'))),
+
+                            Forms\Components\TextInput::make('cargo_otro')
+                                ->label('Especifique el Cargo')
+                                ->columnSpanFull()
+                                ->visible(fn(Get $get) => $get('cargo_contrato') === '__otro__')
+                                ->required(fn(Get $get) => $get('cargo_contrato') === '__otro__')
+                                ->placeholder('Ej: Jefe de Proyectos Especiales')
+                                ->helperText('Escriba el nombre del cargo personalizado')
+                                ->afterStateHydrated(function (Set $set, Get $get, ?string $state) {
+                                    // Al cargar el registro (edición), si el cargo no está en la lista, establecer cargo_otro
+                                    $cargo = $get('cargo');
+                                    if ($cargo && !in_array($cargo, self::getCargos())) {
+                                        $set('cargo_otro', $cargo);
+                                    }
+                                }),
+
+                            Forms\Components\Hidden::make('cargo')
+                                ->required()
+                                ->dehydrateStateUsing(function (Get $get) {
+                                    return $get('cargo_contrato') === '__otro__'
+                                        ? $get('cargo_otro')
+                                        : $get('cargo_contrato');
+                                }),
 
                             Forms\Components\RichEditor::make('responsabilidades')
                                 ->label('Responsabilidades del Cargo')
@@ -270,6 +333,7 @@ class SolicitudContratoResource extends Resource
                             Forms\Components\DatePicker::make('fecha_inicio_propuesta')
                                 ->label('Fecha de Inicio Propuesta')
                                 ->native(false)
+                                ->minDate(now())
                                 ->displayFormat('d/m/Y')
                                 ->helperText('Fecha propuesta para iniciar el contrato')
                                 ->placeholder('Seleccione la fecha...')
@@ -309,9 +373,9 @@ class SolicitudContratoResource extends Resource
                                 ->columnSpanFull(),
                         ]),
                 ])
-                ->columnSpanFull()
-                ->persistStepInQueryString()
-                ->submitAction(new \Illuminate\Support\HtmlString('<button type="submit" class="filament-button filament-button-size-md inline-flex items-center justify-center py-1 gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset dark:focus:ring-offset-0 min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700">Crear Solicitud</button>')),
+                    ->columnSpanFull()
+                    ->persistStepInQueryString()
+                    ->submitAction(new \Illuminate\Support\HtmlString('<button type="submit" class="filament-button filament-button-size-md inline-flex items-center justify-center py-1 gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset dark:focus:ring-offset-0 min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700">Crear Solicitud</button>')),
 
                 // Campos solo para edición - Estado del proceso
                 Forms\Components\Section::make('Estado de la Solicitud')
@@ -336,7 +400,7 @@ class SolicitudContratoResource extends Resource
 
                         Forms\Components\Select::make('abogado_id')
                             ->label('Abogado Asignado')
-                            ->relationship('abogado', 'name', fn (Builder $query) => $query->where('role', 'abogado'))
+                            ->relationship('abogado', 'name', fn(Builder $query) => $query->where('role', 'abogado'))
                             ->searchable()
                             ->preload()
                             ->helperText('Abogado responsable del análisis')
@@ -450,7 +514,7 @@ class SolicitudContratoResource extends Resource
                         'heroicon-o-check-circle' => 'finalizado',
                         'heroicon-o-x-circle' => 'rechazado',
                     ])
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'pendiente' => 'Pendiente',
                         'en_analisis' => 'En Análisis',
                         'contrato_generado' => 'Contrato Generado',
@@ -465,17 +529,19 @@ class SolicitudContratoResource extends Resource
                     ->label('Tipo de Contrato')
                     ->searchable()
                     ->wrap()
-                    ->formatStateUsing(fn (string $state): string => explode(' - ', $state)[0] ?? $state)
+                    ->formatStateUsing(fn(string $state): string => explode(' - ', $state)[0] ?? $state)
                     ->icon('heroicon-o-document-duplicate'),
 
                 Tables\Columns\TextColumn::make('trabajador_nombres')
                     ->label('Trabajador')
                     ->searchable(['trabajador_nombres', 'trabajador_apellidos'])
                     ->sortable()
-                    ->description(fn (SolicitudContrato $record): string =>
+                    ->description(
+                        fn(SolicitudContrato $record): string =>
                         "{$record->trabajador_documento_tipo}: {$record->trabajador_documento_numero}"
                     )
-                    ->formatStateUsing(fn (SolicitudContrato $record): string =>
+                    ->formatStateUsing(
+                        fn(SolicitudContrato $record): string =>
                         "{$record->trabajador_nombres} {$record->trabajador_apellidos}"
                     )
                     ->icon('heroicon-o-user'),
@@ -513,7 +579,8 @@ class SolicitudContratoResource extends Resource
                     ->label('Fecha Solicitud')
                     ->dateTime('d/m/Y')
                     ->sortable()
-                    ->description(fn (SolicitudContrato $record): string =>
+                    ->description(
+                        fn(SolicitudContrato $record): string =>
                         $record->fecha_solicitud->diffForHumans()
                     )
                     ->icon('heroicon-o-calendar'),

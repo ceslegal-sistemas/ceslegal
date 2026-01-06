@@ -139,29 +139,92 @@ class ProcesoDisciplinarioObserver
 
     /**
      * Aplica lógica específica según el nuevo estado
+     *
+     * FLUJO DEL PROCESO DISCIPLINARIO:
+     * ==================================================
+     * 1. APERTURA                 → Proceso iniciado
+     * 2. DESCARGOS_PENDIENTES     → Citación enviada, esperando diligencia
+     * 3. DESCARGOS_REALIZADOS     → Trabajador completó descargos
+     * 4. SANCION_EMITIDA          → Sanción determinada y notificada
+     * 5. IMPUGNACION_REALIZADA    → Trabajador impugnó la sanción
+     * 6. CERRADO                  → Proceso finalizado
+     * 7. ARCHIVADO                → Proceso archivado sin sanción
      */
     private function aplicarLogicaEstado(ProcesoDisciplinario $proceso, string $nuevoEstado): void
     {
         switch ($nuevoEstado) {
-            case 'traslado':
-                // Crear término legal para los descargos (15 días hábiles)
+            // ============================================
+            // ESTADO 1: APERTURA
+            // ============================================
+            case 'apertura':
+                // Estado inicial del proceso
                 if (empty($proceso->fecha_apertura)) {
                     $proceso->fecha_apertura = now();
                 }
 
-                // Crear el término legal para traslado de descargos
-                $this->terminoLegalService->crearTermino(
-                    procesoTipo: 'proceso_disciplinario',
-                    procesoId: $proceso->id,
-                    terminoTipo: 'traslado_descargos',
-                    fechaInicio: now(),
-                    diasHabiles: 15,
-                    observaciones: 'Término para que el trabajador presente descargos'
-                );
+                Log::info('Proceso disciplinario en apertura', [
+                    'proceso_id' => $proceso->id,
+                    'codigo' => $proceso->codigo,
+                ]);
                 break;
 
-            case 'sancion_definida':
-                // Establecer fecha de notificación si no existe
+            // ============================================
+            // ESTADO 2: DESCARGOS PENDIENTES
+            // ============================================
+            case 'descargos_pendientes':
+                // La citación fue enviada, esperando que el trabajador asista a la diligencia
+                if (empty($proceso->fecha_apertura)) {
+                    $proceso->fecha_apertura = now();
+                }
+
+                // Verificar si ya existe un término para descargos
+                $terminoExistente = \App\Models\TerminoLegal::where('proceso_tipo', 'proceso_disciplinario')
+                    ->where('proceso_id', $proceso->id)
+                    ->where('termino_tipo', 'traslado_descargos')
+                    ->where('estado', 'activo')
+                    ->exists();
+
+                if (!$terminoExistente) {
+                    $this->terminoLegalService->crearTermino(
+                        procesoTipo: 'proceso_disciplinario',
+                        procesoId: $proceso->id,
+                        terminoTipo: 'traslado_descargos',
+                        fechaInicio: now(),
+                        diasHabiles: 5,
+                        observaciones: 'Término para que el trabajador asista a la diligencia de descargos'
+                    );
+                }
+
+                Log::info('Citación enviada - Descargos pendientes', [
+                    'proceso_id' => $proceso->id,
+                    'fecha_programada' => $proceso->fecha_descargos_programada,
+                ]);
+                break;
+
+            // ============================================
+            // ESTADO 3: DESCARGOS REALIZADOS
+            // ============================================
+            case 'descargos_realizados':
+                // El trabajador completó la diligencia de descargos
+                if (empty($proceso->fecha_descargos_realizada)) {
+                    $proceso->fecha_descargos_realizada = now();
+                }
+
+                // Notificar al abogado que debe emitir la sanción
+                if (method_exists($this->notificacionService, 'notificarDescargosCompletados')) {
+                    $this->notificacionService->notificarDescargosCompletados($proceso);
+                }
+
+                Log::info('Descargos completados - Listo para emitir sanción', [
+                    'proceso_id' => $proceso->id,
+                ]);
+                break;
+
+            // ============================================
+            // ESTADO 4: SANCIÓN EMITIDA
+            // ============================================
+            case 'sancion_emitida':
+                // La sanción fue emitida y notificada al trabajador
                 if (empty($proceso->fecha_notificacion)) {
                     $proceso->fecha_notificacion = now();
                 }
@@ -180,35 +243,110 @@ class ProcesoDisciplinarioObserver
                         diasHabiles: 3,
                         observaciones: 'Término para que el trabajador impugne la sanción'
                     );
+
+                    Log::info('Sanción emitida - Término de impugnación creado', [
+                        'proceso_id' => $proceso->id,
+                        'fecha_limite' => $fechaLimite,
+                        'tipo_sancion' => $proceso->tipo_sancion,
+                    ]);
                 }
                 break;
 
-            case 'impugnado':
+            // ============================================
+            // ESTADO 5: IMPUGNACIÓN REALIZADA
+            // ============================================
+            case 'impugnacion_realizada':
+                // El trabajador impugnó la sanción
                 $proceso->impugnado = true;
+
                 if (empty($proceso->fecha_impugnacion)) {
                     $proceso->fecha_impugnacion = now();
                 }
 
-                // Notificar al abogado
+                // Notificar al abogado de la impugnación
                 $this->notificacionService->notificarImpugnacionRecibida($proceso);
+
+                Log::info('Sanción impugnada - Requiere revisión', [
+                    'proceso_id' => $proceso->id,
+                    'fecha_impugnacion' => $proceso->fecha_impugnacion,
+                ]);
                 break;
 
+            // ============================================
+            // ESTADO 6: CERRADO
+            // ============================================
             case 'cerrado':
-            case 'archivado':
+                // El proceso disciplinario ha concluido
                 if (empty($proceso->fecha_cierre)) {
                     $proceso->fecha_cierre = now();
                 }
 
-                // Cerrar todos los términos legales activos del proceso
-                $terminos = \App\Models\TerminoLegal::where('proceso_tipo', 'proceso_disciplinario')
-                    ->where('proceso_id', $proceso->id)
-                    ->where('estado', 'activo')
-                    ->get();
+                // Cerrar todos los términos legales activos
+                $this->cerrarTerminosLegalesActivos($proceso, 'Proceso cerrado');
 
-                foreach ($terminos as $termino) {
-                    $this->terminoLegalService->cerrarTermino($termino, "Proceso {$nuevoEstado}");
+                // Notificar cierre del proceso
+                if (method_exists($this->notificacionService, 'notificarProcesoCerrado')) {
+                    $this->notificacionService->notificarProcesoCerrado($proceso);
                 }
+
+                Log::info('Proceso disciplinario cerrado', [
+                    'proceso_id' => $proceso->id,
+                    'codigo' => $proceso->codigo,
+                    'fecha_cierre' => $proceso->fecha_cierre,
+                ]);
                 break;
+
+            // ============================================
+            // ESTADO 7: ARCHIVADO
+            // ============================================
+            case 'archivado':
+                // El proceso fue archivado (sin sanción o por motivo específico)
+                if (empty($proceso->fecha_cierre)) {
+                    $proceso->fecha_cierre = now();
+                }
+
+                // Cerrar todos los términos legales activos
+                $this->cerrarTerminosLegalesActivos($proceso, 'Proceso archivado');
+
+                Log::info('Proceso disciplinario archivado', [
+                    'proceso_id' => $proceso->id,
+                    'codigo' => $proceso->codigo,
+                    'motivo_archivo' => $proceso->motivo_archivo,
+                ]);
+                break;
+
+            // ============================================
+            // ESTADO NO RECONOCIDO
+            // ============================================
+            default:
+                Log::warning('Estado no reconocido en aplicarLogicaEstado', [
+                    'proceso_id' => $proceso->id,
+                    'estado' => $nuevoEstado,
+                ]);
+                break;
+        }
+    }
+
+    /**
+     * Cierra todos los términos legales activos de un proceso
+     */
+    private function cerrarTerminosLegalesActivos(ProcesoDisciplinario $proceso, string $motivo): void
+    {
+        $terminos = \App\Models\TerminoLegal::where('proceso_tipo', 'proceso_disciplinario')
+            ->where('proceso_id', $proceso->id)
+            ->where('estado', 'activo')
+            ->get();
+
+        foreach ($terminos as $termino) {
+            $this->terminoLegalService->cerrarTermino($termino, $motivo);
+        }
+
+        if ($terminos->count() > 0) {
+            Log::info('Términos legales cerrados', [
+                'proceso_id' => $proceso->id,
+                'cantidad' => $terminos->count(),
+                'motivo' => $motivo,
+            ]);
         }
     }
 }
