@@ -14,13 +14,13 @@ return new class extends Migration
     {
         // Modificar el ENUM para incluir los tipos faltantes
         DB::statement("ALTER TABLE notificaciones MODIFY COLUMN tipo ENUM(
-            'proceso_aperturado',
-            'descargos_proximos',
-            'descargos_completados',
+            'apertura',
+            'descargos_pendientes',
+            'descargos_realizados',
             'termino_vencido',
-            'sancion_aplicada',
-            'impugnacion_recibida',
-            'proceso_cerrado',
+            'sancion_emitida',
+            'impugnacion_realizada',
+            'cerrado',
             'contrato_generado'
         ) NOT NULL");
     }
@@ -32,11 +32,11 @@ return new class extends Migration
     {
         // Volver al ENUM original
         DB::statement("ALTER TABLE notificaciones MODIFY COLUMN tipo ENUM(
-            'proceso_aperturado',
-            'descargos_proximos',
+            'apertura',
+            'descargos_pendientes',
             'termino_vencido',
-            'sancion_aplicada',
-            'impugnacion_recibida',
+            'sancion_emitida',
+            'impugnacion_realizada',
             'contrato_generado'
         ) NOT NULL");
     }

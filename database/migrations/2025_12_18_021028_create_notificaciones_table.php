@@ -15,11 +15,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->enum('tipo', [
-                'proceso_aperturado',
-                'descargos_proximos',
+                'apertura',
+                'descargos_pendientes',
+                'descargos_realizados',
                 'termino_vencido',
-                'sancion_aplicada',
-                'impugnacion_recibida',
+                'sancion_emitida',
+                'impugnacion_realizada',
+                'cerrado',
                 'contrato_generado'
             ]);
             $table->string('titulo', 255);

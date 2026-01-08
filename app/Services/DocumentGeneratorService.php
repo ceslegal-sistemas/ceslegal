@@ -250,18 +250,23 @@ class DocumentGeneratorService
             throw new \Exception('El trabajador no tiene correo electrónico registrado');
         }
 
+        // Detectar la extensión real del archivo
+        $extension = pathinfo($pdfPath, PATHINFO_EXTENSION);
+        $mimeType = $extension === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        $nombreArchivo = 'Citacion_Descargos_' . $proceso->codigo . '.' . $extension;
+
         Mail::send('emails.citacion-descargos', [
             'proceso' => $proceso,
             'trabajador' => $trabajador,
             'empresa' => $empresa,
             'linkDescargos' => $linkDescargos,
             'fechaAccesoPermitida' => $fechaAccesoPermitida,
-        ], function ($message) use ($trabajador, $proceso, $pdfPath) {
+        ], function ($message) use ($trabajador, $proceso, $pdfPath, $nombreArchivo, $mimeType) {
             $message->to($trabajador->email, $trabajador->nombre_completo)
                 ->subject('Citación a Audiencia de Descargos - Proceso ' . $proceso->codigo)
                 ->attach($pdfPath, [
-                    'as' => 'Citacion_Descargos_' . $proceso->codigo . '.pdf',
-                    'mime' => 'application/pdf',
+                    'as' => $nombreArchivo,
+                    'mime' => $mimeType,
                 ]);
         });
     }
@@ -338,15 +343,32 @@ class DocumentGeneratorService
                 $fechaAccesoPermitida = Carbon::parse($diligencia->fecha_acceso_permitida);
             }
 
+            // Guardar documento en la base de datos
+            $extension = pathinfo($pdfPath, PATHINFO_EXTENSION);
+            $documento = \App\Models\Documento::create([
+                'documentable_type' => ProcesoDisciplinario::class,
+                'documentable_id' => $proceso->id,
+                'tipo_documento' => 'citacion_descargos',
+                'nombre_archivo' => 'Citacion_Descargos_' . $proceso->codigo . '.' . $extension,
+                'ruta_archivo' => $pdfPath,
+                'formato' => $extension,
+                'generado_por' => auth()->id() ?? 1,
+                'version' => 1,
+                'plantilla_usada' => 'FORMATO A CITACIÓN A DESCARGOS-GENERAL-19 DE DICIEMBRE DE 2025.docx',
+                'variables_usadas' => null,
+                'fecha_generacion' => now(),
+            ]);
+
             // Enviar por email (con o sin link según la modalidad)
             $this->enviarCitacionPorEmail($proceso, $pdfPath, $linkDescargos, $fechaAccesoPermitida);
 
+            // Cambiar estado automáticamente a "descargos_pendientes"
+            // IMPORTANTE: Hacer esto ANTES de refresh() para que el Observer lo detecte correctamente
+            $proceso->estado = 'descargos_pendientes';
+            $proceso->save();
+
             // Refrescar el proceso desde la BD para asegurar que tiene el estado correcto
             $proceso->refresh();
-
-            // Cambiar estado automáticamente a "descargos_pendientes"
-            $estadoService = app(EstadoProcesoService::class);
-            $estadoService->alEnviarCitacion($proceso);
 
             // Registrar en el timeline
             $timelineService = app(TimelineService::class);
@@ -368,7 +390,14 @@ class DocumentGeneratorService
             );
 
             // Preparar mensaje de éxito
+            $extension = pathinfo($pdfPath, PATHINFO_EXTENSION);
             $mensaje = 'Citación generada y enviada exitosamente. Diligencia de descargos creada con acceso web.';
+
+            // Advertir si se envió DOCX en lugar de PDF
+            if ($extension === 'docx') {
+                $mensaje .= ' ADVERTENCIA: LibreOffice no está instalado, el documento fue enviado en formato DOCX en lugar de PDF.';
+            }
+
             if (!$preguntasGeneradasConIA) {
                 $mensaje .= ' NOTA: No se pudieron generar preguntas con IA. Deberá generarlas manualmente desde el módulo de Descargos.';
             }
@@ -380,6 +409,7 @@ class DocumentGeneratorService
                 'diligencia_id' => $diligencia->id,
                 'link_descargos' => $linkDescargos,
                 'preguntas_ia_generadas' => $preguntasGeneradasConIA,
+                'formato_documento' => $extension, // Agregar formato del documento
             ];
         } catch (\Exception $e) {
             return [
@@ -387,5 +417,546 @@ class DocumentGeneratorService
                 'message' => 'Error: ' . $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Generar documento de sanción con IA usando lenguaje claro
+     */
+    public function generarDocumentoSancion(ProcesoDisciplinario $proceso, string $tipoSancion): array
+    {
+        try {
+            // Obtener la información del trabajador y empresa
+            $trabajador = $proceso->trabajador;
+            $empresa = $proceso->empresa;
+            $diligencia = $proceso->diligenciaDescargo;
+
+            if (!$diligencia) {
+                throw new \Exception('No se encontró la diligencia de descargos para este proceso');
+            }
+
+            // Obtener las preguntas y respuestas de los descargos
+            $preguntasRespuestas = $diligencia->preguntas()
+                ->with('respuesta')
+                ->ordenadas()
+                ->get()
+                ->map(function ($pregunta) {
+                    return [
+                        'pregunta' => $pregunta->pregunta,
+                        'respuesta' => $pregunta->respuesta?->respuesta ?? 'Sin respuesta'
+                    ];
+                })
+                ->toArray();
+
+            // Construir el contexto de descargos
+            $contextoDescargos = '';
+            foreach ($preguntasRespuestas as $index => $pr) {
+                $contextoDescargos .= ($index + 1) . ". Pregunta: {$pr['pregunta']}\n   Respuesta del trabajador: {$pr['respuesta']}\n\n";
+            }
+
+            // Configuración de la API de IA
+            $provider = config('services.ia.provider', 'openai');
+            $config = config("services.ia.{$provider}", []);
+            $apiKey = $config['api_key'];
+            $model = $config['model'];
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+
+            // Construir el prompt con principios de lenguaje claro
+            $prompt = $this->construirPromptSancionLenguajeClaro(
+                $proceso,
+                $trabajador,
+                $empresa,
+                $tipoSancion,
+                $contextoDescargos
+            );
+
+            // Log para debugging
+            \Illuminate\Support\Facades\Log::info('Generando documento de sanción con IA', [
+                'proceso_id' => $proceso->id,
+                'tipo_sancion' => $tipoSancion,
+                'max_tokens' => $config['max_tokens'] ?? 8000,
+            ]);
+
+            // Llamar a la API de IA con mayor límite de tokens
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->timeout(120)->post($url, [
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt]
+                        ]
+                    ]
+                ],
+                'generationConfig' => [
+                    'temperature' => 0.7,
+                    'maxOutputTokens' => 8192, // Aumentado para documentos más largos
+                    'topP' => 0.95,
+                    'topK' => 40,
+                ],
+            ]);
+
+            if (!$response->successful()) {
+                $errorBody = $response->body();
+                \Illuminate\Support\Facades\Log::error('Error en API de IA', [
+                    'proceso_id' => $proceso->id,
+                    'status' => $response->status(),
+                    'error' => $errorBody,
+                ]);
+                throw new \Exception("Error en API de IA: " . $errorBody);
+            }
+
+            $responseData = $response->json();
+
+            if (!isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
+                \Illuminate\Support\Facades\Log::error('Respuesta de IA sin contenido', [
+                    'proceso_id' => $proceso->id,
+                    'response' => $responseData,
+                ]);
+                throw new \Exception("Respuesta de IA sin contenido válido");
+            }
+
+            $documentoSancion = $responseData['candidates'][0]['content']['parts'][0]['text'];
+
+            // Verificar si la respuesta está completa
+            $finishReason = $responseData['candidates'][0]['finishReason'] ?? 'UNKNOWN';
+
+            \Illuminate\Support\Facades\Log::info('Documento generado por IA', [
+                'proceso_id' => $proceso->id,
+                'finish_reason' => $finishReason,
+                'contenido_length' => strlen($documentoSancion),
+                'contenido_preview' => substr($documentoSancion, 0, 200),
+            ]);
+
+            if ($finishReason === 'MAX_TOKENS') {
+                \Illuminate\Support\Facades\Log::warning('Respuesta de IA truncada por límite de tokens', [
+                    'proceso_id' => $proceso->id,
+                    'finish_reason' => $finishReason,
+                ]);
+            }
+
+            // Limpiar el contenido (remover bloques de código markdown si existen)
+            $documentoSancion = $this->limpiarContenidoHTML($documentoSancion);
+
+            // Guardar el documento generado como HTML temporal
+            $htmlPath = $this->guardarDocumentoSancionHTML($documentoSancion, $proceso->codigo, $tipoSancion);
+
+            // Convertir a PDF si es posible
+            $pdfPath = $this->convertirHTMLaPDF($htmlPath, $proceso->codigo, $tipoSancion);
+
+            return [
+                'success' => true,
+                'documento_path' => $pdfPath,
+                'documento_contenido' => $documentoSancion,
+                'tipo_sancion' => $tipoSancion,
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error al generar documento de sanción con IA', [
+                'proceso_id' => $proceso->id,
+                'tipo_sancion' => $tipoSancion,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Error al generar documento: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Limpiar contenido HTML removiendo bloques de código markdown
+     */
+    private function limpiarContenidoHTML(string $contenido): string
+    {
+        // Remover bloques de código markdown (```html ... ```)
+        $contenido = preg_replace('/```html\s*/', '', $contenido);
+        $contenido = preg_replace('/```\s*$/', '', $contenido);
+        $contenido = preg_replace('/```/', '', $contenido);
+
+        // Asegurar que tenga estructura HTML básica si no la tiene
+        if (stripos($contenido, '<!DOCTYPE') === false && stripos($contenido, '<html') === false) {
+            $contenido = $this->envolverEnHTMLCompleto($contenido);
+        }
+
+        return trim($contenido);
+    }
+
+    /**
+     * Envolver contenido en estructura HTML completa
+     */
+    private function envolverEnHTMLCompleto(string $contenido): string
+    {
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documento de Sanción</title>
+    <style>
+        @page {
+            margin: 2.5cm 2.5cm 2.5cm 2.5cm;
+        }
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #000000;
+            text-align: justify;
+        }
+        h1 {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 14pt;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+            color: #000000;
+        }
+        h2 {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 12pt;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+            color: #000000;
+        }
+        h3 {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 11pt;
+            font-weight: bold;
+            margin: 15px 0 8px 0;
+            color: #000000;
+        }
+        p {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 11pt;
+            margin: 8px 0;
+            text-align: justify;
+            line-height: 1.5;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .info-section {
+            margin: 15px 0;
+        }
+        strong {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    {$contenido}
+</body>
+</html>
+HTML;
+    }
+
+    /**
+     * Construir prompt con principios de lenguaje claro
+     */
+    private function construirPromptSancionLenguajeClaro(
+        ProcesoDisciplinario $proceso,
+        $trabajador,
+        $empresa,
+        string $tipoSancion,
+        string $contextoDescargos
+    ): string {
+        $fechaActual = Carbon::now()->locale('es');
+        $articulosLegales = $proceso->articulos_legales_texto ?? 'Código Sustantivo del Trabajo';
+        $hechosTexto = strip_tags($proceso->hechos);
+
+        $nombreSancion = match ($tipoSancion) {
+            'llamado_atencion' => 'Llamado de Atención',
+            'suspension' => 'Suspensión Laboral',
+            'terminacion' => 'Terminación de Contrato',
+            default => 'Sanción',
+        };
+
+        $diasImpugnacion = 3; // Días hábiles para impugnar según ley colombiana
+
+        return <<<PROMPT
+Genera un documento oficial de {$nombreSancion} para un trabajador en Colombia usando formato profesional estilo Word.
+
+INFORMACIÓN DEL CASO:
+- Empresa: {$empresa->razon_social} (NIT: {$empresa->nit})
+- Representante: {$empresa->representante_legal}
+- Trabajador: {$trabajador->nombre_completo} ({$trabajador->tipo_documento} {$trabajador->numero_documento})
+- Cargo: {$trabajador->cargo}
+- Fecha: {$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}
+- Proceso: {$proceso->codigo}
+
+HECHOS:
+{$hechosTexto}
+
+ARTÍCULOS LEGALES INCUMPLIDOS:
+{$articulosLegales}
+
+DESCARGOS DEL TRABAJADOR:
+{$contextoDescargos}
+
+INSTRUCCIONES DE REDACCIÓN (LENGUAJE CLARO):
+- Oraciones cortas (máximo 25 palabras)
+- Voz activa ("decidimos" no "fue decidido")
+- Palabras simples (evita jerga legal)
+- Habla directo al trabajador ("usted")
+- Sin frases como "por medio de la presente"
+
+FORMATO REQUERIDO:
+- Fuente: Calibri 11pt
+- Texto justificado
+- Interlineado 1.5
+- Estilo profesional tipo documento Word
+- Solo texto en negro
+
+ESTRUCTURA DEL DOCUMENTO:
+Genera HTML con exactamente esta estructura:
+
+<div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; text-align: justify; color: #000000;">
+
+  <div style="text-align: center; margin-bottom: 25px;">
+    <h1 style="font-family: Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; margin: 10px 0; color: #000000;">{$empresa->razon_social}</h1>
+    <p style="font-size: 11pt; margin: 5px 0;">NIT: {$empresa->nit}</p>
+    <h2 style="font-family: Calibri, Arial, sans-serif; font-size: 12pt; font-weight: bold; margin: 15px 0; color: #000000; text-transform: uppercase;">{$nombreSancion}</h2>
+    <p style="font-size: 11pt; margin: 5px 0;">{$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}</p>
+    <p style="font-size: 11pt; margin: 5px 0;">Proceso: {$proceso->codigo}</p>
+  </div>
+
+  <div style="margin: 20px 0;">
+    <p style="margin: 5px 0;"><strong>Señor(a):</strong> {$trabajador->nombre_completo}</p>
+    <p style="margin: 5px 0;"><strong>Cargo:</strong> {$trabajador->cargo}</p>
+    <p style="margin: 5px 0;"><strong>Presente</strong></p>
+  </div>
+
+  <p style="margin: 15px 0;"><strong>Asunto:</strong> Notificación de {$nombreSancion}</p>
+
+  <p style="margin: 10px 0;">Estimado(a) {$trabajador->nombre_completo}:</p>
+
+  <p style="margin: 10px 0;">Le escribimos para informarle sobre una decisión importante relacionada con su trabajo en {$empresa->razon_social}.</p>
+
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">1. Hechos que motivaron esta decisión</h3>
+  <p style="margin: 8px 0;">[Describe los hechos claramente mencionando fechas específicas y acciones concretas. Usa 2-3 oraciones.]</p>
+
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">2. Por qué estos hechos son importantes</h3>
+  <p style="margin: 8px 0;">[Explica el impacto de los hechos y cómo afectan las obligaciones laborales. Usa lenguaje simple.]</p>
+
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">3. Sus descargos</h3>
+  <p style="margin: 8px 0;">[Resume los descargos del trabajador reconociendo su versión. Demuestra que fueron escuchados.]</p>
+
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">4. Nuestra decisión</h3>
+  <p style="margin: 8px 0;">Después de analizar cuidadosamente toda la información, hemos decidido aplicar un {$nombreSancion}. [Explica claramente las razones de esta decisión.]</p>
+
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">5. Qué significa esto para usted</h3>
+  <p style="margin: 8px 0;">[Explica las consecuencias prácticas de forma clara y específica.]</p>
+
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">6. Base legal</h3>
+  <p style="margin: 8px 0;">Esta decisión se fundamenta en el Código Sustantivo del Trabajo de Colombia y las normas establecidas en su contrato laboral. [Menciona artículos específicos si están disponibles, en lenguaje simple.]</p>
+
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">7. Sus derechos de impugnación</h3>
+  <p style="margin: 8px 0;">Si no está de acuerdo con esta decisión, usted tiene derecho a presentar una impugnación. Esto significa que puede solicitar una nueva revisión de su caso. Cuenta con {$diasImpugnacion} días hábiles a partir de la fecha de esta notificación para ejercer este derecho.</p>
+
+  <p style="margin: 15px 0;">Si tiene preguntas sobre esta comunicación, puede contactarnos.</p>
+
+  <div style="margin-top: 50px;">
+    <p style="margin: 5px 0;">Cordialmente,</p>
+    <p style="margin-top: 35px; margin-bottom: 5px;"><strong>{$empresa->representante_legal}</strong></p>
+    <p style="margin: 3px 0;">Representante Legal</p>
+    <p style="margin: 3px 0;">{$empresa->razon_social}</p>
+    <p style="margin: 3px 0;">NIT: {$empresa->nit}</p>
+  </div>
+
+</div>
+
+IMPORTANTE:
+- Completa TODAS las secciones [entre corchetes] con contenido específico basado en HECHOS y DESCARGOS
+- Mantén el formato exacto (Calibri 11pt, texto justificado, negro)
+- NO incluyas bloques de código markdown (```html)
+- Genera SOLO el HTML mostrado, sin texto adicional
+- Sé profesional pero claro y accesible
+PROMPT;
+    }
+
+    /**
+     * Guardar documento de sanción como HTML
+     */
+    private function guardarDocumentoSancionHTML(string $contenido, string $codigo, string $tipoSancion): string
+    {
+        $htmlPath = storage_path('app/sanciones/sancion_' . $codigo . '_' . $tipoSancion . '_' . time() . '.html');
+
+        if (!file_exists(storage_path('app/sanciones'))) {
+            mkdir(storage_path('app/sanciones'), 0755, true);
+        }
+
+        file_put_contents($htmlPath, $contenido);
+
+        return $htmlPath;
+    }
+
+    /**
+     * Convertir HTML a PDF
+     */
+    private function convertirHTMLaPDF(string $htmlPath, string $codigo, string $tipoSancion): string
+    {
+        $pdfPath = storage_path('app/sanciones/sancion_' . $codigo . '_' . $tipoSancion . '_' . time() . '.pdf');
+
+        try {
+            // Usar Dompdf para convertir HTML a PDF
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'Arial');
+
+            $dompdf = new Dompdf($options);
+            $html = file_get_contents($htmlPath);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('letter', 'portrait');
+            $dompdf->render();
+
+            file_put_contents($pdfPath, $dompdf->output());
+
+            // Eliminar el archivo HTML temporal
+            if (file_exists($htmlPath)) {
+                unlink($htmlPath);
+            }
+
+            return $pdfPath;
+        } catch (\Exception $e) {
+            // Si falla la conversión a PDF, devolver el HTML
+            \Illuminate\Support\Facades\Log::warning('No se pudo convertir HTML a PDF, se usará HTML', [
+                'error' => $e->getMessage(),
+            ]);
+            return $htmlPath;
+        }
+    }
+
+    /**
+     * Enviar documento de sanción por correo
+     */
+    public function enviarSancionPorEmail(ProcesoDisciplinario $proceso, string $documentoPath, string $tipoSancion): void
+    {
+        $trabajador = $proceso->trabajador;
+        $empresa = $proceso->empresa;
+
+        if (empty($trabajador->email)) {
+            throw new \Exception('El trabajador no tiene correo electrónico registrado');
+        }
+
+        $extension = pathinfo($documentoPath, PATHINFO_EXTENSION);
+        $mimeType = $extension === 'pdf' ? 'application/pdf' : 'text/html';
+        $nombreSancion = match ($tipoSancion) {
+            'llamado_atencion' => 'Llamado de Atención',
+            'suspension' => 'Suspensión',
+            'terminacion' => 'Terminación de Contrato',
+            default => 'Sanción',
+        };
+        $nombreArchivo = 'Sancion_' . $nombreSancion . '_' . $proceso->codigo . '.' . $extension;
+
+        Mail::send('emails.sancion-notificacion', [
+            'proceso' => $proceso,
+            'trabajador' => $trabajador,
+            'empresa' => $empresa,
+            'tipoSancion' => $nombreSancion,
+        ], function ($message) use ($trabajador, $proceso, $documentoPath, $nombreArchivo, $mimeType, $nombreSancion) {
+            $message->to($trabajador->email, $trabajador->nombre_completo)
+                ->subject('Notificación de ' . $nombreSancion . ' - Proceso ' . $proceso->codigo)
+                ->attach($documentoPath, [
+                    'as' => $nombreArchivo,
+                    'mime' => $mimeType,
+                ]);
+        });
+    }
+
+    /**
+     * Generar y enviar sanción (proceso completo)
+     */
+    public function generarYEnviarSancion(ProcesoDisciplinario $proceso, string $tipoSancion): array
+    {
+        // Usar transacción para garantizar atomicidad
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($proceso, $tipoSancion) {
+            try {
+                // Generar el documento con IA
+                $resultado = $this->generarDocumentoSancion($proceso, $tipoSancion);
+
+                if (!$resultado['success']) {
+                    throw new \Exception($resultado['message'] ?? 'Error al generar documento de sanción');
+                }
+
+                $documentoPath = $resultado['documento_path'];
+
+                // Guardar documento en la tabla de documentos
+                $extension = pathinfo($documentoPath, PATHINFO_EXTENSION);
+                $documento = \App\Models\Documento::create([
+                    'documentable_type' => ProcesoDisciplinario::class,
+                    'documentable_id' => $proceso->id,
+                    'tipo_documento' => 'sancion',
+                    'nombre_archivo' => 'Sancion_' . $tipoSancion . '_' . $proceso->codigo . '.' . $extension,
+                    'ruta_archivo' => $documentoPath,
+                    'formato' => $extension,
+                    'generado_por' => auth()->id() ?? 1,
+                    'version' => 1,
+                    'fecha_generacion' => now(),
+                ]);
+
+                // Crear o actualizar la sanción en la base de datos
+                $sancion = \App\Models\Sancion::updateOrCreate(
+                    ['proceso_id' => $proceso->id],
+                    [
+                        'tipo_sancion' => $tipoSancion,
+                        'motivo_sancion' => strip_tags($proceso->hechos),
+                        'fundamento_legal' => $proceso->articulos_legales_texto,
+                        'documento_generado' => true,
+                        'ruta_documento' => $documentoPath,
+                        'fecha_notificacion_trabajador' => now(),
+                        'notificado_por' => auth()->id(),
+                    ]
+                );
+
+                // Enviar por email (si falla, se hace rollback de todo)
+                $this->enviarSancionPorEmail($proceso, $documentoPath, $tipoSancion);
+
+                // SOLO AQUÍ actualizamos el estado del proceso (después de que todo lo anterior fue exitoso)
+                $proceso->tipo_sancion = $tipoSancion;
+                $proceso->decision_sancion = true;
+                $proceso->fecha_notificacion = now();
+                $proceso->estado = 'sancion_emitida';
+                $proceso->save();
+
+                // Registrar en el timeline
+                $timelineService = app(TimelineService::class);
+
+                $timelineService->registrarDocumentoGenerado(
+                    procesoTipo: 'proceso_disciplinario',
+                    procesoId: $proceso->id,
+                    tipoDocumento: 'Sanción',
+                    nombreArchivo: basename($documentoPath)
+                );
+
+                $timelineService->registrarNotificacion(
+                    procesoTipo: 'proceso_disciplinario',
+                    procesoId: $proceso->id,
+                    tipoNotificacion: 'Sanción emitida',
+                    destinatario: $proceso->trabajador->email
+                );
+
+                return [
+                    'success' => true,
+                    'message' => 'Sanción generada y enviada exitosamente',
+                    'documento_path' => $documentoPath,
+                    'sancion_id' => $sancion->id,
+                ];
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Error al generar y enviar sanción', [
+                    'proceso_id' => $proceso->id,
+                    'tipo_sancion' => $tipoSancion,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+
+                // La transacción hará rollback automáticamente al lanzar la excepción
+                throw $e;
+            }
+        });
     }
 }

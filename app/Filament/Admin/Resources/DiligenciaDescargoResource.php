@@ -184,10 +184,10 @@ class DiligenciaDescargoResource extends Resource
                     ->boolean()
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('acceso_habilitado')
-                    ->label('Acceso Web')
-                    ->boolean()
-                    ->sortable(),
+                // Tables\Columns\IconColumn::make('acceso_habilitado')
+                //     ->label('Acceso Web')
+                //     ->boolean()
+                //     ->sortable(),
 
                 Tables\Columns\TextColumn::make('preguntas_count')
                     ->label('Preguntas')

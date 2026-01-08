@@ -539,22 +539,22 @@ class ProcesoDisciplinarioResource extends Resource
 
                 Forms\Components\Section::make('Decisión y Sanción')
                     ->schema([
-                        Forms\Components\Toggle::make('decision_sancion')
-                            ->label('¿Procede Sanción?')
-                            ->live(),
+                        // Forms\Components\Toggle::make('decision_sancion')
+                        //     ->label('¿Procede Sanción?')
+                        //     ->live(),
 
-                        Forms\Components\Toggle::make('impugnado')
-                            ->label('¿Procede Impugnación?')
-                            ->live(),
+                        // Forms\Components\Toggle::make('impugnado')
+                        //     ->label('¿Procede Impugnación?')
+                        //     ->live(),
 
-                        Forms\Components\Select::make('tipo_sancion')
-                            ->label('Tipo de Sanción')
-                            ->options([
-                                'llamado_atencion' => 'Llamado de Atención',
-                                'suspension' => 'Suspensión',
-                                'terminacion' => 'Terminación de Contrato',
-                            ])
-                            ->visible(fn(Get $get) => $get('decision_sancion') === true),
+                        // Forms\Components\Select::make('tipo_sancion')
+                        //     ->label('Tipo de Sanción')
+                        //     ->options([
+                        //         'llamado_atencion' => 'Llamado de Atención',
+                        //         'suspension' => 'Suspensión',
+                        //         'terminacion' => 'Terminación de Contrato',
+                        //     ])
+                        //     ->visible(fn(Get $get) => $get('decision_sancion') === true),
 
                         // Forms\Components\Textarea::make('motivo_archivo')
                         //     ->label('Motivo de Archivo')
@@ -789,8 +789,8 @@ class ProcesoDisciplinarioResource extends Resource
                     ->modalCancelActionLabel('Cancelar')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
-                        !empty($record->trabajador->email) && !empty($record->fecha_descargos_programada) 
-                        && $record->estado === 'descargos_pendientes' && auth()->user()?->hasAnyRole(['super_admin', 'abogado'])
+                        !empty($record->trabajador->email) && !empty($record->fecha_descargos_programada)
+                            && $record->estado === 'descargos_pendientes' && auth()->user()?->hasAnyRole(['super_admin', 'abogado'])
                     )
                     ->action(function (ProcesoDisciplinario $record) {
                         $service = new \App\Services\DocumentGeneratorService();
@@ -808,6 +808,82 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->title('Error al enviar citación')
                                 ->body($result['message'])
                                 ->send();
+                        }
+                    }),
+
+                // Botón 3: Emitir Sanción (generar con IA y enviar)
+                Tables\Actions\Action::make('emitir_sancion')
+                    ->label(fn(ProcesoDisciplinario $record) =>
+                        $record->estado === 'sancion_emitida' ? 'Re-generar Sanción' : 'Emitir Sanción'
+                    )
+                    ->icon('heroicon-o-shield-exclamation')
+                    ->color('danger')
+                    ->form([
+                        Forms\Components\Select::make('tipo_sancion')
+                            ->label('Tipo de Sanción a Aplicar')
+                            ->options([
+                                'llamado_atencion' => 'Llamado de Atención',
+                                'suspension' => 'Suspensión Laboral',
+                                'terminacion' => 'Terminación de Contrato',
+                            ])
+                            ->required()
+                            ->native(false)
+                            ->default(fn(ProcesoDisciplinario $record) => $record->tipo_sancion)
+                            ->helperText('El documento será generado automáticamente con IA en lenguaje claro'),
+                    ])
+                    ->requiresConfirmation()
+                    ->modalHeading(fn(ProcesoDisciplinario $record) =>
+                        $record->estado === 'sancion_emitida' ? 'Re-generar Sanción' : 'Emitir Sanción'
+                    )
+                    ->modalDescription(
+                        fn(ProcesoDisciplinario $record) =>
+                        ($record->estado === 'sancion_emitida'
+                            ? "NOTA: Este proceso ya tiene una sanción emitida. Se generará un nuevo documento reemplazando el anterior.\n\n"
+                            : ""
+                        ) .
+                        "Se generará automáticamente el documento de sanción con IA aplicando lenguaje claro y se enviará al trabajador: " .
+                            ($record->trabajador->nombre_completo ?? '')
+                    )
+                    ->modalSubmitActionLabel('Generar y Enviar Sanción')
+                    ->modalCancelActionLabel('Cancelar')
+                    ->modalWidth('md')
+                    ->visible(
+                        fn(ProcesoDisciplinario $record) =>
+                        in_array($record->estado, ['descargos_realizados', 'sancion_emitida']) &&
+                        !empty($record->trabajador->email) &&
+                        auth()->user()?->hasAnyRole(['super_admin', 'abogado'])
+                    )
+                    ->action(function (ProcesoDisciplinario $record, array $data) {
+                        try {
+                            $service = new \App\Services\DocumentGeneratorService();
+                            $result = $service->generarYEnviarSancion($record, $data['tipo_sancion']);
+
+                            // Si llegamos aquí, significa que todo fue exitoso
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('¡Sanción emitida!')
+                                ->body('El documento de sanción fue generado con IA en lenguaje claro y enviado exitosamente al trabajador.')
+                                ->duration(8000)
+                                ->send();
+
+                            // Refrescar la página para mostrar el nuevo estado
+                            redirect()->route('filament.admin.resources.proceso-disciplinarios.index');
+                        } catch (\Exception $e) {
+                            // Si hay cualquier error, la transacción hizo rollback
+                            // y el estado NO se cambió
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Error al emitir sanción')
+                                ->body('No se pudo completar la operación: ' . $e->getMessage() . '. El proceso mantiene su estado original.')
+                                ->persistent()
+                                ->send();
+
+                            \Illuminate\Support\Facades\Log::error('Error al emitir sanción', [
+                                'proceso_id' => $record->id,
+                                'tipo_sancion' => $data['tipo_sancion'],
+                                'error' => $e->getMessage(),
+                                'trace' => $e->getTraceAsString(),
+                            ]);
                         }
                     }),
 
@@ -1018,5 +1094,51 @@ class ProcesoDisciplinarioResource extends Resource
             $ciudades[$departamento] ?? [],
             $ciudades[$departamento] ?? []
         );
+    }
+
+    /**
+     * Configurar tutoriales para el recurso
+     */
+    // public static function tutorial(): array
+    public function tutorial(Tutorial $tutorial): Tutorial
+    {
+        // return [
+        return $tutorial->steps([
+            Step::make('bienvenida')
+                ->title('Bienvenido a Procesos Disciplinarios')
+                ->description('Este tutorial te guiará en la creación y gestión de procesos disciplinarios laborales.')
+                ->icon('heroicon-o-academic-cap')
+                ->iconColor('primary'),
+
+            Step::make('listado')
+                ->title('Listado de Procesos')
+                ->description('Aquí puedes ver todos los procesos disciplinarios. Usa los filtros para encontrar procesos específicos por estado o modalidad.')
+                ->attachTo('[data-table]', 'bottom')
+                ->icon('heroicon-o-list-bullet'),
+
+            Step::make('crear_proceso')
+                ->title('Crear Nuevo Proceso')
+                ->description('Haz clic en "Nuevo Proceso Disciplinario" para iniciar un proceso. Se te guiará paso a paso.')
+                ->attachTo('[data-action="create"]', 'bottom')
+                ->icon('heroicon-o-plus-circle')
+                ->iconColor('success'),
+
+            Step::make('filtros')
+                ->title('Filtros y Búsqueda')
+                ->description('Usa los filtros para encontrar procesos por estado o si fueron impugnados.')
+                ->attachTo('[data-table-filters]', 'left')
+                ->icon('heroicon-o-funnel'),
+
+            Step::make('acciones')
+                ->title('Acciones del Proceso')
+                ->description('En cada proceso puedes: generar documentos, enviar citaciones, ver detalles o editarlo.')
+                ->icon('heroicon-o-cog-6-tooth'),
+
+            Step::make('final')
+                ->title('¡Listo!')
+                ->description('Ya conoces lo básico de los procesos disciplinarios. Explora el sistema y si necesitas ayuda, vuelve a este tutorial.')
+                ->icon('heroicon-o-check-circle')
+                ->iconColor('success'),
+        ]);
     }
 }

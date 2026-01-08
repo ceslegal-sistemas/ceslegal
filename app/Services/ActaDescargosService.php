@@ -112,7 +112,8 @@ class ActaDescargosService
 
         $fecha = $diligencia->fecha_diligencia ?? now();
         $fechaTexto = $this->convertirFechaATexto($fecha);
-        $hora = $fecha->format('H:i A');
+        // Usar la hora de INICIO (cuando el trabajador empezó a responder)
+        $horaInicio = $diligencia->primer_acceso_en ? $diligencia->primer_acceso_en->format('h:i A') : $fecha->format('h:i A');
 
         $modalidad = match($proceso->modalidad_descargos) {
             'presencial' => 'desde las oficinas administrativas de ' . $empresa->razon_social,
@@ -124,7 +125,7 @@ class ActaDescargosService
         // Construir párrafo de apertura
         $esFemenino = $trabajador->genero === 'femenino';
         $textLines = [
-            "En la ciudad de {$municipio}, {$departamento}, el {$fechaTexto}, siendo las {$hora}, {$modalidad}, ",
+            "En la ciudad de {$municipio}, {$departamento}, el {$fechaTexto}, siendo las {$horaInicio}, {$modalidad}, ",
             "se reunieron por una parte el representante legal de {$empresa->razon_social} con NIT {$empresa->nit} ",
             "en representación del empleador y, por la otra {$trabajador->nombre_completo}, ",
             "identificad" . ($esFemenino ? 'a' : 'o') . " con {$trabajador->tipo_documento} N° {$trabajador->numero_documento}, ",
@@ -367,7 +368,7 @@ class ActaDescargosService
     {
         $fecha = $diligencia->fecha_diligencia ?? now();
         $fechaTexto = $this->convertirFechaATexto($fecha);
-        $horaFin = $fecha->copy()->addMinutes(30)->format('H:i A'); // Asumimos 30 minutos de duración
+        $horaFin = $fecha->format('h:i A');
 
         $textoCierre = "Se da por terminada la presente Diligencia a las {$horaFin} del {$fechaTexto}, " .
                       "anunciando al trabajador que se estudiará el asunto y que a la menor brevedad posible " .

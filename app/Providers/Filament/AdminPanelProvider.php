@@ -52,7 +52,7 @@ class AdminPanelProvider extends PanelProvider
             ->userMenuItems([
                 'cambiar-password' => \Filament\Navigation\MenuItem::make()
                     ->label('Cambiar Contraseña')
-                    ->url(fn () => \App\Filament\Admin\Pages\CambiarPassword::getUrl())
+                    ->url(fn() => \App\Filament\Admin\Pages\CambiarPassword::getUrl())
                     ->icon('heroicon-o-key'),
             ])
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
@@ -82,23 +82,11 @@ class AdminPanelProvider extends PanelProvider
                     ->showName(true)
                     ->showEmail(true)
                     ->enableScreenshot(true),
-
                 LightSwitchPlugin::make(),
-
-                // Plugin de cambiar contraseña removido
-                // Ahora usamos nuestra página personalizada en español: app/Filament/Admin/Pages/CambiarPassword.php
-
                 FilamentNotificationSoundPlugin::make()
                     ->volume(1.0) // Volume (0.0 to 1.0)
                     ->showAnimation(true) // Show animation on notification badge
                     ->enabled(true),
-
-                // AuthUIEnhancerPlugin::make()
-                //     ->showEmptyPanelOnMobile(false)
-                //     ->formPanelPosition('left')
-                //     ->formPanelWidth('40%')
-                //     ->emptyPanelBackgroundImageOpacity('70%')
-                //     ->emptyPanelBackgroundImageUrl(asset('storage/consulta-juridica.jpg')),
             ])
             ->authMiddleware([
                 Authenticate::class,

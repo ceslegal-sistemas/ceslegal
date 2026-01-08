@@ -44,7 +44,7 @@ class ProcesoNotification extends Notification
     {
         // Determinar icono según tipo
         $icono = match ($this->tipo) {
-            'aper' => 'heroicon-o-document-plus',
+            'apertura' => 'heroicon-o-document-plus',
             'descargos_pendientes' => 'heroicon-o-clock',
             'descargos_realizados' => 'heroicon-o-check-circle',
             'termino_vencido' => 'heroicon-o-exclamation-triangle',

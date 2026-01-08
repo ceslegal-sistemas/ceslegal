@@ -30,7 +30,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                     !empty($fechaProgramada) &&
                     in_array($modalidad, ['presencial', 'telefonico', 'virtual'])
                 ) {
-                    $mensajeModalidad = match($modalidad) {
+                    $mensajeModalidad = match ($modalidad) {
                         'virtual' => 'Se enviará la citación con link de acceso web para descargos virtuales.',
                         'presencial' => 'Se enviará la citación para asistir presencialmente a la diligencia.',
                         'telefonico' => 'Se enviará la citación para la audiencia telefónica.',
@@ -38,9 +38,9 @@ class CreateProcesoDisciplinario extends CreateRecord
                     };
 
                     return "⚠️ La citación será enviada AUTOMÁTICAMENTE al correo: {$trabajador->email}\n\n" .
-                           "{$mensajeModalidad}\n\n" .
-                           "Se generarán automáticamente las preguntas con IA para los descargos.\n\n" .
-                           "¿Desea continuar?";
+                        "{$mensajeModalidad}\n\n" .
+                        "Se generarán automáticamente las preguntas con IA para los descargos.\n\n" .
+                        "¿Desea continuar?";
                 }
 
                 return '¿Está seguro que desea crear este proceso disciplinario?';
@@ -93,24 +93,37 @@ class CreateProcesoDisciplinario extends CreateRecord
                 if ($resultado['success']) {
                     // Verificar si se generaron preguntas con IA
                     $preguntasConIA = $resultado['preguntas_ia_generadas'] ?? false;
+                    $formatoDocumento = $resultado['formato_documento'] ?? 'pdf';
 
                     if ($preguntasConIA) {
                         $mensajeModalidad = $proceso->modalidad_descargos === 'virtual'
                             ? 'La citación fue generada y enviada automáticamente con link de acceso web y preguntas generadas por IA.'
                             : 'La citación fue generada y enviada automáticamente al trabajador con preguntas generadas por IA.';
 
+                        // Agregar advertencia de DOCX si aplica
+                        if ($formatoDocumento === 'docx') {
+                            $mensajeModalidad .= ' ADVERTENCIA: El documento fue enviado en formato DOCX (LibreOffice no está instalado).';
+                        }
+
                         Notification::make()
                             ->success()
                             ->title('Proceso creado y citación enviada')
                             ->body($mensajeModalidad)
-                            ->duration(5000)
+                            ->duration($formatoDocumento === 'docx' ? 8000 : 5000)
                             ->send();
                     } else {
                         // Correo enviado pero sin preguntas de IA
+                        $mensaje = 'La citación fue enviada exitosamente, pero no se pudieron generar preguntas con IA. Deberá generarlas manualmente desde el módulo de Descargos.';
+
+                        // Agregar advertencia de DOCX si aplica
+                        if ($formatoDocumento === 'docx') {
+                            $mensaje .= ' ADVERTENCIA: El documento fue enviado en formato DOCX (LibreOffice no está instalado).';
+                        }
+
                         Notification::make()
                             ->warning()
                             ->title('Citación enviada con advertencia')
-                            ->body('La citación fue enviada exitosamente, pero no se pudieron generar preguntas con IA. Deberá generarlas manualmente desde el módulo de Descargos.')
+                            ->body($mensaje)
                             ->duration(8000)
                             ->send();
                     }
