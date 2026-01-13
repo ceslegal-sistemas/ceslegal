@@ -25,6 +25,7 @@ class ProcesoDisciplinario extends Model
         'fecha_ocurrencia',
         'normas_incumplidas',
         'articulos_legales_ids',
+        'sanciones_laborales_ids',
         'pruebas_iniciales',
         'fecha_solicitud',
         'fecha_apertura',
@@ -36,6 +37,7 @@ class ProcesoDisciplinario extends Model
         'decision_sancion',
         'motivo_archivo',
         'tipo_sancion',
+        'dias_suspension',
         'fecha_notificacion',
         'fecha_limite_impugnacion',
         'impugnado',
@@ -57,6 +59,7 @@ class ProcesoDisciplinario extends Model
         'fecha_impugnacion' => 'datetime',
         'fecha_cierre' => 'datetime',
         'articulos_legales_ids' => 'array',
+        'sanciones_laborales_ids' => 'array',
     ];
 
     public function empresa(): BelongsTo
@@ -183,6 +186,81 @@ class ProcesoDisciplinario extends Model
 
         // Formato corto: "Art. 58, Art. 60 Num. 1, Art. 60 Num. 3"
         return $articulos->pluck('codigo')->join(', ');
+    }
+
+    /**
+     * ==================== SANCIONES LABORALES ====================
+     */
+
+    /**
+     * Obtener las sanciones laborales relacionadas
+     */
+    public function getSancionesLaboralesAttribute()
+    {
+        if (empty($this->sanciones_laborales_ids)) {
+            return collect([]);
+        }
+
+        return SancionLaboral::whereIn('id', $this->sanciones_laborales_ids)
+            ->ordenado()
+            ->get();
+    }
+
+    /**
+     * Obtener el texto de las sanciones laborales para la citación
+     * Formato completo con nombre claro y descripción
+     */
+    public function getSancionesLaboralesTextoAttribute(): string
+    {
+        if (empty($this->sanciones_laborales_ids)) {
+            return 'No especificado';
+        }
+
+        $sanciones = $this->sancionesLaborales;
+
+        if ($sanciones->isEmpty()) {
+            return 'No especificado';
+        }
+
+        // Formato: Nombre claro + Descripción (separados por párrafos)
+        $textoCompleto = [];
+
+        foreach ($sanciones as $sancion) {
+            $textoSancion = '';
+
+            // Nombre claro con emoji de tipo de falta
+            $emoji = $sancion->tipo_falta === 'leve' ? '🟢' : '🔴';
+            $textoSancion .= "{$emoji} {$sancion->nombre_claro}";
+
+            // Descripción en la siguiente línea
+            if (!empty($sancion->descripcion)) {
+                $textoSancion .= "\n" . $sancion->descripcion;
+            }
+
+            $textoCompleto[] = $textoSancion;
+        }
+
+        // Unir todas las sanciones con doble salto de línea (párrafo)
+        return implode("\n\n", $textoCompleto);
+    }
+
+    /**
+     * Obtener solo los nombres claros de las sanciones (versión corta)
+     */
+    public function getSancionesLaboralesNombresAttribute(): string
+    {
+        if (empty($this->sanciones_laborales_ids)) {
+            return 'No especificado';
+        }
+
+        $sanciones = $this->sancionesLaborales;
+
+        if ($sanciones->isEmpty()) {
+            return 'No especificado';
+        }
+
+        // Formato corto: "Retardo de 15 minutos (1ra vez), Falta de respeto leve"
+        return $sanciones->pluck('nombre_claro')->join(', ');
     }
 
     /**

@@ -142,6 +142,7 @@ class NotificacionService
      */
     public function notificarDescargosCompletados(ProcesoDisciplinario $proceso): void
     {
+        // Notificar al abogado
         $this->crear(
             userId: $proceso->abogado_id,
             tipo: 'descargos_realizados',
@@ -151,6 +152,24 @@ class NotificacionService
             relacionadoId: $proceso->id,
             prioridad: 'alta'
         );
+
+        // Notificar al cliente que generó el proceso
+        $usuarioCliente = User::where('role', 'cliente')
+            ->where('empresa_id', $proceso->empresa_id)
+            ->where('active', true)
+            ->get();
+
+        foreach ($usuarioCliente as $cliente) {
+            $this->crear(
+                userId: $cliente->id,
+                tipo: 'descargos_realizados',
+                titulo: 'Trabajador Completó Descargos',
+                mensaje: "El trabajador {$proceso->trabajador->nombre_completo} ha completado la diligencia de descargos del proceso {$proceso->codigo}. Puede revisar las respuestas y evidencias aportadas.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'alta'
+            );
+        }
     }
 
     /**

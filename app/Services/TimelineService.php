@@ -61,16 +61,21 @@ class TimelineService
     public function registrarCambioEstado(
         string $procesoTipo,
         int $procesoId,
-        string $estadoAnterior,
+        ?string $estadoAnterior,
         string $estadoNuevo,
         ?string $descripcion = null,
         ?array $metadata = null
     ): Timeline {
+        // Generar descripción por defecto
+        $descripcionDefault = $estadoAnterior
+            ? "Estado cambiado de {$estadoAnterior} a {$estadoNuevo}"
+            : "Estado inicial: {$estadoNuevo}";
+
         return $this->registrar(
             procesoTipo: $procesoTipo,
             procesoId: $procesoId,
             accion: 'Cambio de estado',
-            descripcion: $descripcion ?? "Estado cambiado de {$estadoAnterior} a {$estadoNuevo}",
+            descripcion: $descripcion ?? $descripcionDefault,
             estadoAnterior: $estadoAnterior,
             estadoNuevo: $estadoNuevo,
             metadata: $metadata

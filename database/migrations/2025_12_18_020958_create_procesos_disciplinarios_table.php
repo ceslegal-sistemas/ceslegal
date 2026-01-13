@@ -34,7 +34,7 @@ return new class extends Migration
             $table->date('fecha_ocurrencia')->nullable();
             $table->text('normas_incumplidas')->nullable();
             $table->text('pruebas_iniciales')->nullable();
-            $table->dateTime('fecha_solicitud');
+            $table->dateTime('fecha_solicitud')->nullable();
             $table->dateTime('fecha_apertura')->nullable();
             $table->dateTime('fecha_descargos_programada')->nullable();
             $table->dateTime('fecha_descargos_realizada')->nullable();

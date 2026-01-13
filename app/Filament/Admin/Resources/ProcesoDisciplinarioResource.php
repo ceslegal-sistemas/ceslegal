@@ -115,6 +115,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     Forms\Components\TextInput::make('numero_documento')
                                         ->label('Número de Documento')
                                         ->required()
+                                        ->numeric()
                                         ->maxLength(50)
                                         ->placeholder('Ej: 1234567890'),
 
@@ -191,10 +192,74 @@ class ProcesoDisciplinarioResource extends Resource
                                 unset($data['cargo_select'], $data['cargo_otro']);
 
                                 // Asignar empresa y estado activo
-                                $data['empresa_id'] = $get('empresa_id');
+                                $empresaId = $get('empresa_id');
+                                $data['empresa_id'] = $empresaId;
                                 $data['active'] = true;
 
-                                return Trabajador::create($data)->id;
+                                // Verificar si el trabajador ya existe EN LA MISMA EMPRESA
+                                $trabajadorMismaEmpresa = Trabajador::where('tipo_documento', $data['tipo_documento'])
+                                    ->where('numero_documento', $data['numero_documento'])
+                                    ->where('empresa_id', $empresaId)
+                                    ->first();
+
+                                if ($trabajadorMismaEmpresa) {
+                                    // Si existe en la misma empresa, actualizar su información
+                                    $trabajadorMismaEmpresa->update([
+                                        'nombres' => $data['nombres'],
+                                        'apellidos' => $data['apellidos'],
+                                        'email' => $data['email'],
+                                        'cargo' => $data['cargo'],
+                                        'genero' => $data['genero'],
+                                        'active' => true,
+                                    ]);
+
+                                    \Filament\Notifications\Notification::make()
+                                        ->info()
+                                        ->title('Trabajador Actualizado')
+                                        ->body("El trabajador {$trabajadorMismaEmpresa->nombre_completo} ya existía. Su información ha sido actualizada.")
+                                        ->duration(5000)
+                                        ->send();
+
+                                    return $trabajadorMismaEmpresa->id;
+                                }
+
+                                // Verificar si existe en OTRA empresa (solo para informar)
+                                $trabajadorOtraEmpresa = Trabajador::where('tipo_documento', $data['tipo_documento'])
+                                    ->where('numero_documento', $data['numero_documento'])
+                                    ->where('empresa_id', '!=', $empresaId)
+                                    ->exists();
+
+                                // Crear nuevo trabajador (sea primera vez o para otra empresa)
+                                try {
+                                    $trabajador = Trabajador::create($data);
+
+                                    if ($trabajadorOtraEmpresa) {
+                                        \Filament\Notifications\Notification::make()
+                                            ->success()
+                                            ->title('Trabajador Creado')
+                                            ->body("El trabajador {$trabajador->nombre_completo} fue registrado exitosamente.")
+                                            ->duration(5000)
+                                            ->send();
+                                    } else {
+                                        \Filament\Notifications\Notification::make()
+                                            ->success()
+                                            ->title('Trabajador Creado')
+                                            ->body("El trabajador {$trabajador->nombre_completo} fue creado exitosamente.")
+                                            ->duration(3000)
+                                            ->send();
+                                    }
+
+                                    return $trabajador->id;
+                                } catch (\Exception $e) {
+                                    \Filament\Notifications\Notification::make()
+                                        ->danger()
+                                        ->title('Error al Crear Trabajador')
+                                        ->body('Ocurrió un error al intentar crear el trabajador. Por favor, intente nuevamente.')
+                                        ->duration(5000)
+                                        ->send();
+
+                                    throw $e;
+                                }
                             })
                             ->createOptionModalHeading('Crear Nuevo Trabajador'),
 
@@ -340,41 +405,64 @@ class ProcesoDisciplinarioResource extends Resource
                         //     ->required()
                         //     ->live(),
 
-                        Forms\Components\Select::make('articulos_legales_ids')
-                            ->label('Artículos Legales Incumplidos')
+                        // COMENTADO: Artículos legales - Ahora se usan Sanciones Laborales
+                        // Forms\Components\Select::make('articulos_legales_ids')
+                        //     ->label('Artículos Legales Incumplidos')
+                        //     ->multiple()
+                        //     ->searchable()
+                        //     ->preload()
+                        //     ->options(function () {
+                        //         return \App\Models\ArticuloLegal::activos()
+                        //             ->ordenado()
+                        //             ->get()
+                        //             ->mapWithKeys(fn($articulo) => [
+                        //                 $articulo->id => $articulo->texto_completo
+                        //             ]);
+                        //     })
+                        //     ->placeholder('Seleccione uno o más artículos...')
+                        //     ->helperText('Seleccione los artículos del Código Sustantivo del Trabajo que presuntamente incumplió el trabajador')
+                        //     ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'abogado']))
+                        //     ->columnSpanFull(),
+
+                        // NUEVO: Sanciones Laborales
+                        Forms\Components\Select::make('sanciones_laborales_ids')
+                            ->label('Sanciones Laborales Incumplidas')
                             ->multiple()
                             ->searchable()
                             ->preload()
                             ->options(function () {
-                                return \App\Models\ArticuloLegal::activos()
+                                return \App\Models\SancionLaboral::activas()
                                     ->ordenado()
                                     ->get()
-                                    ->mapWithKeys(fn($articulo) => [
-                                        $articulo->id => $articulo->texto_completo
+                                    ->mapWithKeys(fn($sancion) => [
+                                        $sancion->id => $sancion->nombre_con_descripcion
                                     ]);
                             })
-                            ->placeholder('Seleccione uno o más artículos...')
-                            ->helperText('Seleccione los artículos del Código Sustantivo del Trabajo que presuntamente incumplió el trabajador')
-                            ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'abogado']))
+                            ->placeholder('Seleccione una o más sanciones...')
+                            ->helperText('Seleccione las sanciones del reglamento interno que presuntamente incumplió el trabajador')
+                            // ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'abogado']))
                             ->columnSpanFull(),
 
                     ])->columns(2),
 
                 Forms\Components\Section::make('Detalles del Proceso')
                     ->schema([
-                        Forms\Components\DateTimePicker::make('fecha_solicitud')
-                            ->label('Fecha de Solicitud')
-                            ->default(now())
-                            ->required()
-                            ->displayFormat('d/m/Y H:i')
-                            ->required()
-                            ->native(false),
+                        // Forms\Components\DateTimePicker::make('fecha_solicitud')
+                        //     ->label('Fecha de Solicitud')
+                        //     ->default(now())
+                        //     ->required()
+                        //     ->displayFormat('d/m/Y')
+                        //     ->disabled()
+                        //     ->dehydrated(false)
+                        //     ->native(false),
 
                         Forms\Components\DatePicker::make('fecha_ocurrencia')
                             ->label('Fecha de Ocurrencia de los Hechos')
                             ->displayFormat('d/m/Y')
                             ->native(false)
                             ->required()
+                            ->minDate(now()->subMonths(2)->startOfDay())
+                            ->maxDate(now()->endOfDay())
                             ->helperText('Fecha en que ocurrieron los hechos que motivan el proceso'),
 
                         Forms\Components\RichEditor::make('hechos')
@@ -404,7 +492,6 @@ class ProcesoDisciplinarioResource extends Resource
                                         try {
                                             $trabajadorId = $get('trabajador_id');
                                             $empresaId = $get('empresa_id');
-                                            $articulosLegales = $get('articulos_legales_texto') ?? '';
                                             $fechaOcurrencia = $get('fecha_ocurrencia');
                                             $fechaProgramada = $get('fecha_descargos_programada');
                                             $horaProgramada = $get('hora_descargos_programada');
@@ -432,6 +519,29 @@ class ProcesoDisciplinarioResource extends Resource
                                             $trabajador = \App\Models\Trabajador::find($trabajadorId);
                                             $empresa = \App\Models\Empresa::find($empresaId);
 
+                                            // Obtener las sanciones laborales seleccionadas
+                                            $sancionesLaboralesIds = $get('sanciones_laborales_ids') ?? [];
+                                            $sancionesLaborales = 'No especificado';
+
+                                            if (!empty($sancionesLaboralesIds)) {
+                                                $sanciones = \App\Models\SancionLaboral::whereIn('id', $sancionesLaboralesIds)
+                                                    ->ordenado()
+                                                    ->get();
+
+                                                if ($sanciones->isNotEmpty()) {
+                                                    $textoCompleto = [];
+                                                    foreach ($sanciones as $sancion) {
+                                                        $emoji = $sancion->tipo_falta === 'leve' ? '🟢' : '🔴';
+                                                        $textoSancion = "{$emoji} {$sancion->nombre_claro}";
+                                                        if (!empty($sancion->descripcion)) {
+                                                            $textoSancion .= "\n" . $sancion->descripcion;
+                                                        }
+                                                        $textoCompleto[] = $textoSancion;
+                                                    }
+                                                    $sancionesLaborales = implode("\n\n", $textoCompleto);
+                                                }
+                                            }
+
                                             // Obtener configuración del proveedor de IA
                                             $provider = config('services.ia.provider', 'openai');
                                             $config = config("services.ia.{$provider}", []);
@@ -447,6 +557,7 @@ class ProcesoDisciplinarioResource extends Resource
                                                 "- Representante Legal: {$empresa->representante_legal}\n" .
                                                 "- Trabajador: {$trabajador->nombre_completo}\n" .
                                                 "- Cargo: {$trabajador->cargo}\n" .
+                                                "- Sanción Laboral: {$sancionesLaborales}\n" .
                                                 "- Hechos que motivan el proceso: {$hechos}\n" .
                                                 ($fechaOcurrencia ? "- Fecha de los hechos: {$fechaOcurrencia}\n" : "") .
                                                 ($fechaProgramada ? "- Fecha de audiencia de descargos: {$fechaProgramada}\n" : "") .
@@ -463,7 +574,7 @@ class ProcesoDisciplinarioResource extends Resource
                                                 "6. Formato: HTML simple usando solo etiquetas <p> para separar párrafos\n\n" .
                                                 "EJEMPLO de lo que DEBES generar:\n" .
                                                 "<p>El día [fecha específica], el trabajador {$trabajador->nombre_completo}, quien se desempeña como {$trabajador->cargo}, " .
-                                                "{$hechos}. Esta situación generó [detallar la consecuencia o impacto en la operación].</p>\n\n" .
+                                                "{$sancionesLaborales}" . "{$hechos}. Esta situación generó [detallar la consecuencia o impacto en la operación].</p>\n\n" .
                                                 "<p>Los hechos descritos podrían constituir un incumplimiento de las obligaciones laborales establecidas en el " .
                                                 "Reglamento Interno de Trabajo y el contrato laboral vigente.</p>";
 
@@ -775,22 +886,45 @@ class ProcesoDisciplinarioResource extends Resource
 
                 // Botón 2: Enviar Citación (generar y enviar)
                 Tables\Actions\Action::make('enviar_citacion')
-                    ->label('Enviar Citación')
+                    ->label(
+                        fn(ProcesoDisciplinario $record) =>
+                        $record->estado === 'descargos_pendientes' ? 'Re-enviar Citación' : 'Enviar Sanción'
+                    )
+                    // ->label('Enviar Citación')
                     ->icon('heroicon-o-paper-airplane')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->modalHeading('¿Generar y enviar citación?')
-                    ->modalDescription(
+
+                    ->modalHeading(
                         fn(ProcesoDisciplinario $record) =>
-                        "Se generará la citación a descargos y se enviará por correo electrónico a: " .
-                            ($record->trabajador->email ?? 'No tiene email registrado')
+                        $record->estado === 'descargos_pendientes' ? 'Re-enviar Citación' : 'Enviar Citación'
                     )
-                    ->modalSubmitActionLabel('Sí, Generar y Enviar')
+                    ->modalDescription(
+                        fn(ProcesoDisciplinario $record) => ($record->estado === 'descargos_pendientes'
+                            ? "NOTA: Este proceso ya tiene una citación enviada. Se generará y se enviará un nuevo documento reemplazando el anterior.\n\n"
+                            : ""
+                        ) .
+                            "Se generará la citación a descargos y se enviará por correo electrónico a: " .
+                            ($record->trabajador->email ?? '')
+                    )
+                    ->modalSubmitActionLabel('Generar y Enviar Citación')
                     ->modalCancelActionLabel('Cancelar')
+                    ->modalWidth('md')
+
+
+
+                    // ->modalHeading('¿Generar y enviar citación?')
+                    // ->modalDescription(
+                    //     fn(ProcesoDisciplinario $record) =>
+                    //     "Se generará la citación a descargos y se enviará por correo electrónico a: " .
+                    //         ($record->trabajador->email ?? 'No tiene email registrado')
+                    // )
+                    // ->modalSubmitActionLabel('Sí, Generar y Enviar')
+                    // ->modalCancelActionLabel('Cancelar')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
                         !empty($record->trabajador->email) && !empty($record->fecha_descargos_programada)
-                            && $record->estado === 'descargos_pendientes' && auth()->user()?->hasAnyRole(['super_admin', 'abogado'])
+                            && $record->estado === 'descargos_pendientes' && auth()->user()?->hasAnyRole(['super_admin', 'abogado', 'cliente'])
                     )
                     ->action(function (ProcesoDisciplinario $record) {
                         $service = new \App\Services\DocumentGeneratorService();
@@ -813,48 +947,160 @@ class ProcesoDisciplinarioResource extends Resource
 
                 // Botón 3: Emitir Sanción (generar con IA y enviar)
                 Tables\Actions\Action::make('emitir_sancion')
-                    ->label(fn(ProcesoDisciplinario $record) =>
+                    ->label(
+                        fn(ProcesoDisciplinario $record) =>
                         $record->estado === 'sancion_emitida' ? 'Re-generar Sanción' : 'Emitir Sanción'
                     )
                     ->icon('heroicon-o-shield-exclamation')
                     ->color('danger')
-                    ->form([
-                        Forms\Components\Select::make('tipo_sancion')
-                            ->label('Tipo de Sanción a Aplicar')
-                            ->options([
+                    ->form(function (ProcesoDisciplinario $record) {
+                        // Analizar proceso con IA para obtener sanciones apropiadas
+                        $iaService = new \App\Services\IAAnalisisSancionService();
+                        $resultado = $iaService->analizarYSugerirSanciones($record);
+                        $analisis = $resultado['analisis'];
+
+                        // Construir opciones de sanción basadas en el análisis
+                        $opcionesSancion = [];
+                        foreach ($analisis['sanciones_disponibles'] as $sancion) {
+                            $opcionesSancion[$sancion] = match ($sancion) {
                                 'llamado_atencion' => 'Llamado de Atención',
                                 'suspension' => 'Suspensión Laboral',
                                 'terminacion' => 'Terminación de Contrato',
-                            ])
-                            ->required()
-                            ->native(false)
-                            ->default(fn(ProcesoDisciplinario $record) => $record->tipo_sancion)
-                            ->helperText('El documento será generado automáticamente con IA en lenguaje claro'),
-                    ])
+                                default => ucfirst($sancion),
+                            };
+                        }
+
+                        // Construir opciones de días de suspensión si aplica
+                        $opcionesDiasSuspension = [];
+                        if (isset($analisis['dias_suspension_sugeridos'])) {
+                            foreach ($analisis['dias_suspension_sugeridos'] as $dias) {
+                                $opcionesDiasSuspension[$dias] = "{$dias} día" . ($dias > 1 ? 's' : '');
+                            }
+                        }
+
+                        return [
+                            // Sección informativa con el análisis de la IA
+                            Forms\Components\Section::make('Análisis del Caso')
+                                ->schema([
+                                    Forms\Components\Placeholder::make('gravedad_info')
+                                        ->label('Gravedad de la Falta')
+                                        ->content(function () use ($analisis) {
+                                            $nivel = $analisis['nivel_gravedad'] ?? 'ninguno';
+
+                                            if ($analisis['gravedad'] === 'leve') {
+                                                $gravedad = '🟢 Leve';
+                                            } elseif ($analisis['gravedad'] === 'grave') {
+                                                if ($nivel === 'bajo') {
+                                                    $gravedad = '🟡 Grave (Nivel Bajo)';
+                                                } elseif ($nivel === 'alto') {
+                                                    $gravedad = '🔴 Grave (Nivel Alto)';
+                                                } else {
+                                                    $gravedad = '🟡 Grave';
+                                                }
+                                            } else {
+                                                $gravedad = ucfirst($analisis['gravedad']);
+                                            }
+
+                                            $reincidencia = $analisis['es_reincidencia'] ? ' - REINCIDENCIA' : '';
+                                            return $gravedad . $reincidencia;
+                                        }),
+
+                                    // Forms\Components\Placeholder::make('justificacion')
+                                    //     ->label('Justificación')
+                                    //     ->content($analisis['justificacion'] ?? 'N/A'),
+
+                                    Forms\Components\Placeholder::make('sancion_recomendada')
+                                        ->label('Sanción Recomendada por la IA')
+                                        ->content(function () use ($analisis) {
+                                            return match ($analisis['sancion_recomendada']) {
+                                                'llamado_atencion' => '📄 Llamado de Atención',
+                                                'suspension' => '⏸️ Suspensión Laboral',
+                                                'terminacion' => '❌ Terminación de Contrato',
+                                                default => $analisis['sancion_recomendada'],
+                                            };
+                                        }),
+
+                                    // Forms\Components\Placeholder::make('razonamiento_legal')
+                                    //     ->label('Razonamiento Legal')
+                                    //     ->content($analisis['razonamiento_legal'] ?? 'N/A'),
+
+                                    // Forms\Components\Placeholder::make('consideraciones')
+                                    //     ->label('Consideraciones Especiales')
+                                    //     ->content($analisis['consideraciones_especiales'] ?? 'N/A')
+                                    //     ->hidden(fn() => empty($analisis['consideraciones_especiales'])),
+                                ])
+                                ->description('Análisis automático basado en los hechos, artículos incumplidos y el historial del trabajador.')
+                                ->collapsible(),
+
+                            // Guardar análisis en sesión para uso posterior
+                            Forms\Components\Hidden::make('analisis_cache')
+                                ->default(json_encode($analisis)),
+
+                            // Campo de selección de sanción (solo opciones apropiadas)
+                            Forms\Components\Select::make('tipo_sancion')
+                                ->label('Tipo de Sanción a Aplicar')
+                                ->options($opcionesSancion)
+                                ->required()
+                                ->native(false)
+                                ->default($analisis['sancion_recomendada'] ?? null)
+                                ->helperText('Solo se muestran las opciones apropiadas según el análisis del caso'),
+                        ];
+                    })
                     ->requiresConfirmation()
-                    ->modalHeading(fn(ProcesoDisciplinario $record) =>
+                    ->modalHeading(
+                        fn(ProcesoDisciplinario $record) =>
                         $record->estado === 'sancion_emitida' ? 'Re-generar Sanción' : 'Emitir Sanción'
                     )
                     ->modalDescription(
-                        fn(ProcesoDisciplinario $record) =>
-                        ($record->estado === 'sancion_emitida'
+                        fn(ProcesoDisciplinario $record) => ($record->estado === 'sancion_emitida'
                             ? "NOTA: Este proceso ya tiene una sanción emitida. Se generará un nuevo documento reemplazando el anterior.\n\n"
                             : ""
                         ) .
-                        "Se generará automáticamente el documento de sanción con IA aplicando lenguaje claro y se enviará al trabajador: " .
+                            "Se generará automáticamente el documento de sanción con IA aplicando lenguaje claro y se enviará al trabajador: " .
                             ($record->trabajador->nombre_completo ?? '')
                     )
-                    ->modalSubmitActionLabel('Generar y Enviar Sanción')
+                    ->modalSubmitActionLabel('Continuar')
                     ->modalCancelActionLabel('Cancelar')
-                    ->modalWidth('md')
+                    ->modalWidth('2xl')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
                         in_array($record->estado, ['descargos_realizados', 'sancion_emitida']) &&
-                        !empty($record->trabajador->email) &&
-                        auth()->user()?->hasAnyRole(['super_admin', 'abogado'])
+                            !empty($record->trabajador->email) &&
+                            auth()->user()?->hasAnyRole(['super_admin', 'abogado', 'cliente'])
                     )
-                    ->action(function (ProcesoDisciplinario $record, array $data) {
+                    ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
+                        // Si es suspensión, pedir días en un segundo modal
+                        if ($data['tipo_sancion'] === 'suspension') {
+                            // Recuperar análisis del cache
+                            $analisis = json_decode($data['analisis_cache'], true);
+
+                            // Construir opciones de días
+                            $opcionesDiasSuspension = [];
+                            if (isset($analisis['dias_suspension_sugeridos'])) {
+                                foreach ($analisis['dias_suspension_sugeridos'] as $dias) {
+                                    $opcionesDiasSuspension[$dias] = "{$dias} día" . ($dias > 1 ? 's' : '');
+                                }
+                            }
+
+                            // Guardar tipo de sanción en sesión
+                            session(['tipo_sancion_pendiente_' . $record->id => 'suspension']);
+                            session(['opciones_dias_' . $record->id => $opcionesDiasSuspension]);
+
+                            // Mostrar notificación de éxito
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Tipo de sanción seleccionado')
+                                ->body('Ahora haz clic en "Confirmar Días de Suspensión" para completar la emisión.')
+                                ->persistent()
+                                ->send();
+
+                            // Refrescar la página para mostrar el botón de confirmar días
+                            return redirect()->to(request()->header('Referer') ?? route('filament.admin.resources.proceso-disciplinarios.index'));
+                        }
+
+                        // Si no es suspensión, proceder directamente
                         try {
+
                             $service = new \App\Services\DocumentGeneratorService();
                             $result = $service->generarYEnviarSancion($record, $data['tipo_sancion']);
 
@@ -880,7 +1126,102 @@ class ProcesoDisciplinarioResource extends Resource
 
                             \Illuminate\Support\Facades\Log::error('Error al emitir sanción', [
                                 'proceso_id' => $record->id,
-                                'tipo_sancion' => $data['tipo_sancion'],
+                                'tipo_sancion' => $data['tipo_sancion'] ?? 'N/A',
+                                'dias_suspension' => $data['dias_suspension'] ?? 'N/A',
+                                'error' => $e->getMessage(),
+                                'trace' => $e->getTraceAsString(),
+                            ]);
+                        }
+                    }),
+
+                // Acción secundaria: Confirmar días de suspensión
+                Tables\Actions\Action::make('confirmar_dias_suspension')
+                    ->label('Confirmar Días de Suspensión')
+                    ->icon('heroicon-o-clock')
+                    ->color('warning')
+                    ->form(function (ProcesoDisciplinario $record) {
+                        // Obtener opciones de días desde la sesión
+                        $opcionesDias = session('opciones_dias_' . $record->id, []);
+
+                        if (empty($opcionesDias)) {
+                            // Si no hay opciones, cargar desde el análisis en cache
+                            $iaService = new \App\Services\IAAnalisisSancionService();
+                            $resultado = $iaService->analizarYSugerirSanciones($record);
+                            $analisis = $resultado['analisis'];
+
+                            if (isset($analisis['dias_suspension_sugeridos'])) {
+                                foreach ($analisis['dias_suspension_sugeridos'] as $dias) {
+                                    $opcionesDias[$dias] = "{$dias} día" . ($dias > 1 ? 's' : '');
+                                }
+                            }
+                        }
+
+                        return [
+                            Forms\Components\Section::make('Días de Suspensión')
+                                ->schema([
+                                    Forms\Components\Placeholder::make('info')
+                                        ->label('Información')
+                                        ->content('Seleccione la cantidad de días de suspensión laboral sin remuneración según la gravedad de la falta.'),
+
+                                    Forms\Components\Select::make('dias_suspension')
+                                        ->label('Días de Suspensión')
+                                        ->options($opcionesDias)
+                                        ->required()
+                                        ->native(false)
+                                        ->default(fn() => array_key_first($opcionesDias))
+                                        ->helperText('Días sugeridos según el análisis del caso y la legislación colombiana'),
+                                ])
+                                ->description('Complete la información de la suspensión laboral'),
+                        ];
+                    })
+                    ->modalHeading('Confirmar Días de Suspensión')
+                    ->modalDescription('Seleccione la cantidad de días para completar la emisión de la sanción')
+                    ->modalSubmitActionLabel('Generar y Enviar Sanción')
+                    ->modalCancelActionLabel('Cancelar')
+                    ->modalWidth('md')
+                    ->visible(function (ProcesoDisciplinario $record) {
+                        $tipoPendiente = session('tipo_sancion_pendiente_' . $record->id);
+                        return $tipoPendiente === 'suspension' &&
+                            in_array($record->estado, ['descargos_realizados', 'sancion_emitida']) &&
+                            !empty($record->trabajador->email) &&
+                            auth()->user()?->hasAnyRole(['super_admin', 'abogado']);
+                    })
+                    ->action(function (ProcesoDisciplinario $record, array $data) {
+                        try {
+                            // Guardar días de suspensión
+                            $record->dias_suspension = $data['dias_suspension'];
+                            $record->save();
+
+                            // Generar y enviar sanción
+                            $service = new \App\Services\DocumentGeneratorService();
+                            $result = $service->generarYEnviarSancion($record, 'suspension');
+
+                            // Limpiar sesión
+                            session()->forget('tipo_sancion_pendiente_' . $record->id);
+                            session()->forget('opciones_dias_' . $record->id);
+
+                            // Notificar éxito
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('¡Sanción de suspensión emitida!')
+                                ->body("El documento de suspensión de {$data['dias_suspension']} día(s) fue generado y enviado exitosamente al trabajador.")
+                                ->duration(8000)
+                                ->send();
+
+                            // Refrescar la página
+                            redirect()->route('filament.admin.resources.proceso-disciplinarios.index');
+                        } catch (\Exception $e) {
+                            // Notificar error
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Error al emitir sanción')
+                                ->body('No se pudo completar la operación: ' . $e->getMessage())
+                                ->persistent()
+                                ->send();
+
+                            \Illuminate\Support\Facades\Log::error('Error al confirmar días de suspensión', [
+                                'proceso_id' => $record->id,
+                                'dias_suspension' => $data['dias_suspension'] ?? 'N/A',
                                 'error' => $e->getMessage(),
                                 'trace' => $e->getTraceAsString(),
                             ]);
@@ -1100,45 +1441,45 @@ class ProcesoDisciplinarioResource extends Resource
      * Configurar tutoriales para el recurso
      */
     // public static function tutorial(): array
-    public function tutorial(Tutorial $tutorial): Tutorial
-    {
-        // return [
-        return $tutorial->steps([
-            Step::make('bienvenida')
-                ->title('Bienvenido a Procesos Disciplinarios')
-                ->description('Este tutorial te guiará en la creación y gestión de procesos disciplinarios laborales.')
-                ->icon('heroicon-o-academic-cap')
-                ->iconColor('primary'),
+    // public function tutorial(Tutorial $tutorial): Tutorial
+    // {
+    //     // return [
+    //     return $tutorial->steps([
+    //         Step::make('bienvenida')
+    //             ->title('Bienvenido a Procesos Disciplinarios')
+    //             ->description('Este tutorial te guiará en la creación y gestión de procesos disciplinarios laborales.')
+    //             ->icon('heroicon-o-academic-cap')
+    //             ->iconColor('primary'),
 
-            Step::make('listado')
-                ->title('Listado de Procesos')
-                ->description('Aquí puedes ver todos los procesos disciplinarios. Usa los filtros para encontrar procesos específicos por estado o modalidad.')
-                ->attachTo('[data-table]', 'bottom')
-                ->icon('heroicon-o-list-bullet'),
+    //         Step::make('listado')
+    //             ->title('Listado de Procesos')
+    //             ->description('Aquí puedes ver todos los procesos disciplinarios. Usa los filtros para encontrar procesos específicos por estado o modalidad.')
+    //             ->attachTo('[data-table]', 'bottom')
+    //             ->icon('heroicon-o-list-bullet'),
 
-            Step::make('crear_proceso')
-                ->title('Crear Nuevo Proceso')
-                ->description('Haz clic en "Nuevo Proceso Disciplinario" para iniciar un proceso. Se te guiará paso a paso.')
-                ->attachTo('[data-action="create"]', 'bottom')
-                ->icon('heroicon-o-plus-circle')
-                ->iconColor('success'),
+    //         Step::make('crear_proceso')
+    //             ->title('Crear Nuevo Proceso')
+    //             ->description('Haz clic en "Nuevo Proceso Disciplinario" para iniciar un proceso. Se te guiará paso a paso.')
+    //             ->attachTo('[data-action="create"]', 'bottom')
+    //             ->icon('heroicon-o-plus-circle')
+    //             ->iconColor('success'),
 
-            Step::make('filtros')
-                ->title('Filtros y Búsqueda')
-                ->description('Usa los filtros para encontrar procesos por estado o si fueron impugnados.')
-                ->attachTo('[data-table-filters]', 'left')
-                ->icon('heroicon-o-funnel'),
+    //         Step::make('filtros')
+    //             ->title('Filtros y Búsqueda')
+    //             ->description('Usa los filtros para encontrar procesos por estado o si fueron impugnados.')
+    //             ->attachTo('[data-table-filters]', 'left')
+    //             ->icon('heroicon-o-funnel'),
 
-            Step::make('acciones')
-                ->title('Acciones del Proceso')
-                ->description('En cada proceso puedes: generar documentos, enviar citaciones, ver detalles o editarlo.')
-                ->icon('heroicon-o-cog-6-tooth'),
+    //         Step::make('acciones')
+    //             ->title('Acciones del Proceso')
+    //             ->description('En cada proceso puedes: generar documentos, enviar citaciones, ver detalles o editarlo.')
+    //             ->icon('heroicon-o-cog-6-tooth'),
 
-            Step::make('final')
-                ->title('¡Listo!')
-                ->description('Ya conoces lo básico de los procesos disciplinarios. Explora el sistema y si necesitas ayuda, vuelve a este tutorial.')
-                ->icon('heroicon-o-check-circle')
-                ->iconColor('success'),
-        ]);
-    }
+    //         Step::make('final')
+    //             ->title('¡Listo!')
+    //             ->description('Ya conoces lo básico de los procesos disciplinarios. Explora el sistema y si necesitas ayuda, vuelve a este tutorial.')
+    //             ->icon('heroicon-o-check-circle')
+    //             ->iconColor('success'),
+    //     ]);
+    // }
 }

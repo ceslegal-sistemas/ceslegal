@@ -538,10 +538,10 @@ class TrabajadorResource extends Resource
         ];
     }
 
-    public static function getNavigationBadge(): ?string
-    {
-        return static::getModel()::where('active', true)->count();
-    }
+    // public static function getNavigationBadge(): ?string
+    // {
+    //     return static::getModel()::where('active', true)->count();
+    // }
 
     public static function getNavigationBadgeColor(): ?string
     {

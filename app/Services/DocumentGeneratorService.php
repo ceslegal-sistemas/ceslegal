@@ -65,7 +65,7 @@ class DocumentGeneratorService
                     $horaDescargos = $proceso->hora_descargos_programada;
                 }
             }
-        }    
+        }
 
         // Formatear fecha de ocurrencia
         $fechaOcurrencia = $proceso->fecha_ocurrencia
@@ -78,8 +78,9 @@ class DocumentGeneratorService
         $nombres = isset($partes[0]) && isset($partes[1]) ? $partes[0] . ' ' . $partes[1] : ($partes[0] ?? '');
         $apellidos = $partes[2] ?? '';
 
-        // Obtener artículos legales seleccionados
-        $articulosLegalesTexto = $proceso->articulos_legales_texto ?? 'No especificado';
+        // COMENTADO: Artículos legales - Ahora se usan Sanciones Laborales
+        // $articulosLegalesTexto = $proceso->articulos_legales_texto ?? 'No especificado';
+        $sancionesLaboralesTexto = $proceso->sanciones_laborales_texto ?? 'No especificado';
 
         // Preparar variables de ubicación según modalidad
         $direccionTexto = '';
@@ -135,8 +136,9 @@ class DocumentGeneratorService
             // Razón del descargo (hechos)
             'RAZON_DESCARGO' => strip_tags($proceso->hechos ?? ''),
 
-            // Artículos legales
-            'ARTICULOS_LEGALES' => $articulosLegalesTexto,
+            // COMENTADO: Artículos legales - Ahora se usan Sanciones Laborales
+            // 'ARTICULOS_LEGALES' => $articulosLegalesTexto,
+            'SANCIONES_LABORALES' => $sancionesLaboralesTexto,
 
             // Variables adicionales (compatibilidad con plantillas antiguas)
             'CODIGO_PROCESO' => $proceso->codigo ?? 'N/A',
@@ -665,17 +667,27 @@ HTML;
         string $contextoDescargos
     ): string {
         $fechaActual = Carbon::now()->locale('es');
-        $articulosLegales = $proceso->articulos_legales_texto ?? 'Código Sustantivo del Trabajo';
+        // COMENTADO: Artículos legales - Ahora se usan Sanciones Laborales
+        // $articulosLegales = $proceso->articulos_legales_texto ?? 'Código Sustantivo del Trabajo';
+        $sancionesLaborales = $proceso->sanciones_laborales_texto ?? 'Reglamento Interno de Trabajo';
         $hechosTexto = strip_tags($proceso->hechos);
 
+        // Incluir días de suspensión en el nombre si aplica
+        $diasSuspension = $proceso->dias_suspension;
         $nombreSancion = match ($tipoSancion) {
             'llamado_atencion' => 'Llamado de Atención',
-            'suspension' => 'Suspensión Laboral',
+            'suspension' => 'Suspensión Laboral' . ($diasSuspension ? " de {$diasSuspension} día" . ($diasSuspension > 1 ? 's' : '') : ''),
             'terminacion' => 'Terminación de Contrato',
             default => 'Sanción',
         };
 
         $diasImpugnacion = 3; // Días hábiles para impugnar según ley colombiana
+
+        // Preparar texto específico para suspensiones
+        $textoSuspension = '';
+        if ($tipoSancion === 'suspension' && $diasSuspension) {
+            $textoSuspension = "\n- Días de suspensión: {$diasSuspension} día" . ($diasSuspension > 1 ? 's' : '') . " (sin remuneración)";
+        }
 
         return <<<PROMPT
 Genera un documento oficial de {$nombreSancion} para un trabajador en Colombia usando formato profesional estilo Word.
@@ -691,8 +703,8 @@ INFORMACIÓN DEL CASO:
 HECHOS:
 {$hechosTexto}
 
-ARTÍCULOS LEGALES INCUMPLIDOS:
-{$articulosLegales}
+SANCIONES DEL REGLAMENTO INTERNO INCUMPLIDAS:
+{$sancionesLaborales}
 
 DESCARGOS DEL TRABAJADOR:
 {$contextoDescargos}
@@ -749,10 +761,13 @@ Genera HTML con exactamente esta estructura:
   <p style="margin: 8px 0;">Después de analizar cuidadosamente toda la información, hemos decidido aplicar un {$nombreSancion}. [Explica claramente las razones de esta decisión.]</p>
 
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">5. Qué significa esto para usted</h3>
-  <p style="margin: 8px 0;">[Explica las consecuencias prácticas de forma clara y específica.]</p>
+  <p style="margin: 8px 0;">[Explica las consecuencias prácticas de forma clara y específica.{$textoSuspension}]</p>
 
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">6. Base legal</h3>
-  <p style="margin: 8px 0;">Esta decisión se fundamenta en el Código Sustantivo del Trabajo de Colombia y las normas establecidas en su contrato laboral. [Menciona artículos específicos si están disponibles, en lenguaje simple.]</p>
+  <p style="margin: 8px 0;">Esta decisión se fundamenta en el Código Sustantivo del Trabajo de Colombia, el reglamento interno de trabajo de la empresa y las normas establecidas en su contrato laboral.</p>
+
+  <p style="margin: 8px 0;"><strong>Sanciones del reglamento incumplidas:</strong></p>
+  <p style="margin: 8px 0;">[Separar cada sanción por su propio párrafo, explicando en lenguaje claro qué significan.{$sancionesLaborales}]</p>
 
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">7. Sus derechos de impugnación</h3>
   <p style="margin: 8px 0;">Si no está de acuerdo con esta decisión, usted tiene derecho a presentar una impugnación. Esto significa que puede solicitar una nueva revisión de su caso. Cuenta con {$diasImpugnacion} días hábiles a partir de la fecha de esta notificación para ejercer este derecho.</p>
@@ -905,7 +920,9 @@ PROMPT;
                     [
                         'tipo_sancion' => $tipoSancion,
                         'motivo_sancion' => strip_tags($proceso->hechos),
-                        'fundamento_legal' => $proceso->articulos_legales_texto,
+                        // COMENTADO: Artículos legales - Ahora se usan Sanciones Laborales
+                        // 'fundamento_legal' => $proceso->articulos_legales_texto,
+                        'fundamento_legal' => $proceso->sanciones_laborales_texto,
                         'documento_generado' => true,
                         'ruta_documento' => $documentoPath,
                         'fecha_notificacion_trabajador' => now(),

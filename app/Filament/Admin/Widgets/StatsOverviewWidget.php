@@ -7,6 +7,7 @@ use App\Models\SolicitudContrato;
 use App\Models\TerminoLegal;
 use App\Services\TerminoLegalService;
 use App\Services\EstadoProcesoService;
+use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
@@ -57,37 +58,42 @@ class StatsOverviewWidget extends BaseWidget
                 ->description($totalProcesos . ' procesos en total')
                 ->descriptionIcon('heroicon-m-shield-exclamation')
                 ->color('primary')
+                ->url(ProcesoDisciplinarioResource::getUrl('index'))
                 ->chart([7, 12, 8, 15, 18, 12, $procesosActivos]),
 
             Stat::make('En Apertura', $procesosApertura)
                 ->description('Procesos iniciados')
                 ->descriptionIcon('heroicon-m-folder-open')
                 ->color('gray')
+                ->url(ProcesoDisciplinarioResource::getUrl('index'))
                 ->chart([2, 3, 2, 1, 2, 3, $procesosApertura]),
 
             Stat::make('En Descargos', $procesosDescargos)
                 ->description('Pendientes o realizados')
                 ->descriptionIcon('heroicon-m-document-text')
                 ->color('warning')
+                ->url(ProcesoDisciplinarioResource::getUrl('index'))
                 ->chart([3, 5, 4, 3, 2, 4, $procesosDescargos]),
 
             Stat::make('Sanción Emitida', $procesosSancionEmitida)
                 ->description('Esperando cierre o impugnación')
                 ->descriptionIcon('heroicon-m-scale')
                 ->color('info')
+                ->url(ProcesoDisciplinarioResource::getUrl('index'))
                 ->chart([2, 3, 4, 2, 3, 4, $procesosSancionEmitida]),
 
             Stat::make('Impugnados', $procesosImpugnados)
                 ->description('Requieren revisión urgente')
                 ->descriptionIcon('heroicon-m-arrow-path')
                 ->color('danger')
+                ->url(ProcesoDisciplinarioResource::getUrl('index'))
                 ->chart([0, 1, 0, 1, 2, 1, $procesosImpugnados]),
 
-            Stat::make('Términos Próximos a Vencer', $terminosProximos)
-                ->description('Atención en 2 días hábiles')
-                ->descriptionIcon('heroicon-m-clock')
-                ->color('warning')
-                ->chart([2, 1, 3, 2, 1, 0, $terminosProximos]),
+            // Stat::make('Términos Próximos a Vencer', $terminosProximos)
+            //     ->description('Atención en 2 días hábiles')
+            //     ->descriptionIcon('heroicon-m-clock')
+            //     ->color('warning')
+            //     ->chart([2, 1, 3, 2, 1, 0, $terminosProximos]),
         ];
     }
 }

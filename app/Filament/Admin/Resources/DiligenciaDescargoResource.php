@@ -143,6 +143,52 @@ class DiligenciaDescargoResource extends Resource
                             ->columnSpanFull(),
                     ])->columns(2)->collapsible(),
 
+                Forms\Components\Section::make('Archivos de Evidencia')
+                    ->description('Archivos aportados por el trabajador como prueba')
+                    ->schema([
+                        Forms\Components\Placeholder::make('archivos_evidencia_info')
+                            ->label('Archivos Adjuntos')
+                            ->content(function ($record) {
+                                if (!$record || !$record->archivos_evidencia || empty($record->archivos_evidencia)) {
+                                    return 'No se adjuntaron archivos de evidencia.';
+                                }
+
+                                $html = '<div class="space-y-2">';
+                                foreach ($record->archivos_evidencia as $archivo) {
+                                    $nombre = $archivo['nombre'] ?? 'Archivo sin nombre';
+                                    $path = $archivo['path'] ?? '';
+                                    $size = isset($archivo['size']) ? round($archivo['size'] / 1024, 2) . ' KB' : 'Tamaño desconocido';
+                                    $tipo = $archivo['tipo'] ?? 'Tipo desconocido';
+
+                                    $url = $path ? asset('storage/' . $path) : '#';
+
+                                    // Determinar ícono según tipo de archivo
+                                    $icono = '📄';
+                                    if (str_contains($tipo, 'image')) {
+                                        $icono = '🖼️';
+                                    } elseif (str_contains($tipo, 'pdf')) {
+                                        $icono = '📑';
+                                    } elseif (str_contains($tipo, 'word') || str_contains($tipo, 'document')) {
+                                        $icono = '📝';
+                                    }
+
+                                    $html .= "<div class='flex items-center gap-2 p-2 bg-gray-50 rounded'>";
+                                    $html .= "<span class='text-2xl'>{$icono}</span>";
+                                    $html .= "<div class='flex-1'>";
+                                    $html .= "<a href='{$url}' target='_blank' class='text-primary-600 hover:underline font-medium'>{$nombre}</a>";
+                                    $html .= "<div class='text-xs text-gray-500'>{$size} • {$tipo}</div>";
+                                    $html .= "</div>";
+                                    $html .= "</div>";
+                                }
+                                $html .= '</div>';
+
+                                return new \Illuminate\Support\HtmlString($html);
+                            })
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible()
+                    ->collapsed(fn($record) => !$record || !$record->archivos_evidencia || empty($record->archivos_evidencia)),
+
                 Forms\Components\Section::make('Acta de Descargos')
                     ->schema([
                         Forms\Components\Toggle::make('acta_generada')
@@ -204,6 +250,27 @@ class DiligenciaDescargoResource extends Resource
                     })
                     ->badge()
                     ->color('success'),
+
+                Tables\Columns\IconColumn::make('archivos_evidencia')
+                    ->label('Archivos')
+                    ->boolean()
+                    ->getStateUsing(function (DiligenciaDescargo $record) {
+                        return $record->archivos_evidencia && count($record->archivos_evidencia) > 0;
+                    })
+                    ->trueIcon('heroicon-o-paper-clip')
+                    ->falseIcon('heroicon-o-x-mark')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->tooltip(function (DiligenciaDescargo $record) {
+                        if ($record->archivos_evidencia && count($record->archivos_evidencia) > 0) {
+                            $cantidad = count($record->archivos_evidencia);
+                            return "{$cantidad} archivo(s) adjunto(s)";
+                        }
+                        return 'Sin archivos';
+                    })
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderByRaw('JSON_LENGTH(COALESCE(archivos_evidencia, "[]")) ' . $direction);
+                    }),
 
                 Tables\Columns\TextColumn::make('trabajador_accedio_en')
                     ->label('Accedió En')
