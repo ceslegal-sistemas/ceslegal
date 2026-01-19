@@ -37,8 +37,28 @@ class DiligenciaDescargoResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Información del Proceso')
+                Forms\Components\Section::make('Datos del Proceso')
+                    ->description('Seleccione el proceso y programe la diligencia')
                     ->schema([
+                        // Forms\Components\Select::make('proceso_id')
+                        //     ->label('Seleccione el Trabajador y Proceso')
+                        //     ->relationship(
+                        //         name: 'proceso',
+                        //         titleAttribute: 'codigo',
+                        //         modifyQueryUsing: fn (Builder $query) => $query
+                        //             ->with(['trabajador', 'empresa'])
+                        //             ->whereIn('estado', ['notificado', 'descargos_citados'])
+                        //     )
+                        //     ->getOptionLabelFromRecordUsing(fn ($record) =>
+                        //         "{$record->trabajador->nombre_completo} - {$record->trabajador->cargo} (Proceso {$record->codigo})"
+                        //     )
+                        //     ->searchable(['codigo'])
+                        //     ->preload()
+                        //     ->required()
+                        //     ->placeholder('Seleccione un proceso')
+                        //     ->helperText('Haga clic para ver todos los procesos disponibles')
+                        //     ->columnSpanFull(),
+
                         Forms\Components\Select::make('proceso_id')
                             ->label('Proceso Disciplinario')
                             ->relationship(
@@ -52,132 +72,109 @@ class DiligenciaDescargoResource extends Resource
                             ->getOptionLabelFromRecordUsing(
                                 fn($record) =>
                                 "{$record->codigo} - {$record->trabajador->nombre_completo}"
-                            ),
-
-                        Forms\Components\DateTimePicker::make('fecha_diligencia')
-                            ->label('Fecha de la Diligencia')
-                            ->required()
-                            ->native(false),
-
-                        // Forms\Components\TextInput::make('lugar_diligencia')
-                        //     ->label('Lugar de la Diligencia')
-                        //     ->maxLength(255)
-                        //     ->placeholder('Ej: Sala de audiencias, Virtual, etc.'),
-
-                        Forms\Components\Select::make('lugar_diligencia')
-                            ->label('¿Como se realizará la diligencia de descargos?')
-                            ->options([
-                                'presencial' => 'Presencial',
-                                'virtual' => 'Virtual',
-                                'telefonico' => 'Telefónico',
-                            ])
-                            ->searchable()
-                            ->preload()
-                            // ->native(false)
-                            ->placeholder('Seleccione la modalidad'),
-                    ])->columns(2),
-
-                Forms\Components\Section::make('Acceso Web del Trabajador')
-                    ->description('Configuración de acceso temporal para descargos en línea')
-                    ->schema([
-                        Forms\Components\TextInput::make('token_acceso')
-                            ->label('Token de Acceso')
-                            ->disabled()
-                            ->helperText('Se genera automáticamente'),
-
-                        Forms\Components\DateTimePicker::make('token_expira_en')
-                            ->label('Token Expira En')
-                            ->disabled()
-                            ->native(false),
-
-                        Forms\Components\Toggle::make('acceso_habilitado')
-                            ->label('Acceso Habilitado')
-                            ->helperText('Activar/desactivar el acceso del trabajador al formulario'),
-
-                        Forms\Components\DatePicker::make('fecha_acceso_permitida')
-                            ->label('Fecha de Acceso Permitida')
-                            ->native(false)
-                            ->helperText('El trabajador solo podrá acceder este día'),
-
-                        Forms\Components\DateTimePicker::make('trabajador_accedio_en')
-                            ->label('Trabajador Accedió En')
-                            ->disabled()
-                            ->native(false),
-
-                        Forms\Components\TextInput::make('ip_acceso')
-                            ->label('IP de Acceso')
-                            ->disabled(),
-                    ])->columns(3)->collapsible(),
-
-                Forms\Components\Section::make('Información de la Diligencia')
-                    ->schema([
-                        Forms\Components\Toggle::make('trabajador_asistio')
-                            ->label('¿El Trabajador Asistió?')
-                            ->live(),
-
-                        Forms\Components\Toggle::make('pruebas_aportadas')
-                            ->label('¿Aportó Pruebas?')
-                            ->live(),
-
-                        // Forms\Components\Textarea::make('motivo_inasistencia')
-                        //     ->label('Motivo de Inasistencia')
-                        //     ->visible(fn(Forms\Get $get) => !$get('trabajador_asistio'))
-                        //     ->columnSpanFull(),
-
-                        Forms\Components\TextInput::make('acompanante_nombre')
-                            ->label('Nombre del Acompañante')
-                            ->maxLength(255),
-
-                        Forms\Components\TextInput::make('acompanante_cargo')
-                            ->label('Cargo/Relación del Acompañante')
-                            ->maxLength(255),
-
-
-                        Forms\Components\Textarea::make('descripcion_pruebas')
-                            ->label('Descripción de las Pruebas')
-                            ->visible(fn(Forms\Get $get) => $get('pruebas_aportadas'))
+                            )
                             ->columnSpanFull(),
 
+                        Forms\Components\Select::make('lugar_diligencia')
+                            ->label('Modalidad')
+                            ->options([
+                                'presencial' => 'Presencial - El trabajador viene a la oficina',
+                                'virtual' => 'Virtual - El trabajador responde por internet desde su casa',
+                                'telefonico' => 'Telefónico - Se hará por llamada telefónica',
+                            ])
+                            ->native(false)
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                if ($state === 'virtual') {
+                                    $set('acceso_habilitado', true);
+                                } else {
+                                    $set('acceso_habilitado', false);
+                                }
+                            })
+                            ->afterStateHydrated(function ($state, Forms\Set $set) {
+                                if ($state === 'virtual') {
+                                    $set('acceso_habilitado', true);
+                                } else {
+                                    $set('acceso_habilitado', false);
+                                }
+                            })
+                            ->helperText('Seleccione cómo se realizará la diligencia')
+                            ->columnSpanFull(),
+
+                        Forms\Components\DateTimePicker::make('fecha_diligencia')
+                            ->label('Fecha y Hora de la Reunión')
+                            ->visible(fn(Forms\Get $get) => in_array($get('lugar_diligencia'), ['presencial', 'telefonico']))
+                            ->required(fn(Forms\Get $get) => in_array($get('lugar_diligencia'), ['presencial', 'telefonico']))
+                            ->native(false)
+                            ->seconds(false)
+                            ->minDate(now())
+                            ->timezone('America/Bogota')
+                            ->helperText('Seleccione el día y la hora exacta de la reunión')
+                            ->columnSpanFull(),
+
+                        Forms\Components\DatePicker::make('fecha_acceso_permitida')
+                            ->label('Fecha de Acceso')
+                            ->visible(fn(Forms\Get $get) => $get('lugar_diligencia') === 'virtual')
+                            ->required(fn(Forms\Get $get) => $get('lugar_diligencia') === 'virtual')
+                            ->native(false)
+                            ->minDate(now()->startOfDay())
+                            ->helperText('Seleccione el día en que el trabajador podrá entrar al sistema a responder')
+                            ->columnSpanFull(),
+
+                        Forms\Components\TextInput::make('lugar_especifico')
+                            ->label('Lugar Específico')
+                            ->visible(fn(Forms\Get $get) => $get('lugar_diligencia') === 'presencial')
+                            ->maxLength(255)
+                            ->placeholder('Ejemplo: Sala de juntas, Oficina 301, Calle 50 # 20-30')
+                            ->helperText('Indique dónde se realizará la diligencia')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Hidden::make('acceso_habilitado')
+                            ->default(false),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Notas y Observaciones')
+                    ->description('Registre información adicional relevante')
+                    ->schema([
+                        Forms\Components\TextInput::make('acompanante_nombre')
+                            ->label('Nombre del Acompañante')
+                            ->maxLength(255)
+                            ->placeholder('Ejemplo: María López')
+                            ->helperText('Si el trabajador viene con alguien, indique el nombre'),
+
+                        Forms\Components\TextInput::make('acompanante_cargo')
+                            ->label('Relación del Acompañante')
+                            ->maxLength(255)
+                            ->placeholder('Ejemplo: Abogado, Familiar, Compañero')
+                            ->helperText('Indique quién es la persona que acompaña'),
+
                         Forms\Components\Textarea::make('observaciones')
-                            ->label('Observaciones')
+                            ->label('Observaciones Generales')
+                            ->rows(3)
+                            ->placeholder('Escriba aquí cualquier información importante sobre la diligencia...')
                             ->columnSpanFull(),
                     ])->columns(2)->collapsible(),
 
                 Forms\Components\Section::make('Archivos de Evidencia')
-                    ->description('Archivos aportados por el trabajador como prueba')
+                    ->description('Archivos que el trabajador ha subido por internet')
                     ->schema([
                         Forms\Components\Placeholder::make('archivos_evidencia_info')
                             ->label('Archivos Adjuntos')
                             ->content(function ($record) {
                                 if (!$record || !$record->archivos_evidencia || empty($record->archivos_evidencia)) {
-                                    return 'No se adjuntaron archivos de evidencia.';
+                                    return 'El trabajador no ha subido archivos';
                                 }
 
                                 $html = '<div class="space-y-2">';
                                 foreach ($record->archivos_evidencia as $archivo) {
-                                    $nombre = $archivo['nombre'] ?? 'Archivo sin nombre';
+                                    $nombre = $archivo['nombre'] ?? 'Archivo';
                                     $path = $archivo['path'] ?? '';
-                                    $size = isset($archivo['size']) ? round($archivo['size'] / 1024, 2) . ' KB' : 'Tamaño desconocido';
-                                    $tipo = $archivo['tipo'] ?? 'Tipo desconocido';
-
                                     $url = $path ? asset('storage/' . $path) : '#';
 
-                                    // Determinar ícono según tipo de archivo
-                                    $icono = '📄';
-                                    if (str_contains($tipo, 'image')) {
-                                        $icono = '🖼️';
-                                    } elseif (str_contains($tipo, 'pdf')) {
-                                        $icono = '📑';
-                                    } elseif (str_contains($tipo, 'word') || str_contains($tipo, 'document')) {
-                                        $icono = '📝';
-                                    }
-
-                                    $html .= "<div class='flex items-center gap-2 p-2 bg-gray-50 rounded'>";
-                                    $html .= "<span class='text-2xl'>{$icono}</span>";
-                                    $html .= "<div class='flex-1'>";
-                                    $html .= "<a href='{$url}' target='_blank' class='text-primary-600 hover:underline font-medium'>{$nombre}</a>";
-                                    $html .= "<div class='text-xs text-gray-500'>{$size} • {$tipo}</div>";
-                                    $html .= "</div>";
+                                    $html .= "<div class='p-3 bg-gray-50 rounded flex justify-between items-center border'>";
+                                    $html .= "<span class='font-medium'>{$nombre}</span>";
+                                    $html .= "<a href='{$url}' target='_blank' class='px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700'>Descargar</a>";
                                     $html .= "</div>";
                                 }
                                 $html .= '</div>';
@@ -188,17 +185,6 @@ class DiligenciaDescargoResource extends Resource
                     ])
                     ->collapsible()
                     ->collapsed(fn($record) => !$record || !$record->archivos_evidencia || empty($record->archivos_evidencia)),
-
-                Forms\Components\Section::make('Acta de Descargos')
-                    ->schema([
-                        Forms\Components\Toggle::make('acta_generada')
-                            ->label('¿Acta Generada?'),
-
-                        Forms\Components\TextInput::make('ruta_acta')
-                            ->label('Ruta del Acta')
-                            ->maxLength(255)
-                            ->disabled(),
-                    ])->columns(2)->collapsible(),
             ]);
     }
 
@@ -302,13 +288,13 @@ class DiligenciaDescargoResource extends Resource
                     ->color('warning')
                     ->requiresConfirmation()
                     ->modalHeading('¿Generar preguntas con IA?')
-                    ->modalDescription('Se generarán 5 preguntas iniciales basadas en los hechos del proceso disciplinario.')
+                    ->modalDescription('Se generarán 2 preguntas iniciales basadas en los hechos del proceso disciplinario.')
                     ->modalSubmitActionLabel('Generar')
                     ->action(function (DiligenciaDescargo $record) {
                         $iaService = new IADescargoService();
 
                         try {
-                            $preguntas = $iaService->generarPreguntasCompletas($record, 5);
+                            $preguntas = $iaService->generarPreguntasCompletas($record, 2);
 
                             Notification::make()
                                 ->success()
@@ -341,23 +327,6 @@ class DiligenciaDescargoResource extends Resource
                     ->modalCancelActionLabel('Cerrar')
                     ->visible(fn(DiligenciaDescargo $record) => !empty($record->token_acceso)),
 
-                Tables\Actions\Action::make('regenerar_token')
-                    ->label('Regenerar Token')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('warning')
-                    ->requiresConfirmation()
-                    ->modalHeading('¿Regenerar token de acceso?')
-                    ->modalDescription('Se generará un nuevo token. El anterior dejará de funcionar.')
-                    ->action(function (DiligenciaDescargo $record) {
-                        $record->generarTokenAcceso();
-
-                        Notification::make()
-                            ->success()
-                            ->title('Token regenerado')
-                            ->body('Nuevo token generado exitosamente.')
-                            ->send();
-                    })
-                    ->visible(fn(DiligenciaDescargo $record) => !empty($record->token_acceso)),
 
                 Tables\Actions\Action::make('generar_acta')
                     ->label('Generar Acta')
@@ -399,61 +368,72 @@ class DiligenciaDescargoResource extends Resource
                     ->label('Descargar Acta')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('primary')
-                    ->action(function (DiligenciaDescargo $record) {
-                        if (!$record->ruta_acta || !file_exists($record->ruta_acta)) {
-                            Notification::make()
-                                ->warning()
-                                ->title('Archivo no encontrado')
-                                ->body('El archivo del acta no existe. Por favor, genérelo nuevamente.')
-                                ->send();
-                            return null;
-                        }
+                    ->url(fn(DiligenciaDescargo $record) => route('descargar.acta', $record->id))
+                    ->openUrlInNewTab()
+                    ->visible(fn(DiligenciaDescargo $record) => $record->acta_generada && !empty($record->ruta_acta) && file_exists($record->ruta_acta)),
 
-                        return response()->download($record->ruta_acta);
-                    })
-                    ->visible(fn(DiligenciaDescargo $record) => $record->acta_generada && !empty($record->ruta_acta)),
-
-                Tables\Actions\Action::make('regenerar_acta')
-                    ->label('Regenerar Acta')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('warning')
-                    ->requiresConfirmation()
-                    ->modalHeading('¿Regenerar acta de descargos?')
-                    ->modalDescription('Se eliminará el acta actual y se generará una nueva con la información actualizada.')
-                    ->modalSubmitActionLabel('Regenerar')
-                    ->action(function (DiligenciaDescargo $record) {
-                        // Eliminar archivo anterior si existe
-                        if ($record->ruta_acta && file_exists($record->ruta_acta)) {
-                            unlink($record->ruta_acta);
-                        }
-
-                        // Generar nueva acta
-                        $actaService = new ActaDescargosService();
-                        $resultado = $actaService->generarActaDescargos($record);
-
-                        if ($resultado['success']) {
-                            $record->update([
-                                'acta_generada' => true,
-                                'ruta_acta' => $resultado['path'],
-                            ]);
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\Action::make('regenerar_token')
+                        ->label('Regenerar Token')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('¿Regenerar token de acceso?')
+                        ->modalDescription('Se generará un nuevo token. El anterior dejará de funcionar.')
+                        ->action(function (DiligenciaDescargo $record) {
+                            $record->generarTokenAcceso();
 
                             Notification::make()
                                 ->success()
-                                ->title('Acta regenerada')
-                                ->body('El acta de descargos se regeneró exitosamente.')
+                                ->title('Token regenerado')
+                                ->body('Nuevo token generado exitosamente.')
                                 ->send();
-                        } else {
-                            Notification::make()
-                                ->danger()
-                                ->title('Error')
-                                ->body('Error al regenerar el acta: ' . ($resultado['error'] ?? 'Error desconocido'))
-                                ->send();
-                        }
-                    })
-                    ->visible(fn(DiligenciaDescargo $record) => $record->acta_generada),
+                        })
+                        ->visible(fn(DiligenciaDescargo $record) => !empty($record->token_acceso)),
 
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                    Tables\Actions\Action::make('regenerar_acta')
+                        ->label('Regenerar Acta')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('¿Regenerar acta de descargos?')
+                        ->modalDescription('Se eliminará el acta actual y se generará una nueva con la información actualizada.')
+                        ->modalSubmitActionLabel('Regenerar')
+                        ->action(function (DiligenciaDescargo $record) {
+                            // Eliminar archivo anterior si existe
+                            if ($record->ruta_acta && file_exists($record->ruta_acta)) {
+                                unlink($record->ruta_acta);
+                            }
+
+                            // Generar nueva acta
+                            $actaService = new ActaDescargosService();
+                            $resultado = $actaService->generarActaDescargos($record);
+
+                            if ($resultado['success']) {
+                                $record->update([
+                                    'acta_generada' => true,
+                                    'ruta_acta' => $resultado['path'],
+                                ]);
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('Acta regenerada')
+                                    ->body('El acta de descargos se regeneró exitosamente.')
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Error')
+                                    ->body('Error al regenerar el acta: ' . ($resultado['error'] ?? 'Error desconocido'))
+                                    ->send();
+                            }
+                        })
+                        ->visible(fn(DiligenciaDescargo $record) => $record->acta_generada),
+
+                    Tables\Actions\DeleteAction::make(),
+                ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

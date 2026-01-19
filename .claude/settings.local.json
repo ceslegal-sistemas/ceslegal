@@ -7,7 +7,10 @@
       "Bash(npm run build:*)",
       "Bash(composer dump-autoload:*)",
       "WebFetch(domain:chatgpt.com)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(soffice:*)",
+      "Bash(\"C:\\\\Program Files\\\\LibreOffice\\\\program\\\\soffice.exe\" --version)",
+      "Bash(tasklist:*)"
     ]
   }
 }

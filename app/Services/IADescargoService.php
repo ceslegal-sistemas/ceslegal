@@ -15,25 +15,28 @@ class IADescargoService
     protected string $provider;
     protected array $config;
 
+    // Límite máximo de preguntas totales por diligencia
+    const LIMITE_MAXIMO_PREGUNTAS = 30;
+
     // Preguntas estándar iniciales
     const PREGUNTAS_INICIALES = [
-        '¿Desea hacerse acompañar de algún compañero de trabajo o persona de confianza? (Responda SÍ o NO)',
-        'Indique el nombre completo de la persona que lo acompañará.',
-        'Indique el cargo o relación de la persona que lo acompañará (compañero de trabajo, familiar, abogado, etc.).',
-        'Señale por favor para qué empresa labora Usted.',
-        '¿Señale por favor cual es el cargo que desempeña actualmente en la Compañía y describa concretamente cuáles son sus funciones?',
-        '¿Conoce usted el Reglamento Interno de Trabajo y las normas internas de la Empresa?',
-        '¿Quién es su jefe inmediato?',
-        '¿Cumple usted cabalmente las funciones propias de su cargo?',
-        '¿Acata usted las órdenes impartidas por parte de su empleador?',
-        '¿Conoce las razones por las cuales fue citado(a) a esta diligencia?',
+        '¿Va a asistir acompañado(a) por alguien?',
+        '¿Qué relación tiene esa persona con usted?',
+        '¿Para qué empresa trabaja usted?',
+        '¿Cuál es su cargo en la empresa?',
+        '¿Qué tareas realiza en ese cargo?',
+        '¿Conoce el reglamento interno de la empresa?',
+        '¿Quién es su jefe directo?',
+        '¿Usted cumple con las funciones de su cargo?',
+        '¿Sigue las instrucciones que le da su jefe?',
+        '¿Sabe por qué fue citado(a) a estos descargos?',
     ];
 
     // Preguntas estándar de cierre
     const PREGUNTAS_CIERRE = [
-        '¿Informó de esta situación a su jefe inmediato?',
-        '¿Había estado en diligencia de descargos anteriormente?',
-        '¿Sabe usted que el incumplimiento de sus obligaciones laborales puede acarrear sanciones?',
+        '¿Le avisó esta situación a su jefe directo?',
+        '¿Ha estado antes en descargos?',
+        '¿Sabe que no cumplir con sus obligaciones de trabajo puede traerle sanciones?',
     ];
 
     public function __construct()
@@ -54,6 +57,17 @@ class IADescargoService
         $diligencia = $preguntaRespondida->diligenciaDescargo;
         $proceso = $diligencia->proceso;
 
+        // Verificar que no se exceda el límite máximo de preguntas
+        $totalPreguntasActuales = $diligencia->preguntas()->count();
+        if ($totalPreguntasActuales >= self::LIMITE_MAXIMO_PREGUNTAS) {
+            Log::warning('No se pueden generar más preguntas dinámicas - límite alcanzado', [
+                'diligencia_id' => $diligencia->id,
+                'total_preguntas' => $totalPreguntasActuales,
+                'limite_maximo' => self::LIMITE_MAXIMO_PREGUNTAS,
+            ]);
+            return [];
+        }
+
         $contexto = $this->construirContexto($diligencia);
         $prompt = $this->construirPromptGeneracionPreguntas($contexto, $preguntaRespondida, $respuesta);
 
@@ -67,8 +81,12 @@ class IADescargoService
                 'generacion_preguntas'
             );
 
-            // Limitar a máximo 2 preguntas dinámicas
-            $nuevasPreguntas = $this->parsearRespuestaIA($respuestaIA, 2);
+            // Calcular cuántas preguntas dinámicas se pueden agregar sin exceder el límite
+            $preguntasDisponibles = self::LIMITE_MAXIMO_PREGUNTAS - $totalPreguntasActuales;
+            $limitePreguntasDinamicas = min(2, $preguntasDisponibles);
+
+            // Limitar preguntas dinámicas según el espacio disponible
+            $nuevasPreguntas = $this->parsearRespuestaIA($respuestaIA, $limitePreguntasDinamicas);
 
             if (count($nuevasPreguntas) > 0) {
                 return $this->guardarNuevasPreguntas($diligencia, $nuevasPreguntas, $preguntaRespondida->id);
@@ -167,13 +185,24 @@ RESPUESTA DEL TRABAJADOR:
 INSTRUCCIONES:
 Analiza las respuestas del trabajador teniendo en cuenta los hechos que indique en contraste con la conducta realizada que trasgrede las normas internas de la empresa y la ley aplicable en materia laboral.
 •⁠  ⁠Genera nuevas preguntas si y solo si, existen inexactitudes, incongruencias, evasivas y/o contradicciones en los argumentos del trabajador.
-•⁠  ⁠Máximo 2 preguntas.
+•⁠  ⁠Máximo 1 pregunta.
 •⁠  ⁠Las preguntas deben ser:
-  * Claras, breves y concisas.
+  * MUY IMPORTANTES: Usa lenguaje SENCILLO y CLARO que cualquier trabajador pueda entender fácilmente. Evita términos jurídicos complejos.
+  * Breves y directas.
   * Neutrales y no sugestivas
   * Relevantes para el proceso disciplinario.
   * Dirigidas a esclarecer el hecho que dio origen a la diligencia de descargos con una tendencia de juzgamiento a favor del empleador y en contra del trabajador.
 - Si no se requieren más preguntas, responde exactamente: NO_REQUIERE
+
+EJEMPLOS DE LENGUAJE CLARO:
+❌ "¿Tuvo conocimiento de las directrices impartidas?"
+✅ "¿Sabía qué debía hacer?"
+
+❌ "¿Ejerció sus funciones cabalmente?"
+✅ "¿Hizo bien su trabajo?"
+
+❌ "¿Informó a su superior jerárquico?"
+✅ "¿Le contó a su jefe?"
 
 FORMATO DE RESPUESTA:
 Si hay preguntas, responde en este formato:
@@ -418,9 +447,26 @@ PROMPT;
     /**
      * Genera todas las preguntas del proceso (estándar + IA + cierre)
      */
-    public function generarPreguntasCompletas(DiligenciaDescargo $diligencia, int $cantidadPreguntasIA = 5): array
+    public function generarPreguntasCompletas(DiligenciaDescargo $diligencia, int $cantidadPreguntasIA = 1): array
     {
         $preguntasCreadas = [];
+
+        // Calcular límite de preguntas IA para no exceder el máximo
+        $cantidadPreguntasIniciales = count(self::PREGUNTAS_INICIALES);
+        $cantidadPreguntasCierre = count(self::PREGUNTAS_CIERRE);
+
+        // Ajustar cantidad de preguntas IA si excede el límite
+        $maximoPreguntasIA = self::LIMITE_MAXIMO_PREGUNTAS - $cantidadPreguntasIniciales - $cantidadPreguntasCierre;
+        $cantidadPreguntasIA = min($cantidadPreguntasIA, $maximoPreguntasIA);
+
+        Log::info('Generando preguntas completas', [
+            'diligencia_id' => $diligencia->id,
+            'preguntas_iniciales' => $cantidadPreguntasIniciales,
+            'preguntas_ia_solicitadas' => $cantidadPreguntasIA,
+            'preguntas_cierre' => $cantidadPreguntasCierre,
+            'total_estimado' => $cantidadPreguntasIniciales + $cantidadPreguntasIA + $cantidadPreguntasCierre,
+            'limite_maximo' => self::LIMITE_MAXIMO_PREGUNTAS,
+        ]);
 
         // 1. Crear preguntas estándar iniciales
         $preguntasCreadas = array_merge(
@@ -428,9 +474,11 @@ PROMPT;
             $this->crearPreguntasEstandar($diligencia, self::PREGUNTAS_INICIALES, 1, 'inicial')
         );
 
-        // 2. Generar preguntas específicas con IA
-        $preguntasIA = $this->generarPreguntasIA($diligencia, $cantidadPreguntasIA);
-        $preguntasCreadas = array_merge($preguntasCreadas, $preguntasIA);
+        // 2. Generar preguntas específicas con IA (solo si no excede el límite)
+        if ($cantidadPreguntasIA > 0) {
+            $preguntasIA = $this->generarPreguntasIA($diligencia, $cantidadPreguntasIA);
+            $preguntasCreadas = array_merge($preguntasCreadas, $preguntasIA);
+        }
 
         // 3. Crear preguntas de cierre
         $ordenInicio = count($preguntasCreadas) + 1;
@@ -454,9 +502,10 @@ PROMPT;
         $preguntasGuardadas = [];
 
         foreach ($preguntas as $index => $preguntaTexto) {
-            // Para preguntas iniciales, las preguntas 2 y 3 (índices 1 y 2) dependen de la pregunta 1 (índice 0)
+            // Para preguntas iniciales, la pregunta 2 (índice 1) depende de la pregunta 1 (índice 0)
+            // "¿Qué relación tiene esa persona con usted?" depende de "¿Va a asistir acompañado(a) por alguien?"
             $preguntaPadreId = null;
-            if ($tipo === 'inicial' && ($index === 1 || $index === 2)) {
+            if ($tipo === 'inicial' && $index === 1) {
                 // La pregunta padre es la primera pregunta creada (índice 0)
                 $preguntaPadreId = $preguntasGuardadas[0]->id ?? null;
             }
@@ -479,7 +528,7 @@ PROMPT;
     /**
      * Genera preguntas específicas con IA basadas en los hechos del proceso
      */
-    protected function generarPreguntasIA(DiligenciaDescargo $diligencia, int $cantidadPreguntas = 5): array
+    protected function generarPreguntasIA(DiligenciaDescargo $diligencia, int $cantidadPreguntas = 2): array
     {
         $proceso = $diligencia->proceso;
 
@@ -513,10 +562,25 @@ INSTRUCCIONES:
 Genera {$cantidadPreguntas} preguntas iniciales para que el trabajador presente sus descargos.
 
 Las preguntas deben:
-- Ser claras, específicas y neutrales
-- Permitir al trabajador explicar su versión de los hechos
+- MUY IMPORTANTE: Usa lenguaje SENCILLO y CLARO que cualquier trabajador pueda entender fácilmente. Evita términos jurídicos complejos o palabras rebuscadas.
+- Ser breves y directas
+- Ser específicas y neutrales
+- Permitir al trabajador explicar su versión de los hechos con sus propias palabras
 - Indagar sobre circunstancias, motivaciones y contexto
 - Dirigidas a esclarecer el hecho que dio origen a la diligencia de descargos con una tendencia de juzgamiento a favor del empleador y en contra del trabajador.
+
+EJEMPLOS DE LENGUAJE CLARO:
+❌ "¿Tenía conocimiento de las disposiciones del reglamento?"
+✅ "¿Conocía las reglas de la empresa?"
+
+❌ "¿Cuál fue el móvil de su actuación?"
+✅ "¿Por qué hizo eso?"
+
+❌ "¿Informó oportunamente a su superior jerárquico?"
+✅ "¿Le avisó a tiempo a su jefe?"
+
+❌ "¿Efectuó debidamente sus labores?"
+✅ "¿Hizo bien su trabajo?"
 
 FORMATO DE RESPUESTA:
 PREGUNTA_1: [texto]

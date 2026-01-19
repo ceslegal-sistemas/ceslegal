@@ -34,17 +34,14 @@ class ProcessesByStatusChart extends ChartWidget
             $query->where('abogado_id', $user->id);
         }
 
-        // Obtener todos los estados posibles
+        // Obtener todos los estados posibles (flujo simplificado)
         $estadosPosibles = [
             'apertura',
-            'traslado',
             'descargos_pendientes',
             'descargos_realizados',
-            'analisis_juridico',
-            'pendiente_gerencia',
-            'sancion_definida',
-            'notificado',
-            'impugnado',
+            'descargos_no_realizados',
+            'sancion_emitida',
+            'impugnacion_realizada',
             'cerrado',
             'archivado',
         ];
@@ -57,15 +54,12 @@ class ProcessesByStatusChart extends ChartWidget
         // Mapeo de colores por estado
         $colorMapping = [
             'apertura' => ['rgba(156, 163, 175, 0.7)', 'rgb(156, 163, 175)'],
-            'traslado' => ['rgba(251, 191, 36, 0.7)', 'rgb(251, 191, 36)'],
             'descargos_pendientes' => ['rgba(249, 115, 22, 0.7)', 'rgb(249, 115, 22)'],
             'descargos_realizados' => ['rgba(14, 165, 233, 0.7)', 'rgb(14, 165, 233)'],
-            'analisis_juridico' => ['rgba(99, 102, 241, 0.7)', 'rgb(99, 102, 241)'],
-            'pendiente_gerencia' => ['rgba(168, 85, 247, 0.7)', 'rgb(168, 85, 247)'],
-            'sancion_definida' => ['rgba(59, 130, 246, 0.7)', 'rgb(59, 130, 246)'],
-            'notificado' => ['rgba(34, 197, 94, 0.7)', 'rgb(34, 197, 94)'],
-            'impugnado' => ['rgba(239, 68, 68, 0.7)', 'rgb(239, 68, 68)'],
-            'cerrado' => ['rgba(107, 114, 128, 0.7)', 'rgb(107, 114, 128)'],
+            'descargos_no_realizados' => ['rgba(239, 68, 68, 0.7)', 'rgb(239, 68, 68)'],
+            'sancion_emitida' => ['rgba(59, 130, 246, 0.7)', 'rgb(59, 130, 246)'],
+            'impugnacion_realizada' => ['rgba(168, 85, 247, 0.7)', 'rgb(168, 85, 247)'],
+            'cerrado' => ['rgba(34, 197, 94, 0.7)', 'rgb(34, 197, 94)'],
             'archivado' => ['rgba(75, 85, 99, 0.7)', 'rgb(75, 85, 99)'],
         ];
 

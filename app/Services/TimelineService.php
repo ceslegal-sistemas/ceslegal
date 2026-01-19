@@ -22,17 +22,20 @@ class TimelineService
         ?array $metadata = null,
         ?int $userId = null
     ): Timeline {
+        // Usar usuario autenticado, el proporcionado, o el usuario del sistema (ID 1)
+        $finalUserId = $userId ?? Auth::id() ?? 1;
+
         return Timeline::create([
             'proceso_tipo' => $procesoTipo,
             'proceso_id' => $procesoId,
-            'user_id' => $userId ?? Auth::id(),
+            'user_id' => $finalUserId,
             'accion' => $accion,
             'descripcion' => $descripcion,
             'estado_anterior' => $estadoAnterior,
             'estado_nuevo' => $estadoNuevo,
             'metadata' => $metadata,
-            'ip_address' => Request::ip(),
-            'user_agent' => Request::userAgent(),
+            'ip_address' => Request::ip() ?? '127.0.0.1',
+            'user_agent' => Request::userAgent() ?? 'Sistema',
         ]);
     }
 

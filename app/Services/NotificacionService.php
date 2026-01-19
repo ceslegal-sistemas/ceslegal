@@ -54,6 +54,10 @@ class NotificacionService
      */
     public function notificarProcesoAperturado(ProcesoDisciplinario $proceso): void
     {
+        if (!$proceso->abogado_id) {
+            return;
+        }
+
         $this->crear(
             userId: $proceso->abogado_id,
             tipo: 'apertura',
@@ -70,6 +74,10 @@ class NotificacionService
      */
     public function notificarDescargosProximos(ProcesoDisciplinario $proceso, int $diasRestantes): void
     {
+        if (!$proceso->abogado_id) {
+            return;
+        }
+
         $this->crear(
             userId: $proceso->abogado_id,
             tipo: 'descargos_pendientes',
@@ -107,16 +115,18 @@ class NotificacionService
      */
     public function notificarSancionAplicada(ProcesoDisciplinario $proceso, string $tipoSancion): void
     {
-        // Notificar al abogado
-        $this->crear(
-            userId: $proceso->abogado_id,
-            tipo: 'sancion_emitida',
-            titulo: 'Sanción Aplicada',
-            mensaje: "Se ha aplicado una sanción de tipo {$tipoSancion} en el proceso {$proceso->codigo}.",
-            relacionadoTipo: ProcesoDisciplinario::class,
-            relacionadoId: $proceso->id,
-            prioridad: 'alta'
-        );
+        // Notificar al abogado (solo si hay uno asignado)
+        if ($proceso->abogado_id) {
+            $this->crear(
+                userId: $proceso->abogado_id,
+                tipo: 'sancion_emitida',
+                titulo: 'Sanción Aplicada',
+                mensaje: "Se ha aplicado una sanción de tipo {$tipoSancion} en el proceso {$proceso->codigo}.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'alta'
+            );
+        }
 
         // Notificar a RRHH (usuarios con rol rrhh de la misma empresa)
         $usuariosRRHH = User::where('role', 'cliente')
@@ -142,16 +152,18 @@ class NotificacionService
      */
     public function notificarDescargosCompletados(ProcesoDisciplinario $proceso): void
     {
-        // Notificar al abogado
-        $this->crear(
-            userId: $proceso->abogado_id,
-            tipo: 'descargos_realizados',
-            titulo: 'Descargos Completados',
-            mensaje: "El trabajador {$proceso->trabajador->nombre_completo} completó la diligencia de descargos del proceso {$proceso->codigo}. Debe emitir la sanción correspondiente.",
-            relacionadoTipo: ProcesoDisciplinario::class,
-            relacionadoId: $proceso->id,
-            prioridad: 'alta'
-        );
+        // Notificar al abogado (solo si hay uno asignado)
+        if ($proceso->abogado_id) {
+            $this->crear(
+                userId: $proceso->abogado_id,
+                tipo: 'descargos_realizados',
+                titulo: 'Descargos Completados',
+                mensaje: "El trabajador {$proceso->trabajador->nombre_completo} completó la diligencia de descargos del proceso {$proceso->codigo}. Debe emitir la sanción correspondiente.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'alta'
+            );
+        }
 
         // Notificar al cliente que generó el proceso
         $usuarioCliente = User::where('role', 'cliente')
@@ -177,6 +189,10 @@ class NotificacionService
      */
     public function notificarImpugnacionRecibida(ProcesoDisciplinario $proceso): void
     {
+        if (!$proceso->abogado_id) {
+            return;
+        }
+
         $this->crear(
             userId: $proceso->abogado_id,
             tipo: 'impugnacion_realizada',
@@ -193,16 +209,18 @@ class NotificacionService
      */
     public function notificarProcesoCerrado(ProcesoDisciplinario $proceso): void
     {
-        // Notificar al abogado
-        $this->crear(
-            userId: $proceso->abogado_id,
-            tipo: 'cerrado',
-            titulo: 'Proceso Disciplinario Cerrado',
-            mensaje: "El proceso {$proceso->codigo} ha sido cerrado exitosamente.",
-            relacionadoTipo: ProcesoDisciplinario::class,
-            relacionadoId: $proceso->id,
-            prioridad: 'media'
-        );
+        // Notificar al abogado (solo si hay uno asignado)
+        if ($proceso->abogado_id) {
+            $this->crear(
+                userId: $proceso->abogado_id,
+                tipo: 'cerrado',
+                titulo: 'Proceso Disciplinario Cerrado',
+                mensaje: "El proceso {$proceso->codigo} ha sido cerrado exitosamente.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'media'
+            );
+        }
 
         // Notificar a RRHH de la empresa
         $usuariosRRHH = User::where('role', 'cliente')

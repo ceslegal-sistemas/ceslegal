@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\ProcesoDisciplinarioResource\Pages;
 use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\Log;
 
 class EditProcesoDisciplinario extends EditRecord
 {
@@ -44,7 +45,7 @@ class EditProcesoDisciplinario extends EditRecord
         }
 
         // Debug: Log para verificar qué se está guardando
-        \Log::info('EDIT - Datos antes de guardar proceso disciplinario (edición):', [
+        Log::info('EDIT - Datos antes de guardar proceso disciplinario (edición):', [
             'modalidad' => $data['modalidad_descargos'] ?? 'no definido',
             'fecha_descargos_programada' => $data['fecha_descargos_programada'] ?? 'no definido',
             'hora_descargos_programada' => $data['hora_descargos_programada'] ?? 'no definido',

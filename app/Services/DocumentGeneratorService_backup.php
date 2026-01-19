@@ -13,7 +13,6 @@ use Dompdf\Options;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
 
 class DocumentGeneratorService
 {
@@ -23,9 +22,6 @@ class DocumentGeneratorService
      * @param ProcesoDisciplinario $proceso
      * @return string Ruta del PDF generado
      */
-
-    private string $libreOfficePath = 'C:\\Program Files\\LibreOffice\\program\\soffice.exe';
-
     public function generarCitacionDescargos(ProcesoDisciplinario $proceso): string
     {
         // Ruta de la plantilla
@@ -138,10 +134,7 @@ class DocumentGeneratorService
             'HORA_OCURRENCIA' => $fechaOcurrencia ? $fechaOcurrencia->format('H:i A') : '',
 
             // Razón del descargo (hechos)
-            // 'RAZON_DESCARGO' => strip_tags($proceso->hechos ?? ''),
-            'RAZON_DESCARGO' => html_entity_decode(strip_tags($proceso->hechos ?? ''), ENT_QUOTES, 'UTF-8'),
-
-
+            'RAZON_DESCARGO' => strip_tags($proceso->hechos ?? ''),
 
             // COMENTADO: Artículos legales - Ahora se usan Sanciones Laborales
             // 'ARTICULOS_LEGALES' => $articulosLegalesTexto,
@@ -203,110 +196,307 @@ class DocumentGeneratorService
      */
     private function convertirDocxAPdf(string $docxPath, string $codigo): string
     {
+        $pdfPath = storage_path('app/citaciones/citacion_' . $codigo . '_' . time() . '.pdf');
         $outputDir = storage_path('app/citaciones');
 
-        if (!is_dir($outputDir)) {
+        // Crear directorio si no existe
+        if (!file_exists($outputDir)) {
             mkdir($outputDir, 0755, true);
         }
 
-        $baseName = pathinfo($docxPath, PATHINFO_FILENAME);
+        // Obtener la ruta de LibreOffice
+        $libreOfficePath = $this->getLibreOfficePath();
 
-        // PDF real que genera LibreOffice
-        $librePdf = $outputDir . DIRECTORY_SEPARATOR . $baseName . '.pdf';
+        if ($libreOfficePath) {
+            // Crear directorio temporal para perfil de LibreOffice (evita conflictos)
+            $tempProfileDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lo_profile_' . uniqid();
+            @mkdir($tempProfileDir, 0755, true);
 
-        // PDF final que tú quieres
-        $finalPdf = $outputDir . DIRECTORY_SEPARATOR . 'citacion_' . $codigo . '.pdf';
+            // Convertir rutas a formato Windows nativo
+            $docxPathWin = realpath($docxPath) ?: str_replace('/', '\\', $docxPath);
+            $outputDirWin = realpath($outputDir) ?: str_replace('/', '\\', $outputDir);
 
-        if ($this->isLibreOfficeAvailable()) {
-
+            // Comando para Windows con perfil temporal
             $command = sprintf(
-                '"%s" --headless --nofirststartwizard --nodefault --nolockcheck --nologo --norestore --convert-to pdf --outdir %s %s 2>&1',
-                $this->libreOfficePath,
-                escapeshellarg($outputDir),
-                escapeshellarg($docxPath)
+                '"%s" --headless --nofirststartwizard "-env:UserInstallation=file:///%s" --convert-to pdf --outdir "%s" "%s" 2>&1',
+                $libreOfficePath,
+                str_replace('\\', '/', $tempProfileDir),
+                $outputDirWin,
+                $docxPathWin
             );
 
+            \Illuminate\Support\Facades\Log::info('Ejecutando LibreOffice', [
+                'command' => $command,
+                'docx_path' => $docxPathWin,
+                'output_dir' => $outputDirWin,
+            ]);
 
-
-            Log::info('Ejecutando LibreOffice', ['command' => $command]);
-
+            // Ejecutar el comando
+            $output = [];
+            $return = 0;
             exec($command, $output, $return);
 
-            Log::info('Resultado LibreOffice', [
+            \Illuminate\Support\Facades\Log::info('Resultado LibreOffice', [
                 'return_code' => $return,
                 'output' => $output,
             ]);
 
-            // ⬅️ AQUÍ es donde debe validarse
-            if ($return === 0 && file_exists($librePdf)) {
+            // Limpiar directorio de perfil temporal
+            $this->eliminarDirectorioRecursivo($tempProfileDir);
 
-                // Renombrar al nombre final
-                rename($librePdf, $finalPdf);
+            // LibreOffice genera el PDF con el mismo nombre base del archivo original
+            $nombreBase = pathinfo($docxPath, PATHINFO_FILENAME);
+            $generatedPdf = $outputDir . DIRECTORY_SEPARATOR . $nombreBase . '.pdf';
 
-                return $finalPdf;
+            \Illuminate\Support\Facades\Log::info('Buscando PDF generado', [
+                'expected_path' => $generatedPdf,
+                'exists' => file_exists($generatedPdf),
+            ]);
+
+            if (file_exists($generatedPdf)) {
+                // Renombrar al nombre final si es diferente
+                if (realpath($generatedPdf) !== realpath($pdfPath)) {
+                    rename($generatedPdf, $pdfPath);
+                }
+                \Illuminate\Support\Facades\Log::info('PDF generado con LibreOffice exitosamente', ['path' => $pdfPath]);
+                return $pdfPath;
+            }
+
+            // Si no encontró el archivo, buscar PDFs recientes en el directorio
+            $archivosRecientes = glob($outputDir . DIRECTORY_SEPARATOR . '*.pdf');
+            if (!empty($archivosRecientes)) {
+                foreach ($archivosRecientes as $archivo) {
+                    // Buscar archivos modificados en los últimos 30 segundos
+                    if (filemtime($archivo) > time() - 30) {
+                        \Illuminate\Support\Facades\Log::info('PDF encontrado por búsqueda temporal', ['found' => $archivo]);
+                        if (realpath($archivo) !== realpath($pdfPath)) {
+                            rename($archivo, $pdfPath);
+                        }
+                        return $pdfPath;
+                    }
+                }
+            }
+
+            \Illuminate\Support\Facades\Log::warning('LibreOffice ejecutó pero no generó PDF', [
+                'archivos_en_dir' => $archivosRecientes,
+            ]);
+        }
+
+        // Si LibreOffice no funciona, usar lectura directa del DOCX + Dompdf
+        \Illuminate\Support\Facades\Log::info('Usando extracción directa de texto + Dompdf');
+
+        try {
+            // Extraer texto del DOCX directamente (sin PhpWord que falla con &nbsp;)
+            $htmlContent = $this->extraerTextoDeDocx($docxPath);
+
+            // Convertir HTML a PDF con Dompdf
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'Arial');
+            $options->set('defaultPaperSize', 'letter');
+
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($htmlContent);
+            $dompdf->setPaper('letter', 'portrait');
+            $dompdf->render();
+
+            // Guardar el PDF
+            file_put_contents($pdfPath, $dompdf->output());
+
+            \Illuminate\Support\Facades\Log::info('PDF generado con Dompdf', ['path' => $pdfPath]);
+
+            return $pdfPath;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error al convertir DOCX a PDF', [
+                'error' => $e->getMessage(),
+                'docx_path' => $docxPath,
+            ]);
+
+            // Si todo falla, copiar el DOCX como última alternativa
+            $docxFallback = str_replace('.pdf', '.docx', $pdfPath);
+            copy($docxPath, $docxFallback);
+            return $docxFallback;
+        }
+    }
+
+    /**
+     * Extraer texto de un archivo DOCX y convertirlo a HTML
+     */
+    private function extraerTextoDeDocx(string $docxPath): string
+    {
+        $paragrafos = [];
+
+        try {
+            $zip = new \ZipArchive();
+            if ($zip->open($docxPath) === true) {
+                $content = $zip->getFromName('word/document.xml');
+                $zip->close();
+
+                if ($content) {
+                    // Limpiar entidades problemáticas
+                    $content = str_replace(['&nbsp;', '&ndash;', '&mdash;'], [' ', '-', '-'], $content);
+
+                    // Suprimir errores de XML
+                    libxml_use_internal_errors(true);
+
+                    $dom = new \DOMDocument();
+                    $dom->loadXML($content);
+
+                    $xpath = new \DOMXPath($dom);
+                    $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+
+                    // Obtener todos los párrafos
+                    $parrafosXml = $xpath->query('//w:p');
+
+                    foreach ($parrafosXml as $parrafo) {
+                        $textos = $xpath->query('.//w:t', $parrafo);
+                        $textoParrafo = '';
+
+                        foreach ($textos as $texto) {
+                            $textoParrafo .= $texto->textContent;
+                        }
+
+                        if (trim($textoParrafo)) {
+                            $paragrafos[] = htmlspecialchars(trim($textoParrafo));
+                        }
+                    }
+
+                    libxml_clear_errors();
+                }
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Error al extraer texto de DOCX', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Construir HTML
+        $contenidoHtml = '';
+        foreach ($paragrafos as $p) {
+            $contenidoHtml .= "<p>{$p}</p>\n";
+        }
+
+        if (empty($contenidoHtml)) {
+            $contenidoHtml = '<p>Documento de citación a descargos</p>';
+        }
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Citación a Descargos</title>
+    <style>
+        @page { margin: 2.5cm; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #000;
+            text-align: justify;
+        }
+        p { margin: 10px 0; }
+    </style>
+</head>
+<body>
+{$contenidoHtml}
+</body>
+</html>
+HTML;
+    }
+
+    /**
+     * Eliminar directorio recursivamente
+     */
+    private function eliminarDirectorioRecursivo(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        try {
+            $archivos = array_diff(scandir($dir), ['.', '..']);
+            foreach ($archivos as $archivo) {
+                $ruta = $dir . DIRECTORY_SEPARATOR . $archivo;
+                is_dir($ruta) ? $this->eliminarDirectorioRecursivo($ruta) : @unlink($ruta);
+            }
+            @rmdir($dir);
+        } catch (\Exception $e) {
+            // Ignorar errores al limpiar
+        }
+    }
+
+    /**
+     * Obtener la ruta de LibreOffice según el sistema operativo
+     */
+    private function getLibreOfficePath(): ?string
+    {
+        // Rutas comunes de LibreOffice en Windows
+        $windowsPaths = [
+            'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+            'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
+            'C:\\LibreOffice\\program\\soffice.exe',
+        ];
+
+        foreach ($windowsPaths as $path) {
+            if (file_exists($path)) {
+                return $path;
             }
         }
 
-        // Fallback (solo si LibreOffice falla)
-        $fallback = $outputDir . DIRECTORY_SEPARATOR . 'citacion_' . $codigo . '.docx';
-        copy($docxPath, $fallback);
+        // Intentar con el comando directo (si está en PATH)
+        exec('where soffice 2>nul', $output, $return);
+        if ($return === 0 && !empty($output[0])) {
+            return trim($output[0]);
+        }
 
-        return $fallback;
+        return null;
     }
-
-
-    // private function convertirDocxAPdf(string $docxPath, string $codigo): string
-    // {
-    //     $pdfPath = storage_path('app/citaciones/citacion_' . $codigo . '_' . time() . '.pdf');
-
-    //     // Crear directorio si no existe
-    //     if (!file_exists(storage_path('app/citaciones'))) {
-    //         mkdir(storage_path('app/citaciones'), 0755, true);
-    //     }
-
-    //     // Intentar convertir con LibreOffice si está disponible
-    //     if ($this->isLibreOfficeAvailable()) {
-    //         $command = sprintf(
-    //             'soffice --headless --convert-to pdf --outdir %s %s',
-    //             escapeshellarg(dirname($pdfPath)),
-    //             escapeshellarg($docxPath)
-    //         );
-
-    //         exec($command, $output, $return);
-
-    //         if ($return === 0) {
-    //             // LibreOffice genera el PDF con el mismo nombre base
-    //             $generatedPdf = dirname($pdfPath) . '/' . pathinfo($docxPath, PATHINFO_FILENAME) . '.pdf';
-    //             if (file_exists($generatedPdf)) {
-    //                 rename($generatedPdf, $pdfPath);
-    //                 return $pdfPath;
-    //             }
-    //         }
-    //     }
-
-    //     // Si LibreOffice no está disponible, usar conversión alternativa
-    //     // Por ahora, copiar el DOCX como alternativa
-    //     // En producción, considera usar servicios como CloudConvert o similar
-    //     copy($docxPath, str_replace('.pdf', '.docx', $pdfPath));
-
-    //     return str_replace('.pdf', '.docx', $pdfPath);
-    // }
 
     /**
-     * Verificar si LibreOffice está disponible
+     * Mejorar el HTML generado por PhpWord para mejor conversión a PDF
      */
-    // private function isLibreOfficeAvailable(): bool
-    // {
-    //     exec('soffice --version 2>&1', $output, $return);
-    //     return $return === 0;
-    // }
-
-    private function isLibreOfficeAvailable(): bool
+    private function mejorarHTMLCitacion(string $html): string
     {
-        // Solo verificar que el ejecutable existe (evita abrir consola en Windows)
-        return file_exists($this->libreOfficePath) && is_executable($this->libreOfficePath);
+        // Agregar estilos CSS para formato profesional
+        $estilos = <<<CSS
+<style>
+    @page {
+        margin: 2cm 2.5cm 2cm 2.5cm;
     }
+    body {
+        font-family: 'Arial', 'Helvetica', sans-serif;
+        font-size: 11pt;
+        line-height: 1.5;
+        color: #000000;
+        text-align: justify;
+    }
+    p {
+        margin: 8px 0;
+        text-align: justify;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    td, th {
+        padding: 5px;
+        vertical-align: top;
+    }
+</style>
+CSS;
 
+        // Insertar estilos antes del cierre de </head>
+        if (stripos($html, '</head>') !== false) {
+            $html = str_ireplace('</head>', $estilos . '</head>', $html);
+        } else {
+            // Si no tiene head, agregar al inicio del body
+            $html = str_ireplace('<body', $estilos . '<body', $html);
+        }
+
+        return $html;
+    }
 
     /**
      * Enviar citación por correo electrónico
@@ -878,71 +1068,14 @@ PROMPT;
     }
 
     /**
-     * Convertir HTML a PDF usando LibreOffice
+     * Convertir HTML a PDF
      */
     private function convertirHTMLaPDF(string $htmlPath, string $codigo, string $tipoSancion): string
     {
-        $outputDir = storage_path('app/sanciones');
-        $timestamp = time();
-        $finalPdfName = 'sancion_' . $codigo . '_' . $tipoSancion . '_' . $timestamp . '.pdf';
-        $finalPdfPath = $outputDir . DIRECTORY_SEPARATOR . $finalPdfName;
+        $pdfPath = storage_path('app/sanciones/sancion_' . $codigo . '_' . $tipoSancion . '_' . time() . '.pdf');
 
-        if (!is_dir($outputDir)) {
-            mkdir($outputDir, 0755, true);
-        }
-
-        // Intentar con LibreOffice primero
-        if ($this->isLibreOfficeAvailable()) {
-            $baseName = pathinfo($htmlPath, PATHINFO_FILENAME);
-            $expectedPdf = $outputDir . DIRECTORY_SEPARATOR . $baseName . '.pdf';
-
-            $command = sprintf(
-                '"%s" --headless --nofirststartwizard --nodefault --nolockcheck --nologo --norestore --convert-to pdf --outdir %s %s 2>&1',
-                $this->libreOfficePath,
-                escapeshellarg($outputDir),
-                escapeshellarg($htmlPath)
-            );
-
-            Log::info('Ejecutando LibreOffice para HTML a PDF', [
-                'command' => $command,
-                'input' => $htmlPath,
-                'outputDir' => $outputDir
-            ]);
-
-            exec($command, $output, $return);
-
-            Log::info('Resultado LibreOffice HTML a PDF', [
-                'return_code' => $return,
-                'output' => $output,
-                'expected_pdf' => $expectedPdf
-            ]);
-
-            if ($return === 0 && file_exists($expectedPdf)) {
-                // Renombrar al nombre final deseado
-                if (rename($expectedPdf, $finalPdfPath)) {
-                    // Eliminar el archivo HTML temporal
-                    if (file_exists($htmlPath)) {
-                        unlink($htmlPath);
-                    }
-                    Log::info('PDF generado exitosamente desde HTML', ['path' => $finalPdfPath]);
-                    return $finalPdfPath;
-                }
-                // Si no se pudo renombrar, usar el nombre que generó LibreOffice
-                if (file_exists($htmlPath)) {
-                    unlink($htmlPath);
-                }
-                return $expectedPdf;
-            }
-
-            Log::warning('LibreOffice no pudo convertir HTML a PDF', [
-                'return_code' => $return,
-                'output' => $output
-            ]);
-        }
-
-        // Si LibreOffice falla, usar Dompdf como fallback
-        Log::info('Usando Dompdf como fallback para conversión HTML a PDF');
         try {
+            // Usar Dompdf para convertir HTML a PDF
             $options = new Options();
             $options->set('isHtml5ParserEnabled', true);
             $options->set('isRemoteEnabled', true);
@@ -954,18 +1087,17 @@ PROMPT;
             $dompdf->setPaper('letter', 'portrait');
             $dompdf->render();
 
-            file_put_contents($finalPdfPath, $dompdf->output());
+            file_put_contents($pdfPath, $dompdf->output());
 
             // Eliminar el archivo HTML temporal
             if (file_exists($htmlPath)) {
                 unlink($htmlPath);
             }
 
-            Log::info('PDF generado con Dompdf (fallback)', ['path' => $finalPdfPath]);
-            return $finalPdfPath;
+            return $pdfPath;
         } catch (\Exception $e) {
-            // Si todo falla, devolver el HTML
-            Log::error('Error al convertir HTML a PDF con Dompdf', [
+            // Si falla la conversión a PDF, devolver el HTML
+            \Illuminate\Support\Facades\Log::warning('No se pudo convertir HTML a PDF, se usará HTML', [
                 'error' => $e->getMessage(),
             ]);
             return $htmlPath;

@@ -14,7 +14,18 @@ class ListProcesoDisciplinarios extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\Action::make('tutorial')
+                ->label('¿Cómo funciona?')
+                ->icon('heroicon-o-question-mark-circle')
+                ->color('gray')
+                ->extraAttributes([
+                    'data-tour' => 'help-button',
+                    'onclick' => 'window.iniciarTour(); return false;',
+                ]),
+            Actions\CreateAction::make()
+                ->extraAttributes([
+                    'data-tour' => 'create-button',
+                ]),
         ];
     }
 

@@ -13,41 +13,72 @@ class CreateProcesoDisciplinario extends CreateRecord
 {
     protected static string $resource = ProcesoDisciplinarioResource::class;
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\Action::make('tutorial')
+                ->label('¿Necesitas ayuda?')
+                ->icon('heroicon-o-question-mark-circle')
+                ->color('gray')
+                ->extraAttributes([
+                    'data-tour' => 'help-button',
+                    'onclick' => 'window.iniciarTour(); return false;',
+                ]),
+        ];
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
     protected function getCreateFormAction(): Actions\Action
     {
-        return parent::getCreateFormAction()
+        return Actions\Action::make('create')
+            ->label(__('filament-panels::resources/pages/create-record.form.actions.create.label'))
             ->requiresConfirmation()
             ->modalHeading('Confirmar Creación de Proceso Disciplinario')
-            ->modalDescription(function (array $data): string {
-                // Verificar si se enviará automáticamente
-                $trabajador = \App\Models\Trabajador::find($data['trabajador_id'] ?? null);
-                $modalidad = $data['modalidad_descargos'] ?? null;
-                $fechaProgramada = $data['fecha_descargos_programada'] ?? $data['hora_temp_descargos'] ?? null;
-
-                if (
-                    $trabajador &&
-                    !empty($trabajador->email) &&
-                    !empty($fechaProgramada) &&
-                    in_array($modalidad, ['presencial', 'telefonico', 'virtual'])
-                ) {
-                    $mensajeModalidad = match ($modalidad) {
-                        'virtual' => 'Se enviará la citación con link de acceso web para descargos virtuales.',
-                        'presencial' => 'Se enviará la citación para asistir presencialmente a la diligencia.',
-                        'telefonico' => 'Se enviará la citación para la audiencia telefónica.',
-                        default => 'Se enviará la citación al trabajador.'
-                    };
-
-                    return "⚠️ La citación será enviada AUTOMÁTICAMENTE al correo: {$trabajador->email}\n\n" .
-                        "{$mensajeModalidad}\n\n" .
-                        "Se generarán automáticamente las preguntas con IA para los descargos.\n\n" .
-                        "¿Desea continuar?";
-                }
-
-                return '¿Está seguro que desea crear este proceso disciplinario?';
-            })
-            ->modalSubmitActionLabel('Sí, crear y enviar citación')
+            ->modalDescription($this->getConfirmationMessage())
+            ->modalSubmitActionLabel('Crear y enviar citación')
             ->modalIcon('heroicon-o-paper-airplane')
-            ->color('success');
+            ->action(fn () => $this->create())
+            ->color('success')
+            ->keyBindings(['mod+s']);
+    }
+
+    protected function getCreateAnotherFormAction(): Actions\Action
+    {
+        return parent::getCreateAnotherFormAction()
+            ->hidden();
+    }
+
+    protected function getConfirmationMessage(): string
+    {
+        $data = $this->data ?? [];
+
+        $trabajador = \App\Models\Trabajador::find($data['trabajador_id'] ?? null);
+        $modalidad = $data['modalidad_descargos'] ?? null;
+        $fechaProgramada = $data['fecha_descargos_programada'] ?? $data['hora_temp_descargos'] ?? null;
+
+        if (
+            $trabajador &&
+            !empty($trabajador->email) &&
+            !empty($fechaProgramada) &&
+            in_array($modalidad, ['presencial', 'telefonico', 'virtual'])
+        ) {
+            $mensajeModalidad = match ($modalidad) {
+                'virtual' => 'Se enviará la citación con link de acceso web para descargos virtuales.',
+                'presencial' => 'Se enviará la citación para asistir presencialmente a la diligencia.',
+                'telefonico' => 'Se enviará la citación para la audiencia telefónica.',
+                default => 'Se enviará la citación al trabajador.'
+            };
+
+            return "La citación será enviada AUTOMÁTICAMENTE al correo: {$trabajador->email}. " .
+                "{$mensajeModalidad} " .
+                "Se generarán automáticamente las preguntas con IA para los descargos.";
+        }
+
+        return '¿Está seguro que desea crear este proceso disciplinario?';
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array

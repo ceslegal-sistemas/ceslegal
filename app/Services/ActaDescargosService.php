@@ -67,7 +67,6 @@ class ActaDescargosService
                 'filename' => $filename,
                 'path' => storage_path('app/actas_descargos/' . $filename),
             ];
-
         } catch (\Exception $e) {
             Log::error('Error generando acta de descargos', [
                 'diligencia_id' => $diligencia->id,
@@ -106,24 +105,38 @@ class ActaDescargosService
      */
     protected function agregarEncabezado($section, $diligencia, $proceso, $trabajador, $empresa): void
     {
-        // Obtener datos de ubicación y fecha
+        // 1. Configuración de ubicación
         $municipio = $empresa->ciudad ?? 'Puerto Boyacá';
         $departamento = $empresa->departamento ?? 'Boyacá';
 
-        $fecha = $diligencia->fecha_diligencia ?? now();
-        $fechaTexto = $this->convertirFechaATexto($fecha);
-        // Usar la hora de INICIO (cuando el trabajador empezó a responder)
-        $horaInicio = $diligencia->primer_acceso_en ? $diligencia->primer_acceso_en->format('h:i A') : $fecha->format('h:i A');
+        // 2. Manejo de la Hora de Inicio (Ajuste a GMT-5)
+        // Forzamos el parseo con Carbon para asegurar que el método timezone() funcione correctamente
+        if ($diligencia->primer_acceso_en) {
+            $horaInicio = \Carbon\Carbon::parse($diligencia->primer_acceso_en)
+                ->timezone('America/Bogota')
+                ->format('h:i A');
+        } else {
+            $horaInicio = now()->timezone('America/Bogota')->format('h:i A');
+        }
 
-        $modalidad = match($proceso->modalidad_descargos) {
+        // 3. Manejo de la Fecha (Ajuste a GMT-5)
+        $fechaBase = $diligencia->fecha_diligencia
+            ? \Carbon\Carbon::parse($diligencia->fecha_diligencia)->timezone('America/Bogota')
+            : now()->timezone('America/Bogota');
+
+        $fechaTexto = $this->convertirFechaATexto($fechaBase);
+
+        // 4. Definición de Modalidad
+        $modalidad = match ($proceso->modalidad_descargos) {
             'presencial' => 'desde las oficinas administrativas de ' . $empresa->razon_social,
-            'virtual' => 'a través del software virtual de descargos',
+            'virtual'    => 'a través del software virtual de descargos',
             'telefonico' => 'vía telefónica',
-            default => 'desde las oficinas administrativas de ' . $empresa->razon_social,
+            default      => 'desde las oficinas administrativas de ' . $empresa->razon_social,
         };
 
-        // Construir párrafo de apertura
-        $esFemenino = $trabajador->genero === 'femenino';
+        // 5. Construcción del párrafo de apertura
+        $esFemenino = ($trabajador->genero === 'femenino');
+
         $textLines = [
             "En la ciudad de {$municipio}, {$departamento}, el {$fechaTexto}, siendo las {$horaInicio}, {$modalidad}, ",
             "se reunieron por una parte el representante legal de {$empresa->razon_social} con NIT {$empresa->nit} ",
@@ -136,7 +149,7 @@ class ActaDescargosService
         $section->addText(
             implode('', $textLines),
             ['name' => 'Arial', 'size' => 11],
-            ['alignment' => Jc::BOTH, 'spaceAfter' => 120]
+            ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::BOTH, 'spaceAfter' => 120]
         );
     }
 
@@ -145,14 +158,39 @@ class ActaDescargosService
      */
     protected function agregarHechos($section, $proceso): void
     {
-        // Limpiar HTML de los hechos
-        $hechos = strip_tags($proceso->hechos);
+        // Limpiar HTML de los hechos y convertir entidades HTML a texto plano
+        $hechos = $this->limpiarTextoParaWord($proceso->hechos);
 
         $section->addText(
             $hechos,
             ['name' => 'Arial', 'size' => 11],
             ['alignment' => Jc::BOTH, 'spaceAfter' => 240]
         );
+    }
+
+    /**
+     * Limpia texto HTML para que sea compatible con Word
+     * Remueve tags HTML y convierte entidades a texto plano
+     */
+    protected function limpiarTextoParaWord(?string $texto): string
+    {
+        if (empty($texto)) {
+            return '';
+        }
+
+        // Primero decodificar entidades HTML a caracteres
+        $texto = html_entity_decode($texto, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // Remover tags HTML
+        $texto = strip_tags($texto);
+
+        // Reemplazar múltiples espacios por uno solo
+        $texto = preg_replace('/\s+/', ' ', $texto);
+
+        // Trim
+        $texto = trim($texto);
+
+        return $texto;
     }
 
     /**
@@ -166,9 +204,9 @@ class ActaDescargosService
             ->get();
 
         foreach ($preguntas as $pregunta) {
-            // Agregar pregunta
+            // Agregar pregunta (limpiar texto)
             $section->addText(
-                'PREGUNTA: ' . $pregunta->pregunta,
+                'PREGUNTA: ' . $this->limpiarTextoParaWord($pregunta->pregunta),
                 [
                     'bold' => true,
                     'name' => 'Arial',
@@ -183,7 +221,7 @@ class ActaDescargosService
             // Agregar respuesta
             if ($pregunta->respuesta) {
                 $section->addText(
-                    'RESPUESTA: ' . $pregunta->respuesta->respuesta,
+                    'RESPUESTA: ' . $this->limpiarTextoParaWord($pregunta->respuesta->respuesta),
                     [
                         'name' => 'Arial',
                         'size' => 11,
@@ -366,19 +404,28 @@ class ActaDescargosService
      */
     protected function agregarCierre($section, $diligencia): void
     {
-        $fecha = $diligencia->fecha_diligencia ?? now();
-        $fechaTexto = $this->convertirFechaATexto($fecha);
-        $horaFin = $fecha->format('h:i A');
+        // 1. Manejo de la Fecha y Hora de Cierre (Ajuste a GMT-5)
+        if ($diligencia->tiempo_limite) {
+            $fechaCierre = \Carbon\Carbon::parse($diligencia->tiempo_limite)
+                ->timezone('America/Bogota');
+        } else {
+            $fechaCierre = now()->timezone('America/Bogota');
+        }
 
+        $horaFin = $fechaCierre->format('h:i A');
+        $fechaTexto = $this->convertirFechaATexto($fechaCierre);
+
+        // 2. Construcción del texto de cierre
         $textoCierre = "Se da por terminada la presente Diligencia a las {$horaFin} del {$fechaTexto}, " .
-                      "anunciando al trabajador que se estudiará el asunto y que a la menor brevedad posible " .
-                      "se le informará el resultado de la investigación de los hechos, y se suscribe por quienes " .
-                      "en ella intervinieron:";
+            "anunciando al trabajador que se estudiará el asunto y que a la menor brevedad posible " .
+            "se le informará el resultado de la investigación de los hechos, y se suscribe por quienes " .
+            "en ella intervinieron:";
 
+        // 3. Adición al documento
         $section->addText(
             $textoCierre,
             ['name' => 'Arial', 'size' => 11],
-            ['alignment' => Jc::BOTH, 'spaceAfter' => 480]
+            ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::BOTH, 'spaceAfter' => 480]
         );
     }
 
@@ -436,6 +483,9 @@ class ActaDescargosService
         );
     }
 
+    private string $libreOfficePath = 'C:\\Program Files\\LibreOffice\\program\\soffice.exe';
+
+
     /**
      * Guarda el documento en el sistema de archivos
      */
@@ -446,6 +496,13 @@ class ActaDescargosService
         if (!file_exists($directory)) {
             mkdir($directory, 0755, true);
         }
+
+
+        Log::info('LibreOffice check', [
+            'exists' => file_exists($this->libreOfficePath),
+            'path' => $this->libreOfficePath
+        ]);
+
 
         $filename = 'acta_descargos_' . $proceso->codigo . '_' . time() . '.docx';
         $filepath = $directory . '/' . $filename;
@@ -480,8 +537,16 @@ class ActaDescargosService
         $unidades = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
         $decenas = ['', 'diez', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
         $especiales = [
-            10 => 'diez', 11 => 'once', 12 => 'doce', 13 => 'trece', 14 => 'catorce',
-            15 => 'quince', 16 => 'dieciséis', 17 => 'diecisiete', 18 => 'dieciocho', 19 => 'diecinueve',
+            10 => 'diez',
+            11 => 'once',
+            12 => 'doce',
+            13 => 'trece',
+            14 => 'catorce',
+            15 => 'quince',
+            16 => 'dieciséis',
+            17 => 'diecisiete',
+            18 => 'dieciocho',
+            19 => 'diecinueve',
         ];
 
         if ($numero < 10) {
@@ -532,9 +597,18 @@ class ActaDescargosService
     protected function obtenerMesTexto($mes): string
     {
         $meses = [
-            1 => 'enero', 2 => 'febrero', 3 => 'marzo', 4 => 'abril',
-            5 => 'mayo', 6 => 'junio', 7 => 'julio', 8 => 'agosto',
-            9 => 'septiembre', 10 => 'octubre', 11 => 'noviembre', 12 => 'diciembre'
+            1 => 'enero',
+            2 => 'febrero',
+            3 => 'marzo',
+            4 => 'abril',
+            5 => 'mayo',
+            6 => 'junio',
+            7 => 'julio',
+            8 => 'agosto',
+            9 => 'septiembre',
+            10 => 'octubre',
+            11 => 'noviembre',
+            12 => 'diciembre'
         ];
 
         return $meses[$mes] ?? '';
@@ -580,8 +654,8 @@ class ActaDescargosService
             if (str_contains($preguntaTexto, 'desea hacerse acompañar')) {
                 $respuestaLower = strtolower(trim($respuesta));
                 $deseaAcompanante = str_contains($respuestaLower, 'sí') ||
-                                   str_contains($respuestaLower, 'si') ||
-                                   str_contains($respuestaLower, 'yes');
+                    str_contains($respuestaLower, 'si') ||
+                    str_contains($respuestaLower, 'yes');
             }
 
             // Segunda pregunta: Nombre del acompañante

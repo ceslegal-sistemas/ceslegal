@@ -1,12 +1,45 @@
 <div class="max-w-4xl mx-auto p-6 bg-white">
     @if ($formularioCompletado)
-        <div class="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-            <svg class="mx-auto h-16 w-16 text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <h2 class="text-2xl font-bold text-green-800 mb-2">Descargos Completados</h2>
-            <p class="text-green-700">Sus descargos han sido registrados exitosamente. Gracias por su participación.</p>
+        <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-8 text-center shadow-lg">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
+                <svg class="h-12 w-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-green-800 mb-4">Descargos Completados</h2>
+            <p class="text-green-700 mb-6">Sus descargos han sido registrados exitosamente.</p>
+
+            <div class="bg-white border border-green-200 rounded-xl p-5 text-left max-w-md mx-auto">
+                <h3 class="font-semibold text-gray-800 mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    ¿Qué sigue ahora?
+                </h3>
+                <ul class="text-gray-600 text-sm space-y-2">
+                    <li class="flex items-start">
+                        <svg class="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Su caso será estudiado cuidadosamente.
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Se analizarán todas las evidencias y argumentos presentados.
+                    </li>
+                    <li class="flex items-start">
+                        <svg class="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        A la mayor brevedad posible se le informará el resultado de la investigación.
+                    </li>
+                </ul>
+            </div>
+
+            <p class="text-gray-500 text-sm mt-6">Gracias por su participación en este proceso.</p>
         </div>
     @elseif ($mostrarAdvertencia)
         {{-- Pantalla de espera mientras el usuario acepta iniciar --}}
@@ -83,10 +116,10 @@
                     <p class="text-sm text-gray-600">Cargo</p>
                     <p class="font-semibold text-gray-900">{{ $trabajador->cargo }}</p>
                 </div>
-                <div>
-                    <p class="text-sm text-gray-600">Cargo</p>
+                {{-- <div>
+                    <p class="text-sm text-gray-600">Area</p>
                     <p class="font-semibold text-gray-900">{{ $trabajador->area }}</p>
-                </div>
+                </div> --}}
                 <div>
                     <p class="text-sm text-gray-600">Codigo del Proceso</p>
                     <p class="font-semibold text-gray-900">{{ $proceso->codigo }}</p>
@@ -197,24 +230,54 @@
                             </div>
                         @else
                             {{-- Campo para responder --}}
-                            <div>
+                            <div x-data="{ focused: false, charCount: {{ strlen($respuestas[$pregunta->id] ?? '') }} }" class="relative">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                     Su respuesta (mínimo {{ $longitudMinimaRespuesta }} caracteres):
                                 </label>
-                                <textarea wire:model.defer="respuestas.{{ $pregunta->id }}" rows="6"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    placeholder="Escriba su respuesta aquí..." @if ($preguntasProcesadas[$pregunta->id]) disabled @endif></textarea>
+                                <div class="relative">
+                                    <textarea
+                                        wire:model.defer="respuestas.{{ $pregunta->id }}"
+                                        rows="6"
+                                        x-on:focus="focused = true"
+                                        x-on:blur="focused = false"
+                                        x-on:input="charCount = $event.target.value.length"
+                                        x-on:keydown.ctrl.enter="$wire.guardarRespuesta({{ $pregunta->id }})"
+                                        x-on:keydown.meta.enter="$wire.guardarRespuesta({{ $pregunta->id }})"
+                                        class="w-full px-4 py-3 border-2 rounded-xl transition-all duration-200 resize-none"
+                                        :class="focused ? 'border-blue-500 ring-4 ring-blue-100 shadow-lg' : 'border-gray-300 hover:border-gray-400'"
+                                        placeholder="Escriba su respuesta aquí..."
+                                        autofocus
+                                        @if ($preguntasProcesadas[$pregunta->id]) disabled @endif></textarea>
+
+                                    {{-- Indicador de enfoque activo --}}
+                                    <div x-show="focused"
+                                         x-transition:enter="transition ease-out duration-200"
+                                         x-transition:enter-start="opacity-0 transform scale-95"
+                                         x-transition:enter-end="opacity-100 transform scale-100"
+                                         class="absolute -top-2 left-4 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                                        Escribiendo...
+                                    </div>
+                                </div>
 
                                 @error("respuesta_{$pregunta->id}")
                                     <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
 
-                                <div class="mt-3 flex items-center justify-between">
-                                    <span class="text-sm text-gray-500">
-                                        {{ strlen($respuestas[$pregunta->id] ?? '') }} caracteres
-                                    </span>
+                                <div class="mt-3 flex items-center justify-between flex-wrap gap-2">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-sm" :class="charCount >= {{ $longitudMinimaRespuesta }} ? 'text-green-600 font-medium' : 'text-gray-500'">
+                                            <span x-text="charCount">{{ strlen($respuestas[$pregunta->id] ?? '') }}</span> caracteres
+                                            <span x-show="charCount >= {{ $longitudMinimaRespuesta }}" class="ml-1">&#10003;</span>
+                                        </span>
+                                        <span class="text-xs text-gray-400 hidden sm:inline-flex items-center gap-1">
+                                            <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-gray-600 font-mono text-xs">Ctrl</kbd>
+                                            <span>+</span>
+                                            <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-gray-600 font-mono text-xs">Enter</kbd>
+                                            <span class="ml-1">para guardar</span>
+                                        </span>
+                                    </div>
                                     <button wire:click="guardarRespuesta({{ $pregunta->id }})" type="button"
-                                        class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                                        class="inline-flex items-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0"
                                         @if ($preguntasProcesadas[$pregunta->id]) disabled @endif>
                                         <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
@@ -329,20 +392,42 @@
     @endif
     @endif
 
-    {{-- Loading spinner - solo para operaciones importantes --}}
-    <div wire:loading.delay.longer wire:target="guardarRespuesta,finalizarDescargos,iniciarDiligencia"
-         class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 flex flex-col items-center">
-            <svg class="animate-spin h-10 w-10 text-blue-600 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none"
-                viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                    stroke-width="4">
-                </circle>
-                <path class="opacity-75" fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                </path>
-            </svg>
-            <p class="text-gray-700 font-medium">Guardando...</p>
+    {{-- Loading spinner para guardar respuesta --}}
+    <div wire:loading.delay wire:target="guardarRespuesta"
+         class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-8 flex flex-col items-center shadow-2xl transform transition-all max-w-sm mx-4">
+            <div class="relative mb-4">
+                <div class="w-16 h-16 border-4 border-blue-200 rounded-full"></div>
+                <div class="w-16 h-16 border-4 border-blue-600 rounded-full animate-spin absolute top-0 left-0 border-t-transparent"></div>
+            </div>
+            <p class="text-gray-800 font-semibold text-lg mb-1">Guardando respuesta</p>
+            <p class="text-gray-500 text-sm text-center">Por favor espere mientras procesamos su respuesta...</p>
+        </div>
+    </div>
+
+    {{-- Loading spinner para finalizar descargos --}}
+    <div wire:loading.delay wire:target="finalizarDescargos"
+         class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-8 flex flex-col items-center shadow-2xl transform transition-all max-w-sm mx-4">
+            <div class="relative mb-4">
+                <div class="w-16 h-16 border-4 border-green-200 rounded-full"></div>
+                <div class="w-16 h-16 border-4 border-green-600 rounded-full animate-spin absolute top-0 left-0 border-t-transparent"></div>
+            </div>
+            <p class="text-gray-800 font-semibold text-lg mb-1">Finalizando descargos</p>
+            <p class="text-gray-500 text-sm text-center">Estamos registrando sus respuestas y evidencias...</p>
+        </div>
+    </div>
+
+    {{-- Loading spinner para iniciar diligencia --}}
+    <div wire:loading.delay wire:target="iniciarDiligencia"
+         class="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-8 flex flex-col items-center shadow-2xl transform transition-all max-w-sm mx-4">
+            <div class="relative mb-4">
+                <div class="w-16 h-16 border-4 border-yellow-200 rounded-full"></div>
+                <div class="w-16 h-16 border-4 border-yellow-500 rounded-full animate-spin absolute top-0 left-0 border-t-transparent"></div>
+            </div>
+            <p class="text-gray-800 font-semibold text-lg mb-1">Iniciando diligencia</p>
+            <p class="text-gray-500 text-sm text-center">Preparando el formulario de descargos...</p>
         </div>
     </div>
 </div>
@@ -418,11 +503,30 @@
                 Swal.fire({
                     icon: 'success',
                     title: '¡Descargos Completados!',
-                    html: 'Sus descargos han sido registrados exitosamente.<br><br>Gracias por su participación.',
-                    confirmButtonText: 'Cerrar',
+                    html: `
+                        <div class="text-left">
+                            <p class="mb-4 text-gray-700">Sus descargos han sido registrados exitosamente.</p>
+                            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                                <p class="text-blue-800 font-medium mb-2">
+                                    <svg class="inline-block w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    ¿Qué sigue?
+                                </p>
+                                <ul class="text-blue-700 text-sm space-y-2 ml-6 list-disc">
+                                    <li>Su caso será estudiado cuidadosamente por el área correspondiente.</li>
+                                    <li>Se analizarán todas las evidencias y argumentos presentados.</li>
+                                    <li>A la mayor brevedad posible se le informará el resultado de la investigación de los hechos.</li>
+                                </ul>
+                            </div>
+                            <p class="text-gray-600 text-sm text-center">Gracias por su participación en este proceso.</p>
+                        </div>
+                    `,
+                    confirmButtonText: 'Entendido',
                     confirmButtonColor: '#10B981',
                     allowOutsideClick: false,
-                    allowEscapeKey: false
+                    allowEscapeKey: false,
+                    width: '500px'
                 });
             }, 500);
         });

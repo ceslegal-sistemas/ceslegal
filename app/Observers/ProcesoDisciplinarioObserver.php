@@ -210,13 +210,47 @@ class ProcesoDisciplinarioObserver
                     $proceso->fecha_descargos_realizada = now();
                 }
 
-                // Notificar al abogado que debe emitir la sanción
-                if (method_exists($this->notificacionService, 'notificarDescargosCompletados')) {
-                    $this->notificacionService->notificarDescargosCompletados($proceso);
+                // Notificar al abogado que debe emitir la sanción (no detener si falla)
+                try {
+                    if (method_exists($this->notificacionService, 'notificarDescargosCompletados')) {
+                        $this->notificacionService->notificarDescargosCompletados($proceso);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('No se pudo enviar notificación de descargos completados', [
+                        'proceso_id' => $proceso->id,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
 
                 Log::info('Descargos completados - Listo para emitir sanción', [
                     'proceso_id' => $proceso->id,
+                ]);
+                break;
+
+            // ============================================
+            // ESTADO 3B: DESCARGOS NO REALIZADOS
+            // ============================================
+            case 'descargos_no_realizados':
+                // El trabajador no asistió a la diligencia de descargos
+                if (empty($proceso->fecha_descargos_realizada)) {
+                    $proceso->fecha_descargos_realizada = now();
+                }
+
+                // Notificar que el trabajador no asistió (no detener si falla)
+                try {
+                    if (method_exists($this->notificacionService, 'notificarDescargosNoRealizados')) {
+                        $this->notificacionService->notificarDescargosNoRealizados($proceso);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('No se pudo enviar notificación de descargos no realizados', [
+                        'proceso_id' => $proceso->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
+                Log::info('Descargos no realizados - Trabajador no asistió', [
+                    'proceso_id' => $proceso->id,
+                    'fecha_programada' => $proceso->fecha_descargos_programada,
                 ]);
                 break;
 

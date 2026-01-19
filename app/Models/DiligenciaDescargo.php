@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -13,6 +14,8 @@ class DiligenciaDescargo extends Model
         'proceso_id',
         'fecha_diligencia',
         'lugar_diligencia',
+        'lugar_especifico',
+        'link_reunion',
         'trabajador_asistio',
         'motivo_inasistencia',
         'acompanante_nombre',
@@ -108,8 +111,8 @@ class DiligenciaDescargo extends Model
     {
         if (!$this->primer_acceso_en) {
             $this->update([
-                'primer_acceso_en' => now(),
-                'tiempo_limite' => now()->addMinutes(45),
+                'primer_acceso_en' => Carbon::now('America/Bogota'),
+                'tiempo_limite' => Carbon::now('America/Bogota')->addMinutes(45),
                 'tiempo_expirado' => false,
             ]);
         }

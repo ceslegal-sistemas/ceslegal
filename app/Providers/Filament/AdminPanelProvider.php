@@ -25,9 +25,26 @@ use MartinPetricko\FilamentSentryFeedback\Enums\ColorScheme;
 use MartinPetricko\FilamentSentryFeedback\FilamentSentryFeedbackPlugin;
 use MKWebDesign\FilamentWatchdog\FilamentWatchdogPlugin;
 use Moataz01\FilamentNotificationSound\FilamentNotificationSoundPlugin;
+use Filament\Support\Facades\FilamentView;
+use Filament\View\PanelsRenderHook;
+use Illuminate\Support\HtmlString;
 
 class AdminPanelProvider extends PanelProvider
 {
+    public function boot(): void
+    {
+        // Incluir Driver.js para tours de onboarding
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            fn (): string => '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>',
+        );
+
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            fn (): string => '<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script><script src="' . asset('js/tour-descargos.js') . '"></script>',
+        );
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel

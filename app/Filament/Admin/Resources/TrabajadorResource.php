@@ -27,7 +27,7 @@ class TrabajadorResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Trabajadores';
 
-    protected static ?string $navigationGroup = 'Gestión Laboral';
+    // protected static ?string $navigationGroup = 'Gestión Laboral';
 
     protected static ?int $navigationSort = 2;
 
@@ -60,6 +60,7 @@ class TrabajadorResource extends Resource
                             })
                             ->placeholder('Seleccione una empresa...')
                             ->suffixIcon('heroicon-o-building-office')
+                            ->extraAttributes(['data-tour' => 'trabajador-empresa'])
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('razon_social')
                                     ->label('Razón Social')
@@ -91,7 +92,8 @@ class TrabajadorResource extends Resource
                             ->native(false)
                             ->live()
                             ->helperText('Seleccione el tipo de documento de identidad')
-                            ->suffixIcon('heroicon-o-identification'),
+                            ->suffixIcon('heroicon-o-identification')
+                            ->extraAttributes(['data-tour' => 'trabajador-tipo-doc']),
 
                         Forms\Components\TextInput::make('numero_documento')
                             ->label('Número de Documento')
@@ -113,7 +115,8 @@ class TrabajadorResource extends Resource
                                 'TI' => '9999999999999',
                                 default => null,
                             })
-                            ->helperText('Este número debe ser único en el sistema'),
+                            ->helperText('Este número debe ser único en el sistema')
+                            ->extraAttributes(['data-tour' => 'trabajador-numero-doc']),
 
                         Forms\Components\Select::make('genero')
                             ->label('Género')
@@ -126,7 +129,8 @@ class TrabajadorResource extends Resource
                             ->native(false)
                             ->helperText('Seleccione el género del trabajador para el formato correcto de documentos')
                             ->suffixIcon('heroicon-o-user')
-                            ->placeholder('Seleccione el género...'),
+                            ->placeholder('Seleccione el género...')
+                            ->extraAttributes(['data-tour' => 'trabajador-genero']),
 
                         Forms\Components\TextInput::make('nombres')
                             ->label('Nombres')
@@ -144,7 +148,8 @@ class TrabajadorResource extends Resource
                             //         $set('email', "{$nombres}.{$apellidos}@{$dominio}.com");
                             //     }
                             // })
-                            ->helperText('Nombres completos del trabajador'),
+                            ->helperText('Nombres completos del trabajador')
+                            ->extraAttributes(['data-tour' => 'trabajador-nombres']),
 
                         Forms\Components\TextInput::make('apellidos')
                             ->label('Apellidos')
@@ -162,7 +167,8 @@ class TrabajadorResource extends Resource
                             //         $set('email', "{$nombres}.{$apellidos}@{$dominio}.com");
                             //     }
                             // })
-                            ->helperText('Apellidos completos del trabajador'),
+                            ->helperText('Apellidos completos del trabajador')
+                            ->extraAttributes(['data-tour' => 'trabajador-apellidos']),
 
                         Forms\Components\Select::make('departamento_nacimiento')
                             ->label('Departamento de Nacimiento (Opcional)')
@@ -173,7 +179,8 @@ class TrabajadorResource extends Resource
                             ->live()
                             ->afterStateUpdated(fn(Set $set) => $set('ciudad_nacimiento', null))
                             ->helperText('Departamento donde nació el trabajador')
-                            ->suffixIcon('heroicon-o-map'),
+                            ->suffixIcon('heroicon-o-map')
+                            ->extraAttributes(['data-tour' => 'trabajador-departamento-nacimiento']),
 
                         Forms\Components\Select::make('ciudad_nacimiento')
                             ->label('Ciudad / Municipio de Nacimiento (Opcional)')
@@ -192,7 +199,8 @@ class TrabajadorResource extends Resource
                             ->placeholder('Seleccione la ciudad...')
                             ->disabled(fn(Get $get) => !$get('departamento_nacimiento'))
                             ->helperText('Ciudad o municipio donde nació el trabajador (1,122 municipios disponibles)')
-                            ->suffixIcon('heroicon-o-map-pin'),
+                            ->suffixIcon('heroicon-o-map-pin')
+                            ->extraAttributes(['data-tour' => 'trabajador-ciudad-nacimiento']),
 
                         Forms\Components\TextInput::make('email')
                             ->label('Correo Electrónico')
@@ -201,7 +209,8 @@ class TrabajadorResource extends Resource
                             ->maxLength(255)
                             ->placeholder('trabajador@empresa.com')
                             ->helperText('Correo electrónico del trabajador')
-                            ->suffixIcon('heroicon-o-envelope'),
+                            ->suffixIcon('heroicon-o-envelope')
+                            ->extraAttributes(['data-tour' => 'trabajador-email']),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Información Laboral')
@@ -241,7 +250,8 @@ class TrabajadorResource extends Resource
                             ->helperText('Seleccione un cargo de la lista o elija "Otro" para personalizar')
                             ->placeholder('Seleccione el cargo...')
                             ->suffixIcon('heroicon-o-briefcase')
-                            ->required(fn(Get $get) => empty($get('cargo_otro'))),
+                            ->required(fn(Get $get) => empty($get('cargo_otro')))
+                            ->extraAttributes(['data-tour' => 'trabajador-cargo']),
 
                         Forms\Components\TextInput::make('cargo_otro')
                             ->label('Especifique el Cargo')
@@ -255,7 +265,8 @@ class TrabajadorResource extends Resource
                                 if ($cargo && !in_array($cargo, self::getCargos())) {
                                     $set('cargo_otro', $cargo);
                                 }
-                            }),
+                            })
+                            ->extraAttributes(['data-tour' => 'trabajador-cargo-otro']),
 
                         Forms\Components\Hidden::make('cargo')
                             ->required()
@@ -297,7 +308,8 @@ class TrabajadorResource extends Resource
                             ->dehydrated(false)
                             ->helperText('Seleccione un área de la lista o elija "Otro" para personalizar')
                             ->placeholder('Seleccione el área...')
-                            ->suffixIcon('heroicon-o-building-office-2'),
+                            ->suffixIcon('heroicon-o-building-office-2')
+                            ->extraAttributes(['data-tour' => 'trabajador-area']),
 
                         Forms\Components\TextInput::make('area_otro')
                             ->label('Especifique el Área')
@@ -311,7 +323,8 @@ class TrabajadorResource extends Resource
                                 if ($area && !in_array($area, self::getAreas())) {
                                     $set('area_otro', $area);
                                 }
-                            }),
+                            })
+                            ->extraAttributes(['data-tour' => 'trabajador-area-otro']),
 
                         Forms\Components\Hidden::make('area')
                             ->dehydrateStateUsing(function (Get $get) {
@@ -335,7 +348,8 @@ class TrabajadorResource extends Resource
                             ->label('Trabajador Activo')
                             ->default(true)
                             ->helperText('Desactive si el trabajador ya no labora en la empresa')
-                            ->inline(false),
+                            ->inline(false)
+                            ->extraAttributes(['data-tour' => 'trabajador-activo']),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Datos de Contacto (Opcional)')
@@ -391,13 +405,13 @@ class TrabajadorResource extends Resource
                     ->sortable()
                     ->icon('heroicon-o-briefcase'),
 
-                Tables\Columns\TextColumn::make('area')
-                    ->label('Área')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable()
-                    ->icon('heroicon-o-building-office-2')
-                    ->placeholder('Sin asignar'),
+                // Tables\Columns\TextColumn::make('area')
+                //     ->label('Área')
+                //     ->searchable()
+                //     ->sortable()
+                //     ->toggleable()
+                //     ->icon('heroicon-o-building-office-2')
+                //     ->placeholder('Sin asignar'),
 
                 // Tables\Columns\TextColumn::make('fecha_ingreso')
                 //     ->label('Fecha Ingreso')

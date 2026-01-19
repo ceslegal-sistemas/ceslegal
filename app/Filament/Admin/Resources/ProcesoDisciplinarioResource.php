@@ -30,13 +30,13 @@ class ProcesoDisciplinarioResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-exclamation';
 
-    protected static ?string $navigationLabel = 'Procesos Disciplinarios';
+    protected static ?string $navigationLabel = 'Historial de Descargos';
 
-    protected static ?string $modelLabel = 'Proceso Disciplinario';
+    protected static ?string $modelLabel = 'DESCARGOS';
 
-    protected static ?string $pluralModelLabel = 'Procesos Disciplinarios';
+    protected static ?string $pluralModelLabel = 'Historial de Descargos';
 
-    protected static ?string $navigationGroup = 'Gestión Laboral';
+    // protected static ?string $navigationGroup = 'Gestión Laboral';
 
     protected static ?int $navigationSort = 1;
 
@@ -51,12 +51,16 @@ class ProcesoDisciplinarioResource extends Resource
                             ->disabled()
                             ->dehydrated(false)
                             ->placeholder('Se generará automáticamente')
-                            ->helperText('El código se asigna automáticamente al crear el proceso'),
+                            ->helperText('El código se asigna automáticamente al crear el proceso')
+                            ->hidden(),
 
                         Forms\Components\Select::make('empresa_id')
                             ->label('Empresa')
                             ->relationship('empresa', 'razon_social')
                             ->searchable()
+                            ->extraAttributes([
+                                'data-tour' => 'empresa-select',
+                            ])
                             ->preload()
                             ->required()
                             ->default(function () {
@@ -94,6 +98,9 @@ class ProcesoDisciplinarioResource extends Resource
                             ->disabled(fn(Get $get) => !$get('empresa_id'))
                             ->helperText('Seleccione primero la empresa')
                             ->suffixIcon('heroicon-o-user-group')
+                            ->extraAttributes([
+                                'data-tour' => 'trabajador-select',
+                            ])
                             ->createOptionForm(function (Get $get) {
                                 return [
                                     Forms\Components\Hidden::make('empresa_id')
@@ -261,27 +268,20 @@ class ProcesoDisciplinarioResource extends Resource
                                     throw $e;
                                 }
                             })
+                            ->createOptionAction(
+                                fn(\Filament\Forms\Components\Actions\Action $action) => $action
+                                    ->extraAttributes([
+                                        'data-tour' => 'trabajador-create',
+                                    ])
+                            )
                             ->createOptionModalHeading('Crear Nuevo Trabajador'),
-
-                        Forms\Components\Select::make('abogado_id')
-                            ->label('Abogado Asignado')
-                            ->relationship('abogado', 'name', fn($query) => $query->role('abogado'))
-                            ->searchable()
-                            ->preload()
-                            ->required()
-                            // ->default(function () {
-                            //     return User::role('abogado')->first()?->id;
-                            // })
-                            ->helperText('Seleccione el abogado que llevará el proceso')
-                            ->suffixIcon('heroicon-o-user')
-                            ->live(),
 
                         Forms\Components\Select::make('modalidad_descargos')
                             ->label('¿Cómo se realizará la diligencia de descargos?')
                             ->options([
-                                'presencial' => 'Presencial',
-                                'virtual' => 'Virtual',
-                                'telefonico' => 'Telefónico',
+                                // 'presencial' => 'Presencial - El trabajador viene a la oficina',
+                                'virtual' => 'Virtual - El trabajador responde por internet desde su casa',
+                                // 'telefonico' => 'Telefónico - Se hará por llamada telefónica',
                             ])
                             ->native(false)
                             ->required()
@@ -290,8 +290,26 @@ class ProcesoDisciplinarioResource extends Resource
                                 $set('fecha_temp_descargos', null);
                                 $set('hora_temp_descargos', null);
                                 $set('fecha_descargos_programada', null);
+                                $set('abogado_id', null);
                             })
-                            ->placeholder('Seleccione la modalidad'),
+                            ->extraAttributes([
+                                'data-tour' => 'modalidad-select',
+                            ])
+                            ->helperText('Seleccione cómo se realizará la diligencia'),
+
+                        Forms\Components\Select::make('abogado_id')
+                            ->label('Abogado Asignado')
+                            ->relationship('abogado', 'name', fn($query) => $query->role('abogado'))
+                            ->searchable()
+                            ->preload()
+                            ->required(fn(Get $get) => in_array($get('modalidad_descargos'), ['presencial', 'telefonico']))
+                            ->visible(fn(Get $get) => in_array($get('modalidad_descargos'), ['presencial', 'telefonico']))
+                            ->helperText('Seleccione el abogado que llevará el proceso')
+                            ->suffixIcon('heroicon-o-user')
+                            ->extraAttributes([
+                                'data-tour' => 'abogado-select',
+                            ])
+                            ->live(),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Programación de Descargos')
@@ -309,7 +327,50 @@ class ProcesoDisciplinarioResource extends Resource
                                 $set('fecha_descargos_programada', null);
                             })
                             ->visible(fn(Get $get) => in_array($get('modalidad_descargos'), ['presencial', 'telefonico']))
-                            ->helperText('Seleccione el día para ver las horas disponibles'),
+                            ->disabled(fn(Get $get) => !$get('abogado_id'))
+                            ->helperText(function (Get $get) {
+                                if (!$get('abogado_id')) {
+                                    return 'Primero selecciona un abogado para ver su disponibilidad.';
+                                }
+                                return 'Selecciona el día para ver las horas disponibles.';
+                            }),
+
+                        // Mensaje cuando es fin de semana o festivo
+                        Forms\Components\Placeholder::make('mensaje_fecha_no_laboral')
+                            ->label('')
+                            ->content(function (Get $get) {
+                                $fecha = $get('fecha_temp_descargos');
+                                if (!$fecha) return '';
+
+                                $fechaCarbon = \Carbon\Carbon::parse($fecha);
+
+                                // Verificar fin de semana
+                                if ($fechaCarbon->isWeekend()) {
+                                    return '⚠️ Los fines de semana no hay atención. Selecciona un día hábil (lunes a viernes).';
+                                }
+
+                                // Verificar festivos de Colombia
+                                $festivos = self::getFestivos($fechaCarbon->year);
+                                if (in_array($fechaCarbon->format('Y-m-d'), $festivos)) {
+                                    return '⚠️ Este día es festivo. Selecciona un día hábil.';
+                                }
+
+                                return '';
+                            })
+                            ->visible(function (Get $get) {
+                                $fecha = $get('fecha_temp_descargos');
+                                if (!$fecha) return false;
+
+                                $fechaCarbon = \Carbon\Carbon::parse($fecha);
+
+                                // Mostrar si es fin de semana
+                                if ($fechaCarbon->isWeekend()) return true;
+
+                                // Mostrar si es festivo
+                                $festivos = self::getFestivos($fechaCarbon->year);
+                                return in_array($fechaCarbon->format('Y-m-d'), $festivos);
+                            })
+                            ->columnSpanFull(),
 
                         Forms\Components\Radio::make('hora_temp_descargos')
                             ->label('Seleccione la Hora Disponible')
@@ -319,6 +380,17 @@ class ProcesoDisciplinarioResource extends Resource
                                 $abogadoId = $get('abogado_id');
 
                                 if (!$fecha || !$abogadoId || !in_array($modalidad, ['presencial', 'telefonico'])) {
+                                    return [];
+                                }
+
+                                // Verificar si es día no laboral
+                                $fechaCarbon = \Carbon\Carbon::parse($fecha);
+                                if ($fechaCarbon->isWeekend()) {
+                                    return [];
+                                }
+
+                                $festivos = self::getFestivos($fechaCarbon->year);
+                                if (in_array($fechaCarbon->format('Y-m-d'), $festivos)) {
                                     return [];
                                 }
 
@@ -332,8 +404,21 @@ class ProcesoDisciplinarioResource extends Resource
                             })
                             ->required()
                             ->live()
-                            ->visible(fn(Get $get) => in_array($get('modalidad_descargos'), ['presencial', 'telefonico']) && $get('fecha_temp_descargos'))
-                            ->helperText('Selecciona la hora disponible de 45 minutos - Horario de oficina: 8:00 AM - 5:00 PM')
+                            ->visible(function (Get $get) {
+                                if (!in_array($get('modalidad_descargos'), ['presencial', 'telefonico'])) return false;
+                                if (!$get('fecha_temp_descargos')) return false;
+                                if (!$get('abogado_id')) return false;
+
+                                // No mostrar si es día no laboral
+                                $fechaCarbon = \Carbon\Carbon::parse($get('fecha_temp_descargos'));
+                                if ($fechaCarbon->isWeekend()) return false;
+
+                                $festivos = self::getFestivos($fechaCarbon->year);
+                                if (in_array($fechaCarbon->format('Y-m-d'), $festivos)) return false;
+
+                                return true;
+                            })
+                            ->helperText('Horario de oficina: 8:00 AM - 5:00 PM. Cada cita dura 45 minutos.')
                             ->descriptions(function (Get $get) {
                                 $fecha = $get('fecha_temp_descargos');
                                 $modalidad = $get('modalidad_descargos');
@@ -424,9 +509,9 @@ class ProcesoDisciplinarioResource extends Resource
                         //     ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'abogado']))
                         //     ->columnSpanFull(),
 
-                        // NUEVO: Sanciones Laborales
+                        // Motivo de los descargos - Sanciones Laborales
                         Forms\Components\Select::make('sanciones_laborales_ids')
-                            ->label('Sanciones Laborales Incumplidas')
+                            ->label('Motivo de los descargos')
                             ->multiple()
                             ->searchable()
                             ->preload()
@@ -438,8 +523,11 @@ class ProcesoDisciplinarioResource extends Resource
                                         $sancion->id => $sancion->nombre_con_descripcion
                                     ]);
                             })
-                            ->placeholder('Seleccione una o más sanciones...')
-                            ->helperText('Seleccione las sanciones del reglamento interno que presuntamente incumplió el trabajador')
+                            ->placeholder('Seleccione una o más motivos...')
+                            ->helperText('Seleccione los motivos de los descargos a citar al trabajador')
+                            ->extraAttributes([
+                                'data-tour' => 'motivos-select',
+                            ])
                             // ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'abogado']))
                             ->columnSpanFull(),
 
@@ -463,6 +551,9 @@ class ProcesoDisciplinarioResource extends Resource
                             ->required()
                             ->minDate(now()->subMonths(2)->startOfDay())
                             ->maxDate(now()->endOfDay())
+                            ->extraAttributes([
+                                'data-tour' => 'fecha-ocurrencia',
+                            ])
                             ->helperText('Fecha en que ocurrieron los hechos que motivan el proceso'),
 
                         Forms\Components\RichEditor::make('hechos')
@@ -476,6 +567,9 @@ class ProcesoDisciplinarioResource extends Resource
                                 'redo',
                                 'undo',
                             ])
+                            ->extraAttributes([
+                                'data-tour' => 'hechos-editor',
+                            ])
                             ->helperText('Describa detalladamente los hechos que motivan el proceso disciplinario')
                             // ->hintIcon('heroicon-o-sparkles')
                             ->hintColor('primary')
@@ -484,6 +578,9 @@ class ProcesoDisciplinarioResource extends Resource
                                 Forms\Components\Actions\Action::make('generarMotivo')
                                     ->icon('heroicon-o-sparkles')
                                     ->label('Generar redacción con IA')
+                                    ->extraAttributes([
+                                        'data-tour' => 'ia-button',
+                                    ])
                                     ->requiresConfirmation()
                                     ->modalHeading('Generar Motivo con IA')
                                     ->modalDescription('La IA generará una redacción profesional del motivo basándose en la información ingresada. Puede editarla después.')
@@ -682,6 +779,7 @@ class ProcesoDisciplinarioResource extends Resource
                             ->label('Fecha Límite para Impugnación')
                             ->displayFormat('d/m/Y H:i')
                             ->native(false)
+                            ->timezone('America/Bogota')
                             ->minDate(now()->addDays(3)->startOfDay())
                             ->helperText('3 días hábiles desde la notificación')
                             ->visible(fn(Get $get) => $get('impugnado') === true),
@@ -696,6 +794,7 @@ class ProcesoDisciplinarioResource extends Resource
                             ->label('Fecha de Cierre')
                             ->displayFormat('d/m/Y H:i')
                             ->native(false)
+                            ->timezone('America/Bogota')
                             ->visible(fn(Get $get) => in_array($get('estado'), ['cerrado', 'archivado'])),
                     ])->columns(2)
                     ->visible(fn() => Auth::user()->hasRole(['super_admin']))
@@ -730,23 +829,35 @@ class ProcesoDisciplinarioResource extends Resource
                         $record->trabajador->cargo ?? ''
                     ),
 
-                Tables\Columns\BadgeColumn::make('estado')
+                Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')
                     ->sortable()
                     ->searchable()
-                    ->colors([
-                        'gray' => 'apertura',
-                        'warning' => ['descargos_pendientes'],
-                        'info' => ['descargos_realizados'],
-                        'primary' => ['sancion_emitida'],
-                        'success' => 'cerrado',
-                        'danger' => ['impugnacion_realizada'],
-                        'secondary' => 'archivado',
-                    ])
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'apertura' => 'gray',
+                        'descargos_pendientes' => 'warning',
+                        'descargos_realizados' => 'info',
+                        'descargos_no_realizados' => 'danger',
+                        'impugnacion_realizada' => 'danger',
+                        'sancion_emitida' => 'primary',
+                        'cerrado' => 'success',
+                        'archivado' => 'secondary',
+                    })
+                    // ->colors([
+                    //     'gray' => 'apertura',
+                    //     'warning' => ['descargos_pendientes'],
+                    //     'info' => ['descargos_realizados'],
+                    //     'danger' => ['descargos_no_realizados', 'impugnacion_realizada'],
+                    //     'primary' => ['sancion_emitida'],
+                    //     'success' => 'cerrado',
+                    //     'secondary' => 'archivado',
+                    // ])
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'apertura' => 'Apertura',
-                        'descargos_pendientes' => 'Descargos Pendientes',
-                        'descargos_realizados' => 'Descargos Realizados',
+                        'descargos_pendientes' => 'Descargo Pendiente',
+                        'descargos_realizados' => 'Descargo Realizado',
+                        'descargos_no_realizados' => 'Descargo No Realizado',
                         'sancion_emitida' => 'Sanción Emitida',
                         'cerrado' => 'Cerrado',
                         'impugnacion_realizada' => 'Impugnación Realizada',
@@ -781,15 +892,21 @@ class ProcesoDisciplinarioResource extends Resource
                     ->toggleable(),
 
 
-                Tables\Columns\BadgeColumn::make('modalidad_descargos')
+                Tables\Columns\TextColumn::make('modalidad_descargos')
                     ->label('Modalidad Descargos')
                     ->sortable()
                     ->searchable()
-                    ->colors([
-                        'primary' => 'presencial',
-                        'success' => 'telefonico',
-                        'gray' => 'virtual',
-                    ])
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'presencial' => 'primary',
+                        'telefonico' => 'success',
+                        'virtual' => 'gray',
+                    })
+                    // ->colors([
+                    //     'primary' => 'presencial',
+                    //     'success' => 'telefonico',
+                    //     'gray' => 'virtual',
+                    // ])
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'presencial' => 'Presencial',
                         'telefonico' => 'Telefónico',
@@ -814,8 +931,9 @@ class ProcesoDisciplinarioResource extends Resource
                     ->label('Estado')
                     ->options([
                         'apertura' => 'Apertura',
-                        'descargos_pendientes' => 'Descargos Pendientes',
-                        'descargos_realizados' => 'Descargos Realizados',
+                        'descargos_pendientes' => 'Descargo Pendiente',
+                        'descargos_realizados' => 'Descargo Realizado',
+                        'descargos_no_realizados' => 'Descargo No Realizado',
                         'sancion_emitida' => 'Sanción Emitida',
                         'cerrado' => 'Cerrado',
                         'impugnacion_realizada' => 'Impugnación Realizada',
@@ -835,14 +953,15 @@ class ProcesoDisciplinarioResource extends Resource
                     ->label('Empresa')
                     ->relationship('empresa', 'razon_social')
                     ->searchable()
+                    ->visible(Auth::user()->hasRole('super_admin', 'abogado'))
                     ->preload(),
 
                 Tables\Filters\Filter::make('impugnado')
                     ->label('Impugnados')
                     ->query(fn(Builder $query): Builder => $query->where('impugnado', true)),
 
-                Tables\Filters\TrashedFilter::make()
-                    ->label('Eliminados'),
+                // Tables\Filters\TrashedFilter::make()
+                //     ->label('Eliminados'),
             ])
             ->actions([
                 // Botón 1: Generar Documento (solo para revisar)
@@ -1056,7 +1175,7 @@ class ProcesoDisciplinarioResource extends Resource
                             ? "NOTA: Este proceso ya tiene una sanción emitida. Se generará un nuevo documento reemplazando el anterior.\n\n"
                             : ""
                         ) .
-                            "Se generará automáticamente el documento de sanción con IA aplicando lenguaje claro y se enviará al trabajador: " .
+                            "Se generará automáticamente el documento de sanción con IA y se enviará al trabajador: " .
                             ($record->trabajador->nombre_completo ?? '')
                     )
                     ->modalSubmitActionLabel('Continuar')
@@ -1064,7 +1183,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->modalWidth('2xl')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
-                        in_array($record->estado, ['descargos_realizados', 'sancion_emitida']) &&
+                        in_array($record->estado, ['descargos_realizados', 'descargos_no_realizados', 'sancion_emitida']) &&
                             !empty($record->trabajador->email) &&
                             auth()->user()?->hasAnyRole(['super_admin', 'abogado', 'cliente'])
                     )
@@ -1182,7 +1301,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->visible(function (ProcesoDisciplinario $record) {
                         $tipoPendiente = session('tipo_sancion_pendiente_' . $record->id);
                         return $tipoPendiente === 'suspension' &&
-                            in_array($record->estado, ['descargos_realizados', 'sancion_emitida']) &&
+                            in_array($record->estado, ['descargos_realizados', 'descargos_no_realizados', 'sancion_emitida']) &&
                             !empty($record->trabajador->email) &&
                             auth()->user()?->hasAnyRole(['super_admin', 'abogado']);
                     })
@@ -1228,12 +1347,24 @@ class ProcesoDisciplinarioResource extends Resource
                         }
                     }),
 
-                Tables\Actions\ViewAction::make()
-                    ->label('Ver'),
-                Tables\Actions\EditAction::make()
-                    ->label('Editar'),
-                Tables\Actions\DeleteAction::make()
-                    ->label('Eliminar'),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make()
+                        ->label('Ver')
+                        ->icon('heroicon-o-eye')
+                        ->color('secondary'),
+                    Tables\Actions\EditAction::make()
+                        ->label('Editar')
+                        ->icon('heroicon-o-pencil')
+                        ->color('primary'),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Eliminar')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger'),
+                    Tables\Actions\RestoreAction::make()
+                        ->label('Restaurar')
+                        ->icon('heroicon-o-arrow-uturn-left')
+                        ->color('success'),
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -1438,48 +1569,53 @@ class ProcesoDisciplinarioResource extends Resource
     }
 
     /**
-     * Configurar tutoriales para el recurso
+     * Obtener festivos de Colombia para un año dado
      */
-    // public static function tutorial(): array
-    // public function tutorial(Tutorial $tutorial): Tutorial
-    // {
-    //     // return [
-    //     return $tutorial->steps([
-    //         Step::make('bienvenida')
-    //             ->title('Bienvenido a Procesos Disciplinarios')
-    //             ->description('Este tutorial te guiará en la creación y gestión de procesos disciplinarios laborales.')
-    //             ->icon('heroicon-o-academic-cap')
-    //             ->iconColor('primary'),
+    protected static function getFestivos(int $year): array
+    {
+        // Festivos fijos de Colombia
+        $festivosFijos = [
+            "{$year}-01-01", // Año Nuevo
+            "{$year}-05-01", // Día del Trabajo
+            "{$year}-07-20", // Día de la Independencia
+            "{$year}-08-07", // Batalla de Boyacá
+            "{$year}-12-08", // Inmaculada Concepción
+            "{$year}-12-25", // Navidad
+        ];
 
-    //         Step::make('listado')
-    //             ->title('Listado de Procesos')
-    //             ->description('Aquí puedes ver todos los procesos disciplinarios. Usa los filtros para encontrar procesos específicos por estado o modalidad.')
-    //             ->attachTo('[data-table]', 'bottom')
-    //             ->icon('heroicon-o-list-bullet'),
+        // Calcular Pascua (necesario para festivos móviles)
+        $pascua = \Carbon\Carbon::createFromTimestamp(easter_date($year));
 
-    //         Step::make('crear_proceso')
-    //             ->title('Crear Nuevo Proceso')
-    //             ->description('Haz clic en "Nuevo Proceso Disciplinario" para iniciar un proceso. Se te guiará paso a paso.')
-    //             ->attachTo('[data-action="create"]', 'bottom')
-    //             ->icon('heroicon-o-plus-circle')
-    //             ->iconColor('success'),
+        // Festivos basados en Pascua
+        $festivosMoviles = [
+            $pascua->copy()->subDays(3)->format('Y-m-d'),  // Jueves Santo
+            $pascua->copy()->subDays(2)->format('Y-m-d'),  // Viernes Santo
+            $pascua->copy()->addDays(43)->format('Y-m-d'), // Ascensión del Señor (lunes siguiente a 39 días después de Pascua)
+            $pascua->copy()->addDays(64)->format('Y-m-d'), // Corpus Christi (lunes siguiente a 60 días después de Pascua)
+            $pascua->copy()->addDays(71)->format('Y-m-d'), // Sagrado Corazón (lunes siguiente a 68 días después de Pascua)
+        ];
 
-    //         Step::make('filtros')
-    //             ->title('Filtros y Búsqueda')
-    //             ->description('Usa los filtros para encontrar procesos por estado o si fueron impugnados.')
-    //             ->attachTo('[data-table-filters]', 'left')
-    //             ->icon('heroicon-o-funnel'),
+        // Festivos que se trasladan al lunes siguiente (Ley Emiliani)
+        $festivosEmiliani = [
+            "{$year}-01-06" => 'Reyes Magos',
+            "{$year}-03-19" => 'San José',
+            "{$year}-06-29" => 'San Pedro y San Pablo',
+            "{$year}-08-15" => 'Asunción de la Virgen',
+            "{$year}-10-12" => 'Día de la Raza',
+            "{$year}-11-01" => 'Todos los Santos',
+            "{$year}-11-11" => 'Independencia de Cartagena',
+        ];
 
-    //         Step::make('acciones')
-    //             ->title('Acciones del Proceso')
-    //             ->description('En cada proceso puedes: generar documentos, enviar citaciones, ver detalles o editarlo.')
-    //             ->icon('heroicon-o-cog-6-tooth'),
+        // Convertir festivos Emiliani al lunes siguiente si no caen en lunes
+        $festivosEmilianiAjustados = [];
+        foreach ($festivosEmiliani as $fecha => $nombre) {
+            $carbon = \Carbon\Carbon::parse($fecha);
+            if ($carbon->dayOfWeek !== \Carbon\Carbon::MONDAY) {
+                $carbon = $carbon->next(\Carbon\Carbon::MONDAY);
+            }
+            $festivosEmilianiAjustados[] = $carbon->format('Y-m-d');
+        }
 
-    //         Step::make('final')
-    //             ->title('¡Listo!')
-    //             ->description('Ya conoces lo básico de los procesos disciplinarios. Explora el sistema y si necesitas ayuda, vuelve a este tutorial.')
-    //             ->icon('heroicon-o-check-circle')
-    //             ->iconColor('success'),
-    //     ]);
-    // }
+        return array_merge($festivosFijos, $festivosMoviles, $festivosEmilianiAjustados);
+    }
 }

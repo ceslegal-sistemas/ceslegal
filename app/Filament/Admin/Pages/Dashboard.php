@@ -8,6 +8,7 @@ use App\Filament\Admin\Widgets\ExpiringTermsWidget;
 use App\Filament\Admin\Widgets\ProcessesByStatusChart;
 use App\Filament\Admin\Widgets\RecentActivityWidget;
 use Filament\Pages\Dashboard as BaseDashboard;
+use Filament\Actions;
 
 class Dashboard extends BaseDashboard
 {
@@ -18,6 +19,21 @@ class Dashboard extends BaseDashboard
     protected static ?string $title = 'Panel de Control';
 
     protected static ?string $navigationLabel = 'Inicio';
+
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\Action::make('tutorial')
+                ->label('¿Necesitas ayuda?')
+                ->icon('heroicon-o-question-mark-circle')
+                ->color('gray')
+                ->extraAttributes([
+                    'data-tour' => 'help-button-dashboard',
+                    'onclick' => 'window.iniciarTour(); return false;',
+                ]),
+        ];
+    }
 
     public function getWidgets(): array
     {

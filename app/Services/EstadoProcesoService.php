@@ -14,14 +14,16 @@ class EstadoProcesoService
      * apertura → descargos_pendientes → descargos_realizados → sancion_emitida → cerrado
      *
      * FLUJOS ALTERNATIVOS:
+     * - Desde descargos_pendientes puede ir a descargos_no_realizados (si no asiste)
      * - Desde sancion_emitida puede ir a impugnacion_realizada
      * - Desde impugnacion_realizada puede volver a sancion_emitida o ir a cerrado
      * - Cualquier estado puede ir a archivado
      */
     const TRANSICIONES_VALIDAS = [
         'apertura' => ['descargos_pendientes', 'archivado'],
-        'descargos_pendientes' => ['descargos_realizados', 'archivado'],
+        'descargos_pendientes' => ['descargos_realizados', 'descargos_no_realizados', 'archivado'],
         'descargos_realizados' => ['sancion_emitida', 'archivado'],
+        'descargos_no_realizados' => ['sancion_emitida', 'archivado'],
         'sancion_emitida' => ['impugnacion_realizada', 'cerrado', 'archivado'],
         'impugnacion_realizada' => ['sancion_emitida', 'cerrado', 'archivado'],
         'cerrado' => [],
@@ -35,6 +37,7 @@ class EstadoProcesoService
         'apertura' => 'Proceso iniciado',
         'descargos_pendientes' => 'Citación enviada - Esperando diligencia',
         'descargos_realizados' => 'Diligencia de descargos completada',
+        'descargos_no_realizados' => 'El trabajador no asistió a la diligencia',
         'sancion_emitida' => 'Sanción emitida y notificada',
         'impugnacion_realizada' => 'Sanción impugnada por el trabajador',
         'cerrado' => 'Proceso cerrado',
@@ -143,6 +146,18 @@ class EstadoProcesoService
             $proceso,
             'descargos_realizados',
             'Trabajador completó la diligencia de descargos'
+        );
+    }
+
+    /**
+     * Cuando el trabajador no asiste a la diligencia de descargos
+     */
+    public function alNoAsistirDescargos(ProcesoDisciplinario $proceso): void
+    {
+        $this->cambiarEstado(
+            $proceso,
+            'descargos_no_realizados',
+            'El trabajador no asistió a la diligencia de descargos programada'
         );
     }
 
