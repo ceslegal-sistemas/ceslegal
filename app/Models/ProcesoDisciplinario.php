@@ -116,6 +116,58 @@ class ProcesoDisciplinario extends Model
     }
 
     /**
+     * Relación con los trackings de email
+     */
+    public function emailTrackings(): HasMany
+    {
+        return $this->hasMany(EmailTracking::class, 'proceso_id');
+    }
+
+    /**
+     * Verificar si la citación fue leída por el trabajador
+     */
+    public function citacionFueLeida(): bool
+    {
+        return $this->emailTrackings()
+            ->where('tipo_correo', 'citacion')
+            ->whereNotNull('abierto_en')
+            ->exists();
+    }
+
+    /**
+     * Verificar si la sanción fue leída por el trabajador
+     */
+    public function sancionFueLeida(): bool
+    {
+        return $this->emailTrackings()
+            ->where('tipo_correo', 'sancion')
+            ->whereNotNull('abierto_en')
+            ->exists();
+    }
+
+    /**
+     * Obtener el último tracking de citación
+     */
+    public function getUltimoTrackingCitacionAttribute(): ?EmailTracking
+    {
+        return $this->emailTrackings()
+            ->where('tipo_correo', 'citacion')
+            ->latest('enviado_en')
+            ->first();
+    }
+
+    /**
+     * Obtener el último tracking de sanción
+     */
+    public function getUltimoTrackingSancionAttribute(): ?EmailTracking
+    {
+        return $this->emailTrackings()
+            ->where('tipo_correo', 'sancion')
+            ->latest('enviado_en')
+            ->first();
+    }
+
+    /**
      * Obtener los artículos legales seleccionados para este proceso
      */
     public function getArticulosLegalesAttribute()

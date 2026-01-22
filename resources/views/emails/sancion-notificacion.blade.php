@@ -122,6 +122,14 @@
         <p>Este es un correo electrónico automático generado por el sistema de gestión de procesos disciplinarios.</p>
         <p>Por favor, no responda a este correo. Para comunicarse, utilice los canales oficiales de la empresa.</p>
     </div>
+
+    {{-- Pixel de seguimiento de apertura (invisible) --}}
+    @if(isset($trackingToken))
+    <img src="{{ route('email.tracking.pixel', ['token' => $trackingToken]) }}"
+         width="1" height="1"
+         style="display:block !important; width:1px !important; height:1px !important; border:0 !important; margin:0 !important; padding:0 !important;"
+         alt="" />
+    @endif
 </body>
 
 </html>

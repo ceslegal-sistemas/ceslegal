@@ -131,7 +131,7 @@ class RecentActivityWidget extends BaseWidget
                     ->icon('heroicon-m-eye')
                     ->url(fn (Timeline $record): ?string =>
                         $record->proceso_id
-                            ? route('filament.admin.resources.proceso-disciplinarios.edit', $record->proceso_id)
+                            ? route('filament.admin.resources.proceso-disciplinarios.index', $record->proceso_id)
                             : null
                     )
                     ->openUrlInNewTab(),

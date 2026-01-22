@@ -15,6 +15,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Navigation\NavigationItem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Support\Colors\Color;
@@ -39,6 +40,27 @@ class ProcesoDisciplinarioResource extends Resource
     // protected static ?string $navigationGroup = 'Gestión Laboral';
 
     protected static ?int $navigationSort = 1;
+
+    /**
+     * Registrar los ítems de navegación personalizados
+     */
+    public static function getNavigationItems(): array
+    {
+        return [
+            NavigationItem::make('Crear Descargos')
+                ->icon('heroicon-o-plus-circle')
+                ->url(static::getUrl('create'))
+                // ->color('success')
+                ->sort(0),
+                // ->badge(fn() => 'Nuevo', 'success'),
+
+            NavigationItem::make('Historial de Descargos')
+                ->icon(static::getNavigationIcon())
+                ->url(static::getUrl('index'))
+                ->sort(1)
+                ->isActiveWhen(fn() => request()->routeIs(static::getRouteBaseName() . '.*') && !request()->routeIs(static::getRouteBaseName() . '.create')),
+        ];
+    }
 
     public static function form(Form $form): Form
     {
@@ -886,33 +908,22 @@ class ProcesoDisciplinarioResource extends Resource
                     ->sortable()
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('modalidad_descargos')
-                    ->label('Modalidad Descargos')
-                    ->sortable()
-                    ->toggleable(),
-
-
-                Tables\Columns\TextColumn::make('modalidad_descargos')
-                    ->label('Modalidad Descargos')
-                    ->sortable()
-                    ->searchable()
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'presencial' => 'primary',
-                        'telefonico' => 'success',
-                        'virtual' => 'gray',
-                    })
-                    // ->colors([
-                    //     'primary' => 'presencial',
-                    //     'success' => 'telefonico',
-                    //     'gray' => 'virtual',
-                    // ])
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'presencial' => 'Presencial',
-                        'telefonico' => 'Telefónico',
-                        'virtual' => 'Virtual',
-                        default => $state,
-                    }),
+                // Tables\Columns\TextColumn::make('modalidad_descargos')
+                //     ->label('Modalidad Descargos')
+                //     ->sortable()
+                //     ->searchable()
+                //     ->badge()
+                //     ->color(fn(string $state): string => match ($state) {
+                //         'presencial' => 'primary',
+                //         'telefonico' => 'success',
+                //         'virtual' => 'gray',
+                //     })
+                //     ->formatStateUsing(fn(string $state): string => match ($state) {
+                //         'presencial' => 'Presencial',
+                //         'telefonico' => 'Telefónico',
+                //         'virtual' => 'Virtual',
+                //         default => $state,
+                //     }),
 
                 Tables\Columns\TextColumn::make('fecha_solicitud')
                     ->label('Fecha Solicitud')

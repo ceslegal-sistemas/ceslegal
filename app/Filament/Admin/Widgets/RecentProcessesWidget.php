@@ -91,7 +91,7 @@ class RecentProcessesWidget extends BaseWidget
                     ->label('Ver')
                     ->icon('heroicon-m-eye')
                     ->url(fn (ProcesoDisciplinario $record): string =>
-                        route('filament.admin.resources.proceso-disciplinarios.edit', $record)
+                        route('filament.admin.resources.proceso-disciplinarios.index', $record)
                     ),
             ]);
     }

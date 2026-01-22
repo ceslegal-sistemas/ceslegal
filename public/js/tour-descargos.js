@@ -28,7 +28,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 link.textContent.includes("Historial de Descargos") ||
                 link.href.includes("proceso-disciplinarios")
             ) {
-                link.setAttribute("data-tour", "menu-proceso-disciplinario");
+                link.setAttribute(
+                    "data-tour",
+                    "menu-historial-proceso-disciplinario",
+                );
+            }
+
+            if (
+                link.textContent.includes("Crear Descargos") ||
+                link.href.includes("proceso-disciplinarios/create")
+            ) {
+                link.setAttribute(
+                    "data-tour",
+                    "menu-crear-proceso-disciplinario",
+                );
             }
         });
 
@@ -62,7 +75,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     },
                 },
                 {
-                    element: "[data-tour='menu-proceso-disciplinario']",
+                    element:
+                        "[data-tour='menu-crear-proceso-disciplinario']",
+                    popover: {
+                        title: "Accede Crear de Descargos",
+                        description: "Aquí puedes crear los descargos.",
+                        side: "right",
+                    },
+                },
+                {
+                    element: "[data-tour='menu-historial-proceso-disciplinario']",
                     popover: {
                         title: "Accede al Historial de Descargos",
                         description:
@@ -103,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Iniciar tour automáticamente si es primera vez
         const tourInicioShown = localStorage.getItem(
-            "tourDescargosInicioShown"
+            "tourDescargosInicioShown",
         );
 
         if (!tourInicioShown) {
@@ -114,12 +136,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-
     // ========== TOUR PARA LISTA DE TRABAJADORES ==========
-    if (
-        pathname.endsWith("trabajadors") ||
-        pathname.endsWith("trabajadors/")
-    ) {
+    if (pathname.endsWith("trabajadors") || pathname.endsWith("trabajadors/")) {
         const tourTrabajadores = driverFn({
             showProgress: true,
             nextBtnText: "Siguiente",
@@ -185,7 +203,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Iniciar tour automáticamente si es primera vez
         const tourTrabajadoresShown = localStorage.getItem(
-            "tourTrabajadoresShown"
+            "tourTrabajadoresShown",
         );
         if (!tourTrabajadoresShown) {
             setTimeout(function () {
@@ -242,8 +260,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     element: '[data-tour="trabajador-genero"]',
                     popover: {
                         title: "Paso 4: Género",
-                        description:
-                            "Selecciona el género del trabajador.",
+                        description: "Selecciona el género del trabajador.",
                         side: "right",
                     },
                 },
@@ -281,7 +298,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         description:
                             "Selecciona la ciudad o municipio donde nació el trabajador.",
                         side: "right",
-                    },  
+                    },
                 },
                 {
                     element: '[data-tour="trabajador-email"]',
@@ -360,7 +377,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Iniciar tour automáticamente si es primera vez
         const tourCreateTrabajadorShown = localStorage.getItem(
-            "tourCreateTrabajadorShown"
+            "tourCreateTrabajadorShown",
         );
         if (!tourCreateTrabajadorShown) {
             setTimeout(function () {
@@ -568,7 +585,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Iniciar tour automáticamente si es primera vez
         const tourCreateShown = localStorage.getItem(
-            "tourDescargosCreateShown"
+            "tourDescargosCreateShown",
         );
         if (!tourCreateShown) {
             setTimeout(function () {

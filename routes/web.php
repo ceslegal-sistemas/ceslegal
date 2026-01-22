@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DescargoPublicoController;
+use App\Http\Controllers\EmailTrackingController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Response;
 
@@ -73,3 +74,11 @@ Route::get('/descargar/sancion/{procesoId}', function ($procesoId) {
         'Content-Type' => $mimeType,
     ]);
 })->middleware(['auth'])->name('descargar.sancion');
+
+// Rutas de Email Tracking
+Route::get('/email/track/{token}.gif', [EmailTrackingController::class, 'pixel'])
+    ->name('email.tracking.pixel');
+
+Route::get('/api/email-tracking/{procesoId}', [EmailTrackingController::class, 'estado'])
+    ->middleware(['auth'])
+    ->name('email.tracking.estado');

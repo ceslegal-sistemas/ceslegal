@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ProcesoDisciplinario;
+use App\Models\EmailTracking;
 use App\Services\TimelineService;
 use App\Services\EstadoProcesoService;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -320,6 +321,16 @@ class DocumentGeneratorService
             throw new \Exception('El trabajador no tiene correo electrónico registrado');
         }
 
+        // Crear registro de tracking para el correo (hora de Colombia)
+        $tracking = EmailTracking::create([
+            'token' => EmailTracking::generarToken(),
+            'tipo_correo' => 'citacion',
+            'proceso_id' => $proceso->id,
+            'trabajador_id' => $trabajador->id,
+            'email_destinatario' => $trabajador->email,
+            'enviado_en' => Carbon::now('America/Bogota'),
+        ]);
+
         // Detectar la extensión real del archivo
         $extension = pathinfo($pdfPath, PATHINFO_EXTENSION);
         $mimeType = $extension === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -331,6 +342,7 @@ class DocumentGeneratorService
             'empresa' => $empresa,
             'linkDescargos' => $linkDescargos,
             'fechaAccesoPermitida' => $fechaAccesoPermitida,
+            'trackingToken' => $tracking->token,
         ], function ($message) use ($trabajador, $proceso, $pdfPath, $nombreArchivo, $mimeType) {
             $message->to($trabajador->email, $trabajador->nombre_completo)
                 ->subject('Citación a Audiencia de Descargos - Proceso ' . $proceso->codigo)
@@ -339,6 +351,12 @@ class DocumentGeneratorService
                     'mime' => $mimeType,
                 ]);
         });
+
+        Log::info('Citación enviada con tracking', [
+            'proceso_id' => $proceso->id,
+            'trabajador_email' => $trabajador->email,
+            'tracking_token' => substr($tracking->token, 0, 10) . '...',
+        ]);
     }
 
     /**
@@ -984,6 +1002,16 @@ PROMPT;
             throw new \Exception('El trabajador no tiene correo electrónico registrado');
         }
 
+        // Crear registro de tracking para el correo (hora de Colombia)
+        $tracking = EmailTracking::create([
+            'token' => EmailTracking::generarToken(),
+            'tipo_correo' => 'sancion',
+            'proceso_id' => $proceso->id,
+            'trabajador_id' => $trabajador->id,
+            'email_destinatario' => $trabajador->email,
+            'enviado_en' => Carbon::now('America/Bogota'),
+        ]);
+
         $extension = pathinfo($documentoPath, PATHINFO_EXTENSION);
         $mimeType = $extension === 'pdf' ? 'application/pdf' : 'text/html';
         $nombreSancion = match ($tipoSancion) {
@@ -999,6 +1027,7 @@ PROMPT;
             'trabajador' => $trabajador,
             'empresa' => $empresa,
             'tipoSancion' => $nombreSancion,
+            'trackingToken' => $tracking->token,
         ], function ($message) use ($trabajador, $proceso, $documentoPath, $nombreArchivo, $mimeType, $nombreSancion) {
             $message->to($trabajador->email, $trabajador->nombre_completo)
                 ->subject('Notificación de ' . $nombreSancion . ' - Proceso ' . $proceso->codigo)
@@ -1007,6 +1036,13 @@ PROMPT;
                     'mime' => $mimeType,
                 ]);
         });
+
+        Log::info('Sanción enviada con tracking', [
+            'proceso_id' => $proceso->id,
+            'tipo_sancion' => $tipoSancion,
+            'trabajador_email' => $trabajador->email,
+            'tracking_token' => substr($tracking->token, 0, 10) . '...',
+        ]);
     }
 
     /**
