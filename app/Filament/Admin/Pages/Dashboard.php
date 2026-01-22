@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
 use App\Filament\Admin\Widgets\StatsOverviewWidget;
 use App\Filament\Admin\Widgets\RecentProcessesWidget;
 use App\Filament\Admin\Widgets\ExpiringTermsWidget;
@@ -9,6 +10,7 @@ use App\Filament\Admin\Widgets\ProcessesByStatusChart;
 use App\Filament\Admin\Widgets\RecentActivityWidget;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Actions;
+use Filament\Actions\Action;
 
 class Dashboard extends BaseDashboard
 {
@@ -32,6 +34,12 @@ class Dashboard extends BaseDashboard
                     'data-tour' => 'help-button-dashboard',
                     'onclick' => 'window.iniciarTour(); return false;',
                 ]),
+
+            Actions\Action::make('Crear DESCARGOS')
+                ->label('Crear DESCARGOS')
+                ->icon('heroicon-o-plus-circle')
+                ->color('primary')
+                ->url(ProcesoDisciplinarioResource::getUrl('create')),
         ];
     }
 
