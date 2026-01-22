@@ -6,15 +6,36 @@ use App\Models\DiaNoHabil;
 use App\Models\TerminoLegal;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class TerminoLegalService
 {
-    private Collection $diasNoHabiles;
+    private ?Collection $diasNoHabiles = null;
 
     public function __construct()
     {
-        // Cargar todos los días no hábiles en memoria para mejor performance
-        $this->diasNoHabiles = DiaNoHabil::pluck('fecha')->map(fn($fecha) => Carbon::parse($fecha)->format('Y-m-d'));
+        // No cargar aquí - se carga de manera lazy cuando se necesite
+    }
+
+    /**
+     * Obtener los días no hábiles (carga lazy)
+     */
+    private function getDiasNoHabiles(): Collection
+    {
+        if ($this->diasNoHabiles === null) {
+            try {
+                if (Schema::hasTable('dias_no_habiles')) {
+                    $this->diasNoHabiles = DiaNoHabil::pluck('fecha')
+                        ->map(fn($fecha) => Carbon::parse($fecha)->format('Y-m-d'));
+                } else {
+                    $this->diasNoHabiles = collect();
+                }
+            } catch (\Exception $e) {
+                $this->diasNoHabiles = collect();
+            }
+        }
+
+        return $this->diasNoHabiles;
     }
 
     /**
@@ -48,7 +69,7 @@ class TerminoLegalService
 
         // Verificar si es día no hábil (festivo)
         $fechaStr = $fecha->format('Y-m-d');
-        return !$this->diasNoHabiles->contains($fechaStr);
+        return !$this->getDiasNoHabiles()->contains($fechaStr);
     }
 
     /**
