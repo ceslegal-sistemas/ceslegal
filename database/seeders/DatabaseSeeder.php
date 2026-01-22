@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             EmpresaSeeder::class,
             DiaNoHabilSeeder::class,
             RolePermissionSeeder::class,
+            SuperAdminSeeder::class,
             DepartamentosMunicipiosSeeder::class,
         ]);
     }
