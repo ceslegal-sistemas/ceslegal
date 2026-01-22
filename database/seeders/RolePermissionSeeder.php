@@ -140,31 +140,10 @@ class RolePermissionSeeder extends Seeder
         // ==============================
         $cliente = Role::firstOrCreate(['name' => 'cliente', 'guard_name' => 'web']);
         $cliente->syncPermissions([
-            // Can view their empresa
-            'view_empresa',
-
             // Can view trabajadores (of their empresa)
             'view_trabajador',
             'view_any_trabajador',
 
-            // Can VIEW processes (of their empresa)
-            'view_proceso::disciplinario',
-            'view_any_proceso::disciplinario',
-
-            // Can VIEW contract requests (of their empresa)
-            'view_solicitud::contrato',
-            'view_any_solicitud::contrato',
-
-            // Limited widget access
-            'widget_StatsOverviewWidget',
-            'widget_RecentProcessesWidget',
-        ]);
-
-        // ==============================
-        // ROLE: rrhh (Human Resources)
-        // ==============================
-        $rrhh = Role::firstOrCreate(['name' => 'rrhh', 'guard_name' => 'web']);
-        $rrhh->syncPermissions([
             // Can view empresas
             'view_empresa',
             'view_any_empresa',
@@ -174,8 +153,6 @@ class RolePermissionSeeder extends Seeder
             'view_any_user',
 
             // Full access to trabajadores (main responsibility)
-            'view_trabajador',
-            'view_any_trabajador',
             'create_trabajador',
             'update_trabajador',
             'delete_trabajador',
@@ -204,7 +181,6 @@ class RolePermissionSeeder extends Seeder
                 ['super_admin', $superAdmin->permissions->count()],
                 ['abogado', $abogado->permissions->count()],
                 ['cliente', $cliente->permissions->count()],
-                ['rrhh', $rrhh->permissions->count()],
             ]
         );
     }
