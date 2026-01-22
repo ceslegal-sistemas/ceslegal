@@ -586,11 +586,18 @@ class SancionLaboralSeeder extends Seeder
             ],
         ];
 
-        // Insertar todas las sanciones
+        // Insertar sanciones (evitar duplicados)
+        $inserted = 0;
         foreach ($sanciones as $sancion) {
-            SancionLaboral::create($sancion);
+            $result = SancionLaboral::firstOrCreate(
+                ['orden' => $sancion['orden']],
+                $sancion
+            );
+            if ($result->wasRecentlyCreated) {
+                $inserted++;
+            }
         }
 
-        $this->command->info('✅ Se han insertado ' . count($sanciones) . ' sanciones laborales correctamente.');
+        $this->command->info("✅ Sanciones laborales: {$inserted} nuevas, " . (count($sanciones) - $inserted) . " ya existentes.");
     }
 }

@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             DiaNoHabilSeeder::class,
             RolePermissionSeeder::class,
             SuperAdminSeeder::class,
+            SancionLaboralSeeder::class,
             DepartamentosMunicipiosSeeder::class,
         ]);
     }
