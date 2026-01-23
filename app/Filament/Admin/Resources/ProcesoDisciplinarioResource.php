@@ -1124,7 +1124,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
                         !empty($record->fecha_descargos_programada) && $record->estado === 'apertura' &&
-                            auth()->user()?->can('generar_documento_proceso::disciplinario')
+                            auth()->user()?->can('generar_documento_proceso_disciplinario')
                     )
                     ->action(function (ProcesoDisciplinario $record) {
                         $service = new \App\Services\DocumentGeneratorService();
@@ -1191,7 +1191,7 @@ class ProcesoDisciplinarioResource extends Resource
                         fn(ProcesoDisciplinario $record) =>
                         !empty($record->trabajador->email) && !empty($record->fecha_descargos_programada)
                             && $record->estado === 'descargos_pendientes'
-                            && auth()->user()?->can('enviar_citacion_proceso::disciplinario')
+                            && auth()->user()?->can('enviar_citacion_proceso_disciplinario')
                     )
                     ->action(function (ProcesoDisciplinario $record) {
                         $service = new \App\Services\DocumentGeneratorService();
@@ -1220,7 +1220,7 @@ class ProcesoDisciplinarioResource extends Resource
                     )
                     ->icon('heroicon-o-shield-exclamation')
                     ->color('danger')
-                    ->visible(fn() => auth()->user()?->can('emitir_sancion_proceso::disciplinario'))
+                    ->visible(fn() => auth()->user()?->can('emitir_sancion_proceso_disciplinario'))
                     ->form(function (ProcesoDisciplinario $record) {
                         // Analizar proceso con IA para obtener sanciones apropiadas
                         $iaService = new \App\Services\IAAnalisisSancionService();
@@ -1407,7 +1407,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->label('Confirmar Días de Suspensión')
                     ->icon('heroicon-o-clock')
                     ->color('warning')
-                    ->visible(fn() => auth()->user()?->can('confirmar_suspension_proceso::disciplinario'))
+                    ->visible(fn() => auth()->user()?->can('confirmar_suspension_proceso_disciplinario'))
                     ->form(function (ProcesoDisciplinario $record) {
                         // Obtener opciones de días desde la sesión
                         $opcionesDias = session('opciones_dias_' . $record->id, []);

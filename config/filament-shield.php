@@ -46,6 +46,14 @@ return [
             'delete_any',
             'force_delete',
             'force_delete_any',
+            // Permisos personalizados para Trabajador
+            'desactivar',
+            'activar',
+            // Permisos personalizados para ProcesoDisciplinario
+            'generar_documento',
+            'enviar_citacion',
+            'emitir_sancion',
+            'confirmar_suspension',
         ],
 
         'page' => 'page',
@@ -56,7 +64,7 @@ return [
         'pages' => true,
         'widgets' => true,
         'resources' => true,
-        'custom_permissions' => false,
+        'custom_permissions' => true,
     ],
 
     'generator' => [

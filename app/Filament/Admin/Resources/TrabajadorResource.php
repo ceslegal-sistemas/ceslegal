@@ -504,7 +504,7 @@ class TrabajadorResource extends Resource
                     ->modalHeading('Desactivar Trabajador')
                     ->modalDescription(fn(Trabajador $record) => "¿Está seguro que desea desactivar al trabajador '{$record->nombre_completo}'? El trabajador no será eliminado, solo quedará marcado como inactivo.")
                     ->modalSubmitActionLabel('Sí, desactivar')
-                    ->visible(fn(Trabajador $record) => $record->active && auth()->user()->can('desactivar_trabajador'))
+                    ->visible(fn(Trabajador $record) => $record->active && auth()->user()?->can('desactivar_trabajador'))
                     ->action(function (Trabajador $record) {
                         $record->update(['active' => false]);
                         \Filament\Notifications\Notification::make()
