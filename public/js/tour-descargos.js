@@ -166,19 +166,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     popover: {
                         title: "Busca y filtra",
                         description:
-                            "Usa los filtros para encontrar trabajadores por nombre, empresa o área.",
+                            "Usa los filtros para encontrar trabajadores por nombre o área.",
                         side: "bottom",
                     },
                 },
-                {
-                    element: "[data-tour='create-button-trabajadores']",
-                    popover: {
-                        title: "Añadir nuevo trabajador",
-                        description:
-                            "Aquí puedes registrar un nuevo trabajador en el sistema.",
-                        side: "bottom",
-                    },
-                },
+                // {
+                //     element: "[data-tour='create-button-trabajadores']",
+                //     popover: {
+                //         title: "Añadir nuevo trabajador",
+                //         description:
+                //             "Aquí puedes registrar un nuevo trabajador en el sistema.",
+                //         side: "bottom",
+                //     },
+                // },
                 {
                     element: "[data-tour='help-button-trabajadores']",
                     popover: {
@@ -192,7 +192,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     popover: {
                         title: "¡Listo para comenzar!",
                         description:
-                            "Ya conoces lo básico. Explora los trabajadores registrados o añade nuevos.",
+                            "Ya conoces lo básico. Explora los trabajadores registrados o añade nuevos en el modulo crear Descargos.",
                     },
                 },
             ],
