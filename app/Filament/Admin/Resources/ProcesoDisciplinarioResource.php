@@ -1493,7 +1493,7 @@ class ProcesoDisciplinarioResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+                    Tables\Actions\ForceDeleteBulkAction::make()
                         ->label('Eliminar seleccionados'),
                     Tables\Actions\RestoreBulkAction::make()
                         ->label('Restaurar seleccionados'),
