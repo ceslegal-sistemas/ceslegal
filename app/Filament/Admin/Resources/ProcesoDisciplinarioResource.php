@@ -911,6 +911,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->toggleable(),
 
                 // Columna de acuse de recibido (email tracking)
+                // Estados: Pendiente (0) -> Entregado (1) -> Leído (2+)
                 Tables\Columns\TextColumn::make('email_tracking_citacion')
                     ->label('Acuse Citación')
                     ->getStateUsing(function (ProcesoDisciplinario $record) {
@@ -923,11 +924,7 @@ class ProcesoDisciplinarioResource extends Resource
                             return 'No enviado';
                         }
 
-                        if (!$tracking->fueAbierto()) {
-                            return 'Pendiente';
-                        }
-
-                        return 'Leído (' . $tracking->veces_abierto . ')';
+                        return $tracking->getEstadoLectura();
                     })
                     ->badge()
                     ->color(function (ProcesoDisciplinario $record) {
@@ -940,7 +937,7 @@ class ProcesoDisciplinarioResource extends Resource
                             return 'gray';
                         }
 
-                        return $tracking->fueAbierto() ? 'success' : 'warning';
+                        return $tracking->getColorEstado();
                     })
                     ->tooltip(function (ProcesoDisciplinario $record) {
                         $tracking = $record->emailTrackings()
@@ -954,9 +951,13 @@ class ProcesoDisciplinarioResource extends Resource
 
                         $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
 
+                        if ($tracking->fueEntregado()) {
+                            $info .= "\nEntregado: Sí";
+                        }
+
                         if ($tracking->fueAbierto()) {
                             $info .= "\nLeído: " . $tracking->abierto_en->format('d/m/Y H:i');
-                            $info .= "\nVeces abierto: " . $tracking->veces_abierto;
+                            $info .= "\nVeces leído: " . ($tracking->veces_abierto - 1);
                             if ($tracking->ip_apertura) {
                                 $info .= "\nIP: " . $tracking->ip_apertura;
                             }
@@ -979,11 +980,7 @@ class ProcesoDisciplinarioResource extends Resource
                             return 'No enviado';
                         }
 
-                        if (!$tracking->fueAbierto()) {
-                            return 'Pendiente';
-                        }
-
-                        return 'Leído (' . $tracking->veces_abierto . ')';
+                        return $tracking->getEstadoLectura();
                     })
                     ->badge()
                     ->color(function (ProcesoDisciplinario $record) {
@@ -996,7 +993,7 @@ class ProcesoDisciplinarioResource extends Resource
                             return 'gray';
                         }
 
-                        return $tracking->fueAbierto() ? 'success' : 'warning';
+                        return $tracking->getColorEstado();
                     })
                     ->tooltip(function (ProcesoDisciplinario $record) {
                         $tracking = $record->emailTrackings()
@@ -1010,9 +1007,13 @@ class ProcesoDisciplinarioResource extends Resource
 
                         $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
 
+                        if ($tracking->fueEntregado()) {
+                            $info .= "\nEntregado: Sí";
+                        }
+
                         if ($tracking->fueAbierto()) {
                             $info .= "\nLeído: " . $tracking->abierto_en->format('d/m/Y H:i');
-                            $info .= "\nVeces abierto: " . $tracking->veces_abierto;
+                            $info .= "\nVeces leído: " . ($tracking->veces_abierto - 1);
                             if ($tracking->ip_apertura) {
                                 $info .= "\nIP: " . $tracking->ip_apertura;
                             }

@@ -53,11 +53,57 @@ class EmailTracking extends Model
     }
 
     /**
-     * Verificar si el correo fue abierto por el trabajador
+     * Verificar si el correo fue leído por el trabajador (2+ aperturas)
+     * La primera apertura es la precarga automática del servidor de correo
      */
     public function fueAbierto(): bool
     {
-        return $this->abierto_en !== null;
+        return $this->veces_abierto >= 2;
+    }
+
+    /**
+     * Verificar si el correo fue entregado (llegó al servidor de correo)
+     */
+    public function fueEntregado(): bool
+    {
+        return $this->veces_abierto >= 1;
+    }
+
+    /**
+     * Obtener el estado de lectura del correo
+     * 0 = Pendiente (no ha llegado)
+     * 1 = Entregado (llegó al correo, precarga del servidor)
+     * 2+ = Leído (el trabajador lo abrió)
+     */
+    public function getEstadoLectura(): string
+    {
+        if ($this->veces_abierto === 0) {
+            return 'Pendiente';
+        }
+
+        if ($this->veces_abierto === 1) {
+            return 'Entregado';
+        }
+
+        // veces_abierto >= 2: restar 1 para no contar la precarga
+        $vecesLeido = $this->veces_abierto - 1;
+        return "Leído ({$vecesLeido})";
+    }
+
+    /**
+     * Obtener el color del estado para badges
+     */
+    public function getColorEstado(): string
+    {
+        if ($this->veces_abierto === 0) {
+            return 'gray';
+        }
+
+        if ($this->veces_abierto === 1) {
+            return 'warning';
+        }
+
+        return 'success';
     }
 
     /**
