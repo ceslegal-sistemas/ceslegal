@@ -46,18 +46,28 @@ return [
             'delete_any',
             'force_delete',
             'force_delete_any',
-            // Permisos personalizados para Trabajador
-            'desactivar',
-            'activar',
-            // Permisos personalizados para ProcesoDisciplinario
-            'generar_documento',
-            'enviar_citacion',
-            'emitir_sancion',
-            'confirmar_suspension',
         ],
 
         'page' => 'page',
         'widget' => 'widget',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Permisos Personalizados
+    |--------------------------------------------------------------------------
+    | Estos permisos se crean manualmente para acciones específicas
+    | y NO se aplican a todos los recursos.
+    */
+    'custom_permissions' => [
+        // Trabajador
+        'desactivar_trabajador',
+        'activar_trabajador',
+        // Proceso Disciplinario
+        'generar_documento_proceso_disciplinario',
+        'enviar_citacion_proceso_disciplinario',
+        'emitir_sancion_proceso_disciplinario',
+        'confirmar_suspension_proceso_disciplinario',
     ],
 
     'entities' => [
