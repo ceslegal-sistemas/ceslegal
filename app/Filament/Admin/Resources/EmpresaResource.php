@@ -12,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class EmpresaResource extends Resource
 {
@@ -144,7 +145,7 @@ class EmpresaResource extends Resource
                                 'Vichada' => 'Vichada',
                             ])
                             ->live()
-                            ->afterStateUpdated(fn (Set $set) => $set('ciudad', null))
+                            ->afterStateUpdated(fn(Set $set) => $set('ciudad', null))
                             ->helperText('Seleccione el departamento'),
 
                         Forms\Components\Select::make('ciudad')
@@ -155,7 +156,7 @@ class EmpresaResource extends Resource
                                 $departamento = $get('departamento');
                                 return self::getCiudadesPorDepartamento($departamento);
                             })
-                            ->disabled(fn (Get $get) => empty($get('departamento')))
+                            ->disabled(fn(Get $get) => empty($get('departamento')))
                             ->helperText('Seleccione primero el departamento')
                             ->placeholder('Seleccione una ciudad...'),
                     ])->columns(2),
@@ -185,7 +186,7 @@ class EmpresaResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-o-map-pin')
-                    ->description(fn (Empresa $record): string => $record->departamento),
+                    ->description(fn(Empresa $record): string => $record->departamento),
 
                 Tables\Columns\TextColumn::make('telefono')
                     ->label('Teléfono')
@@ -246,7 +247,8 @@ class EmpresaResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->label('Ver'),
                 Tables\Actions\EditAction::make()
-                    ->label('Editar'),
+                    ->label('Editar')
+                    ->visible(fn(Empresa $record): bool => !auth()->user()->hasRole('cliente') || auth()->user()->empresa_id === $record->id),
                 Tables\Actions\DeleteAction::make()
                     ->label('Eliminar')
                     ->before(function (Tables\Actions\DeleteAction $action, \App\Models\Empresa $record) {
@@ -334,6 +336,14 @@ class EmpresaResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
+        $user = auth()->user();
+
+        if ($user->hasRole('cliente')) {
+            return static::getModel()::where('active', true)
+                ->where('id', $user->empresa_id)
+                ->count();
+        }
+
         return static::getModel()::where('active', true)->count();
     }
 

@@ -23,6 +23,7 @@ class ListProcesoDisciplinarios extends ListRecords
                     'onclick' => 'window.iniciarTour(); return false;',
                 ]),
             Actions\CreateAction::make()
+                ->icon('heroicon-o-plus-circle')
                 ->extraAttributes([
                     'data-tour' => 'create-button',
                 ]),

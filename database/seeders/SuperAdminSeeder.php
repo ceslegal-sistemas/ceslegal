@@ -16,7 +16,7 @@ class SuperAdminSeeder extends Seeder
             [
                 'name' => 'Administrador',
                 'password' => Hash::make('admin12345'),
-                'role' => 'admin',
+                'role' => 'super_admin',
                 'active' => true,
                 'email_verified_at' => now(),
             ]
@@ -27,7 +27,7 @@ class SuperAdminSeeder extends Seeder
             $admin->assignRole('super_admin');
         }
 
-        $this->command->info('✅ Usuario Super Admin creado:');
+        $this->command->info('Usuario Super Admin creado:');
         $this->command->table(
             ['Campo', 'Valor'],
             [

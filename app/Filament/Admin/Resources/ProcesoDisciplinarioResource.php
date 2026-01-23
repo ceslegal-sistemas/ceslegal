@@ -52,7 +52,7 @@ class ProcesoDisciplinarioResource extends Resource
                 ->url(static::getUrl('create'))
                 // ->color('success')
                 ->sort(0),
-                // ->badge(fn() => 'Nuevo', 'success'),
+            // ->badge(fn() => 'Nuevo', 'success'),
 
             NavigationItem::make('Historial de Descargos')
                 ->icon(static::getNavigationIcon())
@@ -840,7 +840,8 @@ class ProcesoDisciplinarioResource extends Resource
                     ->label('Empresa')
                     ->searchable()
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable()
+                    ->visible(fn() => Auth::user()->hasRole(['super_admin', 'abogado'])),
 
                 Tables\Columns\TextColumn::make('trabajador.nombre_completo')
                     ->label('Trabajador')
@@ -907,6 +908,118 @@ class ProcesoDisciplinarioResource extends Resource
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable(),
+
+                // Columna de acuse de recibido (email tracking)
+                Tables\Columns\TextColumn::make('email_tracking_citacion')
+                    ->label('Acuse Citación')
+                    ->getStateUsing(function (ProcesoDisciplinario $record) {
+                        $tracking = $record->emailTrackings()
+                            ->where('tipo_correo', 'citacion')
+                            ->latest('enviado_en')
+                            ->first();
+
+                        if (!$tracking) {
+                            return 'No enviado';
+                        }
+
+                        if (!$tracking->fueAbierto()) {
+                            return 'Pendiente';
+                        }
+
+                        return 'Leído (' . $tracking->veces_abierto . ')';
+                    })
+                    ->badge()
+                    ->color(function (ProcesoDisciplinario $record) {
+                        $tracking = $record->emailTrackings()
+                            ->where('tipo_correo', 'citacion')
+                            ->latest('enviado_en')
+                            ->first();
+
+                        if (!$tracking) {
+                            return 'gray';
+                        }
+
+                        return $tracking->fueAbierto() ? 'success' : 'warning';
+                    })
+                    ->tooltip(function (ProcesoDisciplinario $record) {
+                        $tracking = $record->emailTrackings()
+                            ->where('tipo_correo', 'citacion')
+                            ->latest('enviado_en')
+                            ->first();
+
+                        if (!$tracking) {
+                            return 'No se ha enviado la citación por correo';
+                        }
+
+                        $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
+
+                        if ($tracking->fueAbierto()) {
+                            $info .= "\nLeído: " . $tracking->abierto_en->format('d/m/Y H:i');
+                            $info .= "\nVeces abierto: " . $tracking->veces_abierto;
+                            if ($tracking->ip_apertura) {
+                                $info .= "\nIP: " . $tracking->ip_apertura;
+                            }
+                        }
+
+                        return $info;
+                    })
+                    ->toggleable(),
+
+                // Columna de acuse de sanción
+                Tables\Columns\TextColumn::make('email_tracking_sancion')
+                    ->label('Acuse Sanción')
+                    ->getStateUsing(function (ProcesoDisciplinario $record) {
+                        $tracking = $record->emailTrackings()
+                            ->where('tipo_correo', 'sancion')
+                            ->latest('enviado_en')
+                            ->first();
+
+                        if (!$tracking) {
+                            return 'No enviado';
+                        }
+
+                        if (!$tracking->fueAbierto()) {
+                            return 'Pendiente';
+                        }
+
+                        return 'Leído (' . $tracking->veces_abierto . ')';
+                    })
+                    ->badge()
+                    ->color(function (ProcesoDisciplinario $record) {
+                        $tracking = $record->emailTrackings()
+                            ->where('tipo_correo', 'sancion')
+                            ->latest('enviado_en')
+                            ->first();
+
+                        if (!$tracking) {
+                            return 'gray';
+                        }
+
+                        return $tracking->fueAbierto() ? 'success' : 'warning';
+                    })
+                    ->tooltip(function (ProcesoDisciplinario $record) {
+                        $tracking = $record->emailTrackings()
+                            ->where('tipo_correo', 'sancion')
+                            ->latest('enviado_en')
+                            ->first();
+
+                        if (!$tracking) {
+                            return 'No se ha enviado la sanción por correo';
+                        }
+
+                        $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
+
+                        if ($tracking->fueAbierto()) {
+                            $info .= "\nLeído: " . $tracking->abierto_en->format('d/m/Y H:i');
+                            $info .= "\nVeces abierto: " . $tracking->veces_abierto;
+                            if ($tracking->ip_apertura) {
+                                $info .= "\nIP: " . $tracking->ip_apertura;
+                            }
+                        }
+
+                        return $info;
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 // Tables\Columns\TextColumn::make('modalidad_descargos')
                 //     ->label('Modalidad Descargos')

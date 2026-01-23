@@ -10,6 +10,54 @@ use Illuminate\Support\Facades\Log;
 class EmailTrackingController extends Controller
 {
     /**
+     * User agents conocidos de bots/proxies de email que precargan imágenes
+     * Estos NO deben contarse como aperturas reales
+     */
+    private const BOT_USER_AGENTS = [
+        'GoogleImageProxy',
+        'Google-Read-Aloud',
+        'YahooMailProxy',
+        'Outlook-iOS-Android',
+        'Microsoft Office',
+        'ms-office',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', // Bot genérico
+        'facebookexternalhit',
+        'Twitterbot',
+        'LinkedInBot',
+        'Slackbot',
+        'WhatsApp',
+        'TelegramBot',
+        'bot',
+        'crawler',
+        'spider',
+        'curl',
+        'wget',
+        'python-requests',
+        'Java/',
+        'Apache-HttpClient',
+    ];
+
+    /**
+     * Verificar si el user agent es un bot conocido
+     */
+    private function esBot(?string $userAgent): bool
+    {
+        if (empty($userAgent)) {
+            return true; // Sin user agent = probablemente bot
+        }
+
+        $userAgentLower = strtolower($userAgent);
+
+        foreach (self::BOT_USER_AGENTS as $botPattern) {
+            if (str_contains($userAgentLower, strtolower($botPattern))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Pixel de tracking - Se llama cuando el correo es abierto
      * La imagen se carga automáticamente al abrir el correo
      */
@@ -17,22 +65,33 @@ class EmailTrackingController extends Controller
     {
         try {
             $tracking = EmailTracking::where('token', $token)->first();
+            $userAgent = $request->userAgent();
+            $ip = $request->ip();
 
             if ($tracking) {
-                $tracking->registrarApertura(
-                    $request->ip(),
-                    $request->userAgent()
-                );
+                // Verificar si es un bot/proxy que precarga imágenes
+                $esBot = $this->esBot($userAgent);
 
-                Log::info('Email abierto por trabajador', [
-                    'token' => substr($token, 0, 10) . '...',
-                    'tipo_correo' => $tracking->tipo_correo,
-                    'proceso_id' => $tracking->proceso_id,
-                    'trabajador_email' => $tracking->email_destinatario,
-                    'veces_abierto' => $tracking->veces_abierto,
-                    'primera_apertura' => $tracking->veces_abierto === 1,
-                    'ip' => $request->ip(),
-                ]);
+                if ($esBot) {
+                    Log::info('Email tracking ignorado (bot/proxy detectado)', [
+                        'token' => substr($token, 0, 10) . '...',
+                        'user_agent' => $userAgent,
+                        'ip' => $ip,
+                    ]);
+                } else {
+                    // Es una apertura real del usuario
+                    $tracking->registrarApertura($ip, $userAgent);
+
+                    Log::info('Email abierto por trabajador', [
+                        'token' => substr($token, 0, 10) . '...',
+                        'tipo_correo' => $tracking->tipo_correo,
+                        'proceso_id' => $tracking->proceso_id,
+                        'trabajador_email' => $tracking->email_destinatario,
+                        'veces_abierto' => $tracking->veces_abierto,
+                        'primera_apertura' => $tracking->veces_abierto === 1,
+                        'ip' => $ip,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             // Silenciar errores para no afectar la experiencia del usuario

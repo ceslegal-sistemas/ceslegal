@@ -78,9 +78,9 @@ class DiligenciaDescargoResource extends Resource
                         Forms\Components\Select::make('lugar_diligencia')
                             ->label('Modalidad')
                             ->options([
-                                'presencial' => 'Presencial - El trabajador viene a la oficina',
+                                // 'presencial' => 'Presencial - El trabajador viene a la oficina',
                                 'virtual' => 'Virtual - El trabajador responde por internet desde su casa',
-                                'telefonico' => 'Telefónico - Se hará por llamada telefónica',
+                                // 'telefonico' => 'Telefónico - Se hará por llamada telefónica',
                             ])
                             ->native(false)
                             ->required()
