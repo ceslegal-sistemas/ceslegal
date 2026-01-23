@@ -53,15 +53,18 @@ class EmailTracking extends Model
     }
 
     /**
-     * Verificar si el correo fue abierto
+     * Verificar si el correo fue realmente abierto por el usuario
+     * La primera apertura se ignora (es la precarga automática del cliente de correo)
+     * Solo se considera leído a partir de la segunda apertura
      */
     public function fueAbierto(): bool
     {
-        return $this->abierto_en !== null;
+        return $this->veces_abierto >= 2;
     }
 
     /**
      * Registrar apertura del correo
+     * La fecha de apertura se registra en la segunda vez (ignorando la precarga)
      */
     public function registrarApertura(?string $ip = null, ?string $userAgent = null): void
     {
@@ -75,8 +78,8 @@ class EmailTracking extends Model
             $this->user_agent = $userAgent;
         }
 
-        // Solo registrar la primera apertura (en hora de Colombia)
-        if (!$this->abierto_en) {
+        // Registrar la fecha en la segunda apertura (la real, no la precarga)
+        if ($this->veces_abierto == 2) {
             $this->abierto_en = Carbon::now('America/Bogota');
         }
 
