@@ -1481,7 +1481,7 @@ class ProcesoDisciplinarioResource extends Resource
                         ->label('Editar')
                         ->icon('heroicon-o-pencil')
                         ->color('primary'),
-                    Tables\Actions\DeleteAction::make()
+                    Tables\Actions\ForceDeleteAction::make()
                         ->label('Eliminar')
                         ->icon('heroicon-o-trash')
                         ->color('danger'),
