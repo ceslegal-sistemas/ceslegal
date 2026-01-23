@@ -31,6 +31,23 @@ class TrabajadorResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    /**
+     * Permisos personalizados para Filament Shield
+     */
+    public static function getPermissionPrefixes(): array
+    {
+        return [
+            'view',
+            'view_any',
+            'create',
+            'update',
+            'delete',
+            'delete_any',
+            'desactivar',      // Acción personalizada: desactivar trabajador
+            'activar',         // Acción personalizada: activar trabajador
+        ];
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -487,7 +504,7 @@ class TrabajadorResource extends Resource
                     ->modalHeading('Desactivar Trabajador')
                     ->modalDescription(fn(Trabajador $record) => "¿Está seguro que desea desactivar al trabajador '{$record->nombre_completo}'? El trabajador no será eliminado, solo quedará marcado como inactivo.")
                     ->modalSubmitActionLabel('Sí, desactivar')
-                    ->visible(fn(Trabajador $record) => $record->active)
+                    ->visible(fn(Trabajador $record) => $record->active && auth()->user()->can('desactivar_trabajador'))
                     ->action(function (Trabajador $record) {
                         $record->update(['active' => false]);
                         \Filament\Notifications\Notification::make()
@@ -504,7 +521,7 @@ class TrabajadorResource extends Resource
                     ->modalHeading('Activar Trabajador')
                     ->modalDescription(fn(Trabajador $record) => "¿Está seguro que desea activar al trabajador '{$record->nombre_completo}'?")
                     ->modalSubmitActionLabel('Sí, activar')
-                    ->visible(fn(Trabajador $record) => !$record->active)
+                    ->visible(fn(Trabajador $record) => !$record->active && auth()->user()->can('activar_trabajador'))
                     ->action(function (Trabajador $record) {
                         $record->update(['active' => true]);
                         \Filament\Notifications\Notification::make()
@@ -524,6 +541,7 @@ class TrabajadorResource extends Resource
                         ->modalHeading('Desactivar Trabajadores')
                         ->modalDescription('¿Está seguro que desea desactivar los trabajadores seleccionados?')
                         ->modalSubmitActionLabel('Sí, desactivar')
+                        ->visible(fn() => auth()->user()->can('desactivar_trabajador'))
                         ->action(function (\Illuminate\Support\Collection $records) {
                             $desactivados = 0;
                             foreach ($records as $record) {
@@ -549,6 +567,7 @@ class TrabajadorResource extends Resource
                         ->modalHeading('Activar Trabajadores')
                         ->modalDescription('¿Está seguro que desea activar los trabajadores seleccionados?')
                         ->modalSubmitActionLabel('Sí, activar')
+                        ->visible(fn() => auth()->user()->can('activar_trabajador'))
                         ->action(function (\Illuminate\Support\Collection $records) {
                             $activados = 0;
                             foreach ($records as $record) {
