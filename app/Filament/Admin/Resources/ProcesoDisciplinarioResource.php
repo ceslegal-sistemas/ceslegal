@@ -952,7 +952,7 @@ class ProcesoDisciplinarioResource extends Resource
                         $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
 
                         if ($tracking->fueEntregado()) {
-                            $info .= "\nEntregado: Sí";
+                            $info .= "\nCorreo Entregado: Sí";
                         }
 
                         if ($tracking->fueAbierto()) {
@@ -1008,7 +1008,7 @@ class ProcesoDisciplinarioResource extends Resource
                         $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
 
                         if ($tracking->fueEntregado()) {
-                            $info .= "\nEntregado: Sí";
+                            $info .= "\nCorreo Entregado: Sí";
                         }
 
                         if ($tracking->fueAbierto()) {

@@ -479,57 +479,92 @@ class TrabajadorResource extends Resource
                     ->label('Ver'),
                 Tables\Actions\EditAction::make()
                     ->label('Editar'),
-                Tables\Actions\DeleteAction::make()
-                    ->label('Eliminar')
-                    ->before(function (Tables\Actions\DeleteAction $action, \App\Models\Trabajador $record) {
-                        // Verificar si tiene procesos disciplinarios
-                        if ($record->procesosDisciplinarios()->count() > 0) {
-                            \Filament\Notifications\Notification::make()
-                                ->danger()
-                                ->title('No se puede eliminar el trabajador')
-                                ->body("El trabajador '{$record->nombre_completo}' ({$record->tipo_documento}: {$record->numero_documento}) tiene {$record->procesosDisciplinarios()->count()} procesos disciplinarios asociados. Debe eliminar o reasignar esos procesos primero.")
-                                ->persistent()
-                                ->send();
-
-                            $action->cancel();
-                        }
+                Tables\Actions\Action::make('desactivar')
+                    ->label('Desactivar')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Desactivar Trabajador')
+                    ->modalDescription(fn(Trabajador $record) => "¿Está seguro que desea desactivar al trabajador '{$record->nombre_completo}'? El trabajador no será eliminado, solo quedará marcado como inactivo.")
+                    ->modalSubmitActionLabel('Sí, desactivar')
+                    ->visible(fn(Trabajador $record) => $record->active)
+                    ->action(function (Trabajador $record) {
+                        $record->update(['active' => false]);
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Trabajador desactivado')
+                            ->body("El trabajador '{$record->nombre_completo}' ha sido desactivado.")
+                            ->send();
+                    }),
+                Tables\Actions\Action::make('activar')
+                    ->label('Activar')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Activar Trabajador')
+                    ->modalDescription(fn(Trabajador $record) => "¿Está seguro que desea activar al trabajador '{$record->nombre_completo}'?")
+                    ->modalSubmitActionLabel('Sí, activar')
+                    ->visible(fn(Trabajador $record) => !$record->active)
+                    ->action(function (Trabajador $record) {
+                        $record->update(['active' => true]);
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Trabajador activado')
+                            ->body("El trabajador '{$record->nombre_completo}' ha sido activado.")
+                            ->send();
                     }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->label('Eliminar seleccionados')
-                        ->action(function (Tables\Actions\DeleteBulkAction $action, \Illuminate\Support\Collection $records) {
-                            $bloqueados = [];
-                            $eliminados = 0;
-
+                    Tables\Actions\BulkAction::make('desactivar_seleccionados')
+                        ->label('Desactivar seleccionados')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Desactivar Trabajadores')
+                        ->modalDescription('¿Está seguro que desea desactivar los trabajadores seleccionados?')
+                        ->modalSubmitActionLabel('Sí, desactivar')
+                        ->action(function (\Illuminate\Support\Collection $records) {
+                            $desactivados = 0;
                             foreach ($records as $record) {
-                                // Verificar si tiene procesos disciplinarios
-                                if ($record->procesosDisciplinarios()->count() > 0) {
-                                    $bloqueados[] = $record->nombre_completo;
-                                } else {
-                                    $record->delete();
-                                    $eliminados++;
+                                if ($record->active) {
+                                    $record->update(['active' => false]);
+                                    $desactivados++;
                                 }
                             }
 
-                            if (count($bloqueados) > 0) {
-                                \Filament\Notifications\Notification::make()
-                                    ->warning()
-                                    ->title('Algunos trabajadores no se pudieron eliminar')
-                                    ->body('Los siguientes trabajadores tienen procesos disciplinarios asociados: ' . implode(', ', $bloqueados))
-                                    ->persistent()
-                                    ->send();
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Trabajadores desactivados')
+                                ->body("{$desactivados} trabajador(es) desactivado(s) correctamente.")
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
+
+                    Tables\Actions\BulkAction::make('activar_seleccionados')
+                        ->label('Activar seleccionados')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Activar Trabajadores')
+                        ->modalDescription('¿Está seguro que desea activar los trabajadores seleccionados?')
+                        ->modalSubmitActionLabel('Sí, activar')
+                        ->action(function (\Illuminate\Support\Collection $records) {
+                            $activados = 0;
+                            foreach ($records as $record) {
+                                if (!$record->active) {
+                                    $record->update(['active' => true]);
+                                    $activados++;
+                                }
                             }
 
-                            if ($eliminados > 0) {
-                                \Filament\Notifications\Notification::make()
-                                    ->success()
-                                    ->title('Trabajadores eliminados')
-                                    ->body("{$eliminados} trabajador(es) eliminado(s) correctamente.")
-                                    ->send();
-                            }
-                        }),
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Trabajadores activados')
+                                ->body("{$activados} trabajador(es) activado(s) correctamente.")
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');

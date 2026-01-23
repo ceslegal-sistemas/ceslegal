@@ -82,7 +82,7 @@ class EmailTracking extends Model
         }
 
         if ($this->veces_abierto === 1) {
-            return 'Entregado';
+            return 'Correo Entregado';
         }
 
         // veces_abierto >= 2: restar 1 para no contar la precarga
