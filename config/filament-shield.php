@@ -52,29 +52,11 @@ return [
         'widget' => 'widget',
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Permisos Personalizados
-    |--------------------------------------------------------------------------
-    | Estos permisos se crean manualmente para acciones específicas
-    | y NO se aplican a todos los recursos.
-    */
-    'custom_permissions' => [
-        // Trabajador
-        'desactivar_trabajador',
-        'activar_trabajador',
-        // Proceso Disciplinario
-        'generar_documento_proceso_disciplinario',
-        'enviar_citacion_proceso_disciplinario',
-        'emitir_sancion_proceso_disciplinario',
-        'confirmar_suspension_proceso_disciplinario',
-    ],
-
     'entities' => [
         'pages' => true,
         'widgets' => true,
         'resources' => true,
-        'custom_permissions' => true,
+        'custom_permissions' => false,
     ],
 
     'generator' => [

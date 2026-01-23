@@ -42,27 +42,6 @@ class ProcesoDisciplinarioResource extends Resource
     protected static ?int $navigationSort = 1;
 
     /**
-     * Permisos personalizados para Filament Shield
-     */
-    public static function getPermissionPrefixes(): array
-    {
-        return [
-            'view',
-            'view_any',
-            'create',
-            'update',
-            'delete',
-            'delete_any',
-            'force_delete',
-            'force_delete_any',
-            'generar_documento',    // Acción: generar documento Word/PDF
-            'enviar_citacion',      // Acción: enviar citación por correo
-            'emitir_sancion',       // Acción: emitir/enviar sanción
-            'confirmar_suspension', // Acción: confirmar días de suspensión
-        ];
-    }
-
-    /**
      * Registrar los ítems de navegación personalizados
      */
     public static function getNavigationItems(): array
