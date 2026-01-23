@@ -20,21 +20,20 @@ class EmailTrackingController extends Controller
         'Outlook-iOS-Android',
         'Microsoft Office',
         'ms-office',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', // Bot genérico
         'facebookexternalhit',
         'Twitterbot',
         'LinkedInBot',
         'Slackbot',
-        'WhatsApp',
         'TelegramBot',
-        'bot',
         'crawler',
         'spider',
-        'curl',
-        'wget',
+        'curl/',
+        'wget/',
         'python-requests',
         'Java/',
         'Apache-HttpClient',
+        'libwww-perl',
+        'Go-http-client',
     ];
 
     /**

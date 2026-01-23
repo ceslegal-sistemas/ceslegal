@@ -203,6 +203,7 @@ class ProcesoDisciplinarioResource extends Resource
 
                                     Forms\Components\TextInput::make('email')
                                         ->label('Correo Electrónico')
+                                        ->helperText('Este correo se usará para notificar al trabajador sobre los descargos y sanciones')
                                         ->email()
                                         ->required()
                                         ->maxLength(255)
