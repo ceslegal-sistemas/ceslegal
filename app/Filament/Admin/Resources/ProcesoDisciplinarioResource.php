@@ -341,7 +341,7 @@ class ProcesoDisciplinarioResource extends Resource
                         Forms\Components\DatePicker::make('fecha_temp_descargos')
                             ->label('Seleccione la Fecha')
                             ->required()
-                            ->minDate(now()->addDays(5)->startOfDay())
+                            ->minDate(fn() => auth()->user()?->hasRole('super_admin') ? now()->startOfDay() : now()->addDays(5)->startOfDay())
                             ->native(false)
                             ->live()
                             ->dehydrated(false)
@@ -473,7 +473,7 @@ class ProcesoDisciplinarioResource extends Resource
                         Forms\Components\DatePicker::make('fecha_descargos_programada')
                             ->label('Fecha Programada de Descargos')
                             ->required()
-                            ->minDate(now()->addDays(5)->startOfDay())
+                            ->minDate(fn() => auth()->user()?->hasRole('super_admin') ? now()->startOfDay() : now()->addDays(5)->startOfDay())
                             ->native(false)
                             ->live()
                             ->visible(fn(Get $get) => $get('modalidad_descargos') === 'virtual')
@@ -1132,7 +1132,7 @@ class ProcesoDisciplinarioResource extends Resource
                 Tables\Actions\Action::make('enviar_citacion')
                     ->label(
                         fn(ProcesoDisciplinario $record) =>
-                        $record->estado === 'descargos_pendientes' ? 'Re-enviar Citación' : 'Enviar Sanción'
+                        $record->estado === 'descargos_pendientes' ? 'Re-enviar Citación' : 'Enviar Citación'
                     )
                     // ->label('Enviar Citación')
                     ->icon('heroicon-o-paper-airplane')
@@ -1155,20 +1155,11 @@ class ProcesoDisciplinarioResource extends Resource
                     ->modalCancelActionLabel('Cancelar')
                     ->modalWidth('md')
 
-
-
-                    // ->modalHeading('¿Generar y enviar citación?')
-                    // ->modalDescription(
-                    //     fn(ProcesoDisciplinario $record) =>
-                    //     "Se generará la citación a descargos y se enviará por correo electrónico a: " .
-                    //         ($record->trabajador->email ?? 'No tiene email registrado')
-                    // )
-                    // ->modalSubmitActionLabel('Sí, Generar y Enviar')
-                    // ->modalCancelActionLabel('Cancelar')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
                         !empty($record->trabajador->email) && !empty($record->fecha_descargos_programada)
                             && $record->estado === 'descargos_pendientes'
+                            && \Carbon\Carbon::parse($record->fecha_descargos_programada)->isFuture()
                     )
                     ->action(function (ProcesoDisciplinario $record) {
                         $service = new \App\Services\DocumentGeneratorService();
@@ -1249,10 +1240,6 @@ class ProcesoDisciplinarioResource extends Resource
                                             return $gravedad . $reincidencia;
                                         }),
 
-                                    // Forms\Components\Placeholder::make('justificacion')
-                                    //     ->label('Justificación')
-                                    //     ->content($analisis['justificacion'] ?? 'N/A'),
-
                                     Forms\Components\Placeholder::make('sancion_recomendada')
                                         ->label('Sanción Recomendada por la IA')
                                         ->content(function () use ($analisis) {
@@ -1263,15 +1250,6 @@ class ProcesoDisciplinarioResource extends Resource
                                                 default => $analisis['sancion_recomendada'],
                                             };
                                         }),
-
-                                    // Forms\Components\Placeholder::make('razonamiento_legal')
-                                    //     ->label('Razonamiento Legal')
-                                    //     ->content($analisis['razonamiento_legal'] ?? 'N/A'),
-
-                                    // Forms\Components\Placeholder::make('consideraciones')
-                                    //     ->label('Consideraciones Especiales')
-                                    //     ->content($analisis['consideraciones_especiales'] ?? 'N/A')
-                                    //     ->hidden(fn() => empty($analisis['consideraciones_especiales'])),
                                 ])
                                 ->description('Análisis automático basado en los hechos, artículos incumplidos y el historial del trabajador.')
                                 ->collapsible(),
@@ -1296,21 +1274,37 @@ class ProcesoDisciplinarioResource extends Resource
                         $record->estado === 'sancion_emitida' ? 'Re-generar Sanción' : 'Emitir Sanción'
                     )
                     ->modalDescription(
-                        fn(ProcesoDisciplinario $record) => ($record->estado === 'sancion_emitida'
-                            ? "NOTA: Este proceso ya tiene una sanción emitida. Se generará un nuevo documento reemplazando el anterior.\n\n"
-                            : ""
-                        ) .
-                            "Se generará automáticamente el documento de sanción con IA y se enviará al trabajador: " .
-                            ($record->trabajador->nombre_completo ?? '')
+                        function (ProcesoDisciplinario $record) {
+                            $mensaje = '';
+
+                            if ($record->estado === 'sancion_emitida') {
+                                $mensaje .= "NOTA: Este proceso ya tiene una sanción emitida. Se generará un nuevo documento reemplazando el anterior.\n\n";
+                            }
+
+                            // Detectar si el trabajador no respondió a los descargos
+                            if (in_array($record->estado, ['descargos_no_realizados', 'descargos_pendientes'])) {
+                                $diligencia = $record->diligenciaDescargo;
+                                $respondio = $diligencia && $diligencia->preguntas()->whereHas('respuesta')->count() > 0;
+
+                                if (!$respondio) {
+                                    $mensaje .= "AVISO: El trabajador NO respondió al formulario de descargos. El documento de sanción incluirá esta circunstancia, indicando que se le brindó la oportunidad de defensa pero no la ejerció.\n\n";
+                                }
+                            }
+
+                            $mensaje .= "Se generará automáticamente el documento de sanción con IA y se enviará al trabajador: " .
+                                ($record->trabajador->nombre_completo ?? '');
+
+                            return $mensaje;
+                        }
                     )
                     ->modalSubmitActionLabel('Continuar')
                     ->modalCancelActionLabel('Cancelar')
                     ->modalWidth('2xl')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
-                        in_array($record->estado, ['descargos_realizados', 'descargos_no_realizados', 'sancion_emitida']) &&
+                        in_array($record->estado, ['descargos_realizados', 'descargos_pendientes', 'descargos_no_realizados', 'sancion_emitida']) &&
                             !empty($record->trabajador->email) &&
-                            auth()->user()?->hasAnyRole(['super_admin', 'abogado', 'cliente'])
+                            \Carbon\Carbon::parse($record->fecha_descargos_programada)->isPast()
                     )
                     ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
                         // Si es suspensión, pedir días en un segundo modal
@@ -1344,7 +1338,6 @@ class ProcesoDisciplinarioResource extends Resource
 
                         // Si no es suspensión, proceder directamente
                         try {
-
                             $service = new \App\Services\DocumentGeneratorService();
                             $result = $service->generarYEnviarSancion($record, $data['tipo_sancion']);
 
@@ -1371,7 +1364,6 @@ class ProcesoDisciplinarioResource extends Resource
                             \Illuminate\Support\Facades\Log::error('Error al emitir sanción', [
                                 'proceso_id' => $record->id,
                                 'tipo_sancion' => $data['tipo_sancion'] ?? 'N/A',
-                                'dias_suspension' => $data['dias_suspension'] ?? 'N/A',
                                 'error' => $e->getMessage(),
                                 'trace' => $e->getTraceAsString(),
                             ]);

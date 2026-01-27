@@ -535,10 +535,22 @@ class DocumentGeneratorService
                 })
                 ->toArray();
 
+            // Detectar si el trabajador NO respondió al formulario de descargos
+            $totalPreguntas = count($preguntasRespuestas);
+            $preguntasRespondidas = collect($preguntasRespuestas)->filter(fn($pr) => $pr['respuesta'] !== 'Sin respuesta')->count();
+            $trabajadorNoRespondio = $preguntasRespondidas === 0;
+
             // Construir el contexto de descargos
             $contextoDescargos = '';
-            foreach ($preguntasRespuestas as $index => $pr) {
-                $contextoDescargos .= ($index + 1) . ". Pregunta: {$pr['pregunta']}\n   Respuesta del trabajador: {$pr['respuesta']}\n\n";
+            if ($trabajadorNoRespondio) {
+                $contextoDescargos = "EL TRABAJADOR NO RESPONDIÓ AL FORMULARIO DE DESCARGOS.\n";
+                $contextoDescargos .= "Se le envió la citación a descargos con fecha programada: {$proceso->fecha_descargos_programada}.\n";
+                $contextoDescargos .= "El trabajador no presentó sus descargos dentro del plazo establecido, por lo cual se procede a emitir la sanción sin su versión de los hechos.\n";
+                $contextoDescargos .= "Se garantizó el derecho a la defensa al enviar la citación y dar la oportunidad de responder.\n\n";
+            } else {
+                foreach ($preguntasRespuestas as $index => $pr) {
+                    $contextoDescargos .= ($index + 1) . ". Pregunta: {$pr['pregunta']}\n   Respuesta del trabajador: {$pr['respuesta']}\n\n";
+                }
             }
 
             // Configuración de la API de IA
@@ -554,7 +566,8 @@ class DocumentGeneratorService
                 $trabajador,
                 $empresa,
                 $tipoSancion,
-                $contextoDescargos
+                $contextoDescargos,
+                $trabajadorNoRespondio
             );
 
             // Log para debugging
@@ -750,7 +763,8 @@ HTML;
         $trabajador,
         $empresa,
         string $tipoSancion,
-        string $contextoDescargos
+        string $contextoDescargos,
+        bool $trabajadorNoRespondio = false
     ): string {
         $fechaActual = Carbon::now()->locale('es');
         // COMENTADO: Artículos legales - Ahora se usan Sanciones Laborales
@@ -775,6 +789,12 @@ HTML;
             $textoSuspension = "\n- Días de suspensión: {$diasSuspension} día" . ($diasSuspension > 1 ? 's' : '') . " (sin remuneración)";
         }
 
+        // Preparar texto sobre no respuesta del trabajador
+        $textoNoRespondio = '';
+        if ($trabajadorNoRespondio) {
+            $textoNoRespondio = "\n\nNOTA IMPORTANTE: El trabajador NO respondió al formulario de descargos. Se le envió la citación a descargos y se le dio la oportunidad de presentar su versión de los hechos, pero no ejerció su derecho de defensa dentro del plazo establecido. Esta circunstancia debe mencionarse explícitamente en la sección 3 del documento.";
+        }
+
         return <<<PROMPT
 Genera un documento oficial de {$nombreSancion} para un trabajador en Colombia usando formato profesional estilo Word.
 
@@ -793,7 +813,7 @@ SANCIONES DEL REGLAMENTO INTERNO INCUMPLIDAS:
 {$sancionesLaborales}
 
 DESCARGOS DEL TRABAJADOR:
-{$contextoDescargos}
+{$contextoDescargos}{$textoNoRespondio}
 
 INSTRUCCIONES DE REDACCIÓN (LENGUAJE CLARO):
 - Oraciones cortas (máximo 25 palabras)
@@ -841,7 +861,7 @@ Genera HTML con exactamente esta estructura:
   <p style="margin: 8px 0;">[Explica el impacto de los hechos y cómo afectan las obligaciones laborales. Usa lenguaje simple.]</p>
 
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">3. Sus descargos</h3>
-  <p style="margin: 8px 0;">[Resume los descargos del trabajador reconociendo su versión. Demuestra que fueron escuchados.]</p>
+  <p style="margin: 8px 0;">[Si el trabajador respondió: resume los descargos reconociendo su versión. Si NO respondió: indica claramente que se le envió la citación a descargos y se le brindó la oportunidad de presentar su versión de los hechos dentro del plazo legal establecido, pero el trabajador no ejerció su derecho de defensa al no responder al formulario de descargos. Aclara que, no obstante lo anterior, se garantizó plenamente su derecho al debido proceso y defensa.]</p>
 
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">4. Nuestra decisión</h3>
   <p style="margin: 8px 0;">Después de analizar cuidadosamente toda la información, hemos decidido aplicar un {$nombreSancion}. [Explica claramente las razones de esta decisión.]</p>

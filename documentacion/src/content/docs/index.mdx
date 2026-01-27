@@ -1,0 +1,83 @@
+---
+title: CES Legal - Documentación
+description: Sistema de Gestión de Procesos Disciplinarios Laborales para Colombia
+template: splash
+hero:
+  tagline: Plataforma integral para automatizar y gestionar procesos disciplinarios laborales con asistencia de Inteligencia Artificial
+  image:
+    file: ../../assets/houston.webp
+  actions:
+    - text: Comenzar
+      link: /inicio/introduccion/
+      icon: right-arrow
+    - text: Ver en GitHub
+      link: https://github.com/tu-organizacion/ces-legal
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Características Principales
+
+<CardGrid stagger>
+  <Card title="Gestión de Procesos" icon="document">
+    Administra todo el ciclo de vida de un proceso disciplinario: desde la apertura hasta el cierre, con estados automatizados y validaciones legales.
+  </Card>
+  <Card title="Inteligencia Artificial" icon="star">
+    Integración con Google Gemini para generación automática de preguntas de descargos y análisis de respuestas con recomendaciones de sanciones.
+  </Card>
+  <Card title="Generación de Documentos" icon="pencil">
+    Genera automáticamente citaciones, actas de descargos y documentos de sanción en formato PDF y Word con variables dinámicas.
+  </Card>
+  <Card title="Multi-tenant" icon="setting">
+    Aislamiento completo de datos por empresa. Cada cliente solo puede ver y gestionar sus propios trabajadores y procesos.
+  </Card>
+</CardGrid>
+
+## Stack Tecnológico
+
+<CardGrid>
+  <Card title="Backend" icon="laptop">
+    - Laravel 12
+    - PHP 8.2+
+    - MySQL 8.0
+  </Card>
+  <Card title="Frontend" icon="puzzle">
+    - Filament 3.2
+    - Livewire 3
+    - Tailwind CSS 4
+  </Card>
+  <Card title="Integraciones" icon="rocket">
+    - Google Gemini API
+    - dompdf / PHPWord
+    - Filament Shield
+  </Card>
+  <Card title="Infraestructura" icon="sun">
+    - Vite 7
+    - Laragon / LAMP
+    - Git
+  </Card>
+</CardGrid>
+
+## Estadísticas del Proyecto
+
+| Métrica | Valor |
+|---------|-------|
+| Modelos de datos | 22 |
+| Módulos CRUD | 8 |
+| Servicios de negocio | 9 |
+| Migraciones | 56 |
+| Líneas de código (servicios) | ~5,600 |
+
+## Flujo Principal
+
+```
+SOLICITUD → APERTURA → DESCARGOS → ANÁLISIS → SANCIÓN → NOTIFICADO → CERRADO
+```
+
+---
+
+<Card title="¿Necesitas ayuda?" icon="information">
+  Si tienes preguntas o necesitas soporte, consulta la sección de [Troubleshooting](/referencia/troubleshooting/) o contacta al equipo de desarrollo.
+</Card>
