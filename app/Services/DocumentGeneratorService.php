@@ -59,44 +59,43 @@ class DocumentGeneratorService
 
     public function generarCitacionDescargos(ProcesoDisciplinario $proceso): string
     {
-        // Ruta de la plantilla
-        $templatePath = base_path('FORMATO A CITACIÓN A DESCARGOS-GENERAL-19 DE DICIEMBRE DE 2025.docx');
+        // Generar el HTML del documento
+        $html = $this->generarHTMLCitacionDescargos($proceso);
 
-        if (!file_exists($templatePath)) {
-            throw new \Exception('No se encontró la plantilla de citación a descargos');
-        }
+        // Convertir HTML a PDF con Dompdf
+        $pdfPath = $this->convertirCitacionHTMLaPDF($html, $proceso->codigo);
 
-        // Crear el procesador de plantillas
-        $templateProcessor = new TemplateProcessor($templatePath);
+        return $pdfPath;
+    }
 
-        // Preparar los datos
+    /**
+     * Genera el HTML del documento de citación a descargos
+     * Formato idéntico al DOCX original
+     */
+    private function generarHTMLCitacionDescargos(ProcesoDisciplinario $proceso): string
+    {
         $trabajador = $proceso->trabajador;
         $empresa = $proceso->empresa;
-
-        // Formatear fecha actual
         $fechaActual = Carbon::now()->locale('es');
 
-        // Formatear fecha de descargos (campo DATE)
+        // Formatear fecha de descargos
         $fechaDescargos = $proceso->fecha_descargos_programada
             ? Carbon::parse($proceso->fecha_descargos_programada)->locale('es')
             : null;
 
-        // Formatear hora de descargos (campo TIME)
+        // Formatear hora de descargos
         $horaDescargos = null;
         if ($proceso->hora_descargos_programada) {
             try {
-                // El campo es TIME (H:i:s), convertirlo a formato legible
                 $horaDescargos = Carbon::createFromFormat('H:i:s', $proceso->hora_descargos_programada)
                     ->locale('es')
                     ->format('h:i A');
             } catch (\Exception $e) {
-                // Si falla, intentar parsearlo como string normal
                 try {
                     $horaDescargos = Carbon::parse($proceso->hora_descargos_programada)
                         ->locale('es')
                         ->format('h:i A');
                 } catch (\Exception $e2) {
-                    // Si todo falla, usar el valor tal cual
                     $horaDescargos = $proceso->hora_descargos_programada;
                 }
             }
@@ -107,126 +106,210 @@ class DocumentGeneratorService
             ? Carbon::parse($proceso->fecha_ocurrencia)->locale('es')
             : null;
 
-        // Separar nombres y apellidos del trabajador
+        // Hechos del proceso
+        $hechosTexto = html_entity_decode(strip_tags($proceso->hechos ?? ''), ENT_QUOTES, 'UTF-8');
+        // Formatear variables igual que en el DOCX
+        $ciudad = !empty($empresa->ciudad) ? $empresa->ciudad . ', ' : '';
+        $departamento = !empty($empresa->departamento) ? $empresa->departamento . '. ' : '';
+        $dia = $fechaActual->format('d');
+        $mes = $fechaActual->isoFormat('MMMM');
+        $anio = $fechaActual->year;
+
+        // Separar nombres y apellidos
         $nombreCompleto = $trabajador->nombre_completo ?? '';
-        $partes = explode(' ', $nombreCompleto, 3);
-        $nombres = isset($partes[0]) && isset($partes[1]) ? $partes[0] . ' ' . $partes[1] : ($partes[0] ?? '');
-        $apellidos = $partes[2] ?? '';
-
-        // COMENTADO: Artículos legales - Ahora se usan Sanciones Laborales
-        // $articulosLegalesTexto = $proceso->articulos_legales_texto ?? 'No especificado';
-        $sancionesLaboralesTexto = $proceso->sanciones_laborales_texto ?? 'No especificado';
-
-        // Preparar variables de ubicación según modalidad
-        $direccionTexto = '';
-        $ciudadTexto = '';
-        $departamentoTexto = '';
-
-        if ($proceso->modalidad_descargos === 'presencial') {
-            // Mostrar dirección completa solo para modalidad presencial
-            $direccionTexto = !empty($empresa->direccion) ? 'ubicada en la dirección ' . $empresa->direccion . ',' : '';
-            $ciudadTexto = !empty($empresa->ciudad) ? $empresa->ciudad . ', ' : '';
-            $departamentoTexto = !empty($empresa->departamento) ? $empresa->departamento : '';
+        $partes = explode(' ', $nombreCompleto);
+        // Asumimos: primeros 2 elementos son nombres, resto son apellidos
+        $nombres = '';
+        $apellidos = '';
+        if (count($partes) >= 4) {
+            $nombres = $partes[0] . ' ' . $partes[1];
+            $apellidos = implode(' ', array_slice($partes, 2));
+        } elseif (count($partes) >= 2) {
+            $nombres = $partes[0];
+            $apellidos = implode(' ', array_slice($partes, 1));
+        } else {
+            $nombres = $nombreCompleto;
         }
 
-        // Variables que la plantilla espera
-        $variables = [
-            // Variables de fecha actual
-            'DIA' => $fechaActual->format('d'),
-            'MES' => $fechaActual->isoFormat('MMMM'),
-            'AÑO' => $fechaActual->year,
-            'DIA_LETRA' => $fechaActual->isoFormat('dddd'),
+        $numeroDocumento = $trabajador->numero_documento ?? '';
+        $cargo = $trabajador->cargo ?? '';
 
-            // Variables de la empresa
-            'CIUDAD' => !empty($empresa->ciudad) ? $empresa->ciudad . '., ' : '',
-            'CIUDAD_EMPRESA' => $ciudadTexto,
-            'DEPARTAMENTO' => !empty($empresa->departamento) ? $empresa->departamento . '. ' : '',
-            'DEPARTAMENTO_EMPRESA' => $departamentoTexto,
-            'NIT' => $empresa->nit ?? '',
-            'DIRECCION_EMPRESA' => $direccionTexto,
-            'NOMBRE_EMPRESA' => $empresa->razon_social ?? '',
+        // Fecha de descargos
+        $diaLetraDescargos = $fechaDescargos ? $fechaDescargos->isoFormat('dddd') : '';
+        $diaDescargos = $fechaDescargos ? $fechaDescargos->format('d') : '';
+        $mesDescargos = $fechaDescargos ? $fechaDescargos->isoFormat('MMMM') : '';
+        $anioDescargos = $fechaDescargos ? $fechaDescargos->year : '';
+        $horaDescargosTexto = $horaDescargos ?? '';
 
-            // Variables del trabajador
-            'NOMBRES' => $nombres,
-            'APELLIDOS' => $apellidos,
-            'NUMERO_DOCUMENTO' => $trabajador->numero_documento ?? '',
-            'CARGO' => $trabajador->cargo ?? '',
-            'CORREO' => $trabajador->email ?? '',
+        $modalidad = strtolower($proceso->modalidad_descargos ?? 'presencial');
 
-            // Variables de la citación a descargos
-            'DIA_DESCARGOS' => $fechaDescargos ? $fechaDescargos->format('d') : '',
-            'MES_DESCARGOS' => $fechaDescargos ? $fechaDescargos->isoFormat('MMMM') : '',
-            'AÑO_DESCARGOS' => $fechaDescargos ? $fechaDescargos->year : '',
-            'DIA_LETRA_DESCARGOS' => $fechaDescargos ? $fechaDescargos->isoFormat('dddd') : '',
-            'HORA_DESCARGOS' => $horaDescargos ?? '',
-            'MODALIDAD_DESCARGOS' => ucfirst($proceso->modalidad_descargos ?? 'presencial'),
-
-            // Variables de la ocurrencia de los hechos
-            'DIA_OCURRENCIA' => $fechaOcurrencia ? $fechaOcurrencia->format('d') : '',
-            'MES_OCURRENCIA' => $fechaOcurrencia ? $fechaOcurrencia->isoFormat('MMMM') : '',
-            'AÑO_OCURRENCIA' => $fechaOcurrencia ? $fechaOcurrencia->year : '',
-            'DIA_LETRA_OCURRENCIA' => $fechaOcurrencia ? $fechaOcurrencia->isoFormat('dddd') : '',
-            'HORA_OCURRENCIA' => $fechaOcurrencia ? $fechaOcurrencia->format('H:i A') : '',
-
-            // Razón del descargo (hechos)
-            // 'RAZON_DESCARGO' => strip_tags($proceso->hechos ?? ''),
-            'RAZON_DESCARGO' => html_entity_decode(strip_tags($proceso->hechos ?? ''), ENT_QUOTES, 'UTF-8'),
-
-
-
-            // COMENTADO: Artículos legales - Ahora se usan Sanciones Laborales
-            // 'ARTICULOS_LEGALES' => $articulosLegalesTexto,
-            'SANCIONES_LABORALES' => $sancionesLaboralesTexto,
-
-            // Variables adicionales (compatibilidad con plantillas antiguas)
-            'CODIGO_PROCESO' => $proceso->codigo ?? 'N/A',
-            'EMPRESA_NOMBRE' => $empresa->razon_social ?? '',
-            'EMPRESA_NIT' => $empresa->nit ?? '',
-            'NOMBRE_EMPLEADOR' => $empresa->representante_legal ?? 'Representante Legal',
-            'TRABAJADOR_NOMBRE' => $trabajador->nombre_completo ?? '',
-            'TRABAJADOR_DOCUMENTO' => ($trabajador->tipo_documento ?? '') . ' ' . ($trabajador->numero_documento ?? ''),
-            'TRABAJADOR_CARGO' => $trabajador->cargo ?? '',
-            'TRABAJADOR_AREA' => $trabajador->area ?? '',
-            'TRABAJADOR_EMAIL' => $trabajador->email ?? '',
-            'FECHA_DESCARGOS' => ($fechaDescargos && $horaDescargos)
-                ? $fechaDescargos->isoFormat('dddd, D [de] MMMM [de] YYYY') . ' a las ' . $horaDescargos
-                : ($fechaDescargos ? $fechaDescargos->isoFormat('dddd, D [de] MMMM [de] YYYY') : ''),
-            'MODALIDAD_DESCARGOS' => ucfirst($proceso->modalidad_descargos ?? 'presencial'),
-            'HECHOS' => strip_tags($proceso->hechos ?? ''),
-            'ANTECEDENTES' => strip_tags($proceso->antecedentes ?? ''),
-            'NORMAS_INCUMPLIDAS' => strip_tags($proceso->normas_incumplidas ?? ''),
-            'IDENTIFICACION_PERJUICIO' => strip_tags($proceso->identificacion_perjuicio ?? ''),
-        ];
-
-        // Reemplazar las variables en la plantilla
-        foreach ($variables as $variable => $valor) {
-            try {
-                $templateProcessor->setValue($variable, $valor);
-            } catch (\Exception $e) {
-                // Si la variable no existe en la plantilla, continuar
-                continue;
-            }
+        // Dirección según modalidad
+        $direccionEmpresa = '';
+        $ciudadEmpresa = '';
+        $departamentoEmpresa = '';
+        if ($modalidad === 'presencial') {
+            $direccionEmpresa = !empty($empresa->direccion) ? 'ubicada en la dirección ' . $empresa->direccion . ', ' : '';
+            $ciudadEmpresa = !empty($empresa->ciudad) ? $empresa->ciudad . ', ' : '';
+            $departamentoEmpresa = !empty($empresa->departamento) ? $empresa->departamento : '';
         }
 
-        // Guardar el documento procesado temporalmente
-        $tempDocxPath = storage_path('app/temp/citacion_' . $proceso->codigo . '_' . time() . '.docx');
+        // Fecha de ocurrencia
+        $diaLetraOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->isoFormat('dddd') : '';
+        $diaOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->format('d') : '';
+        $mesOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->isoFormat('MMMM') : '';
+        $anioOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->year : '';
 
-        // Crear directorio si no existe
-        if (!file_exists(storage_path('app/temp'))) {
-            mkdir(storage_path('app/temp'), 0755, true);
+        $nombreEmpresa = $empresa->razon_social ?? '';
+        $nombreEmpleador = $empresa->representante_legal ?? 'Representante Legal';
+        $nit = $empresa->nit ?? '';
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citación a Diligencia de Descargos</title>
+    <style>
+        @page {
+            margin: 2.5cm 2.5cm 2.5cm 2.5cm;
+        }
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: #000000;
+            text-align: justify;
+        }
+        .fecha-lugar {
+            text-align: right;
+            margin-bottom: 30px;
+        }
+        .destinatario {
+            margin-bottom: 20px;
+        }
+        .destinatario p {
+            margin: 0;
+            line-height: 1.4;
+        }
+        .referencia {
+            margin-bottom: 20px;
+        }
+        .referencia p {
+            margin: 0;
+        }
+        .contenido {
+            margin-bottom: 20px;
+        }
+        .contenido p {
+            margin: 0 0 15px 0;
+            text-align: justify;
+        }
+        .firma {
+            margin-top: 50px;
+        }
+        .firma p {
+            margin: 0;
+        }
+        .linea-firma {
+            margin-top: 60px;
+            border-top: 1px solid #000000;
+            width: 250px;
+            padding-top: 5px;
+        }
+        strong, b {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="fecha-lugar">
+        <p>{$ciudad}{$departamento}{$dia} de {$mes} de {$anio}.</p>
+    </div>
+
+    <div class="destinatario">
+        <p><strong>Señor(a):</strong></p>
+        <p><strong>{$nombres} {$apellidos}.</strong></p>
+        <p>C.C. No. {$numeroDocumento}.</p>
+        <p>Cargo: {$cargo}.</p>
+    </div>
+
+    <div class="referencia">
+        <p><strong>Referencia:</strong> Citación a diligencia de descargos al empleado {$nombres} {$apellidos}.</p>
+    </div>
+
+    <div class="contenido">
+        <p>Respetado(a) {$nombres} {$apellidos},</p>
+
+        <p>Por medio de la presente comunicación en calidad de la empresa <strong>{$nombreEmpresa}</strong>, le informamos que, de conformidad con lo establecido en el Reglamento de Trabajo, Usted ha sido citado a una diligencia de descargos para el día <strong>{$diaLetraDescargos} ({$diaDescargos}) de {$mesDescargos} de {$anioDescargos}</strong> a las <strong>{$horaDescargosTexto}</strong> de forma <strong>{$modalidad}</strong>, {$direccionEmpresa}{$ciudadEmpresa}{$departamentoEmpresa} a la hora señalada.</p>
+
+        <p>Las razones por las cuales es citado a diligencia de descargos, se dan por el hecho de que usted presuntamente el día {$diaLetraOcurrencia} ({$diaOcurrencia}) de {$mesOcurrencia} de {$anioOcurrencia}, razón de los descargos:</p>
+
+        <p>{$hechosTexto}</p>
+
+        <p>De esta manera incumpliendo con sus obligaciones contractuales, reglamentarias y legales, como también los procedimientos y protocolos de la compañía.</p>
+
+        <p>Así las cosas, los anteriores hechos implican una posible violación a sus obligaciones contractuales, reglamentarias y legales, que pueden ser constitutivos de una falta disciplinaria.</p>
+    </div>
+
+    <div class="firma">
+        <p>Atentamente,</p>
+        <div class="linea-firma">
+            <p><strong>{$nombreEmpleador}.</strong></p>
+            <p>NIT. {$nit}.</p>
+        </div>
+    </div>
+</body>
+</html>
+HTML;
+    }
+
+    /**
+     * Convierte el HTML de citación a PDF usando Dompdf
+     */
+    private function convertirCitacionHTMLaPDF(string $html, string $codigo): string
+    {
+        $outputDir = storage_path('app/citaciones');
+
+        if (!is_dir($outputDir)) {
+            mkdir($outputDir, 0755, true);
         }
 
-        $templateProcessor->saveAs($tempDocxPath);
+        $timestamp = time();
+        $pdfPath = $outputDir . DIRECTORY_SEPARATOR . 'citacion_' . $codigo . '_' . $timestamp . '.pdf';
 
-        // Convertir DOCX a PDF usando LibreOffice (si está disponible) o generar HTML
-        $pdfPath = $this->convertirDocxAPdf($tempDocxPath, $proceso->codigo);
+        try {
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'Arial');
+            $options->set('isFontSubsettingEnabled', true);
 
-        // Eliminar el archivo temporal DOCX
-        if (file_exists($tempDocxPath)) {
-            unlink($tempDocxPath);
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('letter', 'portrait');
+            $dompdf->render();
+
+            file_put_contents($pdfPath, $dompdf->output());
+
+            Log::info('PDF de citación generado exitosamente', [
+                'path' => $pdfPath,
+                'codigo' => $codigo
+            ]);
+
+            return $pdfPath;
+        } catch (\Exception $e) {
+            Log::error('Error al generar PDF de citación', [
+                'error' => $e->getMessage(),
+                'codigo' => $codigo
+            ]);
+
+            // Guardar como HTML si falla el PDF
+            $htmlPath = $outputDir . DIRECTORY_SEPARATOR . 'citacion_' . $codigo . '_' . $timestamp . '.html';
+            file_put_contents($htmlPath, $html);
+
+            return $htmlPath;
         }
-
-        return $pdfPath;
     }
 
     /**
@@ -476,7 +559,7 @@ class DocumentGeneratorService
                 'formato' => $extension,
                 'generado_por' => auth()->id() ?? 1,
                 'version' => 1,
-                'plantilla_usada' => 'FORMATO A CITACIÓN A DESCARGOS-GENERAL-19 DE DICIEMBRE DE 2025.docx',
+                'plantilla_usada' => 'Generación directa PDF con Dompdf',
                 'variables_usadas' => null,
                 'fecha_generacion' => now(),
             ]);
