@@ -102,7 +102,7 @@ php artisan key:generate
 
 Edita `.env` con configuración de producción:
 
-```env
+```ini
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://tu-dominio.com
@@ -238,7 +238,7 @@ sudo crontab -e -u www-data
 
 Agregar:
 
-```cron
+```bash
 * * * * * cd /var/www/ces-legal && php artisan schedule:run >> /dev/null 2>&1
 ```
 

@@ -9,7 +9,7 @@ El archivo `.env` contiene todas las configuraciones del sistema. A continuació
 
 ### Configuración de Aplicación
 
-```env
+```ini
 APP_NAME="CES LEGAL"
 APP_ENV=local
 APP_KEY=base64:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -29,7 +29,7 @@ APP_LOCALE=es
 
 ### Configuración de Base de Datos
 
-```env
+```ini
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -46,7 +46,7 @@ En producción, usa un usuario de base de datos con permisos limitados, no `root
 
 ### Configuración de Correo (Gmail SMTP)
 
-```env
+```ini
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
@@ -67,7 +67,7 @@ Para usar Gmail SMTP, necesitas crear una "Contraseña de aplicación":
 
 ### Configuración de Google Gemini (IA)
 
-```env
+```ini
 GEMINI_API_KEY=tu_api_key_de_gemini
 GEMINI_MODEL=gemini-2.5-flash
 ```
@@ -80,7 +80,7 @@ Para obtener una API Key de Gemini:
 
 ### Configuración de Sesión
 
-```env
+```ini
 SESSION_DRIVER=database
 SESSION_LIFETIME=120
 SESSION_ENCRYPT=false
@@ -94,14 +94,14 @@ SESSION_ENCRYPT=false
 
 ### Configuración de Caché
 
-```env
+```ini
 CACHE_STORE=database
 CACHE_PREFIX=ces_legal
 ```
 
 ### Configuración de Colas (Queues)
 
-```env
+```ini
 QUEUE_CONNECTION=database
 ```
 
@@ -115,7 +115,7 @@ O usa Supervisor para mantenerlo activo.
 
 ### Configuración de Logs
 
-```env
+```ini
 LOG_CHANNEL=stack
 LOG_STACK=single
 LOG_DEPRECATIONS_CHANNEL=null
@@ -126,7 +126,7 @@ En producción, cambia `LOG_LEVEL` a `error` o `warning`.
 
 ### Configuración de Filament
 
-```env
+```ini
 FILAMENT_FILESYSTEM_DISK=public
 ```
 
@@ -182,7 +182,7 @@ php artisan db:seed --class=DiaNoHabilSeeder
 
 ## Archivo de Configuración Completo
 
-```env
+```ini
 # Aplicación
 APP_NAME="CES LEGAL"
 APP_ENV=production

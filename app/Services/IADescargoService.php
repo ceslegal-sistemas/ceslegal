@@ -183,15 +183,20 @@ RESPUESTA DEL TRABAJADOR:
 {$respuesta->respuesta}
 
 INSTRUCCIONES:
-Analiza las respuestas del trabajador teniendo en cuenta los hechos que indique en contraste con la conducta realizada que trasgrede las normas internas de la empresa y la ley aplicable en materia laboral.
+Analiza TODAS las respuestas del trabajador (no solo la última) teniendo en cuenta los hechos que indique en contraste con la conducta realizada que trasgrede las normas internas de la empresa y la ley aplicable en materia laboral.
+
+REGLAS CRÍTICAS:
+•⁠  ⁠NUNCA repitas una pregunta que ya se haya hecho anteriormente (revisa la lista de preguntas realizadas arriba).
 •⁠  ⁠Genera nuevas preguntas si y solo si, existen inexactitudes, incongruencias, evasivas y/o contradicciones en los argumentos del trabajador.
 •⁠  ⁠Máximo 1 pregunta.
 •⁠  ⁠Las preguntas deben ser:
   * MUY IMPORTANTES: Usa lenguaje SENCILLO y CLARO que cualquier trabajador pueda entender fácilmente. Evita términos jurídicos complejos.
+  * DIFERENTES a todas las preguntas anteriores (no reformules la misma pregunta con otras palabras).
   * Breves y directas.
-  * Neutrales y no sugestivas
+  * Neutrales y no sugestivas.
   * Relevantes para el proceso disciplinario.
   * Dirigidas a esclarecer el hecho que dio origen a la diligencia de descargos con una tendencia de juzgamiento a favor del empleador y en contra del trabajador.
+- Si la pregunta que ibas a generar ya fue hecha o es muy similar a una anterior, responde: NO_REQUIERE
 - Si no se requieren más preguntas, responde exactamente: NO_REQUIERE
 
 EJEMPLOS DE LENGUAJE CLARO:
@@ -396,27 +401,61 @@ PROMPT;
     }
 
     /**
-     * Guarda las nuevas preguntas generadas por la IA
+     * Guarda las nuevas preguntas generadas por la IA ANTES de las preguntas de cierre
      */
     protected function guardarNuevasPreguntas(
         DiligenciaDescargo $diligencia,
         array $preguntas,
         int $preguntaPadreId
     ): array {
-        $ultimoOrden = $diligencia->preguntas()->max('orden') ?? 0;
         $preguntasGuardadas = [];
 
-        foreach ($preguntas as $index => $preguntaTexto) {
-            $pregunta = PreguntaDescargo::create([
-                'diligencia_descargo_id' => $diligencia->id,
-                'pregunta' => $preguntaTexto,
-                'orden' => $ultimoOrden + $index + 1,
-                'es_generada_por_ia' => true,
-                'pregunta_padre_id' => $preguntaPadreId,
-                'estado' => 'activa',
-            ]);
+        // Obtener las preguntas de cierre (las últimas 3 preguntas estándar)
+        $preguntasCierre = $diligencia->preguntas()
+            ->whereIn('pregunta', self::PREGUNTAS_CIERRE)
+            ->orderBy('orden')
+            ->get();
 
-            $preguntasGuardadas[] = $pregunta;
+        if ($preguntasCierre->isNotEmpty()) {
+            // Insertar ANTES de las preguntas de cierre
+            $ordenInsercion = $preguntasCierre->first()->orden;
+
+            // Incrementar el orden de las preguntas de cierre para hacer espacio
+            foreach ($preguntasCierre as $index => $preguntaCierre) {
+                $preguntaCierre->update([
+                    'orden' => $ordenInsercion + count($preguntas) + $index
+                ]);
+            }
+
+            // Insertar las nuevas preguntas en el espacio liberado
+            foreach ($preguntas as $index => $preguntaTexto) {
+                $pregunta = PreguntaDescargo::create([
+                    'diligencia_descargo_id' => $diligencia->id,
+                    'pregunta' => $preguntaTexto,
+                    'orden' => $ordenInsercion + $index,
+                    'es_generada_por_ia' => true,
+                    'pregunta_padre_id' => $preguntaPadreId,
+                    'estado' => 'activa',
+                ]);
+
+                $preguntasGuardadas[] = $pregunta;
+            }
+        } else {
+            // Si no hay preguntas de cierre, usar el orden máximo
+            $ultimoOrden = $diligencia->preguntas()->max('orden') ?? 0;
+
+            foreach ($preguntas as $index => $preguntaTexto) {
+                $pregunta = PreguntaDescargo::create([
+                    'diligencia_descargo_id' => $diligencia->id,
+                    'pregunta' => $preguntaTexto,
+                    'orden' => $ultimoOrden + $index + 1,
+                    'es_generada_por_ia' => true,
+                    'pregunta_padre_id' => $preguntaPadreId,
+                    'estado' => 'activa',
+                ]);
+
+                $preguntasGuardadas[] = $pregunta;
+            }
         }
 
         return $preguntasGuardadas;

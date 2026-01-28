@@ -19,7 +19,7 @@ La arquitectura de servicios es flexible: el sistema soporta multiples proveedor
 
 ### Variables de entorno
 
-```env
+```ini
 IA_PROVIDER=gemini
 GEMINI_API_KEY=tu_api_key_de_google
 GEMINI_MODEL=gemini-2.5-flash

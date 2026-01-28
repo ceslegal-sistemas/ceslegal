@@ -18,6 +18,30 @@ class ActaDescargosService
     public function __construct()
     {
         $this->phpWord = new PhpWord();
+        $this->libreOfficePath = $this->detectLibreOfficePath();
+    }
+
+    private function detectLibreOfficePath(): string
+    {
+        if (PHP_OS_FAMILY === 'Linux') {
+            foreach (['/usr/bin/soffice', '/usr/local/bin/soffice', '/snap/bin/soffice'] as $path) {
+                if (file_exists($path)) {
+                    return $path;
+                }
+            }
+            return 'soffice';
+        }
+
+        foreach ([
+            'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+            'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
+        ] as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        return 'C:\\Program Files\\LibreOffice\\program\\soffice.exe';
     }
 
     /**
@@ -483,7 +507,7 @@ class ActaDescargosService
         );
     }
 
-    private string $libreOfficePath = 'C:\\Program Files\\LibreOffice\\program\\soffice.exe';
+    private string $libreOfficePath;
 
 
     /**

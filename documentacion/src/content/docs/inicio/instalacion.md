@@ -79,7 +79,7 @@ php artisan key:generate
 
 Edita el archivo `.env` con tus credenciales:
 
-```env
+```ini
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306

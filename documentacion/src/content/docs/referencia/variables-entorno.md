@@ -18,7 +18,7 @@ El archivo `.env` en la raiz del proyecto controla toda la configuracion del sis
 | `APP_LOCALE` | Idioma por defecto de la aplicacion | Si | `en` | `es` |
 | `APP_FALLBACK_LOCALE` | Idioma de respaldo si no se encuentra una traduccion | No | `en` | `es` |
 
-```env
+```ini
 APP_NAME="CES LEGAL"
 APP_ENV=production
 APP_KEY=base64:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -47,7 +47,7 @@ APP_LOCALE=es
 | `DB_CHARSET` | Conjunto de caracteres de la base de datos | No | `utf8mb4` | `utf8mb4` |
 | `DB_COLLATION` | Regla de ordenamiento de la base de datos | No | `utf8mb4_unicode_ci` | `utf8mb4_unicode_ci` |
 
-```env
+```ini
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -77,7 +77,7 @@ En produccion, crea un usuario de base de datos dedicado con permisos limitados 
 | `MAIL_FROM_ADDRESS` | Direccion de remitente por defecto | Si | `hello@example.com` | `notificaciones@ceslegal.com` |
 | `MAIL_FROM_NAME` | Nombre de remitente por defecto | Si | `${APP_NAME}` | `"CES LEGAL"` |
 
-```env
+```ini
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
@@ -107,7 +107,7 @@ Si usas Gmail como servidor SMTP, debes generar una **contrasena de aplicacion**
 | `GEMINI_MODEL` | Modelo de Gemini a utilizar | No | `gemini-2.5-flash` | `gemini-2.5-flash` |
 | `GEMINI_MAX_TOKENS` | Limite maximo de tokens por solicitud | No | `8192` | `4096` |
 
-```env
+```ini
 IA_PROVIDER=gemini
 GEMINI_API_KEY=AIzaSyD_tu_clave_aqui
 GEMINI_MODEL=gemini-2.5-flash
@@ -137,7 +137,7 @@ Gemini tiene un nivel gratuito con limites de tasa. Para produccion con alto vol
 | `CACHE_PREFIX` | Prefijo para claves de cache | No | — | `ces_legal` |
 | `QUEUE_CONNECTION` | Driver de colas para trabajos en segundo plano | Si | `database` | `database` / `redis` / `sync` |
 
-```env
+```ini
 SESSION_DRIVER=database
 SESSION_LIFETIME=120
 SESSION_ENCRYPT=false
@@ -160,7 +160,7 @@ QUEUE_CONNECTION=database
 |----------|-------------|-----------|-------------------|---------|
 | `FILESYSTEM_DISK` | Disco de almacenamiento por defecto | No | `local` | `public` |
 
-```env
+```ini
 FILESYSTEM_DISK=public
 ```
 
@@ -175,7 +175,7 @@ El disco `public` almacena archivos accesibles desde la web (documentos generado
 | `FILAMENT_PATH` | Ruta base del panel de administracion | No | `admin` | `admin` |
 | `FILAMENT_FILESYSTEM_DISK` | Disco de almacenamiento para archivos subidos en Filament | No | `public` | `public` |
 
-```env
+```ini
 FILAMENT_PATH=admin
 FILAMENT_FILESYSTEM_DISK=public
 ```
@@ -191,7 +191,7 @@ FILAMENT_FILESYSTEM_DISK=public
 | `LOG_LEVEL` | Nivel minimo de log | No | `debug` | `error` |
 | `LOG_DEPRECATIONS_CHANNEL` | Canal para deprecaciones de PHP | No | `null` | `null` |
 
-```env
+```ini
 LOG_CHANNEL=stack
 LOG_STACK=single
 LOG_LEVEL=error
@@ -206,7 +206,7 @@ En produccion usa `LOG_LEVEL=error` o `LOG_LEVEL=warning` para evitar llenar los
 
 ## Archivo .env Completo de Ejemplo (Produccion)
 
-```env
+```ini
 # ── Aplicacion ──────────────────────────────────────────
 APP_NAME="CES LEGAL"
 APP_ENV=production

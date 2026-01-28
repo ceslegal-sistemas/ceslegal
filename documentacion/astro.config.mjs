@@ -4,13 +4,19 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
+	site: 'http://localhost:8000',
+	base: '/docs',
+	outDir: '../public/docs',
+	build: {
+		format: 'directory',
+	},
 	integrations: [
 		starlight({
-			title: 'CES Legal',
+			title: 'CES - LEGAL',
 			description: 'Sistema de Gestión de Procesos Disciplinarios Laborales',
-			defaultLocale: 'es',
+			defaultLocale: 'root',
 			locales: {
-				es: {
+				root: {
 					label: 'Español',
 					lang: 'es',
 				},
@@ -19,7 +25,7 @@ export default defineConfig({
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/juanparen15/ces-legal' },
 			],
 			logo: {
-				src: './src/assets/logo.svg',
+				src: './src/assets/logo.png',
 				replacesTitle: false,
 			},
 			customCss: [

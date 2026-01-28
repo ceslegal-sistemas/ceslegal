@@ -25,7 +25,37 @@ class DocumentGeneratorService
      * @return string Ruta del PDF generado
      */
 
-    private string $libreOfficePath = 'C:\\Program Files\\LibreOffice\\program\\soffice.exe';
+    private string $libreOfficePath;
+
+    public function __construct()
+    {
+        $this->libreOfficePath = $this->detectLibreOfficePath();
+    }
+
+    private function detectLibreOfficePath(): string
+    {
+        // Linux
+        if (PHP_OS_FAMILY === 'Linux') {
+            foreach (['/usr/bin/soffice', '/usr/local/bin/soffice', '/snap/bin/soffice'] as $path) {
+                if (file_exists($path)) {
+                    return $path;
+                }
+            }
+            return 'soffice';
+        }
+
+        // Windows
+        foreach ([
+            'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+            'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
+        ] as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        return 'C:\\Program Files\\LibreOffice\\program\\soffice.exe';
+    }
 
     public function generarCitacionDescargos(ProcesoDisciplinario $proceso): string
     {
@@ -304,7 +334,11 @@ class DocumentGeneratorService
 
     private function isLibreOfficeAvailable(): bool
     {
-        // Solo verificar que el ejecutable existe (evita abrir consola en Windows)
+        if (PHP_OS_FAMILY === 'Linux') {
+            exec('which soffice 2>/dev/null', $output, $return);
+            return $return === 0;
+        }
+
         return file_exists($this->libreOfficePath) && is_executable($this->libreOfficePath);
     }
 
@@ -396,7 +430,7 @@ class DocumentGeneratorService
             if ($diligencia->preguntas()->count() === 0) {
                 try {
                     $iaService = new IADescargoService();
-                    $preguntasGeneradas = $iaService->generarPreguntasCompletas($diligencia, 5);
+                    $preguntasGeneradas = $iaService->generarPreguntasCompletas($diligencia, 2);
 
                     // Verificar si se generaron preguntas con IA
                     $preguntasConIA = collect($preguntasGeneradas)->filter(function ($pregunta) {
