@@ -69,6 +69,17 @@ class EmpresaResource extends Resource
                             ->default(true)
                             ->helperText('Desactive si la empresa ya no está en servicio')
                             ->inline(false),
+
+                        Forms\Components\Select::make('dias_laborales')
+                            ->label('Días Laborales')
+                            ->options([
+                                'lunes_viernes' => 'Lunes a Viernes',
+                                'lunes_sabado' => 'Lunes a Sábado',
+                            ])
+                            ->default('lunes_viernes')
+                            ->required()
+                            ->native(false)
+                            ->helperText('Seleccione los días que la empresa opera normalmente'),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Información de Contacto')
@@ -211,6 +222,16 @@ class EmpresaResource extends Resource
                     ->label('Activa')
                     ->boolean()
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('dias_laborales')
+                    ->label('Días Laborales')
+                    ->formatStateUsing(fn($state) => match ($state) {
+                        'lunes_sabado' => 'Lun - Sáb',
+                        default => 'Lun - Vie',
+                    })
+                    ->badge()
+                    ->color(fn($state) => $state === 'lunes_sabado' ? 'warning' : 'success')
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('trabajadores_count')
                     ->label('Trabajadores')

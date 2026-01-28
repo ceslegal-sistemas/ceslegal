@@ -17,11 +17,31 @@ class Empresa extends Model
         'departamento',
         'representante_legal',
         'active',
+        'dias_laborales',
     ];
 
     protected $casts = [
         'active' => 'boolean',
     ];
+
+    /**
+     * Verifica si la empresa trabaja los sábados
+     */
+    public function trabajaSabados(): bool
+    {
+        return $this->dias_laborales === 'lunes_sabado';
+    }
+
+    /**
+     * Obtiene el texto de los días laborales
+     */
+    public function getDiasLaboralesTextoAttribute(): string
+    {
+        return match ($this->dias_laborales) {
+            'lunes_sabado' => 'Lunes a Sábado',
+            default => 'Lunes a Viernes',
+        };
+    }
 
     public function trabajadores(): HasMany
     {

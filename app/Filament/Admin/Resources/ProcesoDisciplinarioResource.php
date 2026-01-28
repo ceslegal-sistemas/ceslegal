@@ -297,7 +297,8 @@ class ProcesoDisciplinarioResource extends Resource
                                         'data-tour' => 'trabajador-create',
                                     ])
                             )
-                            ->createOptionModalHeading('Crear Nuevo Trabajador'),
+                            ->createOptionModalHeading('Crear Nuevo Trabajador')
+                            ->live(),
 
                         Forms\Components\Select::make('modalidad_descargos')
                             ->label('¿Cómo se realizará la diligencia de descargos?')
@@ -473,11 +474,103 @@ class ProcesoDisciplinarioResource extends Resource
                         Forms\Components\DatePicker::make('fecha_descargos_programada')
                             ->label('Fecha Programada de Descargos')
                             ->required()
-                            ->minDate(fn() => auth()->user()?->hasRole('super_admin') ? now()->startOfDay() : now()->addDays(5)->startOfDay())
+                            ->minDate(function (Get $get) {
+                                // Super admin puede seleccionar desde hoy
+                                if (auth()->user()?->hasRole('super_admin')) {
+                                    return now()->startOfDay();
+                                }
+
+                                // Obtener la empresa para verificar si trabajan sábados
+                                $empresaId = $get('empresa_id');
+                                $empresa = $empresaId ? Empresa::find($empresaId) : null;
+                                $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+
+                                // Calcular 6 días HÁBILES desde hoy
+                                // Si la empresa trabaja sábados, usar lógica personalizada
+                                if ($trabajaSabados) {
+                                    $fecha = now()->copy();
+                                    $diasContados = 0;
+
+                                    // Obtener festivos
+                                    $festivos = [];
+                                    try {
+                                        if (\Illuminate\Support\Facades\Schema::hasTable('dias_no_habiles')) {
+                                            $festivos = \App\Models\DiaNoHabil::pluck('fecha')
+                                                ->map(fn($f) => \Carbon\Carbon::parse($f)->format('Y-m-d'))
+                                                ->toArray();
+                                        }
+                                    } catch (\Exception $e) {}
+
+                                    while ($diasContados < 6) {
+                                        $fecha->addDay();
+                                        // Solo domingo es no laborable + festivos
+                                        if (!$fecha->isSunday() && !in_array($fecha->format('Y-m-d'), $festivos)) {
+                                            $diasContados++;
+                                        }
+                                    }
+                                    return $fecha->startOfDay();
+                                }
+
+                                // Para empresas que trabajan Lunes a Viernes, usar el servicio estándar
+                                $terminoService = app(\App\Services\TerminoLegalService::class);
+                                return $terminoService->calcularFechaVencimiento(now(), 6)->startOfDay();
+                            })
+                            ->maxDate(fn() => now()->addMonth()->endOfDay())
                             ->native(false)
                             ->live()
+                            ->disabledDates(function (Get $get) {
+                                $fechasDeshabilitadas = [];
+                                $inicio = now()->startOfDay();
+                                $fin = now()->addYears(1);
+
+                                // Obtener la empresa para verificar si trabajan sábados
+                                $empresaId = $get('empresa_id');
+                                $empresa = $empresaId ? Empresa::find($empresaId) : null;
+                                $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+
+                                // Obtener festivos de la base de datos
+                                $festivos = [];
+                                try {
+                                    if (\Illuminate\Support\Facades\Schema::hasTable('dias_no_habiles')) {
+                                        $festivos = \App\Models\DiaNoHabil::pluck('fecha')
+                                            ->map(fn($fecha) => \Carbon\Carbon::parse($fecha)->format('Y-m-d'))
+                                            ->toArray();
+                                    }
+                                } catch (\Exception $e) {
+                                    // Si hay error, continuar sin festivos
+                                }
+
+                                // Generar días no laborables
+                                for ($fecha = $inicio->copy(); $fecha->lte($fin); $fecha->addDay()) {
+                                    if ($trabajaSabados) {
+                                        // Solo deshabilitar domingos si trabajan sábados
+                                        if ($fecha->isSunday()) {
+                                            $fechasDeshabilitadas[] = $fecha->format('Y-m-d');
+                                        }
+                                    } else {
+                                        // Deshabilitar sábados y domingos
+                                        if ($fecha->isWeekend()) {
+                                            $fechasDeshabilitadas[] = $fecha->format('Y-m-d');
+                                        }
+                                    }
+                                }
+
+                                // Agregar festivos
+                                $fechasDeshabilitadas = array_merge($fechasDeshabilitadas, $festivos);
+
+                                return array_unique($fechasDeshabilitadas);
+                            })
                             ->visible(fn(Get $get) => $get('modalidad_descargos') === 'virtual')
-                            ->helperText('Seleccione la fecha para la audiencia virtual'),
+                            ->helperText(function (Get $get) {
+                                $empresaId = $get('empresa_id');
+                                $empresa = $empresaId ? Empresa::find($empresaId) : null;
+                                $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+
+                                if ($trabajaSabados) {
+                                    return 'Seleccione la fecha para la audiencia virtual (domingos y festivos no disponibles)';
+                                }
+                                return 'Seleccione la fecha para la audiencia virtual (fines de semana y festivos no disponibles)';
+                            }),
 
 
                         TimePickerField::make('hora_descargos_programada')
@@ -538,20 +631,147 @@ class ProcesoDisciplinarioResource extends Resource
                             ->multiple()
                             ->searchable()
                             ->preload()
-                            ->options(function () {
-                                return \App\Models\SancionLaboral::activas()
+                            ->live()
+                            ->options(function (Get $get, $record) {
+                                // Agregar "Otro" como primera opción
+                                $opciones = ['otro' => 'Otro (especificar motivo)'];
+
+                                $trabajadorId = $get('trabajador_id');
+
+                                // Obtener todas las sanciones activas
+                                $todasLasSanciones = \App\Models\SancionLaboral::activas()
                                     ->ordenado()
-                                    ->get()
-                                    ->mapWithKeys(fn($sancion) => [
-                                        $sancion->id => $sancion->nombre_con_descripcion
-                                    ]);
+                                    ->get();
+
+                                // Obtener sanciones ya usadas por este trabajador en otros procesos
+                                $sancionesUsadasIds = [];
+                                if ($trabajadorId) {
+                                    $query = ProcesoDisciplinario::where('trabajador_id', $trabajadorId)
+                                        ->whereNotNull('sanciones_laborales_ids');
+
+                                    if ($record) {
+                                        $query->where('id', '!=', $record->id);
+                                    }
+
+                                    foreach ($query->get() as $proceso) {
+                                        if (is_array($proceso->sanciones_laborales_ids)) {
+                                            $sancionesUsadasIds = array_merge($sancionesUsadasIds, $proceso->sanciones_laborales_ids);
+                                        }
+                                    }
+                                    $sancionesUsadasIds = array_unique($sancionesUsadasIds);
+                                }
+
+                                // Agrupar sanciones por su padre (o por sí mismas si son primera vez)
+                                $sancionesPorGrupo = [];
+                                $sancionesSinSecuencia = [];
+
+                                foreach ($todasLasSanciones as $sancion) {
+                                    if ($sancion->orden_reincidencia !== null) {
+                                        // Tiene secuencia de reincidencia
+                                        $grupoId = $sancion->sancion_padre_id ?? $sancion->id;
+                                        $sancionesPorGrupo[$grupoId][$sancion->orden_reincidencia] = $sancion;
+                                    } else {
+                                        // No tiene secuencia
+                                        $sancionesSinSecuencia[] = $sancion;
+                                    }
+                                }
+
+                                // Filtrar sanciones a mostrar
+                                $sancionesAMostrar = [];
+
+                                // Procesar sanciones con secuencia de reincidencia
+                                foreach ($sancionesPorGrupo as $grupoId => $secuencia) {
+                                    ksort($secuencia); // Ordenar por orden_reincidencia (1, 2, 3, 4)
+
+                                    // Encontrar la siguiente en la secuencia que debe mostrarse
+                                    foreach ($secuencia as $orden => $sancion) {
+                                        if (in_array($sancion->id, $sancionesUsadasIds)) {
+                                            // Esta ya fue usada, continuar a la siguiente
+                                            continue;
+                                        }
+
+                                        // Esta es la siguiente disponible en la secuencia
+                                        $sancionesAMostrar[$sancion->id] = $sancion->nombre_con_descripcion;
+                                        break; // Solo mostrar una de cada secuencia
+                                    }
+                                }
+
+                                // Agregar sanciones sin secuencia (siempre se muestran)
+                                foreach ($sancionesSinSecuencia as $sancion) {
+                                    $sancionesAMostrar[$sancion->id] = $sancion->nombre_con_descripcion;
+                                }
+
+                                // Ordenar por ID para mantener el orden original
+                                ksort($sancionesAMostrar);
+
+                                return $opciones + $sancionesAMostrar;
+                            })
+                            ->afterStateHydrated(function ($state, $record, Set $set) {
+                                // Si el registro tiene otro_motivo_descargos, agregar 'otro' a la selección
+                                if ($record && !empty($record->otro_motivo_descargos)) {
+                                    $currentIds = $state ?? [];
+                                    if (!in_array('otro', $currentIds)) {
+                                        $set('sanciones_laborales_ids', array_merge(['otro'], $currentIds));
+                                    }
+                                }
+                            })
+                            ->dehydrateStateUsing(function ($state) {
+                                // Filtrar 'otro' antes de guardar, solo guardar IDs numéricos
+                                if (is_array($state)) {
+                                    return array_values(array_filter($state, fn($id) => $id !== 'otro' && is_numeric($id)));
+                                }
+                                return $state;
                             })
                             ->placeholder('Seleccione una o más motivos...')
-                            ->helperText('Seleccione los motivos de los descargos a citar al trabajador')
+                            ->helperText(function (Get $get, $record) {
+                                $trabajadorId = $get('trabajador_id');
+                                if (!$trabajadorId) {
+                                    return 'Seleccione los motivos de los descargos a citar al trabajador';
+                                }
+
+                                // Contar sanciones con secuencia ya usadas por este trabajador
+                                $query = ProcesoDisciplinario::where('trabajador_id', $trabajadorId)
+                                    ->whereNotNull('sanciones_laborales_ids');
+
+                                if ($record) {
+                                    $query->where('id', '!=', $record->id);
+                                }
+
+                                $sancionesUsadasIds = [];
+                                foreach ($query->get() as $proceso) {
+                                    if (is_array($proceso->sanciones_laborales_ids)) {
+                                        $sancionesUsadasIds = array_merge($sancionesUsadasIds, $proceso->sanciones_laborales_ids);
+                                    }
+                                }
+                                $sancionesUsadasIds = array_unique($sancionesUsadasIds);
+
+                                if (count($sancionesUsadasIds) > 0) {
+                                    // Verificar si hay sanciones con reincidencia configurada
+                                    $sancionesConReincidencia = \App\Models\SancionLaboral::whereIn('id', $sancionesUsadasIds)
+                                        ->whereNotNull('orden_reincidencia')
+                                        ->count();
+
+                                    if ($sancionesConReincidencia > 0) {
+                                        return 'Los motivos con reincidencia muestran automáticamente la siguiente vez disponible';
+                                    }
+                                }
+
+                                return 'Seleccione los motivos de los descargos a citar al trabajador';
+                            })
                             ->extraAttributes([
                                 'data-tour' => 'motivos-select',
                             ])
                             // ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'abogado']))
+                            ->columnSpanFull(),
+
+                        // Campo para describir otro motivo
+                        Forms\Components\Textarea::make('otro_motivo_descargos')
+                            ->label('Describa el otro motivo')
+                            ->placeholder('Describa detalladamente el motivo de los descargos...')
+                            ->rows(3)
+                            ->required(fn(Get $get) => in_array('otro', $get('sanciones_laborales_ids') ?? []))
+                            ->visible(fn(Get $get) => in_array('otro', $get('sanciones_laborales_ids') ?? []))
+                            ->helperText('Especifique el motivo que no se encuentra en la lista')
                             ->columnSpanFull(),
 
                     ])->columns(2),
@@ -574,10 +794,31 @@ class ProcesoDisciplinarioResource extends Resource
                             ->required()
                             ->minDate(now()->subMonths(2)->startOfDay())
                             ->maxDate(now()->endOfDay())
+                            ->live()
                             ->extraAttributes([
                                 'data-tour' => 'fecha-ocurrencia',
                             ])
                             ->helperText('Fecha en que ocurrieron los hechos que motivan el proceso'),
+
+                        Forms\Components\Repeater::make('fechas_ocurrencia_adicionales')
+                            ->label('Fechas adicionales')
+                            ->schema([
+                                Forms\Components\DatePicker::make('fecha')
+                                    ->label('Fecha')
+                                    ->displayFormat('d/m/Y')
+                                    ->native(false)
+                                    ->required()
+                                    ->minDate(now()->subMonths(2)->startOfDay())
+                                    ->maxDate(now()->endOfDay()),
+                            ])
+                            ->addActionLabel('Agregar otra fecha')
+                            ->defaultItems(0)
+                            ->reorderable(false)
+                            ->collapsible()
+                            ->collapsed()
+                            ->itemLabel(fn(array $state): ?string => isset($state['fecha']) ? \Carbon\Carbon::parse($state['fecha'])->format('d/m/Y') : null)
+                            ->helperText('Si los hechos ocurrieron en varias fechas, agregue las fechas adicionales aquí')
+                            ->columnSpanFull(),
 
                         Forms\Components\RichEditor::make('hechos')
                             ->label('Motivo de la citacion a diligencia de descargos')
@@ -613,7 +854,24 @@ class ProcesoDisciplinarioResource extends Resource
                                             $trabajadorId = $get('trabajador_id');
                                             $empresaId = $get('empresa_id');
                                             $fechaOcurrencia = $get('fecha_ocurrencia');
+                                            $fechasAdicionales = $get('fechas_ocurrencia_adicionales') ?? [];
                                             $fechaProgramada = $get('fecha_descargos_programada');
+
+                                            // Formatear todas las fechas de ocurrencia
+                                            $todasLasFechas = [];
+                                            if ($fechaOcurrencia) {
+                                                $todasLasFechas[] = \Carbon\Carbon::parse($fechaOcurrencia)->format('d/m/Y');
+                                            }
+                                            foreach ($fechasAdicionales as $item) {
+                                                if (isset($item['fecha'])) {
+                                                    $todasLasFechas[] = \Carbon\Carbon::parse($item['fecha'])->format('d/m/Y');
+                                                }
+                                            }
+                                            $fechasOcurrenciaTexto = !empty($todasLasFechas)
+                                                ? (count($todasLasFechas) === 1
+                                                    ? $todasLasFechas[0]
+                                                    : implode(', ', array_slice($todasLasFechas, 0, -1)) . ' y ' . end($todasLasFechas))
+                                                : null;
                                             $horaProgramada = $get('hora_descargos_programada');
                                             $modalidadDescargos = $get('modalidad_descargos');
                                             $hechos = $get('hechos');
@@ -679,7 +937,7 @@ class ProcesoDisciplinarioResource extends Resource
                                                 "- Cargo: {$trabajador->cargo}\n" .
                                                 "- Sanción Laboral: {$sancionesLaborales}\n" .
                                                 "- Hechos que motivan el proceso: {$hechos}\n" .
-                                                ($fechaOcurrencia ? "- Fecha de los hechos: {$fechaOcurrencia}\n" : "") .
+                                                ($fechasOcurrenciaTexto ? "- Fecha(s) de los hechos: {$fechasOcurrenciaTexto}\n" : "") .
                                                 ($fechaProgramada ? "- Fecha de audiencia de descargos: {$fechaProgramada}\n" : "") .
                                                 ($horaProgramada ? "- Hora de audiencia: {$horaProgramada}\n" : "") .
                                                 ($modalidadDescargos ? "- Modalidad: {$modalidadDescargos}\n" : "") .

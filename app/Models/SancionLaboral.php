@@ -18,6 +18,8 @@ class SancionLaboral extends Model
         'dias_suspension_max',
         'activa',
         'orden',
+        'sancion_padre_id',
+        'orden_reincidencia',
     ];
 
     protected $casts = [
@@ -25,7 +27,58 @@ class SancionLaboral extends Model
         'dias_suspension_min' => 'integer',
         'dias_suspension_max' => 'integer',
         'orden' => 'integer',
+        'orden_reincidencia' => 'integer',
     ];
+
+    /**
+     * Relación con la sanción padre (primera vez)
+     */
+    public function sancionPadre()
+    {
+        return $this->belongsTo(SancionLaboral::class, 'sancion_padre_id');
+    }
+
+    /**
+     * Relación con las sanciones hijas (reincidencias)
+     */
+    public function reincidencias()
+    {
+        return $this->hasMany(SancionLaboral::class, 'sancion_padre_id')
+            ->orderBy('orden_reincidencia');
+    }
+
+    /**
+     * Verificar si esta sanción es parte de una secuencia de reincidencia
+     */
+    public function esReincidencia(): bool
+    {
+        return $this->sancion_padre_id !== null || $this->orden_reincidencia !== null;
+    }
+
+    /**
+     * Obtener todas las sanciones de la misma secuencia (incluyendo esta)
+     */
+    public function getSecuenciaCompleta()
+    {
+        if ($this->sancion_padre_id) {
+            // Esta es una reincidencia, obtener desde el padre
+            return SancionLaboral::where('id', $this->sancion_padre_id)
+                ->orWhere('sancion_padre_id', $this->sancion_padre_id)
+                ->orderBy('orden_reincidencia')
+                ->get();
+        }
+
+        if ($this->orden_reincidencia === 1) {
+            // Esta es la primera, obtener todas las reincidencias
+            return SancionLaboral::where('id', $this->id)
+                ->orWhere('sancion_padre_id', $this->id)
+                ->orderBy('orden_reincidencia')
+                ->get();
+        }
+
+        // No es parte de una secuencia
+        return collect([$this]);
+    }
 
     /**
      * Scope para obtener solo sanciones activas

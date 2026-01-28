@@ -101,10 +101,13 @@ class DocumentGeneratorService
             }
         }
 
-        // Formatear fecha de ocurrencia
+        // Formatear fecha de ocurrencia (principal)
         $fechaOcurrencia = $proceso->fecha_ocurrencia
             ? Carbon::parse($proceso->fecha_ocurrencia)->locale('es')
             : null;
+
+        // Obtener todas las fechas de ocurrencia (principal + adicionales)
+        $fechasOcurrenciaTexto = $proceso->fechas_ocurrencia_texto ?? 'No especificada';
 
         // Hechos del proceso
         $hechosTexto = html_entity_decode(strip_tags($proceso->hechos ?? ''), ENT_QUOTES, 'UTF-8');
@@ -158,6 +161,16 @@ class DocumentGeneratorService
         $diaOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->format('d') : '';
         $mesOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->isoFormat('MMMM') : '';
         $anioOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->year : '';
+
+        // Determinar si hay múltiples fechas de ocurrencia
+        $tieneMultiplesFechas = !empty($proceso->fechas_ocurrencia_adicionales) && count($proceso->fechas_ocurrencia_adicionales) > 0;
+
+        // Texto de fecha(s) de ocurrencia para el documento
+        if ($tieneMultiplesFechas) {
+            $textoFechaOcurrencia = "en las fechas: <strong>{$fechasOcurrenciaTexto}</strong>";
+        } else {
+            $textoFechaOcurrencia = "el día {$diaLetraOcurrencia} ({$diaOcurrencia}) de {$mesOcurrencia} de {$anioOcurrencia}";
+        }
 
         $nombreEmpresa = $empresa->razon_social ?? '';
         $nombreEmpleador = $empresa->representante_legal ?? 'Representante Legal';
@@ -243,7 +256,7 @@ class DocumentGeneratorService
 
         <p>Por medio de la presente comunicación en calidad de la empresa <strong>{$nombreEmpresa}</strong>, le informamos que, de conformidad con lo establecido en el Reglamento de Trabajo, Usted ha sido citado a una diligencia de descargos para el día <strong>{$diaLetraDescargos} ({$diaDescargos}) de {$mesDescargos} de {$anioDescargos}</strong> a las <strong>{$horaDescargosTexto}</strong> de forma <strong>{$modalidad}</strong>, {$direccionEmpresa}{$ciudadEmpresa}{$departamentoEmpresa} a la hora señalada.</p>
 
-        <p>Las razones por las cuales es citado a diligencia de descargos, se dan por el hecho de que usted presuntamente el día {$diaLetraOcurrencia} ({$diaOcurrencia}) de {$mesOcurrencia} de {$anioOcurrencia}, razón de los descargos:</p>
+        <p>Las razones por las cuales es citado a diligencia de descargos, se dan por el hecho de que usted presuntamente {$textoFechaOcurrencia}, razón de los descargos:</p>
 
         <p>{$hechosTexto}</p>
 

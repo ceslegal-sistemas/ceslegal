@@ -23,9 +23,11 @@ class ProcesoDisciplinario extends Model
         'estado',
         'hechos',
         'fecha_ocurrencia',
+        'fechas_ocurrencia_adicionales',
         'normas_incumplidas',
         'articulos_legales_ids',
         'sanciones_laborales_ids',
+        'otro_motivo_descargos',
         'pruebas_iniciales',
         'fecha_solicitud',
         'fecha_apertura',
@@ -47,6 +49,7 @@ class ProcesoDisciplinario extends Model
 
     protected $casts = [
         'fecha_ocurrencia' => 'date',
+        'fechas_ocurrencia_adicionales' => 'array',
         'fecha_solicitud' => 'datetime',
         'fecha_apertura' => 'datetime',
         'fecha_descargos_programada' => 'datetime',
@@ -61,6 +64,52 @@ class ProcesoDisciplinario extends Model
         'articulos_legales_ids' => 'array',
         'sanciones_laborales_ids' => 'array',
     ];
+
+    /**
+     * Obtener todas las fechas de ocurrencia (principal + adicionales)
+     */
+    public function getTodasLasFechasOcurrenciaAttribute(): array
+    {
+        $fechas = [];
+
+        if ($this->fecha_ocurrencia) {
+            $fechas[] = $this->fecha_ocurrencia;
+        }
+
+        if (!empty($this->fechas_ocurrencia_adicionales)) {
+            foreach ($this->fechas_ocurrencia_adicionales as $item) {
+                if (isset($item['fecha'])) {
+                    $fechas[] = \Carbon\Carbon::parse($item['fecha']);
+                }
+            }
+        }
+
+        // Ordenar las fechas
+        usort($fechas, fn($a, $b) => $a->timestamp <=> $b->timestamp);
+
+        return $fechas;
+    }
+
+    /**
+     * Obtener las fechas de ocurrencia formateadas como texto
+     */
+    public function getFechasOcurrenciaTextoAttribute(): string
+    {
+        $fechas = $this->todasLasFechasOcurrencia;
+
+        if (empty($fechas)) {
+            return 'No especificada';
+        }
+
+        if (count($fechas) === 1) {
+            return $fechas[0]->format('d/m/Y');
+        }
+
+        // Múltiples fechas
+        return collect($fechas)
+            ->map(fn($f) => $f->format('d/m/Y'))
+            ->join(', ', ' y ');
+    }
 
     public function empresa(): BelongsTo
     {

@@ -93,14 +93,45 @@ class SancionLaboralResource extends Resource
                     ])
                     ->columns(3),
 
+                Forms\Components\Section::make('Reincidencia')
+                    ->schema([
+                        Forms\Components\Select::make('sancion_padre_id')
+                            ->label('¿Es reincidencia de otra sanción?')
+                            ->placeholder('No es reincidencia (o es la primera vez)')
+                            ->options(function ($record) {
+                                // Solo mostrar sanciones que son "primera vez" (orden_reincidencia = 1)
+                                // o que no tienen reincidencia configurada
+                                return SancionLaboral::where('orden_reincidencia', 1)
+                                    ->orWhereNull('orden_reincidencia')
+                                    ->when($record, fn($q) => $q->where('id', '!=', $record->id))
+                                    ->orderBy('orden')
+                                    ->get()
+                                    ->mapWithKeys(fn($s) => [$s->id => $s->nombre_claro]);
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->live()
+                            ->helperText('Si esta sanción es una reincidencia (2da vez, 3ra vez, etc.), seleccione la sanción de "primera vez"'),
+
+                        Forms\Components\Select::make('orden_reincidencia')
+                            ->label('Número de vez')
+                            ->options([
+                                1 => '1ra vez (primera)',
+                                2 => '2da vez',
+                                3 => '3ra vez',
+                                4 => '4ta vez',
+                            ])
+                            ->native(false)
+                            ->visible(fn(Forms\Get $get, $record) => $get('sancion_padre_id') || ($record && $record->orden_reincidencia === 1))
+                            ->required(fn(Forms\Get $get) => $get('sancion_padre_id') !== null)
+                            ->helperText('Indica qué número de vez es esta sanción en la secuencia'),
+                    ])
+                    ->columns(2)
+                    ->collapsible()
+                    ->collapsed(fn($record) => $record && !$record->esReincidencia()),
+
                 Forms\Components\Section::make('Configuración')
                     ->schema([
-                        // Forms\Components\TextInput::make('orden')
-                        //     ->label('Orden de Visualización')
-                        //     ->numeric()
-                        //     ->default(0)
-                        //     ->helperText('Número para ordenar en listados (menor = primero)'),
-
                         Forms\Components\Toggle::make('activa')
                             ->label('Activa')
                             ->default(true)
@@ -143,6 +174,25 @@ class SancionLaboralResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->wrap(),
+
+                Tables\Columns\TextColumn::make('orden_reincidencia')
+                    ->label('Vez')
+                    ->formatStateUsing(fn($state) => match ($state) {
+                        1 => '1ra vez',
+                        2 => '2da vez',
+                        3 => '3ra vez',
+                        4 => '4ta vez',
+                        default => '-',
+                    })
+                    ->badge()
+                    ->color(fn($state) => match ($state) {
+                        1 => 'success',
+                        2 => 'warning',
+                        3 => 'danger',
+                        4 => 'gray',
+                        default => null,
+                    })
+                    ->sortable(),
 
                 Tables\Columns\BadgeColumn::make('tipo_sancion')
                     ->label('Sanción')
