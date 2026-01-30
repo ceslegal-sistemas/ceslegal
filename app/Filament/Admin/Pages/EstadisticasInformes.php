@@ -29,6 +29,14 @@ class EstadisticasInformes extends Page implements HasForms
 
     protected static string $view = 'filament.admin.pages.estadisticas-informes';
 
+    /**
+     * Verificar si el usuario puede acceder a esta página (Shield)
+     */
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('page_EstadisticasInformes') ?? false;
+    }
+
     public ?int $filtroAnio = null;
     public ?int $filtroEmpresa = null;
     public ?string $filtroMes = null;
