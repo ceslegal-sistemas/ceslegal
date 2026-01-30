@@ -827,12 +827,12 @@ HTML;
     <title>Documento de Sanción</title>
     <style>
         @page {
-            margin: 2.5cm 2.5cm 2.5cm 2.5cm;
+            margin: 2cm 2cm 2cm 2cm;
         }
         body {
             font-family: 'Calibri', 'Arial', sans-serif;
             font-size: 11pt;
-            line-height: 1.5;
+            line-height: 1.2;
             color: #000000;
             text-align: justify;
         }
@@ -841,7 +841,7 @@ HTML;
             font-size: 14pt;
             font-weight: bold;
             text-align: center;
-            margin: 10px 0;
+            margin: 5px 0;
             color: #000000;
         }
         h2 {
@@ -849,29 +849,29 @@ HTML;
             font-size: 12pt;
             font-weight: bold;
             text-align: center;
-            margin: 10px 0;
+            margin: 5px 0;
             color: #000000;
         }
         h3 {
             font-family: 'Calibri', 'Arial', sans-serif;
             font-size: 11pt;
             font-weight: bold;
-            margin: 15px 0 8px 0;
+            margin: 10px 0 4px 0;
             color: #000000;
         }
         p {
             font-family: 'Calibri', 'Arial', sans-serif;
             font-size: 11pt;
-            margin: 8px 0;
+            margin: 4px 0;
             text-align: justify;
-            line-height: 1.5;
+            line-height: 1.2;
         }
         .header {
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
         }
         .info-section {
-            margin: 15px 0;
+            margin: 8px 0;
         }
         strong {
             font-weight: bold;
@@ -899,8 +899,14 @@ HTML;
         $fechaActual = Carbon::now()->locale('es');
         // COMENTADO: Artículos legales - Ahora se usan Sanciones Laborales
         // $articulosLegales = $proceso->articulos_legales_texto ?? 'Código Sustantivo del Trabajo';
-        $sancionesLaborales = $proceso->sanciones_laborales_texto ?? 'Reglamento Interno de Trabajo';
+        $sancionesLaboralesRaw = $proceso->sanciones_laborales_texto ?? 'Reglamento Interno de Trabajo';
+        // Limpiar emojis del texto de sanciones laborales
+        $sancionesLaborales = preg_replace('/[\x{1F300}-\x{1F9FF}]/u', '', $sancionesLaboralesRaw);
+        $sancionesLaborales = trim(preg_replace('/\s+/', ' ', $sancionesLaborales));
         $hechosTexto = strip_tags($proceso->hechos);
+
+        // Construir la tabla de sanciones (Artículo 20)
+        $tablaSanciones = $this->construirTablaSancionesParaPrompt($proceso, $empresa);
 
         // Incluir días de suspensión en el nombre si aplica
         $diasSuspension = $proceso->dias_suspension;
@@ -955,78 +961,154 @@ INSTRUCCIONES DE REDACCIÓN (LENGUAJE CLARO):
 FORMATO REQUERIDO:
 - Fuente: Calibri 11pt
 - Texto justificado
-- Interlineado 1.5
+- Interlineado 1.2 (compacto)
 - Estilo profesional tipo documento Word
 - Solo texto en negro
+- NO USAR EMOJIS EN NINGUNA PARTE DEL DOCUMENTO
 
 ESTRUCTURA DEL DOCUMENTO:
 Genera HTML con exactamente esta estructura:
 
-<div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; text-align: justify; color: #000000;">
+<div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.2; text-align: justify; color: #000000;">
 
-  <div style="text-align: center; margin-bottom: 25px;">
-    <h1 style="font-family: Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; margin: 10px 0; color: #000000;">{$empresa->razon_social}</h1>
-    <p style="font-size: 11pt; margin: 5px 0;">NIT: {$empresa->nit}</p>
-    <h2 style="font-family: Calibri, Arial, sans-serif; font-size: 12pt; font-weight: bold; margin: 15px 0; color: #000000; text-transform: uppercase;">{$nombreSancion}</h2>
-    <p style="font-size: 11pt; margin: 5px 0;">{$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}</p>
-    <p style="font-size: 11pt; margin: 5px 0;">Proceso: {$proceso->codigo}</p>
+  <div style="text-align: center; margin-bottom: 15px;">
+    <h1 style="font-family: Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; margin: 5px 0; color: #000000;">{$empresa->razon_social}</h1>
+    <p style="font-size: 11pt; margin: 2px 0;">NIT: {$empresa->nit}</p>
+    <h2 style="font-family: Calibri, Arial, sans-serif; font-size: 12pt; font-weight: bold; margin: 8px 0; color: #000000; text-transform: uppercase;">{$nombreSancion}</h2>
+    <p style="font-size: 11pt; margin: 2px 0;">{$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}</p>
+    <p style="font-size: 11pt; margin: 2px 0;">Proceso: {$proceso->codigo}</p>
   </div>
 
-  <div style="margin: 20px 0;">
-    <p style="margin: 5px 0;"><strong>Señor(a):</strong> {$trabajador->nombre_completo}</p>
-    <p style="margin: 5px 0;"><strong>Cargo:</strong> {$trabajador->cargo}</p>
-    <p style="margin: 5px 0;"><strong>Presente</strong></p>
+  <div style="margin: 10px 0;">
+    <p style="margin: 2px 0;"><strong>Señor(a):</strong> {$trabajador->nombre_completo}</p>
+    <p style="margin: 2px 0;"><strong>Cargo:</strong> {$trabajador->cargo}</p>
+    <p style="margin: 2px 0;"><strong>Presente</strong></p>
   </div>
 
-  <p style="margin: 15px 0;"><strong>Asunto:</strong> Notificación de {$nombreSancion}</p>
+  <p style="margin: 8px 0;"><strong>Asunto:</strong> Notificación de {$nombreSancion}</p>
 
-  <p style="margin: 10px 0;">Estimado(a) {$trabajador->nombre_completo}:</p>
+  <p style="margin: 6px 0;">Estimado(a) {$trabajador->nombre_completo}:</p>
 
-  <p style="margin: 10px 0;">Le escribimos para informarle sobre una decisión importante relacionada con su trabajo en {$empresa->razon_social}.</p>
+  <p style="margin: 6px 0;">Le escribimos para informarle sobre una decisión importante relacionada con su trabajo en {$empresa->razon_social}.</p>
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">1. Hechos que motivaron esta decisión</h3>
-  <p style="margin: 8px 0;">[Describe los hechos claramente mencionando fechas específicas y acciones concretas. Usa 2-3 oraciones.]</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">1. Hechos que motivaron esta decisión</h3>
+  <p style="margin: 4px 0;">[Describe los hechos claramente mencionando fechas específicas y acciones concretas. Usa 2-3 oraciones.]</p>
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">2. Por qué estos hechos son importantes</h3>
-  <p style="margin: 8px 0;">[Explica el impacto de los hechos y cómo afectan las obligaciones laborales. Usa lenguaje simple.]</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">2. Por qué estos hechos son importantes</h3>
+  <p style="margin: 4px 0;">[Explica el impacto de los hechos y cómo afectan las obligaciones laborales. Usa lenguaje simple.]</p>
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">3. Sus descargos</h3>
-  <p style="margin: 8px 0;">[Si el trabajador respondió: resume los descargos reconociendo su versión. Si NO respondió: indica claramente que se le envió la citación a descargos y se le brindó la oportunidad de presentar su versión de los hechos dentro del plazo legal establecido, pero el trabajador no ejerció su derecho de defensa al no responder al formulario de descargos. Aclara que, no obstante lo anterior, se garantizó plenamente su derecho al debido proceso y defensa.]</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">3. Sus descargos</h3>
+  <p style="margin: 4px 0;">[Si el trabajador respondió: resume los descargos reconociendo su versión. Si NO respondió: indica claramente que se le envió la citación a descargos y se le brindó la oportunidad de presentar su versión de los hechos dentro del plazo legal establecido, pero el trabajador no ejerció su derecho de defensa al no responder al formulario de descargos. Aclara que, no obstante lo anterior, se garantizó plenamente su derecho al debido proceso y defensa.]</p>
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">4. Nuestra decisión</h3>
-  <p style="margin: 8px 0;">Después de analizar cuidadosamente toda la información, hemos decidido aplicar un {$nombreSancion}. [Explica claramente las razones de esta decisión.]</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">4. Nuestra decisión</h3>
+  <p style="margin: 4px 0;">Después de analizar cuidadosamente toda la información, hemos decidido aplicar un {$nombreSancion}. [Explica claramente las razones de esta decisión.]</p>
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">5. Qué significa esto para usted</h3>
-  <p style="margin: 8px 0;">[Explica las consecuencias prácticas de forma clara y específica.{$textoSuspension}]</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">5. Qué significa esto para usted</h3>
+  <p style="margin: 4px 0;">[Explica las consecuencias prácticas de forma clara y específica.{$textoSuspension}]</p>
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">6. Base legal</h3>
-  <p style="margin: 8px 0;">Esta decisión se fundamenta en el Código Sustantivo del Trabajo de Colombia, el reglamento interno de trabajo de la empresa y las normas establecidas en su contrato laboral.</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">6. Base legal</h3>
+  <p style="margin: 4px 0;">Esta decisión se fundamenta en el Código Sustantivo del Trabajo de Colombia, el reglamento interno de trabajo de la empresa y las normas establecidas en su contrato laboral.</p>
 
-  <p style="margin: 8px 0;"><strong>Sanciones del reglamento incumplidas:</strong></p>
-  <p style="margin: 8px 0;">[Separar cada sanción por su propio párrafo, explicando en lenguaje claro qué significan.{$sancionesLaborales}]</p>
+  <p style="margin: 4px 0;"><strong>Sanciones del reglamento incumplidas:</strong></p>
+  <p style="margin: 4px 0;">[Separar cada sanción por su propio párrafo, explicando en lenguaje claro qué significan.{$sancionesLaborales}]</p>
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; color: #000000;">7. Sus derechos de impugnación</h3>
-  <p style="margin: 8px 0;">Si no está de acuerdo con esta decisión, usted tiene derecho a presentar una impugnación. Esto significa que puede solicitar una nueva revisión de su caso. Cuenta con {$diasImpugnacion} días hábiles a partir de la fecha de esta notificación para ejercer este derecho.</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">7. Sus derechos de impugnación</h3>
+  <p style="margin: 4px 0;">Si no está de acuerdo con esta decisión, usted tiene derecho a presentar una impugnación. Esto significa que puede solicitar una nueva revisión de su caso. Cuenta con {$diasImpugnacion} días hábiles a partir de la fecha de esta notificación para ejercer este derecho.</p>
 
-  <p style="margin: 15px 0;">Si tiene preguntas sobre esta comunicación, puede contactarnos.</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 12px 0 4px 0; color: #000000;">Artículo 20. Tabla de sanciones</h3>
+  {$tablaSanciones}
 
-  <div style="margin-top: 50px;">
-    <p style="margin: 5px 0;">Cordialmente,</p>
-    <p style="margin-top: 35px; margin-bottom: 5px;"><strong>{$empresa->representante_legal}</strong></p>
-    <p style="margin: 3px 0;">Representante Legal</p>
-    <p style="margin: 3px 0;">{$empresa->razon_social}</p>
-    <p style="margin: 3px 0;">NIT: {$empresa->nit}</p>
+  <p style="margin: 8px 0;">Si tiene preguntas sobre esta comunicación, puede contactarnos.</p>
+
+  <div style="margin-top: 30px;">
+    <p style="margin: 2px 0;">Cordialmente,</p>
+    <p style="margin-top: 25px; margin-bottom: 2px;"><strong>{$empresa->representante_legal}</strong></p>
+    <p style="margin: 2px 0;">Representante Legal</p>
+    <p style="margin: 2px 0;">{$empresa->razon_social}</p>
+    <p style="margin: 2px 0;">NIT: {$empresa->nit}</p>
   </div>
 
 </div>
 
 IMPORTANTE:
 - Completa TODAS las secciones [entre corchetes] con contenido específico basado en HECHOS y DESCARGOS
-- Mantén el formato exacto (Calibri 11pt, texto justificado, negro)
+- Mantén el formato exacto (Calibri 11pt, texto justificado, negro, interlineado compacto)
 - NO incluyas bloques de código markdown (```html)
 - Genera SOLO el HTML mostrado, sin texto adicional
 - Sé profesional pero claro y accesible
+- NUNCA USES EMOJIS en ninguna parte del documento
+- TABLA DE SANCIONES (Artículo 20):
+  * Incluye la tabla EXACTAMENTE como se proporciona en el HTML
+  * Si hay filas con "[ANALIZA...]", reemplaza ese texto con tu análisis:
+    - Determina si la conducta es LEVE o GRAVE según su impacto
+    - Redacta una descripción clara de la conducta
+    - Determina la sanción apropiada (Llamado de Atención para leves, Suspensión o Terminación para graves)
+  * NO elimines la tabla, es parte oficial del documento
 PROMPT;
+    }
+
+    /**
+     * Construir la tabla de sanciones (Artículo 20) para incluir en el prompt
+     */
+    private function construirTablaSancionesParaPrompt(ProcesoDisciplinario $proceso, $empresa): string
+    {
+        $sancionesLaborales = $proceso->sancionesLaborales;
+        $otroMotivo = $proceso->otro_motivo_descargos;
+
+        // Construir filas de la tabla
+        $filasTabla = '';
+
+        // Agregar sanciones laborales seleccionadas
+        foreach ($sancionesLaborales as $sancion) {
+            $tipoFalta = ucfirst($sancion->tipo_falta); // "Leve" o "Grave"
+            $descripcion = $sancion->descripcion ?? $sancion->nombre_claro;
+            $tipoSancionTexto = $sancion->tipo_sancion_texto;
+
+            $filasTabla .= <<<HTML
+    <tr>
+      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">{$tipoFalta}</td>
+      <td style="border: 1px solid #000; padding: 4px 6px;">{$descripcion}</td>
+      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center;">{$tipoSancionTexto}</td>
+    </tr>
+HTML;
+        }
+
+        // Si hay "Otro motivo", agregar instrucción para que la IA lo analice
+        $instruccionOtro = '';
+        if (!empty($otroMotivo)) {
+            $instruccionOtro = <<<HTML
+    <tr>
+      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">[ANALIZA Y DETERMINA: ¿Esta conducta es LEVE o GRAVE según su gravedad?]</td>
+      <td style="border: 1px solid #000; padding: 4px 6px;">[ANALIZA EL SIGUIENTE MOTIVO Y REDACTA UNA DESCRIPCIÓN CLARA: {$otroMotivo}]</td>
+      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center;">[DETERMINA LA SANCIÓN APROPIADA SEGÚN LA GRAVEDAD]</td>
+    </tr>
+HTML;
+            $filasTabla .= $instruccionOtro;
+        }
+
+        // Construir la tabla completa
+        return <<<HTML
+  <table style="width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 10pt;">
+    <tr>
+      <td colspan="3" style="border: 1px solid #000; padding: 6px; text-align: center; background-color: #f5f5f5;">
+        <strong>TABLA DE SANCIONES LABORALES</strong><br>
+        <span style="font-size: 9pt;">(Todas las sanciones contenidas en esta tabla solo se aplicarán previa garantía del debido proceso establecido en este Reglamento, conforme a la Ley 2466 de 2025.)</span>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="3" style="border: 1px solid #000; padding: 4px 6px; text-align: center;">
+        <strong>{$empresa->razon_social}</strong><br>
+        NIT: {$empresa->nit}
+      </td>
+    </tr>
+    <tr style="background-color: #e0e0e0;">
+      <th style="border: 1px solid #000; padding: 4px 6px; text-align: center; width: 20%;">Tipo de Falta</th>
+      <th style="border: 1px solid #000; padding: 4px 6px; text-align: center; width: 55%;">Descripción de la conducta</th>
+      <th style="border: 1px solid #000; padding: 4px 6px; text-align: center; width: 25%;">Sanción</th>
+    </tr>
+    {$filasTabla}
+  </table>
+HTML;
     }
 
     /**

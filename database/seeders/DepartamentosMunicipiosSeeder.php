@@ -31,7 +31,7 @@ class DepartamentosMunicipiosSeeder extends Seeder
         }
 
         $municipiosData = $response->json();
-        $this->command->info('✓ Descargados ' . count($municipiosData) . ' municipios del DANE');
+        $this->command->info('Descargados ' . count($municipiosData) . ' municipios del DANE');
 
         // Desactivar foreign keys temporalmente
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
@@ -106,7 +106,7 @@ class DepartamentosMunicipiosSeeder extends Seeder
         $totalDepartamentos = DB::table('departamentos')->count();
         $totalMunicipios = DB::table('municipios')->count();
 
-        $this->command->info('✓ Se insertaron exitosamente:');
+        $this->command->info('Se insertaron exitosamente:');
         $this->command->info("  → $totalDepartamentos departamentos");
         $this->command->info("  → $totalMunicipios municipios");
     }

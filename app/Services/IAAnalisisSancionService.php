@@ -59,7 +59,7 @@ class IAAnalisisSancionService
                 ],
                 'generationConfig' => [
                     'temperature' => 0.3, // Menor temperatura para respuestas más consistentes
-                    'maxOutputTokens' => 2048,
+                    'maxOutputTokens' => $config['max_tokens'],
                     'topP' => 0.95,
                     'topK' => 40,
                 ],
@@ -132,6 +132,43 @@ class IAAnalisisSancionService
     }
 
     /**
+     * Obtener los motivos de descargos seleccionados con detalle
+     */
+    private function obtenerMotivosDescargosDetalle(ProcesoDisciplinario $proceso): string
+    {
+        $sancionesLaborales = $proceso->sancionesLaborales;
+
+        if ($sancionesLaborales->isEmpty()) {
+            return "No se han seleccionado motivos de descargos del reglamento interno.\n";
+        }
+
+        $detalle = "";
+        foreach ($sancionesLaborales as $index => $sancion) {
+            $numero = $index + 1;
+            $tipoFalta = strtoupper($sancion->tipo_falta);
+            $emoji = $sancion->tipo_falta === 'leve' ? '🟢' : '🔴';
+            $tipoSancion = $sancion->tipo_sancion_texto;
+
+            $detalle .= "{$numero}. {$emoji} [{$tipoFalta}] {$sancion->nombre_claro}\n";
+            $detalle .= "   Descripción: {$sancion->descripcion}\n";
+            $detalle .= "   Sanción del reglamento: {$tipoSancion}\n";
+
+            if ($sancion->tipo_sancion === 'suspension' && $sancion->dias_suspension_texto) {
+                $detalle .= "   Días de suspensión según reglamento: {$sancion->dias_suspension_texto}\n";
+            }
+
+            // Verificar si es reincidencia
+            if ($sancion->esReincidencia()) {
+                $detalle .= "   ⚠️ NOTA: Este motivo es una REINCIDENCIA (no es la primera vez)\n";
+            }
+
+            $detalle .= "\n";
+        }
+
+        return $detalle;
+    }
+
+    /**
      * Obtener contexto de descargos si existen
      */
     private function obtenerContextoDescargos(ProcesoDisciplinario $proceso): string
@@ -176,6 +213,13 @@ class IAAnalisisSancionService
         $sancionesLaborales = $proceso->sanciones_laborales_texto ?? 'No especificado';
         $cantidadProcesosPrevios = count($historialProcesos);
 
+        // Obtener los motivos de descargos seleccionados con detalle
+        $motivosDescargosDetalle = $this->obtenerMotivosDescargosDetalle($proceso);
+
+        // Verificar si hay "otro motivo"
+        $otroMotivo = $proceso->otro_motivo_descargos;
+        $tieneOtroMotivo = !empty($otroMotivo);
+
         $historialTexto = '';
         if ($cantidadProcesosPrevios > 0) {
             $historialTexto = "El trabajador tiene {$cantidadProcesosPrevios} proceso(s) disciplinario(s) previo(s):\n\n";
@@ -192,6 +236,19 @@ class IAAnalisisSancionService
             $historialTexto = "Este es el PRIMER proceso disciplinario del trabajador (sin antecedentes previos).\n\n";
         }
 
+        // Construir sección de otro motivo
+        $seccionOtroMotivo = '';
+        if ($tieneOtroMotivo) {
+            $seccionOtroMotivo = "\n\nOTRO MOTIVO ADICIONAL (REQUIERE ANÁLISIS ESPECIAL):\n";
+            $seccionOtroMotivo .= "El empleador seleccionó \"Otro\" como motivo adicional y describió lo siguiente:\n";
+            $seccionOtroMotivo .= "\"{$otroMotivo}\"\n\n";
+            $seccionOtroMotivo .= "IMPORTANTE: Debes analizar este motivo adicional y:\n";
+            $seccionOtroMotivo .= "1. Determinar si es una falta LEVE o GRAVE\n";
+            $seccionOtroMotivo .= "2. Recomendar qué tipo de sanción aplicaría para este motivo específico\n";
+            $seccionOtroMotivo .= "3. Si es grave, indicar el nivel (bajo o alto) y los días de suspensión recomendados\n";
+            $seccionOtroMotivo .= "4. Proporcionar una justificación clara para ayudar al cliente a tomar la mejor decisión\n";
+        }
+
         return <<<PROMPT
 Eres un experto en derecho laboral colombiano. Analiza el siguiente proceso disciplinario y determina qué tipos de sanciones son APROPIADAS según la gravedad de la falta, el Código Sustantivo del Trabajo, el reglamento interno de trabajo de la empresa y el historial del trabajador.
 
@@ -203,8 +260,15 @@ INFORMACIÓN DEL PROCESO:
 HECHOS DEL CASO ACTUAL:
 {$hechosTexto}
 
-SANCIONES LABORALES DEL REGLAMENTO INCUMPLIDAS:
+═══════════════════════════════════════════════════════════════════
+MOTIVOS DE LOS DESCARGOS SELECCIONADOS (del reglamento interno):
+═══════════════════════════════════════════════════════════════════
+{$motivosDescargosDetalle}
+
+RESUMEN SANCIONES LABORALES INCUMPLIDAS:
 {$sancionesLaborales}
+{$seccionOtroMotivo}
+═══════════════════════════════════════════════════════════════════
 
 DESCARGOS DEL TRABAJADOR:
 {$contextoDescargos}
@@ -265,7 +329,30 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown):
   "sancion_recomendada": "llamado_atencion|suspension|terminacion",
   "dias_suspension_sugeridos": [1, 2, 3, 5, 8, 15, 30, 60],
   "razonamiento_legal": "Explicación basada en el CST y las sanciones del reglamento incumplidas",
-  "consideraciones_especiales": "Información adicional relevante (historial, descargos, atenuantes, agravantes)"
+  "consideraciones_especiales": "Información adicional relevante (historial, descargos, atenuantes, agravantes)",
+  "motivos_analizados": [
+    {
+      "motivo": "Nombre del motivo seleccionado",
+      "tipo_falta": "leve|grave",
+      "sancion_asociada": "llamado_atencion|suspension|terminacion",
+      "observacion": "Breve observación sobre este motivo"
+    }
+  ],
+  "analisis_otro_motivo": {
+    "aplica": true/false,
+    "descripcion_analizada": "Descripción del otro motivo",
+    "tipo_falta_determinado": "leve|grave",
+    "nivel_gravedad": "ninguno|bajo|alto",
+    "sancion_recomendada": "llamado_atencion|suspension|terminacion",
+    "dias_suspension_recomendados": null o número,
+    "justificacion": "Explicación detallada de por qué se recomienda esta sanción para el otro motivo"
+  },
+  "recomendacion_final": {
+    "sancion_sugerida": "llamado_atencion|suspension|terminacion",
+    "dias_suspension": null o número,
+    "confianza": "alta|media|baja",
+    "mensaje_para_decision": "Mensaje claro para ayudar al cliente a tomar la mejor decisión, explicando las opciones y sus consecuencias"
+  }
 }
 
 REGLAS ESTRICTAS:
@@ -274,6 +361,10 @@ REGLAS ESTRICTAS:
 - Si es FALTA GRAVE NIVEL ALTO: gravedad="grave", nivel_gravedad="alto", sanciones=["suspension", "terminacion"], dias=[8,15,30,60]
 - dias_suspension_sugeridos debe variar según el nivel de gravedad
 - Siempre basar el análisis en la legislación laboral colombiana
+- En "motivos_analizados" incluye CADA motivo seleccionado del reglamento con su análisis individual
+- Si hay "otro motivo", analisis_otro_motivo.aplica=true y completa TODOS los campos
+- Si NO hay "otro motivo", analisis_otro_motivo.aplica=false y los demás campos pueden ser null
+- La "recomendacion_final" debe ser un resumen claro que ayude al cliente a decidir
 
 Genera SOLO el JSON, sin texto adicional.
 PROMPT;
@@ -329,6 +420,22 @@ PROMPT;
             'dias_suspension_sugeridos' => [1, 2, 3, 5, 8],
             'razonamiento_legal' => 'Se requiere revisión manual del caso para determinar la sanción apropiada.',
             'consideraciones_especiales' => 'El análisis automático no estuvo disponible. Se recomienda revisar manualmente los hechos, artículos incumplidos y el historial del trabajador.',
+            'motivos_analizados' => [],
+            'analisis_otro_motivo' => [
+                'aplica' => false,
+                'descripcion_analizada' => null,
+                'tipo_falta_determinado' => null,
+                'nivel_gravedad' => null,
+                'sancion_recomendada' => null,
+                'dias_suspension_recomendados' => null,
+                'justificacion' => null,
+            ],
+            'recomendacion_final' => [
+                'sancion_sugerida' => 'llamado_atencion',
+                'dias_suspension' => null,
+                'confianza' => 'baja',
+                'mensaje_para_decision' => 'El análisis automático no estuvo disponible. Se recomienda revisar manualmente el caso antes de tomar una decisión. Considere los hechos, los motivos seleccionados, el historial del trabajador y los descargos presentados.',
+            ],
         ];
     }
 }

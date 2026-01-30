@@ -21,8 +21,6 @@ description: Guía para desplegar CES Legal en un servidor de producción
 - MySQL 8.0+
 - Composer 2.0+
 - Node.js 18+
-- Supervisor (para colas)
-- Certbot (para SSL)
 
 ## Preparación del Servidor
 
@@ -46,11 +44,17 @@ sudo apt install mysql-server -y
 sudo mysql_secure_installation
 ```
 
-### 4. Instalar Nginx
+### 4. Instalar Apache
 
+```bash
+sudo apt install apache2 
+```
+:::note
+Si desea instalar con Nginx, usa:
 ```bash
 sudo apt install nginx -y
 ```
+:::
 
 ### 5. Instalar Composer
 
@@ -137,6 +141,79 @@ php artisan route:cache
 php artisan view:cache
 php artisan storage:link
 ```
+## Configuaración de Apache
+
+Crea el archivo de configuración:
+
+```bash
+sudo nano /etc/apache2/sites-available/tu-dominio.com.conf
+```
+
+```
+<VirtualHost *:80>
+    ServerName tu-dominio.com
+    ServerAlias www.tu-dominio.com
+    DocumentRoot /var/www/ces-legal/public
+
+    <Directory /var/www/ces-legal/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # Headers de seguridad
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Charset
+    AddDefaultCharset utf-8
+
+    # Index
+    DirectoryIndex index.php
+
+    # Manejo de rutas tipo Laravel (try_files)
+    <IfModule mod_rewrite.c>
+        RewriteEngine On
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule ^ index.php [L]
+    </IfModule>
+
+    # PHP-FPM 8.2
+    <FilesMatch \.php$>
+        SetHandler "proxy:unix:/var/run/php/php8.2-fpm.sock|fcgi://localhost"
+    </FilesMatch>
+
+    # Errores
+    ErrorLog ${APACHE_LOG_DIR}/ces-legal-error.log
+    CustomLog ${APACHE_LOG_DIR}/ces-legal-access.log combined
+
+    # Desactivar logs para favicon y robots
+    <Files "favicon.ico">
+        SetEnv no-log
+    </Files>
+
+    <Files "robots.txt">
+        SetEnv no-log
+    </Files>
+
+    # Limitar tamaño de subida (50MB)
+    LimitRequestBody 52428800
+</VirtualHost>
+```
+
+### Habilitar módulos necesarios
+
+Ejecuta esto **una sola vez**:
+```bash
+sudo a2enmod rewrite headers proxy proxy_fcgi setenvif
+```
+
+Activar el sitio:
+
+```bash
+sudo a2ensite tu-dominio.com
+sudo systemctl reload apache2
+```
 
 ## Configuración de Nginx
 
@@ -199,37 +276,6 @@ sudo apt install certbot python3-certbot-nginx -y
 sudo certbot --nginx -d tu-dominio.com -d www.tu-dominio.com
 ```
 
-## Configuración de Supervisor (Colas)
-
-Crea el archivo de configuración:
-
-```bash
-sudo nano /etc/supervisor/conf.d/ces-legal-worker.conf
-```
-
-```ini
-[program:ces-legal-worker]
-process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/ces-legal/artisan queue:work database --sleep=3 --tries=3 --max-time=3600
-autostart=true
-autorestart=true
-stopasgroup=true
-killasgroup=true
-user=www-data
-numprocs=2
-redirect_stderr=true
-stdout_logfile=/var/www/ces-legal/storage/logs/worker.log
-stopwaitsecs=3600
-```
-
-Iniciar Supervisor:
-
-```bash
-sudo supervisorctl reread
-sudo supervisorctl update
-sudo supervisorctl start ces-legal-worker:*
-```
-
 ## Configuración de Cron (Tareas Programadas)
 
 ```bash
@@ -239,7 +285,7 @@ sudo crontab -e -u www-data
 Agregar:
 
 ```bash
-* * * * * cd /var/www/ces-legal && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /var/www/ces-legal &&  php artisan procesos:actualizar-estados-descargos >> /dev/null 2>&1
 ```
 
 ## Script de Despliegue Automatizado
@@ -287,8 +333,7 @@ chmod +x deploy.sh
 
 1. **Verificar la aplicación**: Accede a `https://tu-dominio.com/admin`
 2. **Verificar logs**: `tail -f /var/www/ces-legal/storage/logs/laravel.log`
-3. **Verificar colas**: `sudo supervisorctl status`
-4. **Verificar SSL**: Usa [SSL Labs](https://www.ssllabs.com/ssltest/)
+3. **Verificar SSL**: Usa [SSL Labs](https://www.ssllabs.com/ssltest/)
 
 ## Monitoreo
 
@@ -296,6 +341,12 @@ chmod +x deploy.sh
 
 ```bash
 tail -f /var/www/ces-legal/storage/logs/laravel.log
+```
+
+### Logs de Apache
+
+```bash
+tail -f /var/log/apache2/error.log
 ```
 
 ### Logs de Nginx
@@ -307,7 +358,8 @@ tail -f /var/log/nginx/error.log
 ### Estado de Servicios
 
 ```bash
-sudo systemctl status nginx
+sudo systemctl status apache2
+# sudo systemctl status nginx
 sudo systemctl status php8.2-fpm
 sudo systemctl status mysql
 sudo supervisorctl status

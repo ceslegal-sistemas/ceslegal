@@ -62,4 +62,9 @@ class Empresa extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function informesJuridicos(): HasMany
+    {
+        return $this->hasMany(InformeJuridico::class);
+    }
 }

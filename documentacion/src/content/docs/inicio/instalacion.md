@@ -5,7 +5,7 @@ description: Guía paso a paso para instalar CES Legal en tu entorno local
 
 ## Requisitos Previos
 
-Antes de instalar CES Legal, asegúrate de tener los siguientes requisitos:
+Antes de instalar el aplicativo web de CES Legal, asegúrate de tener los siguientes requisitos:
 
 ### Software Requerido
 
@@ -36,6 +36,7 @@ Extensiones necesarias:
 - `bcmath`
 - `fileinfo`
 - `gd` o `imagick`
+- `zip`
 
 ## Instalación Paso a Paso
 
@@ -108,10 +109,10 @@ php artisan db:seed
 
 Esto creará:
 - Usuario administrador por defecto
-- Catálogo de sanciones laborales (63 tipos)
-- Artículos legales
+- Catálogo de sanciones laborales (64 tipos)
 - Días no hábiles de Colombia
 - Roles y permisos
+- Departamentos y Municipios (Datos desde la API oficial del DANE)
 
 ### 8. Compilar Assets
 
@@ -135,7 +136,7 @@ php artisan storage:link
 php artisan serve
 ```
 
-El sistema estará disponible en: `http://localhost:8000`
+El sistema estará disponible en: `http://127.0.0.1:8000`
 
 ## Credenciales por Defecto
 
@@ -145,9 +146,9 @@ Cambia estas credenciales inmediatamente en producción.
 
 | Campo | Valor |
 |-------|-------|
-| URL | `http://localhost:8000/admin` |
-| Email | `admin@ceslegal.com` |
-| Contraseña | `password` |
+| URL | `http://127.0.0.1:8000/admin` |
+| Email | `admin@ceslegal.co` |
+| Contraseña | `admin12345` |
 
 ## Verificación de Instalación
 

@@ -10,6 +10,7 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
+use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -36,12 +37,12 @@ class AdminPanelProvider extends PanelProvider
         // Incluir Driver.js para tours de onboarding
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
-            fn (): string => '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>',
+            fn(): string => '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>',
         );
 
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_END,
-            fn (): string => '<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script><script src="' . asset('js/tour-descargos.js') . '"></script>',
+            fn(): string => '<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script><script src="' . asset('js/tour-descargos.js') . '"></script>',
         );
     }
 
@@ -59,8 +60,19 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Blue,
             ])
+            ->sidebarCollapsibleOnDesktop()
+            ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
+            ->navigationGroups([
+                NavigationGroup::make('Gestión Laboral'),
+                NavigationGroup::make('Gestión de Contratos'),
+                NavigationGroup::make('Gestión Jurídica'),
+                NavigationGroup::make('Configuración Informes')
+                    ->collapsible()
+                    ->collapsed(),
+                NavigationGroup::make('Administración'),
+            ])
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->pages([

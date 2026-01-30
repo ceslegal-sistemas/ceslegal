@@ -1471,9 +1471,90 @@ class ProcesoDisciplinarioResource extends Resource
                             }
                         }
 
+                        // Verificar si hay "otro motivo"
+                        $tieneOtroMotivo = !empty($record->otro_motivo_descargos);
+                        $analisisOtroMotivo = $analisis['analisis_otro_motivo'] ?? null;
+                        $motivosAnalizados = $analisis['motivos_analizados'] ?? [];
+                        $recomendacionFinal = $analisis['recomendacion_final'] ?? null;
+
                         return [
-                            // Sección informativa con el análisis de la IA
-                            Forms\Components\Section::make('Análisis del Caso')
+                            // Sección: Motivos de Descargos Seleccionados
+                            Forms\Components\Section::make('📋 Motivos de los Descargos')
+                                ->schema([
+                                    Forms\Components\Placeholder::make('motivos_seleccionados')
+                                        ->label('')
+                                        ->content(function () use ($record, $motivosAnalizados) {
+                                            $sancionesLaborales = $record->sancionesLaborales;
+
+                                            if ($sancionesLaborales->isEmpty() && empty($motivosAnalizados)) {
+                                                return new \Illuminate\Support\HtmlString('<p class="text-gray-500">No se han seleccionado motivos del reglamento.</p>');
+                                            }
+
+                                            $html = '<div class="space-y-2">';
+
+                                            foreach ($sancionesLaborales as $sancion) {
+                                                $emoji = $sancion->tipo_falta === 'leve' ? '🟢' : '🔴';
+                                                $tipoFalta = strtoupper($sancion->tipo_falta);
+                                                $tipoSancionTexto = $sancion->tipo_sancion_texto;
+
+                                                $html .= "<div class='p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border-l-4 " .
+                                                    ($sancion->tipo_falta === 'leve' ? 'border-green-500' : 'border-red-500') . "'>";
+                                                $html .= "<p class='font-semibold'>{$emoji} [{$tipoFalta}] {$sancion->nombre_claro}</p>";
+                                                $html .= "<p class='text-sm text-gray-600 dark:text-gray-400'>{$sancion->descripcion}</p>";
+                                                $html .= "<p class='text-xs text-gray-500 mt-1'>Sanción según reglamento: <strong>{$tipoSancionTexto}</strong></p>";
+                                                $html .= "</div>";
+                                            }
+
+                                            $html .= '</div>';
+                                            return new \Illuminate\Support\HtmlString($html);
+                                        }),
+                                ])
+                                ->collapsible()
+                                ->collapsed(false),
+
+                            // Sección: Análisis de "Otro Motivo" (solo si aplica)
+                            Forms\Components\Section::make('⚠️ Análisis de Otro Motivo')
+                                ->schema([
+                                    Forms\Components\Placeholder::make('otro_motivo_descripcion')
+                                        ->label('Motivo descrito por el usuario')
+                                        ->content(fn() => $record->otro_motivo_descargos ?? 'N/A'),
+
+                                    Forms\Components\Placeholder::make('otro_motivo_analisis')
+                                        ->label('')
+                                        ->content(function () use ($analisisOtroMotivo) {
+                                            if (!$analisisOtroMotivo || !($analisisOtroMotivo['aplica'] ?? false)) {
+                                                return new \Illuminate\Support\HtmlString('<p class="text-gray-500">Sin análisis disponible.</p>');
+                                            }
+
+                                            $tipoFalta = strtoupper($analisisOtroMotivo['tipo_falta_determinado'] ?? 'N/A');
+                                            $emoji = ($analisisOtroMotivo['tipo_falta_determinado'] ?? '') === 'leve' ? '🟢' : '🔴';
+                                            $sancionRec = match ($analisisOtroMotivo['sancion_recomendada'] ?? '') {
+                                                'llamado_atencion' => '📄 Llamado de Atención',
+                                                'suspension' => '⏸️ Suspensión Laboral',
+                                                'terminacion' => '❌ Terminación de Contrato',
+                                                default => $analisisOtroMotivo['sancion_recomendada'] ?? 'N/A',
+                                            };
+
+                                            $html = "<div class='p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-300'>";
+                                            $html .= "<p class='font-semibold'>{$emoji} Tipo de falta determinado: <strong>{$tipoFalta}</strong></p>";
+                                            $html .= "<p class='mt-2'>Sanción recomendada: <strong>{$sancionRec}</strong></p>";
+
+                                            if (($analisisOtroMotivo['dias_suspension_recomendados'] ?? null) !== null) {
+                                                $dias = $analisisOtroMotivo['dias_suspension_recomendados'];
+                                                $html .= "<p class='text-sm'>Días de suspensión sugeridos: <strong>{$dias} día" . ($dias > 1 ? 's' : '') . "</strong></p>";
+                                            }
+
+                                            $html .= "<p class='mt-2 text-sm text-gray-700 dark:text-gray-300'><em>{$analisisOtroMotivo['justificacion']}</em></p>";
+                                            $html .= "</div>";
+
+                                            return new \Illuminate\Support\HtmlString($html);
+                                        }),
+                                ])
+                                ->visible($tieneOtroMotivo)
+                                ->collapsible(),
+
+                            // Sección: Análisis General de la IA
+                            Forms\Components\Section::make('🤖 Análisis del Caso')
                                 ->schema([
                                     Forms\Components\Placeholder::make('gravedad_info')
                                         ->label('Gravedad de la Falta')
@@ -1494,23 +1575,66 @@ class ProcesoDisciplinarioResource extends Resource
                                                 $gravedad = ucfirst($analisis['gravedad']);
                                             }
 
-                                            $reincidencia = $analisis['es_reincidencia'] ? ' - REINCIDENCIA' : '';
+                                            $reincidencia = $analisis['es_reincidencia'] ? ' ⚠️ REINCIDENCIA' : '';
                                             return $gravedad . $reincidencia;
                                         }),
 
-                                    Forms\Components\Placeholder::make('sancion_recomendada')
-                                        ->label('Sanción Recomendada por la IA')
-                                        ->content(function () use ($analisis) {
-                                            return match ($analisis['sancion_recomendada']) {
+                                    Forms\Components\Placeholder::make('justificacion_ia')
+                                        ->label('Justificación')
+                                        ->content(fn() => $analisis['justificacion'] ?? 'Sin justificación disponible.'),
+                                ])
+                                ->description('Análisis automático basado en los hechos, motivos seleccionados y el historial del trabajador.')
+                                ->collapsible(),
+
+                            // Sección: Recomendación Final para la Decisión
+                            Forms\Components\Section::make('✅ Recomendación para su Decisión')
+                                ->schema([
+                                    Forms\Components\Placeholder::make('sancion_sugerida')
+                                        ->label('Sanción Sugerida')
+                                        ->content(function () use ($recomendacionFinal, $analisis) {
+                                            $sancion = $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? 'N/A';
+                                            $texto = match ($sancion) {
                                                 'llamado_atencion' => '📄 Llamado de Atención',
                                                 'suspension' => '⏸️ Suspensión Laboral',
                                                 'terminacion' => '❌ Terminación de Contrato',
-                                                default => $analisis['sancion_recomendada'],
+                                                default => $sancion,
                                             };
+
+                                            if ($sancion === 'suspension' && ($recomendacionFinal['dias_suspension'] ?? null)) {
+                                                $dias = $recomendacionFinal['dias_suspension'];
+                                                $texto .= " ({$dias} día" . ($dias > 1 ? 's' : '') . ")";
+                                            }
+
+                                            $confianza = $recomendacionFinal['confianza'] ?? 'media';
+                                            $badgeColor = match ($confianza) {
+                                                'alta' => 'bg-green-100 text-green-800',
+                                                'media' => 'bg-yellow-100 text-yellow-800',
+                                                'baja' => 'bg-red-100 text-red-800',
+                                                default => 'bg-gray-100 text-gray-800',
+                                            };
+
+                                            return new \Illuminate\Support\HtmlString(
+                                                "<span class='font-semibold'>{$texto}</span> " .
+                                                "<span class='ml-2 px-2 py-1 rounded text-xs {$badgeColor}'>Confianza: " . ucfirst($confianza) . "</span>"
+                                            );
+                                        }),
+
+                                    Forms\Components\Placeholder::make('mensaje_decision')
+                                        ->label('💡 Mensaje para su decisión')
+                                        ->content(function () use ($recomendacionFinal, $analisis) {
+                                            $mensaje = $recomendacionFinal['mensaje_para_decision']
+                                                ?? $analisis['consideraciones_especiales']
+                                                ?? 'Revise cuidadosamente los hechos y el historial antes de tomar su decisión.';
+
+                                            return new \Illuminate\Support\HtmlString(
+                                                "<div class='p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200'>" .
+                                                "<p class='text-gray-700 dark:text-gray-300'>{$mensaje}</p>" .
+                                                "</div>"
+                                            );
                                         }),
                                 ])
-                                ->description('Análisis automático basado en los hechos, artículos incumplidos y el historial del trabajador.')
-                                ->collapsible(),
+                                ->collapsible()
+                                ->collapsed(false),
 
                             // Guardar análisis en sesión para uso posterior
                             Forms\Components\Hidden::make('analisis_cache')
@@ -1522,8 +1646,8 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->options($opcionesSancion)
                                 ->required()
                                 ->native(false)
-                                ->default($analisis['sancion_recomendada'] ?? null)
-                                ->helperText('Solo se muestran las opciones apropiadas según el análisis del caso'),
+                                ->default($recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null)
+                                ->helperText('Usted tiene la última palabra. Seleccione la sanción que considere más apropiada.'),
                         ];
                     })
                     ->requiresConfirmation()

@@ -136,6 +136,7 @@ Los permisos se gestionan automáticamente. Para regenerar:
 
 ```bash
 php artisan shield:generate --all
+# Admin creado por defecto, omite (--user=1) y selecciona el Admin
 php artisan shield:super-admin --user=1
 ```
 
@@ -168,9 +169,9 @@ Los términos legales se configuran en la base de datos a través del seeder o d
 | Término | Descripción | Valor por Defecto |
 |---------|-------------|-------------------|
 | Plazo de citación | Días para citar al trabajador | 5 días hábiles |
-| Plazo de descargos | Tiempo para realizar descargos | 5 días hábiles |
-| Plazo de decisión | Tiempo para emitir sanción | 10 días hábiles |
-| Token de acceso | Vigencia del token público | 6 días |
+| Plazo de descargos | Tiempo para realizar descargos | 1 día hábil |
+| Plazo de decisión | Tiempo para emitir sanción | 7-15 días hábiles |
+| Token de acceso | Vigencia del token público | 1 día |
 
 ## Configuración de Días No Hábiles
 
@@ -204,10 +205,10 @@ DB_PASSWORD=contraseña_segura
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
-MAIL_USERNAME=notificaciones@ceslegal.com
+MAIL_USERNAME=notificaciones@ceslegal.co
 MAIL_PASSWORD=contraseña_app
 MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=notificaciones@ceslegal.com
+MAIL_FROM_ADDRESS=notificaciones@ceslegal.co
 MAIL_FROM_NAME="${APP_NAME}"
 
 # IA

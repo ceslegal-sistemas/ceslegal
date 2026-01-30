@@ -5,7 +5,7 @@ description: Conoce qué es CES Legal y para qué sirve
 
 ## ¿Qué es CES Legal?
 
-**CES Legal** es una plataforma web integral diseñada para **automatizar y gestionar procesos disciplinarios laborales en Colombia**. El sistema permite a empresas y bufetes de abogados gestionar todo el ciclo de vida de un proceso disciplinario, desde la solicitud inicial hasta el cierre del caso.
+**CES Legal** es un bufete de abogados en Colombia que ofrece asesoría y representación legal a clientes, con un enfoque en servicios jurídicos para empresas y apoyo en materias como laboral, contractual y corporativo. Adicionalmente, ha desarrollado una plataforma web integral diseñada para **automatizar y gestionar procesos disciplinarios laborales en Colombia**, la cual permite a empresas y bufetes de abogados administrar todo el ciclo de vida de un proceso disciplinario, desde la solicitud inicial hasta el cierre del caso.
 
 ## Objetivo Principal
 
@@ -14,13 +14,11 @@ Reducir tiempos de tramitación, asegurar consistencia jurídica y mantener audi
 ## Características Principales
 
 ### 1. Gestión Completa de Procesos
-- Creación de procesos con hechos, artículos incumplidos y pruebas
-- Máquina de estados automatizada y validada
-- Asignación inteligente de abogados por disponibilidad
+- Creación de procesos con hechos, los motivos de los descargos, artículos incumplidos y pruebas
+- Sistema de estados automatizada
 - Timeline completo de auditoría
 
 ### 2. Diligencia de Descargos
-- Programación con múltiples modalidades (presencial, virtual, telefónica)
 - Generación automática de citaciones
 - Formulario público para el trabajador con token temporal
 - Timer de 45 minutos para completar descargos
@@ -32,7 +30,7 @@ Reducir tiempos de tramitación, asegurar consistencia jurídica y mantener audi
 - Trazabilidad completa de interacciones con IA
 
 ### 4. Generación de Documentos
-- Citaciones en PDF y Word
+- Citaciones en PDF
 - Actas de descargos
 - Documentos de sanción
 - Interpolación de variables dinámicas
@@ -57,16 +55,8 @@ Reducir tiempos de tramitación, asegurar consistencia jurídica y mantener audi
 
 ## Flujo Principal del Sistema
 
-```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  SOLICITUD  │───▶│  APERTURA   │───▶│  DESCARGOS  │───▶│  ANÁLISIS   │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-                                                                │
-                                                                ▼
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   CERRADO   │◀───│ NOTIFICADO  │◀───│   SANCIÓN   │◀───│  DECISIÓN   │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-```
+![Flujo Principal](../../../assets/flujo-principal.png)
+
 
 ## Próximos Pasos
 

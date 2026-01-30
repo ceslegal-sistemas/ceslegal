@@ -12,7 +12,7 @@ export default defineConfig({
 	},
 	integrations: [
 		starlight({
-			title: 'CES - LEGAL',
+			title: '',
 			description: 'Sistema de Gestión de Procesos Disciplinarios Laborales',
 			defaultLocale: 'root',
 			locales: {
