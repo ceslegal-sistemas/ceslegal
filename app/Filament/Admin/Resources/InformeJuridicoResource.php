@@ -321,6 +321,7 @@ class InformeJuridicoResource extends Resource
                                 Forms\Components\TextInput::make('tiempo_minutos')
                                     ->label('Tiempo dedicado')
                                     ->numeric()
+                                    ->required()
                                     ->minValue(0)
                                     ->maxValue(9999)
                                     ->suffix('minutos')
