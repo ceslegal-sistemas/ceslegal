@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\SancionLaboral;
 
@@ -10,11 +9,25 @@ class SancionLaboralSeeder extends Seeder
 {
     /**
      * Run the database seeder.
+     * Incluye las relaciones de reincidencia (sancion_padre_id, orden_reincidencia)
      */
     public function run(): void
     {
+        // Definir grupos de reincidencia para vincular después
+        $gruposReincidencia = [
+            'retardo_15min' => null,
+            'salir_sin_autorizacion' => null,
+            'cambio_horario' => null,
+            'violacion_leve' => null,
+            'mal_uso_herramientas' => null,
+            'no_usar_uniforme' => null,
+            'no_asistir_capacitaciones' => null,
+        ];
+
         $sanciones = [
             // ==================== FALTAS LEVES ====================
+
+            // Grupo: Retardo de 15 minutos (1ra, 2da, 3ra vez) + 4ta vez es grave
             [
                 'tipo_falta' => 'leve',
                 'nombre_claro' => 'Retardo de 15 minutos (1ra vez)',
@@ -23,6 +36,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 1,
+                'orden_reincidencia' => 1,
+                'grupo' => 'retardo_15min',
             ],
             [
                 'tipo_falta' => 'leve',
@@ -32,6 +47,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 3,
                 'orden' => 2,
+                'orden_reincidencia' => 2,
+                'grupo' => 'retardo_15min',
             ],
             [
                 'tipo_falta' => 'leve',
@@ -41,7 +58,11 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 5,
                 'orden' => 3,
+                'orden_reincidencia' => 3,
+                'grupo' => 'retardo_15min',
             ],
+
+            // Sin reincidencia
             [
                 'tipo_falta' => 'leve',
                 'nombre_claro' => 'Falta en mañana o tarde sin excusa',
@@ -50,6 +71,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 7,
                 'orden' => 4,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'leve',
@@ -59,15 +82,21 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 40,
                 'orden' => 5,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
+
+            // Grupo: Salir sin autorización (1ra, 2da vez)
             [
                 'tipo_falta' => 'leve',
-                'nombre_claro' => 'Salir por poco tiempo sin autorización',
+                'nombre_claro' => 'Salir sin autorización (1ra vez)',
                 'descripcion' => 'Salir de las dependencias de la Empresa durante las horas de trabajo por poco tiempo, sin autorización previa cuando no cause perjuicio de consideración a la empresa.',
-                'tipo_sancion' => 'suspension',
+                'tipo_sancion' => 'llamado_atencion',
                 'dias_suspension_min' => null,
-                'dias_suspension_max' => 5,
+                'dias_suspension_max' => null,
                 'orden' => 6,
+                'orden_reincidencia' => 1,
+                'grupo' => 'salir_sin_autorizacion',
             ],
             [
                 'tipo_falta' => 'leve',
@@ -77,15 +106,21 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 15,
                 'orden' => 7,
+                'orden_reincidencia' => 2,
+                'grupo' => 'salir_sin_autorizacion',
             ],
+
+            // Grupo: Cambio de horario sin autorización (1ra, 2da vez) + 3ra vez es grave
             [
                 'tipo_falta' => 'leve',
-                'nombre_claro' => 'Cambio de horario sin autorización',
+                'nombre_claro' => 'Cambio de horario sin autorización (1ra vez)',
                 'descripcion' => 'Cambio en el horario de trabajo asignado sin autorización.',
                 'tipo_sancion' => 'suspension',
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 3,
                 'orden' => 8,
+                'orden_reincidencia' => 1,
+                'grupo' => 'cambio_horario',
             ],
             [
                 'tipo_falta' => 'leve',
@@ -95,7 +130,11 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 15,
                 'orden' => 9,
+                'orden_reincidencia' => 2,
+                'grupo' => 'cambio_horario',
             ],
+
+            // Grupo: Violación leve de obligaciones (1ra, 2da vez)
             [
                 'tipo_falta' => 'leve',
                 'nombre_claro' => 'Violación leve de obligaciones (1ra vez)',
@@ -104,6 +143,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 8,
                 'orden' => 10,
+                'orden_reincidencia' => 1,
+                'grupo' => 'violacion_leve',
             ],
             [
                 'tipo_falta' => 'leve',
@@ -113,7 +154,11 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 15,
                 'orden' => 11,
+                'orden_reincidencia' => 2,
+                'grupo' => 'violacion_leve',
             ],
+
+            // Sin reincidencia
             [
                 'tipo_falta' => 'leve',
                 'nombre_claro' => 'No acatar indicaciones del jefe',
@@ -122,6 +167,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 3,
                 'orden' => 12,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'leve',
@@ -131,6 +178,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 5,
                 'orden' => 13,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'leve',
@@ -140,6 +189,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 8,
                 'orden' => 14,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'leve',
@@ -149,6 +200,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 8,
                 'orden' => 15,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'leve',
@@ -158,7 +211,11 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 3,
                 'orden' => 16,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
+
+            // Grupo: Mal uso herramientas (1ra, 2da vez) + 3ra vez es grave
             [
                 'tipo_falta' => 'leve',
                 'nombre_claro' => 'Mal uso herramientas (1ra vez)',
@@ -167,6 +224,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 8,
                 'orden' => 17,
+                'orden_reincidencia' => 1,
+                'grupo' => 'mal_uso_herramientas',
             ],
             [
                 'tipo_falta' => 'leve',
@@ -176,7 +235,11 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 15,
                 'orden' => 18,
+                'orden_reincidencia' => 2,
+                'grupo' => 'mal_uso_herramientas',
             ],
+
+            // Sin reincidencia
             [
                 'tipo_falta' => 'leve',
                 'nombre_claro' => 'Disminuir ritmo de trabajo',
@@ -185,6 +248,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 8,
                 'orden' => 19,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'leve',
@@ -194,6 +259,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 5,
                 'orden' => 20,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'leve',
@@ -203,7 +270,11 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 5,
                 'orden' => 21,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
+
+            // Grupo: No usar uniforme (1ra, 2da, 3ra vez)
             [
                 'tipo_falta' => 'leve',
                 'nombre_claro' => 'No usar uniforme (1ra vez)',
@@ -212,6 +283,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 22,
+                'orden_reincidencia' => 1,
+                'grupo' => 'no_usar_uniforme',
             ],
             [
                 'tipo_falta' => 'leve',
@@ -221,6 +294,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 5,
                 'orden' => 23,
+                'orden_reincidencia' => 2,
+                'grupo' => 'no_usar_uniforme',
             ],
             [
                 'tipo_falta' => 'leve',
@@ -230,7 +305,11 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 15,
                 'orden' => 24,
+                'orden_reincidencia' => 3,
+                'grupo' => 'no_usar_uniforme',
             ],
+
+            // Grupo: No asistir a capacitaciones (1ra, 2da vez) + 3ra vez es grave
             [
                 'tipo_falta' => 'leve',
                 'nombre_claro' => 'No asistir a capacitaciones (1ra vez)',
@@ -239,6 +318,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 5,
                 'orden' => 25,
+                'orden_reincidencia' => 1,
+                'grupo' => 'no_asistir_capacitaciones',
             ],
             [
                 'tipo_falta' => 'leve',
@@ -248,7 +329,11 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 30,
                 'orden' => 26,
+                'orden_reincidencia' => 2,
+                'grupo' => 'no_asistir_capacitaciones',
             ],
+
+            // Sin reincidencia
             [
                 'tipo_falta' => 'leve',
                 'nombre_claro' => 'Incurrir en prohibición del reglamento',
@@ -257,6 +342,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 8,
                 'orden' => 27,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'leve',
@@ -266,9 +353,13 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => 8,
                 'orden' => 28,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
 
             // ==================== FALTAS GRAVES ====================
+
+            // Reincidencia de retardo (4ta vez)
             [
                 'tipo_falta' => 'grave',
                 'nombre_claro' => 'Retardo de 15 minutos (4ta vez)',
@@ -277,7 +368,11 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 29,
+                'orden_reincidencia' => 4,
+                'grupo' => 'retardo_15min',
             ],
+
+            // Sin reincidencia
             [
                 'tipo_falta' => 'grave',
                 'nombre_claro' => 'Violación grave de obligaciones o reincidencia',
@@ -286,6 +381,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 30,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -295,6 +392,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 31,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -304,6 +403,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 32,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -313,6 +414,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 33,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -322,6 +425,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 34,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -331,6 +436,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 35,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -340,6 +447,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 36,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -349,6 +458,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 37,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -358,6 +469,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 38,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -367,7 +480,11 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 39,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
+
+            // Reincidencia de mal uso herramientas (3ra vez)
             [
                 'tipo_falta' => 'grave',
                 'nombre_claro' => 'Mal uso herramientas (3ra vez)',
@@ -376,7 +493,11 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 40,
+                'orden_reincidencia' => 3,
+                'grupo' => 'mal_uso_herramientas',
             ],
+
+            // Reincidencia de no asistir capacitaciones (3ra vez)
             [
                 'tipo_falta' => 'grave',
                 'nombre_claro' => 'No asistir a capacitaciones (3ra vez)',
@@ -385,7 +506,11 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 41,
+                'orden_reincidencia' => 3,
+                'grupo' => 'no_asistir_capacitaciones',
             ],
+
+            // Sin reincidencia
             [
                 'tipo_falta' => 'grave',
                 'nombre_claro' => 'Agresión física en instalaciones',
@@ -394,6 +519,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 42,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -403,6 +530,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 43,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -412,6 +541,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 44,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -421,6 +552,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 45,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -430,6 +563,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 46,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -439,16 +574,24 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 47,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
+
+            // Reincidencia de cambio de horario (3ra vez)
             [
                 'tipo_falta' => 'grave',
-                'nombre_claro' => 'Cambio de horario (3ra vez)',
+                'nombre_claro' => 'Cambio de horario sin autorización (3ra vez)',
                 'descripcion' => 'Cambio en el horario de trabajo asignado sin autorización por tercera ocasión.',
                 'tipo_sancion' => 'terminacion',
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 48,
+                'orden_reincidencia' => 3,
+                'grupo' => 'cambio_horario',
             ],
+
+            // Sin reincidencia
             [
                 'tipo_falta' => 'grave',
                 'nombre_claro' => 'Negarse a requisas o actitud agresiva',
@@ -457,6 +600,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 49,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -466,6 +611,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 50,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -475,6 +622,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 51,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -484,6 +633,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 52,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -493,6 +644,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 53,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -502,6 +655,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 54,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -511,6 +666,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 55,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -520,6 +677,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 56,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -529,6 +688,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 57,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -538,6 +699,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 58,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -547,6 +710,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 59,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -556,6 +721,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 60,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -565,6 +732,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 61,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -574,6 +743,8 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 62,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
             [
                 'tipo_falta' => 'grave',
@@ -583,21 +754,57 @@ class SancionLaboralSeeder extends Seeder
                 'dias_suspension_min' => null,
                 'dias_suspension_max' => null,
                 'orden' => 63,
+                'orden_reincidencia' => null,
+                'grupo' => null,
             ],
         ];
 
-        // Insertar sanciones (evitar duplicados)
+        // Primera pasada: insertar todas las sanciones y guardar IDs de los padres (1ra vez)
         $inserted = 0;
-        foreach ($sanciones as $sancion) {
-            $result = SancionLaboral::firstOrCreate(
-                ['orden' => $sancion['orden']],
-                $sancion
+        $sancionesCreadas = [];
+
+        foreach ($sanciones as $sancionData) {
+            $grupo = $sancionData['grupo'] ?? null;
+            unset($sancionData['grupo']);
+
+            // Determinar sancion_padre_id
+            $sancionPadreId = null;
+            if ($grupo && $sancionData['orden_reincidencia'] > 1) {
+                // Es una reincidencia, buscar el padre
+                $sancionPadreId = $gruposReincidencia[$grupo] ?? null;
+            }
+
+            $sancionData['sancion_padre_id'] = $sancionPadreId;
+
+            $sancion = SancionLaboral::updateOrCreate(
+                ['nombre_claro' => $sancionData['nombre_claro']],
+                $sancionData
             );
-            if ($result->wasRecentlyCreated) {
+
+            // Si es la primera vez (orden_reincidencia = 1), guardar como padre del grupo
+            if ($grupo && $sancionData['orden_reincidencia'] === 1) {
+                $gruposReincidencia[$grupo] = $sancion->id;
+            }
+
+            $sancionesCreadas[$sancionData['nombre_claro']] = $sancion->id;
+
+            if ($sancion->wasRecentlyCreated) {
                 $inserted++;
             }
         }
 
-        $this->command->info("✅ Sanciones laborales: {$inserted} nuevas, " . (count($sanciones) - $inserted) . " ya existentes.");
+        // Segunda pasada: actualizar sancion_padre_id de las reincidencias que se crearon antes que sus padres
+        foreach ($sanciones as $sancionData) {
+            $grupo = $sancionData['grupo'] ?? null;
+            if ($grupo && ($sancionData['orden_reincidencia'] ?? 0) > 1) {
+                $sancionPadreId = $gruposReincidencia[$grupo] ?? null;
+                if ($sancionPadreId) {
+                    SancionLaboral::where('nombre_claro', $sancionData['nombre_claro'])
+                        ->update(['sancion_padre_id' => $sancionPadreId]);
+                }
+            }
+        }
+
+        $this->command->info("Sanciones laborales: {$inserted} nuevas, " . (count($sanciones) - $inserted) . " actualizadas.");
     }
 }
