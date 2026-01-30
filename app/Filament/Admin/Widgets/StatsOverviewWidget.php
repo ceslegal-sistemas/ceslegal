@@ -26,16 +26,16 @@ class StatsOverviewWidget extends BaseWidget
         $procesosQuery = ProcesoDisciplinario::query();
         $solicitudesQuery = SolicitudContrato::query();
 
-        if (!in_array($user->role, ['admin', 'super_admin'])) {
+        if (!in_array($user->role, ['super_admin', 'abogado'])) {
             $procesosQuery->where('empresa_id', $user->empresa_id);
             $solicitudesQuery->where('empresa_id', $user->empresa_id);
         }
 
         // Si es abogado, filtrar solo sus casos asignados
-        if ($user->role === 'abogado') {
-            $procesosQuery->where('abogado_id', $user->id);
-            $solicitudesQuery->where('abogado_id', $user->id);
-        }
+        // if ($user->role === 'abogado') {
+        //     $procesosQuery->where('abogado_id', $user->id);
+        //     $solicitudesQuery->where('abogado_id', $user->id);
+        // }
 
         // Estadísticas de Procesos Disciplinarios (ESTADOS SIMPLIFICADOS)
         $totalProcesos = $procesosQuery->count();
