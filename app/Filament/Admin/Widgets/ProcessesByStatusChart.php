@@ -25,14 +25,14 @@ class ProcessesByStatusChart extends ChartWidget
         $query = ProcesoDisciplinario::query();
 
         // Filtrar por empresa si no es admin o super_admin
-        if (!in_array($user->role, ['admin', 'super_admin'])) {
+        if (!in_array($user->role, ['abogado', 'super_admin'])) {
             $query->where('empresa_id', $user->empresa_id);
         }
 
         // Si es abogado, filtrar solo sus casos asignados
-        if ($user->role === 'abogado') {
-            $query->where('abogado_id', $user->id);
-        }
+        // if ($user->role === 'abogado') {
+        //     $query->where('abogado_id', $user->id);
+        // }
 
         // Obtener todos los estados posibles (flujo simplificado)
         $estadosPosibles = [

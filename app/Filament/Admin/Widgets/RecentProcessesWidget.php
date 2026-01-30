@@ -26,14 +26,14 @@ class RecentProcessesWidget extends BaseWidget
             ->limit(10);
 
         // Filtrar por empresa si no es admin o super_admin
-        if (!in_array($user->role, ['admin', 'super_admin'])) {
+        if (!in_array($user->role, ['abogado', 'super_admin'])) {
             $query->where('empresa_id', $user->empresa_id);
         }
 
         // Si es abogado, filtrar solo sus casos asignados
-        if ($user->role === 'abogado') {
-            $query->where('abogado_id', $user->id);
-        }
+        // if ($user->role === 'abogado') {
+        //     $query->where('abogado_id', $user->id);
+        // }
 
         return $table
             ->query($query)
@@ -56,7 +56,7 @@ class RecentProcessesWidget extends BaseWidget
                 Tables\Columns\TextColumn::make('empresa.razon_social')
                     ->label('Empresa')
                     ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: !in_array($user->role, ['admin', 'super_admin'])),
+                    ->toggleable(isToggledHiddenByDefault: !in_array($user->role, ['abogado', 'super_admin'])),
 
                 Tables\Columns\BadgeColumn::make('estado')
                     ->label('Estado')

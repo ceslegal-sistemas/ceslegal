@@ -26,7 +26,7 @@ class RecentActivityWidget extends BaseWidget
             ->limit(15);
 
         // Filtrar por empresa si no es admin o super_admin
-        if (!in_array($user->role, ['admin', 'super_admin'])) {
+        if (!in_array($user->role, ['abogado', 'super_admin'])) {
             $query->whereIn('proceso_id', function ($q) use ($user) {
                 $q->select('id')
                     ->from('procesos_disciplinarios')
@@ -35,13 +35,13 @@ class RecentActivityWidget extends BaseWidget
         }
 
         // Si es abogado, filtrar solo sus casos asignados
-        if ($user->role === 'abogado') {
-            $query->whereIn('proceso_id', function ($q) use ($user) {
-                $q->select('id')
-                    ->from('procesos_disciplinarios')
-                    ->where('abogado_id', $user->id);
-            });
-        }
+        // if ($user->role === 'abogado') {
+        //     $query->whereIn('proceso_id', function ($q) use ($user) {
+        //         $q->select('id')
+        //             ->from('procesos_disciplinarios')
+        //             ->where('abogado_id', $user->id);
+        //     });
+        // }
 
         return $table
             ->query($query)
