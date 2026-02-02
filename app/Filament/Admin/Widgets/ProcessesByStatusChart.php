@@ -24,17 +24,10 @@ class ProcessesByStatusChart extends ChartWidget
 
         $query = ProcesoDisciplinario::query();
 
-        // Filtrar por empresa si no es admin o super_admin
         if (!in_array($user->role, ['abogado', 'super_admin'])) {
             $query->where('empresa_id', $user->empresa_id);
         }
 
-        // Si es abogado, filtrar solo sus casos asignados
-        // if ($user->role === 'abogado') {
-        //     $query->where('abogado_id', $user->id);
-        // }
-
-        // Obtener todos los estados posibles (flujo simplificado)
         $estadosPosibles = [
             'apertura',
             'descargos_pendientes',
@@ -51,7 +44,6 @@ class ProcessesByStatusChart extends ChartWidget
         $backgroundColors = [];
         $borderColors = [];
 
-        // Mapeo de colores por estado
         $colorMapping = [
             'apertura' => ['rgba(156, 163, 175, 0.7)', 'rgb(156, 163, 175)'],
             'descargos_pendientes' => ['rgba(249, 115, 22, 0.7)', 'rgb(249, 115, 22)'],
@@ -66,7 +58,6 @@ class ProcessesByStatusChart extends ChartWidget
         foreach ($estadosPosibles as $estado) {
             $count = (clone $query)->where('estado', $estado)->count();
 
-            // Solo incluir estados que tengan procesos
             if ($count > 0) {
                 $data[] = $count;
                 $labels[] = $estadoService->getDescripcionEstado($estado);
@@ -85,6 +76,10 @@ class ProcessesByStatusChart extends ChartWidget
                     'backgroundColor' => $backgroundColors,
                     'borderColor' => $borderColors,
                     'borderWidth' => 2,
+                    'hoverBackgroundColor' => $borderColors,
+                    'hoverBorderColor' => '#fff',
+                    'hoverBorderWidth' => 3,
+                    'hoverOffset' => 15,
                 ],
             ],
             'labels' => $labels,
@@ -110,20 +105,9 @@ class ProcessesByStatusChart extends ChartWidget
                         ],
                     ],
                 ],
-                'tooltip' => [
-                    'enabled' => true,
-                    'callbacks' => [
-                        'label' => 'function(context) {
-                            let label = context.label || "";
-                            let value = context.parsed || 0;
-                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            let percentage = ((value / total) * 100).toFixed(1);
-                            return label + ": " + value + " (" + percentage + "%)";
-                        }',
-                    ],
-                ],
             ],
             'maintainAspectRatio' => false,
+            'responsive' => true,
         ];
     }
 }
