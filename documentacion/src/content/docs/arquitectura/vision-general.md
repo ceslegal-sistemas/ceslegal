@@ -9,66 +9,7 @@ CES Legal es una aplicación web monolítica construida con **Laravel 12** y **F
 
 ## Arquitectura de Alto Nivel
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         CLIENTES                                 │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
-│  │  Admin   │  │ Abogado  │  │  Cliente │  │Trabajador│        │
-│  │(Filament)│  │(Filament)│  │(Filament)│  │ (Público)│        │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘        │
-└───────┼─────────────┼─────────────┼─────────────┼───────────────┘
-        │             │             │             │
-        ▼             ▼             ▼             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      CAPA DE PRESENTACIÓN                        │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │                   Filament Admin Panel                    │    │
-│  │  • Resources (CRUD)  • Pages  • Widgets  • Actions       │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │                   Livewire Components                     │    │
-│  │  • FormularioDescargos (público con timer)               │    │
-│  └─────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      CAPA DE APLICACIÓN                          │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │ Controllers  │  │   Services   │  │   Policies   │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │  Observers   │  │Notifications │  │    Jobs      │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      CAPA DE DOMINIO                             │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │                   Eloquent Models (22)                    │    │
-│  │  ProcesoDisciplinario, Trabajador, Empresa, User, etc.   │    │
-│  └─────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      CAPA DE DATOS                               │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │    MySQL     │  │   Storage    │  │    Cache     │          │
-│  │  (56 tablas) │  │  (archivos)  │  │  (database)  │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   SERVICIOS EXTERNOS                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │Google Gemini │  │  Gmail SMTP  │  │   Storage    │          │
-│  │     (IA)     │  │   (correo)   │  │   (local)    │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-└─────────────────────────────────────────────────────────────────┘
-```
+![Arquitectura de Alto Nivel](../../../assets/arquitectura-alto-nivel.png)
 
 ## Patrones de Diseño Utilizados
 
@@ -138,16 +79,19 @@ public function cambiarEstado(ProcesoDisciplinario $proceso, string $nuevoEstado
 5. NotificacionService → Notifica al abogado
 6. TimelineService → Registra evento
 ```
+![Flujo Creacion Proceso Disciplinario](../../../assets/creacion-de-proceso-disciplinario.png)
 
-### Generación de Preguntas con IA
+### Generación de Preguntas con IA Manualmente
 
 ```
-1. Abogado → Acción "Generar Preguntas"
+1. Abogado → Acción "Generar Preguntas IA"
 2. IADescargoService → Construye prompt
 3. Google Gemini API → Respuesta JSON
 4. PreguntaDescargo::create() → Guarda preguntas
 5. TrazabilidadIADescargo → Registra auditoría
 ```
+![Generación Preguntas IA Manualmente](../../../assets/si-falla-la-IA.png)
+
 
 ### Formulario Público de Descargos
 
@@ -159,6 +103,7 @@ public function cambiarEstado(ProcesoDisciplinario $proceso, string $nuevoEstado
 5. Respuestas → RespuestaDescargo::create()
 6. ActaDescargosService → Genera acta PDF
 ```
+![Completar Formulario Descargos](../../../assets/completar-formulario-descargos.png)
 
 ## Seguridad
 

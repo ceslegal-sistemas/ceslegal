@@ -357,7 +357,7 @@ HTML;
 
             Log::info('Ejecutando LibreOffice', ['command' => $command]);
 
-            exec($command, $output, $return);
+            \exec($command, $output, $return);
 
             Log::info('Resultado LibreOffice', [
                 'return_code' => $return,
@@ -430,8 +430,13 @@ HTML;
 
     private function isLibreOfficeAvailable(): bool
     {
+        if (!function_exists('exec')) {
+            Log::warning('La función exec() no está disponible en este servidor');
+            return false;
+        }
+
         if (PHP_OS_FAMILY === 'Linux') {
-            exec('which soffice 2>/dev/null', $output, $return);
+            \exec('which soffice 2>/dev/null', $output, $return);
             return $return === 0;
         }
 
@@ -1159,7 +1164,7 @@ HTML;
                 'outputDir' => $outputDir
             ]);
 
-            exec($command, $output, $return);
+            \exec($command, $output, $return);
 
             Log::info('Resultado LibreOffice HTML a PDF', [
                 'return_code' => $return,
@@ -1369,5 +1374,392 @@ HTML;
                 throw $e;
             }
         });
+    }
+
+    /**
+     * Enviar notificación de cambio de estado de descargos al trabajador
+     */
+    public function enviarNotificacionEstadoDescargos(ProcesoDisciplinario $proceso, string $estado): void
+    {
+        $trabajador = $proceso->trabajador;
+        $empresa = $proceso->empresa;
+
+        if (empty($trabajador->email)) {
+            Log::warning('No se puede enviar notificación de estado: trabajador sin email', [
+                'proceso_id' => $proceso->id,
+                'estado' => $estado,
+            ]);
+            return;
+        }
+
+        // Crear registro de tracking para el correo
+        $tracking = EmailTracking::create([
+            'token' => EmailTracking::generarToken(),
+            'tipo_correo' => 'estado_descargos',
+            'proceso_id' => $proceso->id,
+            'trabajador_id' => $trabajador->id,
+            'email_destinatario' => $trabajador->email,
+            'enviado_en' => Carbon::now('America/Bogota'),
+        ]);
+
+        // Determinar texto del estado
+        $estadoTexto = match ($estado) {
+            'descargos_realizados' => 'Descargos Completados',
+            'descargos_no_realizados' => 'Descargos No Realizados',
+            default => ucfirst(str_replace('_', ' ', $estado)),
+        };
+
+        // Determinar asunto del correo
+        $asunto = match ($estado) {
+            'descargos_realizados' => 'Confirmación de Recepción de Descargos - Proceso ' . $proceso->codigo,
+            'descargos_no_realizados' => 'Notificación de Descargos No Presentados - Proceso ' . $proceso->codigo,
+            default => 'Actualización del Proceso Disciplinario ' . $proceso->codigo,
+        };
+
+        Mail::send('emails.descargos-estado', [
+            'proceso' => $proceso,
+            'trabajador' => $trabajador,
+            'empresa' => $empresa,
+            'estado' => $estado,
+            'estadoTexto' => $estadoTexto,
+            'trackingToken' => $tracking->token,
+        ], function ($message) use ($trabajador, $asunto) {
+            $message->to($trabajador->email, $trabajador->nombre_completo)
+                ->subject($asunto);
+        });
+
+        Log::info('Notificación de estado de descargos enviada', [
+            'proceso_id' => $proceso->id,
+            'estado' => $estado,
+            'trabajador_email' => $trabajador->email,
+            'tracking_token' => substr($tracking->token, 0, 10) . '...',
+        ]);
+    }
+
+    /**
+     * Enviar notificación de estado de descargos al cliente (usuario de la empresa)
+     */
+    public function enviarNotificacionDescargosAlCliente(ProcesoDisciplinario $proceso, string $estado): void
+    {
+        $trabajador = $proceso->trabajador;
+        $empresa = $proceso->empresa;
+
+        // Obtener usuarios cliente activos de la empresa
+        $usuariosCliente = \App\Models\User::where('role', 'cliente')
+            ->where('empresa_id', $proceso->empresa_id)
+            ->where('active', true)
+            ->whereNotNull('email')
+            ->get();
+
+        if ($usuariosCliente->isEmpty()) {
+            Log::warning('No hay usuarios cliente para notificar sobre descargos', [
+                'proceso_id' => $proceso->id,
+                'empresa_id' => $proceso->empresa_id,
+                'estado' => $estado,
+            ]);
+            return;
+        }
+
+        // Determinar asunto del correo
+        $asunto = match ($estado) {
+            'descargos_realizados' => 'Trabajador Completó Descargos - Proceso ' . $proceso->codigo,
+            'descargos_no_realizados' => 'Trabajador No Presentó Descargos - Proceso ' . $proceso->codigo,
+            default => 'Actualización del Proceso Disciplinario ' . $proceso->codigo,
+        };
+
+        foreach ($usuariosCliente as $cliente) {
+            try {
+                // Crear registro de tracking para el correo
+                $tracking = EmailTracking::create([
+                    'token' => EmailTracking::generarToken(),
+                    'tipo_correo' => 'estado_descargos_cliente',
+                    'proceso_id' => $proceso->id,
+                    'trabajador_id' => $trabajador->id,
+                    'email_destinatario' => $cliente->email,
+                    'enviado_en' => Carbon::now('America/Bogota'),
+                ]);
+
+                Mail::send('emails.descargos-estado-cliente', [
+                    'proceso' => $proceso,
+                    'trabajador' => $trabajador,
+                    'empresa' => $empresa,
+                    'cliente' => $cliente,
+                    'estado' => $estado,
+                    'trackingToken' => $tracking->token,
+                ], function ($message) use ($cliente, $asunto) {
+                    $message->to($cliente->email, $cliente->name)
+                        ->subject($asunto);
+                });
+
+                Log::info('Notificación de estado de descargos enviada al cliente', [
+                    'proceso_id' => $proceso->id,
+                    'estado' => $estado,
+                    'cliente_email' => $cliente->email,
+                    'cliente_id' => $cliente->id,
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Error al enviar notificación de descargos al cliente', [
+                    'proceso_id' => $proceso->id,
+                    'cliente_id' => $cliente->id,
+                    'cliente_email' => $cliente->email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Generar documento de resolución de impugnación
+     */
+    public function generarDocumentoResolucionImpugnacion(ProcesoDisciplinario $proceso, \App\Models\Impugnacion $impugnacion): string
+    {
+        $trabajador = $proceso->trabajador;
+        $empresa = $proceso->empresa;
+        $fechaActual = Carbon::now()->locale('es');
+
+        // Determinar texto de la decisión
+        $decisionTexto = match ($impugnacion->decision_final) {
+            'confirma_sancion' => 'CONFIRMA LA SANCIÓN',
+            'revoca_sancion' => 'REVOCA LA SANCIÓN',
+            'modifica_sancion' => 'MODIFICA LA SANCIÓN',
+            default => 'RESUELVE',
+        };
+
+        // Texto de nueva sanción si aplica
+        $nuevaSancionTexto = '';
+        if ($impugnacion->decision_final === 'modifica_sancion' && $impugnacion->nueva_sancion_tipo) {
+            $nuevaSancionTexto = match ($impugnacion->nueva_sancion_tipo) {
+                'llamado_atencion' => 'Llamado de Atención',
+                'suspension' => 'Suspensión Laboral',
+                'terminacion' => 'Terminación de Contrato',
+                default => ucfirst(str_replace('_', ' ', $impugnacion->nueva_sancion_tipo)),
+            };
+        }
+
+        // Sanción original
+        $sancionOriginalTexto = match ($proceso->tipo_sancion) {
+            'llamado_atencion' => 'Llamado de Atención',
+            'suspension' => 'Suspensión Laboral' . ($proceso->dias_suspension ? " de {$proceso->dias_suspension} día(s)" : ''),
+            'terminacion' => 'Terminación de Contrato',
+            default => ucfirst(str_replace('_', ' ', $proceso->tipo_sancion ?? 'N/A')),
+        };
+
+        // Generar HTML del documento
+        $html = <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resolución de Impugnación</title>
+    <style>
+        @page {
+            margin: 2.5cm 2.5cm 2.5cm 2.5cm;
+        }
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #000000;
+            text-align: justify;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 14pt;
+            font-weight: bold;
+            text-align: center;
+            margin: 5px 0;
+        }
+        h2 {
+            font-size: 12pt;
+            font-weight: bold;
+            text-align: center;
+            margin: 5px 0;
+        }
+        h3 {
+            font-size: 11pt;
+            font-weight: bold;
+            margin: 15px 0 5px 0;
+        }
+        p {
+            margin: 8px 0;
+        }
+        .info-section {
+            margin: 15px 0;
+        }
+        .decision-box {
+            border: 2px solid #000;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+            background-color: #f5f5f5;
+        }
+        .firma {
+            margin-top: 50px;
+        }
+        .linea-firma {
+            margin-top: 60px;
+            border-top: 1px solid #000;
+            width: 250px;
+            padding-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{$empresa->razon_social}</h1>
+        <p>NIT: {$empresa->nit}</p>
+        <h2>RESOLUCIÓN DE IMPUGNACIÓN</h2>
+        <p>{$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}</p>
+        <p>Proceso: {$proceso->codigo}</p>
+    </div>
+
+    <div class="info-section">
+        <p><strong>Señor(a):</strong> {$trabajador->nombre_completo}</p>
+        <p><strong>{$trabajador->tipo_documento}:</strong> {$trabajador->numero_documento}</p>
+        <p><strong>Cargo:</strong> {$trabajador->cargo}</p>
+    </div>
+
+    <p><strong>Asunto:</strong> Resolución de impugnación presentada contra sanción disciplinaria</p>
+
+    <h3>1. ANTECEDENTES</h3>
+    <p>Mediante comunicación de fecha {$proceso->fecha_notificacion?->locale('es')->isoFormat('D [de] MMMM [de] YYYY')}, se le notificó la sanción disciplinaria consistente en <strong>{$sancionOriginalTexto}</strong>, como resultado del proceso disciplinario {$proceso->codigo}.</p>
+
+    <p>En fecha {$impugnacion->fecha_impugnacion?->locale('es')->isoFormat('D [de] MMMM [de] YYYY')}, usted presentó impugnación contra dicha sanción, exponiendo los siguientes motivos:</p>
+
+    <div style="margin-left: 20px; font-style: italic; border-left: 3px solid #ccc; padding-left: 15px;">
+        <p>{$impugnacion->motivos_impugnacion}</p>
+    </div>
+
+    <h3>2. ANÁLISIS</h3>
+    <p>Después de revisar cuidadosamente los argumentos presentados en su impugnación, las pruebas aportadas y el expediente completo del proceso disciplinario, se procede a emitir la siguiente decisión:</p>
+
+    <h3>3. DECISIÓN</h3>
+    <div class="decision-box">
+        <h2>{$decisionTexto}</h2>
+HTML;
+
+        if ($impugnacion->decision_final === 'confirma_sancion') {
+            $html .= '<p>Se CONFIRMA en todas sus partes la sanción disciplinaria de <strong>' . $sancionOriginalTexto . '</strong> impuesta mediante el proceso ' . $proceso->codigo . '.</p>';
+        } elseif ($impugnacion->decision_final === 'revoca_sancion') {
+            $html .= '<p>Se REVOCA la sanción disciplinaria de <strong>' . $sancionOriginalTexto . '</strong> impuesta mediante el proceso ' . $proceso->codigo . ', dejándola sin efecto alguno.</p>';
+        } elseif ($impugnacion->decision_final === 'modifica_sancion') {
+            $html .= '<p>Se MODIFICA la sanción disciplinaria, cambiando de <strong>' . $sancionOriginalTexto . '</strong> a <strong>' . $nuevaSancionTexto . '</strong>.</p>';
+        }
+
+        $html .= <<<HTML
+    </div>
+
+    <h3>4. FUNDAMENTO DE LA DECISIÓN</h3>
+    <p>{$impugnacion->fundamento_decision}</p>
+
+    <h3>5. EFECTOS</h3>
+HTML;
+
+        if ($impugnacion->decision_final === 'confirma_sancion') {
+            $html .= '<p>La sanción originalmente impuesta mantiene plena vigencia y debe cumplirse en los términos inicialmente establecidos.</p>';
+        } elseif ($impugnacion->decision_final === 'revoca_sancion') {
+            $html .= '<p>Al revocar la sanción, el proceso disciplinario queda cerrado sin efectos negativos en su expediente laboral respecto a este caso particular.</p>';
+        } elseif ($impugnacion->decision_final === 'modifica_sancion') {
+            $html .= '<p>La nueva sanción de <strong>' . $nuevaSancionTexto . '</strong> será aplicable a partir de la fecha de esta notificación, en los términos establecidos por el reglamento interno de trabajo.</p>';
+        }
+
+        $html .= <<<HTML
+
+    <p>Esta decisión es definitiva y pone fin al proceso disciplinario {$proceso->codigo}.</p>
+
+    <div class="firma">
+        <p>Cordialmente,</p>
+        <div class="linea-firma">
+            <p><strong>{$empresa->representante_legal}</strong></p>
+            <p>Representante Legal</p>
+            <p>{$empresa->razon_social}</p>
+            <p>NIT: {$empresa->nit}</p>
+        </div>
+    </div>
+</body>
+</html>
+HTML;
+
+        // Guardar y convertir a PDF
+        $htmlPath = $this->guardarDocumentoSancionHTML($html, $proceso->codigo, 'resolucion_impugnacion');
+        $pdfPath = $this->convertirHTMLaPDF($htmlPath, $proceso->codigo, 'resolucion_impugnacion');
+
+        return $pdfPath;
+    }
+
+    /**
+     * Enviar resolución de impugnación por correo electrónico
+     */
+    public function enviarResolucionImpugnacionPorEmail(ProcesoDisciplinario $proceso, string $documentoPath, string $decision): void
+    {
+        $trabajador = $proceso->trabajador;
+        $empresa = $proceso->empresa;
+        $impugnacion = $proceso->impugnacion;
+
+        if (empty($trabajador->email)) {
+            throw new \Exception('El trabajador no tiene correo electrónico registrado');
+        }
+
+        // Crear registro de tracking
+        $tracking = EmailTracking::create([
+            'token' => EmailTracking::generarToken(),
+            'tipo_correo' => 'resolucion_impugnacion',
+            'proceso_id' => $proceso->id,
+            'trabajador_id' => $trabajador->id,
+            'email_destinatario' => $trabajador->email,
+            'enviado_en' => Carbon::now('America/Bogota'),
+        ]);
+
+        // Determinar texto de decisión para el email
+        $decisionTexto = match ($decision) {
+            'confirma_sancion' => 'Sanción Confirmada',
+            'revoca_sancion' => 'Sanción Revocada',
+            'modifica_sancion' => 'Sanción Modificada',
+            default => 'Resolución Emitida',
+        };
+
+        // Determinar nueva sanción si aplica
+        $nuevaSancion = null;
+        if ($decision === 'modifica_sancion' && $impugnacion->nueva_sancion_tipo) {
+            $nuevaSancion = match ($impugnacion->nueva_sancion_tipo) {
+                'llamado_atencion' => 'Llamado de Atención',
+                'suspension' => 'Suspensión Laboral',
+                'terminacion' => 'Terminación de Contrato',
+                default => ucfirst(str_replace('_', ' ', $impugnacion->nueva_sancion_tipo)),
+            };
+        }
+
+        $extension = pathinfo($documentoPath, PATHINFO_EXTENSION);
+        $mimeType = $extension === 'pdf' ? 'application/pdf' : 'text/html';
+        $nombreArchivo = 'Resolucion_Impugnacion_' . $proceso->codigo . '.' . $extension;
+
+        Mail::send('emails.resolucion-impugnacion', [
+            'proceso' => $proceso,
+            'trabajador' => $trabajador,
+            'empresa' => $empresa,
+            'impugnacion' => $impugnacion,
+            'decision' => $decision,
+            'fundamento' => $impugnacion->fundamento_decision,
+            'nuevaSancion' => $nuevaSancion,
+            'trackingToken' => $tracking->token,
+        ], function ($message) use ($trabajador, $proceso, $documentoPath, $nombreArchivo, $mimeType) {
+            $message->to($trabajador->email, $trabajador->nombre_completo)
+                ->subject('Resolución de Impugnación - Proceso ' . $proceso->codigo)
+                ->attach($documentoPath, [
+                    'as' => $nombreArchivo,
+                    'mime' => $mimeType,
+                ]);
+        });
+
+        Log::info('Resolución de impugnación enviada', [
+            'proceso_id' => $proceso->id,
+            'decision' => $decision,
+            'trabajador_email' => $trabajador->email,
+            'tracking_token' => substr($tracking->token, 0, 10) . '...',
+        ]);
     }
 }

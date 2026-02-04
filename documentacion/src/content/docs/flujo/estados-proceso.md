@@ -5,59 +5,7 @@ description: Máquina de estados del proceso disciplinario en CES Legal
 
 ## Diagrama de Estados
 
-```
-                              ┌─────────────────┐
-                              │                 │
-                              │    APERTURA     │
-                              │                 │
-                              └────────┬────────┘
-                                       │
-                                       │ Programar descargos
-                                       ▼
-                              ┌─────────────────┐
-                              │                 │
-                              │   DESCARGOS     │
-                              │   PENDIENTES    │
-                              │                 │
-                              └────────┬────────┘
-                                       │
-                    ┌──────────────────┼──────────────────┐
-                    │                  │                  │
-                    │ Asiste           │ No asiste        │
-                    ▼                  │                  ▼
-          ┌─────────────────┐          │        ┌─────────────────┐
-          │                 │          │        │                 │
-          │   DESCARGOS     │          │        │   DESCARGOS     │
-          │   REALIZADOS    │          │        │  NO REALIZADOS  │
-          │                 │          │        │                 │
-          └────────┬────────┘          │        └────────┬────────┘
-                   │                   │                 │
-                   └───────────────────┼─────────────────┘
-                                       │
-                    ┌──────────────────┼──────────────────┐
-                    │                  │                  │
-                    │ Con sanción      │ Sin sanción      │
-                    ▼                  │                  ▼
-          ┌─────────────────┐          │        ┌─────────────────┐
-          │                 │          │        │                 │
-          │    SANCIÓN      │          │        │   ARCHIVADO     │
-          │    EMITIDA      │          │        │                 │
-          │                 │          │        │                 │
-          └────────┬────────┘          │        └─────────────────┘
-                   │                   │
-                   ├───────────────────┘
-                   │
-          ┌───────┴────────┐
-          │                │
-          │ Impugna        │ No impugna
-          ▼                ▼
-┌─────────────────┐  ┌─────────────────┐
-│                 │  │                 │
-│  IMPUGNACIÓN    │  │    CERRADO      │
-│   REALIZADA     │──▶│                 │
-│                 │  │                 │
-└─────────────────┘  └─────────────────┘
-```
+![Diagrama de estados](../../../assets/diagrama-estados.png)
 
 ## Descripción de Estados
 

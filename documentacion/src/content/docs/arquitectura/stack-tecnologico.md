@@ -251,8 +251,7 @@ $writer->save($path);
 | **Laragon** | Entorno local Windows |
 | **VS Code** | Editor de código |
 | **Git** | Control de versiones |
-| **Postman** | Testing de APIs |
-| **MySQL Workbench** | Gestión de BD |
+| **MySQL Workbench / phpMyAdmin** | Gestión de BD |
 
 ## Próximos Pasos
 
