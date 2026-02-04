@@ -26,5 +26,13 @@ class AppServiceProvider extends ServiceProvider
         // Registrar Observers
         ProcesoDisciplinario::observe(ProcesoDisciplinarioObserver::class);
         SolicitudContrato::observe(SolicitudContratoObserver::class);
+
+        // Aumentar timeout de MySQL por sesión para evitar "MySQL server has gone away"
+        // durante operaciones largas (generación de documentos con IA)
+        try {
+            \Illuminate\Support\Facades\DB::statement("SET SESSION wait_timeout = 300");
+        } catch (\Exception $e) {
+            // Ignorar si no se puede establecer
+        }
     }
 }
