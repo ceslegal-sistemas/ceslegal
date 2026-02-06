@@ -2798,6 +2798,42 @@ class ProcesoDisciplinarioResource extends Resource
                                 ]);
                             }
                         }),
+                    Tables\Actions\Action::make('archivar_proceso')
+                        ->label('Archivar')
+                        ->icon('heroicon-o-archive-box')
+                        ->color('gray')
+                        ->visible(fn(ProcesoDisciplinario $record) => $record->estado === 'cerrado')
+                        ->requiresConfirmation()
+                        ->modalHeading('Archivar Proceso')
+                        ->modalDescription(fn(ProcesoDisciplinario $record) =>
+                            "¿Está seguro que desea archivar el proceso {$record->codigo}? Esta acción indica que el proceso ha sido completamente finalizado y archivado para histórico."
+                        )
+                        ->modalSubmitActionLabel('Sí, archivar')
+                        ->form([
+                            Forms\Components\Textarea::make('motivo_archivo')
+                                ->label('Motivo de Archivo')
+                                ->placeholder('Ej: Proceso finalizado sin novedades, sanción cumplida, etc.')
+                                ->rows(3)
+                                ->maxLength(500),
+                        ])
+                        ->action(function (ProcesoDisciplinario $record, array $data) {
+                            try {
+                                $motivo = $data['motivo_archivo'] ?? 'Proceso cerrado y archivado';
+                                $record->archivarProceso($motivo);
+
+                                \Filament\Notifications\Notification::make()
+                                    ->success()
+                                    ->title('Proceso archivado')
+                                    ->body("El proceso {$record->codigo} ha sido archivado exitosamente.")
+                                    ->send();
+                            } catch (\Exception $e) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('Error al archivar')
+                                    ->body('No se pudo archivar el proceso: ' . $e->getMessage())
+                                    ->send();
+                            }
+                        }),
                     Tables\Actions\ForceDeleteAction::make()
                         ->label('Eliminar')
                         ->icon('heroicon-o-trash')

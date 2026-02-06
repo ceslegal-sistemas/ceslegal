@@ -26,7 +26,7 @@ class EstadoProcesoService
         'descargos_no_realizados' => ['sancion_emitida', 'archivado'],
         'sancion_emitida' => ['impugnacion_realizada', 'cerrado', 'archivado'],
         'impugnacion_realizada' => ['sancion_emitida', 'cerrado', 'archivado'],
-        'cerrado' => [],
+        'cerrado' => ['archivado'],
         'archivado' => [],
     ];
 

@@ -12,11 +12,41 @@ class ActualizarEstadosDescargos extends Command
 {
     protected $signature = 'procesos:actualizar-estados-descargos';
 
-    protected $description = 'Detecta y actualiza automáticamente los estados de procesos según el resultado de los descargos';
+    protected $description = 'Actualiza automáticamente los estados de procesos disciplinarios (descargos y cierre por vencimiento de impugnación)';
 
     public function handle(): int
     {
+        $this->info('=== Actualizando estados de procesos disciplinarios ===');
+        $this->newLine();
+
         $estadoService = app(EstadoProcesoService::class);
+
+        // Ejecutar todas las actualizaciones
+        $resultadoDescargos = $this->actualizarEstadosDescargos($estadoService);
+        $resultadoCierres = $this->cerrarProcesosSinImpugnacion($estadoService);
+
+        // Resumen final
+        $this->newLine();
+        $this->info('=== Resumen Final ===');
+        $this->info("  - Descargos realizados: {$resultadoDescargos['realizados']}");
+        $this->info("  - Descargos no realizados: {$resultadoDescargos['no_realizados']}");
+        $this->info("  - Procesos cerrados (sin impugnación): {$resultadoCierres['cerrados']}");
+
+        $total = $resultadoDescargos['realizados'] + $resultadoDescargos['no_realizados'] + $resultadoCierres['cerrados'];
+        if ($total === 0) {
+            $this->info('No hubo cambios de estado.');
+        }
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * Actualiza estados basados en descargos realizados o no realizados
+     */
+    private function actualizarEstadosDescargos(EstadoProcesoService $estadoService): array
+    {
+        $this->info('>> Verificando estados de descargos...');
+
         $actualizados = 0;
         $noRealizados = 0;
 
@@ -54,13 +84,13 @@ class ActualizarEstadosDescargos extends Command
                         'preguntas_respondidas' => $preguntasRespondidas,
                     ]);
 
-                    $this->info("✓ {$proceso->codigo} → descargos_realizados ({$preguntasRespondidas} preguntas respondidas)");
+                    $this->info("   ✓ {$proceso->codigo} → descargos_realizados ({$preguntasRespondidas} preguntas respondidas)");
                 } catch (\Exception $e) {
                     Log::error('Error al actualizar estado', [
                         'proceso_id' => $proceso->id,
                         'error' => $e->getMessage(),
                     ]);
-                    $this->error("✗ Error en {$proceso->codigo}: {$e->getMessage()}");
+                    $this->error("   ✗ Error en {$proceso->codigo}: {$e->getMessage()}");
                 }
             }
         }
@@ -104,27 +134,79 @@ class ActualizarEstadosDescargos extends Command
                         'fecha_programada' => $proceso->fecha_descargos_programada,
                     ]);
 
-                    $this->warn("⚠ {$proceso->codigo} → descargos_no_realizados (no asistió, fecha: {$proceso->fecha_descargos_programada})");
+                    $this->warn("   ⚠ {$proceso->codigo} → descargos_no_realizados (no asistió, fecha: {$proceso->fecha_descargos_programada})");
                 } catch (\Exception $e) {
                     Log::error('Error al actualizar estado', [
                         'proceso_id' => $proceso->id,
                         'error' => $e->getMessage(),
                     ]);
-                    $this->error("✗ Error en {$proceso->codigo}: {$e->getMessage()}");
+                    $this->error("   ✗ Error en {$proceso->codigo}: {$e->getMessage()}");
                 }
             }
         }
 
-        // Resumen
-        if ($actualizados === 0 && $noRealizados === 0) {
-            $this->info('No hay procesos pendientes de actualización.');
-        } else {
-            $this->newLine();
-            $this->info("Resumen:");
-            $this->info("  - Descargos realizados: {$actualizados}");
-            $this->info("  - Descargos no realizados: {$noRealizados}");
+        return [
+            'realizados' => $actualizados,
+            'no_realizados' => $noRealizados,
+        ];
+    }
+
+    /**
+     * Cierra automáticamente procesos en sancion_emitida cuando ha pasado
+     * el plazo de 3 días hábiles para impugnar sin que se haya presentado impugnación
+     */
+    private function cerrarProcesosSinImpugnacion(EstadoProcesoService $estadoService): array
+    {
+        $this->newLine();
+        $this->info('>> Verificando procesos con plazo de impugnación vencido...');
+
+        $cerrados = 0;
+
+        // Buscar procesos en estado sancion_emitida sin impugnación
+        $procesos = ProcesoDisciplinario::where('estado', 'sancion_emitida')
+            ->whereDoesntHave('impugnacion')
+            ->whereNotNull('fecha_notificacion')
+            ->get();
+
+        foreach ($procesos as $proceso) {
+            // Calcular fecha límite de impugnación (3 días hábiles desde la notificación)
+            $fechaNotificacion = Carbon::parse($proceso->fecha_notificacion);
+            $fechaLimite = $fechaNotificacion->copy();
+            $diasContados = 0;
+
+            while ($diasContados < 3) {
+                $fechaLimite->addDay();
+                if ($fechaLimite->isWeekday()) {
+                    $diasContados++;
+                }
+            }
+
+            // Si ya pasó la fecha límite, cerrar el proceso
+            if (now()->startOfDay()->gt($fechaLimite)) {
+                try {
+                    $estadoService->alCerrarProceso($proceso);
+                    $cerrados++;
+
+                    Log::info('Proceso cerrado automáticamente por vencimiento del plazo de impugnación', [
+                        'proceso_id' => $proceso->id,
+                        'codigo' => $proceso->codigo,
+                        'fecha_notificacion' => $fechaNotificacion->format('Y-m-d'),
+                        'fecha_limite' => $fechaLimite->format('Y-m-d'),
+                    ]);
+
+                    $this->info("   ✓ {$proceso->codigo} → cerrado (plazo de impugnación vencido: {$fechaLimite->format('d/m/Y')})");
+                } catch (\Exception $e) {
+                    Log::error('Error al cerrar proceso automáticamente', [
+                        'proceso_id' => $proceso->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $this->error("   ✗ Error en {$proceso->codigo}: {$e->getMessage()}");
+                }
+            }
         }
 
-        return Command::SUCCESS;
+        return [
+            'cerrados' => $cerrados,
+        ];
     }
 }
