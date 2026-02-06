@@ -390,4 +390,41 @@ class NotificacionService
             'porcentaje_leidas' => $total > 0 ? round((($total - $noLeidas) / $total) * 100, 2) : 0,
         ];
     }
+
+    /**
+     * Notifica cuando el trabajador no realiza los descargos
+     */
+    public function notificarDescargosNoRealizados(ProcesoDisciplinario $proceso): void
+    {
+        // Notificar al abogado (solo si hay uno asignado)
+        if ($proceso->abogado_id) {
+            $this->crear(
+                userId: $proceso->abogado_id,
+                tipo: 'descargos_no_realizados',
+                titulo: 'Trabajador No Presentó Descargos',
+                mensaje: "El trabajador {$proceso->trabajador->nombre_completo} NO asistió a la diligencia de descargos del proceso {$proceso->codigo}. Puede proceder a emitir la sanción correspondiente.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'alta'
+            );
+        }
+
+        // Notificar a los usuarios cliente de la empresa
+        $usuariosCliente = User::where('role', 'cliente')
+            ->where('empresa_id', $proceso->empresa_id)
+            ->where('active', true)
+            ->get();
+
+        foreach ($usuariosCliente as $cliente) {
+            $this->crear(
+                userId: $cliente->id,
+                tipo: 'descargos_no_realizados',
+                titulo: 'Trabajador No Presentó Descargos',
+                mensaje: "El trabajador {$proceso->trabajador->nombre_completo} NO asistió a la diligencia de descargos del proceso {$proceso->codigo}. El proceso continuará según el procedimiento establecido.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'alta'
+            );
+        }
+    }
 }

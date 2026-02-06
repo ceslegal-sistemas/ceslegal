@@ -49,7 +49,7 @@ class IAAnalisisSancionService
 
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
-            ])->timeout(60)->post($url, [
+            ])->timeout(90)->post($url, [
                 'contents' => [
                     [
                         'parts' => [
@@ -58,8 +58,8 @@ class IAAnalisisSancionService
                     ]
                 ],
                 'generationConfig' => [
-                    'temperature' => 0.3, // Menor temperatura para respuestas más consistentes
-                    'maxOutputTokens' => $config['max_tokens'],
+                    'temperature' => 0.3,
+                    'maxOutputTokens' => max((int) ($config['max_tokens'] ?? 4096), 8192),
                     'topP' => 0.95,
                     'topK' => 40,
                 ],
@@ -366,7 +366,11 @@ REGLAS ESTRICTAS:
 - Si NO hay "otro motivo", analisis_otro_motivo.aplica=false y los demás campos pueden ser null
 - La "recomendacion_final" debe ser un resumen claro que ayude al cliente a decidir
 
-Genera SOLO el JSON, sin texto adicional.
+REGLAS DE FORMATO:
+- Genera SOLO el JSON, sin texto adicional ni bloques de código markdown.
+- Sé CONCISO: máximo 150 palabras por campo de texto (justificacion, razonamiento_legal, consideraciones_especiales, mensaje_para_decision).
+- No repitas la misma información en campos diferentes.
+- No uses saltos de línea dentro de los valores string del JSON.
 PROMPT;
     }
 
@@ -381,11 +385,23 @@ PROMPT;
         $analisisTexto = preg_replace('/```\s*$/', '', $analisisTexto);
         $analisisTexto = preg_replace('/```/', '', $analisisTexto);
 
+        // Escapar caracteres de control dentro de strings JSON
+        // (Gemini retorna newlines literales dentro de valores string que json_decode rechaza)
+        $analisisTexto = $this->escaparControlesEnStringsJson($analisisTexto);
+
         try {
             $analisis = json_decode($analisisTexto, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new \Exception('Error al parsear JSON: ' . json_last_error_msg());
+                // Intentar reparar JSON truncado y reintentar
+                $reparado = $this->repararJsonTruncado($analisisTexto);
+                $analisis = json_decode($reparado, true);
+
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    throw new \Exception('Error al parsear JSON: ' . json_last_error_msg());
+                }
+
+                Log::info('JSON de IA reparado exitosamente (respuesta truncada)');
             }
 
             // Validar estructura
@@ -398,11 +414,114 @@ PROMPT;
         } catch (\Exception $e) {
             Log::warning('Error al parsear análisis de IA, usando valores por defecto', [
                 'error' => $e->getMessage(),
-                'respuesta_ia' => $analisisTexto,
+                'respuesta_ia' => mb_substr($analisisTexto, 0, 500),
             ]);
 
             return $this->obtenerOpcionesPorDefecto();
         }
+    }
+
+    /**
+     * Escapar caracteres de control (newlines, tabs) dentro de strings JSON.
+     * json_decode rechaza caracteres de control literales (0x00-0x1F) dentro de strings.
+     */
+    private function escaparControlesEnStringsJson(string $json): string
+    {
+        $resultado = '';
+        $enString = false;
+        $escape = false;
+        $len = strlen($json);
+
+        for ($i = 0; $i < $len; $i++) {
+            $char = $json[$i];
+            $ord = ord($char);
+
+            if ($escape) {
+                $resultado .= $char;
+                $escape = false;
+                continue;
+            }
+
+            if ($char === '\\' && $enString) {
+                $resultado .= $char;
+                $escape = true;
+                continue;
+            }
+
+            if ($char === '"') {
+                $enString = !$enString;
+                $resultado .= $char;
+                continue;
+            }
+
+            if ($enString && $ord < 32) {
+                switch ($ord) {
+                    case 10: $resultado .= '\\n'; break;
+                    case 13: $resultado .= '\\r'; break;
+                    case 9:  $resultado .= '\\t'; break;
+                    default: $resultado .= ' '; break;
+                }
+            } else {
+                $resultado .= $char;
+            }
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * Intentar reparar un JSON truncado cerrando strings y estructuras abiertas.
+     */
+    private function repararJsonTruncado(string $json): string
+    {
+        $json = rtrim($json);
+
+        // Determinar si estamos dentro de un string al final del texto
+        $enString = false;
+        $escape = false;
+        $pilas = [];
+
+        for ($i = 0; $i < strlen($json); $i++) {
+            $char = $json[$i];
+
+            if ($escape) {
+                $escape = false;
+                continue;
+            }
+
+            if ($char === '\\' && $enString) {
+                $escape = true;
+                continue;
+            }
+
+            if ($char === '"') {
+                $enString = !$enString;
+                continue;
+            }
+
+            if (!$enString) {
+                if ($char === '{' || $char === '[') {
+                    $pilas[] = $char;
+                } elseif ($char === '}' && !empty($pilas) && end($pilas) === '{') {
+                    array_pop($pilas);
+                } elseif ($char === ']' && !empty($pilas) && end($pilas) === '[') {
+                    array_pop($pilas);
+                }
+            }
+        }
+
+        // Si terminó dentro de un string, cerrarlo
+        if ($enString) {
+            $json .= '"';
+        }
+
+        // Cerrar todas las estructuras abiertas (arrays y objetos)
+        while (!empty($pilas)) {
+            $abierto = array_pop($pilas);
+            $json .= ($abierto === '{') ? '}' : ']';
+        }
+
+        return $json;
     }
 
     /**

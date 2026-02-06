@@ -1511,7 +1511,7 @@ HTML;
     /**
      * Generar documento de resolución de impugnación
      */
-    public function generarDocumentoResolucionImpugnacion(ProcesoDisciplinario $proceso, \App\Models\Impugnacion $impugnacion): string
+    public function generarDocumentoResolucionImpugnacion(ProcesoDisciplinario $proceso, \App\Models\Impugnacion $impugnacion, ?int $nuevosDiasSuspension = null): string
     {
         $trabajador = $proceso->trabajador;
         $empresa = $proceso->empresa;
@@ -1530,7 +1530,7 @@ HTML;
         if ($impugnacion->decision_final === 'modifica_sancion' && $impugnacion->nueva_sancion_tipo) {
             $nuevaSancionTexto = match ($impugnacion->nueva_sancion_tipo) {
                 'llamado_atencion' => 'Llamado de Atención',
-                'suspension' => 'Suspensión Laboral',
+                'suspension' => 'Suspensión Laboral' . ($nuevosDiasSuspension ? " de {$nuevosDiasSuspension} día(s)" : ''),
                 'terminacion' => 'Terminación de Contrato',
                 default => ucfirst(str_replace('_', ' ', $impugnacion->nueva_sancion_tipo)),
             };
@@ -1554,92 +1554,74 @@ HTML;
     <title>Resolución de Impugnación</title>
     <style>
         @page {
-            margin: 2.5cm 2.5cm 2.5cm 2.5cm;
+            margin: 2cm 2cm 2cm 2cm;
         }
         body {
             font-family: 'Calibri', 'Arial', sans-serif;
             font-size: 11pt;
-            line-height: 1.4;
+            line-height: 1.2;
             color: #000000;
             text-align: justify;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
         h1 {
+            font-family: 'Calibri', 'Arial', sans-serif;
             font-size: 14pt;
             font-weight: bold;
             text-align: center;
             margin: 5px 0;
+            color: #000000;
         }
         h2 {
+            font-family: 'Calibri', 'Arial', sans-serif;
             font-size: 12pt;
             font-weight: bold;
             text-align: center;
             margin: 5px 0;
+            color: #000000;
         }
         h3 {
+            font-family: 'Calibri', 'Arial', sans-serif;
             font-size: 11pt;
             font-weight: bold;
-            margin: 15px 0 5px 0;
+            margin: 10px 0 4px 0;
+            color: #000000;
         }
         p {
-            margin: 8px 0;
-        }
-        .info-section {
-            margin: 15px 0;
-        }
-        .decision-box {
-            border: 2px solid #000;
-            padding: 15px;
-            margin: 20px 0;
-            text-align: center;
-            background-color: #f5f5f5;
-        }
-        .firma {
-            margin-top: 50px;
-        }
-        .linea-firma {
-            margin-top: 60px;
-            border-top: 1px solid #000;
-            width: 250px;
-            padding-top: 5px;
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 11pt;
+            margin: 4px 0;
+            text-align: justify;
+            line-height: 1.2;
         }
     </style>
 </head>
 <body>
-    <div class="header">
+    <div style="text-align: center; margin-bottom: 15px;">
         <h1>{$empresa->razon_social}</h1>
-        <p>NIT: {$empresa->nit}</p>
+        <p style="margin: 2px 0;">NIT: {$empresa->nit}</p>
         <h2>RESOLUCIÓN DE IMPUGNACIÓN</h2>
-        <p>{$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}</p>
-        <p>Proceso: {$proceso->codigo}</p>
+        <p style="margin: 2px 0;">{$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}</p>
+        <p style="margin: 2px 0;">Proceso: {$proceso->codigo}</p>
     </div>
 
-    <div class="info-section">
-        <p><strong>Señor(a):</strong> {$trabajador->nombre_completo}</p>
-        <p><strong>{$trabajador->tipo_documento}:</strong> {$trabajador->numero_documento}</p>
-        <p><strong>Cargo:</strong> {$trabajador->cargo}</p>
+    <div style="margin: 8px 0;">
+        <p style="margin: 2px 0;"><strong>Señor(a):</strong> {$trabajador->nombre_completo}</p>
+        <p style="margin: 2px 0;"><strong>{$trabajador->tipo_documento}:</strong> {$trabajador->numero_documento}</p>
+        <p style="margin: 2px 0;"><strong>Cargo:</strong> {$trabajador->cargo}</p>
     </div>
 
-    <p><strong>Asunto:</strong> Resolución de impugnación presentada contra sanción disciplinaria</p>
+    <p style="margin: 8px 0;"><strong>Asunto:</strong> Resolución de impugnación presentada contra sanción disciplinaria</p>
 
     <h3>1. ANTECEDENTES</h3>
     <p>Mediante comunicación de fecha {$proceso->fecha_notificacion?->locale('es')->isoFormat('D [de] MMMM [de] YYYY')}, se le notificó la sanción disciplinaria consistente en <strong>{$sancionOriginalTexto}</strong>, como resultado del proceso disciplinario {$proceso->codigo}.</p>
-
     <p>En fecha {$impugnacion->fecha_impugnacion?->locale('es')->isoFormat('D [de] MMMM [de] YYYY')}, usted presentó impugnación contra dicha sanción, exponiendo los siguientes motivos:</p>
-
-    <div style="margin-left: 20px; font-style: italic; border-left: 3px solid #ccc; padding-left: 15px;">
-        <p>{$impugnacion->motivos_impugnacion}</p>
-    </div>
+    <p style="margin-left: 20px; font-style: italic;">{$impugnacion->motivos_impugnacion}</p>
 
     <h3>2. ANÁLISIS</h3>
     <p>Después de revisar cuidadosamente los argumentos presentados en su impugnación, las pruebas aportadas y el expediente completo del proceso disciplinario, se procede a emitir la siguiente decisión:</p>
 
     <h3>3. DECISIÓN</h3>
-    <div class="decision-box">
-        <h2>{$decisionTexto}</h2>
+    <p style="text-align: center; margin: 8px 0;"><strong>{$decisionTexto}</strong></p>
 HTML;
 
         if ($impugnacion->decision_final === 'confirma_sancion') {
@@ -1651,7 +1633,6 @@ HTML;
         }
 
         $html .= <<<HTML
-    </div>
 
     <h3>4. FUNDAMENTO DE LA DECISIÓN</h3>
     <p>{$impugnacion->fundamento_decision}</p>
@@ -1671,14 +1652,12 @@ HTML;
 
     <p>Esta decisión es definitiva y pone fin al proceso disciplinario {$proceso->codigo}.</p>
 
-    <div class="firma">
-        <p>Cordialmente,</p>
-        <div class="linea-firma">
-            <p><strong>{$empresa->representante_legal}</strong></p>
-            <p>Representante Legal</p>
-            <p>{$empresa->razon_social}</p>
-            <p>NIT: {$empresa->nit}</p>
-        </div>
+    <div style="margin-top: 30px;">
+        <p style="margin: 2px 0;">Cordialmente,</p>
+        <p style="margin-top: 25px; margin-bottom: 2px;"><strong>{$empresa->representante_legal}</strong></p>
+        <p style="margin: 2px 0;">Representante Legal</p>
+        <p style="margin: 2px 0;">{$empresa->razon_social}</p>
+        <p style="margin: 2px 0;">NIT: {$empresa->nit}</p>
     </div>
 </body>
 </html>

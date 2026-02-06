@@ -22,6 +22,7 @@ class ProcesoDisciplinario extends Model
         'abogado_id',
         'estado',
         'hechos',
+        'evidencias_empleador',
         'fecha_ocurrencia',
         'fechas_ocurrencia_adicionales',
         'normas_incumplidas',
@@ -50,6 +51,7 @@ class ProcesoDisciplinario extends Model
     protected $casts = [
         'fecha_ocurrencia' => 'date',
         'fechas_ocurrencia_adicionales' => 'array',
+        'evidencias_empleador' => 'array',
         'fecha_solicitud' => 'datetime',
         'fecha_apertura' => 'datetime',
         'fecha_descargos_programada' => 'datetime',

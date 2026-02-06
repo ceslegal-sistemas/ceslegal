@@ -39,7 +39,7 @@ class AreaPracticaResource extends Resource
                             ->placeholder('Ej: Disciplinario'),
 
                         Forms\Components\Select::make('color')
-                            ->label('Color')
+                            ->label('Color Etiqueta')
                             ->options([
                                 'gray' => 'Gris',
                                 'primary' => 'Azul',
@@ -69,7 +69,7 @@ class AreaPracticaResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('color')
-                    ->label('Color')
+                    ->label('Color Etiqueta')
                     ->badge()
                     ->color(fn ($state) => $state),
 

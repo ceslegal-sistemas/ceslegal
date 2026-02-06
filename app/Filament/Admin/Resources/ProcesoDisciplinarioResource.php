@@ -499,7 +499,8 @@ class ProcesoDisciplinarioResource extends Resource
                                                 ->map(fn($f) => \Carbon\Carbon::parse($f)->format('Y-m-d'))
                                                 ->toArray();
                                         }
-                                    } catch (\Exception $e) {}
+                                    } catch (\Exception $e) {
+                                    }
 
                                     while ($diasContados < 6) {
                                         $fecha->addDay();
@@ -1024,7 +1025,61 @@ class ProcesoDisciplinarioResource extends Resource
                                     })
                             )
                             ->columnSpanFull(),
-                    ]),
+
+                    //     Forms\Components\FileUpload::make('evidencias_empleador')
+                    //         ->label('Adjuntar Evidencias (Opcional)')
+                    //         ->hint('Máximo 10 archivos')
+                    //         ->hintColor('warning')
+                    //         ->helperText(new \Illuminate\Support\HtmlString(
+                    //             '<div class="text-xs space-y-1 mt-2">' .
+                    //                 '<p><strong>¿Qué puede subir?</strong></p>' .
+                    //                 '<ul class="list-disc list-inside ml-2">' .
+                    //                 '<li>Fotos y capturas de pantalla (JPG, PNG, GIF)</li>' .
+                    //                 '<li>Documentos PDF</li>' .
+                    //                 '<li>Archivos Word (.doc, .docx) y Excel (.xls, .xlsx)</li>' .
+                    //                 '<li>Videos cortos (MP4, MOV, AVI) - <span class="text-orange-600 font-semibold">máximo 50 MB</span></li>' .
+                    //                 '</ul>' .
+                    //                 '<p class="mt-2"><strong>⚠️ Límites importantes:</strong></p>' .
+                    //                 '<ul class="list-disc list-inside ml-2">' .
+                    //                 '<li>Puede subir hasta <strong>10 archivos</strong> en total</li>' .
+                    //                 '<li>Imágenes y documentos: máximo <strong>10 MB</strong> cada uno</li>' .
+                    //                 '<li>Videos: máximo <strong>50 MB</strong> cada uno</li>' .
+                    //                 '</ul>' .
+                    //                 '<p class="mt-2 text-gray-500">💡 <strong>Tip:</strong> Haga clic en el recuadro punteado o arrastre los archivos desde su computador.</p>' .
+                    //                 '<p class="text-gray-500"><strong>¿Videos largos?</strong> Si el video es muy pesado, súbalo a YouTube o Google Drive y pegue el enlace en la descripción de los hechos.</p>' .
+                    //                 '</div>'
+                    //         ))
+                    //         ->multiple()
+                    //         ->maxFiles(10)
+                    //         ->maxSize(51200) // 50MB por archivo para permitir videos
+                    //         ->acceptedFileTypes([
+                    //             // Imágenes
+                    //             'image/jpeg',
+                    //             'image/png',
+                    //             'image/gif',
+                    //             'image/webp',
+                    //             // Documentos
+                    //             'application/pdf',
+                    //             'application/msword',
+                    //             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    //             'application/vnd.ms-excel',
+                    //             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    //             // Videos
+                    //             'video/mp4',
+                    //             'video/quicktime', // .mov
+                    //             'video/x-msvideo', // .avi
+                    //             'video/webm',
+                    //         ])
+                    //         ->directory('evidencias-empleador')
+                    //         ->visibility('private')
+                    //         ->downloadable()
+                    //         ->openable()
+                    //         ->reorderable()
+                    //         ->appendFiles()
+                    //         ->panelLayout('grid')
+                    //         ->imagePreviewHeight('100')
+                    //         ->columnSpanFull(),
+                    // ]),
 
                 Forms\Components\Section::make('Decisión y Sanción')
                     ->schema([
@@ -1310,6 +1365,8 @@ class ProcesoDisciplinarioResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultPaginationPageOption(5)
+            ->deferLoading()
             ->filters([
                 Tables\Filters\SelectFilter::make('estado')
                     ->label('Estado')
@@ -1452,16 +1509,13 @@ class ProcesoDisciplinarioResource extends Resource
                         $resultado = $iaService->analizarYSugerirSanciones($record);
                         $analisis = $resultado['analisis'];
 
-                        // Construir opciones de sanción basadas en el análisis
-                        $opcionesSancion = [];
-                        foreach ($analisis['sanciones_disponibles'] as $sancion) {
-                            $opcionesSancion[$sancion] = match ($sancion) {
-                                'llamado_atencion' => 'Llamado de Atención',
-                                'suspension' => 'Suspensión Laboral',
-                                'terminacion' => 'Terminación de Contrato',
-                                default => ucfirst($sancion),
-                            };
-                        }
+                        // Siempre mostrar las tres opciones de sanción disponibles
+                        // El usuario tiene la última palabra, independientemente del análisis de la IA
+                        $opcionesSancion = [
+                            'llamado_atencion' => 'Llamado de Atención',
+                            'suspension' => 'Suspensión Laboral',
+                            'terminacion' => 'Terminación de Contrato',
+                        ];
 
                         // Construir opciones de días de suspensión si aplica
                         $opcionesDiasSuspension = [];
@@ -1615,7 +1669,7 @@ class ProcesoDisciplinarioResource extends Resource
 
                                             return new \Illuminate\Support\HtmlString(
                                                 "<span class='font-semibold'>{$texto}</span> " .
-                                                "<span class='ml-2 px-2 py-1 rounded text-xs {$badgeColor}'>Confianza: " . ucfirst($confianza) . "</span>"
+                                                    "<span class='ml-2 px-2 py-1 rounded text-xs {$badgeColor}'>Confianza: " . ucfirst($confianza) . "</span>"
                                             );
                                         }),
 
@@ -1628,8 +1682,8 @@ class ProcesoDisciplinarioResource extends Resource
 
                                             return new \Illuminate\Support\HtmlString(
                                                 "<div class='p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200'>" .
-                                                "<p class='text-gray-700 dark:text-gray-300'>{$mensaje}</p>" .
-                                                "</div>"
+                                                    "<p class='text-gray-700 dark:text-gray-300'>{$mensaje}</p>" .
+                                                    "</div>"
                                             );
                                         }),
                                 ])
@@ -1684,17 +1738,15 @@ class ProcesoDisciplinarioResource extends Resource
                     ->modalWidth('2xl')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
-                        in_array($record->estado, ['descargos_realizados', 'descargos_pendientes', 'descargos_no_realizados', 'sancion_emitida']) &&
+                        in_array($record->estado, ['descargos_realizados', 'descargos_pendientes', 'descargos_no_realizados']) &&
                             !empty($record->trabajador->email) &&
                             \Carbon\Carbon::parse($record->fecha_descargos_programada)->isPast()
                     )
                     ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
-                        // Si es suspensión, pedir días en un segundo modal
+                        // Si es suspensión, guardar en sesión y abrir modal de confirmar días
                         if ($data['tipo_sancion'] === 'suspension') {
-                            // Recuperar análisis del cache
                             $analisis = json_decode($data['analisis_cache'], true);
 
-                            // Construir opciones de días
                             $opcionesDiasSuspension = [];
                             if (isset($analisis['dias_suspension_sugeridos'])) {
                                 foreach ($analisis['dias_suspension_sugeridos'] as $dias) {
@@ -1702,20 +1754,17 @@ class ProcesoDisciplinarioResource extends Resource
                                 }
                             }
 
-                            // Guardar tipo de sanción en sesión
+                            // Guardar en sesión para el modal de confirmar días
                             session(['tipo_sancion_pendiente_' . $record->id => 'suspension']);
                             session(['opciones_dias_' . $record->id => $opcionesDiasSuspension]);
 
-                            // Mostrar notificación de éxito
-                            \Filament\Notifications\Notification::make()
-                                ->success()
-                                ->title('Tipo de sanción seleccionado')
-                                ->body('Ahora haz clic en "Confirmar Días de Suspensión" para completar la emisión.')
-                                ->persistent()
-                                ->send();
+                            // Abrir automáticamente el modal de confirmar días después de que cierre el modal actual
+                            $recordKey = $record->getKey();
+                            $action->getLivewire()->js(
+                                "setTimeout(() => { \$wire.mountTableAction('confirmar_dias_suspension', '{$recordKey}') }, 300)"
+                            );
 
-                            // Refrescar la página para mostrar el botón de confirmar días
-                            return redirect()->to(request()->header('Referer') ?? route('filament.admin.resources.proceso-disciplinarios.index'));
+                            return;
                         }
 
                         // Si no es suspensión, proceder directamente
@@ -1723,7 +1772,6 @@ class ProcesoDisciplinarioResource extends Resource
                             $service = new \App\Services\DocumentGeneratorService();
                             $result = $service->generarYEnviarSancion($record, $data['tipo_sancion']);
 
-                            // Si llegamos aquí, significa que todo fue exitoso
                             \Filament\Notifications\Notification::make()
                                 ->success()
                                 ->title('¡Sanción emitida!')
@@ -1731,11 +1779,8 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->duration(8000)
                                 ->send();
 
-                            // Refrescar la página para mostrar el nuevo estado
                             redirect()->route('filament.admin.resources.proceso-disciplinarios.index');
                         } catch (\Exception $e) {
-                            // Si hay cualquier error, la transacción hizo rollback
-                            // y el estado NO se cambió
                             \Filament\Notifications\Notification::make()
                                 ->danger()
                                 ->title('Error al emitir sanción')
@@ -1800,7 +1845,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->visible(function (ProcesoDisciplinario $record) {
                         $tipoPendiente = session('tipo_sancion_pendiente_' . $record->id);
                         return $tipoPendiente === 'suspension' &&
-                            in_array($record->estado, ['descargos_realizados', 'descargos_no_realizados', 'sancion_emitida']) &&
+                            in_array($record->estado, ['descargos_realizados', 'descargos_pendientes', 'descargos_no_realizados', 'sancion_emitida']) &&
                             !empty($record->trabajador->email) &&
                             auth()->user()?->hasAnyRole(['super_admin', 'abogado', 'cliente']);
                     })
@@ -1846,6 +1891,755 @@ class ProcesoDisciplinarioResource extends Resource
                         }
                     }),
 
+                // Acción: Descargar Acta de Descargos (visible como botón solo antes de emitir sanción)
+                Tables\Actions\Action::make('descargar_acta_descargos')
+                    ->label('Descargar Acta de Descargos')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('info')
+                    ->visible(
+                        fn(ProcesoDisciplinario $record) =>
+                        $record->estado === 'descargos_realizados' &&
+                            $record->diligenciaDescargo !== null
+                    )
+                    ->action(function (ProcesoDisciplinario $record) {
+                        try {
+                            $actaService = new \App\Services\ActaDescargosService();
+                            $resultado = $actaService->generarActaDescargos($record->diligenciaDescargo);
+
+                            if ($resultado['success']) {
+                                return response()->download($resultado['path'], $resultado['filename']);
+                            } else {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('Error al generar acta')
+                                    ->body($resultado['error'] ?? 'No se pudo generar el acta de descargos')
+                                    ->send();
+                            }
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Error')
+                                ->body('Error al generar el acta: ' . $e->getMessage())
+                                ->send();
+                        }
+                    }),
+
+                // Acción: Ver Sanción (no mostrar si cerrado con impugnación resuelta)
+                Tables\Actions\Action::make('ver_sancion')
+                    ->label('Ver Sanción')
+                    ->icon('heroicon-o-document-text')
+                    ->color('warning')
+                    ->visible(function (ProcesoDisciplinario $record) {
+                        if (!in_array($record->estado, ['sancion_emitida', 'impugnacion_realizada', 'cerrado'])) {
+                            return false;
+                        }
+                        // Si está cerrado y tiene impugnación resuelta, mostrar "Ver Resolución" en su lugar
+                        if ($record->estado === 'cerrado' && $record->impugnacion?->decision_final !== null) {
+                            return false;
+                        }
+                        return true;
+                    })
+                    ->action(function (ProcesoDisciplinario $record) {
+                        // Buscar documento de sanción
+                        $documento = $record->documentos()
+                            ->where('tipo_documento', 'sancion')
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+
+                        if ($documento && file_exists($documento->ruta_archivo)) {
+                            return response()->download($documento->ruta_archivo, $documento->nombre_archivo);
+                        }
+
+                        \Filament\Notifications\Notification::make()
+                            ->warning()
+                            ->title('Documento no encontrado')
+                            ->body('No se encontró el documento de sanción para este proceso.')
+                            ->send();
+                    }),
+
+                // Acción: Ver Resolución (solo cuando cerrado con impugnación resuelta)
+                Tables\Actions\Action::make('ver_resolucion')
+                    ->label('Ver Resolución')
+                    ->icon('heroicon-o-document-text')
+                    ->color('success')
+                    ->visible(
+                        fn(ProcesoDisciplinario $record) =>
+                        $record->estado === 'cerrado' &&
+                            $record->impugnacion?->decision_final !== null
+                    )
+                    ->action(function (ProcesoDisciplinario $record) {
+                        $documento = $record->documentos()
+                            ->where('tipo_documento', 'resolucion_impugnacion')
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+
+                        if ($documento && file_exists($documento->ruta_archivo)) {
+                            return response()->download($documento->ruta_archivo, $documento->nombre_archivo);
+                        }
+
+                        \Filament\Notifications\Notification::make()
+                            ->warning()
+                            ->title('Documento no encontrado')
+                            ->body('No se encontró el documento de resolución para este proceso.')
+                            ->send();
+                    }),
+
+                // Acción: Registrar Impugnación (solo dentro de 3 días hábiles)
+                Tables\Actions\Action::make('registrar_impugnacion')
+                    ->label('Registrar Impugnación')
+                    ->icon('heroicon-o-exclamation-triangle')
+                    ->color('danger')
+                    ->visible(function (ProcesoDisciplinario $record) {
+                        if ($record->estado !== 'sancion_emitida' || $record->impugnacion !== null) {
+                            return false;
+                        }
+
+                        // Verificar plazo de 3 días hábiles desde la notificación
+                        $fechaNotificacion = $record->fecha_notificacion;
+                        if (!$fechaNotificacion) {
+                            return true;
+                        }
+
+                        $fechaLimite = \Carbon\Carbon::parse($fechaNotificacion)->copy();
+                        $diasContados = 0;
+                        while ($diasContados < 3) {
+                            $fechaLimite->addDay();
+                            if ($fechaLimite->isWeekday()) {
+                                $diasContados++;
+                            }
+                        }
+
+                        return now()->startOfDay()->lte($fechaLimite);
+                    })
+                    ->form([
+                        Forms\Components\DatePicker::make('fecha_impugnacion')
+                            ->label('Fecha de Impugnación')
+                            ->required()
+                            ->default(now())
+                            ->maxDate(now())
+                            ->native(false),
+
+                        Forms\Components\Select::make('medio_recepcion')
+                            ->label('Medio de Recepción')
+                            ->native(false)
+                            ->options([
+                                'correo_electronico' => 'Correo electrónico',
+                                'carta_fisica' => 'Carta física',
+                                'verbal' => 'Verbal',
+                                'otro' => 'Otro',
+                            ])
+                            ->required()
+                            ->live()
+                            ->helperText('¿Por qué medio el trabajador presentó la impugnación?'),
+
+                        Forms\Components\Radio::make('tipo_contenido')
+                            ->label('¿Cómo desea registrar los motivos?')
+                            ->options([
+                                'sin_motivos' => 'El trabajador NO expresó motivos (solo adjuntó documentos o impugnó sin explicación)',
+                                'motivos_predefinidos' => 'Seleccionar motivos comunes de una lista',
+                                'motivos_escritos' => 'Transcribir los motivos expresados por el trabajador',
+                            ])
+                            ->required()
+                            ->live()
+                            ->helperText('Seleccione la opción que mejor se ajuste a la situación'),
+
+                        Forms\Components\CheckboxList::make('motivos_predefinidos_lista')
+                            ->label('Motivos de la Impugnación')
+                            ->options([
+                                'inconformidad_sancion' => 'Inconformidad con la sanción impuesta',
+                                'hechos_no_corresponden' => 'Los hechos no corresponden con la realidad',
+                                'debido_proceso' => 'No se respetó el debido proceso',
+                                'pruebas_no_tenidas' => 'Presenta pruebas que no fueron tenidas en cuenta',
+                                'desproporcion' => 'Desproporción entre la falta y la sanción',
+                                'otro_motivo' => 'Otro motivo',
+                            ])
+                            ->visible(fn (Forms\Get $get) => $get('tipo_contenido') === 'motivos_predefinidos')
+                            ->required(fn (Forms\Get $get) => $get('tipo_contenido') === 'motivos_predefinidos')
+                            ->live()
+                            ->columns(1)
+                            ->helperText('Seleccione uno o más motivos'),
+
+                        Forms\Components\Textarea::make('motivo_personalizado')
+                            ->label(fn (Forms\Get $get) => $get('tipo_contenido') === 'motivos_escritos'
+                                ? 'Motivos de la Impugnación'
+                                : 'Especifique el otro motivo')
+                            ->visible(fn (Forms\Get $get) =>
+                                $get('tipo_contenido') === 'motivos_escritos' ||
+                                ($get('tipo_contenido') === 'motivos_predefinidos' && is_array($get('motivos_predefinidos_lista')) && in_array('otro_motivo', $get('motivos_predefinidos_lista')))
+                            )
+                            ->required(fn (Forms\Get $get) =>
+                                $get('tipo_contenido') === 'motivos_escritos' ||
+                                ($get('tipo_contenido') === 'motivos_predefinidos' && is_array($get('motivos_predefinidos_lista')) && in_array('otro_motivo', $get('motivos_predefinidos_lista')))
+                            )
+                            ->rows(5)
+                            ->placeholder(fn (Forms\Get $get) => $get('tipo_contenido') === 'motivos_escritos'
+                                ? 'Transcriba los motivos expresados por el trabajador...'
+                                : 'Describa el otro motivo...')
+                            ->helperText(fn (Forms\Get $get) => $get('tipo_contenido') === 'motivos_escritos'
+                                ? 'Transcriba los argumentos presentados por el trabajador'
+                                : null),
+
+                        Forms\Components\FileUpload::make('pruebas_adicionales')
+                            ->label('Pruebas Adicionales')
+                            ->multiple()
+                            ->directory('impugnaciones')
+                            ->acceptedFileTypes(['application/pdf', 'image/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
+                            ->maxSize(10240)
+                            ->helperText('Archivos aportados por el trabajador (opcional). Máximo 10MB por archivo.'),
+                    ])
+                    ->modalHeading('Registrar Impugnación del Trabajador')
+                    ->modalDescription(
+                        fn(ProcesoDisciplinario $record) =>
+                        "Registre la impugnación presentada por {$record->trabajador->nombre_completo} contra la sanción emitida."
+                    )
+                    ->modalSubmitActionLabel('Registrar Impugnación')
+                    ->modalWidth('lg')
+                    ->action(function (ProcesoDisciplinario $record, array $data) {
+                        try {
+                            // Construir motivos_impugnacion según tipo_contenido
+                            $mediosLabels = [
+                                'correo_electronico' => 'correo electrónico',
+                                'carta_fisica' => 'carta física',
+                                'verbal' => 'comunicación verbal',
+                                'otro' => 'otro medio',
+                            ];
+                            $medioLabel = $mediosLabels[$data['medio_recepcion']] ?? $data['medio_recepcion'];
+
+                            $motivosTexto = '';
+                            switch ($data['tipo_contenido']) {
+                                case 'sin_motivos':
+                                    $motivosTexto = "El trabajador presentó impugnación mediante {$medioLabel} sin expresar motivos escritos. Se adjunta documentación de soporte.";
+                                    break;
+
+                                case 'motivos_predefinidos':
+                                    $motivosLabels = [
+                                        'inconformidad_sancion' => 'Inconformidad con la sanción impuesta',
+                                        'hechos_no_corresponden' => 'Los hechos no corresponden con la realidad',
+                                        'debido_proceso' => 'No se respetó el debido proceso',
+                                        'pruebas_no_tenidas' => 'Presenta pruebas que no fueron tenidas en cuenta',
+                                        'desproporcion' => 'Desproporción entre la falta y la sanción',
+                                    ];
+                                    $seleccionados = $data['motivos_predefinidos_lista'] ?? [];
+                                    $lineas = [];
+                                    foreach ($seleccionados as $motivo) {
+                                        if ($motivo === 'otro_motivo') {
+                                            continue;
+                                        }
+                                        $lineas[] = '• ' . ($motivosLabels[$motivo] ?? $motivo);
+                                    }
+                                    if (in_array('otro_motivo', $seleccionados) && !empty($data['motivo_personalizado'])) {
+                                        $lineas[] = '• ' . $data['motivo_personalizado'];
+                                    }
+                                    $motivosTexto = "El trabajador presentó impugnación mediante {$medioLabel} expresando los siguientes motivos:\n" . implode("\n", $lineas);
+                                    break;
+
+                                case 'motivos_escritos':
+                                    $motivosTexto = $data['motivo_personalizado'];
+                                    break;
+                            }
+
+                            \Illuminate\Support\Facades\DB::transaction(function () use ($record, $data, $motivosTexto) {
+                                // Crear registro de impugnación
+                                $impugnacion = \App\Models\Impugnacion::create([
+                                    'proceso_id' => $record->id,
+                                    'sancion_id' => $record->sancion?->id,
+                                    'fecha_impugnacion' => $data['fecha_impugnacion'],
+                                    'medio_recepcion' => $data['medio_recepcion'],
+                                    'motivos_impugnacion' => $motivosTexto,
+                                    'pruebas_adicionales' => $data['pruebas_adicionales'] ?? null,
+                                ]);
+
+                                // Actualizar proceso
+                                $record->impugnado = true;
+                                $record->fecha_impugnacion = $data['fecha_impugnacion'];
+                                $record->estado = 'impugnacion_realizada';
+                                $record->save();
+                            });
+
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Impugnación Registrada')
+                                ->body('La impugnación ha sido registrada exitosamente. El proceso ahora está en estado de revisión.')
+                                ->send();
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Error al registrar impugnación')
+                                ->body('No se pudo registrar la impugnación: ' . $e->getMessage())
+                                ->send();
+
+                            \Illuminate\Support\Facades\Log::error('Error al registrar impugnación', [
+                                'proceso_id' => $record->id,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    }),
+
+                // Acción: Revisar Impugnación
+                Tables\Actions\Action::make('revisar_impugnacion')
+                    ->label('Ver Impugnación')
+                    ->icon('heroicon-o-eye')
+                    ->color('info')
+                    ->visible(
+                        fn(ProcesoDisciplinario $record) =>
+                        $record->estado === 'impugnacion_realizada' &&
+                            $record->impugnacion !== null
+                    )
+                    ->modalHeading('Revisión de Impugnación')
+                    ->modalContent(fn(ProcesoDisciplinario $record) => view('filament.modals.revisar-impugnacion', [
+                        'proceso' => $record,
+                        'impugnacion' => $record->impugnacion,
+                    ]))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->modalWidth('2xl'),
+
+                // Acción: Resolver Impugnación
+                Tables\Actions\Action::make('resolver_impugnacion')
+                    ->label('Resolver Impugnación')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->visible(
+                        fn(ProcesoDisciplinario $record) =>
+                        $record->estado === 'impugnacion_realizada' &&
+                            $record->impugnacion !== null &&
+                            $record->impugnacion->decision_final === null
+                    )
+                    ->form(function (ProcesoDisciplinario $record) {
+                        $impugnacion = $record->impugnacion;
+
+                        // Sanción original
+                        $sancionOriginal = match ($record->tipo_sancion) {
+                            'llamado_atencion' => 'Llamado de Atención',
+                            'suspension' => 'Suspensión Laboral' . ($record->dias_suspension ? " de {$record->dias_suspension} día(s)" : ''),
+                            'terminacion' => 'Terminación de Contrato',
+                            default => ucfirst(str_replace('_', ' ', $record->tipo_sancion ?? 'N/A')),
+                        };
+
+                        return [
+                            // ID del proceso para la acción de IA
+                            Forms\Components\Hidden::make('proceso_id')
+                                ->default($record->id),
+
+                            // Resumen de la impugnación
+                            Forms\Components\Section::make('Impugnación del Trabajador')
+                                ->schema([
+                                    Forms\Components\Placeholder::make('sancion_original_info')
+                                        ->label('Sanción Impugnada')
+                                        ->content(fn() => new \Illuminate\Support\HtmlString(
+                                            "<span class='font-semibold text-red-600'>{$sancionOriginal}</span>"
+                                        )),
+                                    Forms\Components\Placeholder::make('motivos_impugnacion')
+                                        ->label('Motivos expuestos por el trabajador')
+                                        ->content(fn() => new \Illuminate\Support\HtmlString(
+                                            "<div class='p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border-l-4 border-yellow-500 italic'>" .
+                                            nl2br(e($impugnacion->motivos_impugnacion)) .
+                                            "</div>"
+                                        )),
+                                ])
+                                ->collapsible()
+                                ->collapsed(false),
+
+                            // Cache del análisis de IA (se llena al hacer clic en el botón)
+                            Forms\Components\Hidden::make('analisis_cache')
+                                ->default('')
+                                ->live(),
+
+                            // Sección de análisis de IA (se muestra al generar)
+                            Forms\Components\Section::make('Análisis de IA')
+                                ->schema([
+                                    Forms\Components\Placeholder::make('ia_contenido')
+                                        ->label('')
+                                        ->content(function (Forms\Get $get) {
+                                            $cache = $get('analisis_cache');
+                                            if (empty($cache)) {
+                                                return new \Illuminate\Support\HtmlString(
+                                                    "<div class='p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center text-blue-700 dark:text-blue-300'>" .
+                                                    "<p class='text-sm'>Haga clic en <strong>\"Sugerir fundamento con IA\"</strong> en la sección de abajo para generar el análisis automático del expediente.</p>" .
+                                                    "</div>"
+                                                );
+                                            }
+                                            $analisis = json_decode($cache, true);
+                                            if (!$analisis) return 'Error al cargar análisis.';
+
+                                            $html = '';
+
+                                            // Auditoría del Proceso
+                                            $html .= "<div class='mb-4'>";
+                                            $html .= "<h4 class='font-semibold text-sm mb-1'>Auditoría del Proceso</h4>";
+                                            $html .= "<p class='text-sm text-gray-700 dark:text-gray-300'>" . e($analisis['auditoria_proceso'] ?? 'N/A') . "</p>";
+                                            $html .= "</div>";
+
+                                            // Puntos clave
+                                            $puntos = $analisis['puntos_clave_impugnacion'] ?? [];
+                                            if (!empty($puntos)) {
+                                                $html .= "<div class='mb-4'>";
+                                                $html .= "<h4 class='font-semibold text-sm mb-1'>Puntos Clave de la Impugnación</h4>";
+                                                $html .= "<ul class='list-disc pl-5 space-y-1 text-sm'>";
+                                                foreach ($puntos as $punto) {
+                                                    $html .= "<li>" . e($punto) . "</li>";
+                                                }
+                                                $html .= "</ul></div>";
+                                            }
+
+                                            // Contraste de argumentos
+                                            $html .= "<div class='mb-4'>";
+                                            $html .= "<h4 class='font-semibold text-sm mb-1'>Contraste de Argumentos</h4>";
+                                            $html .= "<p class='text-sm text-gray-700 dark:text-gray-300'>" . e($analisis['contraste_argumentos'] ?? 'N/A') . "</p>";
+                                            $html .= "</div>";
+
+                                            // Recomendación
+                                            $decision = $analisis['decision_recomendada'] ?? 'confirma_sancion';
+                                            $texto = match ($decision) {
+                                                'confirma_sancion' => 'Confirmar Sanción',
+                                                'revoca_sancion' => 'Revocar Sanción',
+                                                'modifica_sancion' => 'Modificar Sanción',
+                                                default => $decision,
+                                            };
+                                            $confianza = $analisis['confianza'] ?? 'media';
+                                            $badgeColor = match ($confianza) {
+                                                'alta' => 'bg-green-100 text-green-800',
+                                                'media' => 'bg-yellow-100 text-yellow-800',
+                                                'baja' => 'bg-red-100 text-red-800',
+                                                default => 'bg-gray-100 text-gray-800',
+                                            };
+                                            $html .= "<div class='mb-4'>";
+                                            $html .= "<h4 class='font-semibold text-sm mb-1'>Recomendación</h4>";
+                                            $html .= "<p><span class='font-bold'>{$texto}</span> ";
+                                            $html .= "<span class='ml-2 px-2 py-1 rounded text-xs {$badgeColor}'>Confianza: " . ucfirst($confianza) . "</span></p>";
+                                            $html .= "<p class='text-sm mt-1'>" . e($analisis['justificacion_decision'] ?? '') . "</p>";
+                                            $html .= "</div>";
+
+                                            // Riesgos de nulidad
+                                            $html .= "<div class='p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 text-sm'>";
+                                            $html .= "<strong>Riesgos de nulidad:</strong> " . e($analisis['riesgos_nulidad'] ?? 'Sin información.');
+                                            $html .= "</div>";
+
+                                            return new \Illuminate\Support\HtmlString($html);
+                                        }),
+                                ])
+                                ->collapsible(),
+
+                            // Decisión del usuario
+                            Forms\Components\Section::make('Decisión sobre la Impugnación')
+                                ->schema([
+                                    Forms\Components\Radio::make('decision_final')
+                                        ->label('Decisión')
+                                        ->options([
+                                            'confirma_sancion' => 'Confirmar Sanción - Mantener la sanción original',
+                                            'revoca_sancion' => 'Revocar Sanción - Dejar sin efecto la sanción',
+                                            'modifica_sancion' => 'Modificar Sanción - Cambiar el tipo de sanción',
+                                        ])
+                                        ->required()
+                                        ->live()
+                                        ->descriptions([
+                                            'confirma_sancion' => 'La sanción original se mantiene vigente',
+                                            'revoca_sancion' => 'Se deja sin efecto la sanción impuesta',
+                                            'modifica_sancion' => 'Se cambia la sanción por una diferente',
+                                        ]),
+
+                                    Forms\Components\Select::make('nueva_sancion_tipo')
+                                        ->label('Nueva Sanción')
+                                        ->options([
+                                            'llamado_atencion' => 'Llamado de Atención',
+                                            'suspension' => 'Suspensión Laboral',
+                                            'terminacion' => 'Terminación de Contrato',
+                                        ])
+                                        ->required()
+                                        ->visible(fn(Forms\Get $get) => $get('decision_final') === 'modifica_sancion')
+                                        ->live()
+                                        ->native(false),
+                                ]),
+
+                            // Fundamento con botón de IA
+                            Forms\Components\Section::make('Fundamento de la Decisión')
+                                ->schema([
+                                    Forms\Components\Actions::make([
+                                        Forms\Components\Actions\Action::make('sugerir_fundamento_ia')
+                                            ->label('Sugerir fundamento con IA')
+                                            ->icon('heroicon-o-sparkles')
+                                            ->color('info')
+                                            ->size('sm')
+                                            ->action(function (Forms\Set $set, Forms\Get $get) {
+                                                $procesoId = $get('proceso_id');
+                                                $record = ProcesoDisciplinario::findOrFail($procesoId);
+
+                                                $iaService = new \App\Services\IAResolucionImpugnacionService();
+                                                $resultado = $iaService->analizarImpugnacion($record);
+                                                $analisis = $resultado['analisis'];
+
+                                                // Llenar cache de análisis (actualiza la sección de análisis)
+                                                $set('analisis_cache', json_encode($analisis));
+
+                                                // Llenar fundamento sugerido
+                                                $set('fundamento_decision', $analisis['fundamento_juridico'] ?? '');
+
+                                                // Establecer decisión recomendada
+                                                if (isset($analisis['decision_recomendada'])) {
+                                                    $set('decision_final', $analisis['decision_recomendada']);
+                                                }
+
+                                                // Si sugiere modificación con suspensión
+                                                if (
+                                                    ($analisis['modificacion_sugerida']['aplica'] ?? false) &&
+                                                    ($analisis['modificacion_sugerida']['nueva_sancion'] ?? null) === 'suspension'
+                                                ) {
+                                                    $set('nueva_sancion_tipo', 'suspension');
+                                                }
+
+                                                if ($resultado['success']) {
+                                                    \Filament\Notifications\Notification::make()
+                                                        ->success()
+                                                        ->title('Análisis generado')
+                                                        ->body('El análisis y fundamento se generaron correctamente. Revise y edite según corresponda.')
+                                                        ->duration(5000)
+                                                        ->send();
+                                                } else {
+                                                    \Filament\Notifications\Notification::make()
+                                                        ->warning()
+                                                        ->title('Análisis parcial')
+                                                        ->body('No se pudo generar el análisis completo. Se recomienda escribir el fundamento manualmente.')
+                                                        ->duration(5000)
+                                                        ->send();
+                                                }
+                                            }),
+                                    ])->fullWidth(),
+
+                                    Forms\Components\Textarea::make('fundamento_decision')
+                                        ->label('Fundamento')
+                                        ->required()
+                                        ->rows(8)
+                                        ->placeholder('Escriba el fundamento jurídico o haga clic en "Sugerir fundamento con IA" para generar uno automáticamente...')
+                                        ->helperText('Este texto se incluirá en el documento de resolución.'),
+                                ]),
+                        ];
+                    })
+                    ->modalHeading('Resolver Impugnación')
+                    ->modalDescription(
+                        fn(ProcesoDisciplinario $record) =>
+                        "Emita la decisión final sobre la impugnación presentada por {$record->trabajador->nombre_completo}."
+                    )
+                    ->modalSubmitActionLabel('Emitir Resolución')
+                    ->modalWidth('2xl')
+                    ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
+                        // Si es modificación a suspensión, encadenar al modal de días
+                        if (
+                            ($data['decision_final'] ?? '') === 'modifica_sancion' &&
+                            ($data['nueva_sancion_tipo'] ?? '') === 'suspension'
+                        ) {
+                            session([
+                                'resolucion_impugnacion_pendiente_' . $record->id => [
+                                    'decision_final' => $data['decision_final'],
+                                    'fundamento_decision' => $data['fundamento_decision'],
+                                    'nueva_sancion_tipo' => $data['nueva_sancion_tipo'],
+                                ],
+                            ]);
+
+                            $recordKey = $record->getKey();
+                            $action->getLivewire()->js(
+                                "setTimeout(() => { \$wire.mountTableAction('confirmar_dias_resolucion', '{$recordKey}') }, 300)"
+                            );
+
+                            return;
+                        }
+
+                        // Proceder con la resolución directamente
+                        try {
+                            \Illuminate\Support\Facades\DB::transaction(function () use ($record, $data) {
+                                $impugnacion = $record->impugnacion;
+
+                                $impugnacion->decision_final = $data['decision_final'];
+                                $impugnacion->fundamento_decision = $data['fundamento_decision'];
+                                $impugnacion->fecha_decision = now();
+                                $impugnacion->abogado_analisis_id = auth()->id();
+                                $impugnacion->fecha_analisis_impugnacion = now();
+
+                                if ($data['decision_final'] === 'modifica_sancion') {
+                                    $impugnacion->nueva_sancion_tipo = $data['nueva_sancion_tipo'];
+                                }
+
+                                $impugnacion->save();
+
+                                // Generar documento de resolución
+                                $documentService = app(\App\Services\DocumentGeneratorService::class);
+                                $documentoPath = $documentService->generarDocumentoResolucionImpugnacion($record, $impugnacion);
+
+                                $impugnacion->documento_generado = true;
+                                $impugnacion->ruta_documento = $documentoPath;
+                                $impugnacion->save();
+
+                                $extension = pathinfo($documentoPath, PATHINFO_EXTENSION);
+                                \App\Models\Documento::create([
+                                    'documentable_type' => ProcesoDisciplinario::class,
+                                    'documentable_id' => $record->id,
+                                    'tipo_documento' => 'resolucion_impugnacion',
+                                    'nombre_archivo' => 'Resolucion_Impugnacion_' . $record->codigo . '.' . $extension,
+                                    'ruta_archivo' => $documentoPath,
+                                    'formato' => $extension,
+                                    'generado_por' => auth()->id() ?? 1,
+                                    'version' => 1,
+                                    'fecha_generacion' => now(),
+                                ]);
+
+                                $documentService->enviarResolucionImpugnacionPorEmail(
+                                    $record,
+                                    $documentoPath,
+                                    $data['decision_final']
+                                );
+
+                                $record->estado = 'cerrado';
+                                $record->fecha_cierre = now();
+                                $record->save();
+
+                                if ($data['decision_final'] === 'modifica_sancion') {
+                                    $record->tipo_sancion = $data['nueva_sancion_tipo'];
+                                    $record->save();
+                                }
+                            });
+
+                            $decisionTexto = match ($data['decision_final']) {
+                                'confirma_sancion' => 'confirmada',
+                                'revoca_sancion' => 'revocada',
+                                'modifica_sancion' => 'modificada',
+                                default => 'resuelta',
+                            };
+
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Resolución Emitida')
+                                ->body("La impugnación ha sido {$decisionTexto}. Se generó el documento y se envió al trabajador. El proceso ha sido cerrado.")
+                                ->duration(8000)
+                                ->send();
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Error al resolver impugnación')
+                                ->body('No se pudo completar la resolución: ' . $e->getMessage())
+                                ->persistent()
+                                ->send();
+
+                            \Illuminate\Support\Facades\Log::error('Error al resolver impugnación', [
+                                'proceso_id' => $record->id,
+                                'error' => $e->getMessage(),
+                                'trace' => $e->getTraceAsString(),
+                            ]);
+                        }
+                    }),
+
+                // Acción: Confirmar días de suspensión para resolución de impugnación
+                Tables\Actions\Action::make('confirmar_dias_resolucion')
+                    ->label('Confirmar Días - Resolución')
+                    ->icon('heroicon-o-clock')
+                    ->color('warning')
+                    ->form([
+                        Forms\Components\Section::make('Días de Suspensión')
+                            ->schema([
+                                Forms\Components\Placeholder::make('info_resolucion')
+                                    ->label('')
+                                    ->content('La resolución de la impugnación modifica la sanción a suspensión laboral. Seleccione la cantidad de días.'),
+                                Forms\Components\Select::make('nuevos_dias_suspension')
+                                    ->label('Días de Suspensión')
+                                    ->options([
+                                        1 => '1 día', 2 => '2 días', 3 => '3 días', 4 => '4 días',
+                                        5 => '5 días', 6 => '6 días', 7 => '7 días', 8 => '8 días',
+                                        15 => '15 días', 30 => '30 días', 60 => '60 días',
+                                    ])
+                                    ->required()
+                                    ->native(false)
+                                    ->default(3)
+                                    ->helperText('Días de suspensión sin remuneración según la gravedad de la falta'),
+                            ]),
+                    ])
+                    ->modalHeading('Confirmar Días de Suspensión')
+                    ->modalDescription('Seleccione los días de suspensión para completar la resolución de la impugnación')
+                    ->modalSubmitActionLabel('Emitir Resolución')
+                    ->modalWidth('md')
+                    ->visible(function (ProcesoDisciplinario $record) {
+                        return session()->has('resolucion_impugnacion_pendiente_' . $record->id) &&
+                            $record->estado === 'impugnacion_realizada';
+                    })
+                    ->action(function (ProcesoDisciplinario $record, array $data) {
+                        try {
+                            $sessionData = session('resolucion_impugnacion_pendiente_' . $record->id);
+
+                            if (!$sessionData) {
+                                throw new \Exception('No se encontraron los datos de la resolución pendiente.');
+                            }
+
+                            \Illuminate\Support\Facades\DB::transaction(function () use ($record, $data, $sessionData) {
+                                $impugnacion = $record->impugnacion;
+
+                                $impugnacion->decision_final = $sessionData['decision_final'];
+                                $impugnacion->fundamento_decision = $sessionData['fundamento_decision'];
+                                $impugnacion->fecha_decision = now();
+                                $impugnacion->abogado_analisis_id = auth()->id();
+                                $impugnacion->fecha_analisis_impugnacion = now();
+                                $impugnacion->nueva_sancion_tipo = 'suspension';
+                                $impugnacion->save();
+
+                                $nuevosDias = (int) $data['nuevos_dias_suspension'];
+
+                                // Generar documento de resolución (pasando los días nuevos)
+                                $documentService = app(\App\Services\DocumentGeneratorService::class);
+                                $documentoPath = $documentService->generarDocumentoResolucionImpugnacion($record, $impugnacion, $nuevosDias);
+
+                                $impugnacion->documento_generado = true;
+                                $impugnacion->ruta_documento = $documentoPath;
+                                $impugnacion->save();
+
+                                $extension = pathinfo($documentoPath, PATHINFO_EXTENSION);
+                                \App\Models\Documento::create([
+                                    'documentable_type' => ProcesoDisciplinario::class,
+                                    'documentable_id' => $record->id,
+                                    'tipo_documento' => 'resolucion_impugnacion',
+                                    'nombre_archivo' => 'Resolucion_Impugnacion_' . $record->codigo . '.' . $extension,
+                                    'ruta_archivo' => $documentoPath,
+                                    'formato' => $extension,
+                                    'generado_por' => auth()->id() ?? 1,
+                                    'version' => 1,
+                                    'fecha_generacion' => now(),
+                                ]);
+
+                                $documentService->enviarResolucionImpugnacionPorEmail(
+                                    $record,
+                                    $documentoPath,
+                                    $sessionData['decision_final']
+                                );
+
+                                $record->estado = 'cerrado';
+                                $record->fecha_cierre = now();
+                                $record->tipo_sancion = 'suspension';
+                                $record->dias_suspension = $nuevosDias;
+                                $record->save();
+                            });
+
+                            // Limpiar sesión
+                            session()->forget('resolucion_impugnacion_pendiente_' . $record->id);
+
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Resolución Emitida')
+                                ->body("La impugnación ha sido resuelta. La sanción se modificó a suspensión de {$data['nuevos_dias_suspension']} día(s). Se generó el documento y se envió al trabajador.")
+                                ->duration(8000)
+                                ->send();
+
+                            redirect()->route('filament.admin.resources.proceso-disciplinarios.index');
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Error al resolver impugnación')
+                                ->body('No se pudo completar la resolución: ' . $e->getMessage())
+                                ->persistent()
+                                ->send();
+
+                            \Illuminate\Support\Facades\Log::error('Error al confirmar días resolución impugnación', [
+                                'proceso_id' => $record->id,
+                                'error' => $e->getMessage(),
+                                'trace' => $e->getTraceAsString(),
+                            ]);
+                        }
+                    }),
+
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make()
                         ->label('Ver')
@@ -1855,6 +2649,155 @@ class ProcesoDisciplinarioResource extends Resource
                         ->label('Editar')
                         ->icon('heroicon-o-pencil')
                         ->color('primary'),
+                    Tables\Actions\Action::make('descargar_acta_descargos_agrupado')
+                        ->label('Descargar Acta de Descargos')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('info')
+                        ->visible(
+                            fn(ProcesoDisciplinario $record) =>
+                            in_array($record->estado, ['sancion_emitida', 'impugnacion_realizada', 'cerrado']) &&
+                                $record->diligenciaDescargo !== null
+                        )
+                        ->action(function (ProcesoDisciplinario $record) {
+                            try {
+                                $actaService = new \App\Services\ActaDescargosService();
+                                $resultado = $actaService->generarActaDescargos($record->diligenciaDescargo);
+
+                                if ($resultado['success']) {
+                                    return response()->download($resultado['path'], $resultado['filename']);
+                                } else {
+                                    \Filament\Notifications\Notification::make()
+                                        ->danger()
+                                        ->title('Error al generar acta')
+                                        ->body($resultado['error'] ?? 'No se pudo generar el acta de descargos')
+                                        ->send();
+                                }
+                            } catch (\Exception $e) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('Error')
+                                    ->body('Error al generar el acta: ' . $e->getMessage())
+                                    ->send();
+                            }
+                        }),
+                    Tables\Actions\Action::make('regenerar_sancion')
+                        ->label('Re-generar Sanción')
+                        ->icon('heroicon-o-shield-exclamation')
+                        ->color('danger')
+                        ->form(function (ProcesoDisciplinario $record) {
+                            $iaService = new \App\Services\IAAnalisisSancionService();
+                            $resultado = $iaService->analizarYSugerirSanciones($record);
+                            $analisis = $resultado['analisis'];
+
+                            $opcionesSancion = [
+                                'llamado_atencion' => 'Llamado de Atención',
+                                'suspension' => 'Suspensión Laboral',
+                                'terminacion' => 'Terminación de Contrato',
+                            ];
+
+                            $recomendacionFinal = $analisis['recomendacion_final'] ?? null;
+
+                            return [
+                                Forms\Components\Section::make('🤖 Análisis del Caso')
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('gravedad_info')
+                                            ->label('Gravedad de la Falta')
+                                            ->content(function () use ($analisis) {
+                                                $nivel = $analisis['nivel_gravedad'] ?? 'ninguno';
+                                                if ($analisis['gravedad'] === 'leve') {
+                                                    $gravedad = '🟢 Leve';
+                                                } elseif ($analisis['gravedad'] === 'grave') {
+                                                    $gravedad = $nivel === 'alto' ? '🔴 Grave (Nivel Alto)' : '🟡 Grave';
+                                                } else {
+                                                    $gravedad = ucfirst($analisis['gravedad']);
+                                                }
+                                                $reincidencia = $analisis['es_reincidencia'] ? ' ⚠️ REINCIDENCIA' : '';
+                                                return $gravedad . $reincidencia;
+                                            }),
+                                        Forms\Components\Placeholder::make('justificacion_ia')
+                                            ->label('Justificación')
+                                            ->content(fn() => $analisis['justificacion'] ?? 'Sin justificación disponible.'),
+                                    ])
+                                    ->collapsible(),
+
+                                Forms\Components\Hidden::make('analisis_cache')
+                                    ->default(json_encode($analisis)),
+
+                                Forms\Components\Select::make('tipo_sancion')
+                                    ->label('Tipo de Sanción a Aplicar')
+                                    ->options($opcionesSancion)
+                                    ->required()
+                                    ->native(false)
+                                    ->default($recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null)
+                                    ->helperText('Seleccione la sanción que considere más apropiada.'),
+                            ];
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Re-generar Sanción')
+                        ->modalDescription(
+                            fn(ProcesoDisciplinario $record) =>
+                            "NOTA: Este proceso ya tiene una sanción emitida. Se generará un nuevo documento reemplazando el anterior.\n\n" .
+                                "Se generará automáticamente el documento de sanción con IA y se enviará al trabajador: " .
+                                ($record->trabajador->nombre_completo ?? '')
+                        )
+                        ->modalSubmitActionLabel('Continuar')
+                        ->modalCancelActionLabel('Cancelar')
+                        ->modalWidth('2xl')
+                        ->visible(
+                            fn(ProcesoDisciplinario $record) =>
+                            $record->estado === 'sancion_emitida' &&
+                                !empty($record->trabajador->email) &&
+                                \Carbon\Carbon::parse($record->fecha_descargos_programada)->isPast()
+                        )
+                        ->action(function (ProcesoDisciplinario $record, array $data) {
+                            if ($data['tipo_sancion'] === 'suspension') {
+                                $analisis = json_decode($data['analisis_cache'], true);
+                                $opcionesDiasSuspension = [];
+                                if (isset($analisis['dias_suspension_sugeridos'])) {
+                                    foreach ($analisis['dias_suspension_sugeridos'] as $dias) {
+                                        $opcionesDiasSuspension[$dias] = "{$dias} día" . ($dias > 1 ? 's' : '');
+                                    }
+                                }
+                                session(['tipo_sancion_pendiente_' . $record->id => 'suspension']);
+                                session(['opciones_dias_' . $record->id => $opcionesDiasSuspension]);
+
+                                \Filament\Notifications\Notification::make()
+                                    ->success()
+                                    ->title('Tipo de sanción seleccionado')
+                                    ->body('Ahora haz clic en "Confirmar Días de Suspensión" para completar la emisión.')
+                                    ->persistent()
+                                    ->send();
+
+                                return redirect()->to(request()->header('Referer') ?? route('filament.admin.resources.proceso-disciplinarios.index'));
+                            }
+
+                            try {
+                                $service = new \App\Services\DocumentGeneratorService();
+                                $result = $service->generarYEnviarSancion($record, $data['tipo_sancion']);
+
+                                \Filament\Notifications\Notification::make()
+                                    ->success()
+                                    ->title('¡Sanción re-generada!')
+                                    ->body('El documento de sanción fue generado con IA y enviado exitosamente al trabajador.')
+                                    ->duration(8000)
+                                    ->send();
+
+                                redirect()->route('filament.admin.resources.proceso-disciplinarios.index');
+                            } catch (\Exception $e) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('Error al re-generar sanción')
+                                    ->body('No se pudo completar la operación: ' . $e->getMessage())
+                                    ->persistent()
+                                    ->send();
+
+                                \Illuminate\Support\Facades\Log::error('Error al re-generar sanción', [
+                                    'proceso_id' => $record->id,
+                                    'tipo_sancion' => $data['tipo_sancion'] ?? 'N/A',
+                                    'error' => $e->getMessage(),
+                                ]);
+                            }
+                        }),
                     Tables\Actions\ForceDeleteAction::make()
                         ->label('Eliminar')
                         ->icon('heroicon-o-trash')

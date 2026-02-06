@@ -13,6 +13,7 @@ class Impugnacion extends Model
         'proceso_id',
         'sancion_id',
         'fecha_impugnacion',
+        'medio_recepcion',
         'motivos_impugnacion',
         'pruebas_adicionales',
         'fecha_analisis_impugnacion',
@@ -31,6 +32,7 @@ class Impugnacion extends Model
         'fecha_analisis_impugnacion' => 'datetime',
         'fecha_decision' => 'datetime',
         'documento_generado' => 'boolean',
+        'pruebas_adicionales' => 'array',
     ];
 
     public function proceso(): BelongsTo

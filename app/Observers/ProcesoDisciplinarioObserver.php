@@ -34,6 +34,43 @@ class ProcesoDisciplinarioObserver
     }
 
     /**
+     * Se ejecuta antes de eliminar un proceso disciplinario.
+     * Elimina todos los registros relacionados que quedarían huérfanos
+     * ya que el soft delete no activa el cascade de la base de datos.
+     */
+    public function deleting(ProcesoDisciplinario $proceso): void
+    {
+        // Eliminar diligencia de descargo (cascade en BD borrará preguntas, respuestas, trazabilidad IA)
+        $proceso->diligenciaDescargo()->delete();
+
+        // Eliminar análisis jurídicos
+        $proceso->analisisJuridicos()->delete();
+
+        // Eliminar sanción (cascade en BD borrará la impugnación asociada por sancion_id)
+        $proceso->sancion()->delete();
+
+        // Eliminar impugnación directa del proceso
+        $proceso->impugnacion()->delete();
+
+        // Eliminar documentos (relación polimórfica, sin cascade en BD)
+        $proceso->documentos()->delete();
+
+        // Eliminar timeline
+        $proceso->timeline()->delete();
+
+        // Eliminar términos legales
+        $proceso->terminosLegales()->delete();
+
+        // Eliminar email trackings
+        $proceso->emailTrackings()->delete();
+
+        Log::info('Registros relacionados eliminados al borrar proceso disciplinario', [
+            'proceso_id' => $proceso->id,
+            'codigo' => $proceso->codigo,
+        ]);
+    }
+
+    /**
      * Se ejecuta antes de crear un proceso disciplinario
      */
     public function creating(ProcesoDisciplinario $proceso): void
@@ -222,6 +259,30 @@ class ProcesoDisciplinarioObserver
                     ]);
                 }
 
+                // Enviar email al trabajador notificando que sus descargos fueron recibidos
+                try {
+                    $documentService = app(DocumentGeneratorService::class);
+                    $documentService->enviarNotificacionEstadoDescargos($proceso, 'descargos_realizados');
+                } catch (\Exception $e) {
+                    Log::warning('No se pudo enviar email de estado de descargos al trabajador', [
+                        'proceso_id' => $proceso->id,
+                        'estado' => 'descargos_realizados',
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
+                // Enviar email al cliente notificando que el trabajador completó los descargos
+                try {
+                    $documentService = app(DocumentGeneratorService::class);
+                    $documentService->enviarNotificacionDescargosAlCliente($proceso, 'descargos_realizados');
+                } catch (\Exception $e) {
+                    Log::warning('No se pudo enviar email de estado de descargos al cliente', [
+                        'proceso_id' => $proceso->id,
+                        'estado' => 'descargos_realizados',
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
                 Log::info('Descargos completados - Listo para emitir sanción', [
                     'proceso_id' => $proceso->id,
                 ]);
@@ -244,6 +305,30 @@ class ProcesoDisciplinarioObserver
                 } catch (\Exception $e) {
                     Log::warning('No se pudo enviar notificación de descargos no realizados', [
                         'proceso_id' => $proceso->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
+                // Enviar email al trabajador notificando que no realizó los descargos
+                try {
+                    $documentService = app(DocumentGeneratorService::class);
+                    $documentService->enviarNotificacionEstadoDescargos($proceso, 'descargos_no_realizados');
+                } catch (\Exception $e) {
+                    Log::warning('No se pudo enviar email de estado de descargos al trabajador', [
+                        'proceso_id' => $proceso->id,
+                        'estado' => 'descargos_no_realizados',
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
+                // Enviar email al cliente notificando que el trabajador no realizó los descargos
+                try {
+                    $documentService = app(DocumentGeneratorService::class);
+                    $documentService->enviarNotificacionDescargosAlCliente($proceso, 'descargos_no_realizados');
+                } catch (\Exception $e) {
+                    Log::warning('No se pudo enviar email de estado de descargos al cliente', [
+                        'proceso_id' => $proceso->id,
+                        'estado' => 'descargos_no_realizados',
                         'error' => $e->getMessage(),
                     ]);
                 }
