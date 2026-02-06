@@ -1026,60 +1026,60 @@ class ProcesoDisciplinarioResource extends Resource
                             )
                             ->columnSpanFull(),
 
-                    //     Forms\Components\FileUpload::make('evidencias_empleador')
-                    //         ->label('Adjuntar Evidencias (Opcional)')
-                    //         ->hint('Máximo 10 archivos')
-                    //         ->hintColor('warning')
-                    //         ->helperText(new \Illuminate\Support\HtmlString(
-                    //             '<div class="text-xs space-y-1 mt-2">' .
-                    //                 '<p><strong>¿Qué puede subir?</strong></p>' .
-                    //                 '<ul class="list-disc list-inside ml-2">' .
-                    //                 '<li>Fotos y capturas de pantalla (JPG, PNG, GIF)</li>' .
-                    //                 '<li>Documentos PDF</li>' .
-                    //                 '<li>Archivos Word (.doc, .docx) y Excel (.xls, .xlsx)</li>' .
-                    //                 '<li>Videos cortos (MP4, MOV, AVI) - <span class="text-orange-600 font-semibold">máximo 50 MB</span></li>' .
-                    //                 '</ul>' .
-                    //                 '<p class="mt-2"><strong>⚠️ Límites importantes:</strong></p>' .
-                    //                 '<ul class="list-disc list-inside ml-2">' .
-                    //                 '<li>Puede subir hasta <strong>10 archivos</strong> en total</li>' .
-                    //                 '<li>Imágenes y documentos: máximo <strong>10 MB</strong> cada uno</li>' .
-                    //                 '<li>Videos: máximo <strong>50 MB</strong> cada uno</li>' .
-                    //                 '</ul>' .
-                    //                 '<p class="mt-2 text-gray-500">💡 <strong>Tip:</strong> Haga clic en el recuadro punteado o arrastre los archivos desde su computador.</p>' .
-                    //                 '<p class="text-gray-500"><strong>¿Videos largos?</strong> Si el video es muy pesado, súbalo a YouTube o Google Drive y pegue el enlace en la descripción de los hechos.</p>' .
-                    //                 '</div>'
-                    //         ))
-                    //         ->multiple()
-                    //         ->maxFiles(10)
-                    //         ->maxSize(51200) // 50MB por archivo para permitir videos
-                    //         ->acceptedFileTypes([
-                    //             // Imágenes
-                    //             'image/jpeg',
-                    //             'image/png',
-                    //             'image/gif',
-                    //             'image/webp',
-                    //             // Documentos
-                    //             'application/pdf',
-                    //             'application/msword',
-                    //             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                    //             'application/vnd.ms-excel',
-                    //             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    //             // Videos
-                    //             'video/mp4',
-                    //             'video/quicktime', // .mov
-                    //             'video/x-msvideo', // .avi
-                    //             'video/webm',
-                    //         ])
-                    //         ->directory('evidencias-empleador')
-                    //         ->visibility('private')
-                    //         ->downloadable()
-                    //         ->openable()
-                    //         ->reorderable()
-                    //         ->appendFiles()
-                    //         ->panelLayout('grid')
-                    //         ->imagePreviewHeight('100')
-                    //         ->columnSpanFull(),
-                    // ]),
+                        // Forms\Components\FileUpload::make('evidencias_empleador')
+                        //     ->label('Adjuntar Evidencias (Opcional)')
+                        //     ->hint('Máximo 10 archivos')
+                        //     ->hintColor('warning')
+                        //     ->helperText(new \Illuminate\Support\HtmlString(
+                        //         '<div class="text-xs space-y-1 mt-2">' .
+                        //             '<p><strong>¿Qué puede subir?</strong></p>' .
+                        //             '<ul class="list-disc list-inside ml-2">' .
+                        //             '<li>Fotos y capturas de pantalla (JPG, PNG, GIF)</li>' .
+                        //             '<li>Documentos PDF</li>' .
+                        //             '<li>Archivos Word (.doc, .docx) y Excel (.xls, .xlsx)</li>' .
+                        //             '<li>Videos cortos (MP4, MOV, AVI) - <span class="text-orange-600 font-semibold">máximo 50 MB</span></li>' .
+                        //             '</ul>' .
+                        //             '<p class="mt-2"><strong>⚠️ Límites importantes:</strong></p>' .
+                        //             '<ul class="list-disc list-inside ml-2">' .
+                        //             '<li>Puede subir hasta <strong>10 archivos</strong> en total</li>' .
+                        //             '<li>Imágenes y documentos: máximo <strong>10 MB</strong> cada uno</li>' .
+                        //             '<li>Videos: máximo <strong>50 MB</strong> cada uno</li>' .
+                        //             '</ul>' .
+                        //             '<p class="mt-2 text-gray-500">💡 <strong>Tip:</strong> Haga clic en el recuadro punteado o arrastre los archivos desde su computador.</p>' .
+                        //             '<p class="text-gray-500"><strong>¿Videos largos?</strong> Si el video es muy pesado, súbalo a YouTube o Google Drive y pegue el enlace en la descripción de los hechos.</p>' .
+                        //             '</div>'
+                        //     ))
+                        //     ->multiple()
+                        //     ->maxFiles(10)
+                        //     ->maxSize(51200) // 50MB por archivo para permitir videos
+                        //     ->acceptedFileTypes([
+                        //         // Imágenes
+                        //         'image/jpeg',
+                        //         'image/png',
+                        //         'image/gif',
+                        //         'image/webp',
+                        //         // Documentos
+                        //         'application/pdf',
+                        //         'application/msword',
+                        //         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        //         'application/vnd.ms-excel',
+                        //         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        //         // Videos
+                        //         'video/mp4',
+                        //         'video/quicktime', // .mov
+                        //         'video/x-msvideo', // .avi
+                        //         'video/webm',
+                        //     ])
+                        //     ->directory('evidencias-empleador')
+                        //     ->visibility('private')
+                        //     ->downloadable()
+                        //     ->openable()
+                        //     ->reorderable()
+                        //     ->appendFiles()
+                        //     ->panelLayout('grid')
+                        //     ->imagePreviewHeight('100')
+                        //     ->columnSpanFull(),
+                    ]),
 
                 Forms\Components\Section::make('Decisión y Sanción')
                     ->schema([
