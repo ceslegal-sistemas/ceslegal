@@ -15,7 +15,7 @@ El modulo de **Diligencias de Descargos** gestiona la audiencia donde el trabaja
 - Subida de archivos de evidencia.
 - Generacion automatica del acta de descargos.
 
-La diligencia se crea automaticamente cuando el abogado envia la citacion desde el modulo de [Procesos Disciplinarios](/modulos/procesos-disciplinarios/). No se crea manualmente.
+La diligencia se crea automaticamente cuando el cliente envia la citacion desde el modulo de [Procesos Disciplinarios](/modulos/procesos-disciplinarios/). No se crea manualmente.
 
 ## Caracteristicas Principales
 
@@ -66,7 +66,7 @@ Son preguntas fijas definidas en `IADescargoService::PREGUNTAS_INICIALES`:
 
 **2. Preguntas generadas por IA (dinamicas)**
 
-Basadas en los hechos del proceso, articulos legales y sanciones del reglamento incumplidas. Se generan al enviar la citacion (hasta 5 iniciales) y durante la diligencia (hasta 2 por respuesta). El limite maximo total es **30 preguntas**.
+Basadas en los hechos del proceso, articulos legales y sanciones del reglamento incumplidas. Se generan al enviar la citacion (hasta 1 inicial) y durante la diligencia (hasta 1 por respuesta). El limite maximo total es **30 preguntas**.
 
 Las preguntas de IA siguen principios de lenguaje claro:
 - Oraciones cortas y directas
@@ -109,7 +109,7 @@ public function iniciarTimer()
 El formulario publico esta construido con Livewire 3 y presenta:
 
 - Las preguntas una a una o en bloques.
-- Campo de texto para cada respuesta con validacion de longitud minima (10 caracteres).
+- Campo de texto para cada respuesta con validacion de longitud minima (2 caracteres).
 - Opcion de subir archivos de evidencia.
 - Indicador visual del tiempo restante.
 - Guardado automatico del progreso.

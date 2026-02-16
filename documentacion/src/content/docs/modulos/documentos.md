@@ -33,17 +33,17 @@ Actualmente, los documentos se asocian a `ProcesoDisciplinario`, pero la arquite
 
 ### Tipos de Documento
 
-| Tipo | Codigo | Metodo de Generacion | Formato de Salida |
-|------|--------|---------------------|-------------------|
-| Citacion a descargos | `citacion_descargos` | Plantilla DOCX con interpolacion | PDF (via LibreOffice) o DOCX |
-| Acta de descargos | `acta_descargos` | Servicio ActaDescargosService | PDF |
-| Sancion | `sancion` | IA (Google Gemini) + conversion | PDF (via LibreOffice o Dompdf) |
+| Tipo                 | Codigo               | Metodo de Generacion              | Formato de Salida              |
+| -------------------- | -------------------- | --------------------------------- | ------------------------------ |
+| Citacion a descargos | `citacion_descargos` | Servicio DocumentGeneratorService | PDF (via LibreOffice o Dompdf) |
+| Acta de descargos    | `acta_descargos`     | Servicio ActaDescargosService     | DOCX                           |
+| Sancion              | `sancion`            | IA (Google Gemini) + conversion   | PDF (via LibreOffice o Dompdf) |
 
-### Generacion de Citaciones (Plantilla DOCX)
+### Generacion de Citaciones
 
-Las citaciones se generan usando **PHPWord TemplateProcessor** a partir de una plantilla DOCX predefinida. El proceso:
+Las citaciones se generan usando **PHPWord TemplateProcessor** a partir de un HTML predefinido. El proceso:
 
-1. Se carga la plantilla DOCX desde la raiz del proyecto.
+1. Se carga el HTML.
 2. Se preparan las variables con datos del proceso, trabajador y empresa.
 3. Se reemplazan las variables en la plantilla.
 4. Se guarda el DOCX temporal.
@@ -52,34 +52,34 @@ Las citaciones se generan usando **PHPWord TemplateProcessor** a partir de una p
 
 **Variables de interpolacion:**
 
-| Variable | Descripcion | Ejemplo |
-|----------|-------------|---------|
-| `${DIA}` | Dia actual | 15 |
-| `${MES}` | Mes actual en texto | enero |
-| `${AÑO}` | Anio actual | 2026 |
-| `${DIA_LETRA}` | Dia en texto | miercoles |
-| `${NOMBRE_EMPRESA}` | Razon social | CES Legal S.A.S. |
-| `${NIT}` | NIT de la empresa | 900.123.456-7 |
-| `${NOMBRES}` | Nombres del trabajador | Juan Carlos |
-| `${APELLIDOS}` | Apellidos del trabajador | Perez Lopez |
-| `${NUMERO_DOCUMENTO}` | Documento de identidad | 1.234.567.890 |
-| `${CARGO}` | Cargo del trabajador | Analista |
-| `${CORREO}` | Email del trabajador | juan@email.com |
-| `${DIA_DESCARGOS}` | Dia de la diligencia | 22 |
-| `${MES_DESCARGOS}` | Mes de la diligencia | enero |
-| `${HORA_DESCARGOS}` | Hora de la diligencia | 10:00 AM |
-| `${MODALIDAD_DESCARGOS}` | Modalidad | Presencial |
-| `${RAZON_DESCARGO}` | Hechos del proceso | (texto de hechos) |
-| `${SANCIONES_LABORALES}` | Sanciones del reglamento | (texto formateado) |
-| `${CIUDAD}` | Ciudad de la empresa | Bogota |
-| `${DEPARTAMENTO}` | Departamento | Cundinamarca |
-| `${DIRECCION_EMPRESA}` | Direccion (solo presencial) | Calle 100 #15-20 |
-| `${CODIGO_PROCESO}` | Codigo del proceso | PD-2026-0001 |
-| `${NOMBRE_EMPLEADOR}` | Representante legal | Maria Garcia |
+| Variable                 | Descripcion                 | Ejemplo            |
+| ------------------------ | --------------------------- | ------------------ |
+| `${DIA}`                 | Dia actual                  | 15                 |
+| `${MES}`                 | Mes actual en texto         | enero              |
+| `${AÑO}`                 | Anio actual                 | 2026               |
+| `${DIA_LETRA}`           | Dia en texto                | miercoles          |
+| `${NOMBRE_EMPRESA}`      | Razon social                | CES Legal S.A.S.   |
+| `${NIT}`                 | NIT de la empresa           | 900.123.456-7      |
+| `${NOMBRES}`             | Nombres del trabajador      | Juan Carlos        |
+| `${APELLIDOS}`           | Apellidos del trabajador    | Perez Lopez        |
+| `${NUMERO_DOCUMENTO}`    | Documento de identidad      | 1.234.567.890      |
+| `${CARGO}`               | Cargo del trabajador        | Analista           |
+| `${CORREO}`              | Email del trabajador        | juan@email.com     |
+| `${DIA_DESCARGOS}`       | Dia de la diligencia        | 22                 |
+| `${MES_DESCARGOS}`       | Mes de la diligencia        | enero              |
+| `${HORA_DESCARGOS}`      | Hora de la diligencia       | 10:00 AM           |
+| `${MODALIDAD_DESCARGOS}` | Modalidad                   | Presencial         |
+| `${RAZON_DESCARGO}`      | Hechos del proceso          | (texto de hechos)  |
+| `${SANCIONES_LABORALES}` | Sanciones del reglamento    | (texto formateado) |
+| `${CIUDAD}`              | Ciudad de la empresa        | Bogota             |
+| `${DEPARTAMENTO}`        | Departamento                | Cundinamarca       |
+| `${DIRECCION_EMPRESA}`   | Direccion (solo presencial) | Calle 100 #15-20   |
+| `${CODIGO_PROCESO}`      | Codigo del proceso          | PD-2026-0001       |
+| `${NOMBRE_EMPLEADOR}`    | Representante legal         | Maria Garcia       |
 
 ### Generacion de Sanciones (IA + HTML)
 
-Los documentos de sancion se generan en un flujo diferente:
+Los documentos de sancion se generan en el siguiente flujo:
 
 1. Se construye un prompt detallado con datos del caso, descargos y principios de lenguaje claro.
 2. Se envia a Google Gemini con `maxOutputTokens: 8192`.
@@ -132,20 +132,20 @@ Cada documento tiene un campo `version` que permite generar multiples versiones 
 
 ### Tabla: `documentos`
 
-| Campo | Tipo | Descripcion |
-|-------|------|-------------|
-| `id` | bigint | Identificador unico |
-| `documentable_type` | string | Tipo de modelo asociado (morph) |
-| `documentable_id` | bigint | ID del modelo asociado (morph) |
-| `tipo_documento` | string | citacion_descargos, acta_descargos, sancion |
-| `nombre_archivo` | string | Nombre del archivo |
-| `ruta_archivo` | string | Ruta completa del archivo en disco |
-| `formato` | string | Extension del archivo (pdf, docx, html) |
-| `generado_por` | foreignId | Usuario que genero el documento |
-| `version` | integer | Numero de version |
-| `plantilla_usada` | string | Nombre de la plantilla (si aplica) |
-| `variables_usadas` | json | Variables interpoladas (si aplica) |
-| `fecha_generacion` | datetime | Fecha y hora de generacion |
+| Campo               | Tipo      | Descripcion                                 |
+| ------------------- | --------- | ------------------------------------------- |
+| `id`                | bigint    | Identificador unico                         |
+| `documentable_type` | string    | Tipo de modelo asociado (morph)             |
+| `documentable_id`   | bigint    | ID del modelo asociado (morph)              |
+| `tipo_documento`    | string    | citacion_descargos, acta_descargos, sancion |
+| `nombre_archivo`    | string    | Nombre del archivo                          |
+| `ruta_archivo`      | string    | Ruta completa del archivo en disco          |
+| `formato`           | string    | Extension del archivo (pdf, docx, html)     |
+| `generado_por`      | foreignId | Usuario que genero el documento             |
+| `version`           | integer   | Numero de version                           |
+| `plantilla_usada`   | string    | Nombre de la plantilla (si aplica)          |
+| `variables_usadas`  | json      | Variables interpoladas (si aplica)          |
+| `fecha_generacion`  | datetime  | Fecha y hora de generacion                  |
 
 ### Casts
 
@@ -159,10 +159,10 @@ protected $casts = [
 
 ## Relaciones con Otros Modulos
 
-| Relacion | Tipo | Modelo | Descripcion |
-|----------|------|--------|-------------|
-| `documentable` | MorphTo | Polimorfico | Entidad a la que pertenece el documento |
-| `generadoPor` | BelongsTo | User | Usuario que genero el documento |
+| Relacion       | Tipo      | Modelo      | Descripcion                             |
+| -------------- | --------- | ----------- | --------------------------------------- |
+| `documentable` | MorphTo   | Polimorfico | Entidad a la que pertenece el documento |
+| `generadoPor`  | BelongsTo | User        | Usuario que genero el documento         |
 
 ### Entidades que Tienen Documentos
 
@@ -178,29 +178,29 @@ public function documentos(): MorphMany
 
 Los documentos se almacenan en el sistema de archivos local:
 
-| Tipo | Ruta de Almacenamiento |
-|------|----------------------|
+| Tipo       | Ruta de Almacenamiento    |
+| ---------- | ------------------------- |
 | Citaciones | `storage/app/citaciones/` |
-| Sanciones | `storage/app/sanciones/` |
-| Actas | `storage/app/actas/` |
-| Temporales | `storage/app/temp/` |
+| Sanciones  | `storage/app/sanciones/`  |
+| Actas      | `storage/app/actas/`      |
+| Temporales | `storage/app/temp/`       |
 
 ### Nomenclatura de Archivos
 
-| Tipo | Patron | Ejemplo |
-|------|--------|---------|
-| Citacion | `citacion_{codigo}.pdf` | `citacion_PD-2026-0001.pdf` |
-| Sancion | `sancion_{codigo}_{tipo}_{timestamp}.pdf` | `sancion_PD-2026-0001_suspension_1706300000.pdf` |
-| Acta | `acta_descargos_{codigo}.pdf` | `acta_descargos_PD-2026-0001.pdf` |
+| Tipo     | Patron                                    | Ejemplo                                          |
+| -------- | ----------------------------------------- | ------------------------------------------------ |
+| Citacion | `citacion_{codigo}.pdf`                   | `citacion_PD-2026-0001.pdf`                      |
+| Sancion  | `sancion_{codigo}_{tipo}_{timestamp}.pdf` | `sancion_PD-2026-0001_suspension_1706300000.pdf` |
+| Acta     | `acta_descargos_{codigo}.pdf`             | `acta_descargos_PD-2026-0001.pdf`                |
 
 ## Notas de Uso
 
 ### Flujo de Generacion de Citacion Completo
 
 ```
-1. Abogado hace clic en "Enviar Citacion"
+1. Cliente hace clic en "Crear" automaticamnete envia la citacion
 2. DocumentGeneratorService::generarCitacionDescargos()
-   a. Carga plantilla DOCX
+   a. Carga HTML
    b. Prepara variables (proceso, trabajador, empresa)
    c. Interpola variables en plantilla
    d. Guarda DOCX temporal

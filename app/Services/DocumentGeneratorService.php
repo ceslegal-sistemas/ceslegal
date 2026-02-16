@@ -1741,4 +1741,163 @@ HTML;
             'tracking_token' => substr($tracking->token, 0, 10) . '...',
         ]);
     }
+
+    /**
+     * Envía recordatorio al trabajador un día antes de la diligencia de descargos
+     */
+    public function enviarRecordatorioDescargos(ProcesoDisciplinario $proceso): array
+    {
+        $trabajador = $proceso->trabajador;
+        $empresa = $proceso->empresa;
+
+        if (!$trabajador || !$trabajador->email) {
+            Log::warning('No se pudo enviar recordatorio: trabajador sin email', [
+                'proceso_id' => $proceso->id,
+            ]);
+            return [
+                'success' => false,
+                'error' => 'El trabajador no tiene correo electrónico registrado',
+            ];
+        }
+
+        try {
+            // Obtener el link de descargos si existe
+            $diligencia = $proceso->diligenciaDescargo;
+            $linkDescargos = null;
+
+            if ($diligencia && $diligencia->token_acceso) {
+                $linkDescargos = route('descargos.formulario', ['token' => $diligencia->token_acceso]);
+            }
+
+            // Crear tracking para el correo
+            $tracking = EmailTracking::create([
+                'proceso_id' => $proceso->id,
+                'tipo_documento' => 'recordatorio_descargos',
+                'trabajador_id' => $trabajador->id,
+                'email_destinatario' => $trabajador->email,
+                'enviado_en' => Carbon::now('America/Bogota'),
+            ]);
+
+            Mail::send('emails.recordatorio-descargos', [
+                'proceso' => $proceso,
+                'trabajador' => $trabajador,
+                'empresa' => $empresa,
+                'linkDescargos' => $linkDescargos,
+                'trackingToken' => $tracking->token,
+            ], function ($message) use ($trabajador, $proceso) {
+                $message->to($trabajador->email, $trabajador->nombre_completo)
+                    ->subject('RECORDATORIO: Su diligencia de descargos es mañana - Proceso ' . $proceso->codigo);
+            });
+
+            Log::info('Recordatorio de descargos enviado al trabajador', [
+                'proceso_id' => $proceso->id,
+                'codigo' => $proceso->codigo,
+                'trabajador_email' => $trabajador->email,
+                'fecha_descargos' => $proceso->fecha_descargos_programada,
+            ]);
+
+            return [
+                'success' => true,
+                'mensaje' => 'Recordatorio enviado exitosamente',
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error al enviar recordatorio de descargos', [
+                'proceso_id' => $proceso->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Envía notificación al empleador cuando el trabajador no se presenta a los descargos
+     */
+    public function notificarEmpleadorDescargosNoRealizados(ProcesoDisciplinario $proceso): array
+    {
+        $trabajador = $proceso->trabajador;
+        $empresa = $proceso->empresa;
+
+        // Obtener usuarios cliente de la empresa (empleador/RRHH)
+        $clientes = \App\Models\User::where('role', 'cliente')
+            ->where('empresa_id', $proceso->empresa_id)
+            ->where('active', true)
+            ->get();
+
+        if ($clientes->isEmpty()) {
+            Log::warning('No se encontraron usuarios cliente para notificar descargos no realizados', [
+                'proceso_id' => $proceso->id,
+                'empresa_id' => $proceso->empresa_id,
+            ]);
+            return [
+                'success' => false,
+                'error' => 'No se encontraron usuarios de la empresa para notificar',
+            ];
+        }
+
+        $enviados = 0;
+        $errores = [];
+
+        foreach ($clientes as $cliente) {
+            if (!$cliente->email) {
+                continue;
+            }
+
+            try {
+                // Crear tracking para cada correo
+                $tracking = EmailTracking::create([
+                    'proceso_id' => $proceso->id,
+                    'tipo_documento' => 'descargos_no_realizados_empleador',
+                    'trabajador_id' => $trabajador->id,
+                    'email_destinatario' => $cliente->email,
+                    'enviado_en' => Carbon::now('America/Bogota'),
+                ]);
+
+                Mail::send('emails.descargos-no-realizados-empleador', [
+                    'proceso' => $proceso,
+                    'trabajador' => $trabajador,
+                    'empresa' => $empresa,
+                    'cliente' => $cliente,
+                    'trackingToken' => $tracking->token,
+                ], function ($message) use ($cliente, $proceso, $trabajador) {
+                    $message->to($cliente->email, $cliente->name)
+                        ->subject('Aviso: ' . $trabajador->nombre_completo . ' no se presentó a los descargos - Proceso ' . $proceso->codigo);
+                });
+
+                $enviados++;
+
+                Log::info('Notificación de descargos no realizados enviada al empleador', [
+                    'proceso_id' => $proceso->id,
+                    'cliente_email' => $cliente->email,
+                    'trabajador' => $trabajador->nombre_completo,
+                ]);
+
+            } catch (\Exception $e) {
+                Log::error('Error al enviar notificación de descargos no realizados', [
+                    'proceso_id' => $proceso->id,
+                    'cliente_email' => $cliente->email,
+                    'error' => $e->getMessage(),
+                ]);
+                $errores[] = $cliente->email . ': ' . $e->getMessage();
+            }
+        }
+
+        if ($enviados > 0) {
+            return [
+                'success' => true,
+                'mensaje' => "Notificación enviada a {$enviados} destinatario(s)",
+                'enviados' => $enviados,
+            ];
+        }
+
+        return [
+            'success' => false,
+            'error' => 'No se pudo enviar ninguna notificación',
+            'errores' => $errores,
+        ];
+    }
 }

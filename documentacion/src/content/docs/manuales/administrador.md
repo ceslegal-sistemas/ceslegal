@@ -28,7 +28,7 @@ El **Administrador** (rol `super_admin`) tiene acceso total al sistema CES Legal
 2. Ingrese su correo electronico y contrasena
 3. Haga clic en **Iniciar Sesion**
 
-<!-- ![Pantalla de login](/screenshots/admin-login.png) -->
+![Pantalla de login](../../../assets/admin-login.png)
 
 :::tip[Credenciales iniciales]
 Las credenciales del administrador se configuran durante la instalacion del sistema. Si es la primera vez que accede, consulte con el equipo de desarrollo.
@@ -43,7 +43,7 @@ Al iniciar sesion, vera el dashboard con widgets de resumen:
 - **Calendario de diligencias**: Proximas diligencias de descargos programadas
 - **Usuarios activos**: Cantidad de usuarios en el sistema
 
-<!-- ![Dashboard del administrador](/screenshots/admin-dashboard.png) -->
+![Dashboard del administrador](../../../assets/admin-dashboard.png)
 
 ---
 
@@ -55,15 +55,15 @@ Al iniciar sesion, vera el dashboard con widgets de resumen:
 2. Haga clic en el boton **Crear Usuario** (esquina superior derecha)
 3. Complete el formulario:
 
-| Campo | Descripcion | Requerido |
-|-------|-------------|:---------:|
-| Nombre Completo | Nombre del usuario | Si |
-| Correo Electronico | Se genera automaticamente basado en el nombre | Si |
-| Rol | Administrador, Abogado o Cliente | Si |
-| Empresa Asignada | Solo visible y requerido para rol Cliente | Condicional |
-| Contrasena | Minimo 8 caracteres | Si (creacion) |
-| Confirmar Contrasena | Debe coincidir | Si (creacion) |
-| Usuario Activo | Habilitar/deshabilitar acceso | No |
+| Campo                | Descripcion                                   |   Requerido   |
+| -------------------- | --------------------------------------------- | :-----------: |
+| Nombre Completo      | Nombre del usuario                            |      Si       |
+| Correo Electronico   | Se genera automaticamente basado en el nombre |      Si       |
+| Rol                  | Administrador, Abogado o Cliente              |      Si       |
+| Empresa Asignada     | Solo visible y requerido para rol Cliente     |  Condicional  |
+| Contrasena           | Minimo 8 caracteres                           | Si (creacion) |
+| Confirmar Contrasena | Debe coincidir                                | Si (creacion) |
+| Usuario Activo       | Habilitar/deshabilitar acceso                 |      No       |
 
 4. Haga clic en **Crear**
 
@@ -89,11 +89,11 @@ Al crear un usuario con rol **Cliente**, es obligatorio asignarle una empresa. E
 
 ### Roles Disponibles
 
-| Rol | Codigo | Descripcion |
-|-----|--------|-------------|
-| Administrador | `super_admin` | Acceso total al sistema |
-| Abogado | `abogado` | Gestiona procesos disciplinarios y contratos |
-| Cliente | `cliente` | Visualiza procesos de su empresa y gestiona personal |
+| Rol           | Codigo        | Descripcion                                          |
+| ------------- | ------------- | ---------------------------------------------------- |
+| Administrador | `super_admin` | Acceso total al sistema                              |
+| Abogado       | `abogado`     | Gestiona procesos disciplinarios y contratos         |
+| Cliente       | `cliente`     | Visualiza procesos de su empresa y gestiona personal |
 
 ---
 
@@ -106,17 +106,20 @@ Al crear un usuario con rol **Cliente**, es obligatorio asignarle una empresa. E
 3. Complete la informacion:
 
 **Seccion Informacion de la Empresa:**
+
 - Razon social (nombre legal completo)
 - NIT (con formato automatico `999999999-9`)
 - Representante legal
 - Estado activa/inactiva
 
 **Seccion Informacion de Contacto:**
+
 - Telefono
 - Email de contacto
 - Direccion completa
 
 **Seccion Ubicacion:**
+
 - Departamento (32 departamentos de Colombia)
 - Ciudad (se carga dinamicamente segun el departamento)
 
@@ -128,6 +131,7 @@ Al crear un usuario con rol **Cliente**, es obligatorio asignarle una empresa. E
 
 :::caution[Restricciones de Eliminacion]
 No se puede eliminar una empresa que tenga:
+
 - Procesos disciplinarios asociados
 - Trabajadores registrados
 
@@ -137,6 +141,7 @@ Primero debe eliminar o reasignar esos registros.
 ### Ver Detalle de una Empresa
 
 En la lista de empresas puede ver:
+
 - Razon social y NIT
 - Ciudad y departamento
 - Telefono y email
@@ -154,12 +159,12 @@ Como administrador, puede ver **todos** los procesos de **todas** las empresas.
 
 1. Vaya a **Historial de Descargos** en el menu lateral
 2. La tabla muestra todos los procesos con:
-   - Codigo del proceso
-   - Trabajador involucrado
-   - Empresa
-   - Estado actual (con badge de color)
-   - Abogado asignado
-   - Fechas relevantes
+    - Codigo del proceso
+    - Trabajador involucrado
+    - Empresa
+    - Estado actual (con badge de color)
+    - Abogado asignado
+    - Fechas relevantes
 
 ### Filtros Disponibles
 
@@ -172,27 +177,27 @@ Como administrador, puede ver **todos** los procesos de **todas** las empresas.
 
 Dependiendo del estado del proceso, el administrador puede:
 
-| Estado | Acciones Disponibles |
-|--------|----------------------|
-| Apertura | Editar, asignar abogado, programar descargos |
-| Descargos pendientes | Ver citacion, generar preguntas IA, ver tracking email |
-| Descargos realizados | Ver acta, analizar con IA, emitir sancion, archivar |
-| Descargos no realizados | Emitir sancion, archivar, reprogramar |
-| Sancion emitida | Ver sancion, registrar impugnacion, cerrar |
-| Impugnacion realizada | Resolver, cerrar |
-| Cerrado / Archivado | Solo consulta |
+| Estado                  | Acciones Disponibles                                   |
+| ----------------------- | ------------------------------------------------------ |
+| Apertura                | Editar, asignar abogado, programar descargos           |
+| Descargos pendientes    | Ver citacion, generar preguntas IA, ver tracking email |
+| Descargos realizados    | Ver acta, analizar con IA, emitir sancion, archivar    |
+| Descargos no realizados | Emitir sancion, archivar, reprogramar                  |
+| Sancion emitida         | Ver sancion, registrar impugnacion, cerrar             |
+| Impugnacion realizada   | Resolver, cerrar                                       |
+| Cerrado / Archivado     | Solo consulta                                          |
 
 ### Crear un Proceso Disciplinario
 
 1. Haga clic en **Crear Descargos** en el menu lateral
 2. Complete el formulario paso a paso:
-   - Seleccione la empresa
-   - Seleccione el trabajador (filtrado por empresa)
-   - Describa los hechos ocurridos
-   - Seleccione la fecha de ocurrencia
-   - Seleccione los articulos legales incumplidos
-   - Seleccione las sanciones laborales aplicables
-   - Adjunte pruebas iniciales (opcional)
+    - Seleccione la empresa
+    - Seleccione el trabajador (filtrado por empresa)
+    - Describa los hechos ocurridos
+    - Seleccione la fecha de ocurrencia
+    - Seleccione los articulos legales incumplidos
+    - Seleccione las sanciones laborales aplicables
+    - Adjunte pruebas iniciales (opcional)
 3. Haga clic en **Crear**
 
 <!-- ![Crear proceso disciplinario](/screenshots/admin-crear-proceso.png) -->
@@ -209,31 +214,31 @@ El sistema incluye un catalogo de **63 tipos de sanciones** laborales predefinid
 
 1. Vaya a **Configuracion** > **Sanciones Laborales**
 2. Vera la lista completa con:
-   - Numero de orden
-   - Tipo de falta (Leve / Grave)
-   - Nombre claro de la sancion
-   - Tipo de sancion (Llamado de atencion / Suspension / Terminacion)
-   - Dias de suspension (si aplica)
-   - Estado activa/inactiva
+    - Numero de orden
+    - Tipo de falta (Leve / Grave)
+    - Nombre claro de la sancion
+    - Tipo de sancion (Llamado de atencion / Suspension / Terminacion)
+    - Dias de suspension (si aplica)
+    - Estado activa/inactiva
 
 ### Crear una Nueva Sancion
 
 1. Haga clic en **Crear Sancion Laboral**
 2. Complete los campos:
-   - **Tipo de Falta**: Leve o Grave
-   - **Nombre Claro**: Descripcion corta y comprensible (ej: "Retardo de 15 minutos, 1ra vez")
-   - **Descripcion Completa**: Detalle de la conducta sancionable
-   - **Tipo de Sancion**: Llamado de atencion, Suspension o Terminacion
-   - **Dias de Suspension** (min/max): Solo si el tipo es Suspension
-   - **Activa**: Si aparecera en los selectores al crear procesos
+    - **Tipo de Falta**: Leve o Grave
+    - **Nombre Claro**: Descripcion corta y comprensible (ej: "Retardo de 15 minutos, 1ra vez")
+    - **Descripcion Completa**: Detalle de la conducta sancionable
+    - **Tipo de Sancion**: Llamado de atencion, Suspension o Terminacion
+    - **Dias de Suspension** (min/max): Solo si el tipo es Suspension
+    - **Activa**: Si aparecera en los selectores al crear procesos
 
 ### Tipos de Sancion
 
-| Tipo | Descripcion | Ejemplo |
-|------|-------------|---------|
-| Llamado de Atencion | Amonestacion escrita | Retardo menor a 15 min (1ra vez) |
-| Suspension | Suspension temporal del contrato | Inasistencia injustificada (1-8 dias) |
-| Terminacion | Terminacion del contrato con justa causa | Falta gravisima reiterada |
+| Tipo                | Descripcion                              | Ejemplo                               |
+| ------------------- | ---------------------------------------- | ------------------------------------- |
+| Llamado de Atencion | Amonestacion escrita                     | Retardo menor a 15 min (1ra vez)      |
+| Suspension          | Suspension temporal del contrato         | Inasistencia injustificada (1-8 dias) |
+| Terminacion         | Terminacion del contrato con justa causa | Falta gravisima reiterada             |
 
 ### Activar/Desactivar Sanciones
 
@@ -258,14 +263,14 @@ CES Legal utiliza **Filament Shield** (basado en Spatie Laravel Permission) para
 
 Cada recurso de Filament tiene los siguientes permisos:
 
-| Permiso | Descripcion |
-|---------|-------------|
-| `view_any_{recurso}` | Ver listado |
-| `view_{recurso}` | Ver detalle |
-| `create_{recurso}` | Crear registro |
-| `update_{recurso}` | Editar registro |
-| `delete_{recurso}` | Eliminar registro |
-| `delete_any_{recurso}` | Eliminar en lote |
+| Permiso                | Descripcion       |
+| ---------------------- | ----------------- |
+| `view_any_{recurso}`   | Ver listado       |
+| `view_{recurso}`       | Ver detalle       |
+| `create_{recurso}`     | Crear registro    |
+| `update_{recurso}`     | Editar registro   |
+| `delete_{recurso}`     | Eliminar registro |
+| `delete_any_{recurso}` | Eliminar en lote  |
 
 ### Modificar Permisos de un Rol
 
@@ -288,11 +293,13 @@ El sistema incluye un tour de onboarding interactivo que guia a los nuevos usuar
 ### Gestion del Tour
 
 Como administrador, puede:
+
 - Ver que usuarios han completado el tour
 - Resetear el estado del tour para un usuario (forzar que lo vea de nuevo)
 - Configurar los pasos del tour para cada modulo
 
 Los atributos `data-tour` en los formularios definen los elementos que el tour resalta:
+
 - `data-tour="trabajador-empresa"` - Selector de empresa en trabajadores
 - `data-tour="trabajador-tipo-doc"` - Tipo de documento
 - `data-tour="trabajador-nombres"` - Campo de nombres
@@ -306,19 +313,19 @@ Los atributos `data-tour` en los formularios definen los elementos que el tour r
 
 1. En cualquier proceso disciplinario, busque la seccion de **Tracking de Email**
 2. Podra ver:
-   - Si la citacion fue enviada y leida
-   - Si la sancion fue notificada y leida
-   - Cantidad de veces que el correo fue abierto
-   - Fecha y hora de primera apertura
-   - Tiempo transcurrido entre envio y apertura
+    - Si la citacion fue enviada y leida
+    - Si la sancion fue notificada y leida
+    - Cantidad de veces que el correo fue abierto
+    - Fecha y hora de primera apertura
+    - Tiempo transcurrido entre envio y apertura
 
 ### Interpretacion de Estados
 
-| Estado | Significado | Accion Sugerida |
-|--------|-------------|-----------------|
-| Pendiente (gris) | Correo no procesado | Verificar direccion de email |
+| Estado               | Significado                 | Accion Sugerida                 |
+| -------------------- | --------------------------- | ------------------------------- |
+| Pendiente (gris)     | Correo no procesado         | Verificar direccion de email    |
 | Entregado (amarillo) | Llego al servidor de correo | Esperar apertura del trabajador |
-| Leido (verde) | Trabajador abrio el correo | Proceder con el siguiente paso |
+| Leido (verde)        | Trabajador abrio el correo  | Proceder con el siguiente paso  |
 
 ---
 
@@ -332,6 +339,7 @@ Los atributos `data-tour` en los formularios definen los elementos que el tour r
 ### Un usuario no puede acceder al sistema
 
 **Verificar:**
+
 1. Que el usuario tenga el toggle **Activo** habilitado
 2. Que el rol asignado sea `super_admin`, `abogado` o `cliente`
 3. Si es cliente, que tenga una empresa asignada
@@ -345,6 +353,7 @@ Los atributos `data-tour` en los formularios definen los elementos que el tour r
 ### Los correos no se estan rastreando
 
 **Verificar:**
+
 1. Que el servicio de email este configurado correctamente en `.env`
 2. Que las rutas de tracking esten accesibles (`/email/track/{token}.gif`)
 3. Que el cliente de correo del trabajador no bloquee imagenes externas

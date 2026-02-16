@@ -196,6 +196,8 @@ description: Flujo completo del proceso disciplinario en CES Legal
 
 ## Flujo de Generación de Preguntas con IA
 
+!['Flujo de Generación de Preguntas con IA'](../../../assets/flujo-preguntas-ia.png)
+
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │   Abogado   │────▶│ IADescargo  │────▶│   Google    │────▶│  Preguntas  │

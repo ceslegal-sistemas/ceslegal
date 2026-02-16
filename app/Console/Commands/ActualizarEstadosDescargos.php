@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\ProcesoDisciplinario;
 use App\Services\EstadoProcesoService;
+use App\Services\DocumentGeneratorService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -20,35 +21,99 @@ class ActualizarEstadosDescargos extends Command
         $this->newLine();
 
         $estadoService = app(EstadoProcesoService::class);
+        $documentService = app(DocumentGeneratorService::class);
 
         // Ejecutar todas las actualizaciones
-        $resultadoDescargos = $this->actualizarEstadosDescargos($estadoService);
+        $resultadoRecordatorios = $this->enviarRecordatoriosDescargos($documentService);
+        $resultadoDescargos = $this->actualizarEstadosDescargos($estadoService, $documentService);
         $resultadoCierres = $this->cerrarProcesosSinImpugnacion($estadoService);
 
         // Resumen final
         $this->newLine();
         $this->info('=== Resumen Final ===');
+        $this->info("  - Recordatorios enviados: {$resultadoRecordatorios['enviados']}");
         $this->info("  - Descargos realizados: {$resultadoDescargos['realizados']}");
         $this->info("  - Descargos no realizados: {$resultadoDescargos['no_realizados']}");
+        $this->info("  - Notificaciones a empleadores: {$resultadoDescargos['notificaciones_empleador']}");
         $this->info("  - Procesos cerrados (sin impugnación): {$resultadoCierres['cerrados']}");
 
-        $total = $resultadoDescargos['realizados'] + $resultadoDescargos['no_realizados'] + $resultadoCierres['cerrados'];
+        $total = $resultadoRecordatorios['enviados'] + $resultadoDescargos['realizados'] + $resultadoDescargos['no_realizados'] + $resultadoCierres['cerrados'];
         if ($total === 0) {
-            $this->info('No hubo cambios de estado.');
+            $this->info('No hubo cambios de estado ni notificaciones.');
         }
 
         return Command::SUCCESS;
     }
 
     /**
+     * Envía recordatorios a trabajadores cuya diligencia de descargos es mañana
+     */
+    private function enviarRecordatoriosDescargos(DocumentGeneratorService $documentService): array
+    {
+        $this->info('>> Enviando recordatorios de descargos (1 día antes)...');
+
+        $enviados = 0;
+        $manana = Carbon::tomorrow()->startOfDay();
+
+        // Buscar procesos con descargos programados para mañana
+        $procesos = ProcesoDisciplinario::where('estado', 'descargos_pendientes')
+            ->whereDate('fecha_descargos_programada', $manana)
+            ->whereHas('trabajador', function ($query) {
+                $query->whereNotNull('email');
+            })
+            ->with(['trabajador', 'empresa', 'diligenciaDescargo'])
+            ->get();
+
+        foreach ($procesos as $proceso) {
+            // Verificar que no se haya enviado recordatorio hoy
+            $yaEnviado = \App\Models\EmailTracking::where('proceso_id', $proceso->id)
+                ->where('tipo_documento', 'recordatorio_descargos')
+                ->whereDate('enviado_en', Carbon::today())
+                ->exists();
+
+            if ($yaEnviado) {
+                $this->line("   - {$proceso->codigo}: recordatorio ya enviado hoy, omitido");
+                continue;
+            }
+
+            try {
+                $resultado = $documentService->enviarRecordatorioDescargos($proceso);
+
+                if ($resultado['success']) {
+                    $enviados++;
+                    $this->info("   ✓ {$proceso->codigo} → Recordatorio enviado a {$proceso->trabajador->email}");
+                } else {
+                    $this->warn("   ⚠ {$proceso->codigo} → {$resultado['error']}");
+                }
+            } catch (\Exception $e) {
+                Log::error('Error al enviar recordatorio de descargos', [
+                    'proceso_id' => $proceso->id,
+                    'error' => $e->getMessage(),
+                ]);
+                $this->error("   ✗ Error en {$proceso->codigo}: {$e->getMessage()}");
+            }
+        }
+
+        if ($procesos->isEmpty()) {
+            $this->line('   No hay diligencias programadas para mañana.');
+        }
+
+        return [
+            'enviados' => $enviados,
+        ];
+    }
+
+    /**
      * Actualiza estados basados en descargos realizados o no realizados
      */
-    private function actualizarEstadosDescargos(EstadoProcesoService $estadoService): array
+    private function actualizarEstadosDescargos(EstadoProcesoService $estadoService, DocumentGeneratorService $documentService): array
     {
+        $this->newLine();
         $this->info('>> Verificando estados de descargos...');
 
         $actualizados = 0;
         $noRealizados = 0;
+        $notificacionesEmpleador = 0;
 
         // =====================================================
         // CASO 1: Descargos realizados (respondió al menos 1 pregunta)
@@ -110,7 +175,7 @@ class ActualizarEstadosDescargos extends Command
                       ->orWhereNull('trabajador_asistio');
                 });
             })
-            ->with('diligenciaDescargo')
+            ->with(['diligenciaDescargo', 'trabajador', 'empresa'])
             ->get();
 
         foreach ($procesosVencidos as $proceso) {
@@ -135,6 +200,25 @@ class ActualizarEstadosDescargos extends Command
                     ]);
 
                     $this->warn("   ⚠ {$proceso->codigo} → descargos_no_realizados (no asistió, fecha: {$proceso->fecha_descargos_programada})");
+
+                    // Enviar notificación al empleador
+                    try {
+                        $resultadoNotificacion = $documentService->notificarEmpleadorDescargosNoRealizados($proceso);
+
+                        if ($resultadoNotificacion['success']) {
+                            $notificacionesEmpleador++;
+                            $this->info("     → Empleador notificado ({$resultadoNotificacion['enviados']} correo(s))");
+                        } else {
+                            $this->warn("     → No se pudo notificar al empleador: {$resultadoNotificacion['error']}");
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error al notificar empleador de descargos no realizados', [
+                            'proceso_id' => $proceso->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                        $this->error("     → Error al notificar empleador: {$e->getMessage()}");
+                    }
+
                 } catch (\Exception $e) {
                     Log::error('Error al actualizar estado', [
                         'proceso_id' => $proceso->id,
@@ -148,6 +232,7 @@ class ActualizarEstadosDescargos extends Command
         return [
             'realizados' => $actualizados,
             'no_realizados' => $noRealizados,
+            'notificaciones_empleador' => $notificacionesEmpleador,
         ];
     }
 

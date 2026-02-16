@@ -1533,7 +1533,7 @@ class ProcesoDisciplinarioResource extends Resource
 
                         return [
                             // Sección: Motivos de Descargos Seleccionados
-                            Forms\Components\Section::make('📋 Motivos de los Descargos')
+                            Forms\Components\Section::make('Motivos de los Descargos')
                                 ->schema([
                                     Forms\Components\Placeholder::make('motivos_seleccionados')
                                         ->label('')
@@ -1567,7 +1567,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->collapsed(false),
 
                             // Sección: Análisis de "Otro Motivo" (solo si aplica)
-                            Forms\Components\Section::make('⚠️ Análisis de Otro Motivo')
+                            Forms\Components\Section::make('Análisis de Otro Motivo')
                                 ->schema([
                                     Forms\Components\Placeholder::make('otro_motivo_descripcion')
                                         ->label('Motivo descrito por el usuario')
@@ -1583,9 +1583,9 @@ class ProcesoDisciplinarioResource extends Resource
                                             $tipoFalta = strtoupper($analisisOtroMotivo['tipo_falta_determinado'] ?? 'N/A');
                                             $emoji = ($analisisOtroMotivo['tipo_falta_determinado'] ?? '') === 'leve' ? '🟢' : '🔴';
                                             $sancionRec = match ($analisisOtroMotivo['sancion_recomendada'] ?? '') {
-                                                'llamado_atencion' => '📄 Llamado de Atención',
-                                                'suspension' => '⏸️ Suspensión Laboral',
-                                                'terminacion' => '❌ Terminación de Contrato',
+                                                'llamado_atencion' => 'Llamado de Atención',
+                                                'suspension' => 'Suspensión Laboral',
+                                                'terminacion' => 'Terminación de Contrato',
                                                 default => $analisisOtroMotivo['sancion_recomendada'] ?? 'N/A',
                                             };
 

@@ -29,6 +29,8 @@ class FormularioDescargos extends Component
 
     protected $listeners = ['respuestaGuardada' => 'refrescarPreguntas'];
 
+    public bool $tiempoExpiradoMostrarEvidencias = false;
+
     public function mount(DiligenciaDescargo $diligencia)
     {
         $this->diligencia = $diligencia;
@@ -41,9 +43,22 @@ class FormularioDescargos extends Component
             // Verificar si ya expiró
             if ($this->diligencia->tiempoHaExpirado()) {
                 $this->diligencia->marcarTiempoExpirado();
-                $this->formularioCompletado = true;
-                session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
-                return;
+
+                // Verificar si todas las preguntas están respondidas
+                $preguntasSinResponder = $this->diligencia->preguntas()
+                    ->activas()
+                    ->whereDoesntHave('respuesta')
+                    ->count();
+
+                if ($preguntasSinResponder === 0) {
+                    // Todas respondidas: mostrar pantalla de evidencias
+                    $this->tiempoExpiradoMostrarEvidencias = true;
+                } else {
+                    // Quedan preguntas: marcar como completado (no podrá responder más)
+                    $this->formularioCompletado = true;
+                    session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
+                    return;
+                }
             }
         }
 
@@ -223,6 +238,17 @@ class FormularioDescargos extends Component
     }
 
     /**
+     * Elimina un archivo de la lista de evidencias
+     */
+    public function eliminarArchivo(int $index)
+    {
+        if (isset($this->archivosEvidencia[$index])) {
+            unset($this->archivosEvidencia[$index]);
+            $this->archivosEvidencia = array_values($this->archivosEvidencia);
+        }
+    }
+
+    /**
      * Obtiene el tiempo restante en segundos
      */
     public function getTimerProperty()
@@ -235,10 +261,24 @@ class FormularioDescargos extends Component
      */
     public function verificarTiempo()
     {
-        if ($this->diligencia->tiempoHaExpirado()) {
+        if ($this->diligencia->tiempoHaExpirado() && !$this->tiempoExpiradoMostrarEvidencias) {
             $this->diligencia->marcarTiempoExpirado();
-            $this->formularioCompletado = true;
-            session()->flash('error', 'El tiempo ha expirado.');
+
+            // Verificar si todas las preguntas están respondidas
+            $preguntasSinResponder = $this->diligencia->preguntas()
+                ->activas()
+                ->whereDoesntHave('respuesta')
+                ->count();
+
+            if ($preguntasSinResponder === 0) {
+                // Todas respondidas: permitir subir evidencias
+                $this->tiempoExpiradoMostrarEvidencias = true;
+                session()->flash('info', 'El tiempo ha expirado, pero puede adjuntar evidencias antes de enviar.');
+            } else {
+                // Quedan preguntas: finalizar
+                $this->formularioCompletado = true;
+                session()->flash('error', 'El tiempo ha expirado.');
+            }
         }
     }
 
@@ -316,6 +356,7 @@ class FormularioDescargos extends Component
 
             $this->formularioCompletado = true;
             $this->mostrarMensajeExito = true;
+            $this->tiempoExpiradoMostrarEvidencias = false;
 
             $this->dispatch('descargosFinalizados');
 

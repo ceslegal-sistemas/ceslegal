@@ -7,12 +7,12 @@ description: Validaciones y reglas de negocio del proceso disciplinario
 
 ### 1. Códigos de Proceso
 
-| Regla | Descripción |
-|-------|-------------|
-| **Formato** | `PD-YYYY-XXXX` (ej: PD-2026-0001) |
-| **Unicidad** | Único por empresa, incluso con soft deletes |
-| **Generación** | Automática al crear el proceso |
-| **Inmutable** | No se puede modificar después de creado |
+| Regla          | Descripción                             |
+| -------------- | --------------------------------------- |
+| **Formato**    | `PD-YYYY-XXXX` (ej: PD-2026-0001)       |
+| **Unicidad**   | Único por empresa                       |
+| **Generación** | Automática al crear el proceso          |
+| **Inmutable**  | No se puede modificar después de creado |
 
 ```php
 // Generación automática de código
@@ -25,54 +25,49 @@ $siguiente = $ultimoCodigo ? intval(substr($ultimoCodigo, -4)) + 1 : 1;
 $codigo = 'PD-' . now()->year . '-' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
 ```
 
-### 2. Asignación de Abogado
+### 2. Plazos Legales
 
-| Regla | Descripción |
-|-------|-------------|
-| **Obligatoriedad** | Requerido antes de programar descargos |
-| **Roles permitidos** | Solo usuarios con rol `abogado` o `super_admin` |
-| **Disponibilidad** | Se verifica disponibilidad en la fecha |
-| **Reasignación** | Permitida en estados `apertura` y `descargos_pendientes` |
-
-### 3. Plazos Legales
-
-| Plazo | Días Hábiles | Base Legal |
-|-------|--------------|------------|
-| Citación a descargos | Mínimo 5 días | Art. 115 CST |
-| Vigencia del token | 6 días | Política interna |
+| Plazo                   | Días Hábiles   | Base Legal         |
+| ----------------------- | -------------- | ------------------ |
+| Citación a descargos    | Mínimo 5 días  | Art. 115 CST       |
+| Vigencia del token      | 6 días         | Política interna   |
 | Decisión post-descargos | Máximo 10 días | Reglamento interno |
-| Notificación de sanción | 3 días | Reglamento interno |
+| Notificación de sanción | 3 días         | Reglamento interno |
 
 :::note[Días Hábiles]
 El sistema calcula plazos excluyendo:
-- Sábados y domingos
+
+- Sábados y domingos (Si la empresa labora los Sábados contará como día hábil)
 - Festivos de Colombia (cargados en `dias_no_habiles`)
-:::
+  :::
 
 ## Reglas por Estado
 
 ### Estado: Apertura
 
 **Validaciones de entrada:**
+
 ```php
 // Al crear proceso
 $rules = [
     'empresa_id' => 'required|exists:empresas,id',
     'trabajador_id' => 'required|exists:trabajadores,id',
-    'hechos' => 'required|string|min:50',
+    'hechos' => 'required|string|min:20',
     'articulos_incumplidos' => 'required|array|min:1',
     'fecha_apertura' => 'required|date|before_or_equal:today',
 ];
+
 ```
 
 **Validaciones de salida (para avanzar):**
-- Debe tener abogado asignado
+
 - Debe tener al menos una diligencia programada
 - La fecha de descargos debe ser al menos 5 días hábiles después
 
 ### Estado: Descargos Pendientes
 
 **Validaciones de entrada:**
+
 ```php
 // Al programar descargos
 $rules = [
@@ -85,6 +80,7 @@ $rules = [
 ```
 
 **Reglas adicionales:**
+
 - La citación debe ser enviada al menos 5 días hábiles antes
 - El token de acceso expira 6 días después de generado
 - Solo se puede tener una diligencia activa por proceso
@@ -92,6 +88,7 @@ $rules = [
 ### Estado: Descargos Realizados/No Realizados
 
 **Transición automática:**
+
 ```php
 // Cuando el trabajador completa el formulario
 if ($diligencia->preguntas()->whereHas('respuesta')->count() > 0) {
@@ -102,6 +99,7 @@ if ($diligencia->preguntas()->whereHas('respuesta')->count() > 0) {
 ```
 
 **Reglas:**
+
 - Se genera acta automáticamente al completar
 - Máximo 30 preguntas por diligencia
 - Timer de 45 minutos para completar
@@ -109,6 +107,7 @@ if ($diligencia->preguntas()->whereHas('respuesta')->count() > 0) {
 ### Estado: Sanción Emitida
 
 **Validaciones:**
+
 ```php
 $rules = [
     'sancion_laboral_id' => 'required|exists:sanciones_laborales,id',
@@ -120,13 +119,16 @@ $rules = [
 ```
 
 **Reglas:**
-- La suspensión no puede exceder 8 días (Art. 112 CST)
+
+- La suspensión no puede exceder 8 día por primera vez (Art. 112 CST)
+- Si hay reincidencia no puede exceder 2 meses (Art. 112 CST)
 - Debe incluir fundamento legal
 - Debe notificarse por escrito al trabajador
 
 ### Estado: Impugnación
 
 **Validaciones:**
+
 ```php
 $rules = [
     'tipo_recurso' => 'required|in:reposicion,apelacion',
@@ -136,6 +138,7 @@ $rules = [
 ```
 
 **Reglas:**
+
 - El recurso debe presentarse dentro del plazo establecido
 - Debe resolverse en los términos del reglamento interno
 
@@ -143,12 +146,12 @@ $rules = [
 
 ### Generación de Preguntas
 
-| Regla | Valor |
-|-------|-------|
-| Preguntas iniciales | 10 |
-| Máximo de preguntas | 30 |
-| Preguntas dinámicas | Basadas en respuestas |
-| Marcación IA | Obligatoria para trazabilidad |
+| Regla               | Valor                         |
+| ------------------- | ----------------------------- |
+| Preguntas iniciales | 13                            |
+| Máximo de preguntas | 30                            |
+| Preguntas dinámicas | Basadas en respuestas         |
+| Marcación IA        | Obligatoria para trazabilidad |
 
 ```php
 // Validar límite de preguntas
@@ -159,12 +162,12 @@ if ($diligencia->preguntas()->count() >= 30) {
 
 ### Formulario Público
 
-| Regla | Valor |
-|-------|-------|
-| Tiempo máximo | 45 minutos |
-| Vigencia del token | 6 días |
-| Intentos permitidos | 1 (no se puede reiniciar) |
-| Archivos adjuntos | Máximo 5, hasta 10MB cada uno |
+| Regla               | Valor                         |
+| ------------------- | ----------------------------- |
+| Tiempo máximo       | 45 minutos                    |
+| Vigencia del token  | 6 días                        |
+| Intentos permitidos | 1 (no se puede reiniciar)     |
+| Archivos adjuntos   | Máximo 5, hasta 10MB cada uno |
 
 ```php
 // Validar token
@@ -187,27 +190,26 @@ public function validarToken(string $token): ?DiligenciaDescargo
 
 ### Citación
 
-| Regla | Descripción |
-|-------|-------------|
-| Formatos | PDF y Word |
-| Variables requeridas | Nombre, cédula, fecha, hora, lugar, hechos |
-| Almacenamiento | `storage/app/public/documentos/citaciones/` |
+| Regla                | Descripción                                 |
+| -------------------- | ------------------------------------------- |
+| Formatos             | PDF y Word                                  |
+| Almacenamiento       | `storage/app/public/documentos/citaciones/` |
 
 ### Acta de Descargos
 
-| Regla | Descripción |
-|-------|-------------|
-| Generación | Automática al completar descargos |
-| Contenido | Todas las preguntas con respuestas |
-| Marcación | Indica cuáles fueron generadas por IA |
+| Regla      | Descripción                           |
+| ---------- | ------------------------------------- |
+| Generación | Automática al completar descargos     |
+| Contenido  | Todas las preguntas con respuestas    |
+| Marcación  | Indica cuáles fueron generadas por IA |
 
 ### Documento de Sanción
 
-| Regla | Descripción |
-|-------|-------------|
-| Requisito | Solo en estado `sancion_emitida` |
-| Contenido | Sanción, fundamento, fechas de vigencia |
-| Notificación | Debe incluir vías de impugnación |
+| Regla        | Descripción                             |
+| ------------ | --------------------------------------- |
+| Requisito    | Solo en estado `sancion_emitida`        |
+| Contenido    | Sanción, fundamento, fechas de vigencia |
+| Notificación | Debe incluir vías de impugnación        |
 
 ## Reglas de Seguridad
 
@@ -233,17 +235,17 @@ public static function getEloquentQuery(): Builder
 
 ### Permisos por Rol
 
-| Acción | Super Admin | Abogado | Cliente |
-|--------|-------------|---------|---------|
-| Crear proceso | ✅ | ✅ | ❌ |
-| Ver todos los procesos | ✅ | ❌ | ❌ |
-| Ver procesos propios | ✅ | ✅ | ✅ |
-| Editar proceso | ✅ | ✅* | ❌ |
-| Eliminar proceso | ✅ | ❌ | ❌ |
-| Generar documentos | ✅ | ✅ | ❌ |
-| Emitir sanción | ✅ | ✅ | ❌ |
+| Acción                 | Super Admin | Abogado | Cliente |
+| ---------------------- | ----------- | ------- | ------- |
+| Crear proceso          | ✅          | ✅      | ✅      |
+| Ver todos los procesos | ✅          | ❌      | ❌      |
+| Ver procesos propios   | ✅          | ✅      | ✅      |
+| Editar proceso         | ✅          | ✅\*    | ❌      |
+| Eliminar proceso       | ✅          | ❌      | ❌      |
+| Generar documentos     | ✅          | ✅      | ✅      |
+| Emitir sanción         | ✅          | ✅      | ✅      |
 
-*Solo procesos asignados
+\*Solo procesos asignados
 
 ## Reglas de Auditoría
 
@@ -255,7 +257,7 @@ Eventos que deben registrarse:
 - Cambios de estado
 - Asignación/reasignación de abogado
 - Programación de descargos
-- Generación de preguntas (manual o IA)
+- Generación de preguntas IA (manual o automático)
 - Completación de descargos
 - Emisión de sanción
 - Impugnaciones
@@ -283,6 +285,7 @@ TrazabilidadIADescargo::create([
 ### Trabajador Eliminado
 
 Si un trabajador es eliminado (soft delete), sus procesos:
+
 - Permanecen visibles
 - No pueden crear nuevos procesos para ese trabajador
 - El proceso en curso puede continuar
@@ -290,6 +293,7 @@ Si un trabajador es eliminado (soft delete), sus procesos:
 ### Proceso Archivado
 
 Un proceso puede archivarse si:
+
 - No hay mérito para sanción
 - El trabajador renunció durante el proceso
 - Prescribió el término para sancionar
@@ -298,6 +302,7 @@ Un proceso puede archivarse si:
 ### Reprogramación de Descargos
 
 Condiciones:
+
 - Solo en estado `descargos_pendientes`
 - Debe notificarse nuevamente al trabajador
 - Se genera nuevo token de acceso

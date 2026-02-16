@@ -1,11 +1,11 @@
 ---
-title: Manual del Cliente (RRHH)
+title: Manual del Cliente
 description: Guia completa para el usuario con rol cliente en CES Legal
 ---
 
 ## Descripcion del Rol
 
-El **Cliente** (rol `cliente`, anteriormente conocido como RRHH) es el representante de la empresa que utiliza el sistema CES Legal para gestionar los procesos disciplinarios de sus trabajadores. Este rol tiene un alcance limitado a los datos de **su propia empresa**.
+El **Cliente** (rol `cliente`) es el representante de la empresa que utiliza el sistema CES Legal para gestionar los procesos disciplinarios de sus trabajadores. Este rol tiene un alcance limitado a los datos de **su propia empresa**.
 
 ### Capacidades del Cliente
 
@@ -23,7 +23,6 @@ El **Cliente** (rol `cliente`, anteriormente conocido como RRHH) es el represent
 - No puede gestionar usuarios ni roles
 - No puede acceder al catalogo de sanciones laborales ni articulos legales
 - No puede modificar datos de otras empresas
-- No puede asignar abogados a procesos (lo hace el administrador)
 
 ---
 
@@ -32,6 +31,7 @@ El **Cliente** (rol `cliente`, anteriormente conocido como RRHH) es el represent
 ### Paso 1: Recibir Credenciales
 
 El administrador del sistema le proporcionara:
+
 - URL de acceso: `https://su-dominio.com/admin`
 - Correo electronico
 - Contrasena temporal
@@ -81,13 +81,13 @@ Al iniciar sesion, vera el dashboard con informacion de **su empresa unicamente*
 1. En el menu lateral, haga clic en **Trabajadores**
 2. Vera la lista de trabajadores registrados de **su empresa**
 3. La tabla muestra:
-   - Nombre completo
-   - Tipo y numero de documento
-   - Empresa (su empresa)
-   - Cargo
-   - Email
-   - Estado activo/inactivo
-   - Cantidad de procesos disciplinarios
+    - Nombre completo
+    - Tipo y numero de documento
+    - Empresa (su empresa)
+    - Cargo
+    - Email
+    - Estado activo/inactivo
+    - Cantidad de procesos disciplinarios
 
 :::note[Filtrado Automatico]
 Como cliente, solo vera los trabajadores de su empresa. No necesita aplicar filtros adicionales; el sistema filtra automaticamente por su empresa asignada.
@@ -99,31 +99,33 @@ Como cliente, solo vera los trabajadores de su empresa. No necesita aplicar filt
 2. Complete el formulario:
 
 **Seccion - Seleccione la Empresa:**
+
 - La empresa se asigna automaticamente (su empresa)
 - El campo aparece deshabilitado con el mensaje "Empresa asignada automaticamente"
 
 **Seccion - Informacion Personal:**
 
-| Campo | Descripcion | Requerido |
-|-------|-------------|:---------:|
-| Tipo de Documento | CC, CE, TI o Pasaporte | Si |
-| Numero de Documento | Numero unico del documento | Si |
-| Genero | Masculino o Femenino | Si |
-| Nombres | Nombres completos | Si |
-| Apellidos | Apellidos completos | Si |
-| Departamento de Nacimiento | Departamento colombiano | Opcional |
-| Ciudad de Nacimiento | Municipio (1,122 disponibles) | Opcional |
-| Correo Electronico | Email del trabajador | Si |
+| Campo                      | Descripcion                   | Requerido |
+| -------------------------- | ----------------------------- | :-------: |
+| Tipo de Documento          | CC, CE, TI o Pasaporte        |    Si     |
+| Numero de Documento        | Numero unico del documento    |    Si     |
+| Genero                     | Masculino o Femenino          |    Si     |
+| Nombres                    | Nombres completos             |    Si     |
+| Apellidos                  | Apellidos completos           |    Si     |
+| Departamento de Nacimiento | Departamento colombiano       | Opcional  |
+| Ciudad de Nacimiento       | Municipio (1,122 disponibles) | Opcional  |
+| Correo Electronico         | Email del trabajador          |    Si     |
 
 **Seccion - Informacion Laboral:**
 
-| Campo | Descripcion | Requerido |
-|-------|-------------|:---------:|
-| Cargo | Lista de 36 cargos predefinidos + opcion personalizada | Si |
-| Area / Departamento | Lista de 23 areas + opcion personalizada | No |
-| Trabajador Activo | Toggle activo/inactivo | No |
+| Campo               | Descripcion                                            | Requerido |
+| ------------------- | ------------------------------------------------------ | :-------: |
+| Cargo               | Lista de 36 cargos predefinidos + opcion personalizada |    Si     |
+| Area / Departamento | Lista de 23 areas + opcion personalizada               |    No     |
+| Trabajador Activo   | Toggle activo/inactivo                                 |    No     |
 
 **Seccion - Datos de Contacto (Opcional):**
+
 - Telefono / Celular
 - Direccion de Residencia
 
@@ -144,11 +146,13 @@ Si el cargo del trabajador no esta en la lista predefinida, seleccione **"Otro (
 ### Desactivar un Trabajador
 
 Si un trabajador ya no labora en la empresa:
+
 1. En la lista, haga clic en **Desactivar** junto al trabajador
 2. Confirme la accion en el modal
 3. El trabajador quedara marcado como inactivo pero no se elimina del sistema
 
 Para reactivarlo posteriormente:
+
 1. Busque el trabajador (puede estar oculto por filtro de activos)
 2. Haga clic en **Activar**
 
@@ -159,6 +163,7 @@ Para reactivarlo posteriormente:
 ### Antes de Empezar
 
 Antes de crear un proceso disciplinario, asegurese de tener:
+
 - El trabajador registrado en el sistema
 - Descripcion clara de los hechos ocurridos
 - Fecha de ocurrencia de los hechos
@@ -174,28 +179,32 @@ Antes de crear un proceso disciplinario, asegurese de tener:
 ### Paso 2: Completar el Formulario
 
 **Seccion - Empresa y Trabajador:**
+
 - La empresa se selecciona automaticamente (su empresa)
 - Seleccione al trabajador de la lista (busqueda por nombre)
 
 **Seccion - Hechos:**
 
-| Campo | Descripcion | Requerido |
-|-------|-------------|:---------:|
-| Hechos | Descripcion detallada de lo ocurrido | Si |
-| Fecha de Ocurrencia | Dia en que ocurrieron los hechos | Si |
-| Normas Incumplidas | Descripcion de las normas violadas | Opcional |
+| Campo               | Descripcion                          | Requerido |
+| ------------------- | ------------------------------------ | :-------: |
+| Hechos              | Descripcion detallada de lo ocurrido |    Si     |
+| Fecha de Ocurrencia | Dia en que ocurrieron los hechos     |    Si     |
+| Normas Incumplidas  | Descripcion de las normas violadas   | Opcional  |
 
 **Seccion - Articulos Legales:**
+
 - Seleccione los articulos del Codigo Sustantivo del Trabajo aplicables
 - Puede seleccionar multiples articulos
 - Si no esta seguro, el abogado puede completar esta seccion despues
 
 **Seccion - Sanciones Laborales:**
+
 - Seleccione las sanciones aplicables del catalogo
 - Las sanciones estan clasificadas como Leves o Graves
 - Puede seleccionar multiples sanciones
 
 **Seccion - Pruebas Iniciales:**
+
 - Descripcion de las pruebas que respaldan los hechos
 - Adjunte archivos si los tiene disponibles
 
@@ -204,6 +213,7 @@ Antes de crear un proceso disciplinario, asegurese de tener:
 ### Paso 3: Siguiente Paso
 
 Una vez creado el proceso:
+
 - El estado inicial es **Apertura**
 - El administrador o abogado asignara un abogado al caso
 - El abogado se encargara de generar la citacion y programar la diligencia
@@ -218,28 +228,29 @@ Una vez creado el proceso:
 1. Haga clic en **Historial de Descargos** en el menu lateral
 2. Vera la tabla con todos los procesos de **su empresa**
 3. Cada proceso muestra:
-   - Codigo del proceso
-   - Trabajador
-   - Estado actual (con badge de color)
-   - Abogado asignado
-   - Fechas importantes
+    - Codigo del proceso
+    - Trabajador
+    - Estado actual (con badge de color)
+    - Abogado asignado
+    - Fechas importantes
 
 ### Estados y su Significado
 
-| Estado | Color | Que esta pasando |
-|--------|-------|-----------------|
-| Apertura | Azul | Proceso creado, esperando asignacion de abogado |
-| Descargos Pendientes | Amarillo | Citacion enviada, esperando la diligencia |
-| Descargos Realizados | Verde | El trabajador respondio, en analisis |
-| Descargos No Realizados | Naranja | El trabajador no asistio a la diligencia |
-| Sancion Emitida | Rojo | Se emitio una sancion disciplinaria |
-| Impugnacion Realizada | Morado | El trabajador presento recurso |
-| Cerrado | Gris | Proceso completamente finalizado |
-| Archivado | Gris claro | Proceso cerrado sin sancion |
+| Estado                  | Color      | Que esta pasando                                |
+| ----------------------- | ---------- | ----------------------------------------------- |
+| Apertura                | Azul       | Proceso creado, esperando asignacion de abogado |
+| Descargos Pendientes    | Amarillo   | Citacion enviada, esperando la diligencia       |
+| Descargos Realizados    | Verde      | El trabajador respondio, en analisis            |
+| Descargos No Realizados | Naranja    | El trabajador no asistio a la diligencia        |
+| Sancion Emitida         | Rojo       | Se emitio una sancion disciplinaria             |
+| Impugnacion Realizada   | Morado     | El trabajador presento recurso                  |
+| Cerrado                 | Gris       | Proceso completamente finalizado                |
+| Archivado               | Gris claro | Proceso cerrado sin sancion                     |
 
 ### Detalle de un Proceso
 
 Haga clic en un proceso para ver su detalle completo:
+
 - Informacion del trabajador
 - Hechos descritos
 - Articulos y sanciones aplicables
@@ -255,11 +266,11 @@ Haga clic en un proceso para ver su detalle completo:
 
 Segun el estado del proceso, podra descargar:
 
-| Documento | Disponible desde | Formato |
-|-----------|------------------|---------|
+| Documento            | Disponible desde             | Formato    |
+| -------------------- | ---------------------------- | ---------- |
 | Citacion a Descargos | Estado: Descargos Pendientes | PDF / DOCX |
-| Acta de Descargos | Estado: Descargos Realizados | DOCX |
-| Documento de Sancion | Estado: Sancion Emitida | PDF / HTML |
+| Acta de Descargos    | Estado: Descargos Realizados | DOCX       |
+| Documento de Sancion | Estado: Sancion Emitida      | PDF / HTML |
 
 ### Como Descargar
 
@@ -294,6 +305,7 @@ Segun la legislacion laboral colombiana, la citacion a descargos debe notificars
 ### Modalidad Virtual
 
 En la modalidad virtual:
+
 - Se genera un **enlace unico** para el trabajador
 - El enlace tiene validez de **6 dias**
 - El trabajador solo puede acceder en la **fecha exacta** configurada
@@ -311,15 +323,16 @@ Despues de enviar una citacion, puede verificar si el trabajador la recibio y le
 1. En el detalle del proceso, busque la seccion de **Tracking de Email**
 2. Vera el estado:
 
-| Estado | Icono | Significado |
-|--------|-------|-------------|
-| Pendiente | Gris | Correo enviado pero no procesado aun |
+| Estado    | Icono    | Significado                             |
+| --------- | -------- | --------------------------------------- |
+| Pendiente | Gris     | Correo enviado pero no procesado aun    |
 | Entregado | Amarillo | Correo llego al servidor del trabajador |
-| Leido (N) | Verde | Trabajador abrio el correo N veces |
+| Leido (N) | Verde    | Trabajador abrio el correo N veces      |
 
 ### Tracking de Sanciones
 
 De la misma manera, cuando se emite y notifica una sancion:
+
 - Puede verificar si el trabajador recibio la notificacion
 - Ver cuantas veces abrio el correo
 - Ver la fecha y hora de la primera apertura
@@ -337,15 +350,16 @@ El tracking funciona mediante un pixel de imagen incrustado en el correo. Alguno
 
 1. En el menu lateral, vaya a **Administracion** > **Empresas**
 2. Vera la informacion de **su empresa unicamente**:
-   - Razon social y NIT
-   - Representante legal
-   - Direccion, telefono y email
-   - Departamento y ciudad
-   - Cantidad de trabajadores registrados
+    - Razon social y NIT
+    - Representante legal
+    - Direccion, telefono y email
+    - Departamento y ciudad
+    - Cantidad de trabajadores registrados
 
 ### Limitaciones
 
 Como cliente, **no puede**:
+
 - Modificar datos de la empresa (solo el administrador puede)
 - Ver datos de otras empresas
 - Crear nuevas empresas
@@ -361,6 +375,7 @@ El sistema incluye un tutorial interactivo que resalta los elementos principales
 ### Modulo de Trabajadores
 
 El tour resalta los siguientes elementos:
+
 1. **Selector de empresa** - Muestra que la empresa esta asignada automaticamente
 2. **Tipo de documento** - Como seleccionar CC, CE, TI o Pasaporte
 3. **Numero de documento** - Campo con mascara automatica
@@ -375,6 +390,7 @@ El tour resalta los siguientes elementos:
 ### Modulo de Procesos
 
 El tour cubre:
+
 1. Como seleccionar empresa y trabajador
 2. Como describir los hechos
 3. Como seleccionar articulos y sanciones
@@ -392,6 +408,7 @@ El tour cubre:
 ### No puedo crear un proceso disciplinario
 
 **Verificar:**
+
 1. Que tenga al menos un trabajador registrado y activo
 2. Que los campos obligatorios esten completos (hechos, fecha de ocurrencia)
 3. Que el trabajador seleccionado pertenezca a su empresa
@@ -403,6 +420,7 @@ El tour cubre:
 ### El tracking de email muestra "Pendiente" despues de varios dias
 
 **Posibles causas:**
+
 1. El correo fue enviado a una direccion incorrecta
 2. El correo cayo en la carpeta de spam del trabajador
 3. El cliente de correo bloquea imagenes externas
@@ -412,24 +430,25 @@ El tour cubre:
 ### No puedo descargar un documento
 
 **Verificar:**
+
 1. Que el documento haya sido generado (el boton de descarga aparece solo cuando el documento existe)
 2. Que el proceso este en el estado correcto para ese documento
 3. Que su sesion no haya expirado (vuelva a iniciar sesion si es necesario)
 
-### Quiero cambiar mi contrasena
+### Quiero cambiar mi contraseña
 
-**Solucion:** Contacte al administrador del sistema para que actualice su contrasena. Actualmente, el cambio de contrasena se realiza a traves del modulo de usuarios administrado por el administrador.
+**Solucion:** En el menú de la esquina superior se encuentra la opción de "Cambiar Contraseña" si no puede cambiar la contraseña contacte al administrador del sistema para que actualice su contraseña. Actualmente, el cambio de contraseña se realiza a traves del modulo de usuarios administrado por el administrador.
 
 ---
 
 ## Resumen de Navegacion
 
-| Menu | Funcionalidad |
-|------|---------------|
-| Crear Descargos | Crear un nuevo proceso disciplinario |
+| Menu                   | Funcionalidad                        |
+| ---------------------- | ------------------------------------ |
+| Crear Descargos        | Crear un nuevo proceso disciplinario |
 | Historial de Descargos | Ver todos los procesos de su empresa |
-| Trabajadores | Gestionar trabajadores de su empresa |
-| Empresas | Ver informacion de su empresa |
+| Trabajadores           | Gestionar trabajadores de su empresa |
+| Empresas               | Ver informacion de su empresa        |
 
 ---
 

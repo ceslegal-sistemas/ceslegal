@@ -40,6 +40,7 @@ const PREGUNTAS_INICIALES = [
 ### 2. Preguntas generadas por IA (dinamicas)
 
 Preguntas especificas generadas por Gemini basadas en:
+
 - Los hechos del proceso disciplinario.
 - La informacion del trabajador (nombre, cargo).
 - Las sanciones laborales del reglamento presuntamente incumplidas.
@@ -62,7 +63,7 @@ const PREGUNTAS_CIERRE = [
 ### Flujo de generacion inicial
 
 ```
-1. Abogado crea la diligencia de descargos en Filament
+1. Cliente crea la diligencia de descargos en Filament
 2. Se invoca IADescargoService::generarPreguntasCompletas()
 3. Se crean las 10 preguntas estandar iniciales
 4. Se construye el prompt con el contexto del proceso
@@ -95,7 +96,7 @@ El servicio construye un contexto completo del proceso para que Gemini pueda gen
 ```php
 $contexto = [
     'hechos' => $proceso->hechos,
-    'articulos_legales' => $articulosLegales,       // Codigos y titulos
+    'sanciones_laborales' => $sancionesLaborales,     // Titulos y Descripciones
     'preguntas_respuestas' => $preguntasYRespuestas, // Historial completo
     'trabajador' => $proceso->trabajador->nombre_completo,
     'cargo' => $proceso->trabajador->cargo,
@@ -103,6 +104,7 @@ $contexto = [
 ```
 
 Para las preguntas dinamicas, tambien se incluye:
+
 - Todas las preguntas anteriores con sus respuestas.
 - Indicacion de si cada pregunta fue generada por IA o es estandar.
 - La ultima pregunta respondida y la respuesta del trabajador.
@@ -182,15 +184,15 @@ en contraste con la conducta realizada que trasgrede las normas internas.
 
 Los prompts incluyen ejemplos explicitos de lenguaje claro vs lenguaje juridico:
 
-| Incorrecto | Correcto |
-|------------|----------|
-| "¿Tuvo conocimiento de las directrices impartidas?" | "¿Sabia que debia hacer?" |
-| "¿Ejercio sus funciones cabalmente?" | "¿Hizo bien su trabajo?" |
-| "¿Informo a su superior jerarquico?" | "¿Le conto a su jefe?" |
+| Incorrecto                                                 | Correcto                             |
+| ---------------------------------------------------------- | ------------------------------------ |
+| "¿Tuvo conocimiento de las directrices impartidas?"        | "¿Sabia que debia hacer?"            |
+| "¿Ejercio sus funciones cabalmente?"                       | "¿Hizo bien su trabajo?"             |
+| "¿Informo a su superior jerarquico?"                       | "¿Le conto a su jefe?"               |
 | "¿Tenia conocimiento de las disposiciones del reglamento?" | "¿Conocia las reglas de la empresa?" |
-| "¿Cual fue el movil de su actuacion?" | "¿Por que hizo eso?" |
-| "¿Informo oportunamente a su superior jerarquico?" | "¿Le aviso a tiempo a su jefe?" |
-| "¿Efectuo debidamente sus labores?" | "¿Hizo bien su trabajo?" |
+| "¿Cual fue el movil de su actuacion?"                      | "¿Por que hizo eso?"                 |
+| "¿Informo oportunamente a su superior jerarquico?"         | "¿Le aviso a tiempo a su jefe?"      |
+| "¿Efectuo debidamente sus labores?"                        | "¿Hizo bien su trabajo?"             |
 
 ---
 
@@ -220,6 +222,7 @@ preg_match_all('/PREGUNTA_\d+:\s*(.+?)(?=PREGUNTA_\d+:|$)/s', $respuestaIA, $mat
 ```
 
 Ademas aplica las siguientes validaciones:
+
 - Las preguntas vacias se descartan.
 - Las preguntas con menos de 20 caracteres se descartan (con log de warning).
 - Se limita la cantidad de preguntas segun el espacio disponible hasta el maximo de 30.
@@ -241,23 +244,23 @@ PreguntaDescargo::create([
 ]);
 ```
 
-| Campo | Descripcion |
-|-------|-------------|
-| `es_generada_por_ia` | `true` para preguntas de IA, `false` para estandar |
-| `pregunta_padre_id` | ID de la pregunta cuya respuesta genero esta pregunta dinamica |
-| `orden` | Posicion secuencial dentro de la diligencia |
-| `estado` | Estado de la pregunta (`activa`, etc.) |
+| Campo                | Descripcion                                                    |
+| -------------------- | -------------------------------------------------------------- |
+| `es_generada_por_ia` | `true` para preguntas de IA, `false` para estandar             |
+| `pregunta_padre_id`  | ID de la pregunta cuya respuesta genero esta pregunta dinamica |
+| `orden`              | Posicion secuencial dentro de la diligencia                    |
+| `estado`             | Estado de la pregunta (`activa`, etc.)                         |
 
 ---
 
 ## Limites y restricciones
 
-| Restriccion | Valor | Descripcion |
-|-------------|-------|-------------|
-| **Maximo total de preguntas** | 30 | Incluye iniciales, IA y cierre |
-| **Preguntas dinamicas por respuesta** | 1-2 | Segun espacio disponible |
-| **Longitud minima de pregunta** | 20 caracteres | Preguntas mas cortas se descartan |
-| **Timeout HTTP** | 30 segundos | Tiempo maximo de espera a Gemini |
+| Restriccion                           | Valor         | Descripcion                       |
+| ------------------------------------- | ------------- | --------------------------------- |
+| **Maximo total de preguntas**         | 30            | Incluye iniciales, IA y cierre    |
+| **Preguntas dinamicas por respuesta** | 1-2           | Segun espacio disponible          |
+| **Longitud minima de pregunta**       | 20 caracteres | Preguntas mas cortas se descartan |
+| **Timeout HTTP**                      | 30 segundos   | Tiempo maximo de espera a Gemini  |
 
 Cuando se alcanza el limite de 30 preguntas, el sistema registra un warning y no genera mas:
 
@@ -297,13 +300,13 @@ catch (\Exception $e) {
 
 ## Archivos relacionados
 
-| Archivo | Descripcion |
-|---------|-------------|
-| `app/Services/IADescargoService.php` | Servicio principal de generacion de preguntas |
-| `app/Models/PreguntaDescargo.php` | Modelo de preguntas de descargos |
-| `app/Models/RespuestaDescargo.php` | Modelo de respuestas de descargos |
-| `app/Models/DiligenciaDescargo.php` | Modelo de la diligencia de descargos |
-| `app/Models/TrazabilidadIADescargo.php` | Modelo de trazabilidad IA |
+| Archivo                                 | Descripcion                                   |
+| --------------------------------------- | --------------------------------------------- |
+| `app/Services/IADescargoService.php`    | Servicio principal de generacion de preguntas |
+| `app/Models/PreguntaDescargo.php`       | Modelo de preguntas de descargos              |
+| `app/Models/RespuestaDescargo.php`      | Modelo de respuestas de descargos             |
+| `app/Models/DiligenciaDescargo.php`     | Modelo de la diligencia de descargos          |
+| `app/Models/TrazabilidadIADescargo.php` | Modelo de trazabilidad IA                     |
 
 ## Proximos pasos
 

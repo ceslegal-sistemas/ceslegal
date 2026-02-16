@@ -71,19 +71,6 @@ protected $casts = [
 | `solicitudesContrato` | HasMany | `SolicitudContrato` | Solicitudes de contratos laborales |
 | `usuarios` | HasMany | `User` | Usuarios del sistema vinculados |
 
-### Cadena de Datos
-
-A traves de las relaciones, desde una empresa se puede acceder a:
-
-```
-Empresa
-  -> Trabajadores -> Procesos Disciplinarios -> Diligencias de Descargos
-                                             -> Sanciones
-                                             -> Documentos
-                                             -> Timeline
-                                             -> Email Tracking
-  -> Usuarios (abogados, clientes)
-```
 
 ## Notas de Uso
 

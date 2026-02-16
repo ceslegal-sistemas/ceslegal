@@ -13,37 +13,31 @@ description: Máquina de estados del proceso disciplinario en CES Legal
 
 **Estado inicial** cuando se crea un nuevo proceso disciplinario.
 
-| Atributo | Valor |
-|----------|-------|
-| Código | `apertura` |
-| Color | Azul |
-| Siguiente | `descargos_pendientes` |
-| Acciones disponibles | Editar, Asignar abogado, Programar descargos |
+| Atributo             | Valor                  |
+| -------------------- | ---------------------- |
+| Código               | `apertura`             |
+| Color                | Azul                   |
+| Siguiente            | `descargos_pendientes` |
+| Acciones disponibles | Programar descargos    |
 
 **Requisitos para avanzar:**
-- Tener abogado asignado
+
 - Programar fecha de descargos
 - Generar y enviar citación
-
-```php
-// Validación antes de cambiar estado
-if (!$proceso->abogado_id) {
-    throw new Exception('Debe asignar un abogado antes de programar descargos');
-}
-```
 
 ### 2. Descargos Pendientes
 
 El proceso tiene descargos programados y se espera la diligencia.
 
-| Atributo | Valor |
-|----------|-------|
-| Código | `descargos_pendientes` |
-| Color | Amarillo |
-| Siguiente | `descargos_realizados` o `descargos_no_realizados` |
-| Acciones disponibles | Ver citación, Generar preguntas IA, Registrar descargos |
+| Atributo             | Valor                                              |
+| -------------------- | -------------------------------------------------- |
+| Código               | `descargos_pendientes`                             |
+| Color                | Amarillo                                           |
+| Siguiente            | `descargos_realizados` o `descargos_no_realizados` |
+| Acciones disponibles | Re-enviar Citación, Ver citación, Ver registro     |
 
 **Requisitos para avanzar:**
+
 - Realizar la diligencia de descargos
 - O que el trabajador no se presente
 
@@ -51,26 +45,27 @@ El proceso tiene descargos programados y se espera la diligencia.
 
 El trabajador asistió y se completaron los descargos.
 
-| Atributo | Valor |
-|----------|-------|
-| Código | `descargos_realizados` |
-| Color | Verde claro |
-| Siguiente | `sancion_emitida` o `archivado` |
-| Acciones disponibles | Ver acta, Analizar con IA, Emitir sanción, Archivar |
+| Atributo             | Valor                                       |
+| -------------------- | ------------------------------------------- |
+| Código               | `descargos_realizados`                      |
+| Color                | Verde claro                                 |
+| Siguiente            | `sancion_emitida` o `impugnacion_realizada` |
+| Acciones disponibles | Emitir Sanción                              |
 
 **Requisitos para avanzar:**
-- Decidir si amerita sanción o archivar
+
+- Asignarle una sanción entre ellas `llamado de atención`, `suspensión laboral` o `terminación de contrato`
 
 ### 4. Descargos No Realizados
 
 El trabajador no asistió a la diligencia programada.
 
-| Atributo | Valor |
-|----------|-------|
-| Código | `descargos_no_realizados` |
-| Color | Naranja |
-| Siguiente | `sancion_emitida` o `archivado` |
-| Acciones disponibles | Emitir sanción, Archivar, Reprogramar |
+| Atributo             | Valor                           |
+| -------------------- | ------------------------------- |
+| Código               | `descargos_no_realizados`       |
+| Color                | Naranja                         |
+| Siguiente            | `sancion_emitida` o `archivado` |
+| Acciones disponibles | Emitir sanción, Reprogramar     |
 
 :::caution[Nota Legal]
 En Colombia, si el trabajador no asiste a descargos debidamente citado, se puede continuar el proceso y emitir sanción.
@@ -80,14 +75,15 @@ En Colombia, si el trabajador no asiste a descargos debidamente citado, se puede
 
 Se ha tomado una decisión disciplinaria y se ha notificado al trabajador.
 
-| Atributo | Valor |
-|----------|-------|
-| Código | `sancion_emitida` |
-| Color | Rojo |
-| Siguiente | `impugnacion_realizada` o `cerrado` |
-| Acciones disponibles | Ver sanción, Registrar impugnación, Cerrar |
+| Atributo             | Valor                               |
+| -------------------- | ----------------------------------- |
+| Código               | `sancion_emitida`                   |
+| Color                | Rojo                                |
+| Siguiente            | `impugnacion_realizada` o `cerrado` |
+| Acciones disponibles | Ver sanción, Registrar impugnación  |
 
 **Información requerida:**
+
 - Tipo de sanción
 - Fundamento legal
 - Fecha de notificación
@@ -97,14 +93,15 @@ Se ha tomado una decisión disciplinaria y se ha notificado al trabajador.
 
 El trabajador ha presentado recurso contra la sanción.
 
-| Atributo | Valor |
-|----------|-------|
-| Código | `impugnacion_realizada` |
-| Color | Morado |
-| Siguiente | `cerrado` |
-| Acciones disponibles | Revisar impugnación, Resolver, Cerrar |
+| Atributo             | Valor                                              |
+| -------------------- | -------------------------------------------------- |
+| Código               | `impugnacion_realizada`                            |
+| Color                | Morado                                             |
+| Siguiente            | `cerrado`                                          |
+| Acciones disponibles | Ver sanción, Ver impugnación, Resolver Impugnación |
 
 **Tipos de impugnación:**
+
 - Recurso de reposición
 - Recurso de apelación
 
@@ -112,25 +109,26 @@ El trabajador ha presentado recurso contra la sanción.
 
 El proceso ha finalizado completamente.
 
-| Atributo | Valor |
-|----------|-------|
-| Código | `cerrado` |
-| Color | Gris |
-| Siguiente | Ninguno (estado final) |
-| Acciones disponibles | Solo consulta |
+| Atributo             | Valor                                 |
+| -------------------- | ------------------------------------- |
+| Código               | `cerrado`                             |
+| Color                | Gris                                  |
+| Siguiente (Opcional) | `archivado`                           |
+| Acciones disponibles | Ver Sanción, Ver Resolución, Archivar |
 
 ### 8. Archivado
 
 El proceso se cerró sin sanción.
 
-| Atributo | Valor |
-|----------|-------|
-| Código | `archivado` |
-| Color | Gris claro |
-| Siguiente | Ninguno (estado final) |
-| Acciones disponibles | Solo consulta |
+| Atributo             | Valor                  |
+| -------------------- | ---------------------- |
+| Código               | `archivado`            |
+| Color                | Gris claro             |
+| Siguiente            | Ninguno (estado final) |
+| Acciones disponibles | Solo consulta          |
 
 **Razones para archivar:**
+
 - Hechos no comprobados
 - Falta no amerita sanción
 - Prescripción del proceso
@@ -140,16 +138,16 @@ El proceso se cerró sin sanción.
 
 ### Matriz de Transiciones
 
-| Estado Actual | Estados Siguientes Permitidos |
-|---------------|------------------------------|
-| `apertura` | `descargos_pendientes` |
-| `descargos_pendientes` | `descargos_realizados`, `descargos_no_realizados` |
-| `descargos_realizados` | `sancion_emitida`, `archivado` |
-| `descargos_no_realizados` | `sancion_emitida`, `archivado` |
-| `sancion_emitida` | `impugnacion_realizada`, `cerrado` |
-| `impugnacion_realizada` | `cerrado` |
-| `archivado` | - |
-| `cerrado` | - |
+| Estado Actual             | Estados Siguientes Permitidos                     |
+| ------------------------- | ------------------------------------------------- |
+| `apertura`                | `descargos_pendientes`                            |
+| `descargos_pendientes`    | `descargos_realizados`, `descargos_no_realizados` |
+| `descargos_realizados`    | `sancion_emitida`                                 |
+| `descargos_no_realizados` | `sancion_emitida`                                 |
+| `sancion_emitida`         | `impugnacion_realizada`, `cerrado`                |
+| `impugnacion_realizada`   | `cerrado`                                         |
+| `cerrado`                 | `archivado`                                       |
+| `archivado`               | -                                                 |
 
 ### Implementación
 
@@ -161,12 +159,12 @@ class EstadoProcesoService
     protected array $transicionesValidas = [
         'apertura' => ['descargos_pendientes'],
         'descargos_pendientes' => ['descargos_realizados', 'descargos_no_realizados'],
-        'descargos_realizados' => ['sancion_emitida', 'archivado'],
-        'descargos_no_realizados' => ['sancion_emitida', 'archivado'],
+        'descargos_realizados' => ['sancion_emitida'],
+        'descargos_no_realizados' => ['sancion_emitida'],
         'sancion_emitida' => ['impugnacion_realizada', 'cerrado'],
         'impugnacion_realizada' => ['cerrado'],
+        'cerrado' => ['archivado'],
         'archivado' => [],
-        'cerrado' => [],
     ];
 
     public function cambiarEstado(ProcesoDisciplinario $proceso, string $nuevoEstado): bool
@@ -217,7 +215,7 @@ public static function getEstadoColor(string $estado): string
         'descargos_no_realizados' => 'danger',
         'sancion_emitida' => 'danger',
         'impugnacion_realizada' => 'purple',
-        'cerrado' => 'gray',
+        'cerrado' => 'success',
         'archivado' => 'gray',
         default => 'secondary',
     };
@@ -227,24 +225,21 @@ public static function getEstadoColor(string $estado): string
 ## Timeline de Ejemplo
 
 ```
-📋 Proceso PD-2026-001
+Proceso PD-2026-001
 
 ├─ 15/01/2026 09:00 - APERTURA
 │  └─ Proceso creado por Admin
 │
-├─ 15/01/2026 10:30 - Abogado asignado
-│  └─ Dr. Juan Pérez asignado al caso
-│
-├─ 16/01/2026 08:00 - DESCARGOS_PENDIENTES
+├─ 15/01/2026 09:10 - DESCARGOS_PENDIENTES
 │  └─ Descargos programados para 23/01/2026
 │
-├─ 16/01/2026 08:05 - Citación generada
+├─ 15/01/2026 09:11 - Citación generada
 │  └─ Citación enviada al correo del trabajador
 │
-├─ 23/01/2026 10:00 - DESCARGOS_REALIZADOS
+├─ 21/01/2026 10:00 - DESCARGOS_REALIZADOS
 │  └─ Diligencia completada - 28 preguntas respondidas
 │
-├─ 24/01/2026 14:00 - SANCION_EMITIDA
+├─ 25/01/2026 14:00 - SANCION_EMITIDA
 │  └─ Suspensión de 3 días emitida
 │
 └─ 30/01/2026 09:00 - CERRADO
