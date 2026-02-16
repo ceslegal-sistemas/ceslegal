@@ -4,7 +4,7 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'http://localhost:8000',
+	site: 'https://ceslegal.renbel.com.co',
 	base: '/docs',
 	outDir: '../public/docs',
 	build: {
