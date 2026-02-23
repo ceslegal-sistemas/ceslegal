@@ -165,6 +165,13 @@ class CreateProcesoDisciplinario extends CreateRecord
                         'modalidad' => $proceso->modalidad_descargos,
                         'preguntas_ia' => $preguntasConIA,
                     ]);
+
+                    // Guardar en sesión para mostrar modal de feedback después de la redirección
+                    session()->put('mostrar_feedback', [
+                        'tipo' => 'descargo_registro',
+                        'proceso_id' => $proceso->id,
+                        'diligencia_id' => null,
+                    ]);
                 } else {
                     // Verificar si el error es por falta de preguntas con IA
                     if (str_contains($resultado['message'], 'IA no pudo generar preguntas')) {
