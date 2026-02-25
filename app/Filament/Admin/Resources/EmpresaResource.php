@@ -171,6 +171,40 @@ class EmpresaResource extends Resource
                             ->helperText('Seleccione primero el departamento')
                             ->placeholder('Seleccione una ciudad...'),
                     ])->columns(2),
+
+                Forms\Components\Section::make('Reglamento Interno')
+                    ->description('Documento normativo interno de la empresa')
+                    ->icon('heroicon-o-document-text')
+                    ->schema([
+                        Forms\Components\Placeholder::make('reglamento_actual')
+                            ->label('Reglamento cargado')
+                            ->content(function ($record) {
+                                if (!$record) {
+                                    return new \Illuminate\Support\HtmlString('<span class="text-gray-400 text-sm">Sin reglamento cargado aún</span>');
+                                }
+                                $reglamento = $record->reglamentoInterno;
+                                if (!$reglamento) {
+                                    return new \Illuminate\Support\HtmlString('<span class="text-gray-400 text-sm">Sin reglamento cargado</span>');
+                                }
+                                $chars = number_format(strlen($reglamento->texto_completo));
+                                $fecha = $reglamento->updated_at->format('d/m/Y H:i');
+                                return new \Illuminate\Support\HtmlString(
+                                    "<span class='text-success-600 font-medium'>✅ {$reglamento->nombre}</span>" .
+                                    "<span class='text-gray-400 text-xs ml-2'>({$chars} caracteres — actualizado {$fecha})</span>"
+                                );
+                            })
+                            ->visibleOn('edit'),
+
+                        Forms\Components\FileUpload::make('reglamento_docx_temp')
+                            ->label('Subir / Actualizar Reglamento Interno (.docx)')
+                            ->helperText('Si no sube un reglamento, el sistema usará el Código Sustantivo del Trabajo como referencia para la validación de hechos.')
+                            ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
+                            ->disk('local')
+                            ->directory('reglamentos-temp')
+                            ->visibility('private')
+                            ->maxSize(10240)
+                            ->dehydrated(false),
+                    ]),
             ]);
     }
 

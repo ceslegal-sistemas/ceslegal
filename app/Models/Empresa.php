@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Empresa extends Model
 {
@@ -66,5 +67,10 @@ class Empresa extends Model
     public function informesJuridicos(): HasMany
     {
         return $this->hasMany(InformeJuridico::class);
+    }
+
+    public function reglamentoInterno(): HasOne
+    {
+        return $this->hasOne(ReglamentoInterno::class)->where('activo', true)->latest();
     }
 }

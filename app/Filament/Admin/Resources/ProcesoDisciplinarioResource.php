@@ -1083,33 +1083,33 @@ class ProcesoDisciplinarioResource extends Resource
 
                 Forms\Components\Section::make('Decisión y Sanción')
                     ->schema([
-                        // Forms\Components\Toggle::make('decision_sancion')
-                        //     ->label('¿Procede Sanción?')
-                        //     ->live(),
+                        Forms\Components\Toggle::make('decision_sancion')
+                            ->label('¿Procede Sanción?')
+                            ->live(),
 
-                        // Forms\Components\Toggle::make('impugnado')
-                        //     ->label('¿Procede Impugnación?')
-                        //     ->live(),
+                        Forms\Components\Toggle::make('impugnado')
+                            ->label('¿Procede Impugnación?')
+                            ->live(),
 
-                        // Forms\Components\Select::make('tipo_sancion')
-                        //     ->label('Tipo de Sanción')
-                        //     ->options([
-                        //         'llamado_atencion' => 'Llamado de Atención',
-                        //         'suspension' => 'Suspensión',
-                        //         'terminacion' => 'Terminación de Contrato',
-                        //     ])
-                        //     ->visible(fn(Get $get) => $get('decision_sancion') === true),
+                        Forms\Components\Select::make('tipo_sancion')
+                            ->label('Tipo de Sanción')
+                            ->options([
+                                'llamado_atencion' => 'Llamado de Atención',
+                                'suspension' => 'Suspensión',
+                                'terminacion' => 'Terminación de Contrato',
+                            ])
+                            ->visible(fn(Get $get) => $get('decision_sancion') === true),
 
-                        // Forms\Components\Textarea::make('motivo_archivo')
-                        //     ->label('Motivo de Archivo')
-                        //     ->rows(3)
-                        //     ->visible(fn(Get $get) => $get('decision_sancion') === false)
-                        //     ->columnSpanFull(),
+                        Forms\Components\Textarea::make('motivo_archivo')
+                            ->label('Motivo de Archivo')
+                            ->rows(3)
+                            ->visible(fn(Get $get) => $get('decision_sancion') === false)
+                            ->columnSpanFull(),
 
-                        // Forms\Components\DateTimePicker::make('fecha_notificacion')
-                        //     ->label('Fecha de Notificación')
-                        //     ->displayFormat('d/m/Y H:i')
-                        //     ->native(false),
+                        Forms\Components\DateTimePicker::make('fecha_notificacion')
+                            ->label('Fecha de Notificación')
+                            ->displayFormat('d/m/Y H:i')
+                            ->native(false),
 
                         Forms\Components\DateTimePicker::make('fecha_limite_impugnacion')
                             ->label('Fecha Límite para Impugnación')
@@ -1119,12 +1119,6 @@ class ProcesoDisciplinarioResource extends Resource
                             ->minDate(now()->addDays(3)->startOfDay())
                             ->helperText('3 días hábiles desde la notificación')
                             ->visible(fn(Get $get) => $get('impugnado') === true),
-
-                        // Forms\Components\DateTimePicker::make('fecha_impugnacion')
-                        //     ->label('Fecha de Impugnación')
-                        //     ->displayFormat('d/m/Y H:i')
-                        //     ->native(false)
-                        //     ->visible(fn(Get $get) => $get('impugnado') === true),<
 
                         Forms\Components\DateTimePicker::make('fecha_cierre')
                             ->label('Fecha de Cierre')
@@ -1493,6 +1487,34 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->body($result['message'])
                                 ->send();
                         }
+                    }),
+
+                // Acción: Ver Citación (descarga el PDF de la citación enviada)
+                // Solo visible como acción primaria mientras el proceso está en citación pendiente.
+                // En estados posteriores aparece dentro del menú de tres puntos.
+                Tables\Actions\Action::make('ver_citacion')
+                    ->label('Ver Citación')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('info')
+                    ->visible(
+                        fn(ProcesoDisciplinario $record) =>
+                        $record->estado === 'descargos_pendientes'
+                    )
+                    ->action(function (ProcesoDisciplinario $record) {
+                        $documento = $record->documentos()
+                            ->where('tipo_documento', 'citacion_descargos')
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+
+                        if ($documento && file_exists($documento->ruta_archivo)) {
+                            return response()->download($documento->ruta_archivo, $documento->nombre_archivo);
+                        }
+
+                        \Filament\Notifications\Notification::make()
+                            ->warning()
+                            ->title('Citación no encontrada')
+                            ->body('No se encontró el documento de citación para este proceso.')
+                            ->send();
                     }),
 
                 // Botón 3: Emitir Sanción (generar con IA y enviar)
@@ -2679,6 +2701,30 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->body('Error al generar el acta: ' . $e->getMessage())
                                     ->send();
                             }
+                        }),
+                    Tables\Actions\Action::make('ver_citacion_agrupado')
+                        ->label('Ver Citación')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('info')
+                        ->visible(
+                            fn(ProcesoDisciplinario $record) =>
+                            in_array($record->estado, ['descargos_realizados', 'sancion_emitida', 'impugnacion_realizada', 'cerrado', 'archivado'])
+                        )
+                        ->action(function (ProcesoDisciplinario $record) {
+                            $documento = $record->documentos()
+                                ->where('tipo_documento', 'citacion_descargos')
+                                ->orderBy('created_at', 'desc')
+                                ->first();
+
+                            if ($documento && file_exists($documento->ruta_archivo)) {
+                                return response()->download($documento->ruta_archivo, $documento->nombre_archivo);
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->warning()
+                                ->title('Citación no encontrada')
+                                ->body('No se encontró el documento de citación para este proceso.')
+                                ->send();
                         }),
                     Tables\Actions\Action::make('regenerar_sancion')
                         ->label('Re-generar Sanción')
