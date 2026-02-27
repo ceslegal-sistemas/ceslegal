@@ -65,7 +65,10 @@ class ProcesoNotification extends Notification
         };
 
         // Formato para Filament Database Notifications
+        // IMPORTANTE: 'format' => 'filament' es requerido por Filament 3.3+
+        // para que aparezcan en la campanita (filtra por data->format = 'filament')
         $data = [
+            'format' => 'filament',
             'title' => $this->titulo,
             'body' => $this->mensaje,
             'icon' => $icono,
