@@ -34,8 +34,15 @@ class NotificacionService
             return;
         }
 
-        // Determinar URL automáticamente
-        $url = ProcesoNotification::determinarUrl($relacionadoTipo, $relacionadoId);
+        // Determinar URL según el rol del usuario:
+        // clientes van al listado (no pueden editar), el resto va al edit
+        if ($user->role === 'cliente') {
+            $url = $relacionadoTipo && $relacionadoId
+                ? url('/admin/proceso-disciplinarios')
+                : null;
+        } else {
+            $url = ProcesoNotification::determinarUrl($relacionadoTipo, $relacionadoId);
+        }
 
         // Enviar notificación de Laravel (se guarda en tabla notifications)
         $user->notify(new ProcesoNotification(
