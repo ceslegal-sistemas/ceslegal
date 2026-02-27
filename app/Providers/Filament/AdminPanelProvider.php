@@ -28,7 +28,6 @@ use MKWebDesign\FilamentWatchdog\FilamentWatchdogPlugin;
 use Moataz01\FilamentNotificationSound\FilamentNotificationSoundPlugin;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
-use Illuminate\Support\HtmlString;
 
 class AdminPanelProvider extends PanelProvider
 {

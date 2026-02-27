@@ -365,6 +365,192 @@
             page-break-after: always;
         }
 
+        /* Análisis BI Styles */
+        .bi-section {
+            margin: 20px 0;
+            background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+            border: 1px solid #fde047;
+            border-left: 4px solid #eab308;
+            border-radius: 8px;
+            padding: 15px 20px;
+        }
+
+        .bi-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #854d0e;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .bi-section-title::before {
+            content: "💡";
+            margin-right: 8px;
+        }
+
+        .bi-resumen {
+            font-size: 9px;
+            color: #422006;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .bi-hallazgos {
+            background: white;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 10px 0;
+        }
+
+        .bi-hallazgos-title {
+            font-size: 9px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .bi-hallazgo-item {
+            font-size: 8px;
+            color: #334155;
+            padding: 4px 0 4px 15px;
+            position: relative;
+            line-height: 1.4;
+        }
+
+        .bi-hallazgo-item::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #4f46e5;
+            font-weight: bold;
+        }
+
+        .bi-recomendaciones {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 1px solid #6ee7b7;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 10px 0;
+        }
+
+        .bi-recomendaciones-title {
+            font-size: 9px;
+            font-weight: 600;
+            color: #065f46;
+            margin-bottom: 8px;
+        }
+
+        .bi-recomendacion-item {
+            font-size: 8px;
+            color: #047857;
+            padding: 4px 0 4px 15px;
+            position: relative;
+            line-height: 1.4;
+        }
+
+        .bi-recomendacion-item::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .bi-tendencias {
+            font-size: 8px;
+            color: #64748b;
+            font-style: italic;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #e2e8f0;
+        }
+
+        /* Métricas BI Cards */
+        .metricas-bi-section {
+            margin: 20px 0;
+        }
+
+        .metricas-bi-grid {
+            display: table;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 8px 0;
+        }
+
+        .metrica-bi-card {
+            display: table-cell;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 1px solid #7dd3fc;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            width: 25%;
+        }
+
+        .metrica-bi-card.warning {
+            background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+            border-color: #fde047;
+        }
+
+        .metrica-bi-card.success {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border-color: #6ee7b7;
+        }
+
+        .metrica-bi-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0369a1;
+            line-height: 1.2;
+        }
+
+        .metrica-bi-card.warning .metrica-bi-value {
+            color: #a16207;
+        }
+
+        .metrica-bi-card.success .metrica-bi-value {
+            color: #047857;
+        }
+
+        .metrica-bi-label {
+            font-size: 7px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-top: 4px;
+            color: #64748b;
+        }
+
+        /* Alertas */
+        .bi-alertas {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border: 1px solid #fca5a5;
+            border-left: 4px solid #ef4444;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin: 10px 0;
+        }
+
+        .bi-alertas-title {
+            font-size: 9px;
+            font-weight: 600;
+            color: #991b1b;
+            margin-bottom: 6px;
+        }
+
+        .bi-alerta-item {
+            font-size: 8px;
+            color: #b91c1c;
+            padding: 3px 0 3px 15px;
+            position: relative;
+        }
+
+        .bi-alerta-item::before {
+            content: "⚠";
+            position: absolute;
+            left: 0;
+        }
+
         /* Bar chart for months */
         .bar-chart-section {
             margin: 15px 0;
@@ -491,6 +677,96 @@
                 </div>
             </div>
         </div>
+
+        <!-- Métricas de Business Intelligence -->
+        @if(isset($metricasBI))
+        <div class="metricas-bi-section">
+            <div class="section-title">Indicadores de Desempeño</div>
+            <div class="metricas-bi-grid">
+                <div class="metrica-bi-card success">
+                    <div class="metrica-bi-value">{{ $metricasBI['tasa_cumplimiento'] }}%</div>
+                    <div class="metrica-bi-label">Tasa de Cumplimiento</div>
+                </div>
+                <div class="metrica-bi-card">
+                    <div class="metrica-bi-value">{{ $metricasBI['tiempo_promedio_gestion'] }}</div>
+                    <div class="metrica-bi-label">Tiempo Promedio/Gestión</div>
+                </div>
+                <div class="metrica-bi-card warning">
+                    <div class="metrica-bi-value">{{ $metricasBI['gestiones_pendientes'] }}</div>
+                    <div class="metrica-bi-label">Gestiones Pendientes</div>
+                </div>
+                <div class="metrica-bi-card">
+                    <div class="metrica-bi-value">{{ $metricasBI['horas_invertidas'] }}h</div>
+                    <div class="metrica-bi-label">Horas Invertidas</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfica de Gauge y Tiempo por Área -->
+        @if(!empty($chartGaugeSvg) || !empty($chartTiempoAreaSvg))
+        <div class="charts-section" style="margin-top: 15px;">
+            <div class="charts-grid">
+                @if(!empty($chartGaugeSvg))
+                <div class="chart-container" style="width: 35%;">
+                    <div class="chart-box" style="text-align: center;">
+                        <div class="chart-title">Indicador de Cumplimiento</div>
+                        <div class="chart-svg">{!! $chartGaugeSvg !!}</div>
+                    </div>
+                </div>
+                @endif
+                @if(!empty($chartTiempoAreaSvg))
+                <div class="chart-container" style="width: 65%;">
+                    <div class="chart-box">
+                        <div class="chart-title">Tiempo Invertido por Área</div>
+                        <div class="chart-svg">{!! $chartTiempoAreaSvg !!}</div>
+                    </div>
+                </div>
+                @endif
+            </div>
+        </div>
+        @endif
+        @endif
+
+        <!-- Análisis Ejecutivo con IA -->
+        @if(isset($analisisBI) && !empty($analisisBI['resumen_ejecutivo']))
+        <div class="bi-section">
+            <div class="bi-section-title">Análisis Ejecutivo</div>
+            <div class="bi-resumen">{{ $analisisBI['resumen_ejecutivo'] }}</div>
+
+            @if(!empty($analisisBI['hallazgos_clave']))
+            <div class="bi-hallazgos">
+                <div class="bi-hallazgos-title">Hallazgos Clave</div>
+                @foreach($analisisBI['hallazgos_clave'] as $hallazgo)
+                <div class="bi-hallazgo-item">{{ $hallazgo }}</div>
+                @endforeach
+            </div>
+            @endif
+
+            @if(!empty($analisisBI['indicadores_alerta']))
+            <div class="bi-alertas">
+                <div class="bi-alertas-title">Indicadores de Alerta</div>
+                @foreach($analisisBI['indicadores_alerta'] as $alerta)
+                <div class="bi-alerta-item">{{ $alerta }}</div>
+                @endforeach
+            </div>
+            @endif
+
+            @if(!empty($analisisBI['recomendaciones']))
+            <div class="bi-recomendaciones">
+                <div class="bi-recomendaciones-title">Recomendaciones</div>
+                @foreach($analisisBI['recomendaciones'] as $recomendacion)
+                <div class="bi-recomendacion-item">{{ $recomendacion }}</div>
+                @endforeach
+            </div>
+            @endif
+
+            @if(!empty($analisisBI['tendencias']))
+            <div class="bi-tendencias">
+                <strong>Tendencia:</strong> {{ $analisisBI['tendencias'] }}
+            </div>
+            @endif
+        </div>
+        @endif
 
         <!-- Gráficas de distribución -->
         @if(!empty($chartAreaSvg) || !empty($chartEstadoSvg))
@@ -678,10 +954,31 @@
         </table>
         @endif
 
+        <!-- Oportunidades de Mejora (si existen) -->
+        @if(isset($analisisBI) && !empty($analisisBI['oportunidades_mejora']))
+        <div class="bi-recomendaciones" style="margin-top: 20px;">
+            <div class="bi-recomendaciones-title" style="color: #1e40af;">Oportunidades de Mejora Identificadas</div>
+            @foreach($analisisBI['oportunidades_mejora'] as $oportunidad)
+            <div class="bi-recomendacion-item" style="color: #1e40af;">{{ $oportunidad }}</div>
+            @endforeach
+        </div>
+        @endif
+
+        <!-- Área más demandante -->
+        @if(isset($metricasBI))
+        <div style="margin-top: 15px; padding: 10px 15px; background: #f1f5f9; border-radius: 6px; font-size: 8px;">
+            <strong>Área más demandante:</strong> {{ $metricasBI['area_mas_demandante'] }} ({{ $metricasBI['area_mas_demandante_cantidad'] }} gestiones)
+            &nbsp;&nbsp;|&nbsp;&nbsp;
+            <strong>Tipo más frecuente:</strong> {{ $metricasBI['tipo_mas_frecuente'] }} ({{ $metricasBI['tipo_mas_frecuente_cantidad'] }} gestiones)
+            &nbsp;&nbsp;|&nbsp;&nbsp;
+            <strong>Tendencia:</strong> <span style="text-transform: capitalize;">{{ $metricasBI['tendencia_mensual'] }}</span>
+        </div>
+        @endif
+
         <!-- Footer -->
         <div class="footer">
             <div class="footer-logo">CES LEGAL</div>
-            <p>Documento generado automáticamente - {{ $fechaGeneracion }}</p>
+            <p>Documento generado automáticamente con análisis de Business Intelligence - {{ $fechaGeneracion }}</p>
             <p>Este documento es de carácter informativo y confidencial.</p>
         </div>
     </div>

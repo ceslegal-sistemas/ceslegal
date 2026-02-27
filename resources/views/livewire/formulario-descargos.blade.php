@@ -430,18 +430,92 @@
         </div>
     </div>
 
+    {{-- Modal de Feedback --}}
+    @if($mostrarFeedback)
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ hoverRating: 0 }">
+        <div class="fixed inset-0 bg-gray-900/75 backdrop-blur-sm"></div>
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl">
+                {{-- Header --}}
+                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5 rounded-t-2xl text-white">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-white/20">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold">¡Tu opinión es importante!</h3>
+                            <p class="text-sm text-indigo-100">Ayúdanos a mejorar nuestra plataforma</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Body --}}
+                <div class="px-6 py-5">
+                    <p class="mb-4 text-sm text-gray-600 text-center">¿Cómo calificarías tu experiencia?</p>
+
+                    {{-- Stars --}}
+                    <div class="flex justify-center gap-2 mb-2">
+                        @for($i = 1; $i <= 5; $i++)
+                        <button type="button"
+                            wire:click="$set('feedbackCalificacion', {{ $i }})"
+                            @mouseenter="hoverRating = {{ $i }}"
+                            @mouseleave="hoverRating = 0"
+                            class="transform transition-all duration-150 hover:scale-110 focus:outline-none">
+                            <svg class="h-10 w-10 transition-colors duration-150"
+                                :class="(hoverRating >= {{ $i }} || (hoverRating === 0 && {{ $feedbackCalificacion }} >= {{ $i }})) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 fill-gray-100'"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                            </svg>
+                        </button>
+                        @endfor
+                    </div>
+
+                    <p class="text-sm font-medium text-center h-5 mb-4"
+                       :class="hoverRating > 0 || {{ $feedbackCalificacion }} > 0 ? 'text-indigo-600' : 'text-gray-400'">
+                        <span x-show="hoverRating === 1 || (hoverRating === 0 && {{ $feedbackCalificacion }} === 1)">Muy malo</span>
+                        <span x-show="hoverRating === 2 || (hoverRating === 0 && {{ $feedbackCalificacion }} === 2)">Malo</span>
+                        <span x-show="hoverRating === 3 || (hoverRating === 0 && {{ $feedbackCalificacion }} === 3)">Regular</span>
+                        <span x-show="hoverRating === 4 || (hoverRating === 0 && {{ $feedbackCalificacion }} === 4)">Bueno</span>
+                        <span x-show="hoverRating === 5 || (hoverRating === 0 && {{ $feedbackCalificacion }} === 5)">Excelente</span>
+                        <span x-show="hoverRating === 0 && {{ $feedbackCalificacion }} === 0">Seleccione una calificación</span>
+                    </p>
+
+                    {{-- Textarea --}}
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            ¿Tienes alguna sugerencia? <span class="text-gray-400">(Opcional)</span>
+                        </label>
+                        <textarea wire:model="feedbackSugerencia" rows="3"
+                            class="w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm resize-none"
+                            placeholder="Escribe aquí tus comentarios..."></textarea>
+                    </div>
+                </div>
+
+                {{-- Footer --}}
+                <div class="bg-gray-50 px-6 py-4 rounded-b-2xl flex items-center justify-between gap-3">
+                    <button type="button" wire:click="omitirFeedback"
+                        class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                        Omitir
+                    </button>
+                    <button type="button" wire:click="enviarFeedback"
+                        @if($feedbackCalificacion < 1) disabled @endif
+                        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        Enviar opinión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         document.addEventListener('livewire:initialized', () => {
             Livewire.on('descargosFinalizados', () => {
-                Swal.fire({
-                    title: 'Descargos enviados',
-                    text: 'Sus respuestas fueron registradas. En el transcurso de los días siguientes, recibirá una notificación con la decisión.',
-                    icon: 'success',
-                    confirmButtonText: 'Entendido',
-                    confirmButtonColor: '#16a34a'
-                });
+                // El feedback modal se maneja por Livewire
             });
         });
     </script>
