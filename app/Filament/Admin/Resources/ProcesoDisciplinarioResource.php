@@ -485,7 +485,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 $empresa = $empresaId ? Empresa::find($empresaId) : null;
                                 $trabajaSabados = $empresa?->trabajaSabados() ?? false;
 
-                                // Calcular 6 días HÁBILES desde hoy
+                                // Calcular 5 días HÁBILES desde hoy (requisito legal)
                                 // Si la empresa trabaja sábados, usar lógica personalizada
                                 if ($trabajaSabados) {
                                     $fecha = now()->copy();
@@ -502,7 +502,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     } catch (\Exception $e) {
                                     }
 
-                                    while ($diasContados < 6) {
+                                    while ($diasContados < 5) {
                                         $fecha->addDay();
                                         // Solo domingo es no laborable + festivos
                                         if (!$fecha->isSunday() && !in_array($fecha->format('Y-m-d'), $festivos)) {
@@ -514,7 +514,7 @@ class ProcesoDisciplinarioResource extends Resource
 
                                 // Para empresas que trabajan Lunes a Viernes, usar el servicio estándar
                                 $terminoService = app(\App\Services\TerminoLegalService::class);
-                                return $terminoService->calcularFechaVencimiento(now(), 6)->startOfDay();
+                                return $terminoService->calcularFechaVencimiento(now(), 5)->startOfDay();
                             })
                             ->maxDate(fn() => now()->addMonth()->endOfDay())
                             ->native(false)
