@@ -379,8 +379,8 @@ class FormularioDescargos extends Component
             $this->mostrarMensajeExito = true;
             $this->tiempoExpiradoMostrarEvidencias = false;
 
-            // Mostrar feedback solo si el usuario no ha dado feedback recientemente (últimos 30 días)
-            $this->mostrarFeedback = $this->debeMostrarFeedback();
+            // El feedback es obligatorio: siempre mostrar al finalizar
+            $this->mostrarFeedback = true;
 
             $this->dispatch('descargosFinalizados');
 

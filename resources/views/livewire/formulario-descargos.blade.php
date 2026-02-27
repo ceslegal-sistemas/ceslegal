@@ -494,11 +494,7 @@
                 </div>
 
                 {{-- Footer --}}
-                <div class="bg-gray-50 px-6 py-4 rounded-b-2xl flex items-center justify-between gap-3">
-                    <button type="button" wire:click="omitirFeedback"
-                        class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                        Omitir
-                    </button>
+                <div class="bg-gray-50 px-6 py-4 rounded-b-2xl flex items-center justify-end gap-3">
                     <button type="button" wire:click="enviarFeedback"
                         @if($feedbackCalificacion < 1) disabled @endif
                         class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
