@@ -8,6 +8,7 @@ use App\Models\PreguntaDescargo;
 use App\Models\RespuestaDescargo;
 use App\Services\IADescargoService;
 use App\Services\ActaDescargosService;
+use App\Services\DocumentGeneratorService;
 use App\Services\EstadoProcesoService;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -61,7 +62,12 @@ class FormularioDescargos extends Component
                     // Todas respondidas: mostrar pantalla de evidencias
                     $this->tiempoExpiradoMostrarEvidencias = true;
                 } else {
-                    // Quedan preguntas: marcar como completado (no podrá responder más)
+                    // Quedan preguntas: cambiar estado y notificar
+                    if ($this->diligencia->proceso->estado === 'descargos_pendientes') {
+                        $estadoService = app(EstadoProcesoService::class);
+                        $estadoService->alCompletarDescargos($this->diligencia->proceso);
+                        $this->enviarNotificacionesCompletado();
+                    }
                     $this->formularioCompletado = true;
                     session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
                     return;
@@ -282,7 +288,12 @@ class FormularioDescargos extends Component
                 $this->tiempoExpiradoMostrarEvidencias = true;
                 session()->flash('info', 'El tiempo ha expirado, pero puede adjuntar evidencias antes de enviar.');
             } else {
-                // Quedan preguntas: finalizar
+                // Quedan preguntas: cambiar estado y notificar
+                if ($this->diligencia->proceso->estado === 'descargos_pendientes') {
+                    $estadoService = app(EstadoProcesoService::class);
+                    $estadoService->alCompletarDescargos($this->diligencia->proceso);
+                    $this->enviarNotificacionesCompletado();
+                }
                 $this->formularioCompletado = true;
                 session()->flash('error', 'El tiempo ha expirado.');
             }
@@ -338,6 +349,9 @@ class FormularioDescargos extends Component
             // Cambiar estado del proceso a "descargos_realizados"
             $estadoService = app(EstadoProcesoService::class);
             $estadoService->alCompletarDescargos($this->diligencia->proceso);
+
+            // Notificar al trabajador y al cliente que los descargos fueron completados
+            $this->enviarNotificacionesCompletado();
 
             // Generar el acta de descargos automáticamente
             $actaService = new ActaDescargosService();
@@ -428,6 +442,25 @@ class FormularioDescargos extends Component
     /**
      * Renderiza el componente
      */
+    /**
+     * Envía notificaciones por correo al trabajador y al cliente (empresa)
+     * informando que los descargos fueron completados o que el tiempo expiró.
+     */
+    private function enviarNotificacionesCompletado(): void
+    {
+        try {
+            $docService = app(DocumentGeneratorService::class);
+            $docService->enviarNotificacionEstadoDescargos($this->diligencia->proceso, 'descargos_realizados');
+            $docService->enviarNotificacionDescargosAlCliente($this->diligencia->proceso, 'descargos_realizados');
+        } catch (\Exception $e) {
+            Log::warning('Error al enviar notificaciones de descargos completados', [
+                'diligencia_id' => $this->diligencia->id,
+                'proceso_id'    => $this->diligencia->proceso_id,
+                'error'         => $e->getMessage(),
+            ]);
+        }
+    }
+
     public function render()
     {
         // Mostrar solo la primera pregunta sin responder
