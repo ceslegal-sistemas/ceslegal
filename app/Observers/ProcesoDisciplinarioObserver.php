@@ -106,6 +106,16 @@ class ProcesoDisciplinarioObserver
         if ($proceso->abogado_id) {
             $this->notificacionService->notificarProcesoAperturado($proceso);
         }
+
+        // Notificar a super_admin (siempre, para supervisión y asignación de abogado)
+        try {
+            $this->notificacionService->notificarSuperAdminNuevoProceso($proceso);
+        } catch (\Exception $e) {
+            Log::warning('No se pudo enviar notificación de nuevo proceso a super_admin', [
+                'proceso_id' => $proceso->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
