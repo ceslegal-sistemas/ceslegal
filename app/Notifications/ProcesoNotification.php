@@ -67,8 +67,11 @@ class ProcesoNotification extends Notification
         // Formato para Filament Database Notifications
         // IMPORTANTE: 'format' => 'filament' es requerido por Filament 3.3+
         // para que aparezcan en la campanita (filtra por data->format = 'filament')
+        // IMPORTANTE: 'duration' => 'persistent' evita que Filament las elimine
+        // automáticamente (el default es 6000ms y las borra de la BD)
         $data = [
             'format' => 'filament',
+            'duration' => 'persistent',
             'title' => $this->titulo,
             'body' => $this->mensaje,
             'icon' => $icono,
