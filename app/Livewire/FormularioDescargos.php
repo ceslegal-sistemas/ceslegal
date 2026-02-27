@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\DiligenciaDescargo;
+use App\Models\Feedback;
 use App\Models\PreguntaDescargo;
 use App\Models\RespuestaDescargo;
 use App\Services\IADescargoService;
@@ -30,6 +31,12 @@ class FormularioDescargos extends Component
     protected $listeners = ['respuestaGuardada' => 'refrescarPreguntas'];
 
     public bool $tiempoExpiradoMostrarEvidencias = false;
+
+    // Feedback properties
+    public bool $mostrarFeedback = false;
+    public int $feedbackCalificacion = 0;
+    public string $feedbackSugerencia = '';
+    public bool $feedbackEnviado = false;
 
     public function mount(DiligenciaDescargo $diligencia)
     {
@@ -358,6 +365,9 @@ class FormularioDescargos extends Component
             $this->mostrarMensajeExito = true;
             $this->tiempoExpiradoMostrarEvidencias = false;
 
+            // Mostrar feedback solo si el usuario no ha dado feedback recientemente (últimos 30 días)
+            $this->mostrarFeedback = $this->debeMostrarFeedback();
+
             $this->dispatch('descargosFinalizados');
 
         } catch (\Exception $e) {
@@ -368,6 +378,51 @@ class FormularioDescargos extends Component
 
             $this->addError('finalizacion', 'Ocurrió un error al finalizar. Por favor, intente nuevamente.');
         }
+    }
+
+    /**
+     * Envía el feedback del usuario
+     */
+    public function enviarFeedback(): void
+    {
+        if ($this->feedbackCalificacion < 1 || $this->feedbackCalificacion > 5) {
+            return;
+        }
+
+        Feedback::create([
+            'calificacion' => $this->feedbackCalificacion,
+            'sugerencia' => $this->feedbackSugerencia ?: null,
+            'tipo' => 'descargo_trabajador',
+            'proceso_disciplinario_id' => $this->diligencia->proceso_disciplinario_id,
+            'diligencia_descargo_id' => $this->diligencia->id,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        $this->feedbackEnviado = true;
+        $this->mostrarFeedback = false;
+    }
+
+    /**
+     * Omite el feedback
+     */
+    public function omitirFeedback(): void
+    {
+        $this->mostrarFeedback = false;
+    }
+
+    /**
+     * Determina si debe mostrar el modal de feedback
+     * Solo muestra si no ha dado feedback para esta diligencia específica
+     */
+    protected function debeMostrarFeedback(): bool
+    {
+        // Verificar si ya se envió feedback para esta diligencia específica
+        $feedbackExistente = Feedback::where('diligencia_descargo_id', $this->diligencia->id)
+            ->where('tipo', 'descargo_trabajador')
+            ->exists();
+
+        return !$feedbackExistente;
     }
 
     /**
