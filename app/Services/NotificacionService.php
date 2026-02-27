@@ -185,23 +185,67 @@ class NotificacionService
     }
 
     /**
+     * Notifica cuando se envía la citación al trabajador (estado descargos_pendientes)
+     */
+    public function notificarCitacionEnviada(ProcesoDisciplinario $proceso): void
+    {
+        $fecha = $proceso->fecha_descargos_programada
+            ? $proceso->fecha_descargos_programada->format('d/m/Y H:i')
+            : 'por confirmar';
+
+        $usuariosCliente = User::where('role', 'cliente')
+            ->where('empresa_id', $proceso->empresa_id)
+            ->where('active', true)
+            ->get();
+
+        foreach ($usuariosCliente as $cliente) {
+            $this->crear(
+                userId: $cliente->id,
+                tipo: 'descargos_pendientes',
+                titulo: 'Citación de Descargos Enviada',
+                mensaje: "Se envió la citación al trabajador {$proceso->trabajador->nombre_completo} para el proceso {$proceso->codigo}. Fecha programada: {$fecha}. El proceso estará en espera hasta que el trabajador realice la diligencia.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'media'
+            );
+        }
+    }
+
+    /**
      * Notifica cuando se recibe una impugnación
      */
     public function notificarImpugnacionRecibida(ProcesoDisciplinario $proceso): void
     {
-        if (!$proceso->abogado_id) {
-            return;
+        // Notificar al abogado
+        if ($proceso->abogado_id) {
+            $this->crear(
+                userId: $proceso->abogado_id,
+                tipo: 'impugnacion_realizada',
+                titulo: 'Impugnación Recibida — Requiere Acción',
+                mensaje: "El trabajador {$proceso->trabajador->nombre_completo} ha impugnado la sanción del proceso {$proceso->codigo}. Debe revisar y resolver la impugnación.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'urgente'
+            );
         }
 
-        $this->crear(
-            userId: $proceso->abogado_id,
-            tipo: 'impugnacion_realizada',
-            titulo: 'Impugnación Recibida',
-            mensaje: "Se ha recibido una impugnación para el proceso {$proceso->codigo}. Requiere análisis urgente.",
-            relacionadoTipo: ProcesoDisciplinario::class,
-            relacionadoId: $proceso->id,
-            prioridad: 'urgente'
-        );
+        // Notificar al cliente de la empresa
+        $usuariosCliente = User::where('role', 'cliente')
+            ->where('empresa_id', $proceso->empresa_id)
+            ->where('active', true)
+            ->get();
+
+        foreach ($usuariosCliente as $cliente) {
+            $this->crear(
+                userId: $cliente->id,
+                tipo: 'impugnacion_realizada',
+                titulo: 'Trabajador Impugnó la Sanción',
+                mensaje: "El trabajador {$proceso->trabajador->nombre_completo} ha impugnado la sanción del proceso {$proceso->codigo}. CES Legal está revisando la impugnación.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'alta'
+            );
+        }
     }
 
     /**
