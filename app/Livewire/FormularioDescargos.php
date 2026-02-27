@@ -379,8 +379,8 @@ class FormularioDescargos extends Component
             $this->mostrarMensajeExito = true;
             $this->tiempoExpiradoMostrarEvidencias = false;
 
-            // El feedback es obligatorio: siempre mostrar al finalizar
-            $this->mostrarFeedback = true;
+            // Mostrar feedback según la frecuencia configurada
+            $this->mostrarFeedback = $this->debeMostrarFeedback();
 
             $this->dispatch('descargosFinalizados');
 
@@ -427,16 +427,27 @@ class FormularioDescargos extends Component
 
     /**
      * Determina si debe mostrar el modal de feedback
-     * Solo muestra si no ha dado feedback para esta diligencia específica
+     * Muestra en la primera vez y luego cada 3 completions (cada 2 más después del primero).
+     * Usa la IP para rastrear, ya que el formulario es público sin autenticación.
      */
     protected function debeMostrarFeedback(): bool
     {
-        // Verificar si ya se envió feedback para esta diligencia específica
-        $feedbackExistente = Feedback::where('diligencia_descargo_id', $this->diligencia->id)
-            ->where('tipo', 'descargo_trabajador')
+        // No mostrar si ya se envió feedback para esta diligencia específica
+        $yaEnviadoEstaDiligencia = Feedback::where('diligencia_descargo_id', $this->diligencia->id)
+            ->where('tipo', Feedback::TIPO_DESCARGO_TRABAJADOR)
             ->exists();
 
-        return !$feedbackExistente;
+        if ($yaEnviadoEstaDiligencia) {
+            return false;
+        }
+
+        // Contar cuántos feedbacks ha enviado este IP anteriormente
+        $totalEnviados = Feedback::where('tipo', Feedback::TIPO_DESCARGO_TRABAJADOR)
+            ->where('ip_address', request()->ip())
+            ->count();
+
+        // Mostrar en la primera vez (0 enviados) o cada 3 completions (3, 6, 9...)
+        return $totalEnviados % 3 === 0;
     }
 
     /**
