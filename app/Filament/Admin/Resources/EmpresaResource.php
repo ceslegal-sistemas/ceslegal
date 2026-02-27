@@ -231,7 +231,7 @@ class EmpresaResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-o-map-pin')
-                    ->description(fn(Empresa $record): string => $record->departamento),
+                    ->description(fn(Empresa $record): ?string => $record->departamento),
 
                 Tables\Columns\TextColumn::make('telefono')
                     ->label('Teléfono')
