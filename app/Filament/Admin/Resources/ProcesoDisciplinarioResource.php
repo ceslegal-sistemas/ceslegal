@@ -1443,6 +1443,73 @@ class ProcesoDisciplinarioResource extends Resource
                         }
                     }),
 
+                // Botón 1b: Enviar Citación desde apertura (email falló o nunca se envió)
+                Tables\Actions\Action::make('enviar_citacion_apertura')
+                    ->label('Enviar Citación')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('warning')
+                    ->modalHeading('Enviar citación a descargos')
+                    ->modalDescription(
+                        fn(ProcesoDisciplinario $record) =>
+                        'Se generará y enviará la citación al correo: ' . ($record->trabajador?->email ?? '')
+                    )
+                    ->modalSubmitActionLabel('Generar y enviar citación')
+                    ->modalCancelActionLabel('Cancelar')
+                    ->modalWidth('md')
+                    ->form([
+                        Forms\Components\Section::make('Fecha y hora de la audiencia')
+                            ->description('Confirme o actualice la fecha y hora antes de enviar.')
+                            ->schema([
+                                Forms\Components\DatePicker::make('fecha_temp')
+                                    ->label('Fecha de la audiencia')
+                                    ->required()
+                                    ->native(false)
+                                    ->displayFormat('d/m/Y')
+                                    ->minDate(now()->addDay()),
+
+                                TimePickerField::make('hora_temp')
+                                    ->label('Hora de la audiencia')
+                                    ->required()
+                                    ->okLabel('Confirmar')
+                                    ->cancelLabel('Cancelar'),
+                            ])
+                            ->columns(2),
+                    ])
+                    ->fillForm(function (ProcesoDisciplinario $record): array {
+                        $fecha = $record->fecha_descargos_programada;
+                        $esFutura = $fecha && \Carbon\Carbon::parse($fecha)->isFuture();
+                        return [
+                            'fecha_temp' => $esFutura ? \Carbon\Carbon::parse($fecha)->format('Y-m-d') : null,
+                            'hora_temp'  => $esFutura ? \Carbon\Carbon::parse($fecha)->format('H:i')   : null,
+                        ];
+                    })
+                    ->visible(
+                        fn(ProcesoDisciplinario $record) =>
+                        $record->estado === 'apertura' && !empty($record->trabajador?->email)
+                    )
+                    ->action(function (ProcesoDisciplinario $record, array $data): void {
+                        $record->fecha_descargos_programada = \Carbon\Carbon::parse($data['fecha_temp'])
+                            ->setTimeFromTimeString($data['hora_temp']);
+                        $record->save();
+
+                        $service = new \App\Services\DocumentGeneratorService();
+                        $result  = $service->generarYEnviarCitacion($record);
+
+                        if ($result['success']) {
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Citación enviada')
+                                ->body('La citación fue generada y enviada al correo del trabajador. El proceso pasó a estado "Citación enviada".')
+                                ->send();
+                        } else {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Error al enviar la citación')
+                                ->body($result['message'] ?? 'Ocurrió un error inesperado.')
+                                ->send();
+                        }
+                    }),
+
                 // Botón 2: Enviar Citación (generar y enviar)
                 Tables\Actions\Action::make('enviar_citacion')
                     ->label(
