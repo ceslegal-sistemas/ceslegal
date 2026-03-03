@@ -10,10 +10,12 @@ class InformeJuridico extends Model
     protected $table = 'informes_juridicos';
 
     protected $fillable = [
+        'codigo',
         'empresa_id',
         'created_by',
         'anio',
         'mes',
+        'fecha_gestion',
         'area_practica_id',
         'area_practica_otro',
         'tipo_gestion_id',
@@ -24,11 +26,14 @@ class InformeJuridico extends Model
         'estado',
         'observacion',
         'tiempo_minutos',
+        'adjuntos',
     ];
 
     protected $casts = [
-        'anio' => 'integer',
+        'anio'          => 'integer',
         'tiempo_minutos' => 'integer',
+        'fecha_gestion' => 'date',
+        'adjuntos'      => 'array',
     ];
 
     public function empresa(): BelongsTo

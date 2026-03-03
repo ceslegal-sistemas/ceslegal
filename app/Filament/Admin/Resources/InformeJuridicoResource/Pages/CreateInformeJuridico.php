@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\InformeJuridicoResource\Pages;
 use App\Filament\Admin\Resources\InformeJuridicoResource;
 use App\Models\AreaPractica;
 use App\Models\Empresa;
+use App\Models\InformeJuridico;
 use App\Models\SubtipoGestion;
 use App\Models\TipoGestion;
 use Filament\Forms;
@@ -41,7 +42,7 @@ class CreateInformeJuridico extends CreateRecord
                         ->placeholder('Seleccione la empresa...')
                         ->columnSpanFull(),
 
-                    Forms\Components\Grid::make(2)
+                    Forms\Components\Grid::make(3)
                         ->schema([
                             Forms\Components\Select::make('anio')
                                 ->label('Año')
@@ -76,6 +77,15 @@ class CreateInformeJuridico extends CreateRecord
                                 ->default(strtolower(now()->locale('es')->translatedFormat('F')))
                                 ->required()
                                 ->native(false),
+
+                            Forms\Components\DatePicker::make('fecha_gestion')
+                                ->label('Fecha de la gestión')
+                                ->default(now())
+                                ->required()
+                                ->native(false)
+                                ->displayFormat('d/m/Y')
+                                ->maxDate(now())
+                                ->helperText('Día exacto en que se realizó el trabajo'),
                         ]),
                 ]),
 
@@ -174,14 +184,14 @@ class CreateInformeJuridico extends CreateRecord
                                 ->default('en_proceso')
                                 ->required()
                                 ->native(false)
-                                ->helperText('Cambie a "Realizado" o "Entregado" al completar la gestión.'),
+                                ->helperText('Cambie a "Realizado" al completar la gestión.'),
                         ]),
                 ]),
 
             // ── Step 3: Descripción y cierre ──────────────────────────────────
             Step::make('descripcion_cierre')
                 ->label('Descripción')
-                ->description('Detalle de la gestión y tiempo dedicado')
+                ->description('Detalle, tiempo dedicado y adjuntos')
                 ->icon('heroicon-o-document-text')
                 ->schema([
                     Forms\Components\RichEditor::make('descripcion')
@@ -223,12 +233,12 @@ class CreateInformeJuridico extends CreateRecord
                                             return;
                                         }
 
-                                        $empresa     = Empresa::find($empresaId);
+                                        $empresa      = Empresa::find($empresaId);
                                         $areaPractica = AreaPractica::find($areaPracticaId);
                                         $tipoGestion  = TipoGestion::find($tipoGestionId);
                                         $subtipo      = $subtipoId ? SubtipoGestion::find($subtipoId) : null;
 
-                                        $mesTexto    = ucfirst($mes ?? '');
+                                        $mesTexto     = ucfirst($mes ?? '');
                                         $subtipoTexto = $subtipo ? " — {$subtipo->nombre}" : '';
 
                                         $provider = config('services.ia.provider', 'gemini');
@@ -249,7 +259,7 @@ class CreateInformeJuridico extends CreateRecord
                                         $response = Http::withHeaders(['Content-Type' => 'application/json'])
                                             ->timeout(30)
                                             ->post($url, [
-                                                'contents' => [['parts' => [['text' => $prompt]]]],
+                                                'contents'         => [['parts' => [['text' => $prompt]]]],
                                                 'generationConfig' => [
                                                     'temperature'     => 0.7,
                                                     'maxOutputTokens' => $config['max_tokens'] ?? 300,
@@ -291,23 +301,53 @@ class CreateInformeJuridico extends CreateRecord
                         )
                         ->columnSpanFull(),
 
-                    Forms\Components\Grid::make(2)
+                    // Tiempo: horas + minutos separados
+                    Forms\Components\Fieldset::make('Tiempo dedicado')
                         ->schema([
-                            Forms\Components\TextInput::make('tiempo_minutos')
-                                ->label('Tiempo dedicado')
+                            Forms\Components\TextInput::make('tiempo_horas')
+                                ->label('Horas')
                                 ->numeric()
-                                ->required()
                                 ->minValue(0)
-                                ->maxValue(9999)
-                                ->suffix('minutos')
-                                ->placeholder('Ej: 30')
-                                ->helperText('Tiempo aproximado en minutos'),
+                                ->maxValue(23)
+                                ->default(0)
+                                ->suffix('h')
+                                ->placeholder('0'),
 
-                            Forms\Components\Textarea::make('observacion')
-                                ->label('Observaciones')
-                                ->rows(2)
-                                ->placeholder('Notas adicionales (opcional)...'),
-                        ]),
+                            Forms\Components\TextInput::make('tiempo_mins')
+                                ->label('Minutos')
+                                ->numeric()
+                                ->minValue(0)
+                                ->maxValue(59)
+                                ->default(0)
+                                ->suffix('min')
+                                ->placeholder('0'),
+                        ])
+                        ->columns(2),
+
+                    Forms\Components\FileUpload::make('adjuntos')
+                        ->label('Documentos adjuntos')
+                        ->multiple()
+                        ->directory('informes-juridicos')
+                        ->disk('public')
+                        ->acceptedFileTypes([
+                            'application/pdf',
+                            'application/msword',
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            'image/jpeg',
+                            'image/png',
+                        ])
+                        ->maxSize(10240)
+                        ->maxFiles(10)
+                        ->helperText('PDF, Word o imágenes. Máximo 10 archivos de 10 MB c/u.')
+                        ->downloadable()
+                        ->reorderable()
+                        ->columnSpanFull(),
+
+                    Forms\Components\Textarea::make('observacion')
+                        ->label('Observaciones')
+                        ->rows(2)
+                        ->placeholder('Notas adicionales (opcional)...')
+                        ->columnSpanFull(),
                 ]),
         ];
     }
@@ -315,6 +355,17 @@ class CreateInformeJuridico extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['created_by'] = auth()->id();
+
+        // Combinar horas y minutos en tiempo_minutos
+        $horas   = (int) ($data['tiempo_horas'] ?? 0);
+        $minutos = (int) ($data['tiempo_mins']  ?? 0);
+        $data['tiempo_minutos'] = ($horas * 60) + $minutos;
+        unset($data['tiempo_horas'], $data['tiempo_mins']);
+
+        // Generar código único IGJ-YYYY-NNN
+        $anio  = $data['anio'] ?? now()->year;
+        $count = InformeJuridico::where('anio', $anio)->count();
+        $data['codigo'] = sprintf('IGJ-%d-%03d', $anio, $count + 1);
 
         return $data;
     }

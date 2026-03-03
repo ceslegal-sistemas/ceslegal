@@ -54,26 +54,32 @@ class InformeJuridicoResource extends Resource
         ];
     }
 
+    // ── Formulario (usado en la página de EDICIÓN) ─────────────────────────
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Registro de Gestión')
-                    ->description('Complete los campos para registrar la gestión jurídica')
-                    ->icon('heroicon-o-bolt')
+                Forms\Components\Section::make('Identificación')
+                    ->description('Empresa, periodo y fecha exacta')
+                    ->icon('heroicon-o-building-office')
                     ->schema([
-                        // Fila 1: Empresa, Año, Mes
-                        Forms\Components\Grid::make(4)
-                            ->schema([
-                                Forms\Components\Select::make('empresa_id')
-                                    ->label('Empresa')
-                                    ->relationship('empresa', 'razon_social')
-                                    ->searchable()
-                                    ->preload()
-                                    ->required()
-                                    ->placeholder('Seleccione...')
-                                    ->columnSpan(2),
+                        Forms\Components\TextInput::make('codigo')
+                            ->label('Código')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->placeholder('Generado automáticamente'),
 
+                        Forms\Components\Select::make('empresa_id')
+                            ->label('Empresa')
+                            ->relationship('empresa', 'razon_social')
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->placeholder('Seleccione...')
+                            ->columnSpan(2),
+
+                        Forms\Components\Grid::make(3)
+                            ->schema([
                                 Forms\Components\Select::make('anio')
                                     ->label('Año')
                                     ->options(function () {
@@ -86,32 +92,44 @@ class InformeJuridicoResource extends Resource
                                     })
                                     ->default(now()->year)
                                     ->required()
-                                    ->native(false)
-                                    ->columnSpan(1),
+                                    ->native(false),
 
                                 Forms\Components\Select::make('mes')
                                     ->label('Mes')
                                     ->options([
-                                        'enero' => 'Enero',
-                                        'febrero' => 'Febrero',
-                                        'marzo' => 'Marzo',
-                                        'abril' => 'Abril',
-                                        'mayo' => 'Mayo',
-                                        'junio' => 'Junio',
-                                        'julio' => 'Julio',
-                                        'agosto' => 'Agosto',
+                                        'enero'      => 'Enero',
+                                        'febrero'    => 'Febrero',
+                                        'marzo'      => 'Marzo',
+                                        'abril'      => 'Abril',
+                                        'mayo'       => 'Mayo',
+                                        'junio'      => 'Junio',
+                                        'julio'      => 'Julio',
+                                        'agosto'     => 'Agosto',
                                         'septiembre' => 'Septiembre',
-                                        'octubre' => 'Octubre',
-                                        'noviembre' => 'Noviembre',
-                                        'diciembre' => 'Diciembre',
+                                        'octubre'    => 'Octubre',
+                                        'noviembre'  => 'Noviembre',
+                                        'diciembre'  => 'Diciembre',
                                     ])
-                                    ->default(strtolower(now()->translatedFormat('F')))
+                                    ->default(strtolower(now()->locale('es')->translatedFormat('F')))
+                                    ->required()
+                                    ->native(false),
+
+                                Forms\Components\DatePicker::make('fecha_gestion')
+                                    ->label('Fecha de la gestión')
                                     ->required()
                                     ->native(false)
-                                    ->columnSpan(1),
-                            ]),
+                                    ->displayFormat('d/m/Y')
+                                    ->maxDate(now())
+                                    ->helperText('Día exacto en que se realizó el trabajo'),
+                            ])
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(3),
 
-                        // Fila 2: Área, Tipo, Subtipo, Estado
+                Forms\Components\Section::make('Clasificación')
+                    ->description('Área, tipo y subtipo de gestión')
+                    ->icon('heroicon-o-tag')
+                    ->schema([
                         Forms\Components\Grid::make(4)
                             ->schema([
                                 Forms\Components\Select::make('area_practica_id')
@@ -129,12 +147,12 @@ class InformeJuridicoResource extends Resource
                                         Forms\Components\Select::make('color')
                                             ->label('Color')
                                             ->options([
-                                                'gray' => 'Gris',
+                                                'gray'    => 'Gris',
                                                 'primary' => 'Azul',
                                                 'success' => 'Verde',
                                                 'warning' => 'Amarillo',
-                                                'danger' => 'Rojo',
-                                                'info' => 'Celeste',
+                                                'danger'  => 'Rojo',
+                                                'info'    => 'Celeste',
                                             ])
                                             ->default('gray'),
                                     ])
@@ -206,12 +224,15 @@ class InformeJuridicoResource extends Resource
                                     ->native(false)
                                     ->columnSpan(1),
                             ]),
+                    ]),
 
-                        // Descripción con botón de IA
+                Forms\Components\Section::make('Descripción')
+                    ->icon('heroicon-o-document-text')
+                    ->schema([
                         Forms\Components\RichEditor::make('descripcion')
                             ->label('Descripción de la Gestión')
                             ->required()
-                            ->placeholder('Describa brevemente la gestión realizada o use el botón de IA para generar automáticamente...')
+                            ->placeholder('Describa brevemente la gestión realizada...')
                             ->toolbarButtons([
                                 'bold',
                                 'italic',
@@ -231,12 +252,12 @@ class InformeJuridicoResource extends Resource
                                     ->modalSubmitActionLabel('Generar')
                                     ->action(function (Set $set, Get $get) {
                                         try {
-                                            $empresaId = $get('empresa_id');
+                                            $empresaId      = $get('empresa_id');
                                             $areaPracticaId = $get('area_practica_id');
-                                            $tipoGestionId = $get('tipo_gestion_id');
-                                            $subtipoId = $get('subtipo_id');
-                                            $mes = $get('mes');
-                                            $anio = $get('anio');
+                                            $tipoGestionId  = $get('tipo_gestion_id');
+                                            $subtipoId      = $get('subtipo_id');
+                                            $mes            = $get('mes');
+                                            $anio           = $get('anio');
 
                                             if (!$empresaId || !$areaPracticaId || !$tipoGestionId) {
                                                 \Filament\Notifications\Notification::make()
@@ -247,53 +268,52 @@ class InformeJuridicoResource extends Resource
                                                 return;
                                             }
 
-                                            $empresa = Empresa::find($empresaId);
+                                            $empresa      = Empresa::find($empresaId);
                                             $areaPractica = AreaPractica::find($areaPracticaId);
-                                            $tipoGestion = TipoGestion::find($tipoGestionId);
-                                            $subtipo = $subtipoId ? SubtipoGestion::find($subtipoId) : null;
+                                            $tipoGestion  = TipoGestion::find($tipoGestionId);
+                                            $subtipo      = $subtipoId ? SubtipoGestion::find($subtipoId) : null;
 
-                                            $mesTexto = ucfirst($mes);
+                                            $mesTexto     = ucfirst($mes ?? '');
+                                            $subtipoTexto = $subtipo ? " — {$subtipo->nombre}" : '';
 
-                                            $provider = config('services.ia.provider', 'openai');
-                                            $config = config("services.ia.{$provider}", []);
+                                            $provider = config('services.ia.provider', 'gemini');
+                                            $config   = config("services.ia.{$provider}", []);
+                                            $apiKey   = $config['api_key'];
+                                            $model    = $config['model'];
 
-                                            $apiKey = $config['api_key'];
-                                            $model = $config['model'];
+                                            $prompt = "Escribe una descripción breve (1-2 oraciones) para un informe de gestión jurídica:\n\n"
+                                                . "Empresa: {$empresa->razon_social}\n"
+                                                . "Periodo: {$mesTexto} {$anio}\n"
+                                                . "Área: {$areaPractica->nombre}\n"
+                                                . "Tipo de gestión: {$tipoGestion->nombre}{$subtipoTexto}\n\n"
+                                                . "Ejemplo: \"Se elaboró contrato de prestación de servicios. Documento revisado conforme a los requerimientos.\"\n\n"
+                                                . "Responde solo con el texto, sin comillas ni explicaciones:";
 
                                             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
-                                            $subtipoTexto = $subtipo ? " - {$subtipo->nombre}" : "";
-
-                                            $prompt = "Escribe una descripción breve (1-2 oraciones) para un informe de gestión jurídica con estos datos:\n\n" .
-                                                "Empresa: {$empresa->razon_social}\n" .
-                                                "Área: {$areaPractica->nombre}\n" .
-                                                "Tipo de gestión: {$tipoGestion->nombre}{$subtipoTexto}\n\n" .
-                                                "Ejemplo de respuesta esperada: \"Se elaboró contrato de prestación de servicios para la empresa. Documento revisado y ajustado conforme a los requerimientos.\"\n\n" .
-                                                "Tu respuesta (solo el texto, sin comillas ni explicaciones):";
-
-                                            $response = Http::withHeaders([
-                                                'Content-Type' => 'application/json',
-                                            ])->timeout(30)->post($url, [
-                                                'contents' => [['parts' => [['text' => $prompt]]]],
-                                                'generationConfig' => [
-                                                    'temperature' => 0.7,
-                                                    'maxOutputTokens' => $config['max_tokens'],
-                                                    'topP' => 0.95,
-                                                ],
-                                            ]);
+                                            $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                                                ->timeout(30)
+                                                ->post($url, [
+                                                    'contents'         => [['parts' => [['text' => $prompt]]]],
+                                                    'generationConfig' => [
+                                                        'temperature'     => 0.7,
+                                                        'maxOutputTokens' => $config['max_tokens'] ?? 300,
+                                                        'topP'            => 0.95,
+                                                    ],
+                                                ]);
 
                                             if (!$response->successful()) {
-                                                throw new \Exception("Error en API: " . $response->body());
+                                                throw new \Exception('Error en API: ' . $response->body());
                                             }
 
-                                            $responseData = $response->json();
+                                            $data = $response->json();
 
-                                            if (!isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
-                                                throw new \Exception("Respuesta sin contenido válido");
+                                            if (!isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                                                throw new \Exception('Respuesta sin contenido válido');
                                             }
 
-                                            $descripcionGenerada = trim($responseData['candidates'][0]['content']['parts'][0]['text']);
-                                            $set('descripcion', "<p>{$descripcionGenerada}</p>");
+                                            $texto = trim($data['candidates'][0]['content']['parts'][0]['text']);
+                                            $set('descripcion', "<p>{$texto}</p>");
 
                                             \Filament\Notifications\Notification::make()
                                                 ->success()
@@ -306,34 +326,62 @@ class InformeJuridicoResource extends Resource
                                             \Filament\Notifications\Notification::make()
                                                 ->danger()
                                                 ->title('Error al generar')
-                                                ->body('No se pudo generar: ' . $e->getMessage())
+                                                ->body($e->getMessage())
                                                 ->persistent()
                                                 ->send();
 
-                                            Log::error('Error al generar descripción con IA', ['error' => $e->getMessage()]);
+                                            Log::error('Error IA informe jurídico', ['error' => $e->getMessage()]);
                                         }
                                     })
                             )
                             ->columnSpanFull(),
 
-                        // Fila final: Tiempo y Observaciones
-                        Forms\Components\Grid::make(2)
+                        Forms\Components\Fieldset::make('Tiempo dedicado')
                             ->schema([
-                                Forms\Components\TextInput::make('tiempo_minutos')
-                                    ->label('Tiempo dedicado')
+                                Forms\Components\TextInput::make('tiempo_horas')
+                                    ->label('Horas')
                                     ->numeric()
-                                    ->required()
                                     ->minValue(0)
-                                    ->maxValue(9999)
-                                    ->suffix('minutos')
-                                    ->placeholder('Ej: 30')
-                                    ->helperText('Tiempo aproximado en minutos'),
+                                    ->maxValue(23)
+                                    ->default(0)
+                                    ->suffix('h')
+                                    ->placeholder('0'),
 
-                                Forms\Components\Textarea::make('observacion')
-                                    ->label('Observaciones')
-                                    ->rows(2)
-                                    ->placeholder('Notas adicionales (opcional)...'),
-                            ]),
+                                Forms\Components\TextInput::make('tiempo_mins')
+                                    ->label('Minutos')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(59)
+                                    ->default(0)
+                                    ->suffix('min')
+                                    ->placeholder('0'),
+                            ])
+                            ->columns(2),
+
+                        Forms\Components\FileUpload::make('adjuntos')
+                            ->label('Documentos adjuntos')
+                            ->multiple()
+                            ->directory('informes-juridicos')
+                            ->disk('public')
+                            ->acceptedFileTypes([
+                                'application/pdf',
+                                'application/msword',
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                'image/jpeg',
+                                'image/png',
+                            ])
+                            ->maxSize(10240)
+                            ->maxFiles(10)
+                            ->helperText('PDF, Word o imágenes. Máximo 10 archivos de 10 MB c/u.')
+                            ->downloadable()
+                            ->reorderable()
+                            ->columnSpanFull(),
+
+                        Forms\Components\Textarea::make('observacion')
+                            ->label('Observaciones')
+                            ->rows(2)
+                            ->placeholder('Notas adicionales (opcional)...')
+                            ->columnSpanFull(),
                     ]),
 
                 Forms\Components\Hidden::make('created_by')
@@ -341,16 +389,31 @@ class InformeJuridicoResource extends Resource
             ]);
     }
 
+    // ── Tabla ──────────────────────────────────────────────────────────────
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('codigo')
+                    ->label('Código')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('gray')
+                    ->placeholder('-'),
+
                 Tables\Columns\TextColumn::make('empresa.razon_social')
                     ->label('Empresa')
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->icon('heroicon-o-building-office'),
+
+                Tables\Columns\TextColumn::make('fecha_gestion')
+                    ->label('Fecha')
+                    ->date('d/m/Y')
+                    ->sortable()
+                    ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('anio')
                     ->label('Año')
@@ -410,18 +473,24 @@ class InformeJuridicoResource extends Resource
                     ->label('Tiempo')
                     ->formatStateUsing(function ($state) {
                         if (!$state) return '-';
-                        $horas = intdiv($state, 60);
+                        $horas   = intdiv($state, 60);
                         $minutos = $state % 60;
                         return $horas > 0 ? "{$horas}h {$minutos}m" : "{$minutos} min";
                     })
                     ->sortable()
                     ->summarize(Tables\Columns\Summarizers\Sum::make()
                         ->formatStateUsing(function ($state) {
-                            $horas = intdiv($state, 60);
+                            $horas   = intdiv($state, 60);
                             $minutos = $state % 60;
                             return "{$horas}h {$minutos}m";
                         })
                         ->label('Total'))
+                    ->toggleable(),
+
+                Tables\Columns\IconColumn::make('adjuntos')
+                    ->label('Adjuntos')
+                    ->icon(fn ($state) => !empty($state) ? 'heroicon-o-paper-clip' : null)
+                    ->color('gray')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('creador.name')
@@ -457,18 +526,18 @@ class InformeJuridicoResource extends Resource
                 Tables\Filters\SelectFilter::make('mes')
                     ->label('Mes')
                     ->options([
-                        'enero' => 'Enero',
-                        'febrero' => 'Febrero',
-                        'marzo' => 'Marzo',
-                        'abril' => 'Abril',
-                        'mayo' => 'Mayo',
-                        'junio' => 'Junio',
-                        'julio' => 'Julio',
-                        'agosto' => 'Agosto',
+                        'enero'      => 'Enero',
+                        'febrero'    => 'Febrero',
+                        'marzo'      => 'Marzo',
+                        'abril'      => 'Abril',
+                        'mayo'       => 'Mayo',
+                        'junio'      => 'Junio',
+                        'julio'      => 'Julio',
+                        'agosto'     => 'Agosto',
                         'septiembre' => 'Septiembre',
-                        'octubre' => 'Octubre',
-                        'noviembre' => 'Noviembre',
-                        'diciembre' => 'Diciembre',
+                        'octubre'    => 'Octubre',
+                        'noviembre'  => 'Noviembre',
+                        'diciembre'  => 'Diciembre',
                     ]),
 
                 Tables\Filters\SelectFilter::make('area_practica_id')
@@ -515,10 +584,10 @@ class InformeJuridicoResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListInformesJuridicos::route('/'),
+            'index'  => Pages\ListInformesJuridicos::route('/'),
             'create' => Pages\CreateInformeJuridico::route('/create'),
-            'view' => Pages\ViewInformeJuridico::route('/{record}'),
-            'edit' => Pages\EditInformeJuridico::route('/{record}/edit'),
+            'view'   => Pages\ViewInformeJuridico::route('/{record}'),
+            'edit'   => Pages\EditInformeJuridico::route('/{record}/edit'),
         ];
     }
 
