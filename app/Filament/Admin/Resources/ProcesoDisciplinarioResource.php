@@ -1465,7 +1465,39 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->required()
                                     ->native(false)
                                     ->displayFormat('d/m/Y')
-                                    ->minDate(now()->addDay()),
+                                    ->minDate(function (\App\Models\ProcesoDisciplinario $record) {
+                                        if (auth()->user()?->hasRole('super_admin')) {
+                                            return now()->startOfDay();
+                                        }
+
+                                        $empresa = $record->empresa;
+                                        $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+
+                                        if ($trabajaSabados) {
+                                            $fecha = now()->copy();
+                                            $diasContados = 0;
+                                            $festivos = [];
+                                            try {
+                                                if (\Illuminate\Support\Facades\Schema::hasTable('dias_no_habiles')) {
+                                                    $festivos = \App\Models\DiaNoHabil::pluck('fecha')
+                                                        ->map(fn($f) => \Carbon\Carbon::parse($f)->format('Y-m-d'))
+                                                        ->toArray();
+                                                }
+                                            } catch (\Exception $e) {
+                                            }
+                                            while ($diasContados < 6) {
+                                                $fecha->addDay();
+                                                if (!$fecha->isSunday() && !in_array($fecha->format('Y-m-d'), $festivos)) {
+                                                    $diasContados++;
+                                                }
+                                            }
+                                            return $fecha->startOfDay();
+                                        }
+
+                                        return app(\App\Services\TerminoLegalService::class)
+                                            ->calcularFechaVencimiento(now(), 6)->startOfDay();
+                                    })
+                                    ->maxDate(now()->addMonth()->endOfDay()),
 
                                 TimePickerField::make('hora_temp')
                                     ->label('Hora de la audiencia')

@@ -196,11 +196,12 @@ class InformeJuridicoResource extends Resource
                                 Forms\Components\Select::make('estado')
                                     ->label('Estado')
                                     ->options([
-                                        'entregado' => 'Entregado',
-                                        'pendiente' => 'Pendiente',
                                         'en_proceso' => 'En Proceso',
+                                        'realizado'  => 'Realizado',
+                                        'entregado'  => 'Entregado',
+                                        'pendiente'  => 'Pendiente',
                                     ])
-                                    ->default('entregado')
+                                    ->default('en_proceso')
                                     ->required()
                                     ->native(false)
                                     ->columnSpan(1),
@@ -391,16 +392,18 @@ class InformeJuridicoResource extends Resource
                     ->label('Estado')
                     ->badge()
                     ->color(fn ($state) => match ($state) {
-                        'entregado' => 'success',
-                        'pendiente' => 'warning',
                         'en_proceso' => 'info',
-                        default => 'gray',
+                        'realizado'  => 'primary',
+                        'entregado'  => 'success',
+                        'pendiente'  => 'warning',
+                        default      => 'gray',
                     })
                     ->formatStateUsing(fn ($state) => match ($state) {
-                        'entregado' => 'Entregado',
-                        'pendiente' => 'Pendiente',
                         'en_proceso' => 'En Proceso',
-                        default => $state,
+                        'realizado'  => 'Realizado',
+                        'entregado'  => 'Entregado',
+                        'pendiente'  => 'Pendiente',
+                        default      => $state,
                     }),
 
                 Tables\Columns\TextColumn::make('tiempo_minutos')
@@ -479,9 +482,10 @@ class InformeJuridicoResource extends Resource
                 Tables\Filters\SelectFilter::make('estado')
                     ->label('Estado')
                     ->options([
-                        'entregado' => 'Entregado',
-                        'pendiente' => 'Pendiente',
                         'en_proceso' => 'En Proceso',
+                        'realizado'  => 'Realizado',
+                        'entregado'  => 'Entregado',
+                        'pendiente'  => 'Pendiente',
                     ]),
             ])
             ->actions([

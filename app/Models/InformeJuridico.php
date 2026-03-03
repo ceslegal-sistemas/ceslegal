@@ -108,6 +108,7 @@ class InformeJuridico extends Model
             'entregado' => 'Entregado',
             'pendiente' => 'Pendiente',
             'en_proceso' => 'En Proceso',
+            'realizado' => 'Realizado',
             default => $this->estado,
         };
     }
