@@ -10,6 +10,11 @@ use App\Models\Trabajador;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists\Components\Grid as InfoGrid;
+use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\Section as InfoSection;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -2961,12 +2966,223 @@ class ProcesoDisciplinarioResource extends Resource
         ];
     }
 
+    // ── Vista detalle ──────────────────────────────────────────────────────
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+
+            // ── 1. Encabezado del proceso ────────────────────────────────────
+            InfoSection::make('Información General')
+                ->icon('heroicon-o-identification')
+                ->columns(3)
+                ->schema([
+                    TextEntry::make('codigo')
+                        ->label('Código')
+                        ->badge()
+                        ->color('gray'),
+
+                    TextEntry::make('estado')
+                        ->label('Estado actual')
+                        ->badge()
+                        ->color(fn (string $state): string => match ($state) {
+                            'apertura'              => 'gray',
+                            'descargos_pendientes'  => 'warning',
+                            'descargos_realizados'  => 'info',
+                            'descargos_no_realizados' => 'danger',
+                            'sancion_emitida'       => 'primary',
+                            'impugnacion_realizada' => 'danger',
+                            'cerrado'               => 'success',
+                            'archivado'             => 'gray',
+                            default                 => 'gray',
+                        })
+                        ->formatStateUsing(fn (string $state): string => match ($state) {
+                            'apertura'              => 'Apertura',
+                            'descargos_pendientes'  => 'Citación Enviada',
+                            'descargos_realizados'  => 'Descargos Realizados',
+                            'descargos_no_realizados' => 'Descargos No Realizados',
+                            'sancion_emitida'       => 'Sanción Emitida',
+                            'impugnacion_realizada' => 'Impugnación Realizada',
+                            'cerrado'               => 'Cerrado',
+                            'archivado'             => 'Archivado',
+                            default                 => $state,
+                        }),
+
+                    TextEntry::make('created_at')
+                        ->label('Fecha apertura')
+                        ->dateTime('d/m/Y H:i')
+                        ->icon('heroicon-m-calendar'),
+
+                    TextEntry::make('empresa.razon_social')
+                        ->label('Empresa')
+                        ->icon('heroicon-m-building-office')
+                        ->weight('bold'),
+
+                    TextEntry::make('trabajador.nombre_completo')
+                        ->label('Trabajador')
+                        ->icon('heroicon-m-user'),
+
+                    TextEntry::make('trabajador.cargo')
+                        ->label('Cargo')
+                        ->icon('heroicon-m-briefcase')
+                        ->placeholder('No especificado'),
+
+                    TextEntry::make('abogado.name')
+                        ->label('Abogado asignado')
+                        ->icon('heroicon-m-scale')
+                        ->placeholder('Sin asignar'),
+
+                    TextEntry::make('fecha_ocurrencia')
+                        ->label('Fecha del hecho')
+                        ->date('d/m/Y')
+                        ->icon('heroicon-m-exclamation-triangle')
+                        ->placeholder('No registrada'),
+
+                    TextEntry::make('tipo_sancion')
+                        ->label('Sanción aplicada')
+                        ->badge()
+                        ->color(fn (?string $state): string => match ($state) {
+                            'llamado_atencion' => 'warning',
+                            'suspension'       => 'danger',
+                            'terminacion'      => 'danger',
+                            default            => 'gray',
+                        })
+                        ->formatStateUsing(fn (?string $state): string => match ($state) {
+                            'llamado_atencion' => 'Llamado de Atención',
+                            'suspension'       => 'Suspensión sin Goce de Salario',
+                            'terminacion'      => 'Despido con Justa Causa',
+                            default            => 'Sin sanción',
+                        })
+                        ->placeholder('Sin sanción'),
+                ]),
+
+            // ── 2. Hechos y conducta ─────────────────────────────────────────
+            InfoSection::make('Hechos y Conducta')
+                ->icon('heroicon-o-document-text')
+                ->schema([
+                    TextEntry::make('hechos')
+                        ->label('Descripción de los hechos')
+                        ->html()
+                        ->columnSpanFull(),
+
+                    TextEntry::make('normas_incumplidas')
+                        ->label('Normas incumplidas')
+                        ->placeholder('No especificadas')
+                        ->columnSpanFull(),
+
+                    TextEntry::make('dias_suspension')
+                        ->label('Días de suspensión')
+                        ->suffix(' días')
+                        ->placeholder('—')
+                        ->visible(fn ($record) => $record->tipo_sancion === 'suspension'),
+                ]),
+
+            // ── 3. Citación a descargos ──────────────────────────────────────
+            InfoSection::make('Citación a Descargos')
+                ->icon('heroicon-o-envelope')
+                ->columns(3)
+                ->visible(fn ($record) => !empty($record->fecha_descargos_programada))
+                ->schema([
+                    TextEntry::make('fecha_descargos_programada')
+                        ->label('Fecha y hora programada')
+                        ->dateTime('d/m/Y H:i')
+                        ->icon('heroicon-m-calendar-days'),
+
+                    TextEntry::make('modalidad_descargos')
+                        ->label('Modalidad')
+                        ->badge()
+                        ->color('info')
+                        ->formatStateUsing(fn (?string $state): string => match ($state) {
+                            'presencial'  => 'Presencial',
+                            'virtual'     => 'Virtual',
+                            'telefonico'  => 'Telefónico',
+                            default       => 'No especificada',
+                        })
+                        ->placeholder('No especificada'),
+
+                    TextEntry::make('trabajador.email')
+                        ->label('Correo notificado')
+                        ->icon('heroicon-m-at-symbol')
+                        ->placeholder('Sin correo'),
+                ]),
+
+            // ── 4. Diligencia de descargos ───────────────────────────────────
+            InfoSection::make('Descargos Realizados')
+                ->icon('heroicon-o-chat-bubble-left-right')
+                ->columns(2)
+                ->visible(fn ($record) => !empty($record->fecha_descargos_realizada) || $record->diligenciaDescargo !== null)
+                ->schema([
+                    TextEntry::make('fecha_descargos_realizada')
+                        ->label('Fecha en que se realizaron')
+                        ->dateTime('d/m/Y H:i')
+                        ->placeholder('No registrada'),
+
+                    TextEntry::make('diligenciaDescargo.tipo_respuesta')
+                        ->label('Tipo de respuesta del trabajador')
+                        ->badge()
+                        ->color('info')
+                        ->placeholder('Sin respuesta registrada'),
+
+                    TextEntry::make('diligenciaDescargo.descargos_trabajador')
+                        ->label('Descargos del trabajador')
+                        ->html()
+                        ->placeholder('Sin texto registrado')
+                        ->columnSpanFull(),
+
+                    TextEntry::make('diligenciaDescargo.analisis_empleador')
+                        ->label('Análisis del empleador')
+                        ->html()
+                        ->placeholder('Sin análisis registrado')
+                        ->columnSpanFull(),
+                ]),
+
+            // ── 5. Impugnación ───────────────────────────────────────────────
+            InfoSection::make('Impugnación')
+                ->icon('heroicon-o-scale')
+                ->columns(2)
+                ->visible(fn ($record) => $record->impugnado || $record->fecha_impugnacion !== null)
+                ->schema([
+                    IconEntry::make('impugnado')
+                        ->label('Fue impugnado')
+                        ->boolean(),
+
+                    TextEntry::make('fecha_impugnacion')
+                        ->label('Fecha de impugnación')
+                        ->dateTime('d/m/Y H:i')
+                        ->placeholder('No registrada'),
+
+                    TextEntry::make('fecha_limite_impugnacion')
+                        ->label('Fecha límite para impugnar')
+                        ->dateTime('d/m/Y H:i')
+                        ->placeholder('No registrada'),
+                ]),
+
+            // ── 6. Cierre del proceso ────────────────────────────────────────
+            InfoSection::make('Cierre del Proceso')
+                ->icon('heroicon-o-check-badge')
+                ->columns(2)
+                ->visible(fn ($record) => in_array($record->estado, ['cerrado', 'archivado']) || !empty($record->fecha_cierre))
+                ->schema([
+                    TextEntry::make('fecha_cierre')
+                        ->label('Fecha de cierre')
+                        ->dateTime('d/m/Y H:i')
+                        ->placeholder('No registrada'),
+
+                    TextEntry::make('motivo_archivo')
+                        ->label('Motivo de archivo')
+                        ->placeholder('—')
+                        ->visible(fn ($record) => $record->estado === 'archivado')
+                        ->columnSpanFull(),
+                ]),
+        ]);
+    }
+
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListProcesoDisciplinarios::route('/'),
+            'index'  => Pages\ListProcesoDisciplinarios::route('/'),
             'create' => Pages\CreateProcesoDisciplinario::route('/create'),
-            'edit' => Pages\EditProcesoDisciplinario::route('/{record}/edit'),
+            'view'   => Pages\ViewProcesoDisciplinario::route('/{record}'),
+            'edit'   => Pages\EditProcesoDisciplinario::route('/{record}/edit'),
         ];
     }
 
