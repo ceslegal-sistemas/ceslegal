@@ -143,6 +143,11 @@ class FeedbackResource extends Resource
         ];
     }
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
     public static function getNavigationBadge(): ?string
     {
         $count = static::getModel()::count();
