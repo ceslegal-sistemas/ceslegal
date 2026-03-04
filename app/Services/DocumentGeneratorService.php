@@ -520,9 +520,14 @@ HTML;
             }
 
             // Configurar acceso temporal
-            $diligencia->fecha_acceso_permitida = $proceso->fecha_descargos_programada
-                ? Carbon::parse($proceso->fecha_descargos_programada)->toDateString()
-                : now()->toDateString();
+            $fechaDescargos = $proceso->fecha_descargos_programada
+                ? Carbon::parse($proceso->fecha_descargos_programada)
+                : now();
+
+            $diligencia->fecha_acceso_permitida = $fechaDescargos->toDateString();
+            // El token debe expirar al FINAL del día de la diligencia, no a los 6
+            // días calendario fijos (que pueden ser antes si hay días hábiles de por medio).
+            $diligencia->token_expira_en = $fechaDescargos->copy()->endOfDay();
             $diligencia->acceso_habilitado = true;
             $diligencia->save();
 
