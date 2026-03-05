@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\ProcesoDisciplinario;
 use App\Models\SolicitudContrato;
 use App\Notifications\ProcesoNotification;
+use Filament\Notifications\Actions\Action as FilamentAction;
+use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -34,26 +36,48 @@ class NotificacionService
             return;
         }
 
-        // Determinar URL según el rol del usuario:
-        // clientes van al listado (no pueden editar), el resto va al edit
-        if ($user->role === 'cliente') {
-            $url = $relacionadoTipo && $relacionadoId
-                ? url('/admin/proceso-disciplinarios')
-                : null;
-        } else {
-            $url = ProcesoNotification::determinarUrl($relacionadoTipo, $relacionadoId);
+        // Determinar URL según el destinatario real
+        $url = ProcesoNotification::determinarUrlParaUsuario($relacionadoTipo, $relacionadoId, $user);
+
+        // Icono según tipo
+        $icono = match ($tipo) {
+            'apertura'               => 'heroicon-o-document-plus',
+            'descargos_pendientes'   => 'heroicon-o-clock',
+            'descargos_realizados'   => 'heroicon-o-check-circle',
+            'termino_vencido'        => 'heroicon-o-exclamation-triangle',
+            'sancion_emitida'        => 'heroicon-o-shield-exclamation',
+            'impugnacion_realizada'  => 'heroicon-o-arrow-path',
+            'cerrado'                => 'heroicon-o-check-badge',
+            'contrato_generado'      => 'heroicon-o-document-check',
+            default                  => 'heroicon-o-bell',
+        };
+
+        // Color según prioridad
+        $color = match ($prioridad) {
+            'urgente' => 'danger',
+            'alta'    => 'warning',
+            'media'   => 'info',
+            'baja'    => 'success',
+            default   => 'info',
+        };
+
+        // Enviar como notificación Filament (visible en la campanita)
+        $notif = FilamentNotification::make()
+            ->title($titulo)
+            ->body($mensaje)
+            ->icon($icono)
+            ->iconColor($color);
+
+        if ($url) {
+            $notif->actions([
+                FilamentAction::make('ver')
+                    ->label('Ver')
+                    ->url($url)
+                    ->button(),
+            ]);
         }
 
-        // Enviar notificación de Laravel (se guarda en tabla notifications)
-        $user->notify(new ProcesoNotification(
-            tipo: $tipo,
-            titulo: $titulo,
-            mensaje: $mensaje,
-            prioridad: $prioridad,
-            relacionadoTipo: $relacionadoTipo,
-            relacionadoId: $relacionadoId,
-            url: $url,
-        ));
+        $notif->sendToDatabase($user);
     }
 
     /**
