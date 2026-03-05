@@ -83,13 +83,17 @@ class ProcesoNotification extends Notification
             'relacionado_id' => $this->relacionadoId,
         ];
 
+        // Determinar URL según el destinatario real (no auth())
+        $url = self::determinarUrlParaUsuario($this->relacionadoTipo, $this->relacionadoId, $notifiable)
+            ?? $this->url;
+
         // Agregar acciones solo si hay URL
-        if ($this->url) {
+        if ($url) {
             $data['actions'] = [
                 [
                     'name' => 'view',
                     'color' => 'primary',
-                    'url' => $this->url,
+                    'url' => $url,
                     'label' => 'Ver',
                 ]
             ];
@@ -99,18 +103,34 @@ class ProcesoNotification extends Notification
     }
 
     /**
-     * Determinar la URL según el tipo de relacionado
+     * Determinar la URL según el destinatario real de la notificación.
      */
-    public static function determinarUrl(?string $relacionadoTipo, ?int $relacionadoId): ?string
+    public static function determinarUrlParaUsuario(?string $relacionadoTipo, ?int $relacionadoId, ?object $notifiable = null): ?string
     {
         if (!$relacionadoTipo || !$relacionadoId) {
             return null;
         }
 
+        $esCliente = method_exists($notifiable, 'hasRole')
+            ? $notifiable->hasRole('cliente')
+            : false;
+
         return match ($relacionadoTipo) {
-            'App\Models\ProcesoDisciplinario' => url('/admin/proceso-disciplinarios/' . $relacionadoId . '/edit'),
-            'App\Models\SolicitudContrato' => url('/admin/solicitud-contratos/' . $relacionadoId . '/edit'),
+            'App\Models\ProcesoDisciplinario' => $esCliente
+                ? url('/admin/proceso-disciplinarios/' . $relacionadoId)
+                : url('/admin/proceso-disciplinarios/' . $relacionadoId . '/edit'),
+            'App\Models\SolicitudContrato' => $esCliente
+                ? url('/admin/solicitud-contratos/' . $relacionadoId)
+                : url('/admin/solicitud-contratos/' . $relacionadoId . '/edit'),
             default => null,
         };
+    }
+
+    /**
+     * @deprecated Usar determinarUrlParaUsuario()
+     */
+    public static function determinarUrl(?string $relacionadoTipo, ?int $relacionadoId): ?string
+    {
+        return self::determinarUrlParaUsuario($relacionadoTipo, $relacionadoId, auth()->user());
     }
 }

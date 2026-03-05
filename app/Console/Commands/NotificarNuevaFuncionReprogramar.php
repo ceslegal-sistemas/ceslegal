@@ -9,15 +9,17 @@ use Illuminate\Console\Command;
 
 class NotificarNuevaFuncionReprogramar extends Command
 {
-    protected $signature   = 'notificar:reprogramar-citacion';
-    protected $description = 'Notifica a los clientes sobre la nueva función Reprogramar Citación';
+    protected $signature   = 'notificar:reprogramar-citacion {--todos : Enviar también a super_admin y abogado}';
+    protected $description = 'Notifica sobre la nueva función Reprogramar Citación';
 
     public function handle(): void
     {
-        $usuarios = User::role('cliente')->get();
+        $usuarios = $this->option('todos')
+            ? User::all()
+            : User::role('cliente')->get();
 
         if ($usuarios->isEmpty()) {
-            $this->warn('No se encontraron usuarios con rol cliente.');
+            $this->warn('No se encontraron usuarios.');
             return;
         }
 
@@ -34,6 +36,6 @@ class NotificarNuevaFuncionReprogramar extends Command
             ])
             ->sendToDatabase($usuarios);
 
-        $this->info("Notificación enviada a {$usuarios->count()} cliente(s).");
+        $this->info("Notificación enviada a {$usuarios->count()} usuario(s).");
     }
 }
