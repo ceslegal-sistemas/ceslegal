@@ -1599,6 +1599,32 @@ class ProcesoDisciplinarioResource extends Resource
                         }
                     }),
 
+                // Acción: Ver Citación (descarga el PDF de la citación enviada)
+                Tables\Actions\Action::make('ver_citacion')
+                    ->label('Ver Citación')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('info')
+                    ->visible(
+                        fn(ProcesoDisciplinario $record) =>
+                        $record->estado === 'descargos_pendientes'
+                    )
+                    ->action(function (ProcesoDisciplinario $record) {
+                        $documento = $record->documentos()
+                            ->where('tipo_documento', 'citacion_descargos')
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+
+                        if ($documento && file_exists($documento->ruta_archivo)) {
+                            return response()->download($documento->ruta_archivo, $documento->nombre_archivo);
+                        }
+
+                        \Filament\Notifications\Notification::make()
+                            ->warning()
+                            ->title('Citación no encontrada')
+                            ->body('No se encontró el documento de citación para este proceso.')
+                            ->send();
+                    }),
+
                 // Botón: Reprogramar Citación (para trabajadores que no realizaron los descargos)
                 Tables\Actions\Action::make('reprogramar_citacion')
                     ->label('Reprogramar Citación')
