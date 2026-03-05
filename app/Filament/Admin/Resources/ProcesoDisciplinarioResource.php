@@ -1599,6 +1599,164 @@ class ProcesoDisciplinarioResource extends Resource
                         }
                     }),
 
+                // Botón: Reprogramar Citación (para trabajadores que no realizaron los descargos)
+                Tables\Actions\Action::make('reprogramar_citacion')
+                    ->label('Reprogramar Citación')
+                    ->icon('heroicon-o-calendar')
+                    ->color('primary')
+                    ->modalHeading('Reprogramar citación a descargos')
+                    ->modalDescription(
+                        fn(ProcesoDisciplinario $record) =>
+                        'Se re-enviará la citación original al correo: ' . ($record->trabajador?->email ?? '') . ' con la nueva fecha seleccionada.'
+                    )
+                    ->modalSubmitActionLabel('Reprogramar y re-enviar citación')
+                    ->modalCancelActionLabel('Cancelar')
+                    ->modalWidth('md')
+                    ->form([
+                        Forms\Components\Section::make('Nueva fecha y hora de la audiencia')
+                            ->description('Seleccione la nueva fecha y hora para la diligencia de descargos.')
+                            ->schema([
+                                Forms\Components\DatePicker::make('fecha_temp')
+                                    ->label('Nueva fecha')
+                                    ->required()
+                                    ->native(false)
+                                    ->displayFormat('d/m/Y')
+                                    ->minDate(now()->startOfDay())
+                                    ->maxDate(now()->addMonth()->endOfDay())
+                                    ->disabledDates(function (\App\Models\ProcesoDisciplinario $record) {
+                                        $fechasDeshabilitadas = [];
+                                        $inicio = now()->startOfDay();
+                                        $fin    = now()->addMonth();
+
+                                        $empresa        = $record->empresa;
+                                        $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+
+                                        $festivos = [];
+                                        try {
+                                            if (\Illuminate\Support\Facades\Schema::hasTable('dias_no_habiles')) {
+                                                $festivos = \App\Models\DiaNoHabil::pluck('fecha')
+                                                    ->map(fn($f) => \Carbon\Carbon::parse($f)->format('Y-m-d'))
+                                                    ->toArray();
+                                            }
+                                        } catch (\Exception $e) {
+                                        }
+
+                                        for ($fecha = $inicio->copy(); $fecha->lte($fin); $fecha->addDay()) {
+                                            if ($trabajaSabados) {
+                                                if ($fecha->isSunday()) {
+                                                    $fechasDeshabilitadas[] = $fecha->format('Y-m-d');
+                                                }
+                                            } else {
+                                                if ($fecha->isWeekend()) {
+                                                    $fechasDeshabilitadas[] = $fecha->format('Y-m-d');
+                                                }
+                                            }
+                                        }
+
+                                        return array_unique(array_merge($fechasDeshabilitadas, $festivos));
+                                    }),
+
+                                TimePickerField::make('hora_temp')
+                                    ->label('Nueva hora')
+                                    ->required()
+                                    ->okLabel('Confirmar')
+                                    ->cancelLabel('Cancelar'),
+                            ])
+                            ->columns(2),
+                    ])
+                    ->visible(
+                        fn(ProcesoDisciplinario $record) =>
+                        $record->estado === 'descargos_no_realizados' && !empty($record->trabajador?->email)
+                    )
+                    ->action(function (ProcesoDisciplinario $record, array $data): void {
+                        $nuevaFecha = \Carbon\Carbon::parse($data['fecha_temp'])
+                            ->setTimeFromTimeString($data['hora_temp']);
+
+                        // 1. Actualizar fecha en el proceso
+                        $record->fecha_descargos_programada = $nuevaFecha;
+                        $record->save();
+
+                        // 2. Actualizar diligencia: nueva fecha, token_expira_en, limpiar intento anterior
+                        $diligencia = $record->diligenciaDescargo;
+                        if ($diligencia) {
+                            $diligencia->fecha_diligencia       = $nuevaFecha;
+                            $diligencia->fecha_acceso_permitida = $nuevaFecha->toDateString();
+                            $diligencia->token_expira_en        = $nuevaFecha->copy()->addDay()->endOfDay();
+                            $diligencia->acceso_habilitado      = true;
+                            $diligencia->trabajador_accedio_en  = null;
+                            $diligencia->primer_acceso_en       = null;
+                            $diligencia->tiempo_limite          = null;
+                            $diligencia->tiempo_expirado        = false;
+                            $diligencia->ip_acceso              = null;
+                            $diligencia->save();
+                        }
+
+                        // 3. Buscar el PDF original de citación (el más reciente)
+                        $documento = $record->documentos()
+                            ->where('tipo_documento', 'citacion_descargos')
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+
+                        if (!$documento || !file_exists($documento->ruta_archivo)) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Documento no encontrado')
+                                ->body('No se encontró el PDF de citación original. Genere una nueva citación desde el estado Apertura.')
+                                ->persistent()
+                                ->send();
+                            return;
+                        }
+
+                        // 4. Preparar link de descargos si la modalidad es virtual
+                        $linkDescargos        = null;
+                        $fechaAccesoPermitida = null;
+                        if ($record->modalidad_descargos === 'virtual' && $diligencia) {
+                            $linkDescargos        = route('descargos.acceso', ['token' => $diligencia->token_acceso]);
+                            $fechaAccesoPermitida = \Carbon\Carbon::parse($diligencia->fecha_acceso_permitida);
+                        }
+
+                        // 5. Re-enviar el correo con el PDF existente (sin regenerar)
+                        $emailEnviado = false;
+                        $emailError   = null;
+                        try {
+                            $service = new \App\Services\DocumentGeneratorService();
+                            $service->enviarCitacionPorEmail($record, $documento->ruta_archivo, $linkDescargos, $fechaAccesoPermitida);
+                            $emailEnviado = true;
+                        } catch (\Exception $e) {
+                            $emailError = $e->getMessage();
+                            Log::error('Error al re-enviar citación reprogramada', [
+                                'proceso_id' => $record->id,
+                                'error'      => $emailError,
+                            ]);
+                        }
+
+                        // 6. Volver a estado descargos_pendientes y registrar en timeline
+                        $record->estado = 'descargos_pendientes';
+                        $record->save();
+
+                        app(\App\Services\TimelineService::class)->registrarNotificacion(
+                            procesoTipo:      'proceso_disciplinario',
+                            procesoId:        $record->id,
+                            tipoNotificacion: 'Citación reprogramada',
+                            destinatario:     $record->trabajador->email
+                        );
+
+                        if ($emailEnviado) {
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Citación reprogramada')
+                                ->body('La nueva fecha fue registrada y se re-envió la citación original al correo del trabajador.')
+                                ->send();
+                        } else {
+                            \Filament\Notifications\Notification::make()
+                                ->warning()
+                                ->title('Fecha actualizada — fallo al enviar correo')
+                                ->body('La fecha de la diligencia fue actualizada correctamente, pero no se pudo enviar el correo: ' . $emailError)
+                                ->persistent()
+                                ->send();
+                        }
+                    }),
+
                 // Botón 3: Emitir Sanción (generar con IA y enviar)
                 Tables\Actions\Action::make('emitir_sancion')
                     ->label(
