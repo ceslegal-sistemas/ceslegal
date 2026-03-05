@@ -1984,7 +1984,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->modalWidth('2xl')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
-                        in_array($record->estado, ['descargos_realizados', 'descargos_pendientes', 'descargos_no_realizados']) &&
+                        in_array($record->estado, ['descargos_realizados', 'descargos_no_realizados']) &&
                             !empty($record->trabajador->email) &&
                             \Carbon\Carbon::parse($record->fecha_descargos_programada)->isPast()
                     )
@@ -2091,7 +2091,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->visible(function (ProcesoDisciplinario $record) {
                         $tipoPendiente = session('tipo_sancion_pendiente_' . $record->id);
                         return $tipoPendiente === 'suspension' &&
-                            in_array($record->estado, ['descargos_realizados', 'descargos_pendientes', 'descargos_no_realizados', 'sancion_emitida']) &&
+                            in_array($record->estado, ['descargos_realizados', 'descargos_no_realizados', 'sancion_emitida']) &&
                             !empty($record->trabajador->email) &&
                             auth()->user()?->hasAnyRole(['super_admin', 'abogado', 'cliente']);
                     })
