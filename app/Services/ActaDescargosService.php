@@ -6,6 +6,7 @@ use App\Models\DiligenciaDescargo;
 use App\Models\ProcesoDisciplinario;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\IOFactory;
+use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\SimpleType\Jc;
 use PhpOffice\PhpWord\Style\Font;
 use Illuminate\Support\Facades\Storage;
@@ -17,6 +18,8 @@ class ActaDescargosService
 
     public function __construct()
     {
+        // Habilitar escaping de XML para que & < > se escriban correctamente
+        Settings::setOutputEscapingEnabled(true);
         $this->phpWord = new PhpWord();
         $this->libreOfficePath = $this->detectLibreOfficePath();
     }
