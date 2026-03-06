@@ -109,6 +109,7 @@ class ListProcesoDisciplinarios extends ListRecords
                 ->modalSubmitActionLabel('Enviar opinión')
                 ->closeModalByClickingAway(false)
                 ->closeModalByEscaping(false)
+                ->modalCloseButton(false)
                 ->modalCancelAction(false)
                 ->action(function (array $data) {
                     Feedback::create([
