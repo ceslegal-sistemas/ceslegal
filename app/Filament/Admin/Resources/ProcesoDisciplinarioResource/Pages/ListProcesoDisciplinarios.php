@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\ProcesoDisciplinarioResource\Pages;
 
 use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
 use App\Models\Feedback;
+use App\Models\ProcesoDisciplinario;
 use Filament\Actions;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Textarea;
@@ -23,18 +24,44 @@ class ListProcesoDisciplinarios extends ListRecords
     {
         parent::mount();
 
-        // Mostrar feedback si viene de una acción específica (session) O si no ha dado feedback en 30 días
+        // Trigger directo por acción específica (session)
         $feedbackData = session()->pull('mostrar_feedback');
         if ($feedbackData) {
             $this->feedbackProcesoId = $feedbackData['proceso_id'] ?? null;
             $this->mostrarFeedbackAutomatico = true;
-        } elseif (auth()->check()) {
-            $yaDioFeedback = \App\Models\Feedback::where('user_id', auth()->id())
-                ->where('tipo', 'plataforma_general')
-                ->where('created_at', '>=', now()->subDays(30))
-                ->exists();
-            $this->mostrarFeedbackAutomatico = !$yaDioFeedback;
+            return;
         }
+
+        if (!auth()->check()) {
+            return;
+        }
+
+        $user = auth()->user();
+
+        // 1. Cooldown: no molestar si ya dio feedback en los últimos 14 días
+        $ultimoFeedback = Feedback::where('user_id', $user->id)
+            ->where('tipo', Feedback::TIPO_PLATAFORMA_GENERAL)
+            ->latest('created_at')
+            ->first();
+
+        if ($ultimoFeedback && $ultimoFeedback->created_at->diffInDays(now()) < 14) {
+            return;
+        }
+
+        // 2. Evento: verificar si hay procesos que pasaron a descargos_realizados
+        //    desde el último feedback del usuario (o en total si nunca ha dado feedback)
+        $query = ProcesoDisciplinario::where('estado', 'descargos_realizados');
+
+        if ($ultimoFeedback) {
+            $query->where('updated_at', '>', $ultimoFeedback->created_at);
+        }
+
+        // Clientes solo ven su empresa
+        if ($user->role === 'cliente' && $user->empresa_id) {
+            $query->where('empresa_id', $user->empresa_id);
+        }
+
+        $this->mostrarFeedbackAutomatico = $query->exists();
     }
 
     public function abrirModalFeedback(): void
@@ -101,8 +128,7 @@ class ListProcesoDisciplinarios extends ListRecords
                         ->title('¡Gracias por tu opinión!')
                         ->body('Tu feedback nos ayuda a mejorar constantemente.')
                         ->send();
-                })
-                ->closeModalByClickingAway(false),
+                }),
 
             Actions\Action::make('tutorial')
                 ->label('¿Cómo funciona?')
