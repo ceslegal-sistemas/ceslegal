@@ -350,20 +350,31 @@ class FormularioDescargos extends Component
             $estadoService = app(EstadoProcesoService::class);
             $estadoService->alCompletarDescargos($this->diligencia->proceso);
 
-            // Notificar al trabajador y al cliente que los descargos fueron completados
-            $this->enviarNotificacionesCompletado();
+        } catch (\Exception $e) {
+            Log::error('Error al finalizar descargos', [
+                'diligencia_id' => $this->diligencia->id,
+                'error' => $e->getMessage(),
+            ]);
+            $this->addError('finalizacion', 'Ocurrió un error al finalizar. Por favor, intente nuevamente.');
+            return;
+        }
 
-            // Generar el acta de descargos automáticamente
+        // Operaciones exitosas: marcar como completado y mostrar feedback
+        $this->formularioCompletado = true;
+        $this->mostrarMensajeExito = true;
+        $this->tiempoExpiradoMostrarEvidencias = false;
+        $this->mostrarFeedback = $this->debeMostrarFeedback();
+        $this->dispatch('descargosFinalizados');
+
+        // Notificaciones (no críticas)
+        $this->enviarNotificacionesCompletado();
+
+        // Generar el acta de descargos automáticamente (no crítico)
+        try {
             $actaService = new ActaDescargosService();
             $resultado = $actaService->generarActaDescargos($this->diligencia);
 
             if ($resultado['success']) {
-                Log::info('Acta de descargos generada exitosamente', [
-                    'diligencia_id' => $this->diligencia->id,
-                    'filename' => $resultado['filename'],
-                ]);
-
-                // Guardar referencia del archivo en la diligencia
                 $this->diligencia->update([
                     'acta_generada' => true,
                     'ruta_acta' => $resultado['path'],
@@ -374,23 +385,11 @@ class FormularioDescargos extends Component
                     'error' => $resultado['error'] ?? 'Error desconocido',
                 ]);
             }
-
-            $this->formularioCompletado = true;
-            $this->mostrarMensajeExito = true;
-            $this->tiempoExpiradoMostrarEvidencias = false;
-
-            // Mostrar feedback solo si el usuario no ha dado feedback recientemente (últimos 30 días)
-            $this->mostrarFeedback = $this->debeMostrarFeedback();
-
-            $this->dispatch('descargosFinalizados');
-
         } catch (\Exception $e) {
-            Log::error('Error al finalizar descargos', [
+            Log::warning('Excepción al generar acta automáticamente', [
                 'diligencia_id' => $this->diligencia->id,
                 'error' => $e->getMessage(),
             ]);
-
-            $this->addError('finalizacion', 'Ocurrió un error al finalizar. Por favor, intente nuevamente.');
         }
     }
 
