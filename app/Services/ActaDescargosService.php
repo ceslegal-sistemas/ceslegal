@@ -129,12 +129,16 @@ class ActaDescargosService
      */
     protected function agregarEncabezado($section, $diligencia, $proceso, $trabajador, $empresa): void
     {
-        // 1. Configuración de ubicación
-        $municipio = $empresa->ciudad ?? 'Puerto Boyacá';
-        $departamento = $empresa->departamento ?? 'Boyacá';
+        // 1. Configuración de ubicación (limpiar para XML)
+        $municipio    = $this->limpiarTextoParaWord($empresa->ciudad ?? 'Puerto Boyacá');
+        $departamento = $this->limpiarTextoParaWord($empresa->departamento ?? 'Boyacá');
+        $razonSocial  = $this->limpiarTextoParaWord($empresa->razon_social ?? '');
+        $nit          = $this->limpiarTextoParaWord($empresa->nit ?? '');
+        $nombreTrab   = $this->limpiarTextoParaWord($trabajador->nombre_completo ?? '');
+        $tipoDoc      = $this->limpiarTextoParaWord($trabajador->tipo_documento ?? '');
+        $numDoc       = $this->limpiarTextoParaWord($trabajador->numero_documento ?? '');
 
         // 2. Manejo de la Hora de Inicio (Ajuste a GMT-5)
-        // Forzamos el parseo con Carbon para asegurar que el método timezone() funcione correctamente
         if ($diligencia->primer_acceso_en) {
             $horaInicio = \Carbon\Carbon::parse($diligencia->primer_acceso_en)
                 ->timezone('America/Bogota')
@@ -152,10 +156,10 @@ class ActaDescargosService
 
         // 4. Definición de Modalidad
         $modalidad = match ($proceso->modalidad_descargos) {
-            'presencial' => 'desde las oficinas administrativas de ' . $empresa->razon_social,
+            'presencial' => 'desde las oficinas administrativas de ' . $razonSocial,
             'virtual'    => 'a través del software virtual de descargos',
             'telefonico' => 'vía telefónica',
-            default      => 'desde las oficinas administrativas de ' . $empresa->razon_social,
+            default      => 'desde las oficinas administrativas de ' . $razonSocial,
         };
 
         // 5. Construcción del párrafo de apertura
@@ -163,9 +167,9 @@ class ActaDescargosService
 
         $textLines = [
             "En la ciudad de {$municipio}, {$departamento}, el {$fechaTexto}, siendo las {$horaInicio}, {$modalidad}, ",
-            "se reunieron por una parte el representante legal de {$empresa->razon_social} con NIT {$empresa->nit} ",
-            "en representación del empleador y, por la otra {$trabajador->nombre_completo}, ",
-            "identificad" . ($esFemenino ? 'a' : 'o') . " con {$trabajador->tipo_documento} N° {$trabajador->numero_documento}, ",
+            "se reunieron por una parte el representante legal de {$razonSocial} con NIT {$nit} ",
+            "en representación del empleador y, por la otra {$nombreTrab}, ",
+            "identificad" . ($esFemenino ? 'a' : 'o') . " con {$tipoDoc} N° {$numDoc}, ",
             "en su condición de trabajador" . ($esFemenino ? 'a' : '') . " para que rinda sus descargos ",
             "y dé sus explicaciones acerca de los siguientes hechos:"
         ];
@@ -279,7 +283,7 @@ class ActaDescargosService
 
                     foreach ($pregunta->respuesta->archivos_adjuntos as $archivo) {
                         $section->addText(
-                            '  • ' . ($archivo['nombre'] ?? 'Archivo adjunto'),
+                            '  • ' . $this->limpiarTextoParaWord($archivo['nombre'] ?? 'Archivo adjunto'),
                             [
                                 'italic' => true,
                                 'name' => 'Arial',
@@ -353,14 +357,14 @@ class ActaDescargosService
             );
 
             $section->addText(
-                "Nombre: {$acompananteInfo['nombre']}",
+                'Nombre: ' . $this->limpiarTextoParaWord($acompananteInfo['nombre']),
                 ['name' => 'Arial', 'size' => 11],
                 ['alignment' => Jc::BOTH, 'spaceAfter' => 60]
             );
 
             if (!empty($acompananteInfo['cargo'])) {
                 $section->addText(
-                    "Cargo/Relación: {$acompananteInfo['cargo']}",
+                    'Cargo/Relación: ' . $this->limpiarTextoParaWord($acompananteInfo['cargo']),
                     ['name' => 'Arial', 'size' => 11],
                     ['alignment' => Jc::BOTH, 'spaceAfter' => 180]
                 );
@@ -395,7 +399,7 @@ class ActaDescargosService
 
         if ($diligencia->pruebas_aportadas) {
             $textoPruebas = !empty($diligencia->descripcion_pruebas)
-                ? $diligencia->descripcion_pruebas
+                ? $this->limpiarTextoParaWord($diligencia->descripcion_pruebas)
                 : 'El trabajador aportó pruebas durante la diligencia.';
 
             $section->addText(
@@ -489,7 +493,7 @@ class ActaDescargosService
         );
         $table->addCell(1000)->addText('');
         $table->addCell(4500)->addText(
-            $trabajador->nombre_completo,
+            $this->limpiarTextoParaWord($trabajador->nombre_completo ?? ''),
             ['bold' => true, 'name' => 'Arial', 'size' => 11],
             ['alignment' => Jc::CENTER]
         );
@@ -503,7 +507,7 @@ class ActaDescargosService
         );
         $table->addCell(1000)->addText('');
         $table->addCell(4500)->addText(
-            "{$trabajador->tipo_documento} N° {$trabajador->numero_documento}",
+            $this->limpiarTextoParaWord($trabajador->tipo_documento ?? '') . ' N° ' . $this->limpiarTextoParaWord($trabajador->numero_documento ?? ''),
             ['name' => 'Arial', 'size' => 10],
             ['alignment' => Jc::CENTER]
         );
