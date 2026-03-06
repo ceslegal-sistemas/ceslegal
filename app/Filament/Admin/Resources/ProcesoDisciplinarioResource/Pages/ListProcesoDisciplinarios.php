@@ -23,11 +23,17 @@ class ListProcesoDisciplinarios extends ListRecords
     {
         parent::mount();
 
-        // Verificar si hay feedback pendiente en sesión
+        // Mostrar feedback si viene de una acción específica (session) O si no ha dado feedback en 30 días
         $feedbackData = session()->pull('mostrar_feedback');
         if ($feedbackData) {
             $this->feedbackProcesoId = $feedbackData['proceso_id'] ?? null;
             $this->mostrarFeedbackAutomatico = true;
+        } elseif (auth()->check()) {
+            $yaDioFeedback = \App\Models\Feedback::where('user_id', auth()->id())
+                ->where('tipo', 'plataforma_general')
+                ->where('created_at', '>=', now()->subDays(30))
+                ->exists();
+            $this->mostrarFeedbackAutomatico = !$yaDioFeedback;
         }
     }
 
@@ -74,7 +80,9 @@ class ListProcesoDisciplinarios extends ListRecords
                         ->maxLength(2000),
                 ])
                 ->modalSubmitActionLabel('Enviar opinión')
-                ->modalCancelActionLabel('Omitir')
+                ->closeModalByClickingAway(false)
+                ->closeModalByEscaping(false)
+                ->cancelAction(fn ($action) => $action->hidden())
                 ->action(function (array $data) {
                     Feedback::create([
                         'calificacion' => (int) $data['calificacion'],
