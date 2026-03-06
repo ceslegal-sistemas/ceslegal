@@ -202,19 +202,25 @@ class ActaDescargosService
             return '';
         }
 
-        // Primero decodificar entidades HTML a caracteres
+        // Decodificar entidades HTML a caracteres
         $texto = html_entity_decode($texto, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         // Remover tags HTML
         $texto = strip_tags($texto);
 
-        // Reemplazar múltiples espacios por uno solo
+        // Eliminar caracteres de control inválidos en XML 1.0
+        // Solo son válidos: tab (U+0009), LF (U+000A), CR (U+000D) y U+0020 en adelante
+        // sin caracteres sustitutos (U+D800-U+DFFF) ni U+FFFE/U+FFFF
+        $texto = preg_replace(
+            '/[^\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u',
+            '',
+            $texto
+        );
+
+        // Reemplazar múltiples espacios/saltos por uno solo
         $texto = preg_replace('/\s+/', ' ', $texto);
 
-        // Trim
-        $texto = trim($texto);
-
-        return $texto;
+        return trim($texto);
     }
 
     /**
@@ -346,23 +352,19 @@ class ActaDescargosService
                 ]
             );
 
-            $textoAcompanante = "Nombre: {$acompananteInfo['nombre']}";
+            $section->addText(
+                "Nombre: {$acompananteInfo['nombre']}",
+                ['name' => 'Arial', 'size' => 11],
+                ['alignment' => Jc::BOTH, 'spaceAfter' => 60]
+            );
 
             if (!empty($acompananteInfo['cargo'])) {
-                $textoAcompanante .= "\nCargo/Relación: {$acompananteInfo['cargo']}";
+                $section->addText(
+                    "Cargo/Relación: {$acompananteInfo['cargo']}",
+                    ['name' => 'Arial', 'size' => 11],
+                    ['alignment' => Jc::BOTH, 'spaceAfter' => 180]
+                );
             }
-
-            $section->addText(
-                $textoAcompanante,
-                [
-                    'name' => 'Arial',
-                    'size' => 11,
-                ],
-                [
-                    'alignment' => Jc::BOTH,
-                    'spaceAfter' => 180,
-                ]
-            );
         } else {
             $section->addText(
                 'ACOMPAÑANTE DEL TRABAJADOR: El trabajador no se hizo acompañar en esta diligencia.',
