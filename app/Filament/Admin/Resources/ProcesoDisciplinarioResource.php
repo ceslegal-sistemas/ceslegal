@@ -1715,6 +1715,53 @@ class ProcesoDisciplinarioResource extends Resource
                         }
                     }),
 
+                // Acción: Corregir estado cuando el trabajador sí realizó los descargos pero el proceso quedó en descargos_no_realizados
+                Tables\Actions\Action::make('corregir_estado_descargos')
+                    ->label('Marcar como Realizado')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Corregir estado del proceso')
+                    ->modalDescription(fn(ProcesoDisciplinario $record) =>
+                        'El trabajador ' . ($record->trabajador?->nombre_completo ?? '') . ' completó la diligencia de descargos. '
+                        . '¿Desea actualizar el estado del proceso a "Descargos realizados"?'
+                    )
+                    ->modalSubmitActionLabel('Sí, corregir estado')
+                    ->visible(function (ProcesoDisciplinario $record) {
+                        if ($record->estado !== 'descargos_no_realizados') {
+                            return false;
+                        }
+                        $diligencia = $record->diligenciaDescargo;
+                        if (!$diligencia) {
+                            return false;
+                        }
+                        // Mostrar si el trabajador asistió o respondió preguntas
+                        return $diligencia->trabajador_asistio === true
+                            || $diligencia->preguntas()->whereHas('respuesta')->exists();
+                    })
+                    ->action(function (ProcesoDisciplinario $record) {
+                        $estadoService = app(\App\Services\EstadoProcesoService::class);
+                        $resultado = $estadoService->cambiarEstado(
+                            $record,
+                            'descargos_realizados',
+                            'Estado corregido manualmente: el trabajador completó la diligencia'
+                        );
+
+                        if ($resultado) {
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Estado corregido')
+                                ->body('El proceso ahora figura como "Descargos realizados".')
+                                ->send();
+                        } else {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('No se pudo corregir el estado')
+                                ->body('Verifica las transiciones válidas del proceso.')
+                                ->send();
+                        }
+                    }),
+
                 // Acción: Ver Citación (descarga el PDF de la citación enviada)
                 Tables\Actions\Action::make('ver_citacion')
                     ->label('Ver Citación')

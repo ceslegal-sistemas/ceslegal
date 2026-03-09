@@ -63,7 +63,7 @@ class FormularioDescargos extends Component
                     $this->tiempoExpiradoMostrarEvidencias = true;
                 } else {
                     // Quedan preguntas: cambiar estado y notificar
-                    if ($this->diligencia->proceso->estado === 'descargos_pendientes') {
+                    if (in_array($this->diligencia->proceso->estado, ['descargos_pendientes', 'descargos_no_realizados'])) {
                         $estadoService = app(EstadoProcesoService::class);
                         $estadoService->alCompletarDescargos($this->diligencia->proceso);
                         $this->enviarNotificacionesCompletado();
@@ -289,7 +289,7 @@ class FormularioDescargos extends Component
                 session()->flash('info', 'El tiempo ha expirado, pero puede adjuntar evidencias antes de enviar.');
             } else {
                 // Quedan preguntas: cambiar estado y notificar
-                if ($this->diligencia->proceso->estado === 'descargos_pendientes') {
+                if (in_array($this->diligencia->proceso->estado, ['descargos_pendientes', 'descargos_no_realizados'])) {
                     $estadoService = app(EstadoProcesoService::class);
                     $estadoService->alCompletarDescargos($this->diligencia->proceso);
                     $this->enviarNotificacionesCompletado();
