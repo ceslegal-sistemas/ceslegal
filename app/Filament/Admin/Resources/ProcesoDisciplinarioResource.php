@@ -1705,6 +1705,11 @@ class ProcesoDisciplinarioResource extends Resource
                         // 2. Actualizar diligencia: nueva fecha, token_expira_en, limpiar intento anterior
                         $diligencia = $record->diligenciaDescargo;
                         if ($diligencia) {
+                            // Borrar respuestas del intento anterior para que el trabajador empiece limpio
+                            $diligencia->preguntas()->each(function ($pregunta) {
+                                $pregunta->respuesta()->delete();
+                            });
+
                             $diligencia->fecha_diligencia       = $nuevaFecha;
                             $diligencia->fecha_acceso_permitida = $nuevaFecha->toDateString();
                             $diligencia->token_expira_en        = $nuevaFecha->copy()->addDay()->endOfDay();
@@ -1713,6 +1718,7 @@ class ProcesoDisciplinarioResource extends Resource
                             $diligencia->primer_acceso_en       = null;
                             $diligencia->tiempo_limite          = null;
                             $diligencia->tiempo_expirado        = false;
+                            $diligencia->trabajador_asistio     = false;
                             $diligencia->ip_acceso              = null;
                             $diligencia->save();
                         }
@@ -1803,9 +1809,8 @@ class ProcesoDisciplinarioResource extends Resource
                         if (!$diligencia) {
                             return false;
                         }
-                        // Mostrar si el trabajador asistió o respondió preguntas
-                        return $diligencia->trabajador_asistio === true
-                            || $diligencia->preguntas()->whereHas('respuesta')->exists();
+                        // Solo mostrar si el trabajador realmente finalizó la diligencia
+                        return $diligencia->trabajador_asistio === true;
                     })
                     ->action(function (ProcesoDisciplinario $record) {
                         $estadoService = app(\App\Services\EstadoProcesoService::class);
