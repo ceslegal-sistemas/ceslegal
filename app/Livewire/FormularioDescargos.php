@@ -62,12 +62,8 @@ class FormularioDescargos extends Component
                     // Todas respondidas: mostrar pantalla de evidencias
                     $this->tiempoExpiradoMostrarEvidencias = true;
                 } else {
-                    // Quedan preguntas: cambiar estado y notificar
-                    if (in_array($this->diligencia->proceso->estado, ['descargos_pendientes', 'descargos_no_realizados'])) {
-                        $estadoService = app(EstadoProcesoService::class);
-                        $estadoService->alCompletarDescargos($this->diligencia->proceso);
-                        $this->enviarNotificacionesCompletado();
-                    }
+                    // Quedan preguntas sin responder: el trabajador no completó a tiempo
+                    // No se marca asistencia ni se cambia estado hasta que todas las preguntas tengan respuesta
                     $this->formularioCompletado = true;
                     session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
                     return;
@@ -288,12 +284,7 @@ class FormularioDescargos extends Component
                 $this->tiempoExpiradoMostrarEvidencias = true;
                 session()->flash('info', 'El tiempo ha expirado, pero puede adjuntar evidencias antes de enviar.');
             } else {
-                // Quedan preguntas: cambiar estado y notificar
-                if (in_array($this->diligencia->proceso->estado, ['descargos_pendientes', 'descargos_no_realizados'])) {
-                    $estadoService = app(EstadoProcesoService::class);
-                    $estadoService->alCompletarDescargos($this->diligencia->proceso);
-                    $this->enviarNotificacionesCompletado();
-                }
+                // Quedan preguntas sin responder: no se marca asistencia ni se cambia estado
                 $this->formularioCompletado = true;
                 session()->flash('error', 'El tiempo ha expirado.');
             }
