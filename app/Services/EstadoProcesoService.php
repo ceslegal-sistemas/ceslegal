@@ -23,7 +23,7 @@ class EstadoProcesoService
         'apertura' => ['descargos_pendientes', 'archivado'],
         'descargos_pendientes' => ['descargos_realizados', 'descargos_no_realizados', 'archivado'],
         'descargos_realizados' => ['sancion_emitida', 'archivado'],
-        'descargos_no_realizados' => ['sancion_emitida', 'archivado'],
+        'descargos_no_realizados' => ['descargos_realizados', 'sancion_emitida', 'archivado'],
         'sancion_emitida' => ['impugnacion_realizada', 'cerrado', 'archivado'],
         'impugnacion_realizada' => ['sancion_emitida', 'cerrado', 'archivado'],
         'cerrado' => ['archivado'],
