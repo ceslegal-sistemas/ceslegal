@@ -6,6 +6,7 @@ use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
 use App\Models\Feedback;
 use App\Models\ProcesoDisciplinario;
 use Filament\Actions;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -17,17 +18,20 @@ class ListProcesoDisciplinarios extends ListRecords
 {
     protected static string $resource = ProcesoDisciplinarioResource::class;
 
-    public ?int $feedbackProcesoId = null;
-    public bool $mostrarFeedbackAutomatico = false;
+    public ?int   $feedbackProcesoId         = null;
+    public bool   $mostrarFeedbackAutomatico = false;
+    public string $feedbackTrigger           = Feedback::TRIGGER_PERIODICO;
+    public ?int   $feedbackHitoNumero        = null;
 
     public function mount(): void
     {
         parent::mount();
 
-        // Trigger directo por acción específica (session)
+        // Trigger directo por sesión (ej: redirección desde worker)
         $feedbackData = session()->pull('mostrar_feedback');
         if ($feedbackData) {
-            $this->feedbackProcesoId = $feedbackData['proceso_id'] ?? null;
+            $this->feedbackProcesoId        = $feedbackData['proceso_id'] ?? null;
+            $this->feedbackTrigger          = $feedbackData['trigger'] ?? Feedback::TRIGGER_POST_DILIGENCIA;
             $this->mostrarFeedbackAutomatico = true;
             return;
         }
@@ -38,9 +42,48 @@ class ListProcesoDisciplinarios extends ListRecords
 
         $user = auth()->user();
 
-        // 1. Cooldown: no molestar si ya dio feedback en los últimos 14 días
+        // ── TRIGGER 1: primer_proceso ─────────────────────────────────────────
+        // Una sola vez en la vida del usuario, sin cooldown.
+        $yaVioOnboarding = Feedback::where('user_id', $user->id)
+            ->where('trigger', Feedback::TRIGGER_PRIMER_PROCESO)
+            ->exists();
+
+        if (!$yaVioOnboarding) {
+            $q = ProcesoDisciplinario::whereNotIn('estado', ['apertura', 'archivado']);
+            if ($user->role === 'cliente' && $user->empresa_id) {
+                $q->where('empresa_id', $user->empresa_id);
+            }
+            if ($q->exists()) {
+                $this->feedbackTrigger          = Feedback::TRIGGER_PRIMER_PROCESO;
+                $this->mostrarFeedbackAutomatico = true;
+                return;
+            }
+        }
+
+        // ── TRIGGER 4: hito ───────────────────────────────────────────────────
+        // Cada múltiplo de 5 procesos completados, sin cooldown.
+        $qHito = ProcesoDisciplinario::whereIn('estado', [
+            'descargos_realizados', 'descargos_no_realizados',
+            'sancion_emitida', 'impugnacion_realizada', 'cerrado',
+        ]);
+        if ($user->role === 'cliente' && $user->empresa_id) {
+            $qHito->where('empresa_id', $user->empresa_id);
+        }
+        $totalCompletados = $qHito->count();
+        $hitosAlcanzados  = intdiv($totalCompletados, 5);
+        $feedbacksHito    = Feedback::where('user_id', $user->id)
+            ->where('trigger', Feedback::TRIGGER_HITO)
+            ->count();
+
+        if ($hitosAlcanzados > $feedbacksHito) {
+            $this->feedbackTrigger          = Feedback::TRIGGER_HITO;
+            $this->feedbackHitoNumero       = ($feedbacksHito + 1) * 5;
+            $this->mostrarFeedbackAutomatico = true;
+            return;
+        }
+
+        // ── Cooldown general de 14 días para triggers periódicos ──────────────
         $ultimoFeedback = Feedback::where('user_id', $user->id)
-            ->where('tipo', Feedback::TIPO_PLATAFORMA_GENERAL)
             ->latest('created_at')
             ->first();
 
@@ -48,20 +91,33 @@ class ListProcesoDisciplinarios extends ListRecords
             return;
         }
 
-        // 2. Evento: verificar si hay procesos que pasaron a descargos_realizados
-        //    desde el último feedback del usuario (o en total si nunca ha dado feedback)
-        $query = ProcesoDisciplinario::where('estado', 'descargos_realizados');
-
+        // ── TRIGGER 2: post_diligencia ────────────────────────────────────────
+        // Proceso recién llegado a descargos_realizados desde el último feedback.
+        $qPost = ProcesoDisciplinario::where('estado', 'descargos_realizados');
         if ($ultimoFeedback) {
-            $query->where('updated_at', '>', $ultimoFeedback->created_at);
+            $qPost->where('updated_at', '>', $ultimoFeedback->created_at);
         }
-
-        // Clientes solo ven su empresa
         if ($user->role === 'cliente' && $user->empresa_id) {
-            $query->where('empresa_id', $user->empresa_id);
+            $qPost->where('empresa_id', $user->empresa_id);
+        }
+        if ($qPost->exists()) {
+            $this->feedbackTrigger          = Feedback::TRIGGER_POST_DILIGENCIA;
+            $this->mostrarFeedbackAutomatico = true;
+            return;
         }
 
-        $this->mostrarFeedbackAutomatico = $query->exists();
+        // ── TRIGGER 3: periódico ──────────────────────────────────────────────
+        // Han pasado 14 días y el usuario tiene al menos un proceso avanzado.
+        $qPeriodico = ProcesoDisciplinario::whereIn('estado', [
+            'descargos_realizados', 'sancion_emitida', 'cerrado',
+        ]);
+        if ($user->role === 'cliente' && $user->empresa_id) {
+            $qPeriodico->where('empresa_id', $user->empresa_id);
+        }
+        if ($qPeriodico->exists()) {
+            $this->feedbackTrigger          = Feedback::TRIGGER_PERIODICO;
+            $this->mostrarFeedbackAutomatico = true;
+        }
     }
 
     public function abrirModalFeedback(): void
@@ -76,53 +132,305 @@ class ListProcesoDisciplinarios extends ListRecords
         ]);
     }
 
+    // ── Helpers del modal ─────────────────────────────────────────────────────
+
+    protected function getFeedbackModalHeading(): string
+    {
+        return match ($this->feedbackTrigger) {
+            Feedback::TRIGGER_PRIMER_PROCESO  => '¡Completaste tu primer proceso disciplinario!',
+            Feedback::TRIGGER_POST_DILIGENCIA => 'Diligencia completada — ¿Cómo te fue?',
+            Feedback::TRIGGER_HITO            => "¡{$this->feedbackHitoNumero} procesos completados!",
+            default                           => '¡Tu opinión es importante!',
+        };
+    }
+
+    protected function getFeedbackModalDescription(): string
+    {
+        return match ($this->feedbackTrigger) {
+            Feedback::TRIGGER_PRIMER_PROCESO  => 'Queremos saber cómo fue tu experiencia inicial con la plataforma.',
+            Feedback::TRIGGER_POST_DILIGENCIA => 'Tu experiencia con este proceso nos ayuda a mejorar.',
+            Feedback::TRIGGER_HITO            => 'Tu experiencia acumulada es muy valiosa para nosotros.',
+            default                           => 'Ayúdanos a mejorar nuestra plataforma con tu opinión.',
+        };
+    }
+
+    protected function getFeedbackModalIcon(): string
+    {
+        return match ($this->feedbackTrigger) {
+            Feedback::TRIGGER_PRIMER_PROCESO  => 'heroicon-o-rocket-launch',
+            Feedback::TRIGGER_POST_DILIGENCIA => 'heroicon-o-document-check',
+            Feedback::TRIGGER_HITO            => 'heroicon-o-trophy',
+            default                           => 'heroicon-o-star',
+        };
+    }
+
+    protected function getFeedbackFormFields(): array
+    {
+        return match ($this->feedbackTrigger) {
+            Feedback::TRIGGER_PRIMER_PROCESO  => $this->getFieldsPrimerProceso(),
+            Feedback::TRIGGER_POST_DILIGENCIA => $this->getFieldsPostDiligencia(),
+            Feedback::TRIGGER_HITO            => $this->getFieldsHito(),
+            default                           => $this->getFieldsPeriodico(),
+        };
+    }
+
+    // ── Campos por trigger ────────────────────────────────────────────────────
+
+    private function getFieldsPrimerProceso(): array
+    {
+        return [
+            Radio::make('calificacion')
+                ->label('¿Cómo calificarías tu primera experiencia?')
+                ->options([
+                    '5' => '⭐⭐⭐⭐⭐ Excelente',
+                    '4' => '⭐⭐⭐⭐ Bueno',
+                    '3' => '⭐⭐⭐ Regular',
+                    '2' => '⭐⭐ Malo',
+                    '1' => '⭐ Muy malo',
+                ])
+                ->required()
+                ->inline()
+                ->inlineLabel(false),
+
+            Radio::make('proceso_inicial_claro')
+                ->label('¿El proceso inicial fue claro para empezar?')
+                ->options([
+                    'si'        => 'Sí, todo claro',
+                    'con_dudas' => 'Con algunas dudas',
+                    'no'        => 'No, fue confuso',
+                ])
+                ->required()
+                ->inline()
+                ->inlineLabel(false),
+
+            Radio::make('expectativas_cumplidas')
+                ->label('¿La plataforma cumplió con lo que esperabas al comenzar?')
+                ->options([
+                    'supero'     => 'Superó mis expectativas',
+                    'cumplio'    => 'Cumplió mis expectativas',
+                    'no_cumplio' => 'No cumplió mis expectativas',
+                ])
+                ->required()
+                ->inline()
+                ->inlineLabel(false),
+
+            Textarea::make('lo_mas_confuso')
+                ->label('¿Qué fue lo más confuso durante tu primer proceso?')
+                ->placeholder('Cuéntanos qué te generó más dudas o dificultades...')
+                ->required()
+                ->rows(3)
+                ->maxLength(2000),
+        ];
+    }
+
+    private function getFieldsPostDiligencia(): array
+    {
+        return [
+            Radio::make('calificacion')
+                ->label('¿Cómo calificarías la experiencia con este proceso?')
+                ->options([
+                    '5' => '⭐⭐⭐⭐⭐ Excelente',
+                    '4' => '⭐⭐⭐⭐ Bueno',
+                    '3' => '⭐⭐⭐ Regular',
+                    '2' => '⭐⭐ Malo',
+                    '1' => '⭐ Muy malo',
+                ])
+                ->required()
+                ->inline()
+                ->inlineLabel(false),
+
+            Radio::make('seguridad_juridica')
+                ->label('¿La plataforma te brindó seguridad jurídica en este proceso?')
+                ->options([
+                    'si'           => 'Sí, completamente',
+                    'parcialmente' => 'Parcialmente',
+                    'no'           => 'No',
+                ])
+                ->required()
+                ->inline()
+                ->inlineLabel(false),
+
+            Radio::make('tiempo_ahorrado')
+                ->label('¿Cuánto tiempo aproximado te ahorró esta herramienta?')
+                ->options([
+                    'menos_1h' => 'Menos de 1 hora',
+                    '1_2h'     => 'Entre 1 y 2 horas',
+                    'mas_2h'   => 'Más de 2 horas',
+                    'no_se'    => 'No lo sé',
+                ])
+                ->required()
+                ->inline()
+                ->inlineLabel(false),
+
+            Radio::make('calidad_acta')
+                ->label('¿El acta de descargos generada fue de calidad? (opcional)')
+                ->options([
+                    'excelente' => 'Excelente',
+                    'buena'     => 'Buena',
+                    'mejorable' => 'Mejorable',
+                    'no_use'    => 'No la usé',
+                ])
+                ->inline()
+                ->inlineLabel(false),
+
+            Textarea::make('sugerencia')
+                ->label('Comentario adicional (opcional)')
+                ->placeholder('¿Algo más que quieras contarnos sobre este proceso?')
+                ->rows(2)
+                ->maxLength(2000),
+        ];
+    }
+
+    private function getFieldsPeriodico(): array
+    {
+        return [
+            Radio::make('calificacion')
+                ->label('¿Cómo calificarías tu experiencia general con la plataforma?')
+                ->options([
+                    '5' => '⭐⭐⭐⭐⭐ Excelente',
+                    '4' => '⭐⭐⭐⭐ Bueno',
+                    '3' => '⭐⭐⭐ Regular',
+                    '2' => '⭐⭐ Malo',
+                    '1' => '⭐ Muy malo',
+                ])
+                ->required()
+                ->inline()
+                ->inlineLabel(false),
+
+            Radio::make('nps_score')
+                ->label('¿Qué tan probable es que recomiendes esta plataforma a otro profesional de RRHH?')
+                ->helperText('0 = Nada probable  ·  10 = Muy probable')
+                ->options([
+                    '0' => '0', '1' => '1', '2' => '2', '3' => '3', '4' => '4',
+                    '5' => '5', '6' => '6', '7' => '7', '8' => '8', '9' => '9', '10' => '10',
+                ])
+                ->required()
+                ->inline()
+                ->inlineLabel(false),
+
+            Textarea::make('un_cambio')
+                ->label('Si pudieras cambiar una sola cosa de la plataforma, ¿qué sería?')
+                ->placeholder('Tu sugerencia más importante...')
+                ->required()
+                ->rows(3)
+                ->maxLength(2000),
+
+            Textarea::make('funcionalidad_faltante')
+                ->label('¿Hay alguna funcionalidad que esperabas encontrar y no encontraste? (opcional)')
+                ->placeholder('Describe la funcionalidad que echas de menos...')
+                ->rows(2)
+                ->maxLength(2000),
+        ];
+    }
+
+    private function getFieldsHito(): array
+    {
+        return [
+            Radio::make('nps_score')
+                ->label('¿Qué tan probable es que recomiendes esta plataforma a otro profesional de RRHH?')
+                ->helperText('0 = Nada probable  ·  10 = Muy probable')
+                ->options([
+                    '0' => '0', '1' => '1', '2' => '2', '3' => '3', '4' => '4',
+                    '5' => '5', '6' => '6', '7' => '7', '8' => '8', '9' => '9', '10' => '10',
+                ])
+                ->required()
+                ->inline()
+                ->inlineLabel(false),
+
+            CheckboxList::make('aspectos_valorados')
+                ->label('¿Qué aspectos valoras más de la plataforma? (Selecciona todos los que apliquen)')
+                ->options([
+                    'documentos_legales'  => 'Documentos legales automáticos',
+                    'seguimiento_proceso' => 'Seguimiento del proceso',
+                    'facilidad_uso'       => 'Facilidad de uso',
+                    'ahorro_tiempo'       => 'Ahorro de tiempo',
+                    'seguridad_juridica'  => 'Seguridad jurídica',
+                    'otro'                => 'Otro',
+                ])
+                ->columns(2)
+                ->required(),
+
+            Radio::make('recomendaria')
+                ->label('¿Recomendarías CES Legal a otro profesional de RRHH?')
+                ->options([
+                    'si_ya_lo_hice' => 'Sí, ya lo recomendé',
+                    'si_lo_haria'   => 'Sí, lo recomendaría',
+                    'tal_vez'       => 'Tal vez',
+                    'no'            => 'No por ahora',
+                ])
+                ->required()
+                ->inline()
+                ->inlineLabel(false),
+
+            Textarea::make('sugerencia')
+                ->label('¿Algo que quieras agregar? (opcional)')
+                ->placeholder('Cualquier comentario o sugerencia es bienvenido...')
+                ->rows(2)
+                ->maxLength(2000),
+        ];
+    }
+
+    // ── Header actions ────────────────────────────────────────────────────────
+
     protected function getHeaderActions(): array
     {
+        $page = $this;
+
         return [
             Actions\Action::make('feedback')
                 ->label('Feedback')
                 ->icon('heroicon-o-star')
                 ->color('warning')
-                ->modalHeading('¡Tu opinión es importante!')
-                ->modalDescription('Ayúdanos a mejorar nuestra plataforma')
-                ->modalIcon('heroicon-o-star')
-                ->modalWidth('md')
-                ->form([
-                    Radio::make('calificacion')
-                        ->label('¿Cómo calificarías tu experiencia?')
-                        ->options([
-                            '5' => '⭐⭐⭐⭐⭐ Excelente',
-                            '4' => '⭐⭐⭐⭐ Bueno',
-                            '3' => '⭐⭐⭐ Regular',
-                            '2' => '⭐⭐ Malo',
-                            '1' => '⭐ Muy malo',
-                        ])
-                        ->required()
-                        ->inline()
-                        ->inlineLabel(false),
-                    Textarea::make('sugerencia')
-                        ->label('¿Tienes alguna sugerencia para nosotros?')
-                        ->placeholder('Escribe aquí tus comentarios, ideas o sugerencias...')
-                        ->rows(3)
-                        ->maxLength(2000),
-                ])
+                ->modalHeading(fn () => $page->getFeedbackModalHeading())
+                ->modalDescription(fn () => $page->getFeedbackModalDescription())
+                ->modalIcon(fn () => $page->getFeedbackModalIcon())
+                ->modalWidth('lg')
+                ->form(fn () => $page->getFeedbackFormFields())
                 ->modalSubmitActionLabel('Enviar opinión')
                 ->closeModalByClickingAway(false)
                 ->closeModalByEscaping(false)
                 ->modalCloseButton(false)
                 ->modalCancelAction(false)
-                ->action(function (array $data) {
+                ->action(function (array $data) use ($page) {
+                    $trigger = $page->feedbackTrigger;
+
+                    $respuestasAdicionales = match ($trigger) {
+                        Feedback::TRIGGER_PRIMER_PROCESO => [
+                            'proceso_inicial_claro'  => $data['proceso_inicial_claro'] ?? null,
+                            'expectativas_cumplidas' => $data['expectativas_cumplidas'] ?? null,
+                            'lo_mas_confuso'         => $data['lo_mas_confuso'] ?? null,
+                        ],
+                        Feedback::TRIGGER_POST_DILIGENCIA => [
+                            'seguridad_juridica' => $data['seguridad_juridica'] ?? null,
+                            'tiempo_ahorrado'    => $data['tiempo_ahorrado'] ?? null,
+                            'calidad_acta'       => $data['calidad_acta'] ?? null,
+                        ],
+                        Feedback::TRIGGER_PERIODICO => [
+                            'un_cambio'              => $data['un_cambio'] ?? null,
+                            'funcionalidad_faltante' => $data['funcionalidad_faltante'] ?? null,
+                        ],
+                        Feedback::TRIGGER_HITO => [
+                            'aspectos_valorados' => $data['aspectos_valorados'] ?? null,
+                            'recomendaria'       => $data['recomendaria'] ?? null,
+                        ],
+                        default => [],
+                    };
+
                     Feedback::create([
-                        'calificacion' => (int) $data['calificacion'],
-                        'sugerencia' => $data['sugerencia'] ?? null,
-                        'tipo' => Feedback::TIPO_PLATAFORMA_GENERAL,
-                        'proceso_disciplinario_id' => $this->feedbackProcesoId,
-                        'user_id' => auth()->id(),
-                        'ip_address' => request()->ip(),
-                        'user_agent' => request()->userAgent(),
+                        'calificacion'             => isset($data['calificacion']) ? (int) $data['calificacion'] : null,
+                        'nps_score'                => isset($data['nps_score']) ? (int) $data['nps_score'] : null,
+                        'sugerencia'               => $data['sugerencia'] ?? null,
+                        'respuestas_adicionales'   => $respuestasAdicionales,
+                        'tipo'                     => Feedback::TIPO_PLATAFORMA_GENERAL,
+                        'trigger'                  => $trigger,
+                        'proceso_disciplinario_id' => $page->feedbackProcesoId,
+                        'user_id'                  => auth()->id(),
+                        'ip_address'               => request()->ip(),
+                        'user_agent'               => request()->userAgent(),
                     ]);
 
-                    $this->feedbackProcesoId = null;
+                    $page->feedbackProcesoId        = null;
+                    $page->mostrarFeedbackAutomatico = false;
 
                     Notification::make()
                         ->success()
@@ -137,7 +445,7 @@ class ListProcesoDisciplinarios extends ListRecords
                 ->color('gray')
                 ->extraAttributes([
                     'data-tour' => 'help-button',
-                    'onclick' => 'window.iniciarTour(); return false;',
+                    'onclick'   => 'window.iniciarTour(); return false;',
                 ]),
 
             Actions\CreateAction::make()
@@ -149,15 +457,12 @@ class ListProcesoDisciplinarios extends ListRecords
     }
 
     /**
-     * Filtrar procesos disciplinarios según el rol del usuario:
-     * - Super Admin: ve TODOS los procesos
-     * - Abogado: ve TODOS los procesos
-     * - Cliente: ve SOLO procesos de su empresa
+     * Filtrar procesos según rol: Admin/Abogado ven todos, Cliente ve solo su empresa.
      */
     protected function getTableQuery(): Builder
     {
         $query = parent::getTableQuery();
-        $user = auth()->user();
+        $user  = auth()->user();
 
         if ($user->role === 'cliente' && $user->empresa_id) {
             $query->where('empresa_id', $user->empresa_id);
