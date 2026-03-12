@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\EmpresaResource\Pages;
+use App\Models\ActividadEconomica;
 use App\Models\Empresa;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -171,6 +172,68 @@ class EmpresaResource extends Resource
                             ->helperText('Seleccione primero el departamento')
                             ->placeholder('Seleccione una ciudad...'),
                     ])->columns(2),
+
+                Forms\Components\Section::make('Actividad Económica (CIIU)')
+                    ->description('Clasificación Industrial Internacional Uniforme Rev. 4 A.C. Colombia')
+                    ->icon('heroicon-o-chart-bar')
+                    ->schema([
+                        Forms\Components\Select::make('actividad_economica_id')
+                            ->label('Actividad Económica Principal')
+                            ->relationship('actividadEconomica', 'nombre')
+                            ->getOptionLabelFromRecordUsing(fn (ActividadEconomica $record) => "{$record->codigo} - {$record->nombre}")
+                            ->searchable(['codigo', 'nombre'])
+                            ->preload(false)
+                            ->nullable()
+                            ->placeholder('Buscar por código o nombre...')
+                            ->helperText('Actividad principal según el RUT de la empresa')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Select::make('actividadesSecundarias')
+                            ->label('Actividades Secundarias')
+                            ->relationship('actividadesSecundarias', 'nombre')
+                            ->getOptionLabelFromRecordUsing(fn (ActividadEconomica $record) => "{$record->codigo} - {$record->nombre}")
+                            ->searchable(['codigo', 'nombre'])
+                            ->preload(false)
+                            ->multiple()
+                            ->nullable()
+                            ->placeholder('Buscar por código o nombre...')
+                            ->helperText('Actividades complementarias que también ejerce la empresa')
+                            ->columnSpanFull(),
+                    ]),
+
+                Forms\Components\Section::make('Reglamento Interno')
+                    ->description('Documento normativo interno de la empresa')
+                    ->icon('heroicon-o-document-text')
+                    ->schema([
+                        Forms\Components\Placeholder::make('reglamento_actual')
+                            ->label('Reglamento cargado')
+                            ->content(function ($record) {
+                                if (!$record) {
+                                    return new \Illuminate\Support\HtmlString('<span class="text-gray-400 text-sm">Sin reglamento cargado aún</span>');
+                                }
+                                $reglamento = $record->reglamentoInterno;
+                                if (!$reglamento) {
+                                    return new \Illuminate\Support\HtmlString('<span class="text-gray-400 text-sm">Sin reglamento cargado</span>');
+                                }
+                                $chars = number_format(strlen($reglamento->texto_completo));
+                                $fecha = $reglamento->updated_at->format('d/m/Y H:i');
+                                return new \Illuminate\Support\HtmlString(
+                                    "<span class='text-success-600 font-medium'>✅ {$reglamento->nombre}</span>" .
+                                    "<span class='text-gray-400 text-xs ml-2'>({$chars} caracteres — actualizado {$fecha})</span>"
+                                );
+                            })
+                            ->visibleOn('edit'),
+
+                        Forms\Components\FileUpload::make('reglamento_docx_temp')
+                            ->label('Subir / Actualizar Reglamento Interno (.docx)')
+                            ->helperText('Si no sube un reglamento, el sistema usará el Código Sustantivo del Trabajo como referencia para la validación de hechos.')
+                            ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
+                            ->disk('local')
+                            ->directory('reglamentos-temp')
+                            ->visibility('private')
+                            ->maxSize(10240)
+                            ->dehydrated(false),
+                    ]),
             ]);
     }
 
@@ -233,6 +296,15 @@ class EmpresaResource extends Resource
                     ->color(fn($state) => $state === 'lunes_sabado' ? 'warning' : 'success')
                     ->toggleable(),
 
+                Tables\Columns\TextColumn::make('actividadEconomica.codigo')
+                    ->label('CIIU Principal')
+                    ->searchable()
+                    ->badge()
+                    ->color('info')
+                    ->tooltip(fn (Empresa $record): ?string => $record->actividadEconomica?->nombre)
+                    ->placeholder('—')
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('trabajadores_count')
                     ->label('Trabajadores')
                     ->counts('trabajadores')
@@ -263,6 +335,18 @@ class EmpresaResource extends Resource
                     ->placeholder('Todas las empresas')
                     ->trueLabel('Solo activas')
                     ->falseLabel('Solo inactivas'),
+
+                Tables\Filters\SelectFilter::make('ciiu_seccion')
+                    ->label('Sección CIIU')
+                    ->options(\App\Filament\Admin\Resources\ActividadEconomicaResource::getSecciones())
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = $data['values'] ?? [];
+                        if (empty($values)) {
+                            return $query;
+                        }
+                        return $query->whereHas('actividadEconomica', fn (Builder $q) => $q->whereIn('seccion', $values));
+                    })
+                    ->multiple(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()

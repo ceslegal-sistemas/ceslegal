@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Empresa extends Model
@@ -18,6 +20,7 @@ class Empresa extends Model
         'representante_legal',
         'active',
         'dias_laborales',
+        'actividad_economica_id',
     ];
 
     protected $casts = [
@@ -41,6 +44,16 @@ class Empresa extends Model
             'lunes_sabado' => 'Lunes a Sábado',
             default => 'Lunes a Viernes',
         };
+    }
+
+    public function actividadEconomica(): BelongsTo
+    {
+        return $this->belongsTo(ActividadEconomica::class);
+    }
+
+    public function actividadesSecundarias(): BelongsToMany
+    {
+        return $this->belongsToMany(ActividadEconomica::class, 'empresa_actividades_secundarias');
     }
 
     public function trabajadores(): HasMany
