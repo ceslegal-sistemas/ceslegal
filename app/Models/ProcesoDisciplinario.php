@@ -54,7 +54,7 @@ class ProcesoDisciplinario extends Model
         'evidencias_empleador' => 'array',
         'fecha_solicitud' => 'datetime',
         'fecha_apertura' => 'datetime',
-        'fecha_descargos_programada' => 'datetime',
+        'fecha_descargos_programada' => 'date',
         'fecha_descargos_realizada' => 'datetime',
         'fecha_analisis' => 'datetime',
         'decision_sancion' => 'boolean',

@@ -268,7 +268,8 @@ class NotificacionService
     public function notificarCitacionEnviada(ProcesoDisciplinario $proceso): void
     {
         $fecha = $proceso->fecha_descargos_programada
-            ? $proceso->fecha_descargos_programada->format('d/m/Y H:i')
+            ? $proceso->fecha_descargos_programada->format('d/m/Y') .
+              ($proceso->hora_descargos_programada ? ' ' . \Carbon\Carbon::parse($proceso->hora_descargos_programada)->format('H:i') : '')
             : 'por confirmar';
 
         $usuariosCliente = User::where('role', 'cliente')

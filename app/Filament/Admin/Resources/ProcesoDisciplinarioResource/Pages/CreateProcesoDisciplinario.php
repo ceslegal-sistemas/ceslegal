@@ -13,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\CreateRecord\Concerns\HasWizard;
 use Filament\Forms\Components\Wizard\Step;
+use HusamTariq\FilamentTimePicker\Forms\Components\TimePickerField;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 
@@ -257,16 +258,19 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ))
                         ->columnSpanFull(),
 
-                    Forms\Components\DateTimePicker::make('fecha_descargos_programada')
-                        ->label('Fecha y hora de la audiencia virtual')
+                    Forms\Components\DatePicker::make('fecha_descargos_programada')
+                        ->label('Fecha de la audiencia')
                         ->required()
                         ->native(false)
                         ->minDate(now())
-                        ->seconds(false)
-                        ->displayFormat('d/m/Y H:i')
-                        ->helperText('La audiencia se realizará de forma virtual. Se enviará automáticamente el enlace al trabajador.')
-                        ->columnSpanFull(),
-                ]),
+                        ->displayFormat('d/m/Y')
+                        ->helperText('Fecha en que se realizará la audiencia virtual'),
+
+                    TimePickerField::make('hora_descargos_programada')
+                        ->label('Hora de la audiencia')
+                        ->required()
+                        ->helperText('Horario Colombia (UTC-5)'),
+                ])->columns(2),
         ];
     }
 
