@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ActividadEconomica extends Model
 {
+    protected $table = 'actividades_economicas';
+
     protected $fillable = [
         'codigo',
         'seccion',
