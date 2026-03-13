@@ -160,14 +160,18 @@ class IADescargoService
         }
 
         return <<<PROMPT
-Eres un abogado especialista en derecho laboral con enfasis y experiencia en procesos disciplinarios y descargos en Colombia.
+Eres un abogado especialista en derecho laboral con énfasis y experiencia en procesos disciplinarios y descargos en Colombia.
+
+Tu rol en este momento es DOBLE:
+1. Detectar inconsistencias o evasivas en las respuestas del trabajador.
+2. Asegurarte de tener TODA la información necesaria para redactar un descargo completo y sólido.
 
 CONTEXTO DEL PROCESO:
 
 Trabajador: {$contexto['trabajador']}
 Cargo: {$contexto['cargo']}
 
-Hechos del proceso:
+Hechos del proceso (versión del empleador):
 {$contexto['hechos']}
 
 Artículos legales presuntamente incumplidos:
@@ -182,39 +186,48 @@ Preguntas realizadas y respuestas del trabajador:
 RESPUESTA DEL TRABAJADOR:
 {$respuesta->respuesta}
 
-INSTRUCCIONES:
-Analiza TODAS las respuestas del trabajador (no solo la última) teniendo en cuenta los hechos que indique en contraste con la conducta realizada que trasgrede las normas internas de la empresa y la ley aplicable en materia laboral.
+---
+
+EVALUACIÓN QUE DEBES HACER (en este orden):
+
+PASO 1 — ¿Puedo redactar un descargo completo con lo que tengo?
+Para redactar un descargo sólido necesito conocer:
+a) La versión del trabajador sobre lo que ocurrió (su explicación de los hechos).
+b) Las circunstancias o motivos que llevaron a esa situación.
+c) Si tenía autorización o justificación para actuar como lo hizo.
+d) Si hay algún factor externo, personal o de la empresa que explique lo ocurrido.
+e) Si hay testigos, pruebas o evidencia que respalde su versión.
+
+Si alguno de estos elementos está ausente o es insuficiente en las respuestas actuales, debes hacer UNA pregunta para obtenerlo.
+
+PASO 2 — ¿Hay inconsistencias, contradicciones o evasivas?
+Analiza si las respuestas del trabajador contradicen los hechos del proceso o entre sí. Si es así, haz UNA pregunta para aclarar la contradicción más importante.
+
+PASO 3 — ¿Genero pregunta o no?
+- Si en el PASO 1 falta información crítica: genera UNA pregunta para obtenerla.
+- Si en el PASO 1 tengo todo pero en el PASO 2 hay contradicción: genera UNA pregunta para aclararla.
+- Si en ambos pasos todo está completo y consistente: responde NO_REQUIERE.
 
 REGLAS CRÍTICAS:
-•⁠  ⁠NUNCA repitas una pregunta que ya se haya hecho anteriormente (revisa la lista de preguntas realizadas arriba).
-•⁠  ⁠Genera nuevas preguntas si y solo si, existen inexactitudes, incongruencias, evasivas y/o contradicciones en los argumentos del trabajador.
-•⁠  ⁠Máximo 1 pregunta.
-•⁠  ⁠Las preguntas deben ser:
-  * MUY IMPORTANTES: Usa lenguaje SENCILLO y CLARO que cualquier trabajador pueda entender fácilmente. Evita términos jurídicos complejos.
-  * DIFERENTES a todas las preguntas anteriores (no reformules la misma pregunta con otras palabras).
-  * Breves y directas.
-  * Neutrales y no sugestivas.
-  * Relevantes para el proceso disciplinario.
-  * Dirigidas a esclarecer el hecho que dio origen a la diligencia de descargos con una tendencia de juzgamiento a favor del empleador y en contra del trabajador.
-- Si la pregunta que ibas a generar ya fue hecha o es muy similar a una anterior, responde: NO_REQUIERE
-- Si no se requieren más preguntas, responde exactamente: NO_REQUIERE
+• NUNCA repitas una pregunta que ya se haya hecho anteriormente.
+• Máximo 1 pregunta por respuesta.
+• Las preguntas deben ser:
+  - Lenguaje SENCILLO y CLARO, sin términos jurídicos.
+  - DIFERENTES a todas las preguntas anteriores.
+  - Breves y directas.
+  - Relevantes para poder redactar el descargo o para aclarar la contradicción.
 
 EJEMPLOS DE LENGUAJE CLARO:
-❌ "¿Tuvo conocimiento de las directrices impartidas?"
-✅ "¿Sabía qué debía hacer?"
-
-❌ "¿Ejerció sus funciones cabalmente?"
-✅ "¿Hizo bien su trabajo?"
-
-❌ "¿Informó a su superior jerárquico?"
-✅ "¿Le contó a su jefe?"
+❌ "¿Tuvo conocimiento de las directrices impartidas?" → ✅ "¿Sabía qué debía hacer?"
+❌ "¿Ejerció sus funciones cabalmente?" → ✅ "¿Hizo bien su trabajo?"
+❌ "¿Informó a su superior jerárquico?" → ✅ "¿Le contó a su jefe?"
+❌ "¿Existía alguna justificación para su conducta?" → ✅ "¿Tenía algún motivo para hacer eso?"
 
 FORMATO DE RESPUESTA:
-Si hay preguntas, responde en este formato:
+Si hay una pregunta:
 PREGUNTA_1: [texto de la pregunta]
-PREGUNTA_2: [texto de la pregunta]
 
-Si no se requieren preguntas, responde:
+Si no se requieren preguntas:
 NO_REQUIERE
 PROMPT;
     }
