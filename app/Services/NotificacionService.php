@@ -216,6 +216,34 @@ class NotificacionService
     }
 
     /**
+     * Notifica cuando se envía la citación al trabajador (estado descargos_pendientes)
+     */
+    public function notificarCitacionEnviada(ProcesoDisciplinario $proceso): void
+    {
+        $fecha = $proceso->fecha_descargos_programada
+            ? $proceso->fecha_descargos_programada->format('d/m/Y') .
+              ($proceso->hora_descargos_programada ? ' ' . \Carbon\Carbon::parse($proceso->hora_descargos_programada)->format('H:i') : '')
+            : 'por confirmar';
+
+        $usuariosCliente = User::where('role', 'cliente')
+            ->where('empresa_id', $proceso->empresa_id)
+            ->where('active', true)
+            ->get();
+
+        foreach ($usuariosCliente as $cliente) {
+            $this->crear(
+                userId: $cliente->id,
+                tipo: 'descargos_pendientes',
+                titulo: 'Citación de Descargos Enviada',
+                mensaje: "Se envió la citación al trabajador {$proceso->trabajador->nombre_completo} para el proceso {$proceso->codigo}. Fecha programada: {$fecha}. El proceso estará en espera hasta que el trabajador realice la diligencia.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'media'
+            );
+        }
+    }
+
+    /**
      * Notifica cuando se recibe una impugnación
      */
     public function notificarImpugnacionRecibida(ProcesoDisciplinario $proceso): void
