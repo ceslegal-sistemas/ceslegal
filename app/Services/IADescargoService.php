@@ -7,6 +7,7 @@ use App\Models\PreguntaDescargo;
 use App\Models\RespuestaDescargo;
 use App\Models\TrazabilidadIADescargo;
 use App\Models\ArticuloLegal;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -38,6 +39,30 @@ class IADescargoService
         '¿Ha estado antes en descargos?',
         '¿Sabe que no cumplir con sus obligaciones de trabajo puede traerle sanciones?',
     ];
+
+    /**
+     * Banco de preguntas de respaldo.
+     * Se usan ÚNICAMENTE cuando la IA falla definitivamente (job agota reintentos).
+     * Son preguntas jurídicamente relevantes para cualquier proceso disciplinario.
+     */
+    const PREGUNTAS_FALLBACK = [
+        '¿Tiene algún documento o prueba que respalde lo que acaba de decir?',
+        '¿Alguien más estaba presente cuando ocurrió lo descrito en este proceso?',
+        '¿Había pasado algo similar antes en su trabajo?',
+        '¿Tomó alguna medida para solucionar o evitar la situación?',
+        '¿Le comunicó a alguien de la empresa lo que estaba pasando?',
+        '¿Considera que actuó correctamente? Explique por qué.',
+        '¿Existe alguna circunstancia especial que explique su conducta?',
+        '¿Cuál es su versión sobre lo que se le está imputando en este proceso?',
+        '¿Cree que la empresa tenía conocimiento de la situación antes de citarle?',
+        '¿Qué debería tenerse en cuenta para evaluar su caso?',
+    ];
+
+    // Circuit breaker: clave de caché y umbrales
+    const CB_ERRORES_KEY  = 'ia_descargos_errores_transitorio';
+    const CB_ACTIVO_KEY   = 'ia_descargos_circuit_breaker';
+    const CB_UMBRAL       = 5;   // errores en la ventana para activar
+    const CB_VENTANA_MIN  = 5;   // ventana de observación (minutos)
 
     public function __construct()
     {
@@ -221,10 +246,22 @@ PROMPT;
 
     /**
      * Llama a la API de IA según el proveedor configurado.
-     * Reintenta automáticamente hasta 2 veces en errores transitorios (503, 429).
+     *
+     * - Verifica el circuit breaker antes de hacer cualquier llamada.
+     * - Reintenta hasta 2 veces (con pausa) en errores transitorios (503, 429).
+     * - Registra errores transitorios para el circuit breaker.
      */
     protected function llamarIA(string $prompt): string
     {
+        // Circuit breaker: si hay demasiados fallos recientes, lanzar excepción
+        // inmediatamente sin llamar a la API (falla rápida para no saturar la cola).
+        if ($this->circuitBreakerActivo()) {
+            throw new \RuntimeException(
+                'Circuit breaker activo: demasiados fallos recientes en la API de IA. ' .
+                'El formulario usará preguntas de respaldo.'
+            );
+        }
+
         $maxReintentos = 2;
         $ultimoError   = null;
 
@@ -235,7 +272,7 @@ PROMPT;
                         'provider'     => $this->provider,
                         'error_previo' => substr($ultimoError->getMessage(), 0, 200),
                     ]);
-                    sleep($intento); // 1s en el 2.º intento, 2s en el 3.º
+                    sleep($intento); // 1 s en el 2.º intento, 2 s en el 3.º
                 }
 
                 if ($this->provider === 'openai')    return $this->llamarOpenAI($prompt);
@@ -243,18 +280,20 @@ PROMPT;
                 if ($this->provider === 'gemini')    return $this->llamarGemini($prompt);
 
                 throw new \Exception("Proveedor de IA no soportado: {$this->provider}");
+
             } catch (\Exception $e) {
                 $ultimoError = $e;
                 $msj = $e->getMessage();
 
-                // Solo reintentar para errores transitorios de servidor
                 $esTransitorio = str_contains($msj, '503')
                     || str_contains($msj, '429')
                     || str_contains($msj, 'UNAVAILABLE')
                     || str_contains($msj, 'overloaded');
 
-                if (!$esTransitorio) {
-                    throw $e; // Error permanente — no tiene sentido reintentar
+                if ($esTransitorio) {
+                    $this->registrarErrorTransitorio();
+                } else {
+                    throw $e; // Error permanente — no reintentar
                 }
             }
         }
@@ -703,5 +742,102 @@ PROMPT;
         }
 
         return $preguntasGuardadas;
+    }
+
+    // =========================================================
+    // CIRCUIT BREAKER
+    // =========================================================
+
+    /**
+     * Registra un error transitorio de la API.
+     * Si se supera el umbral activa el circuit breaker durante CB_VENTANA_MIN.
+     */
+    private function registrarErrorTransitorio(): void
+    {
+        $errores = Cache::get(self::CB_ERRORES_KEY, 0) + 1;
+        Cache::put(self::CB_ERRORES_KEY, $errores, now()->addMinutes(self::CB_VENTANA_MIN));
+
+        if ($errores >= self::CB_UMBRAL) {
+            Cache::put(self::CB_ACTIVO_KEY, true, now()->addMinutes(self::CB_VENTANA_MIN));
+            Log::warning('Circuit breaker IA activado: demasiados errores transitorios', [
+                'provider'         => $this->provider,
+                'errores_en_ventana' => $errores,
+                'ventana_minutos'  => self::CB_VENTANA_MIN,
+            ]);
+        }
+    }
+
+    /**
+     * Indica si el circuit breaker está activo.
+     * Cuando está activo se salta la llamada a la API y se va directo al fallback.
+     */
+    public function circuitBreakerActivo(): bool
+    {
+        return Cache::get(self::CB_ACTIVO_KEY, false) === true;
+    }
+
+    // =========================================================
+    // PREGUNTA FALLBACK
+    // =========================================================
+
+    /**
+     * Genera una pregunta del banco de respaldo cuando la IA falla definitivamente.
+     * Elige la primera del banco que aún no haya sido formulada en esta diligencia.
+     */
+    public function generarPreguntaFallback(DiligenciaDescargo $diligencia, int $preguntaPadreId): ?PreguntaDescargo
+    {
+        // Preguntas ya formuladas en esta diligencia
+        $yaFormuladas = $diligencia->preguntas()
+            ->pluck('pregunta')
+            ->map(fn ($p) => mb_strtolower(trim($p)))
+            ->toArray();
+
+        $candidata = null;
+        foreach (self::PREGUNTAS_FALLBACK as $texto) {
+            if (!in_array(mb_strtolower(trim($texto)), $yaFormuladas, true)) {
+                $candidata = $texto;
+                break;
+            }
+        }
+
+        if (!$candidata) {
+            Log::warning('generarPreguntaFallback: todas las preguntas del banco ya fueron formuladas', [
+                'diligencia_id' => $diligencia->id,
+            ]);
+            return null;
+        }
+
+        // Insertar ANTES de las preguntas de cierre (mismo mecanismo que guardarNuevasPreguntas)
+        $preguntasCierre = $diligencia->preguntas()
+            ->whereIn('pregunta', self::PREGUNTAS_CIERRE)
+            ->orderBy('orden')
+            ->get();
+
+        if ($preguntasCierre->isNotEmpty()) {
+            $ordenInsercion = $preguntasCierre->first()->orden;
+            foreach ($preguntasCierre as $i => $pc) {
+                $pc->update(['orden' => $ordenInsercion + 1 + $i]);
+            }
+            $orden = $ordenInsercion;
+        } else {
+            $orden = ($diligencia->preguntas()->max('orden') ?? 0) + 1;
+        }
+
+        $pregunta = PreguntaDescargo::create([
+            'diligencia_descargo_id' => $diligencia->id,
+            'pregunta'               => $candidata,
+            'orden'                  => $orden,
+            'es_generada_por_ia'     => false, // es fallback, no IA real
+            'pregunta_padre_id'      => $preguntaPadreId,
+            'estado'                 => 'activa',
+        ]);
+
+        Log::info('Pregunta fallback generada por fallo de IA', [
+            'diligencia_id'   => $diligencia->id,
+            'pregunta_padre'  => $preguntaPadreId,
+            'pregunta_fallback' => $candidata,
+        ]);
+
+        return $pregunta;
     }
 }

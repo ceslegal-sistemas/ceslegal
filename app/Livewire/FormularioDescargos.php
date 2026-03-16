@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Jobs\GenerarPreguntaDinamicaJob;
 use App\Models\DiligenciaDescargo;
 use App\Models\Feedback;
 use App\Models\PreguntaDescargo;
@@ -32,6 +33,10 @@ class FormularioDescargos extends Component
     protected $listeners = ['respuestaGuardada' => 'refrescarPreguntas'];
 
     public bool $tiempoExpiradoMostrarEvidencias = false;
+
+    // Estado de generación asíncrona de pregunta IA
+    public bool $pendienteIA         = false;
+    public int  $pendienteIASegundos = 0;
 
     // Feedback properties
     public bool $mostrarFeedback = false;
@@ -212,20 +217,18 @@ class FormularioDescargos extends Component
             // Si es la pregunta sobre acompañantes y respondió NO, saltar preguntas hijas automáticamente
             $this->saltarPreguntasCondicionales($pregunta, $respuestaTexto);
 
-            // Solo generar preguntas dinámicas si es una pregunta generada por IA
-            // (no las preguntas estándar que tienen es_generada_por_ia = false)
+            // Generar pregunta dinámica si la que acaba de responderse fue generada por IA.
+            // Se despacha un job asíncrono para no bloquear el request del trabajador.
+            // La UI muestra una pantalla de pausa y hace polling hasta que la pregunta esté lista.
             if ($pregunta->es_generada_por_ia) {
-                $iaService = new IADescargoService();
-                $nuevasPreguntas = $iaService->generarPreguntasDinamicas($pregunta, $respuesta);
+                $this->pendienteIA         = true;
+                $this->pendienteIASegundos = 0;
 
-                if (count($nuevasPreguntas) > 0) {
-                    foreach ($nuevasPreguntas as $nuevaPregunta) {
-                        $this->respuestas[$nuevaPregunta->id] = '';
-                        $this->preguntasProcesadas[$nuevaPregunta->id] = false;
-                    }
-
-                    $this->dispatch('preguntasGeneradas', count: count($nuevasPreguntas));
-                }
+                GenerarPreguntaDinamicaJob::dispatch(
+                    $pregunta->id,
+                    $respuesta->id,
+                    $this->diligencia->id,
+                );
             }
 
             $this->dispatch('respuestaGuardada', preguntaId: $preguntaId);
@@ -296,6 +299,44 @@ class FormularioDescargos extends Component
                 $this->formularioCompletado = true;
                 session()->flash('error', 'El tiempo ha expirado.');
             }
+        }
+    }
+
+    /**
+     * Polling que verifica si el job de generación de pregunta IA ya terminó.
+     * Se ejecuta cada 3 segundos SOLO mientras $pendienteIA = true.
+     * Si la pregunta aparece en BD → desactiva la pausa y recarga preguntas.
+     * Si pasan más de 120 s sin respuesta → desactiva la pausa (timeout de seguridad).
+     */
+    public function verificarPreguntaIA(): void
+    {
+        if (!$this->pendienteIA) {
+            return;
+        }
+
+        $this->pendienteIASegundos += 3;
+        $this->diligencia->refresh();
+
+        $pendientes = $this->diligencia->preguntas()
+            ->activas()
+            ->whereDoesntHave('respuesta')
+            ->count();
+
+        if ($pendientes > 0) {
+            // Nueva pregunta disponible
+            $this->pendienteIA         = false;
+            $this->pendienteIASegundos = 0;
+            $this->cargarRespuestasExistentes();
+            return;
+        }
+
+        // Timeout de seguridad: 120 s máximo de espera
+        if ($this->pendienteIASegundos >= 120) {
+            Log::warning('verificarPreguntaIA: timeout alcanzado sin respuesta de IA', [
+                'diligencia_id' => $this->diligencia->id,
+            ]);
+            $this->pendienteIA         = false;
+            $this->pendienteIASegundos = 0;
         }
     }
 

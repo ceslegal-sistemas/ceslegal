@@ -262,8 +262,51 @@
                             </div>
                         </details>
 
+                        {{-- Pantalla de pausa: generando pregunta IA en background --}}
+                        @if ($pendienteIA)
+                            <div wire:poll.3s="verificarPreguntaIA">
+                                <div class="rounded-2xl border border-violet-100 bg-gradient-to-br from-white to-violet-50 p-6 shadow-sm">
+
+                                    {{-- Ícono animado --}}
+                                    <div class="flex justify-center mb-5">
+                                        <div class="relative w-16 h-16">
+                                            <span class="absolute inset-0 rounded-full bg-violet-200 animate-ping opacity-30"></span>
+                                            <div class="relative w-16 h-16 bg-white rounded-full shadow-sm ring-1 ring-violet-200 flex items-center justify-center">
+                                                <svg class="w-7 h-7 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Texto --}}
+                                    <div class="text-center mb-5">
+                                        <h3 class="text-base font-semibold text-gray-900 mb-1">Analizando su respuesta</h3>
+                                        <p class="text-sm text-gray-500 leading-relaxed">
+                                            Estamos preparando la siguiente pregunta<br>
+                                            basada en lo que respondió.
+                                            <span class="font-medium text-violet-600">Solo tomará unos segundos.</span>
+                                        </p>
+                                    </div>
+
+                                    {{-- Indicador de progreso: tres puntos rebotando --}}
+                                    <div class="flex justify-center gap-2 mb-4">
+                                        <span class="w-2.5 h-2.5 bg-violet-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                        <span class="w-2.5 h-2.5 bg-violet-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                        <span class="w-2.5 h-2.5 bg-violet-600 rounded-full animate-bounce"></span>
+                                    </div>
+
+                                    {{-- Mensaje adicional si tarda más de lo normal --}}
+                                    @if ($pendienteIASegundos >= 30)
+                                        <p class="text-center text-xs text-gray-400">
+                                            Tomando un poco más de lo esperado. Continuamos procesando…
+                                        </p>
+                                    @endif
+                                </div>
+                            </div>
+
                         {{-- Pregunta actual --}}
-                        @if ($preguntaSiguiente)
+                        @elseif ($preguntaSiguiente)
                             @php $pregunta = $preguntaSiguiente; @endphp
 
                             <div class="border border-gray-200 rounded-xl overflow-hidden"
