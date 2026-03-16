@@ -279,29 +279,10 @@ class ProcesoDisciplinarioObserver
                     ]);
                 }
 
-                // Enviar email al trabajador notificando que sus descargos fueron recibidos
-                try {
-                    $documentService = app(DocumentGeneratorService::class);
-                    $documentService->enviarNotificacionEstadoDescargos($proceso, 'descargos_realizados');
-                } catch (\Exception $e) {
-                    Log::warning('No se pudo enviar email de estado de descargos al trabajador', [
-                        'proceso_id' => $proceso->id,
-                        'estado' => 'descargos_realizados',
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-
-                // Enviar email al cliente notificando que el trabajador completó los descargos
-                try {
-                    $documentService = app(DocumentGeneratorService::class);
-                    $documentService->enviarNotificacionDescargosAlCliente($proceso, 'descargos_realizados');
-                } catch (\Exception $e) {
-                    Log::warning('No se pudo enviar email de estado de descargos al cliente', [
-                        'proceso_id' => $proceso->id,
-                        'estado' => 'descargos_realizados',
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+                // NOTA: Los emails al trabajador y al cliente se envían directamente
+                // desde FormularioDescargos::finalizarDescargos() para garantizar
+                // que solo se envíen cuando el trabajador completa el formulario,
+                // y no ante cualquier cambio de estado (ej. corrección manual o cron).
 
                 Log::info('Descargos completados - Listo para emitir sanción', [
                     'proceso_id' => $proceso->id,

@@ -370,6 +370,9 @@ class FormularioDescargos extends Component
         $this->mostrarFeedback = $this->debeMostrarFeedback();
         $this->dispatch('descargosFinalizados');
 
+        // Notificaciones al trabajador y al cliente (no críticas)
+        $this->enviarNotificacionesCompletado();
+
         // Generar el acta de descargos automáticamente (no crítico)
         try {
             $actaService = new ActaDescargosService();
