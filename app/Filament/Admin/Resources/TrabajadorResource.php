@@ -269,7 +269,6 @@ class TrabajadorResource extends Resource
                             ->extraAttributes(['data-tour' => 'trabajador-cargo-otro']),
 
                         Forms\Components\Hidden::make('cargo')
-                            ->required()
                             ->dehydrateStateUsing(function (Get $get) {
                                 return $get('cargo_select') === '__otro__'
                                     ? $get('cargo_otro')
