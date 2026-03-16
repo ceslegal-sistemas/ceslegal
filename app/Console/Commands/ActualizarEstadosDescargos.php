@@ -51,47 +51,44 @@ class ActualizarEstadosDescargos extends Command
         $noRealizados = 0;
 
         // =====================================================
-        // CASO 1: Descargos realizados (respondió al menos 1 pregunta)
+        // CASO 1: Descargos realizados (el trabajador completó el formulario)
+        // Solo se procesa si trabajador_asistio = true, lo cual se establece
+        // al hacer clic en "Finalizar Descargos". Esto actúa como fallback
+        // en caso de que la transición de estado haya fallado durante la sesión.
         // =====================================================
         $procesosConRespuestas = ProcesoDisciplinario::where('estado', 'descargos_pendientes')
-            ->whereHas('diligenciaDescargo.preguntas.respuesta')
+            ->whereHas('diligenciaDescargo', function ($query) {
+                $query->where('trabajador_asistio', true);
+            })
             ->with('diligenciaDescargo')
             ->get();
 
         foreach ($procesosConRespuestas as $proceso) {
             $diligencia = $proceso->diligenciaDescargo;
 
-            if (!$diligencia) {
+            if (!$diligencia || !$diligencia->trabajador_asistio) {
                 continue;
             }
 
             $preguntasRespondidas = $diligencia->preguntas()->whereHas('respuesta')->count();
 
-            // Si respondió al menos 1 pregunta, marcar como descargos realizados
-            if ($preguntasRespondidas >= 1) {
-                try {
-                    $estadoService->alCompletarDescargos($proceso);
-                    $actualizados++;
+            try {
+                $estadoService->alCompletarDescargos($proceso);
+                $actualizados++;
 
-                    // Marcar que el trabajador asistió si no estaba marcado
-                    if (!$diligencia->trabajador_asistio) {
-                        $diligencia->update(['trabajador_asistio' => true]);
-                    }
+                Log::info('Estado actualizado a descargos_realizados (fallback por cron)', [
+                    'proceso_id' => $proceso->id,
+                    'codigo' => $proceso->codigo,
+                    'preguntas_respondidas' => $preguntasRespondidas,
+                ]);
 
-                    Log::info('Estado actualizado a descargos_realizados', [
-                        'proceso_id' => $proceso->id,
-                        'codigo' => $proceso->codigo,
-                        'preguntas_respondidas' => $preguntasRespondidas,
-                    ]);
-
-                    $this->info("   ✓ {$proceso->codigo} → descargos_realizados ({$preguntasRespondidas} preguntas respondidas)");
-                } catch (\Exception $e) {
-                    Log::error('Error al actualizar estado', [
-                        'proceso_id' => $proceso->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                    $this->error("   ✗ Error en {$proceso->codigo}: {$e->getMessage()}");
-                }
+                $this->info("   ✓ {$proceso->codigo} → descargos_realizados ({$preguntasRespondidas} preguntas respondidas)");
+            } catch (\Exception $e) {
+                Log::error('Error al actualizar estado', [
+                    'proceso_id' => $proceso->id,
+                    'error' => $e->getMessage(),
+                ]);
+                $this->error("   ✗ Error en {$proceso->codigo}: {$e->getMessage()}");
             }
         }
 
