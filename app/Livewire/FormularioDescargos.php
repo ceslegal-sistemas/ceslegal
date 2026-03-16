@@ -43,6 +43,14 @@ class FormularioDescargos extends Component
     {
         $this->diligencia = $diligencia;
 
+        // Si el trabajador ya completó el formulario, evitar re-envío de notificaciones
+        if ($this->diligencia->trabajador_asistio) {
+            $this->formularioCompletado = true;
+            $this->timerIniciado = true;
+            $this->mostrarAdvertencia = false;
+            return;
+        }
+
         // Verificar si ya había iniciado previamente
         if ($this->diligencia->primer_acceso_en) {
             $this->timerIniciado = true;
@@ -296,6 +304,11 @@ class FormularioDescargos extends Component
      */
     public function finalizarDescargos()
     {
+        // Guard: evitar doble ejecución si el formulario ya fue completado
+        if ($this->formularioCompletado) {
+            return;
+        }
+
         $preguntasSinResponder = $this->diligencia->preguntas()
             ->activas()
             ->whereDoesntHave('respuesta')
@@ -356,9 +369,6 @@ class FormularioDescargos extends Component
         $this->tiempoExpiradoMostrarEvidencias = false;
         $this->mostrarFeedback = $this->debeMostrarFeedback();
         $this->dispatch('descargosFinalizados');
-
-        // Notificaciones (no críticas)
-        $this->enviarNotificacionesCompletado();
 
         // Generar el acta de descargos automáticamente (no crítico)
         try {
