@@ -220,23 +220,46 @@ PROMPT;
     }
 
     /**
-     * Llama a la API de IA según el proveedor configurado
+     * Llama a la API de IA según el proveedor configurado.
+     * Reintenta automáticamente hasta 2 veces en errores transitorios (503, 429).
      */
     protected function llamarIA(string $prompt): string
     {
-        if ($this->provider === 'openai') {
-            return $this->llamarOpenAI($prompt);
+        $maxReintentos = 2;
+        $ultimoError   = null;
+
+        for ($intento = 0; $intento <= $maxReintentos; $intento++) {
+            try {
+                if ($intento > 0) {
+                    Log::warning("Reintentando llamada a IA (intento {$intento}/{$maxReintentos})", [
+                        'provider'     => $this->provider,
+                        'error_previo' => substr($ultimoError->getMessage(), 0, 200),
+                    ]);
+                    sleep($intento); // 1s en el 2.º intento, 2s en el 3.º
+                }
+
+                if ($this->provider === 'openai')    return $this->llamarOpenAI($prompt);
+                if ($this->provider === 'anthropic') return $this->llamarAnthropic($prompt);
+                if ($this->provider === 'gemini')    return $this->llamarGemini($prompt);
+
+                throw new \Exception("Proveedor de IA no soportado: {$this->provider}");
+            } catch (\Exception $e) {
+                $ultimoError = $e;
+                $msj = $e->getMessage();
+
+                // Solo reintentar para errores transitorios de servidor
+                $esTransitorio = str_contains($msj, '503')
+                    || str_contains($msj, '429')
+                    || str_contains($msj, 'UNAVAILABLE')
+                    || str_contains($msj, 'overloaded');
+
+                if (!$esTransitorio) {
+                    throw $e; // Error permanente — no tiene sentido reintentar
+                }
+            }
         }
 
-        if ($this->provider === 'anthropic') {
-            return $this->llamarAnthropic($prompt);
-        }
-
-        if ($this->provider === 'gemini') {
-            return $this->llamarGemini($prompt);
-        }
-
-        throw new \Exception("Proveedor de IA no soportado: {$this->provider}");
+        throw $ultimoError;
     }
 
     /**
