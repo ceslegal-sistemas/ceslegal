@@ -263,19 +263,21 @@ class ListProcesoDisciplinarios extends ListRecords
                 ->inlineLabel(false),
 
             Radio::make('calidad_acta')
-                ->label('¿El acta de descargos generada fue de calidad? (opcional)')
+                ->label('¿El acta de descargos generada fue de calidad?')
                 ->options([
                     'excelente' => 'Excelente',
                     'buena'     => 'Buena',
                     'mejorable' => 'Mejorable',
                     'no_use'    => 'No la usé',
                 ])
+                ->required()
                 ->inline()
                 ->inlineLabel(false),
 
             Textarea::make('sugerencia')
-                ->label('Comentario adicional (opcional)')
+                ->label('Comentario adicional')
                 ->placeholder('¿Algo más que quieras contarnos sobre este proceso?')
+                ->required()
                 ->rows(2)
                 ->maxLength(2000),
         ];
@@ -316,8 +318,9 @@ class ListProcesoDisciplinarios extends ListRecords
                 ->maxLength(2000),
 
             Textarea::make('funcionalidad_faltante')
-                ->label('¿Hay alguna funcionalidad que esperabas encontrar y no encontraste? (opcional)')
+                ->label('¿Hay alguna funcionalidad que esperabas encontrar y no encontraste?')
                 ->placeholder('Describe la funcionalidad que echas de menos...')
+                ->required()
                 ->rows(2)
                 ->maxLength(2000),
         ];
@@ -363,8 +366,9 @@ class ListProcesoDisciplinarios extends ListRecords
                 ->inlineLabel(false),
 
             Textarea::make('sugerencia')
-                ->label('¿Algo que quieras agregar? (opcional)')
+                ->label('¿Algo que quieras agregar?')
                 ->placeholder('Cualquier comentario o sugerencia es bienvenido...')
+                ->required()
                 ->rows(2)
                 ->maxLength(2000),
         ];

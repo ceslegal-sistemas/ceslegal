@@ -406,9 +406,13 @@ class FormularioDescargos extends Component
             return;
         }
 
+        if (empty(trim($this->feedbackSugerencia))) {
+            return;
+        }
+
         Feedback::create([
             'calificacion' => $this->feedbackCalificacion,
-            'sugerencia' => $this->feedbackSugerencia ?: null,
+            'sugerencia' => trim($this->feedbackSugerencia),
             'tipo' => 'descargo_trabajador',
             'proceso_disciplinario_id' => $this->diligencia->proceso_disciplinario_id,
             'diligencia_descargo_id' => $this->diligencia->id,

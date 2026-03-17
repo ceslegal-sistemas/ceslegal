@@ -485,9 +485,9 @@
                     {{-- Textarea --}}
                     <div class="mt-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            ¿Tienes alguna sugerencia? <span class="text-gray-400">(Opcional)</span>
+                            ¿Tienes alguna sugerencia o comentario? <span class="text-red-500">*</span>
                         </label>
-                        <textarea wire:model="feedbackSugerencia" rows="3"
+                        <textarea wire:model.live="feedbackSugerencia" rows="3"
                             class="w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm resize-none"
                             placeholder="Escribe aquí tus comentarios..."></textarea>
                     </div>
@@ -496,7 +496,7 @@
                 {{-- Footer --}}
                 <div class="bg-gray-50 px-6 py-4 rounded-b-2xl flex items-center justify-end gap-3">
                     <button type="button" wire:click="enviarFeedback"
-                        @if($feedbackCalificacion < 1) disabled @endif
+                        @if($feedbackCalificacion < 1 || strlen(trim($feedbackSugerencia)) === 0) disabled @endif
                         class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                         Enviar opinión
                     </button>
