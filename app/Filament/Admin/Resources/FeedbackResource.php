@@ -55,52 +55,130 @@ class FeedbackResource extends Resource
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Fecha')
                     ->dateTime('d/m/Y H:i')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('calificacion')
-                    ->label('Calificación')
-                    ->formatStateUsing(function ($state) {
-                        $stars = str_repeat('★', $state) . str_repeat('☆', 5 - $state);
-                        return $stars;
-                    })
-                    ->color(fn ($state) => match (true) {
-                        $state >= 4 => 'success',
-                        $state >= 3 => 'warning',
-                        default => 'danger',
-                    })
-                    ->alignCenter()
-                    ->sortable(),
+                    ->sortable()
+                    ->size('sm'),
+
                 Tables\Columns\TextColumn::make('tipo')
                     ->label('Tipo')
                     ->badge()
                     ->formatStateUsing(fn ($state) => match ($state) {
                         'descargo_trabajador' => 'Trabajador',
-                        'descargo_registro' => 'Admin',
-                        default => $state,
+                        'descargo_registro'   => 'Cliente',
+                        'plataforma_general'  => 'Plataforma',
+                        default               => $state,
                     })
                     ->color(fn ($state) => match ($state) {
                         'descargo_trabajador' => 'info',
-                        'descargo_registro' => 'primary',
-                        default => 'gray',
+                        'descargo_registro'   => 'primary',
+                        'plataforma_general'  => 'gray',
+                        default               => 'gray',
+                    })
+                    ->icon(fn ($state) => match ($state) {
+                        'descargo_trabajador' => 'heroicon-m-user',
+                        'descargo_registro'   => 'heroicon-m-briefcase',
+                        default               => 'heroicon-m-globe-alt',
                     }),
+
+                Tables\Columns\TextColumn::make('respondente')
+                    ->label('Respondió')
+                    ->getStateUsing(function (Feedback $record): string {
+                        if ($record->tipo === Feedback::TIPO_DESCARGO_TRABAJADOR) {
+                            return $record->diligenciaDescargo?->proceso?->trabajador?->nombre_completo
+                                ?? 'Trabajador anónimo';
+                        }
+                        return $record->user?->name ?? 'Usuario anónimo';
+                    })
+                    ->searchable(false)
+                    ->placeholder('—'),
+
                 Tables\Columns\TextColumn::make('procesoDisciplinario.codigo')
                     ->label('Proceso')
                     ->searchable()
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->size('sm'),
+
+                Tables\Columns\TextColumn::make('calificacion')
+                    ->label('Calificación')
+                    ->formatStateUsing(fn ($state) => $state
+                        ? str_repeat('★', (int) $state) . str_repeat('☆', 5 - (int) $state)
+                        : '—'
+                    )
+                    ->color(fn ($state) => match (true) {
+                        $state >= 4 => 'success',
+                        $state >= 3 => 'warning',
+                        $state > 0  => 'danger',
+                        default     => 'gray',
+                    })
+                    ->alignCenter()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('nps_score')
+                    ->label('NPS')
+                    ->formatStateUsing(function ($state, Feedback $record): string {
+                        if ($state === null) return '—';
+                        $categoria = $record->getNpsCategoria();
+                        return $state . ' · ' . $categoria;
+                    })
+                    ->badge()
+                    ->color(function (Feedback $record): string {
+                        return match ($record->getNpsCategoria()) {
+                            'Promotor'   => 'success',
+                            'Neutro'     => 'warning',
+                            'Detractor'  => 'danger',
+                            default      => 'gray',
+                        };
+                    })
+                    ->placeholder('—')
+                    ->sortable()
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('sugerencia')
-                    ->label('Sugerencia')
-                    ->limit(50)
+                    ->label('Sugerencia / Comentario')
+                    ->limit(60)
                     ->tooltip(fn ($state) => $state)
-                    ->placeholder('Sin sugerencia'),
-                Tables\Columns\TextColumn::make('user.name')
-                    ->label('Usuario')
-                    ->placeholder('Anónimo')
+                    ->placeholder('Sin comentario')
+                    ->wrap(),
+
+                Tables\Columns\IconColumn::make('tiene_respuestas')
+                    ->label('Resp. adicionales')
+                    ->getStateUsing(fn (Feedback $record) => !empty($record->respuestas_adicionales))
+                    ->boolean()
+                    ->trueIcon('heroicon-o-chat-bubble-left-ellipsis')
+                    ->falseIcon('heroicon-o-minus')
+                    ->trueColor('info')
+                    ->falseColor('gray')
+                    ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('ip_address')
-                    ->label('IP')
+
+                Tables\Columns\TextColumn::make('trigger')
+                    ->label('Contexto')
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'primer_proceso'  => 'Primer proceso',
+                        'post_diligencia' => 'Post diligencia',
+                        'periodico'       => 'Periódico',
+                        'hito'            => 'Hito de uso',
+                        default           => $state ?? '—',
+                    })
+                    ->badge()
+                    ->color('gray')
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('Usuario admin')
+                    ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
+                Tables\Filters\SelectFilter::make('tipo')
+                    ->label('Tipo de respondente')
+                    ->options([
+                        'descargo_trabajador' => 'Trabajador (descargos)',
+                        'descargo_registro'   => 'Cliente (registro proceso)',
+                        'plataforma_general'  => 'Plataforma general',
+                    ]),
+
                 Tables\Filters\SelectFilter::make('calificacion')
                     ->label('Calificación')
                     ->options([
@@ -110,15 +188,18 @@ class FeedbackResource extends Resource
                         '2' => '★★☆☆☆ Malo',
                         '1' => '★☆☆☆☆ Muy malo',
                     ]),
-                Tables\Filters\SelectFilter::make('tipo')
-                    ->label('Tipo')
-                    ->options([
-                        'descargo_trabajador' => 'Trabajador',
-                        'descargo_registro' => 'Admin',
-                    ]),
+
+                Tables\Filters\Filter::make('con_nps')
+                    ->label('Con puntuación NPS')
+                    ->query(fn (Builder $query) => $query->whereNotNull('nps_score')),
+
                 Tables\Filters\Filter::make('con_sugerencia')
-                    ->label('Con sugerencia')
+                    ->label('Con comentario / sugerencia')
                     ->query(fn (Builder $query) => $query->whereNotNull('sugerencia')),
+
+                Tables\Filters\Filter::make('negativos')
+                    ->label('Solo negativos (≤ 2 ★)')
+                    ->query(fn (Builder $query) => $query->where('calificacion', '<=', 2)),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -139,23 +220,24 @@ class FeedbackResource extends Resource
     {
         return [
             'index' => Pages\ListFeedback::route('/'),
-            'view' => Pages\ViewFeedback::route('/{record}'),
+            'view'  => Pages\ViewFeedback::route('/{record}'),
         ];
     }
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count() > 0 ? static::getModel()::count() : null;
+        $total = static::getModel()::count();
+        return $total > 0 ? (string) $total : null;
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        $avgRating = static::getModel()::avg('calificacion');
+        $avg = static::getModel()::avg('calificacion');
 
         return match (true) {
-            $avgRating >= 4 => 'success',
-            $avgRating >= 3 => 'warning',
-            default => 'danger',
+            $avg >= 4   => 'success',
+            $avg >= 3   => 'warning',
+            default     => 'danger',
         };
     }
 }

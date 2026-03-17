@@ -218,7 +218,7 @@ class EmpresaResource extends Resource
                                 $chars = number_format(strlen($reglamento->texto_completo));
                                 $fecha = $reglamento->updated_at->format('d/m/Y H:i');
                                 return new \Illuminate\Support\HtmlString(
-                                    "<span class='text-success-600 font-medium'>✅ {$reglamento->nombre}</span>" .
+                                    "<span class='text-success-600 font-medium'>{$reglamento->nombre}</span>" .
                                     "<span class='text-gray-400 text-xs ml-2'>({$chars} caracteres — actualizado {$fecha})</span>"
                                 );
                             })

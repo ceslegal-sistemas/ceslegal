@@ -108,6 +108,7 @@ class ActividadEconomicaResource extends Resource
                 Tables\Columns\TextColumn::make('empresas_principales_count')
                     ->label('Empresas (principal)')
                     ->counts('empresasPrincipales')
+                    ->sortable()
                     ->badge()
                     ->color('primary')
                     ->toggleable(),
