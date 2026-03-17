@@ -24,13 +24,17 @@ class CreateProcesoDisciplinario extends CreateRecord
     protected static string $resource = ProcesoDisciplinarioResource::class;
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Estado del formulario de hechos
+    // Estado del chatbot
     // ──────────────────────────────────────────────────────────────────────────
 
-    public bool  $chatListo       = false;
-    public bool  $generandoHechos = false;
+    /** @var array<int, array{rol: string, texto: string}> */
+    public array  $conversacionChat     = [];
+    public string $mensajeUsuarioActual = '';
+    public bool   $chatListo            = false;
+    public bool   $chatIniciado         = false;
+    public bool   $enviandoMensaje      = false;
     /** @var array{hechos: string, fecha_ocurrencia: string|null, resumen: string}|array */
-    public array $datosExtraidos  = [];
+    public array  $datosExtraidos       = [];
 
     // ──────────────────────────────────────────────────────────────────────────
     // Wizard steps
@@ -39,20 +43,6 @@ class CreateProcesoDisciplinario extends CreateRecord
     protected function getSteps(): array
     {
         return [
-            // ── Paso 0: Bienvenida ────────────────────────────────────────────
-            Step::make('bienvenida')
-                ->label('Bienvenida')
-                ->description('Lea antes de empezar')
-                ->icon('heroicon-o-information-circle')
-                ->schema([
-                    Forms\Components\Placeholder::make('bienvenida_contenido')
-                        ->label('')
-                        ->content(fn () => new HtmlString(
-                            view('filament.components.bienvenida-proceso')->render()
-                        ))
-                        ->columnSpanFull(),
-                ]),
-
             // ── Paso 1: Empresa y Trabajador ─────────────────────────────────
             Step::make('trabajador')
                 ->label('Empresa y Trabajador')
@@ -227,76 +217,23 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ]),
                 ]),
 
-            // ── Paso 2: Formulario de hechos ─────────────────────────────────
+            // ── Paso 2: Chatbot IA ────────────────────────────────────────────
             Step::make('situacion')
                 ->label('Descripción de la situación')
-                ->description('Complete los campos para documentar los hechos')
-                ->icon('heroicon-o-document-text')
+                ->description('El asistente IA le guiará para documentar los hechos')
+                ->icon('heroicon-o-chat-bubble-left-right')
                 ->schema([
-                    Forms\Components\Section::make('Datos del hecho disciplinario')
-                        ->schema([
-                            Forms\Components\Textarea::make('descripcion_hecho')
-                                ->label('¿Qué ocurrió?')
-                                ->helperText('Describa la situación con sus propias palabras. La IA la convertirá en lenguaje jurídico.')
-                                ->required()
-                                ->rows(4)
-                                ->columnSpanFull(),
-
-                            Forms\Components\DatePicker::make('fecha_hecho')
-                                ->label('¿Cuándo ocurrió?')
-                                ->required()
-                                ->native(false)
-                                ->displayFormat('d/m/Y')
-                                ->maxDate(now()),
-
-                            Forms\Components\TextInput::make('lugar_hecho')
-                                ->label('¿Dónde ocurrió?')
-                                ->placeholder('Ej: planta de producción, oficina, sede principal')
-                                ->nullable(),
-
-                            Forms\Components\Toggle::make('trabajador_notifico')
-                                ->label('¿El trabajador dio aviso o justificación previa?')
-                                ->live()
-                                ->columnSpanFull(),
-
-                            Forms\Components\Textarea::make('detalle_notificacion')
-                                ->label('Describa la justificación del trabajador')
-                                ->rows(2)
-                                ->hidden(fn (Get $get) => !$get('trabajador_notifico'))
-                                ->columnSpanFull(),
-
-                            Forms\Components\Textarea::make('evidencias_disponibles')
-                                ->label('¿Hay evidencias disponibles? (opcional)')
-                                ->placeholder('Ej: correos, registros de asistencia, cámaras, testigos...')
-                                ->nullable()
-                                ->rows(2)
-                                ->columnSpanFull(),
-                        ])
-                        ->columns(2),
-
-                    Forms\Components\Actions::make([
-                        Forms\Components\Actions\Action::make('generar_hechos')
-                            ->label(fn ($livewire) => $livewire->generandoHechos ? 'Generando...' : 'Generar descripción jurídica')
-                            ->icon('heroicon-m-sparkles')
-                            ->color('primary')
-                            ->disabled(fn ($livewire) => $livewire->generandoHechos)
-                            ->action(fn ($livewire) => $livewire->generarHechos()),
-                    ])->fullWidth(),
-
-                    Forms\Components\Placeholder::make('hechos_generados_info')
+                    Forms\Components\Placeholder::make('chatbot_ia')
                         ->label('')
-                        ->content(fn ($livewire) => $livewire->chatListo
-                            ? new HtmlString('<div class="flex items-center gap-2 text-sm text-success-600 dark:text-success-400"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Descripción generada. Puede editarla antes de continuar.</div>')
-                            : new HtmlString('')
-                        )
-                        ->columnSpanFull()
-                        ->hidden(fn ($livewire) => !$livewire->chatListo),
-
-                    Forms\Components\Textarea::make('hechos_ia')
-                        ->label('Descripción jurídica generada (editable)')
-                        ->helperText('Revise y edite si es necesario antes de continuar al siguiente paso.')
-                        ->rows(8)
-                        ->hidden(fn (Get $get) => empty($get('hechos_ia')))
+                        ->content(fn($livewire) => new HtmlString(
+                            view('filament.components.conversacion-hechos', [
+                                'conversacion'   => $livewire->conversacionChat,
+                                'chatIniciado'   => $livewire->chatIniciado,
+                                'chatListo'      => $livewire->chatListo,
+                                'enviando'       => $livewire->enviandoMensaje,
+                                'datosExtraidos' => $livewire->datosExtraidos,
+                            ])->render()
+                        ))
                         ->columnSpanFull(),
                 ]),
 
@@ -317,7 +254,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                   "</div>" .
                                   "<p class='text-sm text-gray-700 dark:text-gray-300'>" . e($livewire->datosExtraidos['resumen'] ?? '') . "</p>" .
                                   "</div>"
-                                : "<span class='text-sm text-amber-600 dark:text-amber-400'>⚠️ No generó la descripción jurídica. Regrese al paso anterior.</span>"
+                                : "<span class='text-sm text-amber-600 dark:text-amber-400'>⚠️ No completó la conversación con el asistente. Regrese al paso anterior.</span>"
                         ))
                         ->columnSpanFull(),
 
@@ -338,63 +275,110 @@ class CreateProcesoDisciplinario extends CreateRecord
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Generación de hechos con IA (formulario → llamada única)
+    // Métodos del chatbot
     // ──────────────────────────────────────────────────────────────────────────
 
-    public function generarHechos(): void
+    /**
+     * Inicia la conversación: pide a la IA su mensaje de apertura.
+     */
+    public function iniciarChatbot(): void
     {
-        $empresaId    = $this->data['empresa_id'] ?? null;
         $trabajadorId = $this->data['trabajador_id'] ?? null;
+        $empresaId    = $this->data['empresa_id'] ?? null;
 
-        if (!$empresaId || !$trabajadorId) {
-            Notification::make()->warning()
-                ->title('Complete el Paso 1 primero')
-                ->body('Debe seleccionar empresa y trabajador antes de generar los hechos.')
+        if (!$trabajadorId || !$empresaId) {
+            Notification::make()
+                ->warning()
+                ->title('Seleccione primero el trabajador')
+                ->body('Debe completar el Paso 1 antes de iniciar la conversación.')
                 ->send();
             return;
         }
 
-        if (empty($this->data['descripcion_hecho']) || empty($this->data['fecha_hecho'])) {
-            Notification::make()->warning()
-                ->title('Campos incompletos')
-                ->body('Debe completar "¿Qué ocurrió?" y "¿Cuándo ocurrió?" como mínimo.')
+        $trabajador = Trabajador::find($trabajadorId);
+
+        if (!$trabajador) {
+            Notification::make()
+                ->danger()
+                ->title('Error')
+                ->body('No se encontró el trabajador seleccionado.')
                 ->send();
             return;
         }
-
-        $this->generandoHechos = true;
 
         try {
-            $trabajador = Trabajador::find($trabajadorId);
-
-            $resultado = app(EvaluacionHechosService::class)->generarHechosDesdeFormulario(
-                datosFormulario: [
-                    'descripcion_hecho'      => $this->data['descripcion_hecho'] ?? '',
-                    'fecha_hecho'            => $this->data['fecha_hecho'] ?? '',
-                    'lugar_hecho'            => $this->data['lugar_hecho'] ?? null,
-                    'trabajador_notifico'    => $this->data['trabajador_notifico'] ?? false,
-                    'detalle_notificacion'   => $this->data['detalle_notificacion'] ?? null,
-                    'evidencias_disponibles' => $this->data['evidencias_disponibles'] ?? null,
-                ],
-                empresaId:        (int) $empresaId,
-                nombreTrabajador: $trabajador?->nombre_completo ?? 'el trabajador',
-                cargo:            $trabajador?->cargo ?? 'No especificado',
-                trabajadorId:     (int) $trabajadorId,
+            $resultado = app(EvaluacionHechosService::class)->obtenerMensajeInicial(
+                (int) $empresaId,
+                $trabajador->nombre_completo,
+                $trabajador->cargo ?? 'No especificado',
+                (int) $trabajadorId
             );
 
-            $this->data['hechos_ia'] = $resultado['hechos'];
-            $this->datosExtraidos    = $resultado;
-            $this->chatListo         = true;
+            $this->conversacionChat[] = ['rol' => 'ia', 'texto' => $resultado['mensaje']];
+            $this->chatIniciado = true;
 
         } catch (\Exception $e) {
-            Log::error('Error al generar hechos desde formulario', ['error' => $e->getMessage()]);
-            Notification::make()->danger()
-                ->title('Error al conectar con la IA')
-                ->body('No se pudo generar la descripción. Intente nuevamente.')
-                ->send();
-        } finally {
-            $this->generandoHechos = false;
+            Log::error('Error al iniciar chatbot de hechos', ['error' => $e->getMessage()]);
+
+            $this->conversacionChat[] = [
+                'rol'   => 'ia',
+                'texto' => "Hola. Para documentar el proceso disciplinario de {$trabajador->nombre_completo}, cuénteme: ¿qué situación ocurrió?",
+            ];
+            $this->chatIniciado = true;
         }
+
+        $this->dispatch('chatbot-actualizado');
+    }
+
+    /**
+     * Procesa el mensaje del empleador y obtiene la siguiente respuesta de la IA.
+     */
+    public function enviarMensajeChatbot(): void
+    {
+        $mensaje = trim($this->mensajeUsuarioActual);
+
+        if (empty($mensaje) || $this->enviandoMensaje || $this->chatListo) {
+            return;
+        }
+
+        $this->mensajeUsuarioActual = '';
+        $this->conversacionChat[]   = ['rol' => 'usuario', 'texto' => $mensaje];
+        $this->enviandoMensaje      = true;
+
+        $this->dispatch('chatbot-actualizado');
+
+        try {
+            $trabajadorId = $this->data['trabajador_id'] ?? null;
+            $empresaId    = $this->data['empresa_id'] ?? null;
+            $trabajador   = $trabajadorId ? Trabajador::find($trabajadorId) : null;
+
+            $resultado = app(EvaluacionHechosService::class)->procesarMensaje(
+                $mensaje,
+                $this->conversacionChat,
+                (int) $empresaId,
+                $trabajador?->nombre_completo ?? 'el trabajador',
+                $trabajador?->cargo ?? 'No especificado',
+                (int) $trabajadorId
+            );
+
+            $this->conversacionChat[] = ['rol' => 'ia', 'texto' => $resultado['mensaje']];
+
+            if ($resultado['listo'] && !empty($resultado['datos'])) {
+                $this->chatListo      = true;
+                $this->datosExtraidos = $resultado['datos'];
+            }
+        } catch (\Exception $e) {
+            Log::error('Error al procesar mensaje chatbot de hechos', ['error' => $e->getMessage()]);
+
+            $this->conversacionChat[] = [
+                'rol'   => 'ia',
+                'texto' => 'Lo siento, tuve un problema de conexión. Por favor, intente de nuevo.',
+            ];
+        } finally {
+            $this->enviandoMensaje = false;
+        }
+
+        $this->dispatch('chatbot-actualizado');
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -458,8 +442,8 @@ class CreateProcesoDisciplinario extends CreateRecord
         if (!$this->chatListo || empty($this->datosExtraidos['hechos'])) {
             Notification::make()
                 ->warning()
-                ->title('Descripción jurídica requerida')
-                ->body('Debe generar la descripción jurídica en el Paso 2 antes de crear el proceso.')
+                ->title('Conversación incompleta')
+                ->body('Debe completar la conversación con el asistente de IA en el Paso 2 antes de crear el proceso.')
                 ->persistent()
                 ->send();
 
@@ -472,25 +456,15 @@ class CreateProcesoDisciplinario extends CreateRecord
         // Modalidad siempre virtual
         $data['modalidad_descargos'] = 'virtual';
 
-        // hechos_ia puede haber sido editado por el usuario — usar el del form
-        $data['hechos'] = $data['hechos_ia'] ?? $this->datosExtraidos['hechos'] ?? '';
+        // Hechos y fecha extraídos por la IA
+        $data['hechos'] = $this->datosExtraidos['hechos'] ?? '';
 
         if (!empty($this->datosExtraidos['fecha_ocurrencia'])) {
             $data['fecha_ocurrencia'] = $this->datosExtraidos['fecha_ocurrencia'];
         }
 
-        // Limpiar campos del wizard que no van a BD
-        unset(
-            $data['descripcion_hecho'],
-            $data['fecha_hecho'],
-            $data['lugar_hecho'],
-            $data['trabajador_notifico'],
-            $data['detalle_notificacion'],
-            $data['evidencias_disponibles'],
-            $data['hechos_ia'],
-            $data['fecha_temp_descargos'],
-            $data['hora_temp_descargos']
-        );
+        // Limpiar campos temporales que no van a BD
+        unset($data['fecha_temp_descargos'], $data['hora_temp_descargos']);
 
         return $data;
     }

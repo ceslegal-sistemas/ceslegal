@@ -80,58 +80,6 @@ class EvaluacionHechosService
         }
     }
 
-    /**
-     * Genera la redacción jurídica de los hechos a partir de un formulario estructurado (llamada única).
-     *
-     * @return array{hechos: string, fecha_ocurrencia: string|null, resumen: string}
-     */
-    public function generarHechosDesdeFormulario(
-        array  $datosFormulario,
-        int    $empresaId,
-        string $nombreTrabajador,
-        string $cargo,
-        int    $trabajadorId
-    ): array {
-        $systemPrompt = $this->construirSystemPrompt($empresaId, $nombreTrabajador, $cargo, $trabajadorId);
-
-        $notifico   = $datosFormulario['trabajador_notifico'] ? 'Sí' : 'No';
-        $detalle    = $datosFormulario['detalle_notificacion']
-            ? "\n  Justificación: " . $datosFormulario['detalle_notificacion']
-            : '';
-        $lugar      = $datosFormulario['lugar_hecho']
-            ? "\n- Lugar: " . $datosFormulario['lugar_hecho']
-            : '';
-        $evidencias = $datosFormulario['evidencias_disponibles']
-            ? "\n- Evidencias: " . $datosFormulario['evidencias_disponibles']
-            : '';
-
-        $prompt = <<<PROMPT
-Con base en los siguientes datos del formulario, redacta los hechos del proceso disciplinario en lenguaje jurídico-laboral formal colombiano (mínimo 3 párrafos, tercera persona). Incluye los antecedentes del trabajador que tienes en el contexto.
-
-DATOS DEL FORMULARIO:
-- Descripción del hecho: {$datosFormulario['descripcion_hecho']}
-- Fecha del hecho: {$datosFormulario['fecha_hecho']}{$lugar}
-- ¿El trabajador dio aviso o justificación?: {$notifico}{$detalle}{$evidencias}
-
-Responde ÚNICAMENTE en JSON válido sin bloques de código:
-{"hechos": "Redacción jurídica completa...", "fecha_ocurrencia": "YYYY-MM-DD o null", "resumen": "Una oración resumen"}
-PROMPT;
-
-        $rawJson = $this->llamarIA($systemPrompt, [], $prompt);
-        $rawJson = trim(preg_replace(['/^```(?:json)?\s*/m', '/\s*```$/m'], '', $rawJson));
-        $datos   = json_decode($rawJson, true, 512, JSON_THROW_ON_ERROR);
-
-        if (empty($datos['hechos'])) {
-            throw new \Exception('La IA no devolvió hechos válidos');
-        }
-
-        return [
-            'hechos'           => $datos['hechos'],
-            'fecha_ocurrencia' => $datos['fecha_ocurrencia'] ?? null,
-            'resumen'          => $datos['resumen'] ?? '',
-        ];
-    }
-
     // ──────────────────────────────────────────────────────────────────────────
     // Construcción del prompt
     // ──────────────────────────────────────────────────────────────────────────
