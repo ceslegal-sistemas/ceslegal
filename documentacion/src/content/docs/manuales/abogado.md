@@ -153,6 +153,52 @@ Despues de enviar la citacion, puede monitorear si el trabajador la leyo:
 
 ---
 
+## Re-enviar una Citacion
+
+Si el trabajador dice que no recibio el correo o necesita que se lo envien de nuevo:
+
+1. En la tabla de procesos, busque el proceso en estado **Descargos Pendientes**
+2. Haga clic en la accion **Re-enviar Citacion**
+3. El sistema envia nuevamente el correo al trabajador con la citacion adjunta
+4. Se crea un nuevo registro de seguimiento para este envio
+
+:::note[No modifica la diligencia]
+Re-enviar la citacion no cambia la fecha programada ni genera un documento nuevo. Solo reenvía el correo con la citacion ya existente.
+:::
+
+---
+
+## Reprogramar una Diligencia de Descargos
+
+Cuando el trabajador no pudo acceder en la fecha prevista o necesita una nueva fecha de acceso:
+
+1. Vaya a **Gestion Laboral > Descargos**
+2. Busque la diligencia correspondiente
+3. Haga clic en la accion **Regenerar Token de Acceso**
+4. El sistema genera un nuevo enlace valido por 6 dias
+5. Notifique al trabajador el nuevo enlace usando **Re-enviar Citacion** en el proceso, o copielo directamente
+
+:::caution[El enlace anterior queda invalido]
+Cuando se regenera el token, el enlace que tenia el trabajador deja de funcionar. Asegurese de avisarle el nuevo enlace antes de la nueva fecha.
+:::
+
+---
+
+## Ver el Enlace de Acceso del Trabajador
+
+Para obtener la URL directa que el trabajador debe abrir para responder los descargos:
+
+1. En **Gestion Laboral > Descargos**, busque la diligencia
+2. Haga clic en la accion **Ver Link de Acceso**
+3. Se muestra la URL completa
+4. Copiela y enviela al trabajador por WhatsApp, mensaje de texto u otro canal
+
+:::tip[Util cuando el correo no llega]
+Si el trabajador no recibio el correo, esta opcion le permite enviarle el enlace directamente por otro medio de comunicacion.
+:::
+
+---
+
 ## Preguntas con Asistencia de IA
 
 ### Descripcion
@@ -276,6 +322,58 @@ Despues de los descargos, tiene dos opciones:
 
 ---
 
+## Registrar una Impugnacion
+
+Cuando el trabajador presenta un recurso de reposicion o apelacion contra la sancion emitida:
+
+1. Busque el proceso en estado **Sancion Emitida**
+2. Use la accion **Registrar Impugnacion**
+3. Complete los datos:
+   - **Tipo de recurso**: Reposicion (ante el mismo funcionario) o Apelacion (ante el superior)
+   - **Fecha de presentacion**: Dia en que el trabajador entrego el recurso
+   - **Argumentos**: Resumen de lo que plantea el trabajador
+4. El estado del proceso cambia a **Impugnacion Realizada**
+
+:::note[Plazo para impugnar]
+Si el trabajador no presenta el recurso dentro del plazo del reglamento interno, puede cerrar el proceso directamente sin registrar impugnacion.
+:::
+
+---
+
+## Resolver una Impugnacion y Cerrar el Proceso
+
+### Si hay impugnacion
+
+1. Busque el proceso en estado **Impugnacion Realizada**
+2. Use la accion para resolver el recurso
+3. Registre la decision: mantener la sancion o modificarla segun corresponda
+4. El proceso pasa al estado **Cerrado**
+
+### Si no hay impugnacion
+
+1. Busque el proceso en estado **Sancion Emitida**
+2. Use la accion **Cerrar Proceso**
+3. El proceso pasa directamente al estado **Cerrado**
+
+### Archivar sin sancion
+
+Si despues de los descargos se decide no imponer ninguna sancion:
+
+1. Busque el proceso en estado **Descargos Realizados** o **Descargos No Realizados**
+2. Use la accion **Archivar**
+3. Seleccione el motivo:
+   - Hechos no comprobados
+   - Falta no amerita sancion
+   - Prescripcion del proceso
+   - Otros (con descripcion justificada)
+4. El proceso pasa al estado **Archivado**
+
+:::tip[Diferencia entre Cerrado y Archivado]
+**Cerrado**: el proceso termino con una sancion aplicada. **Archivado**: se decidio no sancionar. En ambos casos el proceso queda en modo consulta y todos los documentos siguen disponibles.
+:::
+
+---
+
 ## Gestion de Disponibilidad
 
 ### Descripcion
@@ -356,6 +454,43 @@ Los documentos generados se pueden descargar desde:
    - `/descargar/citacion/{procesoId}`
    - `/descargar/acta/{diligenciaId}`
    - `/descargar/sancion/{procesoId}`
+
+---
+
+## Modulo de Feedback
+
+### Cuando aparece el formulario
+
+Al usar el listado de procesos, puede aparecer un formulario automatico para conocer su opinion. No tiene boton de cerrar: debe completarlo para continuar usando la plataforma.
+
+| Momento              | Que lo dispara                                        |
+| -------------------- | ----------------------------------------------------- |
+| Primera experiencia  | La primera vez que tiene procesos en curso            |
+| Despues de descargos | Un proceso llego al estado "Descargos Realizados"     |
+| Periodico            | Han pasado 14 dias desde el ultimo feedback           |
+| Por hitos            | Completo 5, 10 o 15 procesos                          |
+
+### Como completar el formulario
+
+1. Seleccione su calificacion de 1 a 5 estrellas
+2. Responda las preguntas del formulario
+3. Escriba un comentario o sugerencia en el campo de texto
+4. Haga clic en **Enviar**
+
+Todos los campos son obligatorios. El boton de envio no se activa hasta completar todo, incluyendo el comentario.
+
+### Consultar el feedback recibido
+
+Para revisar las opiniones de clientes y trabajadores:
+
+1. En el menu lateral, vaya a **Administracion > Feedback**
+2. Use las pestanas para filtrar:
+   - **Trabajadores**: Feedback al terminar sus descargos virtuales
+   - **Clientes**: Feedback de usuarios del panel de administracion
+   - **Con comentario**: Solo los que tienen texto escrito
+   - **Con NPS**: Los que incluyen puntaje de recomendacion (0-10)
+   - **Negativos**: Calificaciones de 1 o 2 estrellas
+3. Haga clic en un registro para ver el detalle completo: calificacion, comentario, preguntas respondidas y datos del usuario
 
 ---
 

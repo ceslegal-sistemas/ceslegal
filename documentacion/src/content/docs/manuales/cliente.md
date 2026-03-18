@@ -314,6 +314,47 @@ En la modalidad virtual:
 
 ---
 
+## Re-enviar una Citacion
+
+Si el trabajador dice que no recibio el correo con la citacion:
+
+1. En **Historial de Descargos**, busque el proceso en estado **Descargos Pendientes**
+2. Haga clic en la accion **Re-enviar Citacion**
+3. El sistema envia nuevamente el correo al trabajador con la citacion adjunta
+
+:::note[Verifique el correo del trabajador]
+Antes de re-enviar, confirme que el correo electronico del trabajador este escrito correctamente en su perfil.
+:::
+
+---
+
+## Reprogramar una Diligencia
+
+Si el trabajador no pudo acceder en la fecha programada o necesita un nuevo enlace de acceso:
+
+1. Vaya a **Gestion Laboral > Descargos**
+2. Busque la diligencia del proceso
+3. Haga clic en **Regenerar Token de Acceso**
+4. El sistema genera un nuevo enlace valido por 6 dias
+5. Use **Re-enviar Citacion** en el proceso para notificarle, o copie el enlace directamente
+
+:::caution[El enlace anterior queda invalido]
+El trabajador ya no podra usar el enlace anterior. Asegurese de informarle el cambio antes de la nueva fecha.
+:::
+
+---
+
+## Ver el Enlace de Acceso del Trabajador
+
+Si prefiere enviarle el enlace directamente en lugar de esperar a que llegue el correo:
+
+1. En **Gestion Laboral > Descargos**, busque la diligencia del proceso
+2. Haga clic en la accion **Ver Link de Acceso**
+3. Se muestra la URL completa que debe abrir el trabajador en su navegador
+4. Copiela y enviela por WhatsApp, mensaje de texto u otro canal
+
+---
+
 ## Monitoreo de Notificaciones por Email
 
 ### Tracking de Citaciones
@@ -395,6 +436,34 @@ El tour cubre:
 2. Como describir los hechos
 3. Como seleccionar articulos y sanciones
 4. Como adjuntar pruebas
+
+---
+
+## Formulario de Feedback Automatico
+
+### Por que aparece este formulario
+
+En determinados momentos, el sistema le pedira su opinion sobre la plataforma. Aparece como un formulario en el listado de procesos y **no tiene boton de cerrar**: debe completarlo para seguir usando el sistema.
+
+Aparece cuando:
+
+- Es la primera vez que tiene procesos en curso
+- Un proceso llego al estado "Descargos Realizados"
+- Han pasado 14 dias desde que respondio el ultimo formulario
+- Completo 5, 10 o 15 procesos
+
+### Como responder el formulario
+
+1. Seleccione su calificacion de 1 a 5 estrellas
+2. Responda las preguntas que aparecen
+3. Escriba un comentario o sugerencia en el campo de texto
+4. Haga clic en **Enviar**
+
+El formulario desaparece y puede seguir usando el sistema con normalidad.
+
+:::note[Todos los campos son obligatorios]
+El boton de envio no se activa hasta completar todos los campos, incluyendo el comentario.
+:::
 
 ---
 
