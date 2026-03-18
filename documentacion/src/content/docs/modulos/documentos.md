@@ -73,7 +73,7 @@ Las citaciones se generan usando **PHPWord TemplateProcessor** a partir de un HT
 | `${SANCIONES_LABORALES}` | Sanciones del reglamento    | (texto formateado) |
 | `${CIUDAD}`              | Ciudad de la empresa        | Bogota             |
 | `${DEPARTAMENTO}`        | Departamento                | Cundinamarca       |
-| `${DIRECCION_EMPRESA}`   | Direccion (solo presencial) | Calle 100 #15-20   |
+| `${DIRECCION_EMPRESA}`   | Direccion de la empresa     | Calle 100 #15-20   |
 | `${CODIGO_PROCESO}`      | Codigo del proceso          | PD-2026-0001       |
 | `${NOMBRE_EMPLEADOR}`    | Representante legal         | Maria Garcia       |
 

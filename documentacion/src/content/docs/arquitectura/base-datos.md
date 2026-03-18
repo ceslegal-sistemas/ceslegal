@@ -177,7 +177,7 @@ CREATE TABLE diligencias_descargos (
     proceso_disciplinario_id BIGINT UNSIGNED NOT NULL,
     fecha DATE NOT NULL,
     hora TIME NOT NULL,
-    modalidad ENUM('presencial', 'virtual', 'telefonica') NOT NULL,
+    modalidad ENUM('presencial', 'virtual', 'telefonica') NOT NULL, -- Solo 'virtual' activo en la UI
     lugar VARCHAR(255) NULL,
     enlace_virtual VARCHAR(500) NULL,
     token_acceso VARCHAR(100) NULL UNIQUE,
@@ -309,6 +309,62 @@ CREATE TABLE dias_no_habiles (
     UNIQUE KEY unique_fecha (fecha)
 );
 ```
+
+## Tablas de Feedback
+
+### `feedbacks`
+
+Registro de feedback recolectado de trabajadores (formulario de descargos) y clientes/admins (panel Filament). Soporta calificacion por estrellas, NPS y respuestas adicionales por contexto.
+
+```sql
+CREATE TABLE feedbacks (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    calificacion TINYINT UNSIGNED NULL,          -- 1 a 5 estrellas
+    nps_score TINYINT UNSIGNED NULL,             -- 0 a 10 (Net Promoter Score)
+    sugerencia TEXT NULL,                        -- Comentario libre (obligatorio desde v1.1)
+    respuestas_adicionales JSON NULL,            -- Preguntas/respuestas por trigger
+    tipo VARCHAR(50) NOT NULL,                   -- Ver constantes del modelo
+    trigger VARCHAR(30) NULL,                    -- Ver constantes del modelo
+    proceso_disciplinario_id BIGINT UNSIGNED NULL,
+    diligencia_descargo_id BIGINT UNSIGNED NULL,
+    user_id BIGINT UNSIGNED NULL,               -- NULL para trabajadores anonimos
+    ip_address VARCHAR(45) NULL,
+    user_agent TEXT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+
+    INDEX idx_feedbacks_tipo_fecha (tipo, created_at),
+    FOREIGN KEY (proceso_disciplinario_id) REFERENCES procesos_disciplinarios(id),
+    FOREIGN KEY (diligencia_descargo_id) REFERENCES diligencias_descargos(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+```
+
+**Constantes de tipo (`tipo`):**
+
+| Constante | Valor | Descripcion |
+|-----------|-------|-------------|
+| `TIPO_DESCARGO_TRABAJADOR` | `descargo_trabajador` | Feedback del trabajador al finalizar su diligencia |
+| `TIPO_DESCARGO_REGISTRO` | `descargo_registro` | Feedback del cliente al registrar un proceso |
+| `TIPO_PLATAFORMA_GENERAL` | `plataforma_general` | Feedback general de la plataforma |
+
+**Constantes de trigger (`trigger`):**
+
+| Constante | Valor | Descripcion |
+|-----------|-------|-------------|
+| `TRIGGER_PRIMER_PROCESO` | `primer_proceso` | Primera vez del usuario en la plataforma |
+| `TRIGGER_POST_DILIGENCIA` | `post_diligencia` | Despues de un descargo realizado |
+| `TRIGGER_PERIODICO` | `periodico` | Cada 14 dias para usuarios activos |
+| `TRIGGER_HITO` | `hito` | Cada 5 procesos completados |
+
+**Categorias NPS:**
+- **Promotor**: `nps_score >= 9`
+- **Neutro**: `nps_score >= 7`
+- **Detractor**: `nps_score <= 6`
+
+**Formula NPS:** `((Promotores - Detractores) / Total_con_NPS) × 100`
+
+---
 
 ## Tablas de Auditoría
 

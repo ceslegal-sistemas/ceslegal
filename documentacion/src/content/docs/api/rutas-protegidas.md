@@ -293,7 +293,63 @@ Catalogo de articulos del Codigo Sustantivo del Trabajo aplicables a procesos di
 
 ---
 
-### 9. Disponibilidad de Abogados
+### 9. Feedback
+
+```
+/admin/feedbacks
+```
+
+| Atributo | Valor |
+|----------|-------|
+| Recurso | `FeedbackResource` |
+| Modelo | `Feedback` |
+| Icono | `heroicon-o-star` |
+| Grupo de navegacion | Administracion |
+| Orden de navegacion | 100 |
+
+**Descripcion:**
+Modulo de gestion y visualizacion de feedback recolectado de trabajadores y clientes. Incluye calificacion por estrellas (1-5), puntuacion NPS (0-10), comentarios y respuestas adicionales por contexto.
+
+**Paginas disponibles:**
+- `ListFeedback` - Listado con tabs por tipo de respondente y widget de estadisticas
+- `ViewFeedback` - Vista de detalle con calificacion, NPS, comentario y respuestas adicionales
+
+**Tabs de listado:**
+
+| Tab | Descripcion |
+|-----|-------------|
+| Todos | Todo el feedback recibido |
+| Trabajadores | Solo feedback de tipo `descargo_trabajador` |
+| Clientes | Solo feedback de tipo `descargo_registro` |
+| Con comentario | Registros con campo `sugerencia` completado |
+| Con NPS | Registros con puntuacion NPS respondida |
+| Negativos | Calificacion ≤ 2 estrellas |
+
+**Triggers de recoleccion automatica (clientes/admins):**
+
+| Trigger | Momento | Cooldown |
+|---------|---------|----------|
+| `primer_proceso` | Primera vez que el usuario tiene un proceso avanzado | Una sola vez en la vida |
+| `post_diligencia` | Proceso llega a estado `descargos_realizados` | 14 dias |
+| `periodico` | Usuarios activos con procesos avanzados | 14 dias |
+| `hito` | Cada multiplo de 5 procesos completados | Sin cooldown |
+
+**Recoleccion automatica (trabajadores):**
+El formulario de descargos (`/descargos/{token}`) muestra un modal de feedback al finalizar la diligencia. Todos los campos (calificacion + comentario) son obligatorios.
+
+**Widget de estadisticas (`FeedbackStatsWidget`):**
+- Calificacion promedio con grafico de distribucion 1-5 estrellas
+- Total de feedback de Trabajadores
+- Total de feedback de Clientes
+- NPS calculado: `((Promotores - Detractores) / Total) × 100`
+- Porcentaje de registros con comentario
+
+**Permisos:**
+Solo `super_admin` y `abogado` tienen acceso. Los clientes no ven este recurso.
+
+---
+
+### 10. Disponibilidad de Abogados
 
 ```
 /admin/disponibilidad-abogados

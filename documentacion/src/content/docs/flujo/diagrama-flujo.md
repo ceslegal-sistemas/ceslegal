@@ -34,7 +34,7 @@ description: Flujo completo del proceso disciplinario en CES Legal
 │  3. PROGRAMACIÓN DE DESCARGOS                                                │
 │  ────────────────────────────                                                │
 │  • Se define fecha, hora y modalidad                                        │
-│  • Modalidades: Presencial | Virtual | Telefónica                           │
+│  • Modalidad: Virtual (única modalidad activa)                           │
 │  • Se genera token de acceso temporal (válido 6 días)                       │
 │  • Estado cambia a: DESCARGOS_PENDIENTES                                    │
 └─────────────────────────────────────────────────────────────────────────────┘

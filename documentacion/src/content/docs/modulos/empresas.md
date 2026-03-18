@@ -33,7 +33,7 @@ El campo `active` permite desactivar empresas sin eliminarlas. Una empresa inact
 ### Informacion para Documentos Legales
 Los datos de la empresa se interpolan automaticamente en las plantillas de documentos:
 
-- **Citacion a descargos**: Razon social, NIT, direccion (si es presencial), ciudad, departamento, representante legal.
+- **Citacion a descargos**: Razon social, NIT, ciudad, departamento, representante legal.
 - **Documento de sancion**: Razon social, NIT, representante legal.
 - **Correos electronicos**: Nombre de la empresa como contexto.
 
@@ -83,7 +83,7 @@ Para que la generacion de documentos funcione correctamente, se requieren al min
 | `razon_social` | Todos los documentos y correos |
 | `nit` | Citaciones y sanciones |
 | `representante_legal` | Documentos de sancion (firma) |
-| `direccion` | Citaciones presenciales |
+| `direccion` | Dato registrado de la empresa (no interpolado en citaciones virtuales) |
 | `ciudad` | Citaciones y sanciones |
 | `departamento` | Citaciones |
 
@@ -110,19 +110,9 @@ La autorizacion esta controlada por `EmpresaPolicy`, que valida:
 - Al desactivar una empresa, los procesos en curso continuan su flujo normal.
 - Los usuarios `cliente` de una empresa inactiva pueden seguir accediendo al sistema para consultar procesos existentes.
 
-### Uso en Citaciones Presenciales
+### Uso en Citaciones Virtuales
 
-Cuando la modalidad de descargos es **presencial**, el sistema incluye automaticamente la direccion completa de la empresa en la citacion:
-
-```php
-if ($proceso->modalidad_descargos === 'presencial') {
-    $direccionTexto = 'ubicada en la direccion ' . $empresa->direccion;
-    $ciudadTexto = $empresa->ciudad;
-    $departamentoTexto = $empresa->departamento;
-}
-```
-
-Para modalidades **virtual** o **telefonico**, estos campos se omiten en la citacion.
+La modalidad activa es **virtual**. Las citaciones incluyen la ciudad y departamento de la empresa como referencia geografica, pero no la direccion fisica (que solo aplica en modalidad presencial, actualmente desactivada en la UI).
 
 ## Proximos Pasos
 

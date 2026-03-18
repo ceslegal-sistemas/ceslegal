@@ -73,9 +73,8 @@ $rules = [
 $rules = [
     'fecha' => 'required|date|after:today',
     'hora' => 'required|date_format:H:i',
-    'modalidad' => 'required|in:presencial,virtual,telefonica',
-    'lugar' => 'required_if:modalidad,presencial',
-    'enlace_virtual' => 'required_if:modalidad,virtual',
+    'modalidad' => 'required|in:virtual',
+    'enlace_virtual' => 'required',
 ];
 ```
 

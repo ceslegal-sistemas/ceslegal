@@ -42,15 +42,13 @@ Desde el estado `cerrado` se puede transicionar a `archivado`.
 
 ### Asignacion de Abogado
 
-Al crear o editar un proceso, si es presencial o telefonico se asigna un abogado (`abogado_id`) que sera responsable del caso. El abogado recibe una notificacion automatica al ser asignado.
+Al crear o editar un proceso se puede asignar un abogado (`abogado_id`) que sera responsable del caso. El abogado recibe una notificacion automatica al ser asignado.
 
 ### Programacion de Diligencia de Descargos
 
 Se programa la fecha, hora y modalidad de la audiencia de descargos:
 
-- **Presencial**: Se incluye la direccion de la empresa en la citacion.
-- **Virtual**: Se genera un enlace de acceso con token temporal.
-- **Telefonico**: Modalidad por llamada telefonica.
+- **Virtual**: Se genera un enlace de acceso con token temporal. El trabajador recibe la URL en la citacion y accede desde cualquier dispositivo.
 
 ### Generacion y Envio de Citacion
 
@@ -116,7 +114,7 @@ Cada accion relevante se registra en la tabla `timeline` con:
 | `fecha_apertura`             | datetime  | Fecha de apertura formal                   |
 | `fecha_descargos_programada` | datetime  | Fecha programada para descargos            |
 | `hora_descargos_programada`  | time      | Hora programada para descargos             |
-| `modalidad_descargos`        | string    | Modalidad: presencial, virtual, telefonico |
+| `modalidad_descargos`        | string    | Modalidad de la diligencia (`virtual`)     |
 | `fecha_descargos_realizada`  | datetime  | Fecha real de la diligencia                |
 | `fecha_analisis`             | datetime  | Fecha del analisis juridico                |
 | `decision_sancion`           | boolean   | Si se decidio aplicar sancion              |

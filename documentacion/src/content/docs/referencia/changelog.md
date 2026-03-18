@@ -7,6 +7,32 @@ Todos los cambios notables del proyecto CES Legal se documentan en esta pagina. 
 
 ---
 
+## [1.1.0] - 2026-03-18
+
+### Agregado
+
+#### Modulo de Feedback mejorado
+- **NPS (Net Promoter Score)**: campo `nps_score` (0–10) con categorias automaticas: Promotor (9-10), Neutro (7-8), Detractor (0-6).
+- **Triggers de contexto**: el sistema detecta el momento adecuado para solicitar feedback segun 4 disparadores: `primer_proceso` (primera vez del usuario), `post_diligencia` (despues de descargos realizados), `periodico` (cada 14 dias) y `hito` (cada 5 procesos completados).
+- **Respuestas adicionales por trigger**: cada tipo de feedback incluye preguntas especificas guardadas como JSON en `respuestas_adicionales`.
+- **Widget de estadisticas mejorado**: muestra calificacion promedio con grafico de distribucion, conteo separado de Trabajadores vs Clientes, NPS calculado (promotores - detractores) y porcentaje con comentarios.
+
+### Cambiado
+
+#### Feedback obligatorio al 100%
+- Todos los campos del formulario de feedback son ahora obligatorios, incluyendo el campo de comentarios/sugerencias.
+- El formulario del trabajador (`formulario-descargos`) deshabilita el boton de envio hasta que se complete tanto la calificacion como el comentario.
+- Campos anteriormente opcionales convertidos a requeridos: `calidad_acta`, `sugerencia` (post_diligencia), `funcionalidad_faltante` (periodico), `sugerencia` (hito).
+
+#### Reorganizacion del recurso Feedback
+- Tabs de listado rediseñados: de filtros por calificacion (Excelentes/Buenos/Regulares) a filtros por tipo de respondente (**Trabajadores** / **Clientes** / Con comentario / Con NPS / Negativos), con conteo en cada tab.
+- Nueva columna **"Respondio"**: muestra el nombre real del trabajador (via `diligenciaDescargo → proceso → trabajador`) o del usuario admin segun el tipo de feedback.
+- Columna NPS con badge de color (verde Promotor, amarillo Neutro, rojo Detractor).
+- Badge de tipo actualizado: "Admin" renombrado a **"Cliente"** para mayor claridad.
+- Vista de detalle (`ViewFeedback`) reorganizada con secciones: quien respondio, calificacion + NPS lado a lado, comentario, respuestas adicionales (renderizadas como preguntas/respuestas), metadatos tecnicos.
+
+---
+
 ## [1.0.0] - 2026-01-27
 
 ### Agregado
@@ -41,7 +67,7 @@ Todos los cambios notables del proyecto CES Legal se documentan en esta pagina. 
 - Alertas de terminos legales vencidos.
 
 #### Diligencia de Descargos
-- Programacion de diligencias con multiples modalidades: presencial, virtual y telefonica.
+- Programacion de diligencias en modalidad virtual.
 - Formulario publico para el trabajador con token temporal de acceso (vigencia de 6 dias).
 - Temporizador de 45 minutos para completar los descargos.
 - Preguntas iniciales generadas por IA y preguntas dinamicas de seguimiento.
