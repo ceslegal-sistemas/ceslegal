@@ -187,6 +187,63 @@ Dependiendo del estado del proceso, el administrador puede:
 | Impugnacion realizada   | Resolver, cerrar                                       |
 | Cerrado / Archivado     | Solo consulta                                          |
 
+### Guia de Acciones Clave
+
+#### Re-enviar una Citacion
+
+Si el trabajador no recibio el correo:
+
+1. En la tabla de procesos, busque el proceso en estado **Descargos Pendientes**
+2. Haga clic en la accion **Re-enviar Citacion**
+3. El sistema reenvía el correo con la citacion adjunta
+
+#### Reprogramar una Diligencia
+
+Cuando necesita cambiar la fecha de acceso del trabajador:
+
+1. Vaya a **Gestion Laboral > Descargos** y busque la diligencia
+2. Use la accion **Regenerar Token de Acceso**
+3. Se genera un nuevo enlace valido por 6 dias
+4. Notifique al trabajador re-enviando la citacion o copiando el enlace directamente
+
+:::caution[El enlace anterior queda invalido]
+Al regenerar el token, el enlace anterior del trabajador deja de funcionar. Asegurese de notificarle el nuevo enlace.
+:::
+
+#### Ver el Enlace del Trabajador
+
+1. En la tabla de diligencias, busque la diligencia
+2. Use la accion **Ver Link de Acceso**
+3. Copie la URL y enviela al trabajador por el canal que prefiera
+
+#### Registrar una Impugnacion
+
+Cuando el trabajador presenta un recurso de reposicion o apelacion contra la sancion:
+
+1. En el proceso en estado **Sancion Emitida**, use la accion **Registrar Impugnacion**
+2. Complete el tipo de recurso, la fecha de presentacion y los argumentos del trabajador
+3. El estado del proceso cambia a **Impugnacion Realizada**
+
+#### Resolver la Impugnacion y Cerrar el Proceso
+
+1. En el proceso en estado **Impugnacion Realizada**, use la accion para resolver el recurso
+2. Registre la decision: mantener o modificar la sancion
+3. El proceso pasa al estado **Cerrado**
+
+Si no hubo impugnacion, use la accion **Cerrar Proceso** directamente desde estado **Sancion Emitida**.
+
+#### Archivar sin Sancion
+
+Si despues de los descargos se decide no imponer ninguna sancion:
+
+1. Use la accion **Archivar** desde estado **Descargos Realizados** o **Descargos No Realizados**
+2. Seleccione el motivo: hechos no comprobados, falta no amerita sancion, prescripcion u otros
+3. El proceso pasa al estado **Archivado**
+
+:::tip[Cerrado vs Archivado]
+**Cerrado**: el proceso termino con una sancion aplicada. **Archivado**: se decidio no sancionar. En ambos casos el proceso queda en modo consulta y todos los documentos siguen disponibles.
+:::
+
 ### Crear un Proceso Disciplinario
 
 1. Haga clic en **Crear Descargos** en el menu lateral
@@ -326,6 +383,36 @@ Los atributos `data-tour` en los formularios definen los elementos que el tour r
 | Pendiente (gris)     | Correo no procesado         | Verificar direccion de email    |
 | Entregado (amarillo) | Llego al servidor de correo | Esperar apertura del trabajador |
 | Leido (verde)        | Trabajador abrio el correo  | Proceder con el siguiente paso  |
+
+---
+
+## Modulo de Feedback
+
+### Ver las opiniones de clientes y trabajadores
+
+1. En el menu lateral, vaya a **Administracion > Feedback**
+2. Use las pestanas para filtrar por tipo:
+   - **Trabajadores**: Opiniones enviadas al terminar los descargos virtuales
+   - **Clientes**: Opiniones de los usuarios del panel de administracion
+   - **Con comentario**: Solo registros que tienen texto escrito
+   - **Con NPS**: Registros con puntaje de recomendacion (escala 0-10)
+   - **Negativos**: Calificaciones de 1 o 2 estrellas
+3. En la parte superior vera estadisticas generales: calificacion promedio, total por tipo y NPS
+4. Haga clic en cualquier registro para ver el detalle: quien respondio, calificacion, comentario y respuestas a preguntas adicionales
+
+### Que es el NPS
+
+El NPS (puntaje de recomendacion) mide en una escala de 0 a 10 que tan probable es que un usuario recomiende la plataforma:
+
+| Puntaje | Categoria | Color     |
+| ------- | --------- | --------- |
+| 9 - 10  | Promotor  | Verde     |
+| 7 - 8   | Neutro    | Amarillo  |
+| 0 - 6   | Detractor | Rojo      |
+
+### El formulario de feedback automatico
+
+Al usar el panel, usted tambien vera periodicamente un formulario de feedback. Aparece en el listado de procesos y no tiene boton de cerrar: debe completarlo para continuar trabajando.
 
 ---
 
