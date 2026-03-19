@@ -319,19 +319,109 @@
                                 </div>
                             </div>
                         @else
-                            {{-- Todas respondidas - Evidencias y Finalizar --}}
-                            <div class="space-y-6">
+                            {{-- Todas respondidas - Feedback orgánico + Evidencias + Finalizar --}}
+                            <div class="space-y-6" x-data x-init="$wire.call('marcarPreguntasCompletadas')">
+
                                 <div class="text-center">
-                                    <div
-                                        class="mx-auto w-14 h-14 bg-success-100 rounded-full flex items-center justify-center mb-4">
-                                        <svg class="w-7 h-7 text-success-600" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 13l4 4L19 7" />
+                                    <div class="mx-auto w-14 h-14 bg-success-100 rounded-full flex items-center justify-center mb-4">
+                                        <svg class="w-7 h-7 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                         </svg>
                                     </div>
                                     <h3 class="text-lg font-semibold text-gray-900 mb-1">Preguntas completadas</h3>
-                                    <p class="text-sm text-gray-500">Puede adjuntar evidencias antes de enviar</p>
+                                    <p class="text-sm text-gray-500">Cuéntenos su experiencia y envíe sus descargos</p>
+                                </div>
+
+                                {{-- Feedback orgánico --}}
+                                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                                    <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                                        <span class="font-medium text-gray-700 text-sm">Cuéntenos su experiencia</span>
+                                        <span class="text-xs text-gray-400">(opcional)</span>
+                                    </div>
+                                    <div class="p-4 space-y-5">
+
+                                        {{-- P1: Experiencia general --}}
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-700 mb-2">¿Cómo fue su experiencia usando la app?</p>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                @foreach(['muy_buena' => 'Muy buena', 'buena' => 'Buena', 'mala' => 'Mala', 'muy_mala' => 'Muy mala'] as $val => $lbl)
+                                                    <label class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors
+                                                        {{ $fbExperiencia === $val ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:bg-gray-50' }}">
+                                                        <input type="radio" wire:model.live="fbExperiencia" value="{{ $val }}" class="text-primary-600 border-gray-300">
+                                                        <span class="text-sm text-gray-700">{{ $lbl }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        </div>
+
+                                        {{-- P2: Algo confuso --}}
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-700 mb-2">¿Encontró algo confuso?</p>
+                                            <div class="flex gap-3">
+                                                @foreach(['si' => 'Sí', 'no' => 'No'] as $val => $lbl)
+                                                    <label class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors flex-1
+                                                        {{ $fbAlgoConfuso === $val ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:bg-gray-50' }}">
+                                                        <input type="radio" wire:model.live="fbAlgoConfuso" value="{{ $val }}" class="text-primary-600 border-gray-300">
+                                                        <span class="text-sm text-gray-700">{{ $lbl }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                            @if($fbAlgoConfuso === 'si')
+                                                <textarea wire:model="fbConfusoDetalle" rows="2"
+                                                    class="mt-2 w-full text-sm border-gray-300 rounded-lg focus:border-primary-500 focus:ring-primary-500 resize-none"
+                                                    placeholder="¿Qué encontró confuso?"></textarea>
+                                            @endif
+                                        </div>
+
+                                        {{-- P3: Qué cambiaría --}}
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-700 mb-2">
+                                                ¿Qué cambiaría? <span class="font-normal text-gray-400">(opcional)</span>
+                                            </p>
+                                            <textarea wire:model="fbQueCambiaria" rows="2"
+                                                class="w-full text-sm border-gray-300 rounded-lg focus:border-primary-500 focus:ring-primary-500 resize-none"
+                                                placeholder="Escriba aquí..."></textarea>
+                                        </div>
+
+                                        {{-- P4: Preguntas claras --}}
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-700 mb-2">¿Las preguntas del formulario fueron claras?</p>
+                                            <div class="flex gap-3">
+                                                @foreach(['si' => 'Sí', 'no' => 'No'] as $val => $lbl)
+                                                    <label class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors flex-1
+                                                        {{ $fbPreguntasClaras === $val ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:bg-gray-50' }}">
+                                                        <input type="radio" wire:model.live="fbPreguntasClaras" value="{{ $val }}" class="text-primary-600 border-gray-300">
+                                                        <span class="text-sm text-gray-700">{{ $lbl }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                            @if($fbPreguntasClaras === 'no')
+                                                <textarea wire:model="fbClarasDetalle" rows="2"
+                                                    class="mt-2 w-full text-sm border-gray-300 rounded-lg focus:border-primary-500 focus:ring-primary-500 resize-none"
+                                                    placeholder="¿Por qué no fueron claras?"></textarea>
+                                            @endif
+                                        </div>
+
+                                        {{-- P5: Sin ayuda --}}
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-700 mb-2">¿Pudo completar el proceso sin ayuda?</p>
+                                            <div class="flex gap-3">
+                                                @foreach(['si' => 'Sí', 'no' => 'No'] as $val => $lbl)
+                                                    <label class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors flex-1
+                                                        {{ $fbSinAyuda === $val ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:bg-gray-50' }}">
+                                                        <input type="radio" wire:model.live="fbSinAyuda" value="{{ $val }}" class="text-primary-600 border-gray-300">
+                                                        <span class="text-sm text-gray-700">{{ $lbl }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                            @if($fbSinAyuda === 'no')
+                                                <textarea wire:model="fbSinAyudaDetalle" rows="2"
+                                                    class="mt-2 w-full text-sm border-gray-300 rounded-lg focus:border-primary-500 focus:ring-primary-500 resize-none"
+                                                    placeholder="¿Por qué necesitó ayuda?"></textarea>
+                                            @endif
+                                        </div>
+
+                                    </div>
                                 </div>
 
                                 {{-- Sección de Evidencias --}}
@@ -364,7 +454,6 @@
                                                 Formatos: PDF, Word, Excel, imágenes. Máximo 10MB por archivo.
                                             </p>
 
-                                            {{-- Archivos seleccionados --}}
                                             @if (!empty($archivosEvidencia))
                                                 <div class="mt-3 space-y-2">
                                                     <p class="text-xs font-medium text-gray-700">Archivos seleccionados:</p>
@@ -372,9 +461,7 @@
                                                         @if ($archivo)
                                                             <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-sm">
                                                                 <span class="text-gray-700 truncate flex-1">{{ $archivo->getClientOriginalName() }}</span>
-                                                                <button
-                                                                    type="button"
-                                                                    wire:click="eliminarArchivo({{ $index }})"
+                                                                <button type="button" wire:click="eliminarArchivo({{ $index }})"
                                                                     class="ml-2 text-danger-600 hover:text-danger-700">
                                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -429,82 +516,6 @@
             <span class="font-medium text-gray-700">Procesando...</span>
         </div>
     </div>
-
-    {{-- Modal de Feedback --}}
-    @if($mostrarFeedback)
-    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ hoverRating: 0 }">
-        <div class="fixed inset-0 bg-gray-900/75 backdrop-blur-sm"></div>
-        <div class="fixed inset-0 flex items-center justify-center p-4">
-            <div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl">
-                {{-- Header --}}
-                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5 rounded-t-2xl text-white">
-                    <div class="flex items-center gap-3">
-                        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-white/20">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-semibold">¡Tu opinión es importante!</h3>
-                            <p class="text-sm text-indigo-100">Ayúdanos a mejorar nuestra plataforma</p>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Body --}}
-                <div class="px-6 py-5">
-                    <p class="mb-4 text-sm text-gray-600 text-center">¿Cómo calificarías tu experiencia?</p>
-
-                    {{-- Stars --}}
-                    <div class="flex justify-center gap-2 mb-2">
-                        @for($i = 1; $i <= 5; $i++)
-                        <button type="button"
-                            wire:click="$set('feedbackCalificacion', {{ $i }})"
-                            @mouseenter="hoverRating = {{ $i }}"
-                            @mouseleave="hoverRating = 0"
-                            class="transform transition-all duration-150 hover:scale-110 focus:outline-none">
-                            <svg class="h-10 w-10 transition-colors duration-150"
-                                :class="(hoverRating >= {{ $i }} || (hoverRating === 0 && {{ $feedbackCalificacion }} >= {{ $i }})) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 fill-gray-100'"
-                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
-                            </svg>
-                        </button>
-                        @endfor
-                    </div>
-
-                    <p class="text-sm font-medium text-center h-5 mb-4"
-                       :class="hoverRating > 0 || {{ $feedbackCalificacion }} > 0 ? 'text-indigo-600' : 'text-gray-400'">
-                        <span x-show="hoverRating === 1 || (hoverRating === 0 && {{ $feedbackCalificacion }} === 1)">Muy malo</span>
-                        <span x-show="hoverRating === 2 || (hoverRating === 0 && {{ $feedbackCalificacion }} === 2)">Malo</span>
-                        <span x-show="hoverRating === 3 || (hoverRating === 0 && {{ $feedbackCalificacion }} === 3)">Regular</span>
-                        <span x-show="hoverRating === 4 || (hoverRating === 0 && {{ $feedbackCalificacion }} === 4)">Bueno</span>
-                        <span x-show="hoverRating === 5 || (hoverRating === 0 && {{ $feedbackCalificacion }} === 5)">Excelente</span>
-                        <span x-show="hoverRating === 0 && {{ $feedbackCalificacion }} === 0">Seleccione una calificación</span>
-                    </p>
-
-                    {{-- Textarea --}}
-                    <div class="mt-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            ¿Tienes alguna sugerencia? <span class="text-gray-400">(Opcional)</span>
-                        </label>
-                        <textarea wire:model="feedbackSugerencia" rows="3"
-                            class="w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm resize-none"
-                            placeholder="Escribe aquí tus comentarios..."></textarea>
-                    </div>
-                </div>
-
-                {{-- Footer --}}
-                <div class="bg-gray-50 px-6 py-4 rounded-b-2xl flex items-center justify-end gap-3">
-                    <button type="button" wire:click="enviarFeedback"
-                        @if($feedbackCalificacion < 1) disabled @endif
-                        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                        Enviar opinión
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
 
     {{-- Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
