@@ -33,11 +33,15 @@ class FormularioDescargos extends Component
 
     public bool $tiempoExpiradoMostrarEvidencias = false;
 
-    // Feedback properties
-    public bool $mostrarFeedback = false;
-    public int $feedbackCalificacion = 0;
-    public string $feedbackSugerencia = '';
-    public bool $feedbackEnviado = false;
+    // Feedback orgánico (preguntas inline al finalizar)
+    public string $fbExperiencia     = '';  // 'muy_buena'|'buena'|'mala'|'muy_mala'
+    public string $fbAlgoConfuso     = '';  // 'si'|'no'
+    public string $fbConfusoDetalle  = '';
+    public string $fbQueCambiaria    = '';
+    public string $fbPreguntasClaras = '';  // 'si'|'no'
+    public string $fbClarasDetalle   = '';
+    public string $fbSinAyuda        = '';  // 'si'|'no'
+    public string $fbSinAyudaDetalle = '';
 
     public function mount(DiligenciaDescargo $diligencia)
     {
@@ -363,12 +367,14 @@ class FormularioDescargos extends Component
             return;
         }
 
-        // Operaciones exitosas: marcar como completado y mostrar feedback
+        // Operaciones exitosas: marcar como completado
         $this->formularioCompletado = true;
         $this->mostrarMensajeExito = true;
         $this->tiempoExpiradoMostrarEvidencias = false;
-        $this->mostrarFeedback = $this->debeMostrarFeedback();
         $this->dispatch('descargosFinalizados');
+
+        // Guardar feedback orgánico si el trabajador respondió al menos la primera pregunta
+        $this->guardarFeedbackOrganico();
 
         // Notificaciones al trabajador y al cliente (no críticas)
         $this->enviarNotificacionesCompletado();
@@ -398,57 +404,55 @@ class FormularioDescargos extends Component
     }
 
     /**
-     * Envía el feedback del usuario
+     * Registra cuándo el trabajador llegó a la sección de finalizar (todas las preguntas respondidas).
+     * Se llama desde la vista vía wire:init cuando el bloque de finalización se renderiza.
      */
-    public function enviarFeedback(): void
+    public function marcarPreguntasCompletadas(): void
     {
-        if ($this->feedbackCalificacion < 1 || $this->feedbackCalificacion > 5) {
-            return;
+        if (!$this->diligencia->preguntas_completadas_en) {
+            $this->diligencia->update(['preguntas_completadas_en' => now()]);
+        }
+    }
+
+    /**
+     * Guarda el feedback orgánico junto con los descargos (no bloqueante).
+     */
+    private function guardarFeedbackOrganico(): void
+    {
+        if ($this->fbExperiencia === '') {
+            return; // El trabajador no respondió ninguna pregunta de feedback
         }
 
-        if (empty(trim($this->feedbackSugerencia))) {
-            return;
+        try {
+            $calificacionMap = ['muy_buena' => 5, 'buena' => 4, 'mala' => 2, 'muy_mala' => 1];
+
+            $respuestasAdicionales = array_filter([
+                'algo_confuso'      => $this->fbAlgoConfuso ?: null,
+                'confuso_detalle'   => $this->fbConfusoDetalle ?: null,
+                'preguntas_claras'  => $this->fbPreguntasClaras ?: null,
+                'claras_detalle'    => $this->fbClarasDetalle ?: null,
+                'sin_ayuda'         => $this->fbSinAyuda ?: null,
+                'sin_ayuda_detalle' => $this->fbSinAyudaDetalle ?: null,
+            ]);
+
+            Feedback::create([
+                'calificacion'             => $calificacionMap[$this->fbExperiencia] ?? null,
+                'sugerencia'               => $this->fbQueCambiaria ?: null,
+                'tipo'                     => 'descargo_trabajador',
+                'proceso_disciplinario_id' => $this->diligencia->proceso_id,
+                'diligencia_descargo_id'   => $this->diligencia->id,
+                'ip_address'               => request()->ip(),
+                'user_agent'               => request()->userAgent(),
+                'respuestas_adicionales'   => !empty($respuestasAdicionales) ? $respuestasAdicionales : null,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Error al guardar feedback del trabajador', [
+                'diligencia_id' => $this->diligencia->id,
+                'error'         => $e->getMessage(),
+            ]);
         }
-
-        Feedback::create([
-            'calificacion' => $this->feedbackCalificacion,
-            'sugerencia' => trim($this->feedbackSugerencia),
-            'tipo' => 'descargo_trabajador',
-            'proceso_disciplinario_id' => $this->diligencia->proceso_disciplinario_id,
-            'diligencia_descargo_id' => $this->diligencia->id,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-        ]);
-
-        $this->feedbackEnviado = true;
-        $this->mostrarFeedback = false;
     }
 
-    /**
-     * Omite el feedback
-     */
-    public function omitirFeedback(): void
-    {
-        $this->mostrarFeedback = false;
-    }
-
-    /**
-     * Determina si debe mostrar el modal de feedback
-     * Solo muestra si no ha dado feedback para esta diligencia específica
-     */
-    protected function debeMostrarFeedback(): bool
-    {
-        // Verificar si ya se envió feedback para esta diligencia específica
-        $feedbackExistente = Feedback::where('diligencia_descargo_id', $this->diligencia->id)
-            ->where('tipo', 'descargo_trabajador')
-            ->exists();
-
-        return !$feedbackExistente;
-    }
-
-    /**
-     * Renderiza el componente
-     */
     /**
      * Envía notificaciones por correo al trabajador y al cliente (empresa)
      * informando que los descargos fueron completados o que el tiempo expiró.
