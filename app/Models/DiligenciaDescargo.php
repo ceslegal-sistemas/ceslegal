@@ -34,6 +34,7 @@ class DiligenciaDescargo extends Model
         'fecha_acceso_permitida',
         'trabajador_accedio_en',
         'primer_acceso_en',
+        'preguntas_completadas_en',
         'tiempo_limite',
         'tiempo_expirado',
         'ip_acceso',
@@ -52,6 +53,7 @@ class DiligenciaDescargo extends Model
         'fecha_acceso_permitida' => 'date',
         'trabajador_accedio_en' => 'datetime',
         'primer_acceso_en' => 'datetime',
+        'preguntas_completadas_en' => 'datetime',
         'tiempo_limite' => 'datetime',
         'tiempo_expirado' => 'boolean',
     ];
