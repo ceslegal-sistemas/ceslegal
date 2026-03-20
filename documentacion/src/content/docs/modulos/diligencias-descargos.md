@@ -189,6 +189,7 @@ Al completar la diligencia, el servicio `ActaDescargosService` genera automatica
 | `fecha_acceso_permitida` | date | Fecha en la que se permite acceder |
 | `trabajador_accedio_en` | datetime | Fecha/hora del acceso del trabajador |
 | `primer_acceso_en` | datetime | Primer acceso al formulario |
+| `preguntas_completadas_en` | datetime | Primera vez que el trabajador llega a la seccion de feedback (aunque no finalice) |
 | `tiempo_limite` | datetime | Hora limite para completar (45 min) |
 | `tiempo_expirado` | boolean | Si el tiempo expiro |
 | `ip_acceso` | string | IP desde donde accedio |
