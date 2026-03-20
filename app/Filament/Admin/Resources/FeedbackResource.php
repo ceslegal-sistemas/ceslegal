@@ -84,6 +84,7 @@ class FeedbackResource extends Resource
                     ->getStateUsing(function (Feedback $record): string {
                         if ($record->tipo === Feedback::TIPO_DESCARGO_TRABAJADOR) {
                             return $record->diligenciaDescargo?->proceso?->trabajador?->nombre_completo
+                                ?? $record->procesoDisciplinario?->trabajador?->nombre_completo
                                 ?? 'Trabajador anónimo';
                         }
                         return $record->user?->name ?? 'Usuario anónimo';
