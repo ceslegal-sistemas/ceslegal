@@ -26,32 +26,53 @@ Toda la informacion recolectada es visible en el recurso **Feedback** del panel 
 
 ## Flujo del Trabajador
 
-El feedback del trabajador se solicita automaticamente al completar todas las preguntas del formulario de descargos virtual.
+El feedback del trabajador es **organico**: las preguntas de opinion aparecen una a una despues de responder todas las preguntas del formulario de descargos, con el mismo estilo y botones "Guardar y continuar". No es un modal separado.
 
-**Campos del formulario (todos obligatorios):**
-1. **Calificacion** — 1 a 5 estrellas (interactivo con hover)
-2. **Comentario o sugerencia** — campo de texto libre obligatorio
+### Preguntas (5 pasos — todas opcionales)
 
-El boton de envio permanece deshabilitado hasta que el trabajador seleccione una calificacion **y** escriba un comentario. El modal no tiene opcion de omitir.
+| Paso | Pregunta | Tipo de campo |
+|------|----------|---------------|
+| 1 | ¿Como fue su experiencia usando la aplicacion? | Radio: Muy buena / Buena / Mala / Muy mala |
+| 2 | ¿Encontro algo confuso durante el proceso? | Radio: Si / No → si Si: textarea |
+| 3 | ¿Que cambiaria o mejoraria? | Textarea libre |
+| 4 | ¿Las preguntas del formulario fueron claras? | Radio: Si / No → si No: textarea |
+| 5 | ¿Pudo completar el proceso sin ayuda? | Radio: Si / No → si No: textarea |
+
+Despues del paso 5 aparece la pantalla de evidencias y el boton "Enviar Descargos".
+
+### Comportamiento
+
+- Las preguntas son **opcionales**: el trabajador puede avanzar sin responder las de texto libre (pasos 3 y condiciones de paso 2, 4, 5). Los radios de los pasos 1, 2, 4 y 5 si requieren seleccion para avanzar.
+- La barra de progreso del header incluye las 5 preguntas de feedback en el total, para que el avance se vea continuo.
+- El sistema registra en `preguntas_completadas_en` la primera vez que el trabajador llega a esta seccion, aunque no finalice.
+- El feedback se guarda al presionar "Enviar Descargos" (no en un paso separado). Si el trabajador no responde ninguna pregunta de feedback, no se crea ningun registro.
 
 ```php
 // app/Livewire/FormularioDescargos.php
-public function enviarFeedback(): void
-{
-    if ($this->feedbackCalificacion < 1 || $this->feedbackCalificacion > 5) return;
-    if (empty(trim($this->feedbackSugerencia))) return;
 
-    Feedback::create([
-        'calificacion'             => $this->feedbackCalificacion,
-        'sugerencia'               => trim($this->feedbackSugerencia),
-        'tipo'                     => 'descargo_trabajador',
-        'proceso_disciplinario_id' => $this->diligencia->proceso_disciplinario_id,
-        'diligencia_descargo_id'   => $this->diligencia->id,
-        'ip_address'               => request()->ip(),
-        'user_agent'               => request()->userAgent(),
-    ]);
-}
+// Propiedades de feedback
+public int    $feedbackPaso      = 1;    // 1-5 = paso activo, 6 = completado
+public string $fbExperiencia     = '';   // 'muy_buena'|'buena'|'mala'|'muy_mala'
+public string $fbAlgoConfuso     = '';   // 'si'|'no'
+public string $fbConfusoDetalle  = '';
+public string $fbQueCambiaria    = '';
+public string $fbPreguntasClaras = '';   // 'si'|'no'
+public string $fbClarasDetalle   = '';
+public string $fbSinAyuda        = '';   // 'si'|'no'
+public string $fbSinAyudaDetalle = '';
+
+// Avanza al siguiente paso y valida el campo requerido
+public function avanzarFeedback(): void { ... }
+
+// Guarda el feedback junto con finalizarDescargos() (no bloqueante)
+private function guardarFeedbackOrganico(): void { ... }
 ```
+
+El feedback se guarda en `Feedback` con:
+- `calificacion`: mapeado de la opcion textual a numero (Muy buena=5, Buena=4, Mala=2, Muy mala=1)
+- `sugerencia`: contenido de "¿Que cambiaria?"
+- `respuestas_adicionales`: JSON con `algo_confuso`, `confuso_detalle`, `preguntas_claras`, `claras_detalle`, `sin_ayuda`, `sin_ayuda_detalle`
+- `tipo`: `descargo_trabajador`
 
 ---
 
@@ -63,11 +84,19 @@ El sistema detecta automaticamente el momento ideal para solicitar feedback al c
 
 **Cuando:** La primera vez que el usuario tiene al menos un proceso en estado avanzado (no `apertura` ni `archivado`).
 **Cooldown:** Una sola vez en la vida del usuario.
-**Campos obligatorios:**
-- Calificacion de la primera experiencia (1-5 estrellas)
-- ¿El proceso inicial fue claro?
-- ¿La plataforma cumplio las expectativas?
-- ¿Que fue lo mas confuso?
+**Campos:**
+
+| # | Pregunta | Tipo |
+|---|----------|------|
+| 1 | ¿Como calificaria su experiencia general? | Radio: Muy buena / Buena / Mala / Muy mala |
+| 2 | ¿En que parte tuvo mas dificultad? | Radio: Registro de trabajadores / Creacion de la citacion / Ninguna / Todas |
+| 3 | ¿Le resulto facil crear la citacion? | Radio: Si / No |
+| 4 | ¿Por que no le resulto facil? | Textarea (condicional — aparece si respuesta es No) |
+| 5 | ¿Que mejoraria de la plataforma? | Textarea obligatorio |
+| 6 | ¿Pudo completar el proceso sin ayuda? | Radio: Si / No |
+| 7 | ¿En que necesito ayuda? | Textarea (condicional — aparece si respuesta es No) |
+
+Campos guardados en `respuestas_adicionales`: `calificacion_experiencia`, `dificultad_proceso`, `facilidad_citacion`, `facilidad_citacion_porque`, `mejora_sugerida`, `completo_sin_ayuda`, `completo_sin_ayuda_porque`.
 
 ### Trigger 2: Post diligencia (`post_diligencia`)
 
@@ -219,7 +248,7 @@ app/Filament/Admin/Resources/FeedbackResource/
   Widgets/FeedbackStatsWidget.php
 app/Filament/Admin/Resources/ProcesoDisciplinarioResource/
   Pages/ListProcesoDisciplinarios.php                    (triggers automaticos)
-resources/views/livewire/formulario-descargos.blade.php  (modal feedback trabajador)
+resources/views/livewire/formulario-descargos.blade.php  (preguntas organicas de feedback del trabajador)
 database/migrations/2026_02_17_151614_create_feedback_table.php
 database/migrations/2026_03_09_154610_add_trigger_fields_to_feedbacks_table.php
 ```

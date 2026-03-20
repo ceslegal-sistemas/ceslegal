@@ -7,6 +7,28 @@ Todos los cambios notables del proyecto CES Legal se documentan en esta pagina. 
 
 ---
 
+## [1.2.0] - 2026-03-20
+
+### Cambiado
+
+#### Feedback organico del trabajador (paso a paso)
+
+- Las preguntas de feedback del trabajador ya no son un modal separado con estrellas; ahora aparecen **una a una** despues de responder todas las preguntas del formulario de descargos, con el mismo estilo y botones "Guardar y continuar".
+- Se agregaron 5 preguntas especificas en lugar del antiguo campo de calificacion + sugerencia: experiencia general, algo confuso, que cambiaria, claridad de preguntas, completar sin ayuda.
+- La barra de progreso del header incluye los 5 pasos de feedback en el conteo total, para que el avance se vea continuo.
+- El sistema registra `preguntas_completadas_en` en `diligencias_descargos` la primera vez que el trabajador llega a la seccion de feedback, aunque no la finalice.
+- El feedback se guarda al presionar "Enviar Descargos" (no en paso separado). Si el trabajador no responde ninguna pregunta, no se crea ningun registro.
+
+#### Preguntas del trigger `primer_proceso` corregidas
+
+- Las preguntas del formulario automatico del primer proceso (trigger `primer_proceso`) se actualizaron para reflejar los campos reales implementados: calificacion, dificultad en el proceso, facilidad de la citacion, mejora sugerida y si pudo completar sin ayuda.
+
+### Corregido
+
+- **Columna "Respondio" en `/admin/feedbacks`**: ya no muestra "Trabajador anonimo" para feedbacks de tipo `descargo_trabajador`. Ahora busca el nombre del trabajador a traves de la relacion `diligenciaDescargo → proceso → trabajador` con fallback a `procesoDisciplinario → trabajador`.
+
+---
+
 ## [1.1.0] - 2026-03-18
 
 ### Agregado
