@@ -70,6 +70,7 @@ export default defineConfig({
 						{ label: 'Documentos', slug: 'modulos/documentos' },
 						{ label: 'Notificaciones', slug: 'modulos/notificaciones' },
 						{ label: 'Usuarios y Roles', slug: 'modulos/usuarios-roles' },
+						{ label: 'Feedback', slug: 'modulos/feedback' },
 					],
 				},
 				{
