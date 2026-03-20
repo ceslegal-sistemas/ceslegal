@@ -81,6 +81,20 @@ class FeedbackResource extends Resource
                         'plataforma_general' => 'warning',
                         default => 'gray',
                     }),
+
+                Tables\Columns\TextColumn::make('respondente')
+                    ->label('Respondió')
+                    ->getStateUsing(function (Feedback $record): string {
+                        if ($record->tipo === Feedback::TIPO_DESCARGO_TRABAJADOR) {
+                            return $record->diligenciaDescargo?->proceso?->trabajador?->nombre_completo
+                                ?? $record->procesoDisciplinario?->trabajador?->nombre_completo
+                                ?? 'Trabajador anónimo';
+                        }
+                        return $record->user?->name ?? 'Usuario anónimo';
+                    })
+                    ->searchable(false)
+                    ->placeholder('—'),
+
                 Tables\Columns\TextColumn::make('procesoDisciplinario.codigo')
                     ->label('Proceso')
                     ->searchable()
