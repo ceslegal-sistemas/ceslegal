@@ -33,7 +33,8 @@ class FormularioDescargos extends Component
 
     public bool $tiempoExpiradoMostrarEvidencias = false;
 
-    // Feedback orgánico (preguntas inline al finalizar)
+    // Feedback orgánico — paso actual (1-5 = pregunta activa, 6 = completado)
+    public int    $feedbackPaso      = 1;
     public string $fbExperiencia     = '';  // 'muy_buena'|'buena'|'mala'|'muy_mala'
     public string $fbAlgoConfuso     = '';  // 'si'|'no'
     public string $fbConfusoDetalle  = '';
@@ -404,14 +405,36 @@ class FormularioDescargos extends Component
     }
 
     /**
-     * Registra cuándo el trabajador llegó a la sección de finalizar (todas las preguntas respondidas).
-     * Se llama desde la vista vía wire:init cuando el bloque de finalización se renderiza.
+     * Registra cuándo el trabajador llegó a la sección de feedback.
      */
     public function marcarPreguntasCompletadas(): void
     {
         if (!$this->diligencia->preguntas_completadas_en) {
             $this->diligencia->update(['preguntas_completadas_en' => now()]);
         }
+    }
+
+    /**
+     * Avanza al siguiente paso del feedback.
+     * Valida el campo requerido del paso actual antes de avanzar.
+     */
+    public function avanzarFeedback(): void
+    {
+        // Registrar que llegó al punto de finalizar (solo la primera vez)
+        if ($this->feedbackPaso === 1) {
+            $this->marcarPreguntasCompletadas();
+        }
+
+        // Validar campo requerido del paso actual
+        $requiereSeleccion = [1 => 'fbExperiencia', 2 => 'fbAlgoConfuso', 4 => 'fbPreguntasClaras', 5 => 'fbSinAyuda'];
+
+        if (isset($requiereSeleccion[$this->feedbackPaso]) && $this->{$requiereSeleccion[$this->feedbackPaso]} === '') {
+            $this->addError('fb', 'Por favor seleccione una opción para continuar.');
+            return;
+        }
+
+        $this->resetErrorBag('fb');
+        $this->feedbackPaso++;
     }
 
     /**
@@ -485,16 +508,18 @@ class FormularioDescargos extends Component
         $proceso = $this->diligencia->proceso;
         $trabajador = $proceso->trabajador;
 
-        // Contar progreso
-        $totalPreguntas = $this->diligencia->preguntas()->count();
+        // Contar progreso incluyendo las 5 preguntas de feedback
+        $totalPreguntas       = $this->diligencia->preguntas()->count();
         $preguntasRespondidas = $this->diligencia->preguntas()->has('respuesta')->count();
+        $totalConFeedback     = $totalPreguntas + 5;
+        $respondidosConFeedback = $preguntasRespondidas + ($this->feedbackPaso - 1);
 
         return view('livewire.formulario-descargos', [
-            'preguntaSiguiente' => $preguntaSiguiente,
-            'totalPreguntas' => $totalPreguntas,
-            'preguntasRespondidas' => $preguntasRespondidas,
-            'proceso' => $proceso,
-            'trabajador' => $trabajador,
+            'preguntaSiguiente'     => $preguntaSiguiente,
+            'totalPreguntas'        => $totalConFeedback,
+            'preguntasRespondidas'  => $respondidosConFeedback,
+            'proceso'               => $proceso,
+            'trabajador'            => $trabajador,
         ]);
     }
 }
