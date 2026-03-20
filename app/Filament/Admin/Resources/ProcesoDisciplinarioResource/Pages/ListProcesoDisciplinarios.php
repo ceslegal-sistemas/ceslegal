@@ -180,46 +180,71 @@ class ListProcesoDisciplinarios extends ListRecords
     {
         return [
             Radio::make('calificacion')
-                ->label('¿Cómo calificarías tu primera experiencia?')
+                ->label('¿Cómo fue su experiencia al registrar los trabajadores y creando las citaciones a descargos en la aplicación?')
                 ->options([
-                    '5' => '⭐⭐⭐⭐⭐ Excelente',
-                    '4' => '⭐⭐⭐⭐ Bueno',
-                    '3' => '⭐⭐⭐ Regular',
-                    '2' => '⭐⭐ Malo',
-                    '1' => '⭐ Muy malo',
+                    '5' => 'Muy buena',
+                    '4' => 'Buena',
+                    '2' => 'Mala',
+                    '1' => 'Muy mala',
                 ])
                 ->required()
                 ->inline()
                 ->inlineLabel(false),
 
-            Radio::make('proceso_inicial_claro')
-                ->label('¿El proceso inicial fue claro para empezar?')
+            Radio::make('dificultad_proceso')
+                ->label('¿En qué parte del proceso tuvo más dificultad o confusión?')
                 ->options([
-                    'si'        => 'Sí, todo claro',
-                    'con_dudas' => 'Con algunas dudas',
-                    'no'        => 'No, fue confuso',
+                    'registro_trabajadores' => 'Registro de trabajadores',
+                    'creacion_citacion'     => 'Creación citación a descargos',
+                    'ninguna'               => 'Ninguna',
+                    'todas'                 => 'Todas',
                 ])
                 ->required()
                 ->inline()
                 ->inlineLabel(false),
 
-            Radio::make('expectativas_cumplidas')
-                ->label('¿La plataforma cumplió con lo que esperabas al comenzar?')
+            Radio::make('facilidad_citacion')
+                ->label('¿Le resultó fácil crear una citación para diligencia de descargos?')
                 ->options([
-                    'supero'     => 'Superó mis expectativas',
-                    'cumplio'    => 'Cumplió mis expectativas',
-                    'no_cumplio' => 'No cumplió mis expectativas',
+                    'si' => 'Sí',
+                    'no' => 'No',
                 ])
                 ->required()
                 ->inline()
-                ->inlineLabel(false),
+                ->inlineLabel(false)
+                ->live(),
 
-            Textarea::make('lo_mas_confuso')
-                ->label('¿Qué fue lo más confuso durante tu primer proceso?')
-                ->placeholder('Cuéntanos qué te generó más dudas o dificultades...')
+            Textarea::make('facilidad_citacion_porque')
+                ->label('¿Por qué no le resultó fácil?')
+                ->placeholder('Cuéntenos qué dificultad tuvo...')
+                ->rows(2)
+                ->maxLength(1000)
+                ->visible(fn (\Filament\Forms\Get $get) => $get('facilidad_citacion') === 'no'),
+
+            Textarea::make('mejora_sugerida')
+                ->label('¿Qué mejoraría de la aplicación para que sea más fácil y rápida de usar?')
+                ->placeholder('Su sugerencia es muy valiosa para nosotros...')
                 ->required()
                 ->rows(3)
                 ->maxLength(2000),
+
+            Radio::make('completo_sin_ayuda')
+                ->label('¿Pudo completar todo el proceso de registro y citación sin ayuda?')
+                ->options([
+                    'si' => 'Sí',
+                    'no' => 'No',
+                ])
+                ->required()
+                ->inline()
+                ->inlineLabel(false)
+                ->live(),
+
+            Textarea::make('completo_sin_ayuda_porque')
+                ->label('¿En qué necesitó ayuda?')
+                ->placeholder('Cuéntenos dónde tuvo dificultades...')
+                ->rows(2)
+                ->maxLength(1000)
+                ->visible(fn (\Filament\Forms\Get $get) => $get('completo_sin_ayuda') === 'no'),
         ];
     }
 
@@ -400,9 +425,12 @@ class ListProcesoDisciplinarios extends ListRecords
 
                     $respuestasAdicionales = match ($trigger) {
                         Feedback::TRIGGER_PRIMER_PROCESO => [
-                            'proceso_inicial_claro'  => $data['proceso_inicial_claro'] ?? null,
-                            'expectativas_cumplidas' => $data['expectativas_cumplidas'] ?? null,
-                            'lo_mas_confuso'         => $data['lo_mas_confuso'] ?? null,
+                            'dificultad_proceso'        => $data['dificultad_proceso'] ?? null,
+                            'facilidad_citacion'        => $data['facilidad_citacion'] ?? null,
+                            'facilidad_citacion_porque' => $data['facilidad_citacion_porque'] ?? null,
+                            'mejora_sugerida'           => $data['mejora_sugerida'] ?? null,
+                            'completo_sin_ayuda'        => $data['completo_sin_ayuda'] ?? null,
+                            'completo_sin_ayuda_porque' => $data['completo_sin_ayuda_porque'] ?? null,
                         ],
                         Feedback::TRIGGER_POST_DILIGENCIA => [
                             'seguridad_juridica' => $data['seguridad_juridica'] ?? null,
