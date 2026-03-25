@@ -102,15 +102,12 @@ class AdminPanelProvider extends PanelProvider
             ->plugins([
                 FilamentShieldPlugin::make(),
                 // FilamentWatchdogPlugin::make(),
-                FilamentSentryFeedbackPlugin::make()
-                    // ->sentryUser(function (): ?SentryUser {
-                    //     return new SentryUser(auth()->user()->name, auth()->user()->email);
-                    // }),
-                    ->colorScheme(ColorScheme::Auto)
-                    ->showBranding(false)
-                    ->showName(true)
-                    ->showEmail(true)
-                    ->enableScreenshot(true),
+                // FilamentSentryFeedbackPlugin::make()
+                //     ->colorScheme(ColorScheme::Auto)
+                //     ->showBranding(false)
+                //     ->showName(true)
+                //     ->showEmail(true)   
+                //     ->enableScreenshot(true),
                 LightSwitchPlugin::make(),
                 FilamentNotificationSoundPlugin::make()
                     ->volume(1.0) // Volume (0.0 to 1.0)

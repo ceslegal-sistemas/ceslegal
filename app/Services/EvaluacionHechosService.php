@@ -274,20 +274,183 @@ SYSTEM;
     }
 
     // ──────────────────────────────────────────────────────────────────────────
+    // Mejora de redacción (asistente de escritura)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Toma un borrador en lenguaje coloquial y devuelve una versión expandida,
+     * factual y objetiva (sin lenguaje jurídico aún — eso lo hace generarHechos).
+     */
+    public function mejorarRedaccion(string $textoBorrador, int $empresaId = 0, array $contexto = []): string
+    {
+        $contextoReglamento = $empresaId > 0
+            ? $this->obtenerContextoReglamento($empresaId)
+            : 'NOTA: Usa el Código Sustantivo del Trabajo colombiano como marco de referencia.';
+
+        // Build "datos conocidos" block so the AI doesn't mark them as [COMPLETAR]
+        $datosConocidos = '';
+        if (!empty($contexto)) {
+            $lineas = ['DATOS YA CONOCIDOS DEL FORMULARIO (úsalos directamente — NO uses [COMPLETAR] para estos):'];
+            if (!empty($contexto['trabajador_nombre'])) {
+                $cargo = !empty($contexto['trabajador_cargo']) ? " — Cargo: {$contexto['trabajador_cargo']}" : '';
+                $lineas[] = "- Trabajador: {$contexto['trabajador_nombre']}{$cargo}";
+            }
+            if (!empty($contexto['fecha_hecho'])) {
+                $lineas[] = "- Fecha del hecho: {$contexto['fecha_hecho']}";
+            }
+            if (!empty($contexto['hora_hecho'])) {
+                $lineas[] = "- Hora aproximada: {$contexto['hora_hecho']}";
+            }
+            if (!empty($contexto['lugar'])) {
+                $lineas[] = "- Lugar: {$contexto['lugar']}";
+            }
+            $datosConocidos = "\n\n" . implode("\n", $lineas);
+        }
+
+        $system = <<<SYSTEM
+Eres un especialista en documentación de procesos disciplinarios laborales colombianos.
+
+CONTEXTO NORMATIVO (solo para identificar la norma aplicable):
+{$contextoReglamento}{$datosConocidos}
+
+TAREA: Reescribir el borrador del empleador de forma ESPECÍFICA y ÚTIL para el expediente disciplinario.
+
+REGLAS CRÍTICAS:
+1. Conserva todos los hechos CONCRETOS que ya están escritos.
+2. NO amplíes con frases genéricas como "omitió sus funciones" o "no cumplió sus responsabilidades" — eso no sirve en un expediente.
+3. Usa los DATOS YA CONOCIDOS listados arriba directamente en el texto. Donde falte información DESCONOCIDA que el proceso necesita, usa: [COMPLETAR: descripción breve de qué dato falta].
+4. Al final del texto, en una línea separada, escribe: "Norma aplicable: [artículo o numeral concreto del reglamento interno o del CST que aplica]"
+5. Tercera persona, tono factual y objetivo.
+6. Máximo 220 palabras.
+
+DATOS QUE SIEMPRE DEBEN APARECER (con [COMPLETAR] solo si no están en DATOS YA CONOCIDOS):
+- Fecha y hora exacta del hecho
+- Lugar específico dentro de la empresa
+- Cómo se enteró el supervisor o la empresa
+- Si el trabajador notificó previamente o dio alguna justificación
+- Consecuencia concreta para la empresa u operación
+
+FORMATO DE SALIDA:
+- Solo texto en párrafos. Sin JSON, sin listas, sin asteriscos, sin encabezados.
+SYSTEM;
+
+        try {
+            $raw = $this->llamarIA($system, [], "Borrador del empleador:\n{$textoBorrador}", textoPlano: true, modeloRapido: true);
+            return trim($this->extraerTextoPlano($raw));
+        } catch (\Exception $e) {
+            Log::error('EvaluacionHechosService::mejorarRedaccion', ['error' => $e->getMessage()]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Analiza el texto dictado y devuelve 1-2 frases de retroalimentación
+     * indicando qué elementos narrativos faltarían para fortalecer el caso.
+     */
+    public function darFeedbackDictado(string $texto, int $empresaId = 0): string
+    {
+        if (mb_strlen(trim($texto)) < 30) {
+            return '';
+        }
+
+        $contextoReglamento = $empresaId > 0
+            ? $this->obtenerContextoReglamento($empresaId)
+            : 'NOTA: Usa el Código Sustantivo del Trabajo colombiano como marco de referencia.';
+
+        $system = <<<SYSTEM
+Eres un abogado laboralista colombiano con 15 años en procesos disciplinarios. Tienes acceso al reglamento interno de la empresa o al CST.
+
+CONTEXTO NORMATIVO:
+{$contextoReglamento}
+
+Escuchas el relato del empleador y das retroalimentación inmediata, concreta y fundamentada en la norma.
+
+Evalúa el relato y señala el criterio más urgente con una cita específica:
+1. CONDUCTA CONCRETA: ¿La descripción es específica o genérica? "No cumplió funciones" no sirve — ¿qué tarea específica omitió?
+2. CIRCUNSTANCIAS: ¿Tiene fecha, hora y lugar exactos?
+3. IMPACTO: ¿Se menciona consecuencia real para la empresa, un cliente, el equipo o el servicio?
+4. NORMA VULNERADA: ¿Se puede vincular a un artículo del reglamento interno o del CST? Cítalo.
+5. PRUEBAS: ¿Hay testigos, cámara, correo, registro de asistencia u otro soporte que se pueda obtener?
+6. HISTORIAL: ¿Es reincidente? ¿Hubo llamado de atención o sanción anterior?
+
+Responde con 1 o 2 frases directas y firmes, citando artículo o norma específica cuando aplique.
+Si el relato ya está completo y sólido, confírmalo con la norma que sustenta el caso.
+
+REGLAS ABSOLUTAS:
+- SOLO el texto que se leerá en voz alta. Sin saludos, sin listas, sin numeración.
+- Máximo 2 frases. Español colombiano profesional y directo.
+- PROHIBIDO: JSON, llaves {}, corchetes [], XML, formatos especiales.
+- Comienza directamente con la recomendación.
+SYSTEM;
+
+        try {
+            $raw = $this->llamarIA($system, [], $texto, textoPlano: true, modeloRapido: true);
+            return trim($this->extraerTextoPlano($raw));
+        } catch (\Exception $e) {
+            Log::error('EvaluacionHechosService::darFeedbackDictado', ['error' => $e->getMessage()]);
+            return '';
+        }
+    }
+
+    /**
+     * Si el modelo devuelve JSON a pesar de las instrucciones, extrae el texto del primer campo string.
+     */
+    private function extraerTextoPlano(string $raw): string
+    {
+        $raw = trim($raw);
+
+        // Si no parece JSON, devolver tal cual
+        if (!str_starts_with($raw, '{') && !str_starts_with($raw, '[')) {
+            return $raw;
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            return $raw;
+        }
+
+        // Si es un array de objetos (e.g. [{borrador,reescrito}, ...]), tomar el primer elemento
+        if (isset($decoded[0]) && is_array($decoded[0])) {
+            $decoded = $decoded[0];
+        }
+
+        // Buscar el primer valor string largo en el objeto
+        $candidatos = ['reescrito', 'suggestion', 'mensaje', 'feedback', 'message', 'texto', 'text', 'content', 'respuesta', 'resultado'];
+        foreach ($candidatos as $key) {
+            if (!empty($decoded[$key]) && is_string($decoded[$key])) {
+                return $decoded[$key];
+            }
+        }
+
+        // Fallback: primer string largo del array/objeto
+        foreach ($decoded as $valor) {
+            if (is_string($valor) && mb_strlen($valor) > 20) {
+                return $valor;
+            }
+        }
+
+        return $raw;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
     // Llamadas a IA — patrón multi-turno con system prompt
     // ──────────────────────────────────────────────────────────────────────────
 
-    private function llamarIA(string $systemPrompt, array $historial, string $mensajeActual): string
+    /**
+     * @param bool $textoPlano  true = respuesta texto libre (mejorar/feedback), false = JSON (conversación principal)
+     * @param bool $modeloRapido true = usar modelo flash/rápido en vez del principal
+     */
+    private function llamarIA(string $systemPrompt, array $historial, string $mensajeActual, bool $textoPlano = false, bool $modeloRapido = false): string
     {
         return match ($this->provider) {
-            'openai'    => $this->llamarOpenAI($systemPrompt, $historial, $mensajeActual),
+            'openai'    => $this->llamarOpenAI($systemPrompt, $historial, $mensajeActual, $textoPlano),
             'anthropic' => $this->llamarAnthropic($systemPrompt, $historial, $mensajeActual),
-            'gemini'    => $this->llamarGemini($systemPrompt, $historial, $mensajeActual),
+            'gemini'    => $this->llamarGemini($systemPrompt, $historial, $mensajeActual, $textoPlano, $modeloRapido),
             default     => throw new \Exception("Proveedor de IA no soportado: {$this->provider}"),
         };
     }
 
-    private function llamarOpenAI(string $systemPrompt, array $historial, string $mensajeActual): string
+    private function llamarOpenAI(string $systemPrompt, array $historial, string $mensajeActual, bool $textoPlano = false): string
     {
         $messages = [['role' => 'system', 'content' => $systemPrompt]];
 
@@ -307,8 +470,8 @@ SYSTEM;
             'temperature' => 0.3,
         ];
 
-        // JSON mode — fuerza respuesta JSON válida en modelos compatibles
-        if (str_contains($this->config['model'] ?? '', 'gpt')) {
+        // JSON mode solo cuando se espera JSON estructurado
+        if (!$textoPlano && str_contains($this->config['model'] ?? '', 'gpt')) {
             $payload['response_format'] = ['type' => 'json_object'];
         }
 
@@ -355,11 +518,19 @@ SYSTEM;
         return $response->json('content.0.text');
     }
 
-    private function llamarGemini(string $systemPrompt, array $historial, string $mensajeActual): string
+    private function llamarGemini(string $systemPrompt, array $historial, string $mensajeActual, bool $textoPlano = false, bool $modeloRapido = false): string
     {
         $apiKey = $this->config['api_key'];
-        $model  = $this->config['model'];
-        $url    = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+
+        // Para tareas rápidas (feedback, mejora de texto) usar flash; para conversación principal usar el modelo configurado
+        if ($modeloRapido) {
+            $baseModel = $this->config['model'] ?? 'gemini-2.5-pro';
+            $model = str_contains($baseModel, 'flash') ? $baseModel : 'gemini-2.5-flash';
+        } else {
+            $model = $this->config['model'];
+        }
+
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
         $contents = [];
 
@@ -375,18 +546,24 @@ SYSTEM;
             'parts' => [['text' => $mensajeActual]],
         ];
 
+        $generationConfig = [
+            'temperature'     => 0.3,
+            'maxOutputTokens' => $this->config['max_tokens'] ?? 1500,
+        ];
+
+        // JSON mode solo para la conversación principal que espera JSON estructurado
+        if (! $textoPlano) {
+            $generationConfig['responseMimeType'] = 'application/json';
+        }
+
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
-        ])->timeout(30)->post($url, [
+        ])->timeout($modeloRapido ? 20 : 60)->post($url, [
             'system_instruction' => [
                 'parts' => [['text' => $systemPrompt]],
             ],
-            'contents'          => $contents,
-            'generationConfig'  => [
-                'temperature'      => 0.3,
-                'maxOutputTokens'  => $this->config['max_tokens'] ?? 1500,
-                'responseMimeType' => 'application/json',
-            ],
+            'contents'         => $contents,
+            'generationConfig' => $generationConfig,
         ]);
 
         if (!$response->successful()) {

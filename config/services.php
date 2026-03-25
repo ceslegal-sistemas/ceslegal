@@ -35,6 +35,11 @@ return [
         ],
     ],
 
+    'elevenlabs' => [
+        'api_key'  => env('ELEVENLABS_API_KEY'),
+        'voice_id' => env('ELEVENLABS_VOICE_ID', 'pNInz6obpgDQGcFmaJgB'),
+    ],
+
     'ia' => [
         'provider' => env('IA_PROVIDER', 'gemini'),
         'openai' => [

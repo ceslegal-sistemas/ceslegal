@@ -10,6 +10,14 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::post('/tts', \App\Http\Controllers\TtsController::class)
+    ->middleware('auth')
+    ->name('tts');
+
+Route::post('/transcribir', \App\Http\Controllers\TranscribeController::class)
+    ->middleware('auth')
+    ->name('transcribir');
+
 Route::get('/descargos/{token}', [DescargoPublicoController::class, 'mostrarAcceso'])
     ->name('descargos.acceso');
 
