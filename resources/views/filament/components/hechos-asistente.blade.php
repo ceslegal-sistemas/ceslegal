@@ -79,7 +79,7 @@
                         if (self.recording || self.transcribing) return;
                         if (self.feedbackTimer) clearTimeout(self.feedbackTimer);
                         val = (val || '').trim();
-                        if (val.length < 60) return;
+                        if (val.length < 35) return;
                         self.feedbackTimer = setTimeout(function () {
                             self.$wire.call('obtenerFeedbackVoz');
                         }, 2000);
