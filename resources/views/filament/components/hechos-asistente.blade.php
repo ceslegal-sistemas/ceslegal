@@ -212,6 +212,25 @@
         });
     });
 
+    // ── Desbloquear audio en el primer gesto del usuario ─────────────────────
+    var hcaAudioUnlocked = false;
+    function hcaUnlockAudio() {
+        if (hcaAudioUnlocked) return;
+        hcaAudioUnlocked = true;
+        // Crear y reproducir un AudioContext vacío para desbloquear autoplay
+        try {
+            var ctx = new (window.AudioContext || window.webkitAudioContext)();
+            var buf = ctx.createBuffer(1, 1, 22050);
+            var src = ctx.createBufferSource();
+            src.buffer = buf;
+            src.connect(ctx.destination);
+            src.start(0);
+            ctx.resume().then(function () { ctx.close(); });
+        } catch(e) {}
+    }
+    document.addEventListener('keydown', hcaUnlockAudio, { once: false, passive: true });
+    document.addEventListener('touchstart', hcaUnlockAudio, { once: false, passive: true });
+
     // ── TTS: ElevenLabs con fallback al browser ──────────────────────────────
     function hcaHablar(texto) {
         if (!texto) { console.log('[TTS] sin texto'); return; }
@@ -229,7 +248,6 @@
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrfToken.content,
-                'Accept': 'audio/mpeg',
             },
             body: JSON.stringify({ texto: texto }),
         })

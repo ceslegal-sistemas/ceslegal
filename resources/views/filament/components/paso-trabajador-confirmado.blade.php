@@ -29,25 +29,38 @@
         font-size: 1.0625rem;
         font-weight: 700;
         color: #f1f5f9;
+        word-break: break-word;
+        overflow-wrap: anywhere;
     }
 
     .ptc-meta {
         margin: 0 0 .625rem;
         font-size: .8125rem;
         color: #94a3b8;
+        word-break: break-word;
+        overflow-wrap: anywhere;
     }
 
     .ptc-email-row {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: .4rem;
         font-size: .8125rem;
         color: #94a3b8;
+        flex-wrap: wrap;
+    }
+
+    .ptc-email-addr {
+        word-break: break-all;
+        overflow-wrap: anywhere;
+        min-width: 0;
     }
 
     .ptc-email-note {
         font-size: .7rem;
         color: #64748b;
+        width: 100%;
+        padding-left: 20px; /* align under email, past icon */
     }
 
     html:not(.dark) .ptc-card {
@@ -110,8 +123,8 @@
                 data-pt-light="primary:#374151,secondary:#6b7280"
                 style="width:16px;height:16px;flex-shrink:0">
             </lord-icon>
-            <span>{{ $trabajador->email }}</span>
-            <span class="ptc-email-note">— La citación se enviará a este correo</span>
+            <span class="ptc-email-addr">{{ $trabajador->email }}</span>
+            <span class="ptc-email-note">La citación se enviará a este correo</span>
         </div>
     @endif
 

@@ -749,7 +749,6 @@ class CreateProcesoDisciplinario extends CreateRecord
             $mejorado = app(EvaluacionHechosService::class)->mejorarRedaccion($texto, $empresaId, $contexto);
             $this->data['descripcion_hecho'] = $mejorado;
             $this->analizarDescripcion();
-            $this->dispatch('hablar-feedback', texto: 'Texto mejorado. Revise si refleja correctamente lo ocurrido.');
 
             Notification::make()->success()
                 ->title('Texto mejorado')

@@ -15,40 +15,36 @@ class TranscribeController extends Controller
             'tipo'  => 'sometimes|string',
         ]);
 
-        $apiKey = config('services.ia.gemini.api_key');
-        $url    = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={$apiKey}";
+        $apiKey = config('services.elevenlabs.api_key');
+        $mime   = explode(';', $validated['tipo'] ?? 'audio/webm')[0];
 
-        // Gemini solo acepta el tipo base, sin parámetros de codec (e.g. 'audio/webm;codecs=opus' → 'audio/webm')
-        $mime = explode(';', $validated['tipo'] ?? 'audio/webm')[0];
+        // Extensión según MIME
+        $ext = match ($mime) {
+            'audio/mp4'  => 'mp4',
+            'audio/ogg'  => 'ogg',
+            'audio/wav'  => 'wav',
+            'audio/mpeg' => 'mp3',
+            default      => 'webm',
+        };
 
         try {
-            $response = Http::withHeaders(['Content-Type' => 'application/json'])
+            $response = Http::withHeaders(['xi-api-key' => $apiKey])
                 ->timeout(25)
-                ->post($url, [
-                    'contents' => [[
-                        'parts' => [
-                            ['text' => 'Transcribe el siguiente audio de voz en español colombiano. Devuelve ÚNICAMENTE el texto transcrito, sin comentarios ni puntuación extra.'],
-                            ['inline_data' => [
-                                'mime_type' => $mime,
-                                'data'      => $validated['audio'],
-                            ]],
-                        ],
-                    ]],
-                    'generationConfig' => [
-                        'temperature'     => 0.1,
-                        'maxOutputTokens' => 500,
-                    ],
+                ->attach('file', base64_decode($validated['audio']), "audio.{$ext}", ['Content-Type' => $mime])
+                ->post('https://api.elevenlabs.io/v1/speech-to-text', [
+                    'model_id'      => 'scribe_v1',
+                    'language_code' => 'es',
                 ]);
 
             if (! $response->successful()) {
-                Log::error('TranscribeController: Gemini error', [
+                Log::error('TranscribeController: ElevenLabs error', [
                     'status' => $response->status(),
                     'body'   => $response->body(),
                 ]);
-                return response()->json(['error' => 'Transcripción fallida'], 500);
+                return response()->json(['error' => 'Transcripción fallida', 'detail' => $response->body()], 500);
             }
 
-            $texto = $response->json('candidates.0.content.parts.0.text') ?? '';
+            $texto = $response->json('text') ?? '';
             return response()->json(['texto' => trim($texto)]);
         } catch (\Exception $e) {
             Log::error('TranscribeController: excepción', ['error' => $e->getMessage()]);

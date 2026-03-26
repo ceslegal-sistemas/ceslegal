@@ -5,7 +5,7 @@
     /* Embers (light mode) — golden sparks rising from bottom */
     $emberColors = ['200,60,5', '230,90,10', '255,130,20', '180,45,0', '240,110,15', '210,70,5'];
     $embers = [];
-    for ($i = 0; $i < 48; $i++) {
+    for ($i = 0; $i < 28; $i++) {
         $c = $emberColors[array_rand($emberColors)];
         $sz = round(mt_rand(15, 45) / 10, 1); // 1.5 – 4.5 px
         $embers[] = [
@@ -22,7 +22,7 @@
     /* Fireflies — generated server-side for deterministic layout */
     $ffColors = ['201,168,76', '255,235,120', '255,255,200', '190,215,255', '245,195,255', '255,210,90'];
     $fireflies = [];
-    for ($i = 0; $i < 52; $i++) {
+    for ($i = 0; $i < 28; $i++) {
         $c = $ffColors[array_rand($ffColors)];
         $sz = round(mt_rand(20, 60) / 10, 1); // 2 – 6 px
         $g = (int) (($sz * mt_rand(35, 65)) / 10); // glow radius
@@ -215,10 +215,8 @@
             position: relative;
             overflow: hidden;
             transform-style: preserve-3d;
-            background: rgba(255, 255, 255, .055);
+            background: rgba(255, 255, 255, .07);
             border: 1px solid rgba(255, 255, 255, .1);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
             display: flex;
             align-items: flex-start;
             gap: .875rem;
@@ -375,7 +373,8 @@
         .bv-next-hint {
             display: flex;
             align-items: center;
-            gap: .5rem;
+            gap: .625rem;
+            flex-wrap: wrap;
             margin-top: .875rem;
             padding: .75rem 1rem;
             border-radius: .875rem;
@@ -384,6 +383,11 @@
             font-size: .8125rem;
             color: #94a3b8;
             line-height: 1.5;
+        }
+
+        .bv-next-hint-text {
+            flex: 1;
+            min-width: 200px;
         }
 
         html:not(.dark) .bv-next-hint {
@@ -617,13 +621,13 @@
 
         <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
             <div class="bv-hero-orb-blue"
-                style="position:absolute;width:280px;height:280px;top:-70px;right:-50px;border-radius:50%;background:radial-gradient(circle,rgba(30,58,138,.55),transparent 70%);filter:blur(44px);transition:background .4s;">
+                style="position:absolute;width:280px;height:280px;top:-70px;right:-50px;border-radius:50%;background:radial-gradient(circle,rgba(30,58,138,.55),transparent 70%);filter:blur(28px);transition:background .4s;">
             </div>
             <div class="bv-hero-orb-gold"
-                style="position:absolute;width:200px;height:200px;bottom:-50px;left:-40px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.25),transparent 70%);filter:blur(40px);transition:background .4s;">
+                style="position:absolute;width:200px;height:200px;bottom:-50px;left:-40px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.25),transparent 70%);filter:blur(26px);transition:background .4s;">
             </div>
             <div class="bv-hero-orb-extra"
-                style="position:absolute;width:180px;height:180px;top:30%;left:20%;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.22),transparent 70%);filter:blur(50px);">
+                style="position:absolute;width:180px;height:180px;top:30%;left:20%;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.22),transparent 70%);filter:blur(32px);">
             </div>
 
             {{-- ── Embers (light mode) ── --}}
@@ -734,23 +738,16 @@
         </div>
 
         <div class="bv-next-hint bv-a3">
-            {{-- <svg style="width:16px;height:16px;color:#c9a84c;flex-shrink:0" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg> --}}
-            Al hacer clic en <strong>Siguiente,</strong> comenzará el <strong>Paso 1</strong>. El proceso completo toma
-            aproximadamente 10 minutos.
-            {{-- <script src="https://cdn.lordicon.com/lordicon.js"></script>
-            <lord-icon src="https://cdn.lordicon.com/moedrfvp.json" trigger="loop" delay="0" stroke="bold"
-                style="width:30px;height:30px">
-            </lord-icon> --}}
-                            <lord-icon src="https://cdn.lordicon.com/moedrfvp.json" trigger="loop" delay="500" stroke="bold"
-                    colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
-                    data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                    data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
-                    style="width:30px;height:30px;flex-shrink:0">
-                </lord-icon>
+            <lord-icon src="https://cdn.lordicon.com/moedrfvp.json" trigger="loop" delay="500" stroke="bold"
+                colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
+                data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                style="width:28px;height:28px;flex-shrink:0">
+            </lord-icon>
+            <span class="bv-next-hint-text">
+                Al hacer clic en <strong>Siguiente,</strong> comenzará el <strong>Paso 1</strong>.
+                El proceso completo toma aproximadamente 10 minutos.
+            </span>
         </div>
     </div>
 
@@ -796,7 +793,7 @@
         function init() {
             /* ── Particle network ── */
             pts = [];
-            for (var i = 0; i < 42; i++) {
+            for (var i = 0; i < 22; i++) {
                 var spd = Math.random() * .45 + .2;
                 var ang = Math.random() * Math.PI * 2;
                 pts.push({
@@ -859,7 +856,7 @@
                     var dx = pts[a].x - pts[b].x,
                         dy = pts[a].y - pts[b].y;
                     var d = Math.sqrt(dx * dx + dy * dy);
-                    if (d < 110) {
+                    if (d < 80) {
                         ctx.beginPath();
                         ctx.moveTo(pts[a].x, pts[a].y);
                         ctx.lineTo(pts[b].x, pts[b].y);
