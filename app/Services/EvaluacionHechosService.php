@@ -344,6 +344,62 @@ SYSTEM;
     }
 
     /**
+     * Para cada marcador [COMPLETAR: ...] en el texto genera 3 opciones cortas.
+     * Retorna array de ['marker' => '[COMPLETAR: ...]', 'label' => '...', 'opciones' => [...]]
+     */
+    public function generarSugerenciasCompletado(string $texto): array
+    {
+        preg_match_all('/\[COMPLETAR:\s*([^\]]+)\]/', $texto, $matches, PREG_SET_ORDER);
+        if (empty($matches)) return [];
+
+        // Deduplicar por label
+        $vistos = [];
+        $campos = [];
+        foreach ($matches as $m) {
+            $label = trim($m[1]);
+            if (!isset($vistos[$label])) {
+                $vistos[$label] = true;
+                $campos[] = ['marker' => $m[0], 'label' => $label];
+            }
+        }
+
+        $lista = implode("\n", array_map(
+            fn($i, $c) => ($i + 1) . '. ' . $c['label'],
+            array_keys($campos),
+            $campos
+        ));
+
+        $system = <<<SYS
+Eres asistente de procesos disciplinarios laborales colombianos.
+Para cada campo faltante, genera 3 opciones MUY CORTAS (máx. 6 palabras), concretas y plausibles en español.
+Responde SOLO JSON válido:
+[{"idx":1,"opciones":["op1","op2","op3"]},{"idx":2,"opciones":["op1","op2","op3"]}]
+SYS;
+
+        $user = "Texto:\n{$texto}\n\nCampos:\n{$lista}";
+
+        try {
+            $raw = $this->llamarIA($system, [], $user, textoPlano: false, modeloRapido: true);
+            // Extraer array JSON aunque venga envuelto
+            preg_match('/\[.*\]/s', $raw, $jm);
+            $decoded = json_decode($jm[0] ?? '[]', true);
+            if (!is_array($decoded)) return [];
+
+            foreach ($decoded as $item) {
+                $i = (int)($item['idx'] ?? 0) - 1;
+                if (isset($campos[$i])) {
+                    $campos[$i]['opciones'] = array_slice((array)($item['opciones'] ?? []), 0, 3);
+                }
+            }
+
+            return array_values(array_filter($campos, fn($c) => !empty($c['opciones'])));
+        } catch (\Exception $e) {
+            Log::warning('generarSugerenciasCompletado falló', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
      * Analiza el texto dictado y devuelve 1-2 frases de retroalimentación
      * indicando qué elementos narrativos faltarían para fortalecer el caso.
      */

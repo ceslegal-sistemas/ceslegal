@@ -28,14 +28,16 @@ class CreateProcesoDisciplinario extends CreateRecord
     // Estado del formulario de hechos
     // ──────────────────────────────────────────────────────────────────────────
 
-    public bool   $chatListo           = false;
-    public bool   $generandoHechos     = false;
-    public bool   $mejorando           = false;
-    public string $feedbackVoz         = '';
+    public bool   $chatListo              = false;
+    public bool   $generandoHechos        = false;
+    public bool   $mejorando              = false;
+    public string $feedbackVoz            = '';
     /** @var array{hechos: string, fecha_ocurrencia: string|null, resumen: string}|array */
-    public array  $datosExtraidos      = [];
+    public array  $datosExtraidos         = [];
     /** @var array<int, array{ok: bool, texto: string}> */
-    public array  $analisisDescripcion = [];
+    public array  $analisisDescripcion    = [];
+    /** @var array<int, array{marker: string, label: string, opciones: string[]}> */
+    public array  $sugerenciasCompletado  = [];
 
     // ──────────────────────────────────────────────────────────────────────────
     // Wizard steps
@@ -398,6 +400,16 @@ class CreateProcesoDisciplinario extends CreateRecord
                                             view('filament.components.hechos-asistente')->render()
                                         ))
                                         ->columnSpan(2),
+
+                                    Forms\Components\Placeholder::make('sugerencias_completado')
+                                        ->label('')
+                                        ->content(fn($livewire) => !empty($livewire->sugerenciasCompletado)
+                                            ? new HtmlString(view('filament.components.paso-hechos-completar', [
+                                                'sugerencias' => $livewire->sugerenciasCompletado,
+                                            ])->render())
+                                            : new HtmlString('')
+                                        )
+                                        ->columnSpan(2),
                                 ]),
                         ]),
                 ]),
@@ -728,7 +740,9 @@ class CreateProcesoDisciplinario extends CreateRecord
         }
 
         if (!empty($this->data['fecha_hecho'])) {
-            $contexto['fecha_hecho'] = \Carbon\Carbon::parse($this->data['fecha_hecho'])->format('d \d\e F \d\e Y');
+            $contexto['fecha_hecho'] = Carbon::parse($this->data['fecha_hecho'])
+                ->locale('es')
+                ->isoFormat('D [de] MMMM [de] YYYY');
         }
 
         if (!empty($this->data['hora_aproximada_hecho'])) {
@@ -751,13 +765,17 @@ class CreateProcesoDisciplinario extends CreateRecord
         }
 
         try {
-            $mejorado = app(EvaluacionHechosService::class)->mejorarRedaccion($texto, $empresaId, $contexto);
+            $service  = app(EvaluacionHechosService::class);
+            $mejorado = $service->mejorarRedaccion($texto, $empresaId, $contexto);
             $this->data['descripcion_hecho'] = $mejorado;
             $this->analizarDescripcion();
 
+            // Generar sugerencias IA para los campos [COMPLETAR] que quedaron
+            $this->sugerenciasCompletado = $service->generarSugerenciasCompletado($mejorado);
+
             Notification::make()->success()
                 ->title('Texto mejorado')
-                ->body('Revise y edite si algo no refleja correctamente lo ocurrido.')
+                ->body('Revise y complete los campos marcados con las sugerencias de abajo.')
                 ->send();
         } catch (\Exception $e) {
             Log::error('mejorarDescripcion', ['error' => $e->getMessage()]);
@@ -768,6 +786,19 @@ class CreateProcesoDisciplinario extends CreateRecord
         } finally {
             $this->mejorando = false;
         }
+    }
+
+    public function aplicarSugerencia(string $marker, string $valor): void
+    {
+        $texto = $this->data['descripcion_hecho'] ?? '';
+        $this->data['descripcion_hecho'] = str_replace($marker, $valor, $texto);
+
+        // Quitar esta sugerencia de la lista
+        $this->sugerenciasCompletado = array_values(
+            array_filter($this->sugerenciasCompletado, fn($s) => $s['marker'] !== $marker)
+        );
+
+        $this->analizarDescripcion();
     }
 
     public function analizarDescripcion(): void
