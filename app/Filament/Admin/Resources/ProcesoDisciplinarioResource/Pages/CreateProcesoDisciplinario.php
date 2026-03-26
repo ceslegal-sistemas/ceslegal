@@ -693,6 +693,53 @@ class CreateProcesoDisciplinario extends CreateRecord
         }
     }
 
+    private function buildContextoFormulario(): array
+    {
+        $contexto    = [];
+        $lugarLabels = [
+            'planta'         => 'Planta de producción',
+            'oficina'        => 'Oficina',
+            'sede_principal' => 'Sede principal',
+            'bodega'         => 'Bodega / Almacén',
+            'externo'        => 'Lugar externo a la empresa',
+            'virtual'        => 'Entorno virtual / remoto',
+        ];
+
+        $trabajadorId = $this->data['trabajador_id'] ?? null;
+        if ($trabajadorId) {
+            $t = Trabajador::find($trabajadorId);
+            if ($t) {
+                $contexto['trabajador_nombre'] = $t->nombre_completo;
+                $contexto['trabajador_cargo']  = $t->cargo ?? '';
+            }
+        }
+
+        if (!empty($this->data['fecha_hecho'])) {
+            $contexto['fecha_hecho'] = Carbon::parse($this->data['fecha_hecho'])
+                ->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
+        }
+        if (!empty($this->data['hora_aproximada_hecho'])) {
+            $contexto['hora_hecho'] = $this->data['hora_aproximada_hecho'];
+        }
+        $lugarTipo = $this->data['lugar_tipo'] ?? null;
+        if ($lugarTipo) {
+            $contexto['lugar'] = $lugarTipo === 'otro'
+                ? ($this->data['lugar_libre'] ?? '')
+                : ($lugarLabels[$lugarTipo] ?? $lugarTipo);
+        }
+        $enHorario = $this->data['en_horario_laboral'] ?? null;
+        if ($enHorario) {
+            $contexto['en_horario'] = match($enHorario) {
+                'si'      => 'Sí',
+                'no'      => 'No',
+                'parcial' => 'Parcialmente',
+                default   => $enHorario,
+            };
+        }
+
+        return $contexto;
+    }
+
     public function obtenerFeedbackVoz(): void
     {
         $texto = trim($this->data['descripcion_hecho'] ?? '');
@@ -701,7 +748,8 @@ class CreateProcesoDisciplinario extends CreateRecord
             return;
         }
         $empresaId = (int) ($this->data['empresa_id'] ?? 0);
-        $this->feedbackVoz = app(EvaluacionHechosService::class)->darFeedbackDictado($texto, $empresaId);
+        $contexto  = $this->buildContextoFormulario();
+        $this->feedbackVoz = app(EvaluacionHechosService::class)->darFeedbackDictado($texto, $empresaId, $contexto);
         if ($this->feedbackVoz) {
             // Para TTS solo hablar la primera oración (evitar leer el análisis completo)
             $primeraOracion = preg_split('/(?<=[.!?])\s+/', trim($this->feedbackVoz))[0] ?? $this->feedbackVoz;
@@ -726,43 +774,7 @@ class CreateProcesoDisciplinario extends CreateRecord
 
         $this->mejorando = true;
         $empresaId = (int) ($this->data['empresa_id'] ?? 0);
-
-        // Build context from already-filled wizard steps so the AI doesn't show [COMPLETAR] for known data
-        $contexto = [];
-
-        $trabajadorId = $this->data['trabajador_id'] ?? null;
-        if ($trabajadorId) {
-            $t = Trabajador::find($trabajadorId);
-            if ($t) {
-                $contexto['trabajador_nombre'] = $t->nombre_completo;
-                $contexto['trabajador_cargo']  = $t->cargo ?? '';
-            }
-        }
-
-        if (!empty($this->data['fecha_hecho'])) {
-            $contexto['fecha_hecho'] = Carbon::parse($this->data['fecha_hecho'])
-                ->locale('es')
-                ->isoFormat('D [de] MMMM [de] YYYY');
-        }
-
-        if (!empty($this->data['hora_aproximada_hecho'])) {
-            $contexto['hora_hecho'] = $this->data['hora_aproximada_hecho'];
-        }
-
-        $lugarLabels = [
-            'planta'         => 'Planta de producción',
-            'oficina'        => 'Oficina',
-            'sede_principal' => 'Sede principal',
-            'bodega'         => 'Bodega / Almacén',
-            'externo'        => 'Lugar externo a la empresa',
-            'virtual'        => 'Entorno virtual / remoto',
-        ];
-        $lugarTipo = $this->data['lugar_tipo'] ?? null;
-        if ($lugarTipo) {
-            $contexto['lugar'] = $lugarTipo === 'otro'
-                ? ($this->data['lugar_libre'] ?? '')
-                : ($lugarLabels[$lugarTipo] ?? $lugarTipo);
-        }
+        $contexto  = $this->buildContextoFormulario();
 
         try {
             $service  = app(EvaluacionHechosService::class);
@@ -770,8 +782,8 @@ class CreateProcesoDisciplinario extends CreateRecord
             $this->data['descripcion_hecho'] = $mejorado;
             $this->analizarDescripcion();
 
-            // Generar sugerencias IA para los campos [COMPLETAR] que quedaron
-            $this->sugerenciasCompletado = $service->generarSugerenciasCompletado($mejorado);
+            // Generar sugerencias IA para los campos [COMPLETAR] que quedaron (excluye datos ya capturados)
+            $this->sugerenciasCompletado = $service->generarSugerenciasCompletado($mejorado, $contexto);
 
             Notification::make()->success()
                 ->title('Texto mejorado')

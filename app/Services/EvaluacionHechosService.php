@@ -175,6 +175,25 @@ RESPONDE SIEMPRE EN JSON VÁLIDO sin bloques de código:
 SYSTEM;
     }
 
+    /**
+     * Construye un bloque de texto con los datos ya capturados en el formulario,
+     * para evitar que la IA los pida de nuevo.
+     */
+    private function buildDatosCapturadosBloque(array $contexto, string $encabezado = 'DATOS YA CAPTURADOS:'): string
+    {
+        if (empty($contexto)) return '';
+        $lineas = [$encabezado];
+        if (!empty($contexto['trabajador_nombre'])) {
+            $cargo = !empty($contexto['trabajador_cargo']) ? " ({$contexto['trabajador_cargo']})" : '';
+            $lineas[] = "- Trabajador: {$contexto['trabajador_nombre']}{$cargo}";
+        }
+        if (!empty($contexto['fecha_hecho']))  $lineas[] = "- Fecha del hecho: {$contexto['fecha_hecho']}";
+        if (!empty($contexto['hora_hecho']))   $lineas[] = "- Hora aproximada: {$contexto['hora_hecho']}";
+        if (!empty($contexto['lugar']))        $lineas[] = "- Lugar: {$contexto['lugar']}";
+        if (!empty($contexto['en_horario']))   $lineas[] = "- En horario laboral: {$contexto['en_horario']}";
+        return count($lineas) > 1 ? "\n\n" . implode("\n", $lineas) : '';
+    }
+
     private function obtenerContextoReglamento(int $empresaId): string
     {
         $texto = app(ReglamentoInternoService::class)->getTextoReglamento($empresaId);
@@ -347,20 +366,37 @@ SYSTEM;
      * Para cada marcador [COMPLETAR: ...] en el texto genera 3 opciones cortas.
      * Retorna array de ['marker' => '[COMPLETAR: ...]', 'label' => '...', 'opciones' => [...]]
      */
-    public function generarSugerenciasCompletado(string $texto): array
+    public function generarSugerenciasCompletado(string $texto, array $contexto = []): array
     {
         preg_match_all('/\[COMPLETAR:\s*([^\]]+)\]/', $texto, $matches, PREG_SET_ORDER);
         if (empty($matches)) return [];
 
-        // Deduplicar por label
+        // Palabras clave de datos ya capturados — no generar sugerencias para ellos
+        $excluirSiContexto = [];
+        if (!empty($contexto['fecha_hecho']))       $excluirSiContexto[] = 'fecha';
+        if (!empty($contexto['hora_hecho']))        $excluirSiContexto[] = 'hora';
+        if (!empty($contexto['lugar']))             $excluirSiContexto[] = ['lugar', 'ubicación', 'ubicacion', 'sitio'];
+        if (!empty($contexto['trabajador_nombre'])) $excluirSiContexto[] = ['nombre', 'trabajador', 'nombre completo'];
+        $excluirSiContexto = array_merge(...array_map(
+            fn($v) => is_array($v) ? $v : [$v],
+            $excluirSiContexto
+        ));
+
+        // Deduplicar por label y excluir datos ya capturados
         $vistos = [];
         $campos = [];
         foreach ($matches as $m) {
             $label = trim($m[1]);
-            if (!isset($vistos[$label])) {
-                $vistos[$label] = true;
-                $campos[] = ['marker' => $m[0], 'label' => $label];
+            if (isset($vistos[$label])) continue;
+            // Omitir si el label menciona datos ya capturados
+            $labelLower = mb_strtolower($label);
+            $omitir = false;
+            foreach ($excluirSiContexto as $kw) {
+                if (str_contains($labelLower, $kw)) { $omitir = true; break; }
             }
+            if ($omitir) continue;
+            $vistos[$label] = true;
+            $campos[] = ['marker' => $m[0], 'label' => $label];
         }
 
         $lista = implode("\n", array_map(
@@ -403,7 +439,7 @@ SYS;
      * Analiza el texto dictado y devuelve 1-2 frases de retroalimentación
      * indicando qué elementos narrativos faltarían para fortalecer el caso.
      */
-    public function darFeedbackDictado(string $texto, int $empresaId = 0): string
+    public function darFeedbackDictado(string $texto, int $empresaId = 0, array $contexto = []): string
     {
         if (mb_strlen(trim($texto)) < 30) {
             return '';
@@ -413,21 +449,26 @@ SYS;
             ? $this->obtenerContextoReglamento($empresaId)
             : 'NOTA: Usa el Código Sustantivo del Trabajo colombiano como marco de referencia.';
 
+        // Construir bloque de datos ya capturados
+        $datosYaCapturados = $this->buildDatosCapturadosBloque($contexto,
+            'DATOS YA REGISTRADOS EN EL FORMULARIO (NO pidas estos datos — ya están capturados):'
+        );
+
         $system = <<<SYSTEM
 Eres un abogado laboralista colombiano con 15 años en procesos disciplinarios. Tienes acceso al reglamento interno de la empresa o al CST.
 
 CONTEXTO NORMATIVO:
-{$contextoReglamento}
+{$contextoReglamento}{$datosYaCapturados}
 
 Escuchas el relato del empleador y das retroalimentación inmediata, concreta y fundamentada en la norma.
 
-Evalúa el relato y señala el criterio más urgente con una cita específica:
-1. CONDUCTA CONCRETA: ¿La descripción es específica o genérica? "No cumplió funciones" no sirve — ¿qué tarea específica omitió?
-2. CIRCUNSTANCIAS: ¿Tiene fecha, hora y lugar exactos?
-3. IMPACTO: ¿Se menciona consecuencia real para la empresa, un cliente, el equipo o el servicio?
-4. NORMA VULNERADA: ¿Se puede vincular a un artículo del reglamento interno o del CST? Cítalo.
-5. PRUEBAS: ¿Hay testigos, cámara, correo, registro de asistencia u otro soporte que se pueda obtener?
-6. HISTORIAL: ¿Es reincidente? ¿Hubo llamado de atención o sanción anterior?
+Evalúa el relato y señala el criterio más urgente con una cita específica.
+ENFÓCATE SOLO en lo que falta describir en el relato — NO menciones datos ya capturados arriba:
+1. CONDUCTA CONCRETA: ¿La descripción es específica o genérica? "No cumplió funciones" no sirve — ¿qué hizo o dejó de hacer exactamente?
+2. IMPACTO: ¿Se menciona consecuencia real para la empresa, un cliente, el equipo o el servicio?
+3. NORMA VULNERADA: ¿Se puede vincular a un artículo del reglamento interno o del CST? Cítalo.
+4. PRUEBAS: ¿Hay testigos, cámara, correo, registro de asistencia u otro soporte que se pueda obtener?
+5. HISTORIAL: ¿Es reincidente? ¿Hubo llamado de atención o sanción anterior?
 
 Responde con 1 o 2 frases directas y firmes, citando artículo o norma específica cuando aplique.
 Si el relato ya está completo y sólido, confírmalo con la norma que sustenta el caso.
