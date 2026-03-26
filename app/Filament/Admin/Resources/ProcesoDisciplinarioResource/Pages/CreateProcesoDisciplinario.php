@@ -691,7 +691,12 @@ class CreateProcesoDisciplinario extends CreateRecord
         $empresaId = (int) ($this->data['empresa_id'] ?? 0);
         $this->feedbackVoz = app(EvaluacionHechosService::class)->darFeedbackDictado($texto, $empresaId);
         if ($this->feedbackVoz) {
-            $this->dispatch('hablar-feedback', texto: $this->feedbackVoz);
+            // Para TTS solo hablar la primera oración (evitar leer el análisis completo)
+            $primeraOracion = preg_split('/(?<=[.!?])\s+/', trim($this->feedbackVoz))[0] ?? $this->feedbackVoz;
+            if (mb_strlen($primeraOracion) > 180) {
+                $primeraOracion = mb_substr($primeraOracion, 0, 180) . '…';
+            }
+            $this->dispatch('hablar-feedback', texto: $primeraOracion);
         }
     }
 

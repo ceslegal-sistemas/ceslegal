@@ -82,7 +82,7 @@
                         if (val.length < 60) return;
                         self.feedbackTimer = setTimeout(function () {
                             self.$wire.call('obtenerFeedbackVoz');
-                        }, 5000);
+                        }, 2000);
                     });
                 },
 
@@ -212,70 +212,10 @@
         });
     });
 
-    // ── Desbloquear audio en el primer gesto del usuario ─────────────────────
-    var hcaAudioUnlocked = false;
-    function hcaUnlockAudio() {
-        if (hcaAudioUnlocked) return;
-        hcaAudioUnlocked = true;
-        // Crear y reproducir un AudioContext vacío para desbloquear autoplay
-        try {
-            var ctx = new (window.AudioContext || window.webkitAudioContext)();
-            var buf = ctx.createBuffer(1, 1, 22050);
-            var src = ctx.createBufferSource();
-            src.buffer = buf;
-            src.connect(ctx.destination);
-            src.start(0);
-            ctx.resume().then(function () { ctx.close(); });
-        } catch(e) {}
-    }
-    document.addEventListener('keydown', hcaUnlockAudio, { once: false, passive: true });
-    document.addEventListener('touchstart', hcaUnlockAudio, { once: false, passive: true });
-
-    // ── TTS: ElevenLabs con fallback al browser ──────────────────────────────
+    // ── TTS: browser speechSynthesis (instantáneo, sin API externa) ──────────
     function hcaHablar(texto) {
-        if (!texto) { console.log('[TTS] sin texto'); return; }
-        console.log('[TTS] intentando ElevenLabs para:', texto.substring(0, 60));
-
-        var csrfToken = document.querySelector('meta[name="csrf-token"]');
-        if (!csrfToken) {
-            console.warn('[TTS] no se encontró <meta name="csrf-token">, usando browser TTS');
-            hcaHablarBrowser(texto);
-            return;
-        }
-
-        fetch('/tts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken.content,
-            },
-            body: JSON.stringify({ texto: texto }),
-        })
-        .then(function (res) {
-            console.log('[TTS] HTTP', res.status, res.headers.get('content-type'));
-            if (!res.ok) {
-                return res.text().then(function (t) { throw new Error('HTTP ' + res.status + ': ' + t.substring(0, 200)); });
-            }
-            return res.blob();
-        })
-        .then(function (blob) {
-            console.log('[TTS] blob OK, tamaño:', blob.size);
-            var url   = URL.createObjectURL(blob);
-            var audio = new Audio(url);
-            var p     = audio.play();
-            if (p) {
-                p.then(function () { console.log('[TTS] reproduciendo'); })
-                 .catch(function (e) {
-                     console.error('[TTS] play() bloqueado:', e.name, e.message);
-                     URL.revokeObjectURL(url);
-                 });
-            }
-            audio.onended = function () { URL.revokeObjectURL(url); };
-        })
-        .catch(function (err) {
-            console.error('[TTS] ElevenLabs falló:', err.message);
-            hcaHablarBrowser(texto);
-        });
+        if (!texto) return;
+        hcaHablarBrowser(texto);
     }
 
     function hcaHablarBrowser(texto) {
