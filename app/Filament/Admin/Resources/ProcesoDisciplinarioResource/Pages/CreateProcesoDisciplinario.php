@@ -901,17 +901,31 @@ class CreateProcesoDisciplinario extends CreateRecord
             array_filter($this->sugerenciasCompletado, fn($s) => $s['marker'] !== $marker)
         );
 
-        // Al aplicar la última sugerencia, limpiar cualquier marcador residual
+        // Cuando la lista de sugerencias queda vacía, comprobar si aún hay marcadores en el texto
         if (empty($this->sugerenciasCompletado)) {
             $t = $this->data['descripcion_hecho'];
-            // Eliminar [COMPLETAR: ...] con posibles corchetes anidados
-            $t = preg_replace('/\[COMPLETAR:\s*(?:[^\[\]]+|\[[^\]]*\])+\]/iu', '', $t);
-            // Eliminar corchetes genéricos residuales: [describir algo], [piso], etc.
-            $t = preg_replace('/\[[^\[\]]*\]/u', '', $t);
-            // Limpiar ]] dobles y espacios extra
-            $t = str_replace(']]', '', $t);
-            $t = trim(preg_replace('/[ \t]{2,}/', ' ', $t));
-            $this->data['descripcion_hecho'] = $t;
+
+            if (preg_match('/\[COMPLETAR:/i', $t)) {
+                // Quedan marcadores sin sugerencias — regenerar sin exclusiones de contexto
+                // para garantizar que todos sean presentados al usuario
+                $nuevas = app(EvaluacionHechosService::class)->generarSugerenciasCompletado($t, []);
+                $this->sugerenciasCompletado = $nuevas;
+
+                // Si la IA aún no devuelve nada (fallo de servicio), limpiar igual
+                if (empty($this->sugerenciasCompletado)) {
+                    $t = preg_replace('/\[COMPLETAR:\s*(?:[^\[\]]+|\[[^\]]*\])+\]/iu', '', $t);
+                    $t = preg_replace('/\[[^\[\]]*\]/u', '', $t);
+                    $t = str_replace(']]', '', $t);
+                    $t = trim(preg_replace('/[ \t]{2,}/', ' ', $t));
+                    $this->data['descripcion_hecho'] = $t;
+                }
+            } else {
+                // No quedan marcadores — limpiar residuos menores (]] sueltos, etc.)
+                $t = preg_replace('/\[[^\[\]]*\]/u', '', $t);
+                $t = str_replace(']]', '', $t);
+                $t = trim(preg_replace('/[ \t]{2,}/', ' ', $t));
+                $this->data['descripcion_hecho'] = $t;
+            }
         }
 
         $this->analizarDescripcion();

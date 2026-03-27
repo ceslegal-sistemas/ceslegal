@@ -374,30 +374,22 @@ SYSTEM;
         preg_match_all('/\[COMPLETAR:\s*((?:[^\[\]]+|\[[^\]]*\])+)\]/', $texto, $matches, PREG_SET_ORDER);
         if (empty($matches)) return [];
 
-        // Palabras clave de datos ya capturados — no generar sugerencias para ellos
-        $excluirSiContexto = [];
-        if (!empty($contexto['fecha_hecho']))       $excluirSiContexto[] = 'fecha';
-        if (!empty($contexto['hora_hecho']))        $excluirSiContexto[] = 'hora';
-        if (!empty($contexto['lugar']))             $excluirSiContexto[] = ['lugar', 'ubicación', 'ubicacion', 'sitio'];
-        if (!empty($contexto['trabajador_nombre'])) $excluirSiContexto[] = ['nombre', 'trabajador', 'nombre completo'];
-        $excluirSiContexto = array_merge(...array_map(
-            fn($v) => is_array($v) ? $v : [$v],
-            $excluirSiContexto
-        ));
+        // Solo excluir marcadores de fecha/hora cuando ya están capturados en el formulario.
+        // No excluir 'nombre' ni 'ubicación' — pueden referirse a otras personas (compañera,
+        // testigo) o a sub-ubicaciones que el contexto no resuelve completamente.
+        $excluirFecha = !empty($contexto['fecha_hecho']);
+        $excluirHora  = !empty($contexto['hora_hecho']);
 
-        // Deduplicar por label y excluir datos ya capturados
+        // Deduplicar por label
         $vistos = [];
         $campos = [];
         foreach ($matches as $m) {
             $label = trim($m[1]);
             if (isset($vistos[$label])) continue;
-            // Omitir si el label menciona datos ya capturados
             $labelLower = mb_strtolower($label);
-            $omitir = false;
-            foreach ($excluirSiContexto as $kw) {
-                if (str_contains($labelLower, $kw)) { $omitir = true; break; }
-            }
-            if ($omitir) continue;
+            // Excluir solo marcadores que piden exactamente la fecha u hora ya registrada
+            if ($excluirFecha && preg_match('/\bfecha\b/i', $labelLower) && !preg_match('/\b(límite|vencimiento|audiencia|citación|notificación)\b/i', $labelLower)) continue;
+            if ($excluirHora  && preg_match('/\bhora\b/i', $labelLower)) continue;
             $vistos[$label] = true;
             $campos[] = ['marker' => $m[0], 'label' => $label];
         }
