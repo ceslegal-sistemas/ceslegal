@@ -728,6 +728,13 @@ TEXT;
         $periodoTexto = $mes && $mes !== 'todos' ? (self::MESES[$mes] ?? $mes) . " de {$anio}" : "Año {$anio}";
         $fechaActual = Carbon::now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
         $nombreAbogado = $abogado->name ?? 'Equipo CES LEGAL';
+        $logoPath = base_path('documentacion/src/assets/logo.png');
+        $logoBase64 = file_exists($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            : '';
+        $logoHtml = $logoBase64
+            ? "<img src=\"{$logoBase64}\" alt=\"CES Legal Digital\" style=\"height:28px;width:auto;display:block;\">"
+            : '<span style="font-size:9pt;font-weight:bold;color:#B71C1C;padding:0 4px;">CES LEGAL</span>';
 
         $tablaAreas = $this->construirTablaHTML($resumenPorArea, ['Área de Práctica', 'Cantidad', 'Tiempo Dedicado'], ['area', 'cantidad', 'tiempo_formateado']);
         $tablaTipos = $this->construirTablaHTML($resumenPorTipo, ['Tipo de Gestión', 'Cantidad', 'Tiempo Dedicado'], ['tipo', 'cantidad', 'tiempo_formateado']);
@@ -797,41 +804,52 @@ HTML;
             height: 2.2cm;
         }
         .ph-accent {
-            background: #C9A84C;
+            background: #8B1010;
             height: 3px;
         }
         .ph-body {
-            background: #0F2541;
-            padding: 6px 0 5px 0;
+            background: #B71C1C;
+            padding: 5px 0 4px 0;
         }
         .ph-table {
             width: 100%;
             border-collapse: collapse;
         }
         .ph-table td {
-            padding: 0 16px;
+            padding: 0 14px;
             vertical-align: middle;
         }
-        .ph-firm {
-            font-size: 9.5pt;
-            font-weight: bold;
-            color: #fff;
-            letter-spacing: 1px;
+        .ph-logo {
+            background: #fff;
+            border-radius: 3px;
+            padding: 2px 6px;
+            display: inline-block;
+            line-height: 0;
+        }
+        .ph-logo img {
+            height: 28px;
+            width: auto;
+            display: block;
         }
         .ph-doc {
-            font-size: 7.5pt;
-            color: #94A3B8;
-            margin-top: 1px;
+            font-size: 7pt;
+            color: #FFCDD2;
+            margin-top: 3px;
+            letter-spacing: 0.3px;
         }
         .ph-right {
             text-align: right;
             font-size: 7.5pt;
-            color: #94A3B8;
+            color: #FFCDD2;
             line-height: 1.6;
+        }
+        .ph-right strong {
+            color: #fff;
+            font-size: 8pt;
         }
         .ph-rule {
             border: none;
-            border-top: 1px solid #2A4A6B;
+            border-top: 1px solid #7F1212;
             margin: 0;
         }
 
@@ -1073,12 +1091,14 @@ HTML;
         <div class="ph-body">
             <table class="ph-table">
                 <tr>
-                    <td>
-                        <div class="ph-firm">CES LEGAL S.A.S.</div>
+                    <td style="width:auto;">
+                        <div class="ph-logo">
+                            {$logoHtml}
+                        </div>
                         <div class="ph-doc">Informe de Gestión Jurídica &nbsp;·&nbsp; {$periodoTexto}</div>
                     </td>
                     <td class="ph-right">
-                        {$empresa->razon_social}<br>
+                        <strong>{$empresa->razon_social}</strong><br>
                         NIT: {$empresa->nit}
                     </td>
                 </tr>
