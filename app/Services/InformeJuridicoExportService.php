@@ -740,8 +740,11 @@ TEXT;
         $seccionMeses = '';
         if ($resumenPorMes && $graficaMeses) {
             $seccionMeses = <<<HTML
-            <h3>EVOLUCIÓN MENSUAL</h3>
-            <div class="grafica-container">
+            <div class="section-header">
+                <div class="section-title">Evolución Mensual</div>
+                <div class="section-subtitle">Tendencia de gestiones a lo largo del año</div>
+            </div>
+            <div class="grafica-container-full">
                 {$graficaMeses}
             </div>
             {$tablaMeses}
@@ -754,317 +757,530 @@ HTML;
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Informe de Gestión Jurídica</title>
+    <title>Informe de Gestión Jurídica — CES LEGAL</title>
     <style>
+        /* ── Página ───────────────────────────────────────────────── */
         @page {
-            margin: 2cm 2cm 2.5cm 2cm;
+            margin: 0 0 2.2cm 0;
         }
+        @page :first {
+            margin: 0 0 2.2cm 0;
+        }
+
+        /* ── Base ─────────────────────────────────────────────────── */
+        * { box-sizing: border-box; }
         body {
-            font-family: 'DejaVu Sans', Calibri, Arial, sans-serif;
-            font-size: 10pt;
-            line-height: 1.5;
-            color: #1f2937;
-            text-align: justify;
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-size: 9.5pt;
+            line-height: 1.55;
+            color: #1A202C;
+            margin: 0;
+            padding: 0;
+            background: #fff;
         }
-        h1 {
-            font-size: 16pt;
+
+        /* ── Variables de color ───────────────────────────────────── */
+        /* Navy:  #0F2541  |  Gold: #B8960C  |  Light navy: #1E3A5F  */
+        /* Slate: #F7F9FC  |  Border: #DDE3ED                        */
+
+        /* ── Portada / header ─────────────────────────────────────── */
+        .doc-header {
+            background: #0F2541;
+            padding: 28px 36px 0 36px;
+            margin-bottom: 0;
+        }
+        .doc-header-top {
+            display: table;
+            width: 100%;
+            margin-bottom: 18px;
+        }
+        .doc-header-logo {
+            display: table-cell;
+            vertical-align: middle;
+            width: 60%;
+        }
+        .firm-name {
+            font-size: 17pt;
             font-weight: bold;
-            text-align: center;
-            margin: 0 0 5px 0;
-            color: #1e3a5f;
+            color: #fff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
-        h2 {
+        .firm-tagline {
+            font-size: 7.5pt;
+            color: #B8960C;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+        .doc-header-meta {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: right;
+            width: 40%;
+        }
+        .doc-header-meta-text {
+            font-size: 7.5pt;
+            color: #94A3B8;
+            line-height: 1.7;
+        }
+        .doc-title-band {
+            background: #0B1D35;
+            margin: 0 -36px;
+            padding: 14px 36px;
+        }
+        .doc-title {
             font-size: 13pt;
             font-weight: bold;
-            text-align: center;
-            margin: 5px 0;
-            color: #1e3a5f;
-        }
-        h3 {
-            font-size: 11pt;
-            font-weight: bold;
-            margin: 20px 0 10px 0;
-            color: #1e3a5f;
-            border-bottom: 2px solid #1e3a5f;
-            padding-bottom: 5px;
-        }
-        h4 {
-            font-size: 10pt;
-            font-weight: bold;
-            margin: 15px 0 8px 0;
-            color: #374151;
-        }
-        p {
-            margin: 8px 0;
-            text-align: justify;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 20px;
-            border-bottom: 3px solid #1e3a5f;
-        }
-        .header-proveedor {
-            font-size: 9pt;
-            color: #6b7280;
-            margin-bottom: 10px;
-        }
-        .header-cliente {
-            background: #f0f4f8;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-        }
-        .info-grid {
-            display: table;
-            width: 100%;
-            margin: 10px 0;
-        }
-        .info-row {
-            display: table-row;
-        }
-        .info-cell {
-            display: table-cell;
-            padding: 3px 10px 3px 0;
-        }
-        .info-label {
-            font-weight: bold;
-            color: #4b5563;
-            width: 120px;
-        }
-        .metricas-box {
-            background: #1e3a5f;
-            color: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        .metricas-grid {
-            display: table;
-            width: 100%;
-        }
-        .metricas-grid td {
-            display: table-cell;
-            text-align: center;
-            padding: 10px;
-            width: 25%;
-        }
-        .metrica-valor {
-            font-size: 22pt;
-            font-weight: bold;
-        }
-        .metrica-label {
-            font-size: 8pt;
+            color: #fff;
             text-transform: uppercase;
-            opacity: 0.9;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+        .doc-subtitle {
+            font-size: 9pt;
+            color: #B8960C;
+            margin: 3px 0 0 0;
+        }
+        .doc-client-band {
+            background: #132B47;
+            margin: 0 -36px;
+            padding: 12px 36px;
+        }
+        .doc-client-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .doc-client-table td {
+            padding: 2px 12px 2px 0;
+            font-size: 8.5pt;
+            color: #CBD5E1;
+            vertical-align: top;
+        }
+        .doc-client-table td.lbl {
+            color: #94A3B8;
+            width: 80px;
+            font-size: 7.5pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .doc-client-table td.val {
+            color: #F1F5F9;
+            font-weight: bold;
+        }
+        .gold-bar {
+            background: #B8960C;
+            height: 4px;
+            margin: 0 -36px;
+        }
+
+        /* ── Cuerpo del documento ─────────────────────────────────── */
+        .doc-body {
+            padding: 22px 36px 10px 36px;
+        }
+
+        /* ── Badge confidencial ───────────────────────────────────── */
+        .badge-confidencial {
+            display: table;
+            margin: 0 auto 20px auto;
+        }
+        .badge-confidencial-inner {
+            border: 1px solid #DDE3ED;
+            border-left: 3px solid #B8960C;
+            padding: 5px 14px;
+            font-size: 7.5pt;
+            color: #64748B;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* ── KPI Cards ────────────────────────────────────────────── */
+        .kpi-section {
+            margin: 0 0 22px 0;
+        }
+        .kpi-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 6px;
+        }
+        .kpi-cell {
+            width: 25%;
+            background: #0F2541;
+            padding: 14px 10px 12px 10px;
+            text-align: center;
+            vertical-align: middle;
+            border-bottom: 3px solid #B8960C;
+        }
+        .kpi-valor {
+            font-size: 20pt;
+            font-weight: bold;
+            color: #fff;
+            line-height: 1.1;
+        }
+        .kpi-label {
+            font-size: 7pt;
+            color: #94A3B8;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
             margin-top: 5px;
         }
-        .grafica-container {
-            text-align: center;
-            margin: 15px 0;
-            padding: 15px;
-            background: #f9fafb;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
+
+        /* ── Encabezados de sección ───────────────────────────────── */
+        .section-header {
+            border-left: 4px solid #B8960C;
+            padding: 6px 0 6px 12px;
+            margin: 24px 0 12px 0;
+            background: #F7F9FC;
         }
+        .section-title {
+            font-size: 10pt;
+            font-weight: bold;
+            color: #0F2541;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin: 0;
+        }
+        .section-subtitle {
+            font-size: 7.5pt;
+            color: #64748B;
+            margin: 2px 0 0 0;
+        }
+
+        /* ── h4 para análisis IA ──────────────────────────────────── */
+        h4 {
+            font-size: 9.5pt;
+            font-weight: bold;
+            color: #0F2541;
+            margin: 14px 0 6px 0;
+            padding-bottom: 3px;
+            border-bottom: 1px solid #DDE3ED;
+        }
+
+        /* ── Párrafos ─────────────────────────────────────────────── */
+        p { margin: 7px 0; text-align: justify; }
+        ul { margin: 6px 0 6px 18px; padding: 0; }
+        li { margin: 4px 0; }
+
+        /* ── Tablas de datos ──────────────────────────────────────── */
+        table.datos {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 8.5pt;
+        }
+        table.datos th {
+            background: #0F2541;
+            color: #fff;
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 8pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+        }
+        table.datos th:first-child { border-left: 3px solid #B8960C; }
+        table.datos td {
+            border-bottom: 1px solid #EEF0F5;
+            border-right: none;
+            border-left: none;
+            padding: 7px 10px;
+            color: #2D3748;
+            vertical-align: top;
+        }
+        table.datos tr:nth-child(even) td { background: #F7F9FC; }
+        table.datos tr:hover td { background: #EEF3FA; }
+        .numero { text-align: center; font-weight: bold; color: #0F2541; }
+        .tag {
+            display: inline-block;
+            background: #EEF3FA;
+            color: #1E3A5F;
+            padding: 1px 7px;
+            font-size: 7.5pt;
+            border-radius: 10px;
+        }
+
+        /* ── Gráficas ─────────────────────────────────────────────── */
         .graficas-row {
             display: table;
             width: 100%;
-            margin: 15px 0;
+            margin: 10px 0;
+            border-spacing: 8px;
         }
         .grafica-cell {
             display: table-cell;
             width: 50%;
             vertical-align: top;
-            padding: 5px;
+            padding-right: 6px;
         }
-        .grafica-cell .grafica-container {
-            margin: 0;
+        .grafica-cell:last-child { padding-right: 0; padding-left: 6px; }
+        .grafica-container {
+            background: #F7F9FC;
+            border: 1px solid #DDE3ED;
+            border-top: 3px solid #0F2541;
+            padding: 14px;
+            margin: 0 0 10px 0;
         }
-        table.datos {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-            font-size: 9pt;
+        .grafica-container-full {
+            background: #F7F9FC;
+            border: 1px solid #DDE3ED;
+            border-top: 3px solid #B8960C;
+            padding: 14px;
+            margin: 0 0 10px 0;
         }
-        table.datos th {
-            background-color: #1e3a5f;
-            color: white;
-            border: 1px solid #1e3a5f;
-            padding: 10px 8px;
-            text-align: left;
-            font-weight: bold;
-        }
-        table.datos td {
-            border: 1px solid #d1d5db;
-            padding: 8px;
-        }
-        table.datos tr:nth-child(even) {
-            background-color: #f9fafb;
-        }
-        .numero {
-            text-align: center;
-            font-weight: bold;
-        }
-        .analisis-section {
-            margin: 25px 0;
-        }
-        .analisis-section p {
-            margin: 10px 0;
-        }
-        .analisis-section ul {
-            margin: 10px 0 10px 20px;
-        }
-        .analisis-section li {
-            margin: 5px 0;
-        }
+
+        /* ── Firma ────────────────────────────────────────────────── */
         .firma-section {
-            margin-top: 40px;
+            margin-top: 32px;
             page-break-inside: avoid;
+            border-top: 1px solid #DDE3ED;
+            padding-top: 18px;
         }
-        .firma-box {
-            display: inline-block;
-            text-align: center;
-            margin-top: 30px;
-        }
+        .firma-table { width: 100%; border-collapse: collapse; }
+        .firma-table td { vertical-align: bottom; padding: 0 20px 0 0; }
+        .firma-box { margin-top: 44px; }
         .firma-linea {
-            border-top: 1px solid #1f2937;
-            width: 250px;
+            border-top: 1.5px solid #0F2541;
             padding-top: 8px;
-            margin-top: 50px;
+            width: 220px;
+            font-size: 8.5pt;
+            color: #2D3748;
         }
-        .footer {
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 2px solid #1e3a5f;
-            font-size: 8pt;
-            color: #6b7280;
-            text-align: center;
+        .firma-nombre { font-weight: bold; font-size: 9pt; color: #0F2541; }
+        .firma-cargo { color: #64748B; font-size: 8pt; }
+
+        /* ── Footer ───────────────────────────────────────────────── */
+        .doc-footer {
+            background: #0F2541;
+            padding: 10px 36px;
+            margin-top: 28px;
         }
-        .page-break {
-            page-break-after: always;
+        .doc-footer-table { width: 100%; border-collapse: collapse; }
+        .doc-footer-table td {
+            font-size: 7.5pt;
+            color: #94A3B8;
+            vertical-align: middle;
+            padding: 2px 0;
         }
-        .confidencial {
-            background: #fef3c7;
-            border: 1px solid #f59e0b;
-            padding: 8px 15px;
-            border-radius: 5px;
-            font-size: 8pt;
-            text-align: center;
-            margin: 15px 0;
+        .doc-footer-table td.right { text-align: right; }
+        .doc-footer-table td strong { color: #CBD5E1; }
+
+        /* ── Salto de página ──────────────────────────────────────── */
+        .page-break { page-break-after: always; }
+
+        /* ── Análisis IA ──────────────────────────────────────────── */
+        .analisis-section { margin: 4px 0 20px 0; }
+        .analisis-section p { margin: 8px 0; }
+        .analisis-section ul { margin: 8px 0 8px 20px; }
+        .analisis-section li { margin: 5px 0; }
+
+        /* ── Separador ────────────────────────────────────────────── */
+        .divider {
+            border: none;
+            border-top: 1px solid #DDE3ED;
+            margin: 18px 0;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-proveedor">
-            <strong>CES LEGAL S.A.S.</strong> | NIT: 901.258.505-4<br>
-            Carrera 2 #10-53 | Tel: +57 3196777103
-        </div>
 
-        <h1>INFORME DE GESTIÓN JURÍDICA</h1>
-        <h2>Presentado a: {$empresa->razon_social}</h2>
-
-        <div class="header-cliente">
-            <div class="info-grid">
-                <div class="info-row">
-                    <div class="info-cell info-label">Cliente:</div>
-                    <div class="info-cell">{$empresa->razon_social}</div>
-                    <div class="info-cell info-label">NIT:</div>
-                    <div class="info-cell">{$empresa->nit}</div>
-                </div>
-                <div class="info-row">
-                    <div class="info-cell info-label">Periodo:</div>
-                    <div class="info-cell">{$periodoTexto}</div>
-                    <div class="info-cell info-label">Fecha del informe:</div>
-                    <div class="info-cell">{$fechaActual}</div>
+    <!-- ══════════════════════════════════════════
+         CABECERA DEL DOCUMENTO
+    ══════════════════════════════════════════ -->
+    <div class="doc-header">
+        <div class="doc-header-top">
+            <div class="doc-header-logo">
+                <div class="firm-name">CES LEGAL</div>
+                <div class="firm-tagline">Asesoría Jurídica Empresarial</div>
+            </div>
+            <div class="doc-header-meta">
+                <div class="doc-header-meta-text">
+                    NIT: 901.258.505-4<br>
+                    Carrera 2 #10-53<br>
+                    Tel: +57 319 677 7103
                 </div>
             </div>
         </div>
+
+        <div class="doc-title-band">
+            <div class="doc-title">Informe de Gestión Jurídica</div>
+            <div class="doc-subtitle">Período: {$periodoTexto}</div>
+        </div>
+
+        <div class="doc-client-band">
+            <table class="doc-client-table">
+                <tr>
+                    <td class="lbl">Cliente</td>
+                    <td class="val">{$empresa->razon_social}</td>
+                    <td class="lbl">NIT</td>
+                    <td class="val">{$empresa->nit}</td>
+                    <td class="lbl">Fecha</td>
+                    <td class="val">{$fechaActual}</td>
+                    <td class="lbl">Elaborado por</td>
+                    <td class="val">{$nombreAbogado}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="gold-bar"></div>
     </div>
 
-    <div class="confidencial">
-        DOCUMENTO CONFIDENCIAL - Uso exclusivo de {$empresa->razon_social}
-    </div>
+    <!-- ══════════════════════════════════════════
+         CUERPO
+    ══════════════════════════════════════════ -->
+    <div class="doc-body">
 
-    <div class="metricas-box">
-        <table class="metricas-grid">
+        <!-- Badge confidencial -->
+        <div class="badge-confidencial">
+            <div class="badge-confidencial-inner">
+                &#9632;&nbsp; Documento Confidencial &nbsp;&#9632;&nbsp; Uso exclusivo de {$empresa->razon_social}
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-section">
+            <table class="kpi-table">
+                <tr>
+                    <td class="kpi-cell">
+                        <div class="kpi-valor">{$metricas['total_gestiones']}</div>
+                        <div class="kpi-label">Gestiones realizadas</div>
+                    </td>
+                    <td class="kpi-cell">
+                        <div class="kpi-valor">{$metricas['tiempo_total']}</div>
+                        <div class="kpi-label">Tiempo dedicado</div>
+                    </td>
+                    <td class="kpi-cell">
+                        <div class="kpi-valor">{$metricas['tasa_cumplimiento']}%</div>
+                        <div class="kpi-label">Tasa de cumplimiento</div>
+                    </td>
+                    <td class="kpi-cell">
+                        <div class="kpi-valor">{$metricas['horas_invertidas']}h</div>
+                        <div class="kpi-label">Horas de trabajo</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Análisis ejecutivo IA -->
+        <div class="section-header">
+            <div class="section-title">Análisis Ejecutivo</div>
+            <div class="section-subtitle">Generado con inteligencia artificial</div>
+        </div>
+        <div class="analisis-section">
+            {$analisisFormateado}
+        </div>
+
+    </div><!-- /doc-body -->
+
+    <!-- Footer página 1 -->
+    <div class="doc-footer">
+        <table class="doc-footer-table">
             <tr>
-                <td>
-                    <div class="metrica-valor">{$metricas['total_gestiones']}</div>
-                    <div class="metrica-label">Gestiones Realizadas</div>
-                </td>
-                <td>
-                    <div class="metrica-valor">{$metricas['tiempo_total']}</div>
-                    <div class="metrica-label">Tiempo Dedicado</div>
-                </td>
-                <td>
-                    <div class="metrica-valor">{$metricas['tasa_cumplimiento']}%</div>
-                    <div class="metrica-label">Completadas</div>
-                </td>
-                <td>
-                    <div class="metrica-valor">{$metricas['horas_invertidas']}h</div>
-                    <div class="metrica-label">Horas de Trabajo</div>
-                </td>
+                <td><strong>CES LEGAL S.A.S.</strong> &nbsp;|&nbsp; Asesoría Jurídica Empresarial</td>
+                <td class="right">Documento generado el {$fechaActual}</td>
             </tr>
         </table>
     </div>
 
-    <div class="analisis-section">
-        {$analisisFormateado}
+    <div class="page-break"></div>
+
+    <!-- ══════════════════════════════════════════
+         PÁGINA 2 — ANÁLISIS GRÁFICO
+    ══════════════════════════════════════════ -->
+    <div class="doc-body">
+
+        <div class="section-header">
+            <div class="section-title">Análisis Gráfico</div>
+            <div class="section-subtitle">Distribución visual de las gestiones del período</div>
+        </div>
+
+        <div class="graficas-row">
+            <div class="grafica-cell">
+                <div class="grafica-container">
+                    {$graficaAreas}
+                </div>
+            </div>
+            <div class="grafica-cell">
+                <div class="grafica-container">
+                    {$graficaTipos}
+                </div>
+            </div>
+        </div>
+
+        <div class="grafica-container-full">
+            {$graficaEstados}
+        </div>
+
+        {$seccionMeses}
+
+        <div class="section-header">
+            <div class="section-title">Distribución por Área de Práctica</div>
+        </div>
+        {$tablaAreas}
+
+        <div class="section-header">
+            <div class="section-title">Distribución por Tipo de Gestión</div>
+        </div>
+        {$tablaTipos}
+
+    </div>
+
+    <div class="doc-footer">
+        <table class="doc-footer-table">
+            <tr>
+                <td><strong>CES LEGAL S.A.S.</strong> &nbsp;|&nbsp; Asesoría Jurídica Empresarial</td>
+                <td class="right">Documento confidencial — {$empresa->razon_social}</td>
+            </tr>
+        </table>
     </div>
 
     <div class="page-break"></div>
 
-    <h3>ANÁLISIS GRÁFICO</h3>
+    <!-- ══════════════════════════════════════════
+         PÁGINA 3 — DETALLE DE GESTIONES
+    ══════════════════════════════════════════ -->
+    <div class="doc-body">
 
-    <div class="graficas-row">
-        <div class="grafica-cell">
-            <div class="grafica-container">
-                {$graficaAreas}
-            </div>
+        <div class="section-header">
+            <div class="section-title">Detalle de Gestiones Realizadas</div>
+            <div class="section-subtitle">Registro completo de todas las actuaciones del período</div>
         </div>
-        <div class="grafica-cell">
-            <div class="grafica-container">
-                {$graficaTipos}
-            </div>
+
+        {$tablaDetalle}
+
+        <!-- Firma -->
+        <div class="firma-section">
+            <p style="color:#64748B; font-size:8.5pt;">
+                Quedamos a su disposición para ampliar cualquier información contenida en este informe.
+            </p>
+            <table class="firma-table">
+                <tr>
+                    <td style="width:260px;">
+                        <div class="firma-box">
+                            <div class="firma-linea">
+                                <div class="firma-nombre">{$nombreAbogado}</div>
+                                <div class="firma-cargo">Abogado — CES LEGAL S.A.S.</div>
+                                <div class="firma-cargo">NIT: 901.258.505-4</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td></td>
+                </tr>
+            </table>
         </div>
+
     </div>
 
-    <div class="grafica-container">
-        {$graficaEstados}
+    <!-- Footer final -->
+    <div class="doc-footer">
+        <table class="doc-footer-table">
+            <tr>
+                <td><strong>CES LEGAL S.A.S.</strong> &nbsp;|&nbsp; Carrera 2 #10-53 &nbsp;|&nbsp; Tel: +57 319 677 7103</td>
+                <td class="right">Documento generado el {$fechaActual}</td>
+            </tr>
+        </table>
     </div>
 
-    {$seccionMeses}
-
-    <h3>DISTRIBUCIÓN POR ÁREA DE PRÁCTICA</h3>
-    {$tablaAreas}
-
-    <h3>DISTRIBUCIÓN POR TIPO DE GESTIÓN</h3>
-    {$tablaTipos}
-
-    <div class="page-break"></div>
-
-    <h3>DETALLE DE GESTIONES REALIZADAS</h3>
-    {$tablaDetalle}
-
-    <div class="firma-section">
-        <p>Quedamos a su disposición para ampliar cualquier información contenida en este informe.</p>
-
-        <div class="firma-box">
-            <div class="firma-linea">
-                <strong>{$nombreAbogado}</strong><br>
-                Abogado - CES LEGAL S.A.S.<br>
-                NIT: 901.258.505-4
-            </div>
-        </div>
-    </div>
-
-    <div class="footer">
-        <p><strong>CES LEGAL S.A.S.</strong> | Asesoría Jurídica Empresarial</p>
-        <p>Carrera 2 #10-53 | Tel: +57 3196777103</p>
-        <p>Documento generado el {$fechaActual}</p>
-    </div>
 </body>
 </html>
 HTML;
