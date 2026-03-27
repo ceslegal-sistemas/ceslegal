@@ -93,7 +93,7 @@ class ExportarInformesJuridicos extends Page
             ]);
     }
 
-    public function exportarPDF(): void
+    public function exportarPDF()
     {
         if (!$this->empresa_id || !$this->anio) {
             Notification::make()
@@ -105,23 +105,16 @@ class ExportarInformesJuridicos extends Page
         }
 
         try {
-            $service = new InformeJuridicoExportService();
-            $path = $service->generarPDF($this->empresa_id, $this->anio, $this->mes);
+            $service  = new InformeJuridicoExportService();
+            $path     = $service->generarPDF($this->empresa_id, $this->anio, $this->mes);
+            $filename = basename($path);
+            $contenido = Storage::disk('public')->get($path);
 
-            $url = Storage::disk('public')->url($path);
-
-            Notification::make()
-                ->success()
-                ->title('PDF Generado')
-                ->body('El informe se ha generado correctamente.')
-                ->actions([
-                    \Filament\Notifications\Actions\Action::make('descargar')
-                        ->label('Descargar PDF')
-                        ->url($url)
-                        ->openUrlInNewTab(),
-                ])
-                ->persistent()
-                ->send();
+            return response()->streamDownload(
+                fn () => print($contenido),
+                $filename,
+                ['Content-Type' => 'application/pdf']
+            );
 
         } catch (\Exception $e) {
             Notification::make()
@@ -132,7 +125,7 @@ class ExportarInformesJuridicos extends Page
         }
     }
 
-    public function exportarExcel(): void
+    public function exportarExcel()
     {
         if (!$this->empresa_id || !$this->anio) {
             Notification::make()
@@ -144,23 +137,16 @@ class ExportarInformesJuridicos extends Page
         }
 
         try {
-            $service = new InformeJuridicoExportService();
-            $path = $service->generarExcel($this->empresa_id, $this->anio, $this->mes);
+            $service  = new InformeJuridicoExportService();
+            $path     = $service->generarExcel($this->empresa_id, $this->anio, $this->mes);
+            $filename = basename($path);
+            $contenido = Storage::disk('public')->get($path);
 
-            $url = Storage::disk('public')->url($path);
-
-            Notification::make()
-                ->success()
-                ->title('Excel Generado')
-                ->body('El informe se ha generado correctamente.')
-                ->actions([
-                    \Filament\Notifications\Actions\Action::make('descargar')
-                        ->label('Descargar Excel')
-                        ->url($url)
-                        ->openUrlInNewTab(),
-                ])
-                ->persistent()
-                ->send();
+            return response()->streamDownload(
+                fn () => print($contenido),
+                $filename,
+                ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+            );
 
         } catch (\Exception $e) {
             Notification::make()
