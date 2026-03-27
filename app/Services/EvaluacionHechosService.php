@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ArticuloLegal;
 use App\Models\ProcesoDisciplinario;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -454,24 +455,41 @@ SYS;
             'DATOS YA REGISTRADOS EN EL FORMULARIO (NO pidas estos datos — ya están capturados):'
         );
 
+        // RAG: recuperar artículos legales semánticamente relevantes al relato
+        $normasRag = $this->buscarNormasRelevantes($texto);
+        $normasBloque = $normasRag
+            ? "NORMAS LEGALES RECUPERADAS (extractos reales de la base de datos — cita SOLO estas, con su texto exacto):\n{$normasRag}"
+            : <<<NORMAS
+TABLA DE NORMAS APLICABLES (usa SOLO estas — no inventes artículos):
+- Acoso laboral (hostigamiento, intimidación, maltrato psicológico): Ley 1010 de 2006
+- Acoso sexual en el trabajo: Ley 1257 de 2008 + Art. 62 num. 3 CST
+- Violencia física, amenazas o agresiones a compañeros/jefes: Art. 62 num. 2 CST
+- Hurto, apropiación indebida de bienes de la empresa: Art. 60 num. 1 + Art. 62 num. 6 CST
+- Insubordinación o desobediencia reiterada: Art. 62 num. 4 CST
+- Embriaguez o consumo de drogas en el trabajo: Art. 60 num. 2 + Art. 62 num. 6 CST
+- Abandono del puesto o ausencia sin justificar: Art. 62 num. 6 CST
+- Incumplimiento grave de obligaciones: Art. 62 num. 10 CST
+- Si hay reglamento interno aplicable, cita primero el artículo del reglamento.
+- Si no estás seguro del artículo exacto, NO lo cites — enfócate en la conducta.
+NORMAS;
+
         $system = <<<SYSTEM
-Eres un abogado laboralista colombiano con 15 años en procesos disciplinarios. Tienes acceso al reglamento interno de la empresa o al CST.
+Eres un abogado laboralista colombiano con 15 años en procesos disciplinarios.
 
 CONTEXTO NORMATIVO:
 {$contextoReglamento}{$datosYaCapturados}
 
-Escuchas el relato del empleador y das retroalimentación inmediata, concreta y fundamentada en la norma.
+{$normasBloque}
 
-Evalúa el relato y señala el criterio más urgente con una cita específica.
-ENFÓCATE SOLO en lo que falta describir en el relato — NO menciones datos ya capturados arriba:
-1. CONDUCTA CONCRETA: ¿La descripción es específica o genérica? "No cumplió funciones" no sirve — ¿qué hizo o dejó de hacer exactamente?
-2. IMPACTO: ¿Se menciona consecuencia real para la empresa, un cliente, el equipo o el servicio?
-3. NORMA VULNERADA: ¿Se puede vincular a un artículo del reglamento interno o del CST? Cítalo.
-4. PRUEBAS: ¿Hay testigos, cámara, correo, registro de asistencia u otro soporte que se pueda obtener?
-5. HISTORIAL: ¿Es reincidente? ¿Hubo llamado de atención o sanción anterior?
+Evalúa el relato y señala EL criterio más urgente que falta.
+ENFÓCATE SOLO en lo que falta — NO menciones datos ya capturados arriba:
+1. CONDUCTA CONCRETA: ¿Es específica? "No cumplió funciones" no sirve — ¿qué hizo exactamente?
+2. IMPACTO: ¿Se menciona consecuencia real para la empresa, el equipo o el servicio?
+3. PRUEBAS: ¿Hay testigos, cámara, correo, registro u otro soporte que obtener?
+4. HISTORIAL: ¿Es reincidente? ¿Hubo llamado de atención anterior?
 
-Responde con 1 o 2 frases directas y firmes, citando artículo o norma específica cuando aplique.
-Si el relato ya está completo y sólido, confírmalo con la norma que sustenta el caso.
+Responde con 1 o 2 frases directas. Cita norma SOLO si está en las normas listadas arriba y aplica con certeza.
+Si el relato ya está completo, confírmalo brevemente.
 
 REGLAS ABSOLUTAS:
 - SOLO el texto que se leerá en voz alta. Sin saludos, sin listas, sin numeración.
@@ -527,6 +545,131 @@ SYSTEM;
         }
 
         return $raw;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // RAG — Recuperación de normas legales por similitud semántica
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Recupera los artículos legales más relevantes para el texto dado,
+     * usando cosine similarity sobre los embeddings almacenados en la BD.
+     *
+     * @return string Bloque de texto con los artículos encontrados, listo para inyectar en prompt.
+     *                Cadena vacía si no hay embeddings o hay error.
+     */
+    private function buscarNormasRelevantes(string $texto, int $limite = 4): string
+    {
+        try {
+            $queryEmbedding = $this->obtenerEmbeddingTexto($texto);
+            if (!$queryEmbedding) {
+                return '';
+            }
+
+            $articulos = ArticuloLegal::whereNotNull('embedding')->activos()->get();
+            if ($articulos->isEmpty()) {
+                return '';
+            }
+
+            $scored = [];
+            foreach ($articulos as $articulo) {
+                $emb = $articulo->embedding; // cast 'array' ya decodifica el JSON
+                if (!is_array($emb) || empty($emb)) {
+                    continue;
+                }
+                $scored[] = [
+                    'articulo' => $articulo,
+                    'score'    => $this->cosineSimilarity($queryEmbedding, $emb),
+                ];
+            }
+
+            if (empty($scored)) {
+                return '';
+            }
+
+            usort($scored, fn($a, $b) => $b['score'] <=> $a['score']);
+
+            // Solo incluir artículos con similitud significativa (>= 0.55)
+            $top = array_filter(
+                array_slice($scored, 0, $limite),
+                fn($s) => $s['score'] >= 0.55
+            );
+
+            if (empty($top)) {
+                return '';
+            }
+
+            $lineas = [];
+            foreach ($top as $item) {
+                $art      = $item['articulo'];
+                $textoArt = $art->getRawOriginal('texto_completo') ?? $art->descripcion ?? '';
+                $fuente   = $art->fuente ? " — {$art->fuente}" : '';
+                $lineas[] = "[{$art->codigo}{$fuente}]";
+                $lineas[] = $art->titulo;
+                if ($textoArt) {
+                    $lineas[] = mb_substr($textoArt, 0, 600);
+                }
+                $lineas[] = '';
+            }
+
+            return trim(implode("\n", $lineas));
+        } catch (\Exception $e) {
+            Log::warning('EvaluacionHechosService::buscarNormasRelevantes', ['error' => $e->getMessage()]);
+            return '';
+        }
+    }
+
+    /**
+     * Genera el embedding vectorial de un texto de consulta (RETRIEVAL_QUERY)
+     * usando Gemini gemini-embedding-001.
+     */
+    private function obtenerEmbeddingTexto(string $texto): ?array
+    {
+        $apiKey = config('services.ia.gemini.api_key')
+            ?? config('services.gemini.api_key')
+            ?? ($this->provider === 'gemini' ? ($this->config['api_key'] ?? null) : null);
+
+        if (!$apiKey) {
+            return null;
+        }
+
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={$apiKey}";
+
+        try {
+            $response = Http::timeout(10)->post($url, [
+                'content'  => ['parts' => [['text' => $texto]]],
+                'taskType' => 'RETRIEVAL_QUERY',
+            ]);
+
+            if (!$response->successful()) {
+                return null;
+            }
+
+            $values = $response->json('embedding.values');
+            return is_array($values) && !empty($values) ? $values : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Calcula la similitud coseno entre dos vectores de la misma dimensión.
+     */
+    private function cosineSimilarity(array $a, array $b): float
+    {
+        $dot  = 0.0;
+        $magA = 0.0;
+        $magB = 0.0;
+        $n    = min(count($a), count($b));
+
+        for ($i = 0; $i < $n; $i++) {
+            $dot  += $a[$i] * $b[$i];
+            $magA += $a[$i] * $a[$i];
+            $magB += $b[$i] * $b[$i];
+        }
+
+        $denom = sqrt($magA) * sqrt($magB);
+        return $denom > 0.0 ? (float) ($dot / $denom) : 0.0;
     }
 
     // ──────────────────────────────────────────────────────────────────────────

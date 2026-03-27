@@ -363,11 +363,11 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->schema([
                                     Forms\Components\Textarea::make('descripcion_hecho')
                                         ->label('¿Qué ocurrió?')
-                                        ->helperText('Escriba una idea general — use el micrófono o "Mejorar con IA" si prefiere no redactar.')
+                                        ->helperText('Escriba una idea general — "Mejorar con IA" si prefiere redactar mejor.')
                                         ->required()
                                         ->minLength(40)
                                         ->validationMessages([
-                                            'min' => 'Necesitamos al menos una idea de lo que ocurrió. Use el micrófono o el botón "Mejorar con IA".',
+                                            'min' => 'Necesitamos al menos una idea de lo que ocurrió. Use botón "Mejorar con IA".',
                                         ])
                                         ->rows(7)
                                         ->placeholder('Ej: El trabajador llegó dos horas tarde sin avisar...')
@@ -519,65 +519,82 @@ class CreateProcesoDisciplinario extends CreateRecord
                 ->description('Confirme y genere la citación')
                 ->icon('heroicon-o-check-circle')
                 ->schema([
-                    Forms\Components\Placeholder::make('resumen_completo')
-                        ->label('')
-                        ->content(fn(Get $get, $livewire) => new HtmlString(
-                            view('filament.components.paso-revision-resumen', [
-                                'quien_reporta'    => $get('quien_reporta'),
-                                'descripcion'      => $get('descripcion_hecho'),
-                                'fecha'            => $get('fecha_hecho'),
-                                'hora'             => $get('hora_aproximada_hecho'),
-                                'lugar_tipo'       => $get('lugar_tipo'),
-                                'lugar_libre'      => $get('lugar_libre'),
-                                'en_horario'       => $get('en_horario_laboral'),
-                                'tiene_evidencias' => $get('tiene_evidencias'),
-                                'tipos_evidencias' => $get('tipos_evidencias') ?? [],
-                                'hubo_testigos'    => $get('hubo_testigos'),
-                                'testigos'         => $get('testigos') ?? [],
-                                'trabajador_id'    => $get('trabajador_id'),
-                                'chat_listo'       => $livewire->chatListo,
-                            ])->render()
-                        ))
-                        ->columnSpanFull(),
 
-                    Forms\Components\Actions::make([
-                        Forms\Components\Actions\Action::make('generar_hechos')
-                            ->label(fn($livewire) => $livewire->generandoHechos ? 'Generando...' : 'Generar descripción jurídica')
-                            ->icon('heroicon-m-sparkles')
-                            ->color('primary')
-                            ->disabled(fn($livewire) => $livewire->generandoHechos)
-                            ->action(fn($livewire) => $livewire->generarHechos()),
-                    ])->fullWidth(),
+                    // ── Resumen del expediente ────────────────────────────────
+                    Forms\Components\Section::make()
+                        ->schema([
+                            Forms\Components\Placeholder::make('info_paso_revision')
+                                ->label('')
+                                ->content(fn() => new HtmlString(
+                                    view('filament.components.paso-revision-info')->render()
+                                ))
+                                ->columnSpanFull(),
 
-                    Forms\Components\Placeholder::make('hechos_generados_info')
-                        ->label('')
-                        ->content(fn($livewire) => $livewire->chatListo
-                            ? new HtmlString('<div class="flex items-center gap-2 text-sm text-success-600 dark:text-success-400 py-1"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Descripción jurídica generada. Puede editarla antes de crear el proceso.</div>')
-                            : new HtmlString('')
-                        )
-                        ->columnSpanFull()
-                        ->hidden(fn($livewire) => !$livewire->chatListo),
+                            Forms\Components\Placeholder::make('resumen_completo')
+                                ->label('')
+                                ->content(fn(Get $get, $livewire) => new HtmlString(
+                                    view('filament.components.paso-revision-resumen', [
+                                        'quien_reporta'    => $get('quien_reporta'),
+                                        'descripcion'      => $get('descripcion_hecho'),
+                                        'fecha'            => $get('fecha_hecho'),
+                                        'hora'             => $get('hora_aproximada_hecho'),
+                                        'lugar_tipo'       => $get('lugar_tipo'),
+                                        'lugar_libre'      => $get('lugar_libre'),
+                                        'en_horario'       => $get('en_horario_laboral'),
+                                        'tiene_evidencias' => $get('tiene_evidencias'),
+                                        'tipos_evidencias' => $get('tipos_evidencias') ?? [],
+                                        'hubo_testigos'    => $get('hubo_testigos'),
+                                        'testigos'         => $get('testigos') ?? [],
+                                        'trabajador_id'    => $get('trabajador_id'),
+                                        'chat_listo'       => $livewire->chatListo,
+                                    ])->render()
+                                ))
+                                ->columnSpanFull(),
+                        ]),
 
-                    Forms\Components\Textarea::make('hechos_ia')
-                        ->label('Descripción jurídica generada (editable)')
-                        ->helperText('Revise y edite si es necesario.')
-                        ->rows(8)
-                        ->hidden(fn(Get $get) => empty($get('hechos_ia')))
-                        ->columnSpanFull(),
+                    // ── Descripción jurídica ──────────────────────────────────
+                    Forms\Components\Section::make('Descripción jurídica')
+                        ->description('La IA redacta los hechos en lenguaje formal para el expediente disciplinario.')
+                        ->icon('heroicon-o-sparkles')
+                        ->schema([
+                            Forms\Components\Actions::make([
+                                Forms\Components\Actions\Action::make('generar_hechos')
+                                    ->label(fn($livewire) => $livewire->generandoHechos ? 'Generando...' : 'Generar descripción jurídica')
+                                    ->icon('heroicon-m-sparkles')
+                                    ->color('primary')
+                                    ->disabled(fn($livewire) => $livewire->generandoHechos)
+                                    ->action(fn($livewire) => $livewire->generarHechos()),
+                            ])->fullWidth()->columnSpanFull(),
 
-                    Forms\Components\DatePicker::make('fecha_descargos_programada')
-                        ->label('Fecha de la audiencia de descargos')
-                        ->required()
-                        ->native(false)
-                        ->minDate(now())
-                        ->displayFormat('d/m/Y')
-                        ->helperText('Fecha en que se realizará la audiencia virtual'),
+                            Forms\Components\Textarea::make('hechos_ia')
+                                ->label('Descripción generada (editable)')
+                                ->helperText('Revise y edite si es necesario antes de crear el proceso.')
+                                ->rows(8)
+                                ->hidden(fn(Get $get) => empty($get('hechos_ia')))
+                                ->columnSpanFull(),
+                        ]),
 
-                    TimePickerField::make('hora_descargos_programada')
-                        ->label('Hora de la audiencia')
-                        ->required()
-                        ->helperText('Horario Colombia (UTC-5)'),
-                ])->columns(2),
+                    // ── Audiencia de descargos ────────────────────────────────
+                    Forms\Components\Section::make('Audiencia de descargos')
+                        ->description('Programe cuándo se realizará la audiencia virtual con el trabajador.')
+                        ->icon('heroicon-o-calendar-days')
+                        ->schema([
+                            Forms\Components\DatePicker::make('fecha_descargos_programada')
+                                ->label('Fecha de la audiencia')
+                                ->required()
+                                ->native(false)
+                                ->minDate(now())
+                                ->displayFormat('d/m/Y')
+                                ->helperText('Fecha en que se realizará la audiencia virtual'),
+
+                            TimePickerField::make('hora_descargos_programada')
+                                ->label('Hora de la audiencia')
+                                ->required()
+                                ->helperText('Horario Colombia (UTC-5)'),
+                        ])
+                        ->columns(2),
+
+                ]),
         ];
     }
 
@@ -883,19 +900,19 @@ class CreateProcesoDisciplinario extends CreateRecord
     // Acciones y cabecera
     // ──────────────────────────────────────────────────────────────────────────
 
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\Action::make('tutorial')
-                ->label('¿Necesitas ayuda?')
-                ->icon('heroicon-o-question-mark-circle')
-                ->color('gray')
-                ->extraAttributes([
-                    'data-tour' => 'help-button',
-                    'onclick'   => 'window.iniciarTour(); return false;',
-                ]),
-        ];
-    }
+    // protected function getHeaderActions(): array
+    // {
+    //     return [
+    //         Actions\Action::make('tutorial')
+    //             ->label('¿Necesitas ayuda?')
+    //             ->icon('heroicon-o-question-mark-circle')
+    //             ->color('gray')
+    //             ->extraAttributes([
+    //                 'data-tour' => 'help-button',
+    //                 'onclick'   => 'window.iniciarTour(); return false;',
+    //             ]),
+    //     ];
+    // }
 
     protected function getRedirectUrl(): string
     {
@@ -929,6 +946,40 @@ class CreateProcesoDisciplinario extends CreateRecord
         }
 
         return '¿Está seguro que desea crear este proceso disciplinario?';
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Draft persistence (session)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private function getDraftKey(): string
+    {
+        return 'proceso_draft_' . auth()->id();
+    }
+
+    public function mount(): void
+    {
+        parent::mount();
+
+        try {
+            $draft = session($this->getDraftKey());
+            if ($draft && is_array($draft) && !empty($draft)) {
+                // Exclude file upload fields — they can't be restored from session
+                unset($draft['evidencias_empleador']);
+                $this->form->fill($draft);
+            }
+        } catch (\Throwable) {
+            // If restore fails for any reason, just start fresh
+        }
+    }
+
+    public function updated(string $name): void
+    {
+        if (str_starts_with($name, 'data')) {
+            $toSave = $this->data;
+            unset($toSave['evidencias_empleador']);
+            session([$this->getDraftKey() => $toSave]);
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -1014,6 +1065,8 @@ class CreateProcesoDisciplinario extends CreateRecord
 
     protected function afterCreate(): void
     {
+        session()->forget($this->getDraftKey());
+
         $proceso = $this->record;
 
         if (

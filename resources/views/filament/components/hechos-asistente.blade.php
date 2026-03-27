@@ -46,6 +46,68 @@
 
 <script>
     document.addEventListener('alpine:init', function () {
+
+        // ── Componente completarIA ─────────────────────────────────────────────
+        // Se registra aquí (HTML inicial) porque paso-hechos-completar se inyecta
+        // vía Livewire DESPUÉS de que Alpine ya está inicializado, por lo que su
+        // propio alpine:init nunca volvería a dispararse.
+        if (!window._phcRegistered) {
+            window._phcRegistered = true;
+            Alpine.data('completarIA', function (init) {
+                return {
+                    all:                  init,
+                    visible:              [],
+                    current:              null,
+                    total:                0,
+                    idx:                  0,
+                    mostrarPersonalizado: false,
+                    valorPersonalizado:   '',
+
+                    init() {
+                        this.$nextTick(function () { this.sync(); }.bind(this));
+                        this.$wire.$watch('data.descripcion_hecho', function () { this.sync(); }.bind(this));
+                        this.$wire.$watch('sugerenciasCompletado', function (val) {
+                            this.all = val || [];
+                            this.$nextTick(function () { this.sync(); }.bind(this));
+                        }.bind(this));
+                    },
+
+                    sync() {
+                        var texto = this.$wire.get('data.descripcion_hecho') || '';
+                        this.visible = (this.all || []).filter(function (s) { return texto.includes(s.marker); });
+                        if (this.idx >= this.visible.length) this.idx = 0;
+                        this.current = this.visible[this.idx] || null;
+                        this.total   = this.visible.length;
+                    },
+
+                    aplicar(marker, valor) {
+                        this.$wire.call('aplicarSugerencia', marker, valor);
+                        this.mostrarPersonalizado = false;
+                        this.valorPersonalizado   = '';
+                    },
+
+                    next() {
+                        if (this.idx < this.visible.length - 1) {
+                            this.idx++;
+                            this.current = this.visible[this.idx] || null;
+                            this.mostrarPersonalizado = false;
+                            this.valorPersonalizado   = '';
+                        }
+                    },
+
+                    prev() {
+                        if (this.idx > 0) {
+                            this.idx--;
+                            this.current = this.visible[this.idx] || null;
+                            this.mostrarPersonalizado = false;
+                            this.valorPersonalizado   = '';
+                        }
+                    },
+                };
+            });
+        }
+
+        // ── Componente micDictar ───────────────────────────────────────────────
         Alpine.data('micDictar', function () {
             return {
                 recording: false,

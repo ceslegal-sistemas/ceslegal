@@ -12,14 +12,18 @@ class ArticuloLegal extends Model
         'codigo',
         'titulo',
         'descripcion',
+        'texto_completo',
         'categoria',
+        'fuente',
         'activo',
         'orden',
+        'embedding',
     ];
 
     protected $casts = [
-        'activo' => 'boolean',
-        'orden' => 'integer',
+        'activo'    => 'boolean',
+        'orden'     => 'integer',
+        'embedding' => 'array',
     ];
 
     /**
@@ -39,9 +43,9 @@ class ArticuloLegal extends Model
     }
 
     /**
-     * Obtener el texto completo del artículo para mostrar en el selector
+     * Etiqueta corta para mostrar en selectores / dropdowns
      */
-    public function getTextoCompletoAttribute(): string
+    public function getLabelAttribute(): string
     {
         return "{$this->codigo} - {$this->titulo}";
     }

@@ -466,134 +466,134 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ========== TOUR PARA CREAR ==========
-    if (pathname.includes("proceso-disciplinarios/create")) {
-        const tourCreate = driverFn({
-            showProgress: true,
-            nextBtnText: "Siguiente",
-            prevBtnText: "Anterior",
-            doneBtnText: "Entendido",
-            progressText: "Paso {{current}} de {{total}}",
-            steps: [
-                {
-                    popover: {
-                        title: "Crear un proceso de descargos",
-                        description:
-                            "Completa este formulario para citar a un trabajador. Al guardar, el sistema enviará la citación por correo.",
-                    },
-                },
-                {
-                    element: '[data-tour="empresa-select"]',
-                    popover: {
-                        title: "Paso 1: Empresa",
-                        description:
-                            "Tu empresa ya está seleccionada automáticamente. Continúa al siguiente paso.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="trabajador-select"]',
-                    popover: {
-                        title: "Paso 2: Trabajador",
-                        description:
-                            "Busca y selecciona al trabajador. Escribe el nombre para encontrarlo más rápido.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="trabajador-create"]',
-                    popover: {
-                        title: "¿No lo encuentras?",
-                        description:
-                            "Haz clic en '+' para registrar un trabajador nuevo.",
-                        side: "left",
-                    },
-                },
-                {
-                    element: '[data-tour="modalidad-select"]',
-                    popover: {
-                        title: "Paso 3: Modalidad",
-                        description:
-                            "Elige cómo será la audiencia: presencial, virtual o telefónica.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="abogado-select"]',
-                    popover: {
-                        title: "Asignación de Abogado",
-                        description:
-                            "Si seleccionas Presencial o Telefónico, podrás seleccionar el abogado y su disponibilidad que atenderá la diligencia.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="motivos-select"]',
-                    popover: {
-                        title: "Paso 4: Motivos",
-                        description:
-                            "Elige uno o más motivos que justifican la citación.",
-                        side: "top",
-                    },
-                },
-                {
-                    element: '[data-tour="fecha-ocurrencia"]',
-                    popover: {
-                        title: "Paso 5: Fecha de los hechos",
-                        description:
-                            "Indica cuándo ocurrieron los hechos que motivan el proceso.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="hechos-editor"]',
-                    popover: {
-                        title: "Paso 6: Descripción de los hechos",
-                        description:
-                            "Explica qué pasó, dónde y quiénes estuvieron involucrados.",
-                        side: "top",
-                    },
-                },
-                {
-                    element: '[data-tour="ia-button"]',
-                    popover: {
-                        title: "Asistente con IA",
-                        description:
-                            "¿No sabes cómo redactarlo? La IA mejora tu texto automáticamente.",
-                        side: "left",
-                    },
-                },
-                {
-                    element: ".fi-form-actions",
-                    popover: {
-                        title: "Paso 7: Guardar",
-                        description:
-                            "Al hacer clic en 'Crear', se generará la citación y se enviará al trabajador.",
-                        side: "top",
-                    },
-                },
-                {
-                    popover: {
-                        title: "¡Ya estás listo!",
-                        description:
-                            "Completa el formulario y el sistema se encargará del resto.",
-                    },
-                },
-            ],
-        });
+    // if (pathname.includes("proceso-disciplinarios/create")) {
+    //     const tourCreate = driverFn({
+    //         showProgress: true,
+    //         nextBtnText: "Siguiente",
+    //         prevBtnText: "Anterior",
+    //         doneBtnText: "Entendido",
+    //         progressText: "Paso {{current}} de {{total}}",
+    //         steps: [
+    //             {
+    //                 popover: {
+    //                     title: "Crear un proceso de descargos",
+    //                     description:
+    //                         "Completa este formulario para citar a un trabajador. Al guardar, el sistema enviará la citación por correo.",
+    //                 },
+    //             },
+    //             {
+    //                 element: '[data-tour="empresa-select"]',
+    //                 popover: {
+    //                     title: "Paso 1: Empresa",
+    //                     description:
+    //                         "Tu empresa ya está seleccionada automáticamente. Continúa al siguiente paso.",
+    //                     side: "right",
+    //                 },
+    //             },
+    //             {
+    //                 element: '[data-tour="trabajador-select"]',
+    //                 popover: {
+    //                     title: "Paso 2: Trabajador",
+    //                     description:
+    //                         "Busca y selecciona al trabajador. Escribe el nombre para encontrarlo más rápido.",
+    //                     side: "right",
+    //                 },
+    //             },
+    //             {
+    //                 element: '[data-tour="trabajador-create"]',
+    //                 popover: {
+    //                     title: "¿No lo encuentras?",
+    //                     description:
+    //                         "Haz clic en '+' para registrar un trabajador nuevo.",
+    //                     side: "left",
+    //                 },
+    //             },
+    //             {
+    //                 element: '[data-tour="modalidad-select"]',
+    //                 popover: {
+    //                     title: "Paso 3: Modalidad",
+    //                     description:
+    //                         "Elige cómo será la audiencia: presencial, virtual o telefónica.",
+    //                     side: "right",
+    //                 },
+    //             },
+    //             {
+    //                 element: '[data-tour="abogado-select"]',
+    //                 popover: {
+    //                     title: "Asignación de Abogado",
+    //                     description:
+    //                         "Si seleccionas Presencial o Telefónico, podrás seleccionar el abogado y su disponibilidad que atenderá la diligencia.",
+    //                     side: "right",
+    //                 },
+    //             },
+    //             {
+    //                 element: '[data-tour="motivos-select"]',
+    //                 popover: {
+    //                     title: "Paso 4: Motivos",
+    //                     description:
+    //                         "Elige uno o más motivos que justifican la citación.",
+    //                     side: "top",
+    //                 },
+    //             },
+    //             {
+    //                 element: '[data-tour="fecha-ocurrencia"]',
+    //                 popover: {
+    //                     title: "Paso 5: Fecha de los hechos",
+    //                     description:
+    //                         "Indica cuándo ocurrieron los hechos que motivan el proceso.",
+    //                     side: "right",
+    //                 },
+    //             },
+    //             {
+    //                 element: '[data-tour="hechos-editor"]',
+    //                 popover: {
+    //                     title: "Paso 6: Descripción de los hechos",
+    //                     description:
+    //                         "Explica qué pasó, dónde y quiénes estuvieron involucrados.",
+    //                     side: "top",
+    //                 },
+    //             },
+    //             {
+    //                 element: '[data-tour="ia-button"]',
+    //                 popover: {
+    //                     title: "Asistente con IA",
+    //                     description:
+    //                         "¿No sabes cómo redactarlo? La IA mejora tu texto automáticamente.",
+    //                     side: "left",
+    //                 },
+    //             },
+    //             {
+    //                 element: ".fi-form-actions",
+    //                 popover: {
+    //                     title: "Paso 7: Guardar",
+    //                     description:
+    //                         "Al hacer clic en 'Crear', se generará la citación y se enviará al trabajador.",
+    //                     side: "top",
+    //                 },
+    //             },
+    //             {
+    //                 popover: {
+    //                     title: "¡Ya estás listo!",
+    //                     description:
+    //                         "Completa el formulario y el sistema se encargará del resto.",
+    //                 },
+    //             },
+    //         ],
+    //     });
 
-        window.tourDescargosCreate = tourCreate;
+    //     window.tourDescargosCreate = tourCreate;
 
-        // Iniciar tour automáticamente si es primera vez
-        const tourCreateShown = localStorage.getItem(
-            "tourDescargosCreateShown",
-        );
-        if (!tourCreateShown) {
-            setTimeout(function () {
-                tourCreate.drive();
-                localStorage.setItem("tourDescargosCreateShown", "true");
-            }, 1000);
-        }
-    }
+    //     // Iniciar tour automáticamente si es primera vez
+    //     const tourCreateShown = localStorage.getItem(
+    //         "tourDescargosCreateShown",
+    //     );
+    //     if (!tourCreateShown) {
+    //         setTimeout(function () {
+    //             tourCreate.drive();
+    //             localStorage.setItem("tourDescargosCreateShown", "true");
+    //         }, 1000);
+    //     }
+    // }
 
     // ========== FUNCIONES GLOBALES ==========
     // Permitir reiniciar el tour manualmente
