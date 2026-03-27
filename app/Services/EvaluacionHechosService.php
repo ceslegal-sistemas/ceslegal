@@ -365,6 +365,69 @@ SYSTEM;
     }
 
     /**
+     * Genera una redacción completa y profesional de los hechos disciplinarios a partir de
+     * un borrador y todos los datos ya capturados en el formulario.
+     * NUNCA deja marcadores [COMPLETAR] — omite los datos que no estén disponibles.
+     */
+    public function generarRedaccionCompleta(string $borrador, int $empresaId = 0, array $contexto = []): string
+    {
+        $contextoReglamento = $empresaId > 0
+            ? $this->obtenerContextoReglamento($empresaId)
+            : 'Aplica el Código Sustantivo del Trabajo colombiano (CST).';
+
+        // Bloque de datos disponibles
+        $lineas = [];
+        if (!empty($contexto['empresa_nombre']))    $lineas[] = "- Empresa: {$contexto['empresa_nombre']}";
+        if (!empty($contexto['trabajador_nombre'])) {
+            $cargo = !empty($contexto['trabajador_cargo']) ? " ({$contexto['trabajador_cargo']})" : '';
+            $lineas[] = "- Trabajador: {$contexto['trabajador_nombre']}{$cargo}";
+        }
+        if (!empty($contexto['fecha_hecho']))       $lineas[] = "- Fecha del hecho: {$contexto['fecha_hecho']}";
+        if (!empty($contexto['hora_hecho']))        $lineas[] = "- Hora aproximada: {$contexto['hora_hecho']}";
+        if (!empty($contexto['lugar']))             $lineas[] = "- Lugar: {$contexto['lugar']}";
+        if (!empty($contexto['en_horario']))        $lineas[] = "- En horario laboral: {$contexto['en_horario']}";
+        if (!empty($contexto['quien_reporta']))     $lineas[] = "- Reportado por: {$contexto['quien_reporta']}";
+        if (!empty($contexto['reincidente']))       $lineas[] = "- Antecedentes disciplinarios: {$contexto['reincidente']}";
+        $bloqueDatos = $lineas ? implode("\n", $lineas) : '(sin datos adicionales del formulario)';
+
+        $system = <<<SYSTEM
+Eres abogado laboralista colombiano especializado en expedientes disciplinarios.
+
+CONTEXTO NORMATIVO (solo para identificar la norma aplicable):
+{$contextoReglamento}
+
+DATOS DEL CASO:
+{$bloqueDatos}
+
+BORRADOR DEL EMPLEADOR:
+{$borrador}
+
+TAREA: Redacta los hechos disciplinarios para el expediente en 2-3 párrafos.
+
+REGLAS ABSOLUTAS:
+1. Usa TODOS los datos del caso disponibles arriba.
+2. Si un dato NO está disponible, omítelo completamente — NUNCA uses "[COMPLETAR]", placeholders ni corchetes.
+3. Tercera persona, tono objetivo y factual — sin adornos ni frases genéricas.
+4. Incluye: conducta del trabajador, cuándo, dónde, cómo se enteró la empresa, consecuencia para la operación.
+5. Solo texto plano en párrafos. Sin HTML, sin listas, sin asteriscos, sin JSON.
+6. Máximo 200 palabras.
+7. Última línea separada: "Norma aplicable: [artículo concreto del CST o reglamento interno que aplica — si no estás seguro, omite esta línea]"
+SYSTEM;
+
+        try {
+            $raw = $this->llamarIA($system, [], $borrador, textoPlano: true, modeloRapido: false);
+            $texto = trim($this->extraerTextoPlano($raw));
+            // Garantía extra: eliminar cualquier [COMPLETAR:...] que hubiera generado el modelo
+            $texto = preg_replace('/\[COMPLETAR:[^\]]*\]/iu', '', $texto);
+            $texto = trim(preg_replace('/[ \t]{2,}/', ' ', $texto));
+            return $texto;
+        } catch (\Exception $e) {
+            Log::error('EvaluacionHechosService::generarRedaccionCompleta', ['error' => $e->getMessage()]);
+            throw $e;
+        }
+    }
+
+    /**
      * Para cada marcador [COMPLETAR: ...] en el texto genera 3 opciones cortas.
      * Retorna array de ['marker' => '[COMPLETAR: ...]', 'label' => '...', 'opciones' => [...]]
      */

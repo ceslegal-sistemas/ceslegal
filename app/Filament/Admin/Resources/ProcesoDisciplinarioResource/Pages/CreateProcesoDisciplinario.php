@@ -367,24 +367,24 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->schema([
                                     Forms\Components\Textarea::make('descripcion_hecho')
                                         ->label('¿Qué ocurrió?')
-                                        ->helperText('Escriba una idea general — "Mejorar con IA" si prefiere redactar mejor.')
+                                        ->helperText('Escriba una descripción breve de lo ocurrido y use "Generar redacción con IA" para obtener la versión profesional completa.')
                                         ->required()
                                         ->minLength(40)
                                         ->validationMessages([
-                                            'min' => 'Necesitamos al menos una idea de lo que ocurrió. Use botón "Mejorar con IA".',
+                                            'min' => 'Necesitamos al menos una descripción básica de lo ocurrido.',
                                         ])
                                         ->rows(7)
-                                        ->placeholder('Ej: El trabajador llegó dos horas tarde sin avisar...')
+                                        ->placeholder('Ej: El trabajador llegó dos horas tarde sin avisar y no respondió los mensajes del supervisor...')
                                         ->live(debounce: 800)
                                         ->afterStateUpdated(fn($livewire) => $livewire->analizarDescripcion())
                                         ->hintActions([
-                                            Forms\Components\Actions\Action::make('mejorar_ia')
-                                                ->label(fn($livewire) => $livewire->mejorando ? 'Mejorando...' : 'Mejorar con IA')
+                                            Forms\Components\Actions\Action::make('generar_redaccion')
+                                                ->label(fn($livewire) => $livewire->mejorando ? 'Generando...' : 'Generar redacción con IA')
                                                 ->icon('heroicon-m-sparkles')
-                                                ->color('gray')
-                                                ->tooltip('La IA expandirá y mejorará lo que escribió')
+                                                ->color('primary')
+                                                ->tooltip('La IA generará una redacción profesional completa usando todos los datos del caso')
                                                 ->disabled(fn(Get $get, $livewire) => $livewire->mejorando || mb_strlen($get('descripcion_hecho') ?? '') < 10)
-                                                ->action(fn($livewire) => $livewire->mejorarDescripcion()),
+                                                ->action(fn($livewire) => $livewire->generarRedaccion()),
                                         ])
                                         ->columnSpan(2),
 
@@ -393,27 +393,10 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         ->content(fn($livewire) => new HtmlString(
                                             view('filament.components.paso-hechos-analisis', [
                                                 'items'       => $livewire->analisisDescripcion,
-                                                'feedbackVoz' => $livewire->feedbackVoz,
+                                                'feedbackVoz' => '',
                                             ])->render()
                                         ))
                                         ->columnSpan(1),
-
-                                    Forms\Components\Placeholder::make('mic_helper')
-                                        ->label('')
-                                        ->content(fn() => new HtmlString(
-                                            view('filament.components.hechos-asistente')->render()
-                                        ))
-                                        ->columnSpan(2),
-
-                                    Forms\Components\Placeholder::make('sugerencias_completado')
-                                        ->label('')
-                                        ->content(fn($livewire) => !empty($livewire->sugerenciasCompletado)
-                                            ? new HtmlString(view('filament.components.paso-hechos-completar', [
-                                                'sugerencias' => $livewire->sugerenciasCompletado,
-                                            ])->render())
-                                            : new HtmlString('')
-                                        )
-                                        ->columnSpan(2),
                                 ]),
                         ]),
                 ]),
@@ -792,6 +775,25 @@ class CreateProcesoDisciplinario extends CreateRecord
             'virtual'        => 'Entorno virtual / remoto',
         ];
 
+        $empresaId = $this->data['empresa_id'] ?? null;
+        if ($empresaId) {
+            $e = Empresa::find($empresaId);
+            if ($e) $contexto['empresa_nombre'] = $e->razon_social;
+        }
+
+        $quienReportaLabels = [
+            'empleador'  => 'El empleador directamente',
+            'supervisor' => 'Un supervisor o jefe inmediato',
+            'rrhh'       => 'El área de Recursos Humanos',
+            'compañero'  => 'Un compañero de trabajo',
+            'cliente'    => 'Un cliente o proveedor',
+            'otro'       => 'Otro',
+        ];
+        $quienReporta = $this->data['quien_reporta'] ?? null;
+        if ($quienReporta) {
+            $contexto['quien_reporta'] = $quienReportaLabels[$quienReporta] ?? $quienReporta;
+        }
+
         $trabajadorId = $this->data['trabajador_id'] ?? null;
         if ($trabajadorId) {
             $t = Trabajador::find($trabajadorId);
@@ -851,14 +853,14 @@ class CreateProcesoDisciplinario extends CreateRecord
         }
     }
 
-    public function mejorarDescripcion(): void
+    public function generarRedaccion(): void
     {
-        $texto = trim($this->data['descripcion_hecho'] ?? '');
+        $borrador = trim($this->data['descripcion_hecho'] ?? '');
 
-        if (mb_strlen($texto) < 10) {
+        if (mb_strlen($borrador) < 10) {
             Notification::make()->warning()
-                ->title('Escriba algo primero')
-                ->body('Escriba una idea básica y la IA la expandirá.')
+                ->title('Escriba una idea primero')
+                ->body('Describa brevemente lo que ocurrió y la IA generará la redacción completa.')
                 ->send();
             return;
         }
@@ -868,22 +870,21 @@ class CreateProcesoDisciplinario extends CreateRecord
         $contexto  = $this->buildContextoFormulario();
 
         try {
-            $service  = app(EvaluacionHechosService::class);
-            $mejorado = $service->mejorarRedaccion($texto, $empresaId, $contexto);
-            $this->data['descripcion_hecho'] = $mejorado;
+            $redaccion = app(EvaluacionHechosService::class)
+                ->generarRedaccionCompleta($borrador, $empresaId, $contexto);
+
+            $this->data['descripcion_hecho'] = $redaccion;
+            $this->sugerenciasCompletado     = [];
             $this->analizarDescripcion();
 
-            // Generar sugerencias IA para los campos [COMPLETAR] que quedaron (excluye datos ya capturados)
-            $this->sugerenciasCompletado = $service->generarSugerenciasCompletado($mejorado, $contexto);
-
             Notification::make()->success()
-                ->title('Texto mejorado')
-                ->body('Revise y complete los campos marcados con las sugerencias de abajo.')
+                ->title('Redacción generada')
+                ->body('Revise el texto y ajuste los detalles específicos si es necesario.')
                 ->send();
         } catch (\Exception $e) {
-            Log::error('mejorarDescripcion', ['error' => $e->getMessage()]);
+            Log::error('generarRedaccion', ['error' => $e->getMessage()]);
             Notification::make()->danger()
-                ->title('Error al mejorar texto')
+                ->title('Error al generar redacción')
                 ->body('No se pudo conectar con la IA. Intente de nuevo.')
                 ->send();
         } finally {
