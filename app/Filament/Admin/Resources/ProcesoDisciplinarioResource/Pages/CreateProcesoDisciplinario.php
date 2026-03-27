@@ -3,9 +3,12 @@
 namespace App\Filament\Admin\Resources\ProcesoDisciplinarioResource\Pages;
 
 use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
+use App\Models\DiaNoHabil;
+use App\Models\Empresa;
 use App\Models\Trabajador;
 use App\Services\DocumentGeneratorService;
 use App\Services\EvaluacionHechosService;
+use App\Services\TerminoLegalService;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Get;
@@ -16,6 +19,7 @@ use Filament\Forms\Components\Wizard\Step;
 use HusamTariq\FilamentTimePicker\Forms\Components\TimePickerField;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\HtmlString;
 
 class CreateProcesoDisciplinario extends CreateRecord
@@ -583,9 +587,75 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->label('Fecha de la audiencia')
                                 ->required()
                                 ->native(false)
-                                ->minDate(now())
+                                ->live()
                                 ->displayFormat('d/m/Y')
-                                ->helperText('Fecha en que se realizará la audiencia virtual'),
+                                ->minDate(function (Get $get) {
+                                    // Super admin puede seleccionar desde hoy
+                                    if (auth()->user()?->hasRole('super_admin')) {
+                                        return now()->startOfDay();
+                                    }
+
+                                    $empresaId     = $get('empresa_id');
+                                    $empresa       = $empresaId ? Empresa::find($empresaId) : null;
+                                    $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+
+                                    if ($trabajaSabados) {
+                                        // Contar 6 días hábiles: lunes–sábado, excluir domingos y festivos
+                                        $fecha    = now()->copy();
+                                        $contados = 0;
+                                        $festivos = self::getFestivosDatepicker();
+
+                                        while ($contados < 6) {
+                                            $fecha->addDay();
+                                            if (!$fecha->isSunday() && !in_array($fecha->format('Y-m-d'), $festivos)) {
+                                                $contados++;
+                                            }
+                                        }
+                                        return $fecha->startOfDay();
+                                    }
+
+                                    // Lunes–Viernes: usa TerminoLegalService
+                                    return app(TerminoLegalService::class)
+                                        ->calcularFechaVencimiento(now(), 6)
+                                        ->startOfDay();
+                                })
+                                ->maxDate(fn() => now()->addMonth()->endOfDay())
+                                ->disabledDates(function (Get $get) {
+                                    $deshabilitadas = [];
+                                    $inicio         = now()->startOfDay();
+                                    $fin            = now()->addYear();
+
+                                    $empresaId     = $get('empresa_id');
+                                    $empresa       = $empresaId ? Empresa::find($empresaId) : null;
+                                    $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+
+                                    $festivos = self::getFestivosDatepicker();
+
+                                    for ($d = $inicio->copy(); $d->lte($fin); $d->addDay()) {
+                                        if ($trabajaSabados) {
+                                            // Solo domingos bloqueados
+                                            if ($d->isSunday()) {
+                                                $deshabilitadas[] = $d->format('Y-m-d');
+                                            }
+                                        } else {
+                                            // Sábados y domingos bloqueados
+                                            if ($d->isWeekend()) {
+                                                $deshabilitadas[] = $d->format('Y-m-d');
+                                            }
+                                        }
+                                    }
+
+                                    return array_unique(array_merge($deshabilitadas, $festivos));
+                                })
+                                ->helperText(function (Get $get) {
+                                    $empresaId     = $get('empresa_id');
+                                    $empresa       = $empresaId ? Empresa::find($empresaId) : null;
+                                    $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+
+                                    return $trabajaSabados
+                                        ? 'Domingos y festivos no disponibles (mínimo 6 días hábiles)'
+                                        : 'Fines de semana y festivos no disponibles (mínimo 6 días hábiles)';
+                                }),
 
                             TimePickerField::make('hora_descargos_programada')
                                 ->label('Hora de la audiencia')
@@ -1118,5 +1188,78 @@ class CreateProcesoDisciplinario extends CreateRecord
                 ]);
             }
         }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Helpers para DatePicker de días hábiles
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Devuelve todos los festivos del año en curso y del siguiente,
+     * combinando festivos fijos, móviles (Ley Emiliani) y los de la BD.
+     */
+    protected static function getFestivosDatepicker(): array
+    {
+        $festivos = array_merge(
+            self::calcularFestivosAnio(now()->year),
+            self::calcularFestivosAnio(now()->year + 1)
+        );
+
+        // Agregar festivos adicionales registrados en la BD
+        try {
+            if (Schema::hasTable('dias_no_habiles')) {
+                $bd = DiaNoHabil::pluck('fecha')
+                    ->map(fn($f) => Carbon::parse($f)->format('Y-m-d'))
+                    ->toArray();
+                $festivos = array_merge($festivos, $bd);
+            }
+        } catch (\Exception) {}
+
+        return array_unique($festivos);
+    }
+
+    protected static function calcularFestivosAnio(int $year): array
+    {
+        // Festivos fijos
+        $fijos = [
+            "{$year}-01-01", // Año Nuevo
+            "{$year}-05-01", // Día del Trabajo
+            "{$year}-07-20", // Día de la Independencia
+            "{$year}-08-07", // Batalla de Boyacá
+            "{$year}-12-08", // Inmaculada Concepción
+            "{$year}-12-25", // Navidad
+        ];
+
+        // Semana Santa (basados en Pascua)
+        $pascua  = Carbon::createFromTimestamp(easter_date($year));
+        $moviles = [
+            $pascua->copy()->subDays(3)->format('Y-m-d'), // Jueves Santo
+            $pascua->copy()->subDays(2)->format('Y-m-d'), // Viernes Santo
+            $pascua->copy()->addDays(43)->format('Y-m-d'), // Ascensión
+            $pascua->copy()->addDays(64)->format('Y-m-d'), // Corpus Christi
+            $pascua->copy()->addDays(71)->format('Y-m-d'), // Sagrado Corazón
+        ];
+
+        // Festivos Ley Emiliani (se trasladan al lunes siguiente)
+        $emiliani = [
+            "{$year}-01-06", // Reyes Magos
+            "{$year}-03-19", // San José
+            "{$year}-06-29", // San Pedro y San Pablo
+            "{$year}-08-15", // Asunción de la Virgen
+            "{$year}-10-12", // Día de la Raza
+            "{$year}-11-01", // Todos los Santos
+            "{$year}-11-11", // Independencia de Cartagena
+        ];
+
+        $emilianiAjustados = [];
+        foreach ($emiliani as $fecha) {
+            $d = Carbon::parse($fecha);
+            if (!$d->isMonday()) {
+                $d = $d->next(Carbon::MONDAY);
+            }
+            $emilianiAjustados[] = $d->format('Y-m-d');
+        }
+
+        return array_merge($fijos, $moviles, $emilianiAjustados);
     }
 }
