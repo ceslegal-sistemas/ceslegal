@@ -192,6 +192,7 @@ SYSTEM;
         if (!empty($contexto['hora_hecho']))   $lineas[] = "- Hora aproximada: {$contexto['hora_hecho']}";
         if (!empty($contexto['lugar']))        $lineas[] = "- Lugar: {$contexto['lugar']}";
         if (!empty($contexto['en_horario']))   $lineas[] = "- En horario laboral: {$contexto['en_horario']}";
+        if (isset($contexto['reincidente']))   $lineas[] = "- Reincidente: {$contexto['reincidente']}";
         return count($lineas) > 1 ? "\n\n" . implode("\n", $lineas) : '';
     }
 
@@ -369,7 +370,8 @@ SYSTEM;
      */
     public function generarSugerenciasCompletado(string $texto, array $contexto = []): array
     {
-        preg_match_all('/\[COMPLETAR:\s*([^\]]+)\]/', $texto, $matches, PREG_SET_ORDER);
+        // Regex que maneja corchetes anidados dentro del marcador, ej. [COMPLETAR: ... de [nombre]]
+        preg_match_all('/\[COMPLETAR:\s*((?:[^\[\]]+|\[[^\]]*\])+)\]/', $texto, $matches, PREG_SET_ORDER);
         if (empty($matches)) return [];
 
         // Palabras clave de datos ya capturados — no generar sugerencias para ellos
@@ -486,7 +488,7 @@ ENFÓCATE SOLO en lo que falta — NO menciones datos ya capturados arriba:
 1. CONDUCTA CONCRETA: ¿Es específica? "No cumplió funciones" no sirve — ¿qué hizo exactamente?
 2. IMPACTO: ¿Se menciona consecuencia real para la empresa, el equipo o el servicio?
 3. PRUEBAS: ¿Hay testigos, cámara, correo, registro u otro soporte que obtener?
-4. HISTORIAL: ¿Es reincidente? ¿Hubo llamado de atención anterior?
+NOTA: El historial disciplinario y la reincidencia YA están registrados en el sistema — NO los pidas.
 
 Responde con 1 o 2 frases directas. Cita norma SOLO si está en las normas listadas arriba y aplica con certeza.
 Si el relato ya está completo, confírmalo brevemente.

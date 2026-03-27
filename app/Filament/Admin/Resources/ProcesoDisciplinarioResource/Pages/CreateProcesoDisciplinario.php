@@ -798,6 +798,10 @@ class CreateProcesoDisciplinario extends CreateRecord
             if ($t) {
                 $contexto['trabajador_nombre'] = $t->nombre_completo;
                 $contexto['trabajador_cargo']  = $t->cargo ?? '';
+                $procesos = $t->procesosDisciplinarios()->count();
+                $contexto['reincidente'] = $procesos > 0
+                    ? "Sí — tiene {$procesos} proceso(s) disciplinario(s) previo(s)"
+                    : 'No — primer proceso disciplinario';
             }
         }
 
@@ -897,6 +901,19 @@ class CreateProcesoDisciplinario extends CreateRecord
             array_filter($this->sugerenciasCompletado, fn($s) => $s['marker'] !== $marker)
         );
 
+        // Al aplicar la última sugerencia, limpiar cualquier marcador residual
+        if (empty($this->sugerenciasCompletado)) {
+            $t = $this->data['descripcion_hecho'];
+            // Eliminar [COMPLETAR: ...] con posibles corchetes anidados
+            $t = preg_replace('/\[COMPLETAR:\s*(?:[^\[\]]+|\[[^\]]*\])+\]/iu', '', $t);
+            // Eliminar corchetes genéricos residuales: [describir algo], [piso], etc.
+            $t = preg_replace('/\[[^\[\]]*\]/u', '', $t);
+            // Limpiar ]] dobles y espacios extra
+            $t = str_replace(']]', '', $t);
+            $t = trim(preg_replace('/[ \t]{2,}/', ' ', $t));
+            $this->data['descripcion_hecho'] = $t;
+        }
+
         $this->analizarDescripcion();
     }
 
@@ -938,9 +955,10 @@ class CreateProcesoDisciplinario extends CreateRecord
             $detalleTxt  = 'Descripción muy breve — amplíe con más detalles';
         }
 
-        // ── 3. Acción concreta del trabajador ─────────────────────────────────
-        $tieneAccion = (bool) preg_match(
-            '/\b(lleg[oó]|falt[oó]|no\s+asisti[oó]|golpe[oó]|agredi[oó]|rob[oó]|hurtó|sustrajo|tom[oó]|omiti[oó]|incumpli[oó]|abandon[oó]|se\s+neg[oó]|irrespet[oó]|insult[oó]|amena[zz][oó]|tard[oó]|descat[oó]|acosó|hostig[oó]|intimid[oó])\b/ui',
+        // ── 3. Acción concreta del trabajador (solo cuando el texto es corto) ──
+        // Cuando el texto ya es detallado (≥150 chars) este check es redundante
+        $tieneAccion = $detalleOk || (bool) preg_match(
+            '/\b(lleg[oó]|falt[oó]|no\s+asisti[oó]|golpe[oó]|agredi[oó]|rob[oó]|hurtó|sustrajo|tom[oó]|omiti[oó]|incumpli[oó]|abandon[oó]|se\s+neg[oó]|irrespet[oó]|insult[oó]|amena[zz][oó]|tard[oó]|descat[oó]|acosó|hostig[oó]|intimid[oó]|realiz[oó]|efectu[oó]|cometi[oó]|ejecut[oó]|envi[oó]|procedi[oó]|llev[oó]\s+a\s+cabo|manifest[oó]|exhibi[oó])\b/ui',
             $texto
         );
 
@@ -961,7 +979,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                 'ok'    => $tieneAccion,
                 'texto' => $tieneAccion
                     ? 'Acción del trabajador claramente descrita'
-                    : 'Describa qué hizo exactamente el trabajador',
+                    : 'Incluya el verbo que describe la acción del trabajador',
             ],
         ];
     }
