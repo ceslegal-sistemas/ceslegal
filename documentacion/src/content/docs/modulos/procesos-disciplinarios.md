@@ -13,6 +13,9 @@ El recurso principal es `ProcesoDisciplinarioResource`, ubicado en:
 app/Filament/Admin/Resources/ProcesoDisciplinarioResource.php
 ```
 
+!['Modulo Procesos Disciplinarios'](../../../assets/proceso-disciplinario.png)
+!['Modulo Procesos Disciplinarios Segunda Parte'](../../../assets/proceso-disciplinario-2.png)
+
 ## Caracteristicas Principales
 
 ### Codigo Auto-generado

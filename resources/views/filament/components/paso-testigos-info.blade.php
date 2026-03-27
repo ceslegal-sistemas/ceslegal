@@ -4,8 +4,8 @@
 
     <div style="display:flex;align-items:center;gap:.625rem;margin-bottom:.625rem;">
         <lord-icon
-            src="https://cdn.lordicon.com/ozlkyfxg.json"
-            trigger="loop" delay="500" stroke="bold"
+            src="https://cdn.lordicon.com/fqbvgezn.json"
+            trigger="loop" delay="500" stroke="bold" state="hover-roll"
             colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
             data-pt-icon
             data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
@@ -23,8 +23,8 @@
     <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem;">
         <div class="pt-bullet">
             <lord-icon
-                src="https://cdn.lordicon.com/ozlkyfxg.json"
-                trigger="loop" delay="500" stroke="bold"
+                src="https://cdn.lordicon.com/shcfcebj.json"
+                trigger="loop" delay="500" stroke="bold" state="in-reveal"
                 colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
                 data-pt-icon
                 data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
@@ -35,7 +35,7 @@
         </div>
         <div class="pt-bullet">
             <lord-icon
-                src="https://cdn.lordicon.com/warimioc.json"
+                src="https://cdn.lordicon.com/jdgfsfzr.json"
                 trigger="loop" delay="500" stroke="bold"
                 colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
                 data-pt-icon

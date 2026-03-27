@@ -14,6 +14,8 @@ La informacion de la empresa se utiliza directamente en la generacion de documen
 ### CRUD Completo
 Permite crear, consultar, actualizar y eliminar empresas con toda su informacion comercial y de contacto.
 
+!['Empresas'](../../../assets/empresas.png)
+
 ### Base Multi-tenant
 La empresa es el eje del aislamiento de datos. Cada entidad principal del sistema tiene una relacion `empresa_id` que determina la visibilidad:
 
@@ -24,6 +26,10 @@ Empresa
   |-- Usuarios (empresa_id)
   |-- Solicitudes de Contrato (empresa_id)
 ```
+
+!['Empresas'](../../../assets/empresas-2.png)
+!['Empresas'](../../../assets/empresas-3.png)
+!['Empresas'](../../../assets/empresas-4.png)
 
 Los usuarios con rol `cliente` solo pueden ver datos de su propia empresa. Los roles `super_admin` y `abogado` pueden acceder a datos de todas las empresas.
 

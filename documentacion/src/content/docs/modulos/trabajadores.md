@@ -12,9 +12,13 @@ Este modulo esta filtrado por empresa (`empresa_id`), de manera que cada usuario
 ## Caracteristicas Principales
 
 ### CRUD Completo
+
 El recurso permite crear, leer, actualizar y eliminar trabajadores con todos sus datos personales, laborales y de contacto.
 
+!['Trabajadores'](../../../assets/trabajadores.png)
+
 ### Filtrado Multi-tenant
+
 Los trabajadores estan automaticamente filtrados por la empresa del usuario autenticado cuando el rol es `cliente`. Los roles `super_admin` y `abogado` pueden ver trabajadores de todas las empresas.
 
 ```php
@@ -32,12 +36,17 @@ public static function getEloquentQuery(): Builder
 ```
 
 ### Creacion Inline
+
 Desde el formulario de creacion de un proceso disciplinario, se puede crear un nuevo trabajador sin salir del formulario, utilizando un modal de Filament. Esto permite registrar rapidamente un trabajador que aun no existe en el sistema.
 
+!['Trabajadores Dentro de Descargos'](../../../assets/trabajadores-2.png)
+
 ### Estado Activo/Inactivo
+
 Cada trabajador tiene un campo `active` (booleano) que permite marcarlo como activo o inactivo. Los trabajadores inactivos no aparecen en los selectores de nuevos procesos pero se mantienen vinculados a procesos existentes.
 
 ### Atributo Nombre Completo
+
 El modelo proporciona un accessor `nombre_completo` que concatena nombres y apellidos:
 
 ```php
@@ -53,24 +62,24 @@ Este atributo se utiliza en toda la aplicacion para mostrar el nombre del trabaj
 
 ### Tabla: `trabajadores`
 
-| Campo | Tipo | Descripcion |
-|-------|------|-------------|
-| `id` | bigint | Identificador unico |
-| `empresa_id` | foreignId | Empresa a la que pertenece |
-| `tipo_documento` | string | Tipo de documento de identidad (CC, CE, TI, etc.) |
-| `numero_documento` | string | Numero de documento de identidad |
-| `genero` | string | Genero del trabajador |
-| `nombres` | string | Nombres del trabajador |
-| `apellidos` | string | Apellidos del trabajador |
-| `departamento_nacimiento` | string | Departamento de nacimiento |
-| `ciudad_nacimiento` | string | Ciudad de nacimiento |
-| `cargo` | string | Cargo que desempenia en la empresa |
-| `area` | string | Area o departamento organizacional |
-| `fecha_ingreso` | date | Fecha de ingreso a la empresa |
-| `email` | string | Correo electronico del trabajador |
-| `telefono` | string | Numero de telefono |
-| `direccion` | string | Direccion de residencia |
-| `active` | boolean | Estado activo/inactivo |
+| Campo                     | Tipo      | Descripcion                                       |
+| ------------------------- | --------- | ------------------------------------------------- |
+| `id`                      | bigint    | Identificador unico                               |
+| `empresa_id`              | foreignId | Empresa a la que pertenece                        |
+| `tipo_documento`          | string    | Tipo de documento de identidad (CC, CE, TI, etc.) |
+| `numero_documento`        | string    | Numero de documento de identidad                  |
+| `genero`                  | string    | Genero del trabajador                             |
+| `nombres`                 | string    | Nombres del trabajador                            |
+| `apellidos`               | string    | Apellidos del trabajador                          |
+| `departamento_nacimiento` | string    | Departamento de nacimiento                        |
+| `ciudad_nacimiento`       | string    | Ciudad de nacimiento                              |
+| `cargo`                   | string    | Cargo que desempenia en la empresa                |
+| `area`                    | string    | Area o departamento organizacional                |
+| `fecha_ingreso`           | date      | Fecha de ingreso a la empresa                     |
+| `email`                   | string    | Correo electronico del trabajador                 |
+| `telefono`                | string    | Numero de telefono                                |
+| `direccion`               | string    | Direccion de residencia                           |
+| `active`                  | boolean   | Estado activo/inactivo                            |
 
 ### Casts
 
@@ -83,10 +92,10 @@ protected $casts = [
 
 ## Relaciones con Otros Modulos
 
-| Relacion | Tipo | Modelo Relacionado | Descripcion |
-|----------|------|--------------------|-------------|
-| `empresa` | BelongsTo | `Empresa` | Empresa empleadora |
-| `procesosDisciplinarios` | HasMany | `ProcesoDisciplinario` | Procesos donde es sujeto |
+| Relacion                 | Tipo      | Modelo Relacionado     | Descripcion              |
+| ------------------------ | --------- | ---------------------- | ------------------------ |
+| `empresa`                | BelongsTo | `Empresa`              | Empresa empleadora       |
+| `procesosDisciplinarios` | HasMany   | `ProcesoDisciplinario` | Procesos donde es sujeto |
 
 Relaciones indirectas a traves de procesos disciplinarios:
 
@@ -101,15 +110,15 @@ Relaciones indirectas a traves de procesos disciplinarios:
 
 Los tipos de documento de identidad disponibles en Colombia son:
 
-| Codigo | Nombre |
-|--------|--------|
-| CC | Cedula de Ciudadania |
-| CE | Cedula de Extranjeria |
-| TI | Tarjeta de Identidad |
-| PA | Pasaporte |
-| NIT | Numero de Identificacion Tributaria |
-| PEP | Permiso Especial de Permanencia |
-| PPT | Permiso de Proteccion Temporal |
+| Codigo | Nombre                              |
+| ------ | ----------------------------------- |
+| CC     | Cedula de Ciudadania                |
+| CE     | Cedula de Extranjeria               |
+| TI     | Tarjeta de Identidad                |
+| PA     | Pasaporte                           |
+| NIT    | Numero de Identificacion Tributaria |
+| PEP    | Permiso Especial de Permanencia     |
+| PPT    | Permiso de Proteccion Temporal      |
 
 ### Campos Obligatorios para Procesos
 

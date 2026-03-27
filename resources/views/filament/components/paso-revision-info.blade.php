@@ -4,7 +4,7 @@
 
     <div style="display:flex;align-items:center;gap:.625rem;margin-bottom:.625rem;">
         <lord-icon
-            src="https://cdn.lordicon.com/lupuorrc.json"
+            src="https://cdn.lordicon.com/edcgvlnw.json"
             trigger="loop" delay="500" stroke="bold"
             colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
             data-pt-icon
@@ -22,7 +22,7 @@
     <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem;">
         <div class="pt-bullet">
             <lord-icon
-                src="https://cdn.lordicon.com/warimioc.json"
+                src="https://cdn.lordicon.com/fikcyfpp.json"
                 trigger="loop" delay="500" stroke="bold"
                 colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
                 data-pt-icon
@@ -34,7 +34,7 @@
         </div>
         <div class="pt-bullet">
             <lord-icon
-                src="https://cdn.lordicon.com/oabfhyxm.json"
+                src="https://cdn.lordicon.com/vgwutnhw.json"
                 trigger="loop" delay="500" stroke="bold"
                 colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
                 data-pt-icon
