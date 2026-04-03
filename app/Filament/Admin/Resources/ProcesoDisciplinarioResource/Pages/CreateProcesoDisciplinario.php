@@ -40,6 +40,14 @@ class CreateProcesoDisciplinario extends CreateRecord
     public array  $datosExtraidos         = [];
     /** @var array<int, array{ok: bool, texto: string}> */
     public array  $analisisDescripcion    = [];
+    public string $feedbackQuienReporta   = '';
+    public bool   $feedbackQuienReportaOk = false;
+    public bool   $verificandoDiscriminacion   = false;
+    public string $discriminacionIACategoria   = '';
+    public string $discriminacionIATermino     = '';
+    public string $discriminacionIASugerencia  = '';
+    public bool   $discriminacionIAOk          = true;
+    public int    $tsUltimaVerifDiscriminacion = 0;
     /** @var array<int, array{marker: string, label: string, opciones: string[]}> */
     public array  $sugerenciasCompletado  = [];
 
@@ -110,7 +118,9 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         ->where('empresa_id', $get('empresa_id'))
                                         ->where('active', true)
                                         ->get()
-                                        ->pluck('nombre_completo', 'id')
+                                        ->mapWithKeys(fn($t) => [
+                                            $t->id => $t->nombre_completo . ' · ' . $t->numero_documento,
+                                        ])
                                         ->toArray()
                                 )
                                 ->disabled(fn(Get $get) => !$get('empresa_id'))
@@ -299,33 +309,15 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->label('Hora aproximada (opcional)')
                                 ->helperText('Horario Colombia (UTC-5)'),
 
-                            Forms\Components\Select::make('lugar_tipo')
+                            Forms\Components\TextInput::make('lugar_tipo')
                                 ->label('¿Dónde ocurrió?')
-                                ->options([
-                                    'planta'         => 'Planta de producción',
-                                    'oficina'        => 'Oficina',
-                                    'sede_principal' => 'Sede principal',
-                                    'bodega'         => 'Bodega / Almacén',
-                                    'externo'        => 'Lugar externo a la empresa',
-                                    'virtual'        => 'Entorno virtual / remoto',
-                                    'otro'           => 'Otro (especificar)',
-                                ])
+                                ->placeholder('Ej: planta de producción, oficina de recursos humanos...')
                                 ->required()
-                                ->native(false)
-                                ->placeholder('Seleccione el lugar...')
-                                ->live()
-                                ->columnSpanFull(),
-
-                            Forms\Components\TextInput::make('lugar_libre')
-                                ->label('Especifique el lugar')
-                                ->placeholder('Ej: bodega norte, área de carga...')
-                                ->visible(fn(Get $get) => $get('lugar_tipo') === 'otro')
-                                ->required(fn(Get $get) => $get('lugar_tipo') === 'otro')
                                 ->columnSpanFull(),
 
                             Forms\Components\Radio::make('en_horario_laboral')
                                 ->label('¿Ocurrió en horario laboral?')
-                                ->options(['si' => 'Sí', 'no' => 'No', 'parcial' => 'Parcialmente'])
+                                ->options(['si' => 'Sí', 'no' => 'No'])
                                 ->required()
                                 ->inline()
                                 ->columnSpanFull(),
@@ -348,30 +340,90 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ))
                                 ->columnSpanFull(),
 
-                            Forms\Components\Select::make('quien_reporta')
+                            Forms\Components\TextInput::make('quien_reporta')
                                 ->label('¿Quién reporta el incidente?')
-                                ->options([
-                                    'empleador'  => 'El empleador directamente',
-                                    'supervisor' => 'Un supervisor o jefe inmediato',
-                                    'rrhh'       => 'El área de Recursos Humanos',
-                                    'compañero'  => 'Un compañero de trabajo',
-                                    'cliente'    => 'Un cliente o proveedor',
-                                    'otro'       => 'Otro',
-                                ])
+                                ->helperText('Indique el cargo y/o nombre de quien notificó el hecho. Ejemplos: "Supervisor de turno Carlos Ruiz", "El propio empleador", "Jefa de Recursos Humanos María García", "Compañero del área de logística".')
+                                ->placeholder('Ej: Supervisor de turno / Jefe de área / El empleador directamente')
                                 ->required()
-                                ->native(false)
-                                ->placeholder('Seleccione quién reporta...')
+                                ->live(debounce: 500)
+                                ->afterStateUpdated(fn($livewire) => $livewire->analizarQuienReporta())
                                 ->columnSpanFull(),
+
+                            Forms\Components\Placeholder::make('feedback_quien_reporta')
+                                ->label('')
+                                ->content(fn($livewire) => new HtmlString(
+                                    view('filament.components.feedback-quien-reporta', [
+                                        'feedback' => $livewire->feedbackQuienReporta,
+                                        'ok'       => $livewire->feedbackQuienReportaOk,
+                                    ])->render()
+                                ))
+                                ->columnSpanFull()
+                                ->visible(fn($livewire) => $livewire->feedbackQuienReporta !== ''),
 
                             Forms\Components\Grid::make(3)
                                 ->schema([
                                     Forms\Components\Textarea::make('descripcion_hecho')
                                         ->label('¿Qué ocurrió?')
-                                        ->helperText('Escriba una descripción breve de lo ocurrido y use "Generar redacción con IA" para obtener la versión profesional completa.')
+                                        ->helperText('Escriba una descripción breve y use "Generar redacción con IA" para obtener la versión profesional. La IA corregirá el lenguaje automáticamente.')
                                         ->required()
                                         ->minLength(40)
                                         ->validationMessages([
                                             'min' => 'Necesitamos al menos una descripción básica de lo ocurrido.',
+                                        ])
+                                        ->rules([
+                                            fn() => function (string $attribute, $value, \Closure $fail) {
+                                                $tn = mb_strtolower(strtr($value, [
+                                                    'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u',
+                                                    'Á'=>'a','É'=>'e','Í'=>'i','Ó'=>'o','Ú'=>'u',
+                                                    'ñ'=>'n','Ñ'=>'n','ä'=>'a','ë'=>'e','ï'=>'i','ö'=>'o','ü'=>'u',
+                                                ]));
+                                                // Bloquear groserías e insultos
+                                                // Pasada 1: raíces siempre vulgares, sin \b (detecta compuestos)
+                                                $raicesV = ['hijueputa','hijueputo','hijuemadre','hijueperra','malparido','malparida','gonorrea','pirobo','piroba','mierda','verga','mamahuevo','mamaguevo','coño','pajuo','pajua','berriondo','berrionda','monda','hp'];
+                                                // 'cono' va en pasada 2 con \b para evitar falso positivo en "conocimiento"
+                                                $hayGroseria = false;
+                                                foreach ($raicesV as $r) { if (str_contains($tn, $r)) { $hayGroseria = true; break; } }
+                                                // Pasada 2: insultos con límite de palabra
+                                                if (!$hayGroseria) {
+                                                    $hayGroseria = (bool) preg_match('/\b(cono|hp|sopenco|lambon|lambona|arrecho|arrecha|marico|marica|maricon|puta|puto|pendejo|pendeja|imbecil|idiota|estupido|estupida|culo|culero|cabron|cabrona|jodido|jodida|bastardo|bastarda|cretino|cretina|guevon|huevon|huebon|carajo|degenerado|degenerada|pervertido|pervertida|mamarracho|mamarracha|baboso|babosa|desgraciado|desgraciada|maldito|maldita|miserable|tonto|tonta|burro|burra|bruto|bruta|vago|vaga|flojo|floja|holgazan|holgazana|inepto|inepta|incapaz|inservible|torpe|zoquete|necio|necia|bobo|boba|bestia|animal)\b/u', $tn);
+                                                }
+                                                if ($hayGroseria) {
+                                                    $fail('Retire el lenguaje inapropiado antes de continuar. Use "Generar redacción con IA" para corregirlo automáticamente.');
+                                                    return;
+                                                }
+                                                // Bloquear acusaciones declarativas sin "presuntamente"
+                                                $verbosGraves =
+                                                    'acoso|hostigo|intimido|robo|hurto|sustrajo|'
+                                                    . 'golpeo|agredio|pego|ataco|amenazo|insulto|'
+                                                    . 'ofendio|maltrato|abuso|violo|discrimino';
+                                                $tienePresuntivo = (bool) preg_match(
+                                                    '/\b(presuntamente|presunta\s+conducta|al\s+parecer|supuestamente|segun\s+(lo\s+)?report[ao]|aparentemente|se\s+alega|se\s+presume|habria|se\s+le\s+atribuye|se\s+le\s+imputa)\b/u',
+                                                    $tn
+                                                );
+                                                $tieneVerbosGraves = (bool) preg_match("/\b({$verbosGraves})\b/u", $tn);
+                                                if ($tieneVerbosGraves && !$tienePresuntivo) {
+                                                    $fail('Use lenguaje presuntivo antes de continuar. Ejemplo: "presuntamente acosó", "presuntamente agredió". Use "Generar redacción con IA" para corregirlo automáticamente.');
+                                                    return;
+                                                }
+                                                // Bloquear lenguaje discriminatorio
+                                                $terminosProtegidos = [
+                                                    'raza o etnia'                         => ['negro','negra','negroto','negrota','negrito','negrita','indio','india','indigena','zambo','zamba','mulato','mulata','afro','afrocolombiano','afrodescendiente','mestizo','mestiza','moreno','morena','trigueño','trigueña','gringo','gringa','cholo','chola','montañero','montañera'],
+                                                    'orientación sexual o identidad de género' => ['gay','lesbiana','bisexual','travesti','travestido','travestida','transexual','transgenero','transgenerista','homosexual','queer','intersexual'],
+                                                    'discapacidad física'                  => ['invalido','invalida','impedido','impedida','lisiado','lisiada','tullido','tullida','cojo','coja','manco','manca','ciego','ciega','sordo','sorda','mudo','muda','jorobado','jorobada','paralitico','paralitica','minusvalido','minusvalida','discapacitado','discapacitada','postrado','postrada','tetraplejico','paraplejico'],
+                                                    'discapacidad cognitiva o mental'      => ['retrasado','retrasada','mongolito','mongolita','mogolico','mogolica','mongol','tarado','tarada','demente','loco','loca','chiflado','chiflada','perturbado','perturbada','anormal','deficiente','autista','esquizofrenico','esquizofrenica'],
+                                                    'religión'                             => ['judio','judia','musulman','musulmana','evangelico','evangelica'],
+                                                    'origen nacional'                      => ['venezolano','venezolana','extranjero','extranjera','clandestino','clandestina','mojado','mojada'],
+                                                ];
+                                                $catDisc = null;
+                                                foreach ($terminosProtegidos as $cat => $terminos) {
+                                                    foreach ($terminos as $t) {
+                                                        if (preg_match('/\b' . preg_quote($t, '/') . '\b/u', $tn)) { $catDisc = $cat; break 2; }
+                                                    }
+                                                }
+                                                if ($catDisc) {
+                                                    $fail("La descripción contiene una referencia a {$catDisc} del trabajador. Esto viola jurisprudencia antidiscriminatoria. Use \"Generar redacción con IA\" para corregirlo.");
+                                                }
+                                            },
                                         ])
                                         ->rows(7)
                                         ->placeholder('Ej: El trabajador llegó dos horas tarde sin avisar y no respondió los mensajes del supervisor...')
@@ -510,13 +562,6 @@ class CreateProcesoDisciplinario extends CreateRecord
                     // ── Resumen del expediente ────────────────────────────────
                     Forms\Components\Section::make()
                         ->schema([
-                            Forms\Components\Placeholder::make('info_paso_revision')
-                                ->label('')
-                                ->content(fn() => new HtmlString(
-                                    view('filament.components.paso-revision-info')->render()
-                                ))
-                                ->columnSpanFull(),
-
                             Forms\Components\Placeholder::make('resumen_completo')
                                 ->label('')
                                 ->content(fn(Get $get, $livewire) => new HtmlString(
@@ -781,17 +826,9 @@ class CreateProcesoDisciplinario extends CreateRecord
             if ($e) $contexto['empresa_nombre'] = $e->razon_social;
         }
 
-        $quienReportaLabels = [
-            'empleador'  => 'El empleador directamente',
-            'supervisor' => 'Un supervisor o jefe inmediato',
-            'rrhh'       => 'El área de Recursos Humanos',
-            'compañero'  => 'Un compañero de trabajo',
-            'cliente'    => 'Un cliente o proveedor',
-            'otro'       => 'Otro',
-        ];
         $quienReporta = $this->data['quien_reporta'] ?? null;
         if ($quienReporta) {
-            $contexto['quien_reporta'] = $quienReportaLabels[$quienReporta] ?? $quienReporta;
+            $contexto['quien_reporta'] = $quienReporta;
         }
 
         $trabajadorId = $this->data['trabajador_id'] ?? null;
@@ -812,7 +849,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                 ->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
         }
         if (!empty($this->data['hora_aproximada_hecho'])) {
-            $contexto['hora_hecho'] = $this->data['hora_aproximada_hecho'];
+            $contexto['hora_hecho'] = \Carbon\Carbon::createFromFormat('H:i:s', $this->data['hora_aproximada_hecho'])
+                ->format('g:i A');
         }
         $lugarTipo = $this->data['lugar_tipo'] ?? null;
         if ($lugarTipo) {
@@ -941,43 +979,290 @@ class CreateProcesoDisciplinario extends CreateRecord
             return;
         }
 
+        // Texto normalizado: sin tildes ni mayúsculas — tolerante a mala ortografía
+        $tn = mb_strtolower(strtr($texto, [
+            'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u',
+            'Á'=>'a','É'=>'e','Í'=>'i','Ó'=>'o','Ú'=>'u',
+            'ä'=>'a','ë'=>'e','ï'=>'i','ö'=>'o','ü'=>'u',
+            'à'=>'a','è'=>'e','ì'=>'i','ò'=>'o','ù'=>'u',
+            'ñ'=>'n','Ñ'=>'n','ç'=>'c','Ç'=>'c',
+        ]));
+
         // ── 1. Detectar categoría preliminar de la falta ──────────────────────
         $categoria = null;
-        if (preg_match('/\b(lleg[oó]\s+tarde|tardanza|impuntual|no\s+asisti[oó]|falt[oó]\s+(al\s+)?trabajo|ausencia\s+injustificada|abandon[oó]\s+el?\s+puesto|no\s+se\s+present[oó]|retraso)\b/ui', $texto)) {
+        if (preg_match('/\b(llego\s+tarde|tardanza|impuntual|no\s+asistio|falto\s+(al\s+)?trabajo|ausencia\s+injustificada|abandono\s+el?\s+puesto|no\s+se\s+presento|retraso)\b/u', $tn)) {
             $categoria = 'Ausentismo o impuntualidad';
-        } elseif (preg_match('/\b(golpe[oó]|agredi[oó]|amenaz[oó]|insult[oó]|maltrat[oó]|ofendi[oó]|agresión|violencia|pelea|empuj[oó])\b/ui', $texto)) {
+        } elseif (preg_match('/\b(golpeo|agredio|agresion|amenazo|insulto|maltrato|ofendio|violencia|pelea|empujo)\b/u', $tn)) {
             $categoria = 'Violencia o maltrato laboral';
-        } elseif (preg_match('/\b(rob[oó]|hurt[oó]|sustrajo|se\s+llev[oó]|apropi[oó]|hurto|dinero|efectivo)\b/ui', $texto)) {
+        } elseif (preg_match('/\b(robo|hurto|sustrajo|se\s+llevo|apropio|dinero|efectivo)\b/u', $tn)) {
             $categoria = 'Hurto o apropiación indebida';
-        } elseif (preg_match('/\b(se\s+neg[oó]|no\s+acató|desobedeció|ignor[oó]\s+(la\s+)?orden|insubordinaci[oó]n|descat[oó])\b/ui', $texto)) {
+        } elseif (preg_match('/\b(se\s+nego|no\s+acato|desobedecio|ignoro\s+(la\s+)?orden|insubordinacion|descato)\b/u', $tn)) {
             $categoria = 'Insubordinación';
-        } elseif (preg_match('/\b(acoso|hostig[oó]|intimid[oó]|discrimin[oó]|acosó)\b/ui', $texto)) {
+        } elseif (preg_match('/\b(acoso|hostigo|intimido|discrimino)\b/u', $tn)) {
             $categoria = 'Acoso o discriminación';
-        } elseif (preg_match('/\b(incumpli[oó]|omiti[oó]|violó\s+(el\s+)?reglamento|no\s+sigui[oó]\s+(el\s+)?protocolo|incumplimiento\s+(de\s+)?normas)\b/ui', $texto)) {
+        } elseif (preg_match('/\b(incumplio|omitio|violo\s+(el\s+)?reglamento|no\s+siguio\s+(el\s+)?protocolo|incumplimiento\s+(de\s+)?normas)\b/u', $tn)) {
             $categoria = 'Incumplimiento normativo';
         }
 
         // ── 2. Nivel de detalle ───────────────────────────────────────────────
         $longitud = mb_strlen($texto);
         if ($longitud >= 150) {
-            $detalleOk   = true;
-            $detalleTxt  = 'Descripción detallada — la IA tendrá buen contexto';
+            $detalleOk  = true;
+            $detalleTxt = 'Descripción detallada — la IA tendrá buen contexto';
         } elseif ($longitud >= 70) {
-            $detalleOk   = false;
-            $detalleTxt  = 'Agregue más contexto: consecuencias, antecedentes o reincidencia';
+            $detalleOk  = false;
+            $detalleTxt = 'Agregue más contexto: consecuencias, antecedentes o reincidencia';
         } else {
-            $detalleOk   = false;
-            $detalleTxt  = 'Descripción muy breve — amplíe con más detalles';
+            $detalleOk  = false;
+            $detalleTxt = 'Descripción muy breve — amplíe con más detalles';
         }
 
-        // ── 3. Acción concreta del trabajador (solo cuando el texto es corto) ──
-        // Cuando el texto ya es detallado (≥150 chars) este check es redundante
+        // ── 3. Acción concreta del trabajador ─────────────────────────────────
         $tieneAccion = $detalleOk || (bool) preg_match(
-            '/\b(lleg[oó]|falt[oó]|no\s+asisti[oó]|golpe[oó]|agredi[oó]|rob[oó]|hurtó|sustrajo|tom[oó]|omiti[oó]|incumpli[oó]|abandon[oó]|se\s+neg[oó]|irrespet[oó]|insult[oó]|amena[zz][oó]|tard[oó]|descat[oó]|acosó|hostig[oó]|intimid[oó]|realiz[oó]|efectu[oó]|cometi[oó]|ejecut[oó]|envi[oó]|procedi[oó]|llev[oó]\s+a\s+cabo|manifest[oó]|exhibi[oó])\b/ui',
-            $texto
+            '/\b(llego|falto|no\s+asistio|golpeo|agredio|robo|hurto|sustrajo|tomo|omitio|incumplio|abandono|se\s+nego|irrespeto|insulto|amenazo|tardo|descato|acoso|hostigo|intimido|realizo|efectuo|cometio|ejecuto|envio|procedio|manifesto|exhibio|pego|ataco|maltrato|ofendio|abuso|violo|discrimino)\b/u',
+            $tn
         );
 
+        // ── 4. Groserías, insultos y calificativos despectivos ────────────────
+        // Pasada 1 — raíces que NUNCA son aceptables, incluso dentro de
+        // palabras compuestas (ej: "setentahijueputa", "dobleverga").
+        // Sin \b para capturar compuestos numéricos o prefijados.
+        $raicesVulgares =
+            'hijueputa|hijueputo|hijuemadre|hijueperra|'  // variantes de "hijo de puta"
+            . 'malparido|malparida|'
+            . 'gonorrea|'
+            . 'pirobo|piroba|'
+            . 'mierda|'
+            . 'verga|'
+            . 'mamahuevo|mamaguevo|'
+            . 'coño|'          // "cono" va con \b (evita falso en "conocimiento")
+            . 'pajuo|pajua|'
+            . 'berriondo|berrionda|'
+            . 'monda|'                                     // vulgar colombiano
+            . 'hp|';                                       // abreviatura siempre vulgar
+
+        $tieneGroserias  = false;
+        $palabraGroseria = null;
+
+        foreach (explode('|', rtrim($raicesVulgares, '|')) as $raiz) {
+            if (preg_match('/(' . preg_quote($raiz, '/') . ')/u', $tn, $m)) {
+                $tieneGroserias  = true;
+                $palabraGroseria = $m[1];
+                break;
+            }
+        }
+
+        // Pasada 2 — insultos que requieren límite de palabra
+        if (!$tieneGroserias) {
+            $pat2 = '/\b(cono|hp|sopenco|sopencos|lambon|lambona|'
+                . 'arrecho|arrecha|marico|marica|maricon|'
+                . 'puta|puto|pendejo|pendeja|imbecil|idiota|estupido|estupida|'
+                . 'culo|culero|culera|cabron|cabrona|jodido|jodida|'
+                . 'bastardo|bastarda|cretino|cretina|guevon|huevon|huebon|'
+                . 'carajo|degenerado|degenerada|pervertido|pervertida|'
+                . 'mamarracho|mamarracha|baboso|babosa|'
+                . 'desgraciado|desgraciada|maldito|maldita|miserable|'
+                . 'tonto|tonta|burro|burra|bruto|bruta|'
+                . 'vago|vaga|flojo|floja|holgazan|holgazana|'
+                . 'inepto|inepta|inservible|torpe|zoquete|'
+                . 'necio|necia|bobo|boba|bestia|animal'
+                . ')\b/u';
+            if (preg_match($pat2, $tn, $m)) {
+                $tieneGroserias  = true;
+                $palabraGroseria = $m[1];
+            }
+        }
+
+        // ── 5. Lenguaje presuntivo vs declarativo ─────────────────────────────
+        $verbosGraves =
+            'acoso|hostigo|hostigaron|intimido|robo|hurto|sustrajo|'
+            . 'golpeo|agredio|pego|ataco|amenazo|insulto|ofendio|maltrato|'
+            . 'abuso|violo|discrimino|acoso\s+sexualmente|agredio\s+fisicamente';
+
+        $tienePresuntivo = (bool) preg_match(
+            '/\b(presuntamente|presunta\s+conducta|al\s+parecer|supuestamente|'
+            . 'segun\s+(lo\s+)?report[ao]|aparentemente|se\s+alega|se\s+presume|habria|'
+            . 'habria\s+cometido|se\s+le\s+atribuye|se\s+le\s+imputa)\b/u',
+            $tn
+        );
+
+        $verboGraveEncontrado = null;
+        if (preg_match("/\b({$verbosGraves})\b/u", $tn, $m)) {
+            $verboGraveEncontrado = $m[1];
+        }
+        $tieneVerbosGraves  = $verboGraveEncontrado !== null;
+        $necesitaPresuntivo = $tieneVerbosGraves && !$tienePresuntivo;
+
+        // ── 6. Lenguaje discriminatorio ───────────────────────────────────────
+        // Detecta referencias a características protegidas usadas como descriptor
+        // del trabajador. Se organiza por categoría para dar un mensaje preciso.
+        $categoriasDiscriminacion = [
+
+            'raza o etnia' => [
+                'negro','negra','negroto','negrota','negrito','negrita',
+                'indio','india','indigena','indigeno',
+                'zambo','zamba','mulato','mulata','mulatillo','mulatilla',
+                'afro','afrocolombiano','afrodescendiente','afrovenezolano',
+                'mestizo','mestiza',
+                'moreno','morena',               // descriptor racial peyorativo
+                'trigueño','trigueña',
+                'gringo','gringa',               // extranjero/racial
+                'cholo','chola',                 // peyorativo andino
+                'montañero','montañera',         // peyorativo regional colombiano
+            ],
+
+            'orientación sexual o identidad de género' => [
+                'gay','lesbiana','bisexual',
+                'travesti','travestido','travestida',
+                'transexual','transgenero','transgenerista','transgenerismo',
+                'homosexual','heterosexual',
+                'queer','intersexual',
+            ],
+
+            'discapacidad física' => [
+                'invalido','invalida','inválido','inválida',
+                'impedido','impedida',
+                'lisiado','lisiada',
+                'tullido','tullida',
+                'cojo','coja','cojito','cojita',
+                'manco','manca',
+                'ciego','ciega','ceguito','ceguita',
+                'sordo','sorda','sordito','sordita',
+                'mudo','muda',
+                'jorobado','jorobada',
+                'paralitico','paralitica',
+                'minusvalido','minusvalida',
+                'discapacitado','discapacitada',
+                'postrado','postrada',
+                'tetraplejico','paraplejico',
+            ],
+
+            'discapacidad cognitiva o mental' => [
+                'retrasado','retrasada','retraso','retrasadito',
+                'mongolito','mongolita','mogolico','mogolica','mongol',
+                'tarado','tarada',
+                'demente','dementado',
+                'loco','loca','locazo','locaza',     // cuando se usa como etiqueta
+                'chiflado','chiflada',
+                'perturbado','perturbada',
+                'anormal',
+                'deficiente',                        // deficiencia mental peyorativo
+                'autista',                           // usado peyorativamente
+                'esquizofrenico','esquizofrenica',
+            ],
+
+            'religión o creencia' => [
+                'judio','judia','judío','judía',
+                'islamico','islamica',
+                'musulman','musulmana',
+                'evangelico','evangelica',           // a veces usado pejorativamen
+                'ateo','atea',
+                'pagano','pagana',
+            ],
+
+            'origen nacional' => [
+                'venezolano','venezolana',           // usado peyorativamente
+                'extranjero','extranjera',
+                'clandestino','clandestina',         // migrante indocumentado peyorativo
+                'mojado','mojada',                   // migrante peyorativo
+                'veneco','veneca','venecos','venecas',           // peyorativo muy común para migrantes venezolanos en Colombia
+                'beneco','beneca','benecos','benecas',           // variante ortográfica de veneco
+                'chamo','chama','chamos','chamas',               // jerga venezolana usada peyorativamente en Colombia
+                'veneco invasor','veneca invasora',              // frase xenofóbica
+            ],
+
+            'apariencia física' => [
+                'gordo','gorda',                     // cuando se usa como etiqueta insultante
+                'enano','enana',                     // peyorativo para estatura baja
+                'narigon','narigona',                // peyorativo facial
+                'carecuadrado',                      // insulto colombiano de apariencia
+            ],
+        ];
+
+        $categoriaDiscriminadaEncontrada = null;
+        $terminoDiscriminatorioEncontrado = null;
+        foreach ($categoriasDiscriminacion as $nombreCategoria => $terminos) {
+            foreach ($terminos as $termino) {
+                if (preg_match('/\b' . preg_quote($termino, '/') . '\b/u', $tn)) {
+                    $categoriaDiscriminadaEncontrada  = $nombreCategoria;
+                    $terminoDiscriminatorioEncontrado = $termino;
+                    break 2;
+                }
+            }
+        }
+        $tieneDiscriminacion = $categoriaDiscriminadaEncontrada !== null;
+
+        // ── Check IA automático (throttle: máximo 1 llamada cada 5 segundos) ──
+        // Solo corre si los patrones no detectaron nada (para no hacer la llamada
+        // cuando ya tenemos certeza), el texto es suficientemente largo, y no hay
+        // una llamada en curso.
+        $ahora = time();
+        $debeVerificarIA = !$tieneDiscriminacion
+            && !$tieneGroserias
+            && mb_strlen($texto) >= 30
+            && !$this->verificandoDiscriminacion
+            && ($ahora - $this->tsUltimaVerifDiscriminacion) >= 5;
+
+        if ($debeVerificarIA) {
+            $this->tsUltimaVerifDiscriminacion = $ahora; // bloquea llamadas concurrentes
+            $this->verificandoDiscriminacion   = true;
+            try {
+                $resultado = app(\App\Services\EvaluacionHechosService::class)
+                    ->verificarDiscriminacion($texto);
+                $this->discriminacionIAOk         = $resultado['ok'];
+                $this->discriminacionIACategoria  = $resultado['categoria'] ?? '';
+                $this->discriminacionIATermino    = $resultado['termino'] ?? '';
+                $this->discriminacionIASugerencia = $resultado['sugerencia'] ?? '';
+            } catch (\Exception $e) {
+                // fail-safe: mantiene el resultado anterior
+            } finally {
+                $this->verificandoDiscriminacion = false;
+            }
+        }
+
+        // Resetear resultado de IA si los patrones ya detectaron algo
+        // (innecesario seguir esperando confirmación de la IA)
+        if ($tieneDiscriminacion || $tieneGroserias) {
+            $this->discriminacionIAOk = true;
+        }
+
         $this->analisisDescripcion = [
+            [
+                'tipo'  => 'discriminacion',
+                'ok'    => !$tieneDiscriminacion && $this->discriminacionIAOk,
+                'texto' => (function() use ($tieneDiscriminacion, $categoriaDiscriminadaEncontrada, $terminoDiscriminatorioEncontrado): string {
+                    if ($tieneDiscriminacion) {
+                        return "Lenguaje discriminatorio: la palabra \"{$terminoDiscriminatorioEncontrado}\" hace referencia a {$categoriaDiscriminadaEncontrada} — esto no debe incluirse en la descripción del hecho. Viola jurisprudencia antidiscriminatoria y puede invalidar el proceso.";
+                    }
+                    if (!$this->discriminacionIAOk && $this->discriminacionIACategoria) {
+                        $msg = "La IA detectó lenguaje discriminatorio";
+                        if ($this->discriminacionIATermino) $msg .= ": \"{$this->discriminacionIATermino}\"";
+                        $msg .= " — referencia a {$this->discriminacionIACategoria}. Esto puede invalidar el proceso disciplinario.";
+                        if ($this->discriminacionIASugerencia) $msg .= " Sugerencia: {$this->discriminacionIASugerencia}.";
+                        return $msg;
+                    }
+                    if ($this->verificandoDiscriminacion) {
+                        return 'Verificando lenguaje con IA...';
+                    }
+                    return 'Sin referencias a características protegidas';
+                })(),
+            ],
+            [
+                'tipo'  => 'groserias',
+                'ok'    => !$tieneGroserias,
+                'texto' => $tieneGroserias
+                    ? "Lenguaje inapropiado: la palabra \"{$palabraGroseria}\" no puede aparecer en un documento jurídico. Corrija o use \"Generar redacción con IA\"."
+                    : 'Lenguaje apropiado para un documento jurídico',
+            ],
+            [
+                'tipo'  => 'presuntivo',
+                'ok'    => !$necesitaPresuntivo,
+                'texto' => $necesitaPresuntivo
+                    ? "El verbo \"{$verboGraveEncontrado}\" es una acusación directa — use \"presuntamente {$verboGraveEncontrado}\" para no afirmar como hecho probado algo que aún está en investigación."
+                    : ($tieneVerbosGraves
+                        ? 'Lenguaje presuntivo correcto — la acusación está bien calificada'
+                        : 'Sin acusaciones graves que requieran calificación presuntiva'),
+            ],
             [
                 'tipo'  => 'categoria',
                 'ok'    => $categoria !== null,
@@ -997,6 +1282,58 @@ class CreateProcesoDisciplinario extends CreateRecord
                     : 'Incluya el verbo que describe la acción del trabajador',
             ],
         ];
+    }
+
+    // Fuerza un check de IA inmediato (usado al generar redacción o al intentar avanzar)
+    public function verificarDiscriminacionConIA(): void
+    {
+        $this->tsUltimaVerifDiscriminacion = 0; // resetea throttle para forzar ejecución
+        $this->analizarDescripcion();            // el check IA corre dentro de analizarDescripcion
+    }
+
+    public function analizarQuienReporta(): void
+    {
+        $texto = trim($this->data['quien_reporta'] ?? '');
+
+        if (mb_strlen($texto) < 2) {
+            $this->feedbackQuienReporta   = '';
+            $this->feedbackQuienReportaOk = false;
+            return;
+        }
+
+        // Detectar respuestas vagas, subjetivas o incoherentes
+        $esVago = (bool) preg_match(
+            '/^\s*(no\s+s[eé]|no\s+recuerdo|no\s+se\s+sabe|nadie|alguien|cualquiera|una\s+persona|la\s+persona|quien\s+sea|no\s+aplica|n\/?a|desconozco|sin\s+informaci[oó]n|no\s+tengo\s+idea|no\s+hay|ninguno|ninguna|no\s+hay\s+quien|no\s+existe)\s*$/iu',
+            $texto
+        );
+
+        if ($esVago) {
+            $this->feedbackQuienReportaOk = false;
+            $this->feedbackQuienReporta   =
+                'Respuesta insuficiente. Debe indicar quién reportó concretamente. '
+                . 'Especifique el cargo (ej: "Supervisor de producción"), el nombre si lo conoce '
+                . '(ej: "Ana Torres, jefa de turno"), o la relación con el trabajador '
+                . '(ej: "El empleador directamente", "Un compañero del área de logística").';
+            return;
+        }
+
+        // Detectar si es demasiado corto sin rol ni nombre reconocible
+        $tieneContexto = mb_strlen($texto) >= 10 || (bool) preg_match(
+            '/\b(jefe|jefa|supervisor|supervisora|gerente|director|directora|empleador|empresa|recursos\s+humanos|rrhh|rr\.?\s*hh\.?|compañero|compañera|colega|cliente|proveedor|coordinador|coordinadora|encargado|encargada|responsable|vigilante|seguridad|área|cargo|departamento|sección|sr\.|sra\.|don|doña)\b/iu',
+            $texto
+        );
+
+        if (!$tieneContexto) {
+            $this->feedbackQuienReportaOk = false;
+            $this->feedbackQuienReporta   =
+                'Agregue más detalle: indique el cargo o rol de quien reporta '
+                . '(ej: "Jefe de logística Carlos Ruiz") o su relación con el trabajador '
+                . '(ej: "Compañero del mismo turno").';
+            return;
+        }
+
+        $this->feedbackQuienReportaOk = true;
+        $this->feedbackQuienReporta   = 'Información clara — la IA podrá identificar correctamente al reportante.';
     }
 
     // ──────────────────────────────────────────────────────────────────────────

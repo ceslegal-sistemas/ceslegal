@@ -122,14 +122,20 @@ PROMPT;
         $rawJson = trim(preg_replace(['/^```(?:json)?\s*/m', '/\s*```$/m'], '', $rawJson));
         $datos   = json_decode($rawJson, true, 512, JSON_THROW_ON_ERROR);
 
-        if (empty($datos['hechos'])) {
+        // El system prompt de conversación puede hacer que el modelo anide los datos
+        // dentro de datos.hechos en lugar de devolverlos en el nivel raíz. Intentar ambas rutas.
+        $hechos          = $datos['hechos']           ?? ($datos['datos']['hechos']           ?? null);
+        $fechaOcurrencia = $datos['fecha_ocurrencia'] ?? ($datos['datos']['fecha_ocurrencia'] ?? null);
+        $resumen         = $datos['resumen']          ?? ($datos['datos']['resumen']          ?? '');
+
+        if (empty($hechos)) {
             throw new \Exception('La IA no devolvió hechos válidos');
         }
 
         return [
-            'hechos'           => $datos['hechos'],
-            'fecha_ocurrencia' => $datos['fecha_ocurrencia'] ?? null,
-            'resumen'          => $datos['resumen'] ?? '',
+            'hechos'           => $hechos,
+            'fecha_ocurrencia' => $fechaOcurrencia,
+            'resumen'          => $resumen,
         ];
     }
 
@@ -393,7 +399,7 @@ SYSTEM;
         $system = <<<SYSTEM
 Eres abogado laboralista colombiano especializado en expedientes disciplinarios.
 
-CONTEXTO NORMATIVO (solo para identificar la norma aplicable):
+CONTEXTO NORMATIVO:
 {$contextoReglamento}
 
 DATOS DEL CASO:
@@ -402,7 +408,7 @@ DATOS DEL CASO:
 BORRADOR DEL EMPLEADOR:
 {$borrador}
 
-TAREA: Redacta los hechos disciplinarios para el expediente en 2-3 párrafos.
+TAREA: Redacta los hechos disciplinarios para el expediente en 2-3 párrafos, corrigiendo el borrador si es necesario.
 
 REGLAS ABSOLUTAS:
 1. Usa TODOS los datos del caso disponibles arriba.
@@ -411,7 +417,10 @@ REGLAS ABSOLUTAS:
 4. Incluye: conducta del trabajador, cuándo, dónde, cómo se enteró la empresa, consecuencia para la operación.
 5. Solo texto plano en párrafos. Sin HTML, sin listas, sin asteriscos, sin JSON.
 6. Máximo 200 palabras.
-7. Última línea separada: "Norma aplicable: [artículo concreto del CST o reglamento interno que aplica — si no estás seguro, omite esta línea]"
+7. LENGUAJE PRESUNTIVO OBLIGATORIO: Toda acción del trabajador que aún no ha sido probada debe redactarse como "presuntamente [acción]" o "al parecer [acción]". Nunca afirmes como hecho probado lo que es una acusación en investigación.
+8. LENGUAJE JURÍDICO APROPIADO: Si el borrador contiene groserías, insultos o lenguaje coloquial inapropiado, reemplázalos por terminología jurídica objetiva. Ejemplo: sustituir un insulto por la descripción objetiva de la conducta.
+9. PROHIBICIÓN ANTIDISCRIMINATORIA: Elimina cualquier referencia a raza, etnia, color de piel, orientación sexual, identidad de género o discapacidad del trabajador. Estas características son irrelevantes para el hecho disciplinario y su mención viola jurisprudencia antidiscriminatoria colombiana. Describe únicamente la conducta objetiva.
+9. NO cites artículos, sentencias ni normas al final. El fundamento jurídico se maneja en otra sección del expediente.
 SYSTEM;
 
         try {
@@ -727,6 +736,55 @@ SYSTEM;
 
         $denom = sqrt($magA) * sqrt($magB);
         return $denom > 0.0 ? (float) ($dot / $denom) : 0.0;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Verificación de discriminación con IA
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Verifica si un texto contiene lenguaje discriminatorio usando IA.
+     * Retorna ['ok' => bool, 'categoria' => string|null, 'detalle' => string]
+     */
+    public function verificarDiscriminacion(string $texto): array
+    {
+        $system = <<<SYSTEM
+Eres un experto en derecho antidiscriminatorio colombiano y venezolano. Analiza el siguiente texto de un proceso disciplinario laboral.
+
+Determina si el texto contiene lenguaje discriminatorio, peyorativo o que haga referencia innecesaria a características protegidas del trabajador, incluyendo:
+- Raza o etnia (incluyendo jerga como "veneco", "chamo", "beneco", "negro", "indio", etc.)
+- Orientación sexual o identidad de género
+- Discapacidad física o mental
+- Religión o creencias
+- Origen nacional o migratorio
+- Apariencia física usada de forma peyorativa
+- Cualquier otro calificativo discriminatorio, aunque no sea una grosería obvia
+
+IMPORTANTE: Detecta también jerga regional, apodos étnicos, eufemismos discriminatorios y frases implícitamente discriminatorias.
+
+Responde ÚNICAMENTE con JSON válido, sin texto adicional:
+{"discriminatorio": true/false, "categoria": "nombre de categoría o null", "termino": "término o frase exacta encontrada o null", "sugerencia": "cómo describir la situación sin discriminación, en máximo 15 palabras, o null"}
+SYSTEM;
+
+        try {
+            $raw = $this->llamarIA($system, [], $texto, textoPlano: false, modeloRapido: true);
+            // Extract JSON from response
+            if (preg_match('/\{[^}]+\}/s', $raw, $matches)) {
+                $data = json_decode($matches[0], true);
+                if (is_array($data) && isset($data['discriminatorio'])) {
+                    return [
+                        'ok'        => !(bool) $data['discriminatorio'],
+                        'categoria' => $data['categoria'] ?? null,
+                        'termino'   => $data['termino'] ?? null,
+                        'sugerencia'=> $data['sugerencia'] ?? null,
+                    ];
+                }
+            }
+            return ['ok' => true, 'categoria' => null, 'termino' => null, 'sugerencia' => null];
+        } catch (\Exception $e) {
+            Log::error('verificarDiscriminacion', ['error' => $e->getMessage()]);
+            return ['ok' => true, 'categoria' => null, 'termino' => null, 'sugerencia' => null];
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
