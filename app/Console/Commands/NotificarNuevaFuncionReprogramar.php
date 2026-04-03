@@ -23,7 +23,7 @@ class NotificarNuevaFuncionReprogramar extends Command
             return;
         }
 
-        $notif = Notification::make()
+        Notification::make()
             ->title('Nueva función: Reprogramar Citación')
             ->body('Ya puedes reprogramar la diligencia de descargos cuando el trabajador no la realizó. Búscala en el Historial de Descargos cuando el estado sea "Descargo No Realizado".')
             ->icon('heroicon-o-calendar')
@@ -33,11 +33,8 @@ class NotificarNuevaFuncionReprogramar extends Command
                     ->label('Ir al Historial')
                     ->url('/admin/proceso-disciplinarios')
                     ->button(),
-            ]);
-
-        foreach ($usuarios as $usuario) {
-            $usuario->notifyNow($notif->toDatabase());
-        }
+            ])
+            ->sendToDatabase($usuarios);
 
         $this->info("Notificación enviada a {$usuarios->count()} usuario(s).");
     }
