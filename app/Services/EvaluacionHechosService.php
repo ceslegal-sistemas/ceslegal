@@ -879,13 +879,15 @@ SYSTEM;
 
         // Para tareas rápidas (feedback, mejora de texto) usar flash; para conversación principal usar el modelo configurado
         if ($modeloRapido) {
-            $baseModel = $this->config['model'] ?? 'gemini-2.5-pro';
-            $model = str_contains($baseModel, 'flash') ? $baseModel : 'gemini-2.5-flash';
+            $baseModel = $this->config['model'] ?? 'gemini-1.5-flash';
+            $model = str_contains($baseModel, 'flash') ? $baseModel : 'gemini-1.5-flash';
         } else {
             $model = $this->config['model'];
         }
 
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+        // Modelos de fallback en orden: si el principal falla por 503, intenta los siguientes
+        $modeloFallback = 'gemini-1.5-flash';
+        $modelos = $model !== $modeloFallback ? [$model, $modeloFallback] : [$model];
 
         $contents = [];
 
@@ -919,17 +921,17 @@ SYSTEM;
             'generationConfig' => $generationConfig,
         ];
 
-        $maxIntentos = 3;
-        $response    = null;
+        $response = null;
 
-        for ($intento = 1; $intento <= $maxIntentos; $intento++) {
+        foreach ($modelos as $modeloActual) {
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modeloActual}:generateContent?key={$apiKey}";
+
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
             ])->timeout($modeloRapido ? 20 : 60)->post($url, $payload);
 
-            // Reintentar solo en 503 (alta demanda temporal)
-            if ($response->status() === 503 && $intento < $maxIntentos) {
-                sleep($intento * 2); // 2s, 4s
+            // Si es 503, pasar al siguiente modelo del fallback
+            if ($response->status() === 503) {
                 continue;
             }
 
