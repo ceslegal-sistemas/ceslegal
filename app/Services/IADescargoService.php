@@ -118,26 +118,28 @@ class IADescargoService
                 ->toArray();
         }
 
+        // Incluir TODAS las preguntas activas (respondidas y pendientes)
+        // para que la IA no repita preguntas que ya están en cola sin responder
         $preguntasYRespuestas = $diligencia->preguntas()
             ->with('respuesta')
-            ->respondidas()
+            ->activas()
             ->get()
             ->map(function ($pregunta) {
-                $respuesta = $pregunta->respuesta?->respuesta ?? '(Sin respuesta)';
+                $respuesta = $pregunta->respuesta?->respuesta ?? '[PENDIENTE — aún no respondida]';
                 return [
                     'pregunta' => $pregunta->pregunta,
                     'respuesta' => $respuesta,
-                    'es_ia' => $pregunta->es_generada_por_ia,
+                    'es_ia'     => $pregunta->es_generada_por_ia,
                 ];
             })
             ->toArray();
 
         return [
-            'hechos' => $proceso->hechos,
-            'articulos_legales' => $articulosLegales,
-            'preguntas_respuestas' => $preguntasYRespuestas,
-            'trabajador' => $proceso->trabajador->nombre_completo,
-            'cargo' => $proceso->trabajador->cargo,
+            'hechos'              => $proceso->hechos,
+            'articulos_legales'   => $articulosLegales,
+            'preguntas_respuestas'=> $preguntasYRespuestas,
+            'trabajador'          => $proceso->trabajador->nombre_completo,
+            'cargo'               => $proceso->trabajador->cargo,
         ];
     }
 
@@ -186,17 +188,16 @@ INSTRUCCIONES:
 Analiza TODAS las respuestas del trabajador (no solo la última) teniendo en cuenta los hechos que indique en contraste con la conducta realizada que trasgrede las normas internas de la empresa y la ley aplicable en materia laboral.
 
 REGLAS CRÍTICAS:
-•⁠  ⁠NUNCA repitas una pregunta que ya se haya hecho anteriormente (revisa la lista de preguntas realizadas arriba).
-•⁠  ⁠Genera nuevas preguntas si y solo si, existen inexactitudes, incongruencias, evasivas y/o contradicciones en los argumentos del trabajador.
-•⁠  ⁠Máximo 1 pregunta.
-•⁠  ⁠Las preguntas deben ser:
-  * MUY IMPORTANTES: Usa lenguaje SENCILLO y CLARO que cualquier trabajador pueda entender fácilmente. Evita términos jurídicos complejos.
-  * DIFERENTES a todas las preguntas anteriores (no reformules la misma pregunta con otras palabras).
+• NUNCA repitas una pregunta que ya esté en la lista de arriba, ni respondida ni pendiente (marcadas como [PENDIENTE]).
+• Las preguntas marcadas [PENDIENTE] YA ESTÁN PROGRAMADAS — no las generes de nuevo ni con otras palabras.
+• Genera una nueva pregunta si y solo si existen inexactitudes, incongruencias, evasivas o contradicciones en los argumentos del trabajador, Y no existe ya una pregunta pendiente que cubra ese punto.
+• Máximo 1 pregunta.
+• Las preguntas deben ser:
+  * Usa lenguaje SENCILLO y CLARO que cualquier trabajador pueda entender. Evita términos jurídicos.
+  * DIFERENTES a todas las preguntas anteriores (ni reformules la misma con otras palabras).
   * Breves y directas.
-  * Neutrales y no sugestivas.
   * Relevantes para el proceso disciplinario.
-  * Dirigidas a esclarecer el hecho que dio origen a la diligencia de descargos con una tendencia de juzgamiento a favor del empleador y en contra del trabajador.
-- Si la pregunta que ibas a generar ya fue hecha o es muy similar a una anterior, responde: NO_REQUIERE
+- Si la pregunta que ibas a generar ya fue hecha, es similar a una anterior, o ya hay una pendiente que cubre lo mismo, responde: NO_REQUIERE
 - Si no se requieren más preguntas, responde exactamente: NO_REQUIERE
 
 EJEMPLOS DE LENGUAJE CLARO:
