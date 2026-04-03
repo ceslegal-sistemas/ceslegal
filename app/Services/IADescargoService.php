@@ -185,37 +185,32 @@ RESPUESTA DEL TRABAJADOR:
 {$respuesta->respuesta}
 
 INSTRUCCIONES:
-Analiza TODAS las respuestas del trabajador (no solo la última) teniendo en cuenta los hechos que indique en contraste con la conducta realizada que trasgrede las normas internas de la empresa y la ley aplicable en materia laboral.
+Bajo el artículo 115 del Código Sustantivo del Trabajo, los descargos son el espacio para que el trabajador ejerza su derecho de defensa — NO un interrogatorio. Tu rol es garantizar el debido proceso, no acumular pruebas contra el trabajador.
 
-REGLAS CRÍTICAS:
-• NUNCA repitas una pregunta que ya esté en la lista de arriba, ni respondida ni pendiente (marcadas como [PENDIENTE]).
-• Las preguntas marcadas [PENDIENTE] YA ESTÁN PROGRAMADAS — no las generes de nuevo ni con otras palabras.
-• Genera una nueva pregunta si y solo si existen inexactitudes, incongruencias, evasivas o contradicciones en los argumentos del trabajador, Y no existe ya una pregunta pendiente que cubra ese punto.
-• Máximo 1 pregunta.
-• Las preguntas deben ser:
-  * Usa lenguaje SENCILLO y CLARO que cualquier trabajador pueda entender. Evita términos jurídicos.
-  * DIFERENTES a todas las preguntas anteriores (ni reformules la misma con otras palabras).
-  * Breves y directas.
-  * Relevantes para el proceso disciplinario.
-- Si la pregunta que ibas a generar ya fue hecha, es similar a una anterior, o ya hay una pendiente que cubre lo mismo, responde: NO_REQUIERE
-- Si no se requieren más preguntas, responde exactamente: NO_REQUIERE
+Solo genera UNA pregunta adicional si se cumplen SIMULTÁNEAMENTE estas tres condiciones:
+1. La respuesta del trabajador contradice directamente un hecho documentado en el proceso.
+2. Esa contradicción es materialmente relevante para determinar la falta (no es un detalle menor).
+3. No existe ya una pregunta pendiente o respondida que cubra ese mismo punto.
 
-EJEMPLOS DE LENGUAJE CLARO:
-❌ "¿Tuvo conocimiento de las directrices impartidas?"
-✅ "¿Sabía qué debía hacer?"
+NUNCA generes una pregunta si:
+• La respuesta es coherente con los hechos, aunque sea desfavorable para el trabajador.
+• Ya se preguntó algo similar (ni con otras palabras).
+• La pregunta marcada [PENDIENTE] cubre el mismo tema.
+• Solo quieres confirmar o ampliar algo que el trabajador ya explicó.
+• La respuesta es sobre datos básicos (cargo, empresa, jefe, acompañante).
 
-❌ "¿Ejerció sus funciones cabalmente?"
-✅ "¿Hizo bien su trabajo?"
+En caso de duda, responde NO_REQUIERE. Es mejor no preguntar que molestar al trabajador con preguntas de relleno.
 
-❌ "¿Informó a su superior jerárquico?"
-✅ "¿Le contó a su jefe?"
+REGLAS DE FORMATO:
+• Lenguaje SENCILLO — sin términos jurídicos.
+• Pregunta BREVE y DIRECTA — máximo 2 líneas.
+• NUNCA reformules una pregunta anterior.
 
 FORMATO DE RESPUESTA:
-Si hay preguntas, responde en este formato:
-PREGUNTA_1: [texto de la pregunta]
-PREGUNTA_2: [texto de la pregunta]
+Si hay una pregunta válida:
+PREGUNTA_1: [texto]
 
-Si no se requieren preguntas, responde:
+Si no se requiere:
 NO_REQUIERE
 PROMPT;
     }
