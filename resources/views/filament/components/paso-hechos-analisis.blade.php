@@ -28,6 +28,7 @@
     .pha-row:last-child { border-bottom: none; }
     .pha-row.pha-ok    { color: #86efac; }
     .pha-row.pha-warn  { color: #fde68a; }
+    .pha-row.pha-error { color: #fca5a5; }
     .pha-ico { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; }
 
     /* Fila de categoría: columna para poder poner el badge debajo */
@@ -66,8 +67,9 @@
     html:not(.dark) .pha-card        { background: rgba(99,102,241,.04); border-color: rgba(99,102,241,.15); }
     html:not(.dark) .pha-title       { color: #4f46e5; }
     html:not(.dark) .pha-row         { color: #6b7280; border-bottom-color: rgba(99,102,241,.08); }
-    html:not(.dark) .pha-row.pha-ok  { color: #15803d; }
-    html:not(.dark) .pha-row.pha-warn{ color: #b45309; }
+    html:not(.dark) .pha-row.pha-ok   { color: #15803d; }
+    html:not(.dark) .pha-row.pha-warn { color: #b45309; }
+    html:not(.dark) .pha-row.pha-error{ color: #dc2626; }
     html:not(.dark) .pha-badge       { background: rgba(99,102,241,.1); color: #4f46e5; border-color: rgba(99,102,241,.3); }
     html:not(.dark) .pha-empty       { color: #9ca3af; border-color: rgba(99,102,241,.15); }
 
@@ -119,11 +121,20 @@
         </div>
 
         @else
-        {{-- Filas normales --}}
-        <div class="pha-row {{ $item['ok'] ? 'pha-ok' : 'pha-warn' }}">
+        {{-- Filas normales: groserías usa pha-error (rojo), resto pha-warn --}}
+        @php
+            $esError = !$item['ok'] && in_array($item['tipo'] ?? '', ['groserias', 'discriminacion']);
+            $rowClass = $item['ok'] ? 'pha-ok' : ($esError ? 'pha-error' : 'pha-warn');
+        @endphp
+        <div class="pha-row {{ $rowClass }}">
             @if($item['ok'])
             <svg class="pha-ico" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+            @elseif($esError)
+            {{-- Ícono X rojo para lenguaje inapropiado --}}
+            <svg class="pha-ico" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
             </svg>
             @else
             <svg class="pha-ico" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
