@@ -77,7 +77,10 @@ class NotificacionService
             ]);
         }
 
-        $notif->sendToDatabase($user);
+        // notifyNow() bypassa la cola (ShouldQueue) y guarda directo en BD
+        // sendToDatabase() usa notify() que encola la notificación, pero sin
+        // queue worker en producción nunca se procesa.
+        $user->notifyNow($notif->toDatabase());
     }
 
     /**

@@ -86,12 +86,14 @@ class DiagnosticarNotificaciones extends Command
             $this->newLine();
             $this->info('Enviando notificación de prueba...');
 
-            Notification::make()
-                ->title('🔔 Prueba de notificación')
-                ->body('Esta es una notificación de diagnóstico enviada el ' . now()->format('d/m/Y H:i:s'))
+            $testNotif = Notification::make()
+                ->title('Prueba de notificación')
+                ->body('Diagnóstico enviado el ' . now()->format('d/m/Y H:i:s'))
                 ->icon('heroicon-o-check-circle')
-                ->iconColor('success')
-                ->sendToDatabase($user);
+                ->iconColor('success');
+
+            // notifyNow() bypassa la cola — funciona sin queue worker
+            $user->notifyNow($testNotif->toDatabase());
 
             $newCount = DB::table('notifications')
                 ->where('notifiable_id', $user->id)
