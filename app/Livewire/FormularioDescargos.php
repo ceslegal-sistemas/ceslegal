@@ -217,9 +217,20 @@ class FormularioDescargos extends Component
             // Si es la pregunta sobre acompañantes y respondió NO, saltar preguntas hijas automáticamente
             $this->saltarPreguntasCondicionales($pregunta, $respuestaTexto);
 
-            // Solo generar preguntas dinámicas si es una pregunta generada por IA
-            // (no las preguntas estándar que tienen es_generada_por_ia = false)
-            if ($pregunta->es_generada_por_ia) {
+            // Generar preguntas dinámicas para preguntas IA y para estándar relevantes
+            // (excluir preguntas puramente administrativas que no aportan contexto disciplinario)
+            $preguntasAdministrativas = [
+                '¿Para qué empresa trabaja usted?',
+                '¿Cuál es su cargo en la empresa?',
+                '¿Quién es su jefe directo?',
+                '¿Va a asistir acompañado(a) por alguien?',
+                '¿Qué relación tiene esa persona con usted?',
+            ];
+
+            $esPreguntaRelevante = $pregunta->es_generada_por_ia
+                || !in_array($pregunta->pregunta, $preguntasAdministrativas);
+
+            if ($esPreguntaRelevante) {
                 $iaService = new IADescargoService();
                 $nuevasPreguntas = $iaService->generarPreguntasDinamicas($pregunta, $respuesta);
 
