@@ -4,6 +4,9 @@
 @tailwind variants;
 @import '../../../../vendor/filament/filament/resources/css/base.css';
 
-@config 'tailwind.config.js';
-
+@source '../../../../vendor/filament/filament/resources/**/*.blade.php';
+@source '../../../../vendor/filament/filament/src/**/*.php';
+@source '../../../../vendor/filament/notifications/resources/**/*.blade.php';
+@source '../../../../vendor/filament/notifications/src/**/*.php';
 @source '../../../../vendor/awcodes/light-switch/resources/**/*.blade.php';
+@source '../../../../vendor/moataz-01/filament-notification-sound/resources/**/*.blade.php';
