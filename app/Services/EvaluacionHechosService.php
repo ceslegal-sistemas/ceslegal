@@ -911,15 +911,30 @@ SYSTEM;
             $generationConfig['responseMimeType'] = 'application/json';
         }
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-        ])->timeout($modeloRapido ? 20 : 60)->post($url, [
+        $payload = [
             'system_instruction' => [
                 'parts' => [['text' => $systemPrompt]],
             ],
             'contents'         => $contents,
             'generationConfig' => $generationConfig,
-        ]);
+        ];
+
+        $maxIntentos = 3;
+        $response    = null;
+
+        for ($intento = 1; $intento <= $maxIntentos; $intento++) {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->timeout($modeloRapido ? 20 : 60)->post($url, $payload);
+
+            // Reintentar solo en 503 (alta demanda temporal)
+            if ($response->status() === 503 && $intento < $maxIntentos) {
+                sleep($intento * 2); // 2s, 4s
+                continue;
+            }
+
+            break;
+        }
 
         if (!$response->successful()) {
             throw new \Exception("Error en API Gemini: " . $response->body());
