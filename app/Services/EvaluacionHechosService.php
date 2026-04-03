@@ -93,7 +93,13 @@ class EvaluacionHechosService
         string $cargo,
         int    $trabajadorId
     ): array {
-        $systemPrompt = $this->construirSystemPrompt($empresaId, $nombreTrabajador, $cargo, $trabajadorId);
+        // System prompt simple para llamada directa (sin conflicto con el formato conversacional)
+        $contextoAntecedentes = $this->obtenerContextoAntecedentes($trabajadorId);
+        $contextoReglamento   = $this->obtenerContextoReglamento($empresaId);
+        $systemPrompt = "Eres un redactor jurídico-laboral experto en derecho colombiano. " .
+            "Redactas hechos disciplinarios en tercera persona, lenguaje formal, mínimo 3 párrafos. " .
+            "Responde ÚNICAMENTE con JSON válido sin bloques de código ni texto adicional.\n\n" .
+            $contextoAntecedentes . "\n" . $contextoReglamento;
 
         $notifico   = $datosFormulario['trabajador_notifico'] ? 'Sí' : 'No';
         $detalle    = $datosFormulario['detalle_notificacion']
@@ -122,8 +128,7 @@ PROMPT;
         $rawJson = trim(preg_replace(['/^```(?:json)?\s*/m', '/\s*```$/m'], '', $rawJson));
         $datos   = json_decode($rawJson, true, 512, JSON_THROW_ON_ERROR);
 
-        // El system prompt de conversación puede hacer que el modelo anide los datos
-        // dentro de datos.hechos en lugar de devolverlos en el nivel raíz. Intentar ambas rutas.
+        // Buscar en raíz o anidado en datos.hechos
         $hechos          = $datos['hechos']           ?? ($datos['datos']['hechos']           ?? null);
         $fechaOcurrencia = $datos['fecha_ocurrencia'] ?? ($datos['datos']['fecha_ocurrencia'] ?? null);
         $resumen         = $datos['resumen']          ?? ($datos['datos']['resumen']          ?? '');
