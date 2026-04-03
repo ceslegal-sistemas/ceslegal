@@ -321,19 +321,24 @@ PROMPT;
     }
 
     /**
-     * Llama a la API de Google Gemini
+     * Llama a la API de Google Gemini.
+     * Para generación de preguntas (tarea simple) prefiere modelos rápidos.
+     * Si el modelo principal devuelve 503, hace fallback automático.
      */
     protected function llamarGemini(string $prompt): string
     {
         $apiKey = $this->config['api_key'];
-        $model = $this->config['model'];
 
-        // URL de la API de Gemini
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+        // Cadena de modelos: preferir flash-lite (más rápido y barato para generar preguntas),
+        // luego el modelo configurado, y por último 1.5-flash como fallback estable.
+        $modeloPrincipal = $this->config['model'] ?? 'gemini-2.5-flash';
+        $modelos = array_unique(array_filter([
+            'gemini-2.5-flash-lite',
+            $modeloPrincipal,
+            'gemini-1.5-flash',
+        ]));
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-        ])->timeout(30)->post($url, [
+        $payload = [
             'contents' => [
                 [
                     'parts' => [
@@ -348,7 +353,25 @@ PROMPT;
                 'maxOutputTokens' => $this->config['max_tokens'],
                 'topP' => 0.95,
             ],
-        ]);
+        ];
+
+        $response = null;
+
+        foreach ($modelos as $modelo) {
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent?key={$apiKey}";
+
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->timeout(20)->post($url, $payload);
+
+            // En 503 pasar al siguiente modelo
+            if ($response->status() === 503) {
+                Log::warning("IADescargoService: Gemini 503 en {$modelo}, intentando siguiente modelo");
+                continue;
+            }
+
+            break;
+        }
 
         if (!$response->successful()) {
             throw new \Exception("Error en API Gemini: " . $response->body());
@@ -356,18 +379,14 @@ PROMPT;
 
         $responseData = $response->json();
 
-        // Verificar si hay contenido en la respuesta
         if (!isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
             throw new \Exception("Respuesta de Gemini sin contenido válido");
         }
 
-        // Verificar si la respuesta fue truncada por límite de tokens
         $finishReason = $responseData['candidates'][0]['finishReason'] ?? 'UNKNOWN';
         if ($finishReason === 'MAX_TOKENS') {
-            Log::warning('Respuesta de Gemini truncada por límite de tokens', [
-                'finish_reason' => $finishReason,
+            Log::warning('IADescargoService: respuesta Gemini truncada por límite de tokens', [
                 'max_tokens' => $this->config['max_tokens'],
-                'respuesta_parcial' => substr($responseData['candidates'][0]['content']['parts'][0]['text'], 0, 200),
             ]);
         }
 
