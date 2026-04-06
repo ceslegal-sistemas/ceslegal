@@ -527,7 +527,8 @@ SYS;
         );
 
         // RAG: recuperar artículos legales semánticamente relevantes al relato
-        $normasRag = $this->buscarNormasRelevantes($texto);
+        // Filtra artículos universales (CST) + específicos del RIT de esta empresa
+        $normasRag = $this->buscarNormasRelevantes($texto, empresaId: $empresaId > 0 ? $empresaId : null);
         $normasBloque = $normasRag
             ? "NORMAS LEGALES RECUPERADAS (extractos reales de la base de datos — cita SOLO estas, con su texto exacto):\n{$normasRag}"
             : <<<NORMAS
@@ -629,7 +630,7 @@ SYSTEM;
      * @return string Bloque de texto con los artículos encontrados, listo para inyectar en prompt.
      *                Cadena vacía si no hay embeddings o hay error.
      */
-    private function buscarNormasRelevantes(string $texto, int $limite = 4): string
+    private function buscarNormasRelevantes(string $texto, int $limite = 4, ?int $empresaId = null): string
     {
         try {
             $queryEmbedding = $this->obtenerEmbeddingTexto($texto);
@@ -637,7 +638,10 @@ SYSTEM;
                 return '';
             }
 
-            $articulos = ArticuloLegal::whereNotNull('embedding')->activos()->get();
+            $articulos = ArticuloLegal::whereNotNull('embedding')
+                ->activos()
+                ->paraEmpresa($empresaId)
+                ->get();
             if ($articulos->isEmpty()) {
                 return '';
             }

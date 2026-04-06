@@ -1807,13 +1807,18 @@ class ProcesoDisciplinarioResource extends Resource
                         $resultado = $iaService->analizarYSugerirSanciones($record);
                         $analisis = $resultado['analisis'];
 
-                        // Siempre mostrar las tres opciones de sanción disponibles
-                        // El usuario tiene la última palabra, independientemente del análisis de la IA
-                        $opcionesSancion = [
-                            'llamado_atencion' => 'Llamado de Atención',
-                            'suspension' => 'Suspensión Laboral',
-                            'terminacion' => 'Terminación de Contrato',
-                        ];
+                        // Verificar si la empresa tiene Reglamento Interno de Trabajo activo
+                        $sinRit = !$record->empresa->reglamentoInterno()->where('activo', true)->exists();
+
+                        // Sin RIT: solo se puede terminar el contrato (Art. 62 CST).
+                        // Suspensión y llamado de atención requieren RIT (Art. 111-116 CST).
+                        $opcionesSancion = $sinRit
+                            ? ['terminacion' => 'Terminación de Contrato (Art. 62 CST)']
+                            : [
+                                'llamado_atencion' => 'Llamado de Atención',
+                                'suspension'       => 'Suspensión Laboral',
+                                'terminacion'      => 'Terminación de Contrato',
+                            ];
 
                         // Construir opciones de días de suspensión si aplica
                         $opcionesDiasSuspension = [];
@@ -1988,6 +1993,37 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->collapsible()
                                 ->collapsed(false),
 
+                            // Aviso legal cuando no hay RIT: solo terminación disponible
+                            Forms\Components\Section::make('⚠️ Empresa sin Reglamento Interno de Trabajo')
+                                ->schema([
+                                    Forms\Components\Placeholder::make('aviso_sin_rit')
+                                        ->label('')
+                                        ->content(function () use ($sinRit) {
+                                            if (!$sinRit) {
+                                                return '';
+                                            }
+
+                                            $purchaseUrl = config('ces.rit_purchase_url');
+                                            $boton       = $purchaseUrl
+                                                ? "<a href=\"{$purchaseUrl}\" target=\"_blank\" rel=\"noopener\" class=\"fi-btn fi-btn-size-md fi-btn-color-primary fi-btn-outlined inline-flex items-center gap-1.5 px-4 py-2 mt-3 rounded-lg border border-primary-600 text-primary-600 font-semibold text-sm hover:bg-primary-50 transition\">Adquirir Reglamento Interno →</a>"
+                                                : '';
+
+                                            $html  = '<div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-400 space-y-2">';
+                                            $html .= '<p class="font-semibold text-amber-800 dark:text-amber-200">Esta empresa no tiene un Reglamento Interno de Trabajo (RIT) registrado y aprobado.</p>';
+                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300">Según los artículos 111 a 116 del Código Sustantivo del Trabajo, las sanciones de <strong>suspensión</strong> y <strong>llamado de atención</strong> con efectos disciplinarios <strong>solo pueden aplicarse si están contempladas en el Reglamento Interno</strong>. Sin RIT, la única medida disciplinaria disponible es la <strong>terminación del contrato con justa causa</strong> (Art. 62 CST).</p>';
+                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300">Aplique otras sanciones sin RIT puede derivar en reintegros, demandas laborales y acciones de repetición contra la empresa.</p>';
+
+                                            if ($boton) {
+                                                $html .= "<div>{$boton}</div>";
+                                            }
+
+                                            $html .= '</div>';
+                                            return new \Illuminate\Support\HtmlString($html);
+                                        }),
+                                ])
+                                ->visible($sinRit)
+                                ->collapsible(false),
+
                             // Guardar análisis en sesión para uso posterior
                             Forms\Components\Hidden::make('analisis_cache')
                                 ->default(json_encode($analisis)),
@@ -1999,7 +2035,11 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->required()
                                 ->native(false)
                                 ->default($recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null)
-                                ->helperText('Usted tiene la última palabra. Seleccione la sanción que considere más apropiada.'),
+                                ->helperText(
+                                    $sinRit
+                                        ? 'Sin Reglamento Interno, solo puede aplicar terminación del contrato (Art. 62 CST).'
+                                        : 'Usted tiene la última palabra. Seleccione la sanción que considere más apropiada.'
+                                ),
                         ];
                     })
                     ->requiresConfirmation()
