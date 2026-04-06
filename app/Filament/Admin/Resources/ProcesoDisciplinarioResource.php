@@ -1811,7 +1811,7 @@ class ProcesoDisciplinarioResource extends Resource
                         $sinRit = !$record->empresa->reglamentoInterno()->where('activo', true)->exists();
 
                         // Sin RIT: solo se puede terminar el contrato (Art. 62 CST).
-                        // Suspensión y llamado de atención requieren RIT (Art. 111-116 CST).
+                        // Suspensión y llamado de atención requieren RIT (Art. 111-115 CST).
                         $opcionesSancion = $sinRit
                             ? ['terminacion' => 'Terminación de Contrato (Art. 62 CST)']
                             : [
@@ -2010,7 +2010,7 @@ class ProcesoDisciplinarioResource extends Resource
 
                                             $html  = '<div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-400 space-y-2">';
                                             $html .= '<p class="font-semibold text-amber-800 dark:text-amber-200">Esta empresa no tiene un Reglamento Interno de Trabajo (RIT) registrado y aprobado.</p>';
-                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300">Según los artículos 111 a 116 del Código Sustantivo del Trabajo, las sanciones de <strong>suspensión</strong> y <strong>llamado de atención</strong> con efectos disciplinarios <strong>solo pueden aplicarse si están contempladas en el Reglamento Interno</strong>. Sin RIT, la única medida disciplinaria disponible es la <strong>terminación del contrato con justa causa</strong> (Art. 62 CST).</p>';
+                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300">Según los artículos 111 a 115 del Código Sustantivo del Trabajo, el empleador solo puede imponer las sanciones que estén contempladas en el Reglamento Interno de Trabajo debidamente registrado. Sin RIT, la única medida disciplinaria disponible es la <strong>terminación del contrato con justa causa</strong> (Art. 62 CST).</p>';
                                             $html .= '<p class="text-sm text-amber-700 dark:text-amber-300">Aplique otras sanciones sin RIT puede derivar en reintegros, demandas laborales y acciones de repetición contra la empresa.</p>';
 
                                             if ($boton) {
