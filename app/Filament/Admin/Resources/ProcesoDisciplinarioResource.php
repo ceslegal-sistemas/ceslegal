@@ -1919,8 +1919,8 @@ class ProcesoDisciplinarioResource extends Resource
                                                 ?? 'Revise cuidadosamente los hechos y el historial antes de tomar su decisión.';
 
                                             return new \Illuminate\Support\HtmlString(
-                                                "<div class='p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800'>" .
-                                                "<p class='text-gray-700 dark:text-gray-300'>{$mensaje}</p>" .
+                                                "<div class='p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600'>" .
+                                                "<p class='text-sm text-gray-700 dark:text-gray-200'>{$mensaje}</p>" .
                                                 '</div>'
                                             );
                                         }),
