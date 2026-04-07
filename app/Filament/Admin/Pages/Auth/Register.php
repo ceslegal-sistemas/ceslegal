@@ -24,7 +24,7 @@ class Register extends BaseRegister
     /**
      * Ancho del panel de registro (más amplio que el default 'lg').
      */
-    protected ?string $maxWidth = '2xl';
+    protected ?string $maxWidth = '4xl';
 
     public function form(Form $form): Form
     {
@@ -120,7 +120,7 @@ class Register extends BaseRegister
                                 ->required()
                                 ->native(false)
                                 ->helperText('Días que opera normalmente la empresa'),
-                        ])->columns(2),
+                        ])->columns(['default' => 1, 'sm' => 2]),
 
                     // ── Paso 3: Actividad Económica CIIU ──────────────────────────
                     Forms\Components\Wizard\Step::make('CIIU')
