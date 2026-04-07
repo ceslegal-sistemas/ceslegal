@@ -1828,90 +1828,12 @@ class ProcesoDisciplinarioResource extends Resource
                             }
                         }
 
-                        // Verificar si hay "otro motivo"
-                        $tieneOtroMotivo = !empty($record->otro_motivo_descargos);
-                        $analisisOtroMotivo = $analisis['analisis_otro_motivo'] ?? null;
-                        $motivosAnalizados = $analisis['motivos_analizados'] ?? [];
                         $recomendacionFinal = $analisis['recomendacion_final'] ?? null;
 
                         return [
-                            // Sección: Motivos de Descargos Seleccionados
-                            Forms\Components\Section::make('Motivos de los Descargos')
-                                ->schema([
-                                    Forms\Components\Placeholder::make('motivos_seleccionados')
-                                        ->label('')
-                                        ->content(function () use ($record, $motivosAnalizados) {
-                                            $sancionesLaborales = $record->sancionesLaborales;
-
-                                            if ($sancionesLaborales->isEmpty() && empty($motivosAnalizados)) {
-                                                return new \Illuminate\Support\HtmlString('<p class="text-gray-500">No se han seleccionado motivos del reglamento.</p>');
-                                            }
-
-                                            $html = '<div class="space-y-2">';
-
-                                            foreach ($sancionesLaborales as $sancion) {
-                                                $emoji = $sancion->tipo_falta === 'leve' ? '🟢' : '🔴';
-                                                $tipoFalta = strtoupper($sancion->tipo_falta);
-                                                $tipoSancionTexto = $sancion->tipo_sancion_texto;
-
-                                                $html .= "<div class='p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border-l-4 " .
-                                                    ($sancion->tipo_falta === 'leve' ? 'border-green-500' : 'border-red-500') . "'>";
-                                                $html .= "<p class='font-semibold'>{$emoji} [{$tipoFalta}] {$sancion->nombre_claro}</p>";
-                                                $html .= "<p class='text-sm text-gray-600 dark:text-gray-400'>{$sancion->descripcion}</p>";
-                                                $html .= "<p class='text-xs text-gray-500 mt-1'>Sanción según reglamento: <strong>{$tipoSancionTexto}</strong></p>";
-                                                $html .= "</div>";
-                                            }
-
-                                            $html .= '</div>';
-                                            return new \Illuminate\Support\HtmlString($html);
-                                        }),
-                                ])
-                                ->collapsible()
-                                ->collapsed(false),
-
-                            // Sección: Análisis de "Otro Motivo" (solo si aplica)
-                            Forms\Components\Section::make('Análisis de Otro Motivo')
-                                ->schema([
-                                    Forms\Components\Placeholder::make('otro_motivo_descripcion')
-                                        ->label('Motivo descrito por el usuario')
-                                        ->content(fn() => $record->otro_motivo_descargos ?? 'N/A'),
-
-                                    Forms\Components\Placeholder::make('otro_motivo_analisis')
-                                        ->label('')
-                                        ->content(function () use ($analisisOtroMotivo) {
-                                            if (!$analisisOtroMotivo || !($analisisOtroMotivo['aplica'] ?? false)) {
-                                                return new \Illuminate\Support\HtmlString('<p class="text-gray-500">Sin análisis disponible.</p>');
-                                            }
-
-                                            $tipoFalta = strtoupper($analisisOtroMotivo['tipo_falta_determinado'] ?? 'N/A');
-                                            $emoji = ($analisisOtroMotivo['tipo_falta_determinado'] ?? '') === 'leve' ? '🟢' : '🔴';
-                                            $sancionRec = match ($analisisOtroMotivo['sancion_recomendada'] ?? '') {
-                                                'llamado_atencion' => 'Llamado de Atención',
-                                                'suspension' => 'Suspensión Laboral',
-                                                'terminacion' => 'Terminación de Contrato',
-                                                default => $analisisOtroMotivo['sancion_recomendada'] ?? 'N/A',
-                                            };
-
-                                            $html = "<div class='p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-300'>";
-                                            $html .= "<p class='font-semibold'>{$emoji} Tipo de falta determinado: <strong>{$tipoFalta}</strong></p>";
-                                            $html .= "<p class='mt-2'>Sanción recomendada: <strong>{$sancionRec}</strong></p>";
-
-                                            if (($analisisOtroMotivo['dias_suspension_recomendados'] ?? null) !== null) {
-                                                $dias = $analisisOtroMotivo['dias_suspension_recomendados'];
-                                                $html .= "<p class='text-sm'>Días de suspensión sugeridos: <strong>{$dias} día" . ($dias > 1 ? 's' : '') . "</strong></p>";
-                                            }
-
-                                            $html .= "<p class='mt-2 text-sm text-gray-700 dark:text-gray-300'><em>{$analisisOtroMotivo['justificacion']}</em></p>";
-                                            $html .= "</div>";
-
-                                            return new \Illuminate\Support\HtmlString($html);
-                                        }),
-                                ])
-                                ->visible($tieneOtroMotivo)
-                                ->collapsible(),
-
-                            // Sección: Análisis General de la IA
-                            Forms\Components\Section::make('🤖 Análisis del Caso')
+                            // ── Análisis del Caso ─────────────────────────────────────────────
+                            Forms\Components\Section::make('Análisis del Caso')
+                                ->icon('heroicon-o-cpu-chip')
                                 ->schema([
                                     Forms\Components\Placeholder::make('gravedad_info')
                                         ->label('Gravedad de la Falta')
@@ -1919,82 +1841,94 @@ class ProcesoDisciplinarioResource extends Resource
                                             $nivel = $analisis['nivel_gravedad'] ?? 'ninguno';
 
                                             if ($analisis['gravedad'] === 'leve') {
-                                                $gravedad = '🟢 Leve';
+                                                $dot  = '<span class="inline-block w-2.5 h-2.5 rounded-full bg-green-500 mr-1.5 align-middle"></span>';
+                                                $text = '<strong class="text-green-700 dark:text-green-400">Leve</strong>';
                                             } elseif ($analisis['gravedad'] === 'grave') {
-                                                if ($nivel === 'bajo') {
-                                                    $gravedad = '🟡 Grave (Nivel Bajo)';
-                                                } elseif ($nivel === 'alto') {
-                                                    $gravedad = '🔴 Grave (Nivel Alto)';
+                                                if ($nivel === 'alto') {
+                                                    $dot  = '<span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 mr-1.5 align-middle"></span>';
+                                                    $text = '<strong class="text-red-700 dark:text-red-400">Grave (Nivel Alto)</strong>';
                                                 } else {
-                                                    $gravedad = '🟡 Grave';
+                                                    $dot  = '<span class="inline-block w-2.5 h-2.5 rounded-full bg-yellow-500 mr-1.5 align-middle"></span>';
+                                                    $text = '<strong class="text-yellow-700 dark:text-yellow-400">Grave' . ($nivel === 'bajo' ? ' (Nivel Bajo)' : '') . '</strong>';
                                                 }
                                             } else {
-                                                $gravedad = ucfirst($analisis['gravedad']);
+                                                $dot  = '';
+                                                $text = '<span>' . ucfirst($analisis['gravedad']) . '</span>';
                                             }
 
-                                            $reincidencia = $analisis['es_reincidencia'] ? ' ⚠️ REINCIDENCIA' : '';
-                                            return $gravedad . $reincidencia;
+                                            $html = '<span class="inline-flex items-center">' . $dot . $text . '</span>';
+
+                                            if ($analisis['es_reincidencia']) {
+                                                $html .= ' <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 text-xs font-semibold border border-red-300 dark:border-red-700 ml-2">Reincidencia</span>';
+                                            }
+
+                                            return new \Illuminate\Support\HtmlString($html);
                                         }),
 
                                     Forms\Components\Placeholder::make('justificacion_ia')
                                         ->label('Justificación')
                                         ->content(fn() => $analisis['justificacion'] ?? 'Sin justificación disponible.'),
                                 ])
-                                ->description('Análisis automático basado en los hechos, motivos seleccionados y el historial del trabajador.')
+                                ->description('Análisis automático basado en los hechos y el historial del trabajador.')
                                 ->collapsible(),
 
-                            // Sección: Recomendación Final para la Decisión
-                            Forms\Components\Section::make('✅ Recomendación para su Decisión')
+                            // ── Recomendación para la Decisión ────────────────────────────────
+                            Forms\Components\Section::make('Recomendación para su Decisión')
+                                ->icon('heroicon-o-scale')
                                 ->schema([
                                     Forms\Components\Placeholder::make('sancion_sugerida')
                                         ->label('Sanción Sugerida')
                                         ->content(function () use ($recomendacionFinal, $analisis) {
                                             $sancion = $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? 'N/A';
-                                            $texto = match ($sancion) {
-                                                'llamado_atencion' => '📄 Llamado de Atención',
-                                                'suspension' => '⏸️ Suspensión Laboral',
-                                                'terminacion' => '❌ Terminación de Contrato',
-                                                default => $sancion,
+
+                                            [$label, $colorClass] = match ($sancion) {
+                                                'llamado_atencion' => ['Llamado de Atención', 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-300 dark:border-blue-700'],
+                                                'suspension'       => ['Suspensión Laboral', 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700'],
+                                                'terminacion'      => ['Terminación de Contrato', 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-300 dark:border-red-700'],
+                                                default            => [$sancion, 'bg-gray-100 text-gray-800'],
                                             };
 
+                                            $texto = "<span class='px-2.5 py-1 rounded-md text-sm font-semibold {$colorClass}'>{$label}</span>";
+
                                             if ($sancion === 'suspension' && ($recomendacionFinal['dias_suspension'] ?? null)) {
-                                                $dias = $recomendacionFinal['dias_suspension'];
-                                                $texto .= " ({$dias} día" . ($dias > 1 ? 's' : '') . ")";
+                                                $dias   = $recomendacionFinal['dias_suspension'];
+                                                $texto .= " <span class='text-sm text-gray-600 dark:text-gray-400'>({$dias} día" . ($dias > 1 ? 's' : '') . ')</span>';
                                             }
 
-                                            $confianza = $recomendacionFinal['confianza'] ?? 'media';
+                                            $confianza  = $recomendacionFinal['confianza'] ?? 'media';
                                             $badgeColor = match ($confianza) {
-                                                'alta' => 'bg-green-100 text-green-800',
-                                                'media' => 'bg-yellow-100 text-yellow-800',
-                                                'baja' => 'bg-red-100 text-red-800',
+                                                'alta'  => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+                                                'media' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+                                                'baja'  => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
                                                 default => 'bg-gray-100 text-gray-800',
                                             };
 
                                             return new \Illuminate\Support\HtmlString(
-                                                "<span class='font-semibold'>{$texto}</span> " .
-                                                    "<span class='ml-2 px-2 py-1 rounded text-xs {$badgeColor}'>Confianza: " . ucfirst($confianza) . "</span>"
+                                                $texto .
+                                                " <span class='ml-2 px-2 py-1 rounded text-xs {$badgeColor}'>Confianza: " . ucfirst($confianza) . '</span>'
                                             );
                                         }),
 
                                     Forms\Components\Placeholder::make('mensaje_decision')
-                                        ->label('💡 Mensaje para su decisión')
+                                        ->label('Mensaje para su decisión')
                                         ->content(function () use ($recomendacionFinal, $analisis) {
                                             $mensaje = $recomendacionFinal['mensaje_para_decision']
                                                 ?? $analisis['consideraciones_especiales']
                                                 ?? 'Revise cuidadosamente los hechos y el historial antes de tomar su decisión.';
 
                                             return new \Illuminate\Support\HtmlString(
-                                                "<div class='p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200'>" .
-                                                    "<p class='text-gray-700 dark:text-gray-300'>{$mensaje}</p>" .
-                                                    "</div>"
+                                                "<div class='p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800'>" .
+                                                "<p class='text-gray-700 dark:text-gray-300'>{$mensaje}</p>" .
+                                                '</div>'
                                             );
                                         }),
                                 ])
                                 ->collapsible()
                                 ->collapsed(false),
 
-                            // Aviso legal cuando no hay RIT: solo terminación disponible
-                            Forms\Components\Section::make('⚠️ Empresa sin Reglamento Interno de Trabajo')
+                            // ── Aviso sin RIT: solo terminación disponible ────────────────────
+                            Forms\Components\Section::make('Empresa sin Reglamento Interno de Trabajo')
+                                ->icon('heroicon-o-exclamation-triangle')
                                 ->schema([
                                     Forms\Components\Placeholder::make('aviso_sin_rit')
                                         ->label('')
@@ -2005,13 +1939,27 @@ class ProcesoDisciplinarioResource extends Resource
 
                                             $purchaseUrl = config('ces.rit_purchase_url');
                                             $boton       = $purchaseUrl
-                                                ? "<a href=\"{$purchaseUrl}\" target=\"_blank\" rel=\"noopener\" class=\"fi-btn fi-btn-size-md fi-btn-color-primary fi-btn-outlined inline-flex items-center gap-1.5 px-4 py-2 mt-3 rounded-lg border border-primary-600 text-primary-600 font-semibold text-sm hover:bg-primary-50 transition\">Adquirir Reglamento Interno →</a>"
+                                                ? "<a href=\"{$purchaseUrl}\" target=\"_blank\" rel=\"noopener\" class=\"inline-flex items-center gap-2 px-4 py-2.5 mt-1 rounded-lg bg-primary-600 text-white font-semibold text-sm hover:bg-primary-700 transition-colors shadow-sm\">Adquirir Reglamento Interno</a>"
                                                 : '';
 
-                                            $html  = '<div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-400 space-y-2">';
-                                            $html .= '<p class="font-semibold text-amber-800 dark:text-amber-200">Esta empresa no tiene un Reglamento Interno de Trabajo (RIT) registrado y aprobado.</p>';
-                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300">Según los artículos 111 a 115 del Código Sustantivo del Trabajo, el empleador solo puede imponer las sanciones que estén contempladas en el Reglamento Interno de Trabajo debidamente registrado. Sin RIT, la única medida disciplinaria disponible es la <strong>terminación del contrato con justa causa</strong> (Art. 62 CST).</p>';
-                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300">Aplique otras sanciones sin RIT puede derivar en reintegros, demandas laborales y acciones de repetición contra la empresa.</p>';
+                                            // Cargar lordicon solo una vez en la página
+                                            $script  = '<script>if(!window._liLoaded){window._liLoaded=true;var s=document.createElement("script");s.src="https://cdn.lordicon.com/lordicon.js";document.head.appendChild(s);}</script>';
+
+                                            $html  = $script;
+                                            $html .= '<div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-400 dark:border-amber-600 space-y-3">';
+
+                                            $html .= '<div class="flex items-start gap-3">';
+                                            $html .= '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:36px;height:36px;flex-shrink:0;margin-top:2px"></lord-icon>';
+                                            $html .= '<div>';
+                                            $html .= '<p class="font-semibold text-amber-900 dark:text-amber-100 text-base">Esta empresa no tiene Reglamento Interno de Trabajo (RIT)</p>';
+                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300 mt-1">Los artículos 111 a 115 del Código Sustantivo del Trabajo establecen que el empleador <strong>solo puede imponer las sanciones expresamente previstas en el RIT</strong> debidamente aprobado y registrado ante el Ministerio del Trabajo.</p>';
+                                            $html .= '</div>';
+                                            $html .= '</div>';
+
+                                            $html .= '<div class="bg-amber-100 dark:bg-amber-800/30 rounded-lg p-3 border border-amber-300 dark:border-amber-700">';
+                                            $html .= '<p class="text-sm font-semibold text-amber-900 dark:text-amber-100">Por esta vez, no es posible aplicar suspensión ni llamado de atención</p>';
+                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300 mt-1">El descargo a este trabajador fue iniciado cuando la empresa no contaba con un RIT vigente. Aplicar estas medidas sin RIT expone a la empresa a demandas laborales, reintegros judiciales y sanciones por el Ministerio del Trabajo. La única opción legalmente segura para este proceso es la <strong>terminación del contrato con justa causa</strong> (Art. 62 CST).</p>';
+                                            $html .= '</div>';
 
                                             if ($boton) {
                                                 $html .= "<div>{$boton}</div>";

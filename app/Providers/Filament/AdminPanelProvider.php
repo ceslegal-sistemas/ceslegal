@@ -55,6 +55,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->registration(\App\Filament\Admin\Pages\Auth\Register::class)
             ->passwordReset()
             ->colors([
                 'primary' => Color::Blue,
