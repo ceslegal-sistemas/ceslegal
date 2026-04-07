@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\DescargoPublicoController;
 use App\Http\Controllers\EmailTrackingController;
+use App\Http\Controllers\PayUConfirmationController;
+use App\Http\Controllers\SuscripcionController;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\File;
@@ -9,6 +12,16 @@ use Illuminate\Support\Facades\File;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// PayU — URL de confirmación server-to-server (sin CSRF, sin auth)
+Route::post('/payu/confirmacion', [PayUConfirmationController::class, 'handle'])
+    ->name('payu.confirmacion')
+    ->withoutMiddleware([VerifyCsrfToken::class]);
+
+// Retorno del cliente después del checkout PayU
+Route::get('/suscripcion/retorno', [SuscripcionController::class, 'retorno'])
+    ->name('suscripcion.retorno')
+    ->middleware('auth');
 
 Route::post('/tts', \App\Http\Controllers\TtsController::class)
     ->middleware('auth')

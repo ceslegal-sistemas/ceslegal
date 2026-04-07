@@ -5,7 +5,9 @@ namespace App\Filament\Admin\Pages\Auth;
 use App\Filament\Admin\Resources\EmpresaResource;
 use App\Models\ActividadEconomica;
 use App\Models\Empresa;
+use App\Models\Suscripcion;
 use App\Models\User;
+use App\Services\PayUService;
 use App\Services\ReglamentoInternoService;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -16,15 +18,21 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 
 /**
- * Registro de clientes nuevos — wizard de 4 pasos.
+ * Registro de clientes nuevos — wizard de 5 pasos.
  * Crea simultáneamente la Empresa y el usuario con rol 'cliente'.
+ *
+ * Planes:
+ *  - Básico : 7 días de prueba gratis → $29.000/mes
+ *  - Pro    : pago inmediato → $59.000/mes
+ *  - Firma  : pago inmediato → $99.000/mes
+ * Ciclo: mensual o anual (anual = 15 % descuento)
  */
 class Register extends BaseRegister
 {
-    /**
-     * Ancho del panel de registro (más amplio que el default 'lg').
-     */
     protected ?string $maxWidth = '4xl';
+
+    /** URL de checkout PayU; vacía = ir al panel admin. */
+    private string $redirectUrl = '';
 
     public function form(Form $form): Form
     {
@@ -175,7 +183,50 @@ class Register extends BaseRegister
                                 ->columnSpanFull(),
                         ]),
 
-                    // ── Paso 4: Reglamento Interno ────────────────────────────────
+                    // ── Paso 4: Plan de Suscripción ───────────────────────────────
+                    Forms\Components\Wizard\Step::make('Plan')
+                        ->label('Plan')
+                        ->icon('heroicon-o-credit-card')
+                        ->description('Seleccione el plan que mejor se adapte a su empresa')
+                        ->schema([
+                            Forms\Components\Placeholder::make('tabla_planes')
+                                ->label('')
+                                ->content(fn() => new HtmlString($this->getTablaPlanesHtml()))
+                                ->columnSpanFull(),
+
+                            Forms\Components\Radio::make('plan_suscripcion')
+                                ->label('Plan')
+                                ->options([
+                                    'basico' => 'Básico — 7 días gratis, luego $29.000/mes',
+                                    'pro'    => 'Pro — $59.000/mes',
+                                    'firma'  => 'Firma — $99.000/mes',
+                                ])
+                                ->default('basico')
+                                ->required()
+                                ->live()
+                                ->columnSpanFull(),
+
+                            Forms\Components\Radio::make('ciclo_facturacion')
+                                ->label('Ciclo de facturación')
+                                ->options(fn(Get $get) => $this->opcionesCiclo($get('plan_suscripcion') ?? 'basico'))
+                                ->default('mensual')
+                                ->required()
+                                ->live()
+                                ->hidden(fn(Get $get) => ($get('plan_suscripcion') ?? 'basico') === 'basico')
+                                ->columnSpanFull(),
+
+                            Forms\Components\Placeholder::make('resumen_precio')
+                                ->label('')
+                                ->content(fn(Get $get) => new HtmlString(
+                                    $this->getResumenPrecioHtml(
+                                        $get('plan_suscripcion') ?? 'basico',
+                                        $get('ciclo_facturacion') ?? 'mensual'
+                                    )
+                                ))
+                                ->columnSpanFull(),
+                        ]),
+
+                    // ── Paso 5: Reglamento Interno ────────────────────────────────
                     Forms\Components\Wizard\Step::make('RIT')
                         ->label('Reglamento Interno')
                         ->icon('heroicon-o-document-text')
@@ -214,17 +265,11 @@ class Register extends BaseRegister
             ]);
     }
 
-    /**
-     * Ocultar el botón de registro que Filament pone fuera del wizard.
-     */
     protected function getFormActions(): array
     {
         return [];
     }
 
-    /**
-     * Crea la Empresa + User con rol 'cliente' y procesa el RIT si fue cargado.
-     */
     protected function handleRegistration(array $data): User
     {
         $empresa = Empresa::create([
@@ -241,12 +286,16 @@ class Register extends BaseRegister
             'active'                 => true,
         ]);
 
-        // Actividades secundarias (many-to-many)
         if (!empty($data['actividades_secundarias_ids'])) {
             $empresa->actividadesSecundarias()->sync($data['actividades_secundarias_ids']);
         }
 
-        // Procesar RIT si se subió un archivo
+        $plan   = $data['plan_suscripcion'] ?? 'basico';
+        $ciclo  = $data['ciclo_facturacion'] ?? 'mensual';
+        $email  = $data['email'];
+
+        $this->crearSuscripcion($empresa, $plan, $ciclo, $email);
+
         $rutaDocx = $data['reglamento_docx_temp'] ?? null;
         if ($rutaDocx) {
             try {
@@ -265,7 +314,7 @@ class Register extends BaseRegister
 
         $user = User::create([
             'name'       => $data['name'],
-            'email'      => $data['email'],
+            'email'      => $email,
             'password'   => $data['password'],
             'role'       => 'cliente',
             'empresa_id' => $empresa->id,
@@ -275,6 +324,184 @@ class Register extends BaseRegister
         $user->assignRole('cliente');
 
         return $user;
+    }
+
+    private function crearSuscripcion(Empresa $empresa, string $plan, string $ciclo, string $buyerEmail): void
+    {
+        if ($plan === 'basico') {
+            $trialDias = (int) config('ces.planes.basico.trial_dias', 7);
+
+            Suscripcion::create([
+                'empresa_id'    => $empresa->id,
+                'plan'          => 'basico',
+                'ciclo_facturacion' => $ciclo,
+                'estado'        => 'trial',
+                'trial_ends_at' => now()->addDays($trialDias),
+            ]);
+            return;
+        }
+
+        // Pro / Firma: crear suscripción pendiente de pago y redirigir a PayU
+        $payu       = app(PayUService::class);
+        $referencia = $payu->generarReferencia($empresa->id);
+        $nombrePlan = config("ces.planes.{$plan}.nombre", $plan);
+
+        $suscripcion = Suscripcion::create([
+            'empresa_id'        => $empresa->id,
+            'plan'              => $plan,
+            'ciclo_facturacion' => $ciclo,
+            'estado'            => 'pendiente_pago',
+            'payment_reference' => $referencia,
+        ]);
+
+        $descripcion = "CES Legal — Plan {$nombrePlan} ({$ciclo})";
+
+        $this->redirectUrl = $payu->getCheckoutUrl($suscripcion, $buyerEmail, $descripcion);
+    }
+
+    public function getRedirectUrl(): string
+    {
+        if (!empty($this->redirectUrl)) {
+            return $this->redirectUrl;
+        }
+
+        return parent::getRedirectUrl();
+    }
+
+    // ── Helpers HTML ──────────────────────────────────────────────────────────
+
+    private function opcionesCiclo(string $plan): array
+    {
+        $planes  = config('ces.planes');
+        $info    = $planes[$plan] ?? $planes['pro'];
+        $mensual = number_format($info['precio_mensual_cop'], 0, ',', '.');
+        $anual   = number_format($info['precio_anual_cop'], 0, ',', '.');
+
+        return [
+            'mensual' => "Mensual — \${$mensual}/mes",
+            'anual'   => "Anual — \${$anual}/año (15 % descuento)",
+        ];
+    }
+
+    private function getResumenPrecioHtml(string $plan, string $ciclo): string
+    {
+        $planes = config('ces.planes');
+        $info   = $planes[$plan] ?? null;
+
+        if (!$info) {
+            return '';
+        }
+
+        if ($plan === 'basico') {
+            $mensual = number_format($info['precio_mensual_cop'], 0, ',', '.');
+            $anual   = number_format($info['precio_anual_cop'], 0, ',', '.');
+            return <<<HTML
+<div class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
+    <p class="text-sm font-semibold text-blue-800 dark:text-blue-300">🎁 Plan Básico — 7 días gratis</p>
+    <p class="text-xs text-blue-700 dark:text-blue-400 mt-1">
+        Luego <strong>\${$mensual}/mes</strong> (mensual) o <strong>\${$anual}/año</strong> (anual, 15 % dto.).<br>
+        No se requiere tarjeta ahora. Al terminar el trial, recibirá instrucciones para activar su plan.
+    </p>
+</div>
+HTML;
+        }
+
+        $precio = $ciclo === 'anual'
+            ? number_format($info['precio_anual_cop'], 0, ',', '.')
+            : number_format($info['precio_mensual_cop'], 0, ',', '.');
+
+        $periodo = $ciclo === 'anual' ? 'año' : 'mes';
+        $nota    = $ciclo === 'anual'
+            ? '<span class="text-green-600 dark:text-green-400 font-medium">Incluye 15 % de descuento frente al precio mensual</span>'
+            : 'Puede cambiar a anual en cualquier momento para obtener descuento';
+
+        return <<<HTML
+<div class="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+    <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+        Total a pagar: <span class="text-primary-600 dark:text-primary-400">\${$precio}/{$periodo}</span>
+    </p>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$nota}</p>
+    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Pago procesado via PayU — acepta PSE, tarjetas débito/crédito y efectivo.</p>
+</div>
+HTML;
+    }
+
+    private function getTablaPlanesHtml(): string
+    {
+        $p = config('ces.planes');
+        $fmtM = fn(string $plan) => '$' . number_format($p[$plan]['precio_mensual_cop'], 0, ',', '.');
+        $fmtA = fn(string $plan) => '$' . number_format($p[$plan]['precio_anual_cop'], 0, ',', '.');
+
+        return <<<HTML
+<div class="overflow-x-auto">
+  <table class="w-full text-sm border-collapse rounded-xl overflow-hidden">
+    <thead>
+      <tr class="bg-gray-100 dark:bg-gray-700">
+        <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600">Funcionalidad</th>
+        <th class="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600">
+          <div>Básico</div>
+          <div class="text-xs font-normal text-green-600 dark:text-green-400 mt-0.5">7 días gratis</div>
+          <div class="text-xs font-normal text-gray-500 dark:text-gray-400">{$fmtM('basico')}/mes después</div>
+        </th>
+        <th class="px-4 py-3 text-center font-semibold text-primary-700 dark:text-primary-400 border border-gray-200 dark:border-gray-600 bg-primary-50 dark:bg-primary-900/30">
+          <div>Pro ⭐</div>
+          <div class="text-xs font-normal text-primary-600 dark:text-primary-400 mt-0.5">{$fmtM('pro')}/mes</div>
+          <div class="text-xs font-normal text-gray-500 dark:text-gray-400">{$fmtA('pro')}/año</div>
+        </th>
+        <th class="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600">
+          <div>Firma</div>
+          <div class="text-xs font-normal text-gray-600 dark:text-gray-400 mt-0.5">{$fmtM('firma')}/mes</div>
+          <div class="text-xs font-normal text-gray-500 dark:text-gray-400">{$fmtA('firma')}/año</div>
+        </th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+      <tr class="bg-white dark:bg-gray-800">
+        <td class="px-4 py-2.5 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">Procesos disciplinarios</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600">✓</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600 bg-primary-50/50 dark:bg-primary-900/20">✓</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600">✓</td>
+      </tr>
+      <tr class="bg-gray-50 dark:bg-gray-800/50">
+        <td class="px-4 py-2.5 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">Terminación de contrato</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600">✓</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600 bg-primary-50/50 dark:bg-primary-900/20">✓</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600">✓</td>
+      </tr>
+      <tr class="bg-white dark:bg-gray-800">
+        <td class="px-4 py-2.5 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">Suspensiones y llamados de atención</td>
+        <td class="px-4 py-2.5 text-center text-gray-300 dark:text-gray-600 border border-gray-200 dark:border-gray-600">—</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600 bg-primary-50/50 dark:bg-primary-900/20">✓</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600">✓</td>
+      </tr>
+      <tr class="bg-gray-50 dark:bg-gray-800/50">
+        <td class="px-4 py-2.5 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">Contratos y liquidaciones</td>
+        <td class="px-4 py-2.5 text-center text-gray-300 dark:text-gray-600 border border-gray-200 dark:border-gray-600">—</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600 bg-primary-50/50 dark:bg-primary-900/20">✓</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600">✓</td>
+      </tr>
+      <tr class="bg-white dark:bg-gray-800">
+        <td class="px-4 py-2.5 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">RIT incluido</td>
+        <td class="px-4 py-2.5 text-center text-gray-300 dark:text-gray-600 border border-gray-200 dark:border-gray-600">—</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600 bg-primary-50/50 dark:bg-primary-900/20">✓</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600">✓</td>
+      </tr>
+      <tr class="bg-gray-50 dark:bg-gray-800/50">
+        <td class="px-4 py-2.5 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">Múltiples empresas (bufetes/contadores)</td>
+        <td class="px-4 py-2.5 text-center text-gray-300 dark:text-gray-600 border border-gray-200 dark:border-gray-600">—</td>
+        <td class="px-4 py-2.5 text-center text-gray-300 dark:text-gray-600 border border-gray-200 dark:border-gray-600 bg-primary-50/50 dark:bg-primary-900/20">—</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600">✓</td>
+      </tr>
+      <tr class="bg-white dark:bg-gray-800">
+        <td class="px-4 py-2.5 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">Soporte prioritario</td>
+        <td class="px-4 py-2.5 text-center text-gray-300 dark:text-gray-600 border border-gray-200 dark:border-gray-600">—</td>
+        <td class="px-4 py-2.5 text-center text-gray-300 dark:text-gray-600 border border-gray-200 dark:border-gray-600 bg-primary-50/50 dark:bg-primary-900/20">—</td>
+        <td class="px-4 py-2.5 text-center border border-gray-200 dark:border-gray-600">✓</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+HTML;
     }
 
     private function getRitCtaHtml(): string

@@ -86,4 +86,14 @@ class Empresa extends Model
     {
         return $this->hasOne(ReglamentoInterno::class)->where('activo', true)->latest();
     }
+
+    public function suscripcion(): HasOne
+    {
+        return $this->hasOne(Suscripcion::class)->latest();
+    }
+
+    public function tieneSuscripcionActiva(): bool
+    {
+        return $this->suscripcion?->estaActiva() ?? false;
+    }
 }
