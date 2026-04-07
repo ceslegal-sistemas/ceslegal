@@ -10,6 +10,8 @@ use App\Models\Trabajador;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -3172,12 +3174,107 @@ class ProcesoDisciplinarioResource extends Resource
         ];
     }
 
+    /**
+     * Vista de solo lectura del proceso — usada por clientes desde las notificaciones.
+     */
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                Infolists\Components\Section::make('Proceso Disciplinario')
+                    ->icon('heroicon-o-document-text')
+                    ->schema([
+                        Infolists\Components\TextEntry::make('codigo')
+                            ->label('Código')
+                            ->badge()
+                            ->color('primary'),
+
+                        Infolists\Components\TextEntry::make('estado')
+                            ->label('Estado')
+                            ->badge()
+                            ->formatStateUsing(fn($state) => match ($state) {
+                                'abierto'                  => 'Abierto',
+                                'citado'                   => 'Citado',
+                                'descargos_pendientes'     => 'Descargos Pendientes',
+                                'descargos_realizados'     => 'Descargos Realizados',
+                                'descargos_no_realizados'  => 'Sin Descargos',
+                                'sancion_emitida'          => 'Sanción Emitida',
+                                'impugnado'                => 'Impugnado',
+                                'cerrado'                  => 'Cerrado',
+                                'archivado'                => 'Archivado',
+                                default                    => ucfirst($state),
+                            })
+                            ->color(fn($state) => match ($state) {
+                                'abierto'                  => 'warning',
+                                'citado'                   => 'info',
+                                'descargos_pendientes'     => 'warning',
+                                'descargos_realizados'     => 'success',
+                                'descargos_no_realizados'  => 'danger',
+                                'sancion_emitida'          => 'danger',
+                                'impugnado'                => 'warning',
+                                'cerrado'                  => 'success',
+                                'archivado'                => 'gray',
+                                default                    => 'gray',
+                            }),
+
+                        Infolists\Components\TextEntry::make('trabajador.nombre_completo')
+                            ->label('Trabajador'),
+
+                        Infolists\Components\TextEntry::make('empresa.razon_social')
+                            ->label('Empresa'),
+                    ])->columns(2),
+
+                Infolists\Components\Section::make('Detalles del Proceso')
+                    ->icon('heroicon-o-clipboard-document-list')
+                    ->schema([
+                        Infolists\Components\TextEntry::make('fecha_ocurrencia')
+                            ->label('Fecha de los Hechos')
+                            ->date('d/m/Y'),
+
+                        Infolists\Components\TextEntry::make('fecha_descargos_programada')
+                            ->label('Fecha de Descargos')
+                            ->date('d/m/Y'),
+
+                        Infolists\Components\TextEntry::make('modalidad_descargos')
+                            ->label('Modalidad')
+                            ->formatStateUsing(fn($state) => match ($state) {
+                                'presencial' => 'Presencial',
+                                'virtual'    => 'Virtual',
+                                default      => $state ?? '—',
+                            }),
+
+                        Infolists\Components\TextEntry::make('tipo_sancion')
+                            ->label('Sanción Aplicada')
+                            ->formatStateUsing(fn($state) => match ($state) {
+                                'llamado_atencion' => 'Llamado de Atención',
+                                'suspension'       => 'Suspensión Laboral',
+                                'terminacion'      => 'Terminación de Contrato',
+                                default            => $state ?? '—',
+                            })
+                            ->badge()
+                            ->color(fn($state) => match ($state) {
+                                'llamado_atencion' => 'info',
+                                'suspension'       => 'warning',
+                                'terminacion'      => 'danger',
+                                default            => 'gray',
+                            })
+                            ->placeholder('Sin sanción aún'),
+
+                        Infolists\Components\TextEntry::make('hechos')
+                            ->label('Descripción de los Hechos')
+                            ->columnSpanFull()
+                            ->prose(),
+                    ])->columns(2),
+            ]);
+    }
+
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListProcesoDisciplinarios::route('/'),
+            'index'  => Pages\ListProcesoDisciplinarios::route('/'),
             'create' => Pages\CreateProcesoDisciplinario::route('/create'),
-            'edit' => Pages\EditProcesoDisciplinario::route('/{record}/edit'),
+            'view'   => Pages\ViewProcesoDisciplinario::route('/{record}'),
+            'edit'   => Pages\EditProcesoDisciplinario::route('/{record}/edit'),
         ];
     }
 
