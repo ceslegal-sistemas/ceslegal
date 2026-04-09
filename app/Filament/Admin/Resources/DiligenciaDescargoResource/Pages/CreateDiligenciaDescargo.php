@@ -33,7 +33,7 @@ class CreateDiligenciaDescargo extends CreateRecord
         if ($diligencia->preguntas()->count() === 0) {
             try {
                 $iaService = new IADescargoService();
-                $iaService->generarPreguntasCompletas($diligencia, 1);
+                $iaService->generarPreguntasCompletas($diligencia, 2);
             } catch (\Exception $e) {
                 Log::warning('No se pudieron generar preguntas IA al crear diligencia', [
                     'diligencia_id' => $diligencia->id,

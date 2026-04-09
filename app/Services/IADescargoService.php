@@ -23,13 +23,8 @@ class IADescargoService
     const PREGUNTAS_INICIALES = [
         '¿Va a asistir acompañado(a) por alguien?',
         '¿Qué relación tiene esa persona con usted?',
-        '¿Para qué empresa trabaja usted?',
-        '¿Cuál es su cargo en la empresa?',
-        '¿Qué tareas realiza en ese cargo?',
+        '¿Qué tareas realiza en su cargo?',
         '¿Conoce el reglamento interno de la empresa?',
-        '¿Quién es su jefe directo?',
-        '¿Usted cumple con las funciones de su cargo?',
-        '¿Sigue las instrucciones que le da su jefe?',
         '¿Sabe por qué fue citado(a) a estos descargos?',
     ];
 
@@ -702,8 +697,6 @@ Las preguntas deben:
 - Dar espacio para que el trabajador presente pruebas, testigos o documentos a su favor.
 - NUNCA ser sugestivas, capciosas ni orientadas a confirmar la culpabilidad.
 
-Anclaje jurídico: Si los hechos o las normas indicadas tienen relación directa con una cláusula del RIT o del CST listada arriba, menciona esa norma en la pregunta de forma sencilla (ej: "El reglamento de la empresa dice que... ¿qué puede contarme al respecto?").
-
 LENGUAJE CLARO (sin tecnicismos):
 Incorrecto: "¿Tenía conocimiento de las disposiciones del reglamento?"
 Correcto: "¿Conocía esa regla de la empresa?"
@@ -714,14 +707,16 @@ Correcto: "¿Por qué ocurrió eso?"
 Incorrecto: "¿Informó oportunamente a su superior jerárquico?"
 Correcto: "¿Le avisó a su jefe antes o después?"
 
-FORMATO DE RESPUESTA:
+BREVEDAD OBLIGATORIA:
+- Máximo 2 oraciones por pregunta.
+- No incluyas citas textuales de normas ni explicaciones largas.
+- Si aplica al RIT o a una norma, menciónala brevemente (ej: "el reglamento dice que... ¿qué pasó?").
+
+FORMATO DE RESPUESTA (obligatorio — siempre genera las {$cantidadPreguntas} preguntas):
 PREGUNTA_1: [texto]
 PREGUNTA_2: [texto]
 ...
 PREGUNTA_{$cantidadPreguntas}: [texto]
-
-Si no se requieren preguntas, responde:
-NO_REQUIERE
 PROMPT;
 
         try {
