@@ -294,12 +294,13 @@ class DiligenciaDescargoResource extends Resource
                         $iaService = new IADescargoService();
 
                         try {
-                            $preguntas = $iaService->generarPreguntasCompletas($record, 2);
+                            // Solo genera las 2 preguntas IA — las estándar ya están creadas
+                            $preguntas = $iaService->generarPreguntasIA($record, 2);
 
                             Notification::make()
                                 ->success()
                                 ->title('Preguntas generadas')
-                                ->body(count($preguntas) . ' preguntas generadas (estándar + IA + cierre).')
+                                ->body(count($preguntas) . ' preguntas de IA añadidas al proceso.')
                                 ->send();
                         } catch (\Exception $e) {
                             Notification::make()

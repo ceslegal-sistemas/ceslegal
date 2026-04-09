@@ -7,6 +7,7 @@ use App\Models\PreguntaDescargo;
 use App\Models\RespuestaDescargo;
 use App\Models\TrazabilidadIADescargo;
 use App\Models\ArticuloLegal;
+use App\Services\ReglamentoInternoService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -108,36 +109,50 @@ class IADescargoService
      */
     protected function construirContexto(DiligenciaDescargo $diligencia): array
     {
-        $proceso = $diligencia->proceso;
+        $proceso   = $diligencia->proceso;
+        $empresaId = $proceso->empresa_id ?? $proceso->trabajador?->empresa_id ?? null;
 
+        // Artículos legales con texto completo (no solo título)
         $articulosLegales = [];
         if (!empty($proceso->articulos_legales_ids)) {
             $articulosLegales = ArticuloLegal::whereIn('id', $proceso->articulos_legales_ids)
                 ->get()
-                ->map(fn($art) => "{$art->codigo}: {$art->titulo}")
+                ->map(function ($art) {
+                    $texto    = $art->getRawOriginal('texto_completo') ?? $art->descripcion ?? '';
+                    $extracto = $texto ? "\n   Texto: " . mb_substr($texto, 0, 500) : '';
+                    return "{$art->codigo}: {$art->titulo}{$extracto}";
+                })
                 ->toArray();
         }
 
+        // Incluir TODAS las preguntas activas (respondidas y pendientes)
+        // para que la IA no repita preguntas que ya están en cola sin responder
         $preguntasYRespuestas = $diligencia->preguntas()
             ->with('respuesta')
-            ->respondidas()
+            ->activas()
             ->get()
             ->map(function ($pregunta) {
-                $respuesta = $pregunta->respuesta?->respuesta ?? '(Sin respuesta)';
+                $respuesta = $pregunta->respuesta?->respuesta ?? '[PENDIENTE — aún no respondida]';
                 return [
                     'pregunta' => $pregunta->pregunta,
                     'respuesta' => $respuesta,
-                    'es_ia' => $pregunta->es_generada_por_ia,
+                    'es_ia'     => $pregunta->es_generada_por_ia,
                 ];
             })
             ->toArray();
 
+        // Contexto del RIT de la empresa y normas relevantes por RAG
+        $ritContexto = $empresaId ? $this->obtenerContextoRIT($empresaId) : '';
+        $normasRag   = $this->buscarNormasRelevantes($proceso->hechos ?? '', $empresaId, limite: 3);
+
         return [
-            'hechos' => $proceso->hechos,
-            'articulos_legales' => $articulosLegales,
-            'preguntas_respuestas' => $preguntasYRespuestas,
-            'trabajador' => $proceso->trabajador->nombre_completo,
-            'cargo' => $proceso->trabajador->cargo,
+            'hechos'              => $proceso->hechos,
+            'articulos_legales'   => $articulosLegales,
+            'preguntas_respuestas'=> $preguntasYRespuestas,
+            'trabajador'          => $proceso->trabajador->nombre_completo,
+            'cargo'               => $proceso->trabajador->cargo,
+            'rit_contexto'        => $ritContexto,
+            'normas_rag'          => $normasRag,
         ];
     }
 
@@ -159,20 +174,27 @@ class IADescargoService
             $preguntasRespuestasText .= "\n{$tipo} P: {$pr['pregunta']}\n   R: {$pr['respuesta']}\n";
         }
 
+        $ritBloque   = !empty($contexto['rit_contexto'])
+            ? "\nREGLAMENTO INTERNO DE LA EMPRESA (extracto relevante):\n{$contexto['rit_contexto']}\n"
+            : '';
+        $normasBloque = !empty($contexto['normas_rag'])
+            ? "\nNORMAS LEGALES RECUPERADAS (RIT, CST, jurisprudencia — cita solo estas):\n{$contexto['normas_rag']}\n"
+            : '';
+
         return <<<PROMPT
-Eres un abogado especialista en derecho laboral con enfasis y experiencia en procesos disciplinarios y descargos en Colombia.
+Eres un abogado especialista en derecho laboral y procesos disciplinarios en Colombia, con enfoque garantista del debido proceso.
 
 CONTEXTO DEL PROCESO:
 
 Trabajador: {$contexto['trabajador']}
 Cargo: {$contexto['cargo']}
 
-Hechos del proceso:
+Hechos del proceso (lo que la empresa reporta — aún no probado):
 {$contexto['hechos']}
 
-Artículos legales presuntamente incumplidos:
+Artículos presuntamente incumplidos (con texto):
 - {$articulosText}
-
+{$ritBloque}{$normasBloque}
 Preguntas realizadas y respuestas del trabajador:
 {$preguntasRespuestasText}
 
@@ -182,39 +204,34 @@ Preguntas realizadas y respuestas del trabajador:
 RESPUESTA DEL TRABAJADOR:
 {$respuesta->respuesta}
 
-INSTRUCCIONES:
-Analiza TODAS las respuestas del trabajador (no solo la última) teniendo en cuenta los hechos que indique en contraste con la conducta realizada que trasgrede las normas internas de la empresa y la ley aplicable en materia laboral.
+PRINCIPIO RECTOR — PRESUNCIÓN DE INOCENCIA (Art. 29 Constitución + Art. 115 CST):
+Los descargos son el espacio para que el TRABAJADOR ejerza su derecho de defensa, no un interrogatorio acusatorio. Los hechos son PRESUNTOS hasta que el proceso concluya. Tu rol es garantizar que el trabajador pueda explicar su versión completamente — no acumular pruebas contra él.
 
-REGLAS CRÍTICAS:
-•⁠  ⁠NUNCA repitas una pregunta que ya se haya hecho anteriormente (revisa la lista de preguntas realizadas arriba).
-•⁠  ⁠Genera nuevas preguntas si y solo si, existen inexactitudes, incongruencias, evasivas y/o contradicciones en los argumentos del trabajador.
-•⁠  ⁠Máximo 1 pregunta.
-•⁠  ⁠Las preguntas deben ser:
-  * MUY IMPORTANTES: Usa lenguaje SENCILLO y CLARO que cualquier trabajador pueda entender fácilmente. Evita términos jurídicos complejos.
-  * DIFERENTES a todas las preguntas anteriores (no reformules la misma pregunta con otras palabras).
-  * Breves y directas.
-  * Neutrales y no sugestivas.
-  * Relevantes para el proceso disciplinario.
-  * Dirigidas a esclarecer el hecho que dio origen a la diligencia de descargos con una tendencia de juzgamiento a favor del empleador y en contra del trabajador.
-- Si la pregunta que ibas a generar ya fue hecha o es muy similar a una anterior, responde: NO_REQUIERE
-- Si no se requieren más preguntas, responde exactamente: NO_REQUIERE
+Solo genera UNA pregunta adicional si se cumplen SIMULTÁNEAMENTE estas tres condiciones:
+1. La respuesta del trabajador abre un aspecto relevante que aún no ha podido explicar.
+2. Esa aclaración es materialmente necesaria para el expediente (puede beneficiar al trabajador).
+3. No existe ya una pregunta pendiente o respondida que cubra ese mismo punto.
 
-EJEMPLOS DE LENGUAJE CLARO:
-❌ "¿Tuvo conocimiento de las directrices impartidas?"
-✅ "¿Sabía qué debía hacer?"
+NUNCA generes una pregunta si:
+• La respuesta ya es completa o coherente, aunque sea desfavorable al trabajador.
+• Ya se preguntó algo similar (ni con otras palabras).
+• La pregunta marcada [PENDIENTE] cubre el mismo tema.
+• La pregunta busca confirmar la culpabilidad en vez de dar espacio para la defensa.
+• La respuesta es sobre datos básicos (cargo, empresa, jefe, acompañante).
 
-❌ "¿Ejerció sus funciones cabalmente?"
-✅ "¿Hizo bien su trabajo?"
+En caso de duda, responde NO_REQUIERE. Es mejor no preguntar que vulnerar el debido proceso.
 
-❌ "¿Informó a su superior jerárquico?"
-✅ "¿Le contó a su jefe?"
+REGLAS DE FORMATO:
+• Lenguaje SENCILLO — sin términos jurídicos.
+• Pregunta BREVE, ABIERTA y NEUTRA — máximo 2 líneas.
+• NUNCA reformules una pregunta anterior.
+• Si aplica al RIT o a una norma específica, menciónala brevemente.
 
 FORMATO DE RESPUESTA:
-Si hay preguntas, responde en este formato:
-PREGUNTA_1: [texto de la pregunta]
-PREGUNTA_2: [texto de la pregunta]
+Si hay una pregunta válida:
+PREGUNTA_1: [texto]
 
-Si no se requieren preguntas, responde:
+Si no se requiere:
 NO_REQUIERE
 PROMPT;
     }
@@ -321,19 +338,24 @@ PROMPT;
     }
 
     /**
-     * Llama a la API de Google Gemini
+     * Llama a la API de Google Gemini.
+     * Para generación de preguntas (tarea simple) prefiere modelos rápidos.
+     * Si el modelo principal devuelve 503, hace fallback automático.
      */
     protected function llamarGemini(string $prompt): string
     {
         $apiKey = $this->config['api_key'];
-        $model = $this->config['model'];
 
-        // URL de la API de Gemini
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+        // Cadena de modelos: preferir flash-lite (más rápido y barato para generar preguntas),
+        // luego el modelo configurado, y por último 1.5-flash como fallback estable.
+        $modeloPrincipal = $this->config['model'] ?? 'gemini-2.5-flash';
+        $modelos = array_unique(array_filter([
+            'gemini-2.5-flash-lite',
+            $modeloPrincipal,
+            'gemini-1.5-flash',
+        ]));
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-        ])->timeout(30)->post($url, [
+        $payload = [
             'contents' => [
                 [
                     'parts' => [
@@ -348,7 +370,25 @@ PROMPT;
                 'maxOutputTokens' => $this->config['max_tokens'],
                 'topP' => 0.95,
             ],
-        ]);
+        ];
+
+        $response = null;
+
+        foreach ($modelos as $modelo) {
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent?key={$apiKey}";
+
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->timeout(20)->post($url, $payload);
+
+            // En 503 pasar al siguiente modelo
+            if ($response->status() === 503) {
+                Log::warning("IADescargoService: Gemini 503 en {$modelo}, intentando siguiente modelo");
+                continue;
+            }
+
+            break;
+        }
 
         if (!$response->successful()) {
             throw new \Exception("Error en API Gemini: " . $response->body());
@@ -356,18 +396,14 @@ PROMPT;
 
         $responseData = $response->json();
 
-        // Verificar si hay contenido en la respuesta
         if (!isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
             throw new \Exception("Respuesta de Gemini sin contenido válido");
         }
 
-        // Verificar si la respuesta fue truncada por límite de tokens
         $finishReason = $responseData['candidates'][0]['finishReason'] ?? 'UNKNOWN';
         if ($finishReason === 'MAX_TOKENS') {
-            Log::warning('Respuesta de Gemini truncada por límite de tokens', [
-                'finish_reason' => $finishReason,
+            Log::warning('IADescargoService: respuesta Gemini truncada por límite de tokens', [
                 'max_tokens' => $this->config['max_tokens'],
-                'respuesta_parcial' => substr($responseData['candidates'][0]['content']['parts'][0]['text'], 0, 200),
             ]);
         }
 
@@ -590,59 +626,79 @@ PROMPT;
     /**
      * Genera preguntas específicas con IA basadas en los hechos del proceso
      */
-    protected function generarPreguntasIA(DiligenciaDescargo $diligencia, int $cantidadPreguntas = 2): array
+    public function generarPreguntasIA(DiligenciaDescargo $diligencia, int $cantidadPreguntas = 2): array
     {
-        $proceso = $diligencia->proceso;
+        $proceso   = $diligencia->proceso;
+        $empresaId = $proceso->empresa_id ?? $proceso->trabajador?->empresa_id ?? null;
 
+        // Artículos legales con texto completo
         $articulosLegales = [];
         if (!empty($proceso->articulos_legales_ids)) {
             $articulosLegales = ArticuloLegal::whereIn('id', $proceso->articulos_legales_ids)
                 ->get()
-                ->map(fn($art) => "{$art->codigo}: {$art->titulo}")
+                ->map(function ($art) {
+                    $texto    = $art->getRawOriginal('texto_completo') ?? $art->descripcion ?? '';
+                    $extracto = $texto ? "\n   Texto: " . mb_substr($texto, 0, 500) : '';
+                    return "{$art->codigo}: {$art->titulo}{$extracto}";
+                })
                 ->toArray();
         }
 
         $articulosText = empty($articulosLegales)
             ? 'No especificados'
-            : implode("\n- ", $articulosLegales);
+            : implode("\n\n- ", $articulosLegales);
+
+        // Contexto del RIT de la empresa
+        $ritContexto = $empresaId ? $this->obtenerContextoRIT($empresaId) : '';
+        $ritBloque   = $ritContexto
+            ? "\nREGLAMENTO INTERNO DE LA EMPRESA (extracto relevante para estos hechos):\n{$ritContexto}\n"
+            : "\nNOTA: Esta empresa no tiene RIT cargado. Aplica el Código Sustantivo del Trabajo.\n";
+
+        // Normas relevantes por RAG (RIT + CST + jurisprudencia)
+        $normasRag   = $this->buscarNormasRelevantes($proceso->hechos ?? '', $empresaId, limite: 3);
+        $normasBloque = $normasRag
+            ? "\nNORMAS Y JURISPRUDENCIA RELEVANTES (recuperadas de la base de datos):\n{$normasRag}\n"
+            : '';
 
         $prompt = <<<PROMPT
-Eres un abogado laboral experto en procesos disciplinarios en Colombia.
+Eres un abogado laboral experto en procesos disciplinarios en Colombia, con enfoque garantista del debido proceso.
+
+PRINCIPIO RECTOR — PRESUNCIÓN DE INOCENCIA (Art. 29 Constitución Política + Art. 115 CST):
+Los hechos reportados son PRESUNTOS. El trabajador no ha sido encontrado culpable de nada. Las preguntas deben garantizar que pueda presentar su defensa libremente. NO buscamos acumular pruebas de culpabilidad, sino construir un expediente completo y justo.
 
 CONTEXTO DEL PROCESO:
 
 Trabajador: {$proceso->trabajador->nombre_completo}
 Cargo: {$proceso->trabajador->cargo}
 
-Hechos del proceso:
+Hechos presuntos (versión del empleador — aún no probados):
 {$proceso->hechos}
 
-Artículos legales presuntamente incumplidos:
+Artículos presuntamente incumplidos (con texto de la norma):
 - {$articulosText}
-
+{$ritBloque}{$normasBloque}
 INSTRUCCIONES:
-Genera {$cantidadPreguntas} preguntas iniciales para que el trabajador presente sus descargos.
+Genera {$cantidadPreguntas} preguntas abiertas para que el trabajador PRESENTE SUS DESCARGOS.
 
 Las preguntas deben:
-- MUY IMPORTANTE: Usa lenguaje SENCILLO y CLARO que cualquier trabajador pueda entender fácilmente. Evita términos jurídicos complejos o palabras rebuscadas.
-- Ser breves y directas
-- Ser específicas y neutrales
-- Permitir al trabajador explicar su versión de los hechos con sus propias palabras
-- Indagar sobre circunstancias, motivaciones y contexto
-- Dirigidas a esclarecer el hecho que dio origen a la diligencia de descargos con una tendencia de juzgamiento a favor del empleador y en contra del trabajador.
+- Ser ABIERTAS para que el trabajador explique su versión con sus propias palabras.
+- Indagar sobre CIRCUNSTANCIAS ATENUANTES, justificaciones o contexto que el trabajador pueda alegar.
+- Permitir al trabajador referirse específicamente a los artículos del RIT o CST señalados arriba.
+- Explorar si hubo autorización, aviso previo, fuerza mayor u otra justificación válida.
+- Dar espacio para que el trabajador presente pruebas, testigos o documentos a su favor.
+- NUNCA ser sugestivas, capciosas ni orientadas a confirmar la culpabilidad.
 
-EJEMPLOS DE LENGUAJE CLARO:
-❌ "¿Tenía conocimiento de las disposiciones del reglamento?"
-✅ "¿Conocía las reglas de la empresa?"
+Anclaje jurídico: Si los hechos o las normas indicadas tienen relación directa con una cláusula del RIT o del CST listada arriba, menciona esa norma en la pregunta de forma sencilla (ej: "El reglamento de la empresa dice que... ¿qué puede contarme al respecto?").
 
-❌ "¿Cuál fue el móvil de su actuación?"
-✅ "¿Por qué hizo eso?"
+LENGUAJE CLARO (sin tecnicismos):
+Incorrecto: "¿Tenía conocimiento de las disposiciones del reglamento?"
+Correcto: "¿Conocía esa regla de la empresa?"
 
-❌ "¿Informó oportunamente a su superior jerárquico?"
-✅ "¿Le avisó a tiempo a su jefe?"
+Incorrecto: "¿Cuál fue el móvil de su actuación?"
+Correcto: "¿Por qué ocurrió eso?"
 
-❌ "¿Efectuó debidamente sus labores?"
-✅ "¿Hizo bien su trabajo?"
+Incorrecto: "¿Informó oportunamente a su superior jerárquico?"
+Correcto: "¿Le avisó a su jefe antes o después?"
 
 FORMATO DE RESPUESTA:
 PREGUNTA_1: [texto]
@@ -703,5 +759,149 @@ PROMPT;
         }
 
         return $preguntasGuardadas;
+    }
+
+    // ── RAG — RIT y jurisprudencia ────────────────────────────────────────────
+
+    /**
+     * Recupera un extracto relevante del RIT de la empresa para inyectar en el prompt.
+     */
+    private function obtenerContextoRIT(int $empresaId): string
+    {
+        try {
+            $texto = app(ReglamentoInternoService::class)->getTextoReglamento($empresaId);
+            if ($texto) {
+                return mb_substr($texto, 0, 8000);
+            }
+        } catch (\Exception $e) {
+            Log::warning('IADescargoService::obtenerContextoRIT error', ['error' => $e->getMessage()]);
+        }
+        return '';
+    }
+
+    /**
+     * Recupera las normas más relevantes (RIT empresa + CST + jurisprudencia + RITs de referencia)
+     * usando similitud coseno sobre embeddings Gemini.
+     *
+     * @return string Bloque de texto listo para inyectar en el prompt. Vacío si no hay embeddings.
+     */
+    private function buscarNormasRelevantes(string $texto, ?int $empresaId = null, int $limite = 3): string
+    {
+        if (empty(trim($texto))) {
+            return '';
+        }
+
+        try {
+            $queryEmbedding = $this->obtenerEmbeddingTexto($texto);
+            if (!$queryEmbedding) {
+                return '';
+            }
+
+            // Buscar en: artículos de la empresa + universales (CST, jurisprudencia, RIT referencia)
+            $articulos = ArticuloLegal::whereNotNull('embedding')
+                ->activos()
+                ->paraEmpresa($empresaId)
+                ->get();
+
+            if ($articulos->isEmpty()) {
+                return '';
+            }
+
+            $scored = [];
+            foreach ($articulos as $articulo) {
+                $emb = $articulo->embedding;
+                if (!is_array($emb) || empty($emb)) {
+                    continue;
+                }
+                $scored[] = [
+                    'articulo' => $articulo,
+                    'score'    => $this->cosineSimilarity($queryEmbedding, $emb),
+                ];
+            }
+
+            if (empty($scored)) {
+                return '';
+            }
+
+            usort($scored, fn($a, $b) => $b['score'] <=> $a['score']);
+
+            $top = array_filter(
+                array_slice($scored, 0, $limite),
+                fn($s) => $s['score'] >= 0.50
+            );
+
+            if (empty($top)) {
+                return '';
+            }
+
+            $lineas = [];
+            foreach ($top as $item) {
+                $art      = $item['articulo'];
+                $textoArt = $art->getRawOriginal('texto_completo') ?? $art->descripcion ?? '';
+                $fuente   = $art->fuente ? " — {$art->fuente}" : '';
+                $lineas[] = "[{$art->codigo}{$fuente}] {$art->titulo}";
+                if ($textoArt) {
+                    $lineas[] = mb_substr($textoArt, 0, 600);
+                }
+                $lineas[] = '';
+            }
+
+            return trim(implode("\n", $lineas));
+        } catch (\Exception $e) {
+            Log::warning('IADescargoService::buscarNormasRelevantes', ['error' => $e->getMessage()]);
+            return '';
+        }
+    }
+
+    /**
+     * Genera el embedding vectorial de un texto (RETRIEVAL_QUERY) usando Gemini.
+     */
+    private function obtenerEmbeddingTexto(string $texto): ?array
+    {
+        $apiKey = config('services.ia.gemini.api_key')
+            ?? config('services.gemini.api_key')
+            ?? ($this->provider === 'gemini' ? ($this->config['api_key'] ?? null) : null);
+
+        if (!$apiKey) {
+            return null;
+        }
+
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={$apiKey}";
+
+        try {
+            $response = Http::timeout(10)->post($url, [
+                'content'  => ['parts' => [['text' => mb_substr($texto, 0, 8000)]]],
+                'taskType' => 'RETRIEVAL_QUERY',
+            ]);
+
+            if (!$response->successful()) {
+                return null;
+            }
+
+            $values = $response->json('embedding.values');
+            return is_array($values) && !empty($values) ? $values : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Calcula la similitud coseno entre dos vectores de la misma dimensión.
+     */
+    private function cosineSimilarity(array $a, array $b): float
+    {
+        $dot  = 0.0;
+        $magA = 0.0;
+        $magB = 0.0;
+        $n    = min(count($a), count($b));
+
+        for ($i = 0; $i < $n; $i++) {
+            $dot  += $a[$i] * $b[$i];
+            $magA += $a[$i] * $a[$i];
+            $magB += $b[$i] * $b[$i];
+        }
+
+        $denom = sqrt($magA) * sqrt($magB);
+        return $denom > 0.0 ? (float) ($dot / $denom) : 0.0;
     }
 }

@@ -321,13 +321,7 @@ class EmpresaResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('departamento')
                     ->label('Departamento')
-                    ->options([
-                        'Antioquia' => 'Antioquia',
-                        'Atlántico' => 'Atlántico',
-                        'Bogotá D.C.' => 'Bogotá D.C.',
-                        'Cundinamarca' => 'Cundinamarca',
-                        'Valle del Cauca' => 'Valle del Cauca',
-                    ])
+                    ->options(fn () => self::getDepartamentos())
                     ->multiple(),
 
                 Tables\Filters\TernaryFilter::make('active')
@@ -452,51 +446,31 @@ class EmpresaResource extends Resource
         return static::getModel()::where('active', true)->count();
     }
 
-    protected static function getCiudadesPorDepartamento(?string $departamento): array
+    public static function getDepartamentos(): array
+    {
+        return \DB::table('departamentos')
+            ->orderBy('nombre')
+            ->pluck('nombre', 'nombre')
+            ->toArray();
+    }
+
+    public static function getCiudadesPorDepartamento(?string $departamento): array
     {
         if (empty($departamento)) {
             return [];
         }
 
-        $ciudades = [
-            'Amazonas' => ['Leticia', 'Puerto Nariño', 'El Encanto', 'La Chorrera'],
-            'Antioquia' => ['Medellín', 'Bello', 'Itagüí', 'Envigado', 'Rionegro', 'Sabaneta', 'Apartadó', 'Turbo', 'Caucasia', 'Yarumal'],
-            'Arauca' => ['Arauca', 'Arauquita', 'Saravena', 'Tame', 'Fortul'],
-            'Atlántico' => ['Barranquilla', 'Soledad', 'Malambo', 'Sabanalarga', 'Puerto Colombia', 'Galapa'],
-            'Bolívar' => ['Cartagena', 'Magangué', 'Turbaco', 'El Carmen de Bolívar', 'Arjona', 'Mompós'],
-            'Boyacá' => ['Tunja', 'Duitama', 'Sogamoso', 'Chiquinquirá', 'Puerto Boyacá', 'Paipa', 'Villa de Leyva', 'Moniquirá'],
-            'Caldas' => ['Manizales', 'Villamaría', 'Chinchiná', 'La Dorada', 'Riosucio', 'Anserma'],
-            'Caquetá' => ['Florencia', 'San Vicente del Caguán', 'Puerto Rico', 'El Doncello', 'Belén de los Andaquíes'],
-            'Casanare' => ['Yopal', 'Aguazul', 'Villanueva', 'Monterrey', 'Paz de Ariporo'],
-            'Cauca' => ['Popayán', 'Santander de Quilichao', 'Puerto Tejada', 'Guapi', 'Patía'],
-            'Cesar' => ['Valledupar', 'Aguachica', 'Codazzi', 'Bosconia', 'Chiriguaná', 'La Jagua de Ibirico'],
-            'Chocó' => ['Quibdó', 'Istmina', 'Condoto', 'Tadó', 'Acandí', 'Bahía Solano'],
-            'Córdoba' => ['Montería', 'Cereté', 'Lorica', 'Sahagún', 'Planeta Rica', 'Montelíbano'],
-            'Cundinamarca' => ['Bogotá D.C.', 'Soacha', 'Facatativá', 'Chía', 'Zipaquirá', 'Fusagasugá', 'Madrid', 'Girardot', 'Cajicá', 'La Calera'],
-            'Guainía' => ['Inírida', 'Barranco Minas', 'Mapiripana', 'San Felipe'],
-            'Guaviare' => ['San José del Guaviare', 'Calamar', 'El Retorno', 'Miraflores'],
-            'Huila' => ['Neiva', 'Pitalito', 'Garzón', 'La Plata', 'Campoalegre', 'Gigante'],
-            'La Guajira' => ['Riohacha', 'Maicao', 'Uribia', 'Manaure', 'Villanueva', 'Fonseca'],
-            'Magdalena' => ['Santa Marta', 'Ciénaga', 'Fundación', 'Zona Bananera', 'Plato', 'El Banco'],
-            'Meta' => ['Villavicencio', 'Acacías', 'Granada', 'Puerto López', 'San Martín', 'Cumaral'],
-            'Nariño' => ['Pasto', 'Tumaco', 'Ipiales', 'Túquerres', 'La Unión', 'Sandoná'],
-            'Norte de Santander' => ['Cúcuta', 'Ocaña', 'Pamplona', 'Villa del Rosario', 'Los Patios', 'Tibú'],
-            'Putumayo' => ['Mocoa', 'Puerto Asís', 'Orito', 'Valle del Guamuez', 'Villagarzón'],
-            'Quindío' => ['Armenia', 'Calarcá', 'La Tebaida', 'Montenegro', 'Circasia', 'Quimbaya'],
-            'Risaralda' => ['Pereira', 'Dosquebradas', 'La Virginia', 'Santa Rosa de Cabal', 'Marsella'],
-            'San Andrés y Providencia' => ['San Andrés', 'Providencia'],
-            'Santander' => ['Bucaramanga', 'Floridablanca', 'Girón', 'Piedecuesta', 'Barrancabermeja', 'San Gil', 'Socorro'],
-            'Sucre' => ['Sincelejo', 'Corozal', 'San Marcos', 'Tolú', 'Sampués'],
-            'Tolima' => ['Ibagué', 'Espinal', 'Melgar', 'Honda', 'Chaparral', 'Líbano'],
-            'Valle del Cauca' => ['Cali', 'Palmira', 'Buenaventura', 'Tuluá', 'Cartago', 'Buga', 'Jamundí', 'Yumbo'],
-            'Vaupés' => ['Mitú', 'Carurú', 'Taraira'],
-            'Vichada' => ['Puerto Carreño', 'La Primavera', 'Cumaribo'],
-        ];
+        $municipios = \DB::table('municipios')
+            ->join('departamentos', 'municipios.departamento_id', '=', 'departamentos.id')
+            ->where('departamentos.nombre', $departamento)
+            ->orderBy('municipios.nombre')
+            ->pluck('municipios.nombre')
+            ->toArray();
 
-        $ciudadesDepartamento = $ciudades[$departamento] ?? [$departamento];
+        if (empty($municipios)) {
+            return [$departamento => $departamento];
+        }
 
-        // Convertir array a formato clave => valor para que Filament guarde el nombre de la ciudad
-        // En lugar de [0 => 'Tunja', 1 => 'Duitama'] se convierte a ['Tunja' => 'Tunja', 'Duitama' => 'Duitama']
-        return array_combine($ciudadesDepartamento, $ciudadesDepartamento);
+        return array_combine($municipios, $municipios);
     }
 }
