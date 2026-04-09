@@ -698,7 +698,7 @@
                                     @endif
                                 </div>
                             </div>
-                        @elseif ($feedbackPaso <= 5)
+                        @elseif ($feedbackPaso <= 5 && !$diligencia->foto_fin_path)
                             {{-- Preguntas de feedback: una a la vez --}}
                             <div class="border border-gray-200 rounded-xl overflow-hidden"
                                 wire:key="feedback-paso-{{ $feedbackPaso }}">
@@ -809,8 +809,8 @@
                                 </div>
                             </div>
                         @else
-                            {{-- Feedback completado: Evidencias + Finalizar --}}
-                            <div class="space-y-6">
+                            {{-- Feedback completado + foto cierre tomada: Evidencias + Finalizar --}}
+                            <div class="space-y-6" wire:poll.30s="verificarAutoCompletado">
                                 <div class="text-center">
                                     <div class="mx-auto w-14 h-14 bg-success-100 rounded-full flex items-center justify-center mb-4">
                                         <svg class="w-7 h-7 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -819,6 +819,14 @@
                                     </div>
                                     <h3 class="text-lg font-semibold text-gray-900 mb-1">¡Listo!</h3>
                                     <p class="text-sm text-gray-500">Puede adjuntar evidencias y enviar sus descargos</p>
+                                </div>
+
+                                {{-- Aviso de envío automático --}}
+                                <div class="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
+                                    <svg class="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <p>Si no envía manualmente, sus descargos se registrarán automáticamente en 10 minutos.</p>
                                 </div>
 
                                 {{-- Evidencias --}}
@@ -892,7 +900,7 @@
     </div>
 
     {{-- Loading --}}
-    <div wire:loading.delay wire:target="guardarRespuesta, finalizarDescargos, iniciarDiligencia, archivosEvidencia, enviarOtp, verificarOtp, reenviarOtp, aceptarDisclaimer, guardarFotoInicio, guardarFotoFin"
+    <div wire:loading.delay wire:target="guardarRespuesta, finalizarDescargos, iniciarDiligencia, archivosEvidencia, enviarOtp, verificarOtp, reenviarOtp, aceptarDisclaimer, guardarFotoInicio, guardarFotoFin, verificarAutoCompletado"
         class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl p-5 flex items-center gap-4 mx-4">
             <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24">

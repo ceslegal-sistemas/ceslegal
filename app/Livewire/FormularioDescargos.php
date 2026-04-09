@@ -125,6 +125,11 @@ class FormularioDescargos extends Component
         }
 
         $this->cargarRespuestasExistentes();
+
+        // Si la foto de cierre ya fue tomada, verificar auto-completado al cargar
+        if ($this->diligencia->foto_fin_path) {
+            $this->verificarAutoCompletado();
+        }
     }
 
     // ─── Métodos de autenticación v2 ──────────────────────────────────────
@@ -217,7 +222,10 @@ class FormularioDescargos extends Component
         ]);
 
         $this->actualizarEvidenciaMetadata();
-        $this->finalizarDescargos();
+
+        // Regresar al formulario para adjuntar evidencias y enviar
+        // (NO finalizar aquí — el trabajador puede adjuntar archivos antes)
+        $this->etapa = 'formulario';
     }
 
     private function guardarFotoBase64(string $base64, string $nombre): string
@@ -496,12 +504,6 @@ class FormularioDescargos extends Component
             return;
         }
 
-        // V2: requiere foto final antes de completar
-        if ($this->diligencia->otp_verificado_en && !$this->diligencia->foto_fin_path) {
-            $this->etapa = 'foto_fin';
-            return;
-        }
-
         try {
             // Guardar archivos de evidencia si existen
             $archivosGuardados = [];
@@ -613,6 +615,32 @@ class FormularioDescargos extends Component
 
         $this->resetErrorBag('fb');
         $this->feedbackPaso++;
+
+        // Al completar el feedback (paso 6+), solicitar foto de cierre antes de adjuntar
+        if ($this->feedbackPaso > 5 && $this->diligencia->otp_verificado_en && !$this->diligencia->foto_fin_path) {
+            $this->etapa = 'foto_fin';
+        }
+    }
+
+    /**
+     * Auto-completa los descargos si la foto de cierre fue tomada hace más de 10 min
+     * y el trabajador no envió manualmente. Se llama por polling y en mount().
+     */
+    public function verificarAutoCompletado(): void
+    {
+        if ($this->formularioCompletado || $this->diligencia->trabajador_asistio) {
+            return;
+        }
+
+        if (!$this->diligencia->foto_fin_en) {
+            return;
+        }
+
+        if ($this->diligencia->foto_fin_en->diffInMinutes(now()) < 10) {
+            return;
+        }
+
+        $this->finalizarDescargos();
     }
 
     /**
