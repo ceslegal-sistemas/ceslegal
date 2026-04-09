@@ -29,6 +29,13 @@ class FormularioDescargos extends Component
     public bool $mostrarAdvertencia = true;
     public bool $timerIniciado = false;
 
+    // Autenticación 2FA
+    public string $etapa = 'otp';
+    public string $otpCodigo = '';
+    public string $otpError = '';
+    public bool   $otpEnviado = false;
+    public bool   $disclaimerAceptado = false;
+
     protected $listeners = ['respuestaGuardada' => 'refrescarPreguntas'];
 
     public bool $tiempoExpiradoMostrarEvidencias = false;
@@ -48,35 +55,68 @@ class FormularioDescargos extends Component
     {
         $this->diligencia = $diligencia;
 
-        // Si el trabajador ya completó el formulario, evitar re-envío de notificaciones
+        // Si el trabajador ya completó el formulario
         if ($this->diligencia->trabajador_asistio) {
             $this->formularioCompletado = true;
             $this->timerIniciado = true;
             $this->mostrarAdvertencia = false;
+            $this->etapa = 'completado';
             return;
         }
 
-        // Verificar si ya había iniciado previamente
-        if ($this->diligencia->primer_acceso_en) {
+        // Backward compat: diligencia previa al flujo v2 (tiene primer_acceso_en pero sin OTP)
+        if ($this->diligencia->primer_acceso_en && !$this->diligencia->otp_verificado_en) {
+            $this->etapa = 'formulario';
             $this->timerIniciado = true;
             $this->mostrarAdvertencia = false;
 
-            // Verificar si ya expiró
             if ($this->diligencia->tiempoHaExpirado()) {
                 $this->diligencia->marcarTiempoExpirado();
 
-                // Verificar si todas las preguntas están respondidas
                 $preguntasSinResponder = $this->diligencia->preguntas()
                     ->activas()
                     ->whereDoesntHave('respuesta')
                     ->count();
 
                 if ($preguntasSinResponder === 0) {
-                    // Todas respondidas: mostrar pantalla de evidencias
                     $this->tiempoExpiradoMostrarEvidencias = true;
                 } else {
-                    // Quedan preguntas sin responder: el trabajador no completó a tiempo
-                    // No se marca asistencia ni se cambia estado hasta que todas las preguntas tengan respuesta
+                    $this->formularioCompletado = true;
+                    session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
+                    return;
+                }
+            }
+
+            $this->cargarRespuestasExistentes();
+            return;
+        }
+
+        // Máquina de estados v2
+        if (!$this->diligencia->otp_verificado_en) {
+            $this->etapa = 'otp';
+        } elseif (!$this->diligencia->disclaimer_aceptado_en) {
+            $this->etapa = 'disclaimer';
+        } elseif (!$this->diligencia->foto_inicio_path) {
+            $this->etapa = 'foto_inicio';
+        } elseif ($this->diligencia->foto_fin_path) {
+            $this->etapa = 'completado';
+            $this->formularioCompletado = true;
+        } else {
+            $this->etapa = 'formulario';
+            $this->timerIniciado = true;
+            $this->mostrarAdvertencia = false;
+
+            if ($this->diligencia->tiempoHaExpirado()) {
+                $this->diligencia->marcarTiempoExpirado();
+
+                $preguntasSinResponder = $this->diligencia->preguntas()
+                    ->activas()
+                    ->whereDoesntHave('respuesta')
+                    ->count();
+
+                if ($preguntasSinResponder === 0) {
+                    $this->tiempoExpiradoMostrarEvidencias = true;
+                } else {
                     $this->formularioCompletado = true;
                     session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
                     return;
@@ -85,6 +125,127 @@ class FormularioDescargos extends Component
         }
 
         $this->cargarRespuestasExistentes();
+    }
+
+    // ─── Métodos de autenticación v2 ──────────────────────────────────────
+
+    public function enviarOtp(): void
+    {
+        $this->otpError = '';
+
+        if (!$this->diligencia->emailTrabajador()) {
+            $this->otpError = 'sin_email';
+            return;
+        }
+
+        $enviado = $this->diligencia->enviarOtp();
+
+        if ($enviado) {
+            $this->otpEnviado = true;
+        } else {
+            $this->otpError = 'Error al enviar el código. Intente de nuevo.';
+        }
+    }
+
+    public function verificarOtp(): void
+    {
+        $this->otpError = '';
+
+        if ($this->diligencia->otpBloqueado()) {
+            $this->otpError = 'bloqueado';
+            return;
+        }
+
+        if (!$this->diligencia->otpEsValido()) {
+            $this->otpError = 'expirado';
+            return;
+        }
+
+        $this->diligencia->refresh();
+
+        if ($this->diligencia->verificarOtp(trim($this->otpCodigo))) {
+            $this->etapa = 'disclaimer';
+        } else {
+            $this->diligencia->refresh();
+            if ($this->diligencia->otpBloqueado()) {
+                $this->otpError = 'bloqueado';
+            } else {
+                $this->otpError = 'incorrecto';
+            }
+        }
+    }
+
+    public function reenviarOtp(): void
+    {
+        if (!$this->diligencia->puedeReenviar()) {
+            return;
+        }
+        $this->enviarOtp();
+    }
+
+    public function aceptarDisclaimer(): void
+    {
+        $this->diligencia->update([
+            'disclaimer_aceptado_en' => now(),
+            'disclaimer_ip'          => request()->ip(),
+        ]);
+        $this->etapa = 'foto_inicio';
+    }
+
+    public function guardarFotoInicio(string $base64): void
+    {
+        $path = $this->guardarFotoBase64($base64, 'inicio');
+
+        $this->diligencia->update([
+            'foto_inicio_path' => $path,
+            'foto_inicio_en'   => now(),
+        ]);
+
+        $this->actualizarEvidenciaMetadata();
+        $this->iniciarDiligencia();
+        $this->etapa = 'formulario';
+        $this->mostrarAdvertencia = true; // muestra la advertencia de 45 min
+    }
+
+    public function guardarFotoFin(string $base64): void
+    {
+        $path = $this->guardarFotoBase64($base64, 'fin');
+
+        $this->diligencia->update([
+            'foto_fin_path' => $path,
+            'foto_fin_en'   => now(),
+        ]);
+
+        $this->actualizarEvidenciaMetadata();
+        $this->finalizarDescargos();
+    }
+
+    private function guardarFotoBase64(string $base64, string $nombre): string
+    {
+        // Eliminar prefijo data URI si existe
+        $datos = preg_replace('/^data:image\/\w+;base64,/', '', $base64);
+        $imagen = base64_decode($datos);
+
+        $ruta = "private/fotos-descargos/{$this->diligencia->id}/{$nombre}.jpg";
+        Storage::put($ruta, $imagen);
+
+        return $ruta;
+    }
+
+    private function actualizarEvidenciaMetadata(): void
+    {
+        $this->diligencia->refresh();
+        $meta = $this->diligencia->evidencia_metadata ?? [];
+
+        $meta = array_merge($meta, array_filter([
+            'ip'           => request()->ip(),
+            'user_agent'   => request()->userAgent(),
+            'otp_canal'    => $this->diligencia->otp_canal,
+            'foto_inicio_en' => $this->diligencia->foto_inicio_en?->toISOString(),
+            'foto_fin_en'    => $this->diligencia->foto_fin_en?->toISOString(),
+        ]));
+
+        $this->diligencia->update(['evidencia_metadata' => $meta]);
     }
 
     /**
@@ -332,6 +493,12 @@ class FormularioDescargos extends Component
 
         if ($preguntasSinResponder > 0) {
             $this->addError('finalizacion', 'Debe responder todas las preguntas antes de finalizar.');
+            return;
+        }
+
+        // V2: requiere foto final antes de completar
+        if ($this->diligencia->otp_verificado_en && !$this->diligencia->foto_fin_path) {
+            $this->etapa = 'foto_fin';
             return;
         }
 

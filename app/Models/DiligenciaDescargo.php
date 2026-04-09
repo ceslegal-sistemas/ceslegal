@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Mail\OtpDescargos;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Mail;
 
 class DiligenciaDescargo extends Model
 {
@@ -38,6 +40,19 @@ class DiligenciaDescargo extends Model
         'tiempo_limite',
         'tiempo_expirado',
         'ip_acceso',
+        'otp_codigo',
+        'otp_expira_en',
+        'otp_verificado_en',
+        'otp_intentos',
+        'otp_canal',
+        'otp_enviado_a',
+        'disclaimer_aceptado_en',
+        'disclaimer_ip',
+        'foto_inicio_path',
+        'foto_inicio_en',
+        'foto_fin_path',
+        'foto_fin_en',
+        'evidencia_metadata',
     ];
 
     protected $casts = [
@@ -56,6 +71,13 @@ class DiligenciaDescargo extends Model
         'preguntas_completadas_en' => 'datetime',
         'tiempo_limite' => 'datetime',
         'tiempo_expirado' => 'boolean',
+        'otp_expira_en' => 'datetime',
+        'otp_verificado_en' => 'datetime',
+        'otp_intentos' => 'integer',
+        'disclaimer_aceptado_en' => 'datetime',
+        'foto_inicio_en' => 'datetime',
+        'foto_fin_en' => 'datetime',
+        'evidencia_metadata' => 'array',
     ];
 
     public function proceso(): BelongsTo
@@ -142,5 +164,90 @@ class DiligenciaDescargo extends Model
     public function marcarTiempoExpirado()
     {
         $this->update(['tiempo_expirado' => true]);
+    }
+
+    // ─── OTP / Autenticación ───────────────────────────────────────────────
+
+    public function emailTrabajador(): ?string
+    {
+        return $this->proceso?->trabajador?->email ?: null;
+    }
+
+    public function enviarOtp(): bool
+    {
+        $email = $this->emailTrabajador();
+        if (!$email) {
+            return false;
+        }
+
+        $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $this->update([
+            'otp_codigo'    => $codigo,
+            'otp_expira_en' => now()->addMinutes(10),
+            'otp_intentos'  => 0,
+            'otp_canal'     => 'email',
+            'otp_enviado_a' => $this->enmascararEmail($email),
+        ]);
+
+        try {
+            Mail::to($email)->send(new OtpDescargos(
+                $codigo,
+                $this->proceso->trabajador->nombre_completo,
+                $this->proceso->codigo,
+            ));
+            return true;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error al enviar OTP descargos', [
+                'diligencia_id' => $this->id,
+                'error'         => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    public function verificarOtp(string $codigo): bool
+    {
+        if ($this->otpBloqueado() || !$this->otpEsValido()) {
+            return false;
+        }
+
+        if ($this->otp_codigo !== $codigo) {
+            $this->increment('otp_intentos');
+            return false;
+        }
+
+        $this->update(['otp_verificado_en' => now()]);
+        return true;
+    }
+
+    public function otpBloqueado(): bool
+    {
+        return $this->otp_intentos >= 3;
+    }
+
+    public function otpEsValido(): bool
+    {
+        if (!$this->otp_expira_en || !$this->otp_codigo) {
+            return false;
+        }
+        return now()->lessThan($this->otp_expira_en);
+    }
+
+    public function puedeReenviar(): bool
+    {
+        if (!$this->otp_expira_en) {
+            return true;
+        }
+        // Cooldown de 60 segundos: el código se envió hace más de 60s
+        $enviadoHace = now()->diffInSeconds($this->otp_expira_en->subMinutes(10), false);
+        return $enviadoHace >= 60;
+    }
+
+    private function enmascararEmail(string $email): string
+    {
+        [$usuario, $dominio] = explode('@', $email, 2);
+        $visible = substr($usuario, 0, min(3, strlen($usuario)));
+        return $visible . '***@' . $dominio;
     }
 }

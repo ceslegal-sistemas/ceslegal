@@ -626,7 +626,7 @@ PROMPT;
     /**
      * Genera preguntas específicas con IA basadas en los hechos del proceso
      */
-    protected function generarPreguntasIA(DiligenciaDescargo $diligencia, int $cantidadPreguntas = 2): array
+    public function generarPreguntasIA(DiligenciaDescargo $diligencia, int $cantidadPreguntas = 2): array
     {
         $proceso   = $diligencia->proceso;
         $empresaId = $proceso->empresa_id ?? $proceso->trabajador?->empresa_id ?? null;

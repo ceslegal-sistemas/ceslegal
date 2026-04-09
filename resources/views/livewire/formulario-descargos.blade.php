@@ -13,7 +13,7 @@
                             <h1 class="text-base font-semibold text-gray-900">Descargos</h1>
                             <p class="text-xs text-gray-500">{{ $proceso->codigo }}</p>
                         </div>
-                        @if (!$formularioCompletado && !$mostrarAdvertencia && !$tiempoExpiradoMostrarEvidencias && $diligencia->primer_acceso_en)
+                        @if ($etapa === 'formulario' && !$formularioCompletado && !$mostrarAdvertencia && !$tiempoExpiradoMostrarEvidencias && $diligencia->primer_acceso_en)
                             <div class="flex items-center gap-2 bg-warning-50 text-warning-600 px-3 py-1.5 rounded-lg"
                                 wire:poll.10s="verificarTiempo">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,7 +33,7 @@
                         @endif
                     </div>
                 </div>
-                @if (!$formularioCompletado && !$mostrarAdvertencia && !$tiempoExpiradoMostrarEvidencias)
+                @if ($etapa === 'formulario' && !$formularioCompletado && !$mostrarAdvertencia && !$tiempoExpiradoMostrarEvidencias)
                     <div class="px-4 sm:px-6 pb-3">
                         <div class="flex items-center gap-3">
                             <div class="flex-1 bg-gray-200 rounded-full h-2">
@@ -50,6 +50,386 @@
 
             {{-- Contenido --}}
             <main class="px-4 sm:px-6 py-6">
+
+                {{-- ═══════════════════════════════════════════════════════════
+                     ETAPA: OTP
+                ════════════════════════════════════════════════════════════ --}}
+                @if ($etapa === 'otp')
+                    <div class="space-y-5">
+                        {{-- Info del trabajador --}}
+                        <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                            <div class="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="font-semibold text-gray-900">{{ $trabajador->nombre_completo }}</p>
+                                <p class="text-sm text-gray-500">{{ $trabajador->cargo }}</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h2 class="text-base font-semibold text-gray-900 mb-1">Verificación de identidad</h2>
+                            <p class="text-sm text-gray-500">Para acceder al formulario de descargos debemos verificar su identidad.</p>
+                        </div>
+
+                        @if ($otpError === 'sin_email')
+                            {{-- Sin email registrado --}}
+                            <div class="bg-danger-50 border border-danger-200 rounded-xl p-4">
+                                <div class="flex gap-3">
+                                    <svg class="w-5 h-5 text-danger-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 0116 0zm-.707-4.293a1 1 0 001.414 1.414L12 13.414l1.293 1.293a1 1 0 001.414-1.414L13.414 12l1.293-1.293a1 1 0 00-1.414-1.414L12 10.586l-1.293-1.293a1 1 0 00-1.414 1.414L10.586 12l-1.293 1.293z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <div class="text-sm">
+                                        <p class="font-semibold text-danger-800">No hay correo electrónico registrado</p>
+                                        <p class="text-danger-700 mt-1">
+                                            No es posible enviar el código de verificación porque no tiene un correo electrónico registrado en el sistema.
+                                            <br><br>
+                                            <strong>Por favor contacte al administrador del proceso</strong> para que actualice sus datos de contacto antes de continuar.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            {{-- Selectores de canal --}}
+                            <div x-data="{ canal: 'email' }">
+                                <p class="text-xs font-medium text-gray-600 mb-2">Recibir código por:</p>
+                                <div class="flex gap-2">
+                                    <button type="button"
+                                        @click="canal = 'email'"
+                                        :class="canal === 'email' ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600'"
+                                        class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-sm font-medium transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                        </svg>
+                                        Email
+                                    </button>
+                                    <button type="button" disabled
+                                        class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-400 cursor-not-allowed relative">
+                                        SMS
+                                        <span class="absolute -top-2 -right-1 text-[10px] bg-gray-200 text-gray-500 rounded px-1">Próximamente</span>
+                                    </button>
+                                    <button type="button" disabled
+                                        class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-400 cursor-not-allowed relative">
+                                        WhatsApp
+                                        <span class="absolute -top-2 -right-1 text-[10px] bg-gray-200 text-gray-500 rounded px-1">Próximamente</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            @if (!$otpEnviado)
+                                <button wire:click="enviarOtp" type="button"
+                                    class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                    </svg>
+                                    Enviar código de verificación
+                                </button>
+                            @else
+                                {{-- Formulario de verificación del código --}}
+                                <div class="space-y-4">
+                                    <div class="bg-success-50 border border-success-200 rounded-xl p-3 text-sm text-success-800">
+                                        Código enviado a <strong>{{ $diligencia->otp_enviado_a }}</strong>. Revise su bandeja de entrada.
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Ingrese el código de 6 dígitos</label>
+                                        <input wire:model="otpCodigo" type="text" inputmode="numeric" maxlength="6"
+                                            pattern="[0-9]{6}"
+                                            class="block w-full text-center text-2xl font-mono tracking-widest border-gray-300 rounded-xl focus:border-primary-500 focus:ring-primary-500 py-3"
+                                            placeholder="000000"
+                                            autofocus />
+                                    </div>
+
+                                    @if ($otpError === 'incorrecto')
+                                        <p class="text-sm text-danger-600">Código incorrecto. Verifique e intente de nuevo.</p>
+                                    @elseif ($otpError === 'expirado')
+                                        <p class="text-sm text-danger-600">El código ha expirado. Solicite uno nuevo.</p>
+                                    @elseif ($otpError === 'bloqueado')
+                                        <div class="bg-danger-50 border border-danger-200 rounded-xl p-3 text-sm text-danger-800">
+                                            <strong>Acceso bloqueado.</strong> Ha superado el número máximo de intentos.
+                                            Contacte al administrador del proceso.
+                                        </div>
+                                    @endif
+
+                                    <button wire:click="verificarOtp" type="button"
+                                        class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                        Verificar código
+                                    </button>
+
+                                    {{-- Reenvío con countdown --}}
+                                    <div x-data="{ segundos: 60, intervalo: null }"
+                                        x-init="
+                                            intervalo = setInterval(() => {
+                                                if (segundos > 0) segundos--;
+                                            }, 1000)
+                                        "
+                                        x-effect="if (segundos <= 0) clearInterval(intervalo)"
+                                        class="text-center">
+                                        <template x-if="segundos > 0">
+                                            <p class="text-sm text-gray-500">
+                                                Reenviar en <span class="font-mono font-semibold" x-text="segundos"></span>s
+                                            </p>
+                                        </template>
+                                        <template x-if="segundos <= 0">
+                                            <button wire:click="reenviarOtp" type="button"
+                                                class="text-sm text-primary-600 hover:text-primary-700 font-medium underline">
+                                                Reenviar código
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if ($otpError && $otpError !== 'incorrecto' && $otpError !== 'expirado' && $otpError !== 'bloqueado' && $otpError !== 'sin_email')
+                                <p class="text-sm text-danger-600">{{ $otpError }}</p>
+                            @endif
+                        @endif
+                    </div>
+
+                {{-- ═══════════════════════════════════════════════════════════
+                     ETAPA: DISCLAIMER
+                ════════════════════════════════════════════════════════════ --}}
+                @elseif ($etapa === 'disclaimer')
+                    <div class="space-y-5" x-data="{ aceptado: false }">
+                        <div>
+                            <h2 class="text-base font-semibold text-gray-900 mb-1">Declaración de identidad y derechos</h2>
+                            <p class="text-sm text-gray-500">Lea con atención el siguiente texto antes de continuar.</p>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-xl overflow-hidden">
+                            <div class="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                                <p class="text-xs font-medium text-gray-600">Texto de declaración</p>
+                            </div>
+                            <div class="p-4 max-h-64 overflow-y-auto text-sm text-gray-700 leading-relaxed space-y-3">
+                                {!! nl2br(e(config('ces.disclaimer_descargos'))) !!}
+                            </div>
+                        </div>
+
+                        <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                            :class="aceptado ? 'border-primary-400 bg-primary-50' : ''">
+                            <input type="checkbox" x-model="aceptado"
+                                class="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 flex-shrink-0" />
+                            <span class="text-sm text-gray-700">
+                                He leído, entiendo y acepto esta declaración. Confirmo ser
+                                <strong>{{ $trabajador->nombre_completo }}</strong> y que estoy participando voluntariamente en esta diligencia.
+                            </span>
+                        </label>
+
+                        <button type="button"
+                            x-bind:disabled="!aceptado"
+                            x-bind:class="aceptado ? 'bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
+                            wire:click="aceptarDisclaimer"
+                            class="w-full flex items-center justify-center gap-2 px-5 py-3.5 font-semibold rounded-xl shadow-sm transition-colors">
+                            Continuar
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </button>
+                    </div>
+
+                {{-- ═══════════════════════════════════════════════════════════
+                     ETAPA: FOTO INICIO
+                ════════════════════════════════════════════════════════════ --}}
+                @elseif ($etapa === 'foto_inicio')
+                    <div class="space-y-5"
+                        x-data="{
+                            stream: null,
+                            fotoCapturada: null,
+                            errorCamara: false,
+                            async iniciarCamara() {
+                                try {
+                                    this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                                    this.$refs.video.srcObject = this.stream;
+                                    this.errorCamara = false;
+                                } catch (e) {
+                                    this.errorCamara = true;
+                                }
+                            },
+                            tomarFoto() {
+                                const canvas = this.$refs.canvas;
+                                const video = this.$refs.video;
+                                canvas.width = video.videoWidth;
+                                canvas.height = video.videoHeight;
+                                canvas.getContext('2d').drawImage(video, 0, 0);
+                                this.fotoCapturada = canvas.toDataURL('image/jpeg', 0.70);
+                            },
+                            volverATomarFoto() {
+                                this.fotoCapturada = null;
+                            },
+                            detenerCamara() {
+                                if (this.stream) {
+                                    this.stream.getTracks().forEach(t => t.stop());
+                                }
+                            }
+                        }"
+                        x-init="iniciarCamara()"
+                        @descargosFinalizados.window="detenerCamara()">
+
+                        <div>
+                            <h2 class="text-base font-semibold text-gray-900 mb-1">Verificación fotográfica</h2>
+                            <p class="text-sm text-gray-500">Tome una foto de su rostro para registrar el inicio de la diligencia.</p>
+                        </div>
+
+                        <template x-if="errorCamara">
+                            <div class="bg-danger-50 border border-danger-200 rounded-xl p-4 text-sm text-danger-800">
+                                <p class="font-semibold mb-1">No se puede acceder a la cámara</p>
+                                <p>Para continuar debe permitir el acceso a la cámara en su navegador.</p>
+                                <ul class="mt-2 space-y-1 text-danger-700 list-disc list-inside">
+                                    <li>Busque el ícono de cámara bloqueada en la barra de direcciones</li>
+                                    <li>Haga clic y seleccione "Permitir"</li>
+                                    <li>Recargue la página</li>
+                                </ul>
+                            </div>
+                        </template>
+
+                        <template x-if="!errorCamara">
+                            <div class="space-y-4">
+                                <template x-if="!fotoCapturada">
+                                    <div class="space-y-3">
+                                        <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
+                                            <video x-ref="video" autoplay playsinline muted
+                                                class="w-full h-full object-cover"></video>
+                                        </div>
+                                        <button type="button" @click="tomarFoto()"
+                                            class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                            Tomar foto
+                                        </button>
+                                    </div>
+                                </template>
+
+                                <template x-if="fotoCapturada">
+                                    <div class="space-y-3">
+                                        <div class="rounded-xl overflow-hidden border-2 border-success-400">
+                                            <img :src="fotoCapturada" class="w-full object-cover" alt="Vista previa" />
+                                        </div>
+                                        <p class="text-center text-sm text-gray-600">¿La foto es clara y muestra su rostro?</p>
+                                        <div class="flex gap-3">
+                                            <button type="button" @click="volverATomarFoto()"
+                                                class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                                                Volver a tomar
+                                            </button>
+                                            <button type="button" @click="$wire.guardarFotoInicio(fotoCapturada)"
+                                                class="flex-1 px-4 py-2.5 bg-success-600 hover:bg-success-700 text-white rounded-xl text-sm font-semibold transition-colors">
+                                                Confirmar foto
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                {{-- Canvas oculto para captura --}}
+                                <canvas x-ref="canvas" class="hidden"></canvas>
+                            </div>
+                        </template>
+                    </div>
+
+                {{-- ═══════════════════════════════════════════════════════════
+                     ETAPA: FOTO FIN
+                ════════════════════════════════════════════════════════════ --}}
+                @elseif ($etapa === 'foto_fin')
+                    <div class="space-y-5"
+                        x-data="{
+                            stream: null,
+                            fotoCapturada: null,
+                            errorCamara: false,
+                            async iniciarCamara() {
+                                try {
+                                    this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                                    this.$refs.video.srcObject = this.stream;
+                                    this.errorCamara = false;
+                                } catch (e) {
+                                    this.errorCamara = true;
+                                }
+                            },
+                            tomarFoto() {
+                                const canvas = this.$refs.canvas;
+                                const video = this.$refs.video;
+                                canvas.width = video.videoWidth;
+                                canvas.height = video.videoHeight;
+                                canvas.getContext('2d').drawImage(video, 0, 0);
+                                this.fotoCapturada = canvas.toDataURL('image/jpeg', 0.70);
+                            },
+                            volverATomarFoto() {
+                                this.fotoCapturada = null;
+                            }
+                        }"
+                        x-init="iniciarCamara()">
+
+                        <div>
+                            <h2 class="text-base font-semibold text-gray-900 mb-1">Verificación fotográfica — Cierre</h2>
+                            <p class="text-sm text-gray-500">Tome una foto de su rostro para registrar el fin de la diligencia y enviar sus descargos.</p>
+                        </div>
+
+                        <template x-if="errorCamara">
+                            <div class="bg-danger-50 border border-danger-200 rounded-xl p-4 text-sm text-danger-800">
+                                <p class="font-semibold mb-1">No se puede acceder a la cámara</p>
+                                <p>Para finalizar debe permitir el acceso a la cámara en su navegador.</p>
+                                <ul class="mt-2 space-y-1 text-danger-700 list-disc list-inside">
+                                    <li>Busque el ícono de cámara bloqueada en la barra de direcciones</li>
+                                    <li>Haga clic y seleccione "Permitir"</li>
+                                    <li>Recargue la página</li>
+                                </ul>
+                            </div>
+                        </template>
+
+                        <template x-if="!errorCamara">
+                            <div class="space-y-4">
+                                <template x-if="!fotoCapturada">
+                                    <div class="space-y-3">
+                                        <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
+                                            <video x-ref="video" autoplay playsinline muted
+                                                class="w-full h-full object-cover"></video>
+                                        </div>
+                                        <button type="button" @click="tomarFoto()"
+                                            class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                            Tomar foto
+                                        </button>
+                                    </div>
+                                </template>
+
+                                <template x-if="fotoCapturada">
+                                    <div class="space-y-3">
+                                        <div class="rounded-xl overflow-hidden border-2 border-success-400">
+                                            <img :src="fotoCapturada" class="w-full object-cover" alt="Vista previa" />
+                                        </div>
+                                        <p class="text-center text-sm text-gray-600">¿La foto es clara y muestra su rostro?</p>
+                                        <div class="flex gap-3">
+                                            <button type="button" @click="volverATomarFoto()"
+                                                class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                                                Volver a tomar
+                                            </button>
+                                            <button type="button" @click="$wire.guardarFotoFin(fotoCapturada)"
+                                                class="flex-1 px-4 py-2.5 bg-success-600 hover:bg-success-700 text-white rounded-xl text-sm font-semibold transition-colors">
+                                                Confirmar y enviar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <canvas x-ref="canvas" class="hidden"></canvas>
+                            </div>
+                        </template>
+                    </div>
+
+                {{-- ═══════════════════════════════════════════════════════════
+                     ETAPAS: FORMULARIO + COMPLETADO (flujo original)
+                ════════════════════════════════════════════════════════════ --}}
+                @elseif ($etapa === 'formulario' || $etapa === 'completado' || $tiempoExpiradoMostrarEvidencias || $formularioCompletado)
+
                 @if ($tiempoExpiradoMostrarEvidencias)
                     {{-- Estado: Tiempo expirado pero puede subir evidencias --}}
                     <div class="space-y-6">
@@ -504,12 +884,15 @@
                         @endif
                     </div>
                 @endif
+
+                @endif {{-- / outer @if ($etapa === ...) --}}
+
             </main>
         </div>
     </div>
 
     {{-- Loading --}}
-    <div wire:loading.delay wire:target="guardarRespuesta, finalizarDescargos, iniciarDiligencia, archivosEvidencia"
+    <div wire:loading.delay wire:target="guardarRespuesta, finalizarDescargos, iniciarDiligencia, archivosEvidencia, enviarOtp, verificarOtp, reenviarOtp, aceptarDisclaimer, guardarFotoInicio, guardarFotoFin"
         class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl p-5 flex items-center gap-4 mx-4">
             <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24">
