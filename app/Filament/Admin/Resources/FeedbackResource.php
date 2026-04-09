@@ -27,6 +27,11 @@ class FeedbackResource extends Resource
 
     protected static ?int $navigationSort = 100;
 
+    public static function canAccess(): bool
+    {
+        return in_array(auth()->user()?->role, ['super_admin', 'admin', 'abogado']);
+    }
+
     public static function form(Form $form): Form
     {
         return $form
