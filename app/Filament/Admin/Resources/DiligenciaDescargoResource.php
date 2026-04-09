@@ -10,12 +10,18 @@ use App\Services\IADescargoService;
 use App\Services\ActaDescargosService;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists\Infolist;
+use Filament\Infolists\Components\Section as InfoSection;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\Grid;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Storage;
 
 class DiligenciaDescargoResource extends Resource
 {
@@ -258,6 +264,23 @@ class DiligenciaDescargoResource extends Resource
                         return $query->orderByRaw('JSON_LENGTH(COALESCE(archivos_evidencia, "[]")) ' . $direction);
                     }),
 
+                Tables\Columns\TextColumn::make('otp_verificado_en')
+                    ->label('Verificación')
+                    ->badge()
+                    ->getStateUsing(function (DiligenciaDescargo $record) {
+                        if ($record->otp_verificado_en) return 'Verificado';
+                        if ($record->otpBloqueado())    return 'Bloqueado';
+                        if ($record->otp_enviado_a)     return 'OTP enviado';
+                        return 'Sin verificar';
+                    })
+                    ->color(fn (string $state) => match($state) {
+                        'Verificado'   => 'success',
+                        'Bloqueado'    => 'danger',
+                        'OTP enviado'  => 'warning',
+                        default        => 'gray',
+                    })
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('trabajador_accedio_en')
                     ->label('Accedió En')
                     ->dateTime('d/m/Y H:i')
@@ -449,6 +472,130 @@ class DiligenciaDescargoResource extends Resource
         return [
             //
         ];
+    }
+
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                // ── Verificación OTP ──────────────────────────────────────
+                InfoSection::make('Verificación de Identidad (OTP)')
+                    ->icon('heroicon-o-shield-check')
+                    ->schema([
+                        TextEntry::make('otp_estado')
+                            ->label('Estado')
+                            ->badge()
+                            ->getStateUsing(function ($record) {
+                                if ($record->otp_verificado_en) return 'Verificado';
+                                if ($record->otpBloqueado())    return 'Bloqueado — máx. intentos';
+                                if ($record->otp_enviado_a)     return 'OTP enviado (pendiente)';
+                                return 'Sin verificar';
+                            })
+                            ->color(fn (string $state) => match(true) {
+                                str_starts_with($state, 'Verificado') => 'success',
+                                str_starts_with($state, 'Bloqueado')  => 'danger',
+                                str_starts_with($state, 'OTP')        => 'warning',
+                                default                                => 'gray',
+                            }),
+
+                        TextEntry::make('otp_verificado_en')
+                            ->label('Verificado el')
+                            ->dateTime('d/m/Y H:i:s')
+                            ->placeholder('—'),
+
+                        TextEntry::make('otp_canal')
+                            ->label('Canal')
+                            ->badge()
+                            ->placeholder('—'),
+
+                        TextEntry::make('otp_enviado_a')
+                            ->label('Enviado a')
+                            ->placeholder('—'),
+
+                        TextEntry::make('otp_intentos')
+                            ->label('Intentos fallidos')
+                            ->badge()
+                            ->color(fn ($state) => match(true) {
+                                $state >= 3 => 'danger',
+                                $state > 0  => 'warning',
+                                default     => 'success',
+                            })
+                            ->placeholder('0'),
+
+                        TextEntry::make('otp_expira_en')
+                            ->label('OTP expira en')
+                            ->dateTime('d/m/Y H:i:s')
+                            ->placeholder('—'),
+                    ])
+                    ->columns(3),
+
+                // ── Disclaimer ────────────────────────────────────────────
+                InfoSection::make('Disclaimer — Declaración de identidad')
+                    ->icon('heroicon-o-document-check')
+                    ->schema([
+                        TextEntry::make('disclaimer_aceptado_en')
+                            ->label('Aceptado el')
+                            ->dateTime('d/m/Y H:i:s')
+                            ->badge()
+                            ->color(fn ($record) => $record->disclaimer_aceptado_en ? 'success' : 'gray')
+                            ->placeholder('No aceptado'),
+
+                        TextEntry::make('disclaimer_ip')
+                            ->label('IP de aceptación')
+                            ->placeholder('—'),
+                    ])
+                    ->columns(2),
+
+                // ── Fotos ─────────────────────────────────────────────────
+                InfoSection::make('Evidencia Fotográfica')
+                    ->icon('heroicon-o-camera')
+                    ->schema([
+                        ImageEntry::make('foto_inicio')
+                            ->label('Foto de inicio')
+                            ->getStateUsing(fn ($record) => $record->foto_inicio_path
+                                ? route('admin.fotos-descargos', [$record->id, 'inicio'])
+                                : null)
+                            ->height(220)
+                            ->extraImgAttributes(['class' => 'rounded-xl object-cover'])
+                            ->placeholder('Sin foto'),
+
+                        ImageEntry::make('foto_fin')
+                            ->label('Foto de cierre')
+                            ->getStateUsing(fn ($record) => $record->foto_fin_path
+                                ? route('admin.fotos-descargos', [$record->id, 'fin'])
+                                : null)
+                            ->height(220)
+                            ->extraImgAttributes(['class' => 'rounded-xl object-cover'])
+                            ->placeholder('Sin foto'),
+
+                        TextEntry::make('foto_inicio_en')
+                            ->label('Tomada el (inicio)')
+                            ->dateTime('d/m/Y H:i:s')
+                            ->placeholder('—'),
+
+                        TextEntry::make('foto_fin_en')
+                            ->label('Tomada el (cierre)')
+                            ->dateTime('d/m/Y H:i:s')
+                            ->placeholder('—'),
+                    ])
+                    ->columns(2),
+
+                // ── Metadata ──────────────────────────────────────────────
+                InfoSection::make('Metadatos de Evidencia')
+                    ->icon('heroicon-o-code-bracket')
+                    ->schema([
+                        TextEntry::make('evidencia_metadata')
+                            ->label('')
+                            ->columnSpanFull()
+                            ->getStateUsing(fn ($record) => $record->evidencia_metadata
+                                ? json_encode($record->evidencia_metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+                                : 'Sin metadatos')
+                            ->fontFamily('mono')
+                            ->prose(false),
+                    ])
+                    ->collapsible()
+                    ->collapsed(),
+            ]);
     }
 
     public static function getPages(): array

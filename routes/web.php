@@ -97,6 +97,20 @@ Route::get('/descargar/sancion/{procesoId}', function ($procesoId) {
     ]);
 })->middleware(['auth'])->name('descargar.sancion');
 
+// Fotos privadas de descargos (inicio/fin) — solo usuarios autenticados
+Route::get('/admin/fotos-descargos/{diligencia}/{tipo}', function ($diligenciaId, $tipo) {
+    abort_unless(in_array($tipo, ['inicio', 'fin']), 404);
+    $diligencia = \App\Models\DiligenciaDescargo::findOrFail($diligenciaId);
+    $campo = "foto_{$tipo}_path";
+    $ruta  = $diligencia->$campo;
+    if (!$ruta || !\Illuminate\Support\Facades\Storage::exists($ruta)) {
+        abort(404);
+    }
+    return response(\Illuminate\Support\Facades\Storage::get($ruta), 200)
+        ->header('Content-Type', 'image/jpeg')
+        ->header('Cache-Control', 'private, max-age=3600');
+})->middleware(['auth'])->name('admin.fotos-descargos');
+
 // Rutas de Email Tracking
 Route::get('/email/track/{token}.gif', [EmailTrackingController::class, 'pixel'])
     ->name('email.tracking.pixel');

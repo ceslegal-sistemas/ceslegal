@@ -236,11 +236,19 @@ class DiligenciaDescargo extends Model
 
     public function puedeReenviar(): bool
     {
+        // Usuario bloqueado no puede reenviar (evita resetear intentos)
+        if ($this->otpBloqueado()) {
+            return false;
+        }
+
         if (!$this->otp_expira_en) {
             return true;
         }
+
         // Cooldown de 60 segundos: el código se envió hace más de 60s
-        $enviadoHace = now()->diffInSeconds($this->otp_expira_en->subMinutes(10), false);
+        // IMPORTANTE: usar copy() para no mutar el objeto Carbon del atributo
+        $enviadoEn  = $this->otp_expira_en->copy()->subMinutes(10);
+        $enviadoHace = now()->diffInSeconds($enviadoEn, false);
         return $enviadoHace >= 60;
     }
 
