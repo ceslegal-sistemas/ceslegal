@@ -27,6 +27,11 @@ class ListProcesoDisciplinarios extends ListRecords
     {
         parent::mount();
 
+        // El super_admin no participa del feedback (es el administrador del sistema)
+        if (auth()->check() && auth()->user()->role === 'super_admin') {
+            return;
+        }
+
         // Trigger directo por sesión (ej: redirección desde worker)
         $feedbackData = session()->pull('mostrar_feedback');
         if ($feedbackData) {
@@ -288,21 +293,19 @@ class ListProcesoDisciplinarios extends ListRecords
                 ->inlineLabel(false),
 
             Radio::make('calidad_acta')
-                ->label('¿El acta de descargos generada fue de calidad?')
+                ->label('¿El acta de descargos generada fue de calidad? (opcional)')
                 ->options([
                     'excelente' => 'Excelente',
                     'buena'     => 'Buena',
                     'mejorable' => 'Mejorable',
                     'no_use'    => 'No la usé',
                 ])
-                ->required()
                 ->inline()
                 ->inlineLabel(false),
 
             Textarea::make('sugerencia')
-                ->label('Comentario adicional')
+                ->label('Comentario adicional (opcional)')
                 ->placeholder('¿Algo más que quieras contarnos sobre este proceso?')
-                ->required()
                 ->rows(2)
                 ->maxLength(2000),
         ];
@@ -343,9 +346,8 @@ class ListProcesoDisciplinarios extends ListRecords
                 ->maxLength(2000),
 
             Textarea::make('funcionalidad_faltante')
-                ->label('¿Hay alguna funcionalidad que esperabas encontrar y no encontraste?')
+                ->label('¿Hay alguna funcionalidad que esperabas encontrar y no encontraste? (opcional)')
                 ->placeholder('Describe la funcionalidad que echas de menos...')
-                ->required()
                 ->rows(2)
                 ->maxLength(2000),
         ];
@@ -391,9 +393,8 @@ class ListProcesoDisciplinarios extends ListRecords
                 ->inlineLabel(false),
 
             Textarea::make('sugerencia')
-                ->label('¿Algo que quieras agregar?')
+                ->label('¿Algo que quieras agregar? (opcional)')
                 ->placeholder('Cualquier comentario o sugerencia es bienvenido...')
-                ->required()
                 ->rows(2)
                 ->maxLength(2000),
         ];
@@ -410,6 +411,7 @@ class ListProcesoDisciplinarios extends ListRecords
                 ->label('Feedback')
                 ->icon('heroicon-o-star')
                 ->color('warning')
+                ->visible(fn () => auth()->user()?->role !== 'super_admin')
                 ->modalHeading(fn () => $page->getFeedbackModalHeading())
                 ->modalDescription(fn () => $page->getFeedbackModalDescription())
                 ->modalIcon(fn () => $page->getFeedbackModalIcon())
@@ -425,12 +427,12 @@ class ListProcesoDisciplinarios extends ListRecords
 
                     $respuestasAdicionales = match ($trigger) {
                         Feedback::TRIGGER_PRIMER_PROCESO => [
-                            'dificultad_proceso'        => $data['dificultad_proceso'] ?? null,
-                            'facilidad_citacion'        => $data['facilidad_citacion'] ?? null,
-                            'facilidad_citacion_porque' => $data['facilidad_citacion_porque'] ?? null,
-                            'mejora_sugerida'           => $data['mejora_sugerida'] ?? null,
-                            'completo_sin_ayuda'        => $data['completo_sin_ayuda'] ?? null,
-                            'completo_sin_ayuda_porque' => $data['completo_sin_ayuda_porque'] ?? null,
+                            'dificultad_proceso'          => $data['dificultad_proceso'] ?? null,
+                            'facilidad_citacion'          => $data['facilidad_citacion'] ?? null,
+                            'facilidad_citacion_porque'   => $data['facilidad_citacion_porque'] ?? null,
+                            'mejora_sugerida'             => $data['mejora_sugerida'] ?? null,
+                            'completo_sin_ayuda'          => $data['completo_sin_ayuda'] ?? null,
+                            'completo_sin_ayuda_porque'   => $data['completo_sin_ayuda_porque'] ?? null,
                         ],
                         Feedback::TRIGGER_POST_DILIGENCIA => [
                             'seguridad_juridica' => $data['seguridad_juridica'] ?? null,
