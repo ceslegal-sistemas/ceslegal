@@ -27,6 +27,11 @@ class ListProcesoDisciplinarios extends ListRecords
     {
         parent::mount();
 
+        // El super_admin no participa del feedback (es el administrador del sistema)
+        if (auth()->check() && auth()->user()->role === 'super_admin') {
+            return;
+        }
+
         // Trigger directo por sesión (ej: redirección desde worker)
         $feedbackData = session()->pull('mostrar_feedback');
         if ($feedbackData) {
@@ -406,6 +411,7 @@ class ListProcesoDisciplinarios extends ListRecords
                 ->label('Feedback')
                 ->icon('heroicon-o-star')
                 ->color('warning')
+                ->visible(fn () => auth()->user()?->role !== 'super_admin')
                 ->modalHeading(fn () => $page->getFeedbackModalHeading())
                 ->modalDescription(fn () => $page->getFeedbackModalDescription())
                 ->modalIcon(fn () => $page->getFeedbackModalIcon())
