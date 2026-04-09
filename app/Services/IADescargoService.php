@@ -125,20 +125,25 @@ class IADescargoService
                 ->toArray();
         }
 
-        // Incluir TODAS las preguntas activas (respondidas y pendientes)
-        // para que la IA no repita preguntas que ya están en cola sin responder
+        // Solo preguntas YA RESPONDIDAS para el razonamiento contextual
         $preguntasYRespuestas = $diligencia->preguntas()
             ->with('respuesta')
             ->activas()
+            ->whereHas('respuesta')
             ->get()
             ->map(function ($pregunta) {
-                $respuesta = $pregunta->respuesta?->respuesta ?? '[PENDIENTE — aún no respondida]';
                 return [
                     'pregunta' => $pregunta->pregunta,
-                    'respuesta' => $respuesta,
+                    'respuesta' => $pregunta->respuesta->respuesta,
                     'es_ia'     => $pregunta->es_generada_por_ia,
                 ];
             })
+            ->toArray();
+
+        // Lista completa de preguntas (incluyendo pendientes) solo para anti-repetición
+        $todasLasPreguntas = $diligencia->preguntas()
+            ->activas()
+            ->pluck('pregunta')
             ->toArray();
 
         // Contexto del RIT de la empresa y normas relevantes por RAG
@@ -149,6 +154,7 @@ class IADescargoService
             'hechos'              => $proceso->hechos,
             'articulos_legales'   => $articulosLegales,
             'preguntas_respuestas'=> $preguntasYRespuestas,
+            'todas_las_preguntas' => $todasLasPreguntas,
             'trabajador'          => $proceso->trabajador->nombre_completo,
             'cargo'               => $proceso->trabajador->cargo,
             'rit_contexto'        => $ritContexto,
@@ -181,6 +187,12 @@ class IADescargoService
             ? "\nNORMAS LEGALES RECUPERADAS (RIT, CST, jurisprudencia — cita solo estas):\n{$contexto['normas_rag']}\n"
             : '';
 
+        // Lista completa de todas las preguntas del formulario (para anti-repetición)
+        $todasText = '';
+        foreach ($contexto['todas_las_preguntas'] as $i => $p) {
+            $todasText .= ($i + 1) . '. ' . $p . "\n";
+        }
+
         return <<<PROMPT
 Eres un abogado especialista en derecho laboral y procesos disciplinarios en Colombia, con enfoque garantista del debido proceso.
 
@@ -195,7 +207,7 @@ Hechos del proceso (lo que la empresa reporta — aún no probado):
 Artículos presuntamente incumplidos (con texto):
 - {$articulosText}
 {$ritBloque}{$normasBloque}
-Preguntas realizadas y respuestas del trabajador:
+Preguntas ya respondidas por el trabajador (en orden cronológico):
 {$preguntasRespuestasText}
 
 ÚLTIMA PREGUNTA RESPONDIDA:
@@ -204,18 +216,20 @@ Preguntas realizadas y respuestas del trabajador:
 RESPUESTA DEL TRABAJADOR:
 {$respuesta->respuesta}
 
+LISTA COMPLETA DE PREGUNTAS DEL FORMULARIO (respondidas y por responder — solo para evitar repetición):
+{$todasText}
+
 PRINCIPIO RECTOR — PRESUNCIÓN DE INOCENCIA (Art. 29 Constitución + Art. 115 CST):
 Los descargos son el espacio para que el TRABAJADOR ejerza su derecho de defensa, no un interrogatorio acusatorio. Los hechos son PRESUNTOS hasta que el proceso concluya. Tu rol es garantizar que el trabajador pueda explicar su versión completamente — no acumular pruebas contra él.
 
 Solo genera UNA pregunta adicional si se cumplen SIMULTÁNEAMENTE estas tres condiciones:
 1. La respuesta del trabajador abre un aspecto relevante que aún no ha podido explicar.
 2. Esa aclaración es materialmente necesaria para el expediente (puede beneficiar al trabajador).
-3. No existe ya una pregunta pendiente o respondida que cubra ese mismo punto.
+3. No existe ya una pregunta en la lista completa de arriba que cubra ese mismo punto.
 
 NUNCA generes una pregunta si:
 • La respuesta ya es completa o coherente, aunque sea desfavorable al trabajador.
-• Ya se preguntó algo similar (ni con otras palabras).
-• La pregunta marcada [PENDIENTE] cubre el mismo tema.
+• Ya existe en la lista completa una pregunta que cubre ese tema (aunque no haya sido respondida aún).
 • La pregunta busca confirmar la culpabilidad en vez de dar espacio para la defensa.
 • La respuesta es sobre datos básicos (cargo, empresa, jefe, acompañante).
 
@@ -224,7 +238,7 @@ En caso de duda, responde NO_REQUIERE. Es mejor no preguntar que vulnerar el deb
 REGLAS DE FORMATO:
 • Lenguaje SENCILLO — sin términos jurídicos.
 • Pregunta BREVE, ABIERTA y NEUTRA — máximo 2 líneas.
-• NUNCA reformules una pregunta anterior.
+• NUNCA reformules una pregunta de la lista completa.
 • Si aplica al RIT o a una norma específica, menciónala brevemente.
 
 FORMATO DE RESPUESTA:
