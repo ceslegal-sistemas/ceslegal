@@ -27,7 +27,7 @@
             <p class="greeting">Hola, <strong>{{ $nombreTrabajador }}</strong>.</p>
             <p style="font-size:14px;color:#555;">
                 Ha recibido este mensaje porque se le ha citado a una diligencia de descargos
-                (proceso <strong>{{ $procesoCodigo }}</strong>). Para acceder al formulario,
+                (Expediente: <strong>{{ $procesoCodigo }}</strong>). Para acceder al formulario,
                 ingrese el siguiente código:
             </p>
 
