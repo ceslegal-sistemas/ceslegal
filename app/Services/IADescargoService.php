@@ -20,14 +20,23 @@ class IADescargoService
     const LIMITE_MAXIMO_PREGUNTAS = 30;
 
     // Preguntas estándar iniciales
-    // NOTA: índices 1 y 2 son hijas del índice 0 (acompañante) — ver crearPreguntasEstandar()
     const PREGUNTAS_INICIALES = [
-        '¿Va a asistir acompañado(a) por alguien?',
-        '¿Qué relación tiene esa persona con usted?',
-        'Acompañante: indique su nombre completo y en qué calidad asiste a esta diligencia (apoyo moral, representante sindical, apoderado, testigo u otro).',
-        '¿Qué tareas realiza en su cargo?',
-        '¿Conoce el reglamento interno de la empresa?',
-        '¿Sabe por qué fue citado(a) a estos descargos?',
+        /* 0 */ '¿Va a asistir acompañado(a) por alguien?',
+        /* 1 */ '¿Qué relación tiene esa persona con usted?',
+        /* 2 */ 'Acompañante: indique su nombre completo y en qué calidad asiste a esta diligencia (apoyo moral, representante sindical, apoderado, testigo u otro).',
+        /* 3 */ '¿Trabaja usted para una empresa contratista o tercero diferente a la empresa que lo cita?',
+        /* 4 */ '¿Cuál es el nombre de esa empresa contratista o tercero?',
+        /* 5 */ '¿Qué tareas realiza en su cargo?',
+        /* 6 */ '¿Conoce el reglamento interno de la empresa?',
+        /* 7 */ '¿Sabe por qué fue citado(a) a estos descargos?',
+    ];
+
+    // Mapa de dependencias entre preguntas iniciales: índice_hijo => índice_padre
+    // Si la respuesta al padre contiene "no", las hijas se auto-responden "No aplica"
+    const DEPENDENCIAS_INICIALES = [
+        1 => 0,   // relación acompañante  → ¿va acompañado?
+        2 => 0,   // identificación acomp. → ¿va acompañado?
+        4 => 3,   // nombre contratista    → ¿trabaja para contratista?
     ];
 
     // Preguntas estándar de cierre
@@ -611,11 +620,10 @@ PROMPT;
         $preguntasGuardadas = [];
 
         foreach ($preguntas as $index => $preguntaTexto) {
-            // Índices 1 y 2 son hijas del índice 0 (preguntas sobre el acompañante)
-            // Solo se responden si el trabajador asiste acompañado (respuesta ≠ "No")
             $preguntaPadreId = null;
-            if ($tipo === 'inicial' && in_array($index, [1, 2])) {
-                $preguntaPadreId = $preguntasGuardadas[0]->id ?? null;
+            if ($tipo === 'inicial' && isset(self::DEPENDENCIAS_INICIALES[$index])) {
+                $padreIndex = self::DEPENDENCIAS_INICIALES[$index];
+                $preguntaPadreId = $preguntasGuardadas[$padreIndex]->id ?? null;
             }
 
             $pregunta = PreguntaDescargo::create([
