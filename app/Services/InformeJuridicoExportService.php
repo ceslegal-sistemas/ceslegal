@@ -419,7 +419,7 @@ class InformeJuridicoExportService
             $provider = config('services.ia.provider', 'google');
             $config = config("services.ia.{$provider}", []);
             $apiKey = $config['api_key'] ?? null;
-            $model = $config['model'] ?? 'gemini-2.0-flash';
+            $model = $config['model'] ?? 'gemini-2.5-flash';
 
             if (!$apiKey) {
                 Log::warning('API key de IA no configurada para informe jurídico');

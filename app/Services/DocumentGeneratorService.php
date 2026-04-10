@@ -695,8 +695,7 @@ HTML;
             $modelos = array_unique(array_filter([
                 $config['model'] ?? 'gemini-2.5-flash',
                 'gemini-2.5-flash',
-                'gemini-2.5-flash-preview-04-17',
-                'gemini-1.5-flash-002',
+                'gemini-2.5-flash-lite',
             ]));
 
             // Construir el prompt con principios de lenguaje claro

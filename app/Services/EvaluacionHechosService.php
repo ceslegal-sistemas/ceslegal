@@ -894,12 +894,11 @@ SYSTEM;
             $model = $this->config['model'] ?? 'gemini-2.5-flash';
         }
 
-        // Fallback en orden: modelo configurado → variantes 2.5 → 1.5-flash-002 (estable universal)
+        // Fallback en orden: modelo configurado → gemini-2.5-flash → gemini-2.5-flash-lite
         $modelos = array_unique(array_filter([
             $model,
             'gemini-2.5-flash',
-            'gemini-2.5-flash-preview-04-17',
-            'gemini-1.5-flash-002',
+            'gemini-2.5-flash-lite',
         ]));
 
         $contents = [];

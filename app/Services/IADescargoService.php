@@ -368,8 +368,7 @@ PROMPT;
         $modelos = array_unique(array_filter([
             $modeloPrincipal,
             'gemini-2.5-flash',
-            'gemini-2.5-flash-preview-04-17',
-            'gemini-1.5-flash-002',
+            'gemini-2.5-flash-lite',
         ]));
 
         $payload = [
@@ -398,9 +397,9 @@ PROMPT;
                 'Content-Type' => 'application/json',
             ])->timeout(20)->post($url, $payload);
 
-            // En 503 pasar al siguiente modelo
-            if ($response->status() === 503) {
-                Log::warning("IADescargoService: Gemini 503 en {$modelo}, intentando siguiente modelo");
+            // En 503/404 pasar al siguiente modelo
+            if (in_array($response->status(), [503, 404])) {
+                Log::warning("IADescargoService: Gemini {$response->status()} en {$modelo}, intentando siguiente modelo");
                 continue;
             }
 
