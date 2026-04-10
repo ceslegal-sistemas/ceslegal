@@ -24,7 +24,7 @@ class IADescargoService
         /* 0 */ '¿Va a asistir acompañado(a) por alguien?',
         /* 1 */ '¿Qué relación tiene esa persona con usted?',
         /* 2 */ 'Acompañante: indique su nombre completo y en qué calidad asiste a esta diligencia (apoyo moral, representante sindical, apoderado, testigo u otro).',
-        /* 3 */ '¿Trabaja usted para una empresa contratista o tercero diferente a la empresa que lo cita?',
+        /* 3 */ '¿Trabaja usted para una empresa contratista o tercero diferente a {empresa}?',
         /* 4 */ '¿Cuál es el nombre de esa empresa contratista o tercero?',
         /* 5 */ '¿Qué tareas realiza en su cargo?',
         /* 6 */ '¿Conoce el reglamento interno de la empresa?',
@@ -619,12 +619,16 @@ PROMPT;
     ): array {
         $preguntasGuardadas = [];
 
+        $empresaNombre = $diligencia->proceso?->empresa?->razon_social ?? 'la empresa que lo cita';
+
         foreach ($preguntas as $index => $preguntaTexto) {
             $preguntaPadreId = null;
             if ($tipo === 'inicial' && isset(self::DEPENDENCIAS_INICIALES[$index])) {
                 $padreIndex = self::DEPENDENCIAS_INICIALES[$index];
                 $preguntaPadreId = $preguntasGuardadas[$padreIndex]->id ?? null;
             }
+
+            $preguntaTexto = str_replace('{empresa}', $empresaNombre, $preguntaTexto);
 
             $pregunta = PreguntaDescargo::create([
                 'diligencia_descargo_id' => $diligencia->id,

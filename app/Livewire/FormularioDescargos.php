@@ -382,12 +382,20 @@ class FormularioDescargos extends Component
                 '¿Va a asistir acompañado(a) por alguien?',
                 '¿Qué relación tiene esa persona con usted?',
                 'Acompañante: indique su nombre completo y en qué calidad asiste a esta diligencia (apoyo moral, representante sindical, apoderado, testigo u otro).',
-                '¿Trabaja usted para una empresa contratista o tercero diferente a la empresa que lo cita?',
                 '¿Cuál es el nombre de esa empresa contratista o tercero?',
             ];
 
-            $esPreguntaRelevante = $pregunta->es_generada_por_ia
-                || !in_array($pregunta->pregunta, $preguntasAdministrativas);
+            // Prefijos para preguntas administrativas cuyo texto varía (contienen nombre de empresa)
+            $prefijosAdministrativos = [
+                '¿Trabaja usted para una empresa contratista o tercero diferente a',
+            ];
+
+            $esPreguntaAdministrativa = in_array($pregunta->pregunta, $preguntasAdministrativas)
+                || collect($prefijosAdministrativos)->contains(
+                    fn($p) => str_starts_with($pregunta->pregunta, $p)
+                );
+
+            $esPreguntaRelevante = $pregunta->es_generada_por_ia || !$esPreguntaAdministrativa;
 
             if ($esPreguntaRelevante) {
                 $iaService = new IADescargoService();
