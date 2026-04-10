@@ -40,7 +40,6 @@ class IADescargoService
     const PREGUNTAS_CIERRE = [
         '¿Le avisó esta situación a su jefe directo?',
         '¿Ha estado antes en descargos?',
-        '¿Sabe que no cumplir con sus obligaciones de trabajo puede traerle sanciones?',
     ];
 
     public function __construct()
@@ -235,6 +234,8 @@ NUNCA generes una pregunta si:
 • Ya existe en la lista completa una pregunta que cubre ese tema (aunque no haya sido respondida aún).
 • La pregunta busca confirmar la culpabilidad en vez de dar espacio para la defensa.
 • La respuesta es sobre datos básicos (cargo, empresa, jefe, acompañante).
+• La pregunta indaga sobre cumplimiento de funciones, seguimiento de instrucciones del jefe
+  o autoevaluación del desempeño — nadie admite incumplimientos; no tienen valor probatorio.
 
 En caso de duda, responde NO_REQUIERE. Es mejor no preguntar que vulnerar el debido proceso.
 
@@ -706,6 +707,13 @@ Las preguntas deben:
 - Explorar si hubo autorización, aviso previo, fuerza mayor u otra justificación válida.
 - Dar espacio para que el trabajador presente pruebas, testigos o documentos a su favor.
 - NUNCA ser sugestivas, capciosas ni orientadas a confirmar la culpabilidad.
+
+PROHIBIDO — nunca generes preguntas sobre:
+- Cumplimiento de funciones o deberes del cargo ("¿cumple con sus funciones?", "¿hace bien su trabajo?")
+- Seguimiento de instrucciones del jefe ("¿obedece a su superior?", "¿sigue las órdenes?")
+- Autoevaluaciones del trabajador sobre su propio desempeño
+Razón: nadie admite incumplimientos voluntariamente — generan respuestas evasivas sin valor probatorio.
+Las evaluaciones deben basarse en evidencias objetivas, no en autoevaluaciones.
 
 LENGUAJE CLARO (sin tecnicismos):
 Incorrecto: "¿Tenía conocimiento de las disposiciones del reglamento?"
