@@ -26,9 +26,6 @@ class IADescargoService
         /* 2 */ 'Acompañante: indique su nombre completo y en qué calidad asiste a esta diligencia (apoyo moral, representante sindical, apoderado, testigo u otro).',
         /* 3 */ '¿Trabaja usted para una empresa contratista o tercero diferente a {empresa}?',
         /* 4 */ '¿Cuál es el nombre de esa empresa contratista o tercero?',
-        /* 5 */ '¿Qué tareas realiza en su cargo?',
-        /* 6 */ '¿Conoce el reglamento interno de la empresa?',
-        /* 7 */ '¿Sabe por qué fue citado(a) a estos descargos?',
     ];
 
     // Mapa de dependencias entre preguntas iniciales: índice_hijo => índice_padre
