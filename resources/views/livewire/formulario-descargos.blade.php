@@ -13,24 +13,6 @@
                             <h1 class="text-base font-semibold text-gray-900">Descargos</h1>
                             <p class="text-xs text-gray-500">{{ $proceso->codigo }}</p>
                         </div>
-                        @if ($etapa === 'formulario' && !$formularioCompletado && !$mostrarAdvertencia && !$tiempoExpiradoMostrarEvidencias && $diligencia->primer_acceso_en)
-                            <div class="flex items-center gap-2 bg-warning-50 text-warning-600 px-3 py-1.5 rounded-lg"
-                                wire:poll.10s="verificarTiempo">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span class="font-mono text-sm font-semibold">{{ gmdate('i:s', $this->timer) }}</span>
-                            </div>
-                        @elseif ($tiempoExpiradoMostrarEvidencias)
-                            <div class="flex items-center gap-2 bg-danger-50 text-danger-600 px-3 py-1.5 rounded-lg">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span class="text-xs font-semibold">Expirado</span>
-                            </div>
-                        @endif
                     </div>
                 </div>
                 @if ($etapa === 'formulario' && !$formularioCompletado && !$mostrarAdvertencia && !$tiempoExpiradoMostrarEvidencias)
@@ -584,11 +566,10 @@
                                 <div class="text-sm">
                                     <p class="font-semibold text-warning-800 mb-2">Antes de iniciar</p>
                                     <ul class="space-y-1 text-warning-700">
-                                        <li>• Tendrá <strong>45 minutos</strong> para responder</li>
-                                        <li>• El tiempo no se puede pausar</li>
+                                        <li>• Puede tomarse el tiempo que necesite para responder</li>
                                         <li>• Las respuestas se guardan una por una</li>
-                                        <li>• Al final de la diligencia podrá adjuntar documentos como evidencia de los
-                                            hechos</li>
+                                        <li>• Al final de la diligencia podrá adjuntar documentos como evidencia de los hechos</li>
+                                        <li>• La sesión es válida durante todo el día de hoy</li>
                                     </ul>
                                 </div>
                             </div>
@@ -599,7 +580,7 @@
                             @click="
                                 Swal.fire({
                                     title: '¿Iniciar diligencia?',
-                                    text: 'El cronómetro de 45 minutos comenzará inmediatamente.',
+                                    text: 'Sus respuestas se guardarán automáticamente. Puede tomarse el tiempo que necesite.',
                                     icon: 'question',
                                     showCancelButton: true,
                                     confirmButtonColor: '#4f46e5',

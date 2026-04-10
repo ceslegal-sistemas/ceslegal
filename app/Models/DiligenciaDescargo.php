@@ -130,35 +130,28 @@ class DiligenciaDescargo extends Model
         return now()->toDateString() === $this->fecha_acceso_permitida->toDateString();
     }
 
-    // Métodos para el timer de 45 minutos
+    // Métodos de acceso por día
     public function iniciarTimer()
     {
         if (!$this->primer_acceso_en) {
             $this->update([
                 'primer_acceso_en' => Carbon::now('America/Bogota'),
-                'tiempo_limite' => Carbon::now('America/Bogota')->addMinutes(45),
-                'tiempo_expirado' => false,
+                'tiempo_limite'    => Carbon::parse($this->fecha_acceso_permitida)->endOfDay(),
+                'tiempo_expirado'  => false,
             ]);
         }
     }
 
-    public function tiempoRestante(): ?int
-    {
-        if (!$this->tiempo_limite) {
-            return null;
-        }
-
-        $segundos = now()->diffInSeconds($this->tiempo_limite, false);
-        return $segundos > 0 ? $segundos : 0;
-    }
-
     public function tiempoHaExpirado(): bool
     {
-        if (!$this->tiempo_limite) {
+        if (!$this->fecha_acceso_permitida) {
             return false;
         }
 
-        return now()->greaterThan($this->tiempo_limite);
+        // Expirado si hoy (Bogotá) es un día posterior a la fecha permitida
+        return Carbon::now('America/Bogota')->startOfDay()->gt(
+            Carbon::parse($this->fecha_acceso_permitida)->startOfDay()
+        );
     }
 
     public function marcarTiempoExpirado()

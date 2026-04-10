@@ -27,7 +27,6 @@ class FormularioDescargos extends Component
     public bool $mostrarMensajeExito = false;
     public int $longitudMinimaRespuesta = 2;
     public bool $mostrarAdvertencia = true;
-    public bool $timerIniciado = false;
 
     // Autenticación 2FA
     public string $etapa = 'otp';
@@ -58,7 +57,6 @@ class FormularioDescargos extends Component
         // Si el trabajador ya completó el formulario
         if ($this->diligencia->trabajador_asistio) {
             $this->formularioCompletado = true;
-            $this->timerIniciado = true;
             $this->mostrarAdvertencia = false;
             $this->etapa = 'completado';
             return;
@@ -67,7 +65,6 @@ class FormularioDescargos extends Component
         // Backward compat: diligencia previa al flujo v2 (tiene primer_acceso_en pero sin OTP)
         if ($this->diligencia->primer_acceso_en && !$this->diligencia->otp_verificado_en) {
             $this->etapa = 'formulario';
-            $this->timerIniciado = true;
             $this->mostrarAdvertencia = false;
 
             if ($this->diligencia->tiempoHaExpirado()) {
@@ -82,7 +79,7 @@ class FormularioDescargos extends Component
                     $this->tiempoExpiradoMostrarEvidencias = true;
                 } else {
                     $this->formularioCompletado = true;
-                    session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
+                    session()->flash('error', 'La fecha de la diligencia ya pasó. Contacte al administrador del proceso.');
                     return;
                 }
             }
@@ -103,7 +100,6 @@ class FormularioDescargos extends Component
             $this->formularioCompletado = true;
         } else {
             $this->etapa = 'formulario';
-            $this->timerIniciado = true;
             $this->mostrarAdvertencia = false;
 
             if ($this->diligencia->tiempoHaExpirado()) {
@@ -118,7 +114,7 @@ class FormularioDescargos extends Component
                     $this->tiempoExpiradoMostrarEvidencias = true;
                 } else {
                     $this->formularioCompletado = true;
-                    session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
+                    session()->flash('error', 'La fecha de la diligencia ya pasó. Contacte al administrador del proceso.');
                     return;
                 }
             }
@@ -257,21 +253,12 @@ class FormularioDescargos extends Component
     }
 
     /**
-     * Inicia el timer después de que el usuario acepte la advertencia
+     * El trabajador confirma que está listo para iniciar la diligencia
      */
     public function iniciarDiligencia()
     {
-        // Iniciar timer en primer acceso
         $this->diligencia->iniciarTimer();
-        $this->timerIniciado = true;
         $this->mostrarAdvertencia = false;
-
-        // Verificar si ya expiró (por si acaso)
-        if ($this->diligencia->tiempoHaExpirado()) {
-            $this->diligencia->marcarTiempoExpirado();
-            $this->formularioCompletado = true;
-            session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
-        }
     }
 
     /**
@@ -453,36 +440,6 @@ class FormularioDescargos extends Component
     /**
      * Obtiene el tiempo restante en segundos
      */
-    public function getTimerProperty()
-    {
-        return $this->diligencia->tiempoRestante() ?? 0;
-    }
-
-    /**
-     * Verifica si el tiempo ha expirado (se llama con polling)
-     */
-    public function verificarTiempo()
-    {
-        if ($this->diligencia->tiempoHaExpirado() && !$this->tiempoExpiradoMostrarEvidencias) {
-            $this->diligencia->marcarTiempoExpirado();
-
-            // Verificar si todas las preguntas están respondidas
-            $preguntasSinResponder = $this->diligencia->preguntas()
-                ->activas()
-                ->whereDoesntHave('respuesta')
-                ->count();
-
-            if ($preguntasSinResponder === 0) {
-                // Todas respondidas: permitir subir evidencias
-                $this->tiempoExpiradoMostrarEvidencias = true;
-                session()->flash('info', 'El tiempo ha expirado, pero puede adjuntar evidencias antes de enviar.');
-            } else {
-                // Quedan preguntas sin responder: no se marca asistencia ni se cambia estado
-                $this->formularioCompletado = true;
-                session()->flash('error', 'El tiempo ha expirado.');
-            }
-        }
-    }
 
     /**
      * Finaliza el proceso de descargos
