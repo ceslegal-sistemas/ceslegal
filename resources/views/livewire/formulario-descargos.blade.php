@@ -136,10 +136,26 @@
                                         Código enviado a <strong>{{ $diligencia->otp_enviado_a }}</strong>. Revise su bandeja de entrada.
                                     </div>
 
-                                    <div>
+                                    <div
+                                        x-data="{
+                                            init() {
+                                                if ('OTPCredential' in window) {
+                                                    const ac = new AbortController();
+                                                    navigator.credentials.get({
+                                                        otp: { transport: ['sms'] },
+                                                        signal: ac.signal
+                                                    }).then(otp => {
+                                                        $wire.set('otpCodigo', otp.code);
+                                                        $wire.verificarOtp();
+                                                    }).catch(() => {});
+                                                }
+                                            }
+                                        }"
+                                    >
                                         <label class="block text-sm font-medium text-gray-700 mb-1">Ingrese el código de 6 dígitos</label>
                                         <input wire:model="otpCodigo" type="text" inputmode="numeric" maxlength="6"
                                             pattern="[0-9]{6}"
+                                            autocomplete="one-time-code"
                                             class="block w-full text-center text-2xl font-mono tracking-widest border-gray-300 rounded-xl focus:border-primary-500 focus:ring-primary-500 py-3"
                                             placeholder="000000"
                                             autofocus />
