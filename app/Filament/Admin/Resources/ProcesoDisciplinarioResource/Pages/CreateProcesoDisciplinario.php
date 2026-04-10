@@ -923,7 +923,7 @@ class CreateProcesoDisciplinario extends CreateRecord
             Log::error('generarRedaccion', ['error' => $e->getMessage()]);
             Notification::make()->danger()
                 ->title('Error al generar redacción')
-                ->body('No se pudo conectar con la IA. Intente de nuevo.')
+                ->body($e->getMessage())
                 ->send();
         } finally {
             $this->mejorando = false;

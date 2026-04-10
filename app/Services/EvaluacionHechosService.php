@@ -939,8 +939,8 @@ SYSTEM;
                 'Content-Type' => 'application/json',
             ])->timeout($modeloRapido ? 20 : 60)->post($url, $payload);
 
-            // Si es 503, pasar al siguiente modelo del fallback
-            if ($response->status() === 503) {
+            // Si es 503 (sobrecarga) o 404 (modelo no disponible), intentar el siguiente
+            if (in_array($response->status(), [503, 404])) {
                 continue;
             }
 

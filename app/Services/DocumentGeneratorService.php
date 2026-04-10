@@ -691,9 +691,11 @@ HTML;
             // Configuración de la API de IA
             $provider = config('services.ia.provider', 'openai');
             $config = config("services.ia.{$provider}", []);
-            $apiKey = $config['api_key'];
-            $model = $config['model'];
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+            $apiKey  = $config['api_key'];
+            $modelos = array_unique(array_filter([
+                $config['model'] ?? 'gemini-2.0-flash',
+                'gemini-2.0-flash',
+            ]));
 
             // Construir el prompt con principios de lenguaje claro
             $prompt = $this->construirPromptSancionLenguajeClaro(
@@ -712,24 +714,33 @@ HTML;
                 'max_tokens' => $config['max_tokens'] ?? 8000,
             ]);
 
-            // Llamar a la API de IA con mayor límite de tokens
-            $response = \Illuminate\Support\Facades\Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])->timeout(120)->post($url, [
-                'contents' => [
-                    [
-                        'parts' => [
-                            ['text' => $prompt]
+            // Llamar a la API de IA con fallback entre modelos
+            $response = null;
+            foreach ($modelos as $modeloActual) {
+                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modeloActual}:generateContent?key={$apiKey}";
+                $response = \Illuminate\Support\Facades\Http::withHeaders([
+                    'Content-Type' => 'application/json',
+                ])->timeout(120)->post($url, [
+                    'contents' => [
+                        [
+                            'parts' => [
+                                ['text' => $prompt]
+                            ]
                         ]
-                    ]
-                ],
-                'generationConfig' => [
-                    'temperature' => 0.7,
-                    'maxOutputTokens' => 8192, // Aumentado para documentos más largos
-                    'topP' => 0.95,
-                    'topK' => 40,
-                ],
-            ]);
+                    ],
+                    'generationConfig' => [
+                        'temperature' => 0.7,
+                        'maxOutputTokens' => 8192,
+                        'topP' => 0.95,
+                        'topK' => 40,
+                    ],
+                ]);
+
+                if (in_array($response->status(), [503, 404])) {
+                    continue;
+                }
+                break;
+            }
 
             if (!$response->successful()) {
                 $errorBody = $response->body();
