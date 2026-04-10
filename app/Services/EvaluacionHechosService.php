@@ -888,14 +888,14 @@ SYSTEM;
 
         // Para tareas rápidas (feedback, mejora de texto) usar flash; para conversación principal usar el modelo configurado
         if ($modeloRapido) {
-            $baseModel = $this->config['model'] ?? 'gemini-1.5-flash';
-            $model = str_contains($baseModel, 'flash') ? $baseModel : 'gemini-1.5-flash';
+            $baseModel = $this->config['model'] ?? 'gemini-2.0-flash';
+            $model = str_contains($baseModel, 'flash') ? $baseModel : 'gemini-2.0-flash';
         } else {
             $model = $this->config['model'];
         }
 
         // Modelos de fallback en orden: si el principal falla por 503, intenta los siguientes
-        $modeloFallback = 'gemini-1.5-flash';
+        $modeloFallback = 'gemini-2.0-flash';
         $modelos = $model !== $modeloFallback ? [$model, $modeloFallback] : [$model];
 
         $contents = [];

@@ -366,11 +366,11 @@ PROMPT;
 
         // Cadena de modelos: preferir flash-lite (más rápido y barato para generar preguntas),
         // luego el modelo configurado, y por último 1.5-flash como fallback estable.
-        $modeloPrincipal = $this->config['model'] ?? 'gemini-2.5-flash';
+        $modeloPrincipal = $this->config['model'] ?? 'gemini-2.0-flash';
         $modelos = array_unique(array_filter([
-            'gemini-2.5-flash-lite',
             $modeloPrincipal,
-            'gemini-1.5-flash',
+            'gemini-2.0-flash',
+            'gemini-2.0-flash-lite',
         ]));
 
         $payload = [
