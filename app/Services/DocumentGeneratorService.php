@@ -693,8 +693,10 @@ HTML;
             $config = config("services.ia.{$provider}", []);
             $apiKey  = $config['api_key'];
             $modelos = array_unique(array_filter([
-                $config['model'] ?? 'gemini-2.0-flash',
-                'gemini-2.0-flash',
+                $config['model'] ?? 'gemini-2.5-flash',
+                'gemini-2.5-flash',
+                'gemini-2.5-flash-preview-04-17',
+                'gemini-1.5-flash-002',
             ]));
 
             // Construir el prompt con principios de lenguaje claro
