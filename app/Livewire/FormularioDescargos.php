@@ -381,6 +381,7 @@ class FormularioDescargos extends Component
                 '¿Quién es su jefe directo?',
                 '¿Va a asistir acompañado(a) por alguien?',
                 '¿Qué relación tiene esa persona con usted?',
+                'Acompañante: indique su nombre completo y en qué calidad asiste a esta diligencia (apoyo moral, representante sindical, apoderado, testigo u otro).',
             ];
 
             $esPreguntaRelevante = $pregunta->es_generada_por_ia

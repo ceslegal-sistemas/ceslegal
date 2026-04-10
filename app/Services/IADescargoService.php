@@ -20,9 +20,11 @@ class IADescargoService
     const LIMITE_MAXIMO_PREGUNTAS = 30;
 
     // Preguntas estándar iniciales
+    // NOTA: índices 1 y 2 son hijas del índice 0 (acompañante) — ver crearPreguntasEstandar()
     const PREGUNTAS_INICIALES = [
         '¿Va a asistir acompañado(a) por alguien?',
         '¿Qué relación tiene esa persona con usted?',
+        'Acompañante: indique su nombre completo y en qué calidad asiste a esta diligencia (apoyo moral, representante sindical, apoderado, testigo u otro).',
         '¿Qué tareas realiza en su cargo?',
         '¿Conoce el reglamento interno de la empresa?',
         '¿Sabe por qué fue citado(a) a estos descargos?',
@@ -609,11 +611,10 @@ PROMPT;
         $preguntasGuardadas = [];
 
         foreach ($preguntas as $index => $preguntaTexto) {
-            // Para preguntas iniciales, la pregunta 2 (índice 1) depende de la pregunta 1 (índice 0)
-            // "¿Qué relación tiene esa persona con usted?" depende de "¿Va a asistir acompañado(a) por alguien?"
+            // Índices 1 y 2 son hijas del índice 0 (preguntas sobre el acompañante)
+            // Solo se responden si el trabajador asiste acompañado (respuesta ≠ "No")
             $preguntaPadreId = null;
-            if ($tipo === 'inicial' && $index === 1) {
-                // La pregunta padre es la primera pregunta creada (índice 0)
+            if ($tipo === 'inicial' && in_array($index, [1, 2])) {
                 $preguntaPadreId = $preguntasGuardadas[0]->id ?? null;
             }
 
