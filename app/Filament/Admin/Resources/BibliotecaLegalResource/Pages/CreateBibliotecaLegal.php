@@ -24,24 +24,13 @@ class CreateBibliotecaLegal extends CreateRecord
 
     protected function afterCreate(): void
     {
-        $documento = $this->record;
-
-        // Procesar automáticamente al crear
-        try {
-            app(BibliotecaLegalService::class)->procesarDocumento($documento);
-            $documento->refresh();
-
-            Notification::make()
-                ->success()
-                ->title('Documento procesado')
-                ->body("{$documento->total_fragmentos} fragmentos generados correctamente.")
-                ->send();
-        } catch (\Throwable $e) {
-            Notification::make()
-                ->warning()
-                ->title('Documento subido con error de procesamiento')
-                ->body('El archivo fue guardado pero ocurrió un error al procesar: ' . $e->getMessage() . '. Puede intentar de nuevo desde la lista.')
-                ->send();
-        }
+        // No se procesa automáticamente aquí para evitar timeouts en hosting compartido.
+        // El usuario debe usar el botón "Procesar" en la lista, o el comando artisan:
+        //   php artisan biblioteca:procesar {id}
+        Notification::make()
+            ->success()
+            ->title('Documento guardado')
+            ->body('Usa el botón "Procesar" en la lista para generar los fragmentos y embeddings.')
+            ->send();
     }
 }
