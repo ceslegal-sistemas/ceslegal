@@ -200,12 +200,9 @@ class BibliotecaLegalService
 
     protected function extraerTextoPDF(string $ruta): string
     {
-        $config = new \Smalot\PdfParser\Config();
-        $config->setRetainImageContent(false);
-
-        $parser   = new \Smalot\PdfParser\Parser([], $config);
-        $pdf      = $parser->parseFile($ruta);
-        $texto    = $pdf->getText();
+        $parser = new \Smalot\PdfParser\Parser();
+        $pdf    = $parser->parseFile($ruta);
+        $texto  = $pdf->getText();
 
         return $this->limpiarTexto($texto);
     }
