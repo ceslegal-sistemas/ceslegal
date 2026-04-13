@@ -93,11 +93,26 @@ class EvaluacionHechosService
         string $cargo,
         int    $trabajadorId
     ): array {
+        // Cargar datos completos desde BD para que la IA no invente placeholders
+        $trabajador = \App\Models\Trabajador::find($trabajadorId);
+        $empresa    = \App\Models\Empresa::find($empresaId);
+
+        $nombreCompleto  = $trabajador?->nombre_completo ?? $nombreTrabajador;
+        $tipoDoc         = $trabajador?->tipo_documento  ?? 'C.C.';
+        $numDoc          = $trabajador?->numero_documento ?? '';
+        $cargoTrabajador = $trabajador?->cargo            ?? $cargo;
+        $razonSocial     = $empresa?->razon_social        ?? '';
+
+        $identificacion = $numDoc
+            ? "{$tipoDoc} {$numDoc}"
+            : $tipoDoc . ' (no registrado)';
+
         // System prompt simple para llamada directa (sin conflicto con el formato conversacional)
         $contextoAntecedentes = $this->obtenerContextoAntecedentes($trabajadorId);
         $contextoReglamento   = $this->obtenerContextoReglamento($empresaId);
         $systemPrompt = "Eres un redactor jurídico-laboral experto en derecho colombiano. " .
             "Redactas hechos disciplinarios en tercera persona, lenguaje formal, mínimo 3 párrafos. " .
+            "NUNCA uses corchetes ni placeholders — usa SIEMPRE los datos exactos que se te proporcionan. " .
             "Responde ÚNICAMENTE con JSON válido sin bloques de código ni texto adicional.\n\n" .
             $contextoAntecedentes . "\n" . $contextoReglamento;
 
@@ -113,11 +128,19 @@ class EvaluacionHechosService
             : '';
 
         $prompt = <<<PROMPT
-Con base en los siguientes datos del formulario, redacta los hechos del proceso disciplinario en lenguaje jurídico-laboral formal colombiano (mínimo 3 párrafos, tercera persona). Incluye los antecedentes del trabajador que tienes en el contexto.
+Con base en los siguientes datos, redacta los hechos del proceso disciplinario en lenguaje jurídico-laboral formal colombiano (mínimo 3 párrafos, tercera persona). Usa EXACTAMENTE los datos proporcionados — NO uses corchetes, NO inventes ni omitas información.
 
-DATOS DEL FORMULARIO:
-- Descripción del hecho: {$datosFormulario['descripcion_hecho']}
-- Fecha del hecho: {$datosFormulario['fecha_hecho']}{$lugar}
+DATOS DEL TRABAJADOR:
+- Nombre completo: {$nombreCompleto}
+- Identificación: {$identificacion}
+- Cargo: {$cargoTrabajador}
+
+DATOS DE LA EMPRESA:
+- Razón social: {$razonSocial}
+
+DATOS DEL HECHO:
+- Descripción: {$datosFormulario['descripcion_hecho']}
+- Fecha: {$datosFormulario['fecha_hecho']}{$lugar}
 - ¿El trabajador dio aviso o justificación?: {$notifico}{$detalle}{$evidencias}
 
 Responde ÚNICAMENTE en JSON válido sin bloques de código:
