@@ -7,6 +7,7 @@ use App\Models\PreguntaDescargo;
 use App\Models\RespuestaDescargo;
 use App\Models\TrazabilidadIADescargo;
 use App\Models\ArticuloLegal;
+use App\Services\BibliotecaLegalService;
 use App\Services\ReglamentoInternoService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -957,7 +958,22 @@ PROMPT;
                 $lineas[] = '';
             }
 
-            return trim(implode("\n", $lineas));
+            $resultado = trim(implode("\n", $lineas));
+
+            // Enriquecer con la Biblioteca Legal (sentencias, doctrina, CST en PDF)
+            try {
+                $fragmentosBiblioteca = app(BibliotecaLegalService::class)
+                    ->buscarFragmentos($texto, limite: 4, umbral: 0.60);
+                if (!empty($fragmentosBiblioteca)) {
+                    $resultado = $resultado
+                        ? $resultado . "\n\n" . $fragmentosBiblioteca
+                        : $fragmentosBiblioteca;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('IADescargoService: biblioteca RAG error', ['error' => $e->getMessage()]);
+            }
+
+            return $resultado;
         } catch (\Exception $e) {
             Log::warning('IADescargoService::buscarNormasRelevantes', ['error' => $e->getMessage()]);
             return '';

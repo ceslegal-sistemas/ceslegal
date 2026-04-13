@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ArticuloLegal;
 use App\Models\ProcesoDisciplinario;
+use App\Services\BibliotecaLegalService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -710,7 +711,22 @@ SYSTEM;
                 $lineas[] = '';
             }
 
-            return trim(implode("\n", $lineas));
+            $resultado = trim(implode("\n", $lineas));
+
+            // Enriquecer con la Biblioteca Legal (sentencias, doctrina, CST en PDF)
+            try {
+                $fragmentosBiblioteca = app(BibliotecaLegalService::class)
+                    ->buscarFragmentos($texto, limite: 4, umbral: 0.60);
+                if (!empty($fragmentosBiblioteca)) {
+                    $resultado = $resultado
+                        ? $resultado . "\n\n" . $fragmentosBiblioteca
+                        : $fragmentosBiblioteca;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('EvaluacionHechosService: biblioteca RAG error', ['error' => $e->getMessage()]);
+            }
+
+            return $resultado;
         } catch (\Exception $e) {
             Log::warning('EvaluacionHechosService::buscarNormasRelevantes', ['error' => $e->getMessage()]);
             return '';
