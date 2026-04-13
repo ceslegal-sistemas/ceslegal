@@ -453,18 +453,18 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ]),
                 ]),
 
-            // ── Paso 4: Evidencias ───────────────────────────────────────────
-            Step::make('evidencias')
-                ->label('Evidencias')
-                ->description('Pruebas disponibles')
+            // ── Paso 4: Pruebas (Evidencias + Testigos) ──────────────────────
+            Step::make('pruebas')
+                ->label('Pruebas')
+                ->description('Evidencias y testigos del hecho')
                 ->icon('heroicon-o-paper-clip')
                 ->schema([
                     Forms\Components\Section::make()
                         ->schema([
-                            Forms\Components\Placeholder::make('info_paso_evidencias')
+                            Forms\Components\Placeholder::make('info_paso_pruebas')
                                 ->label('')
                                 ->content(fn() => new HtmlString(
-                                    view('filament.components.paso-evidencias-info')->render()
+                                    view('filament.components.paso-pruebas-info')->render()
                                 ))
                                 ->columnSpanFull(),
 
@@ -474,21 +474,6 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->required()
                                 ->inline()
                                 ->live()
-                                ->columnSpanFull(),
-
-                            Forms\Components\CheckboxList::make('tipos_evidencias')
-                                ->label('¿Qué tipo de evidencia tiene?')
-                                ->options([
-                                    'correo'             => 'Correo electrónico',
-                                    'asistencia'         => 'Registro de asistencia',
-                                    'camaras'            => 'Cámaras de seguridad',
-                                    'documento'          => 'Documento interno',
-                                    'reporte_supervisor' => 'Reporte del supervisor',
-                                    'testigos'           => 'Testigos presenciales',
-                                    'otro'               => 'Otro',
-                                ])
-                                ->columns(2)
-                                ->visible(fn(Get $get) => $get('tiene_evidencias') === 'si')
                                 ->columnSpanFull(),
 
                             Forms\Components\FileUpload::make('evidencias_empleador')
@@ -506,23 +491,6 @@ class CreateProcesoDisciplinario extends CreateRecord
                                     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                                 ])
                                 ->visible(fn(Get $get) => $get('tiene_evidencias') === 'si')
-                                ->columnSpanFull(),
-                        ]),
-                ]),
-
-            // ── Paso 5: Testigos ─────────────────────────────────────────────
-            Step::make('testigos')
-                ->label('Testigos')
-                ->description('¿Hubo personas que presenciaron?')
-                ->icon('heroicon-o-user-group')
-                ->schema([
-                    Forms\Components\Section::make()
-                        ->schema([
-                            Forms\Components\Placeholder::make('info_paso_testigos')
-                                ->label('')
-                                ->content(fn() => new HtmlString(
-                                    view('filament.components.paso-testigos-info')->render()
-                                ))
                                 ->columnSpanFull(),
 
                             Forms\Components\Radio::make('hubo_testigos')
@@ -552,7 +520,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ]),
                 ]),
 
-            // ── Paso 6: Revisión y envío ─────────────────────────────────────
+            // ── Paso 5: Revisión y envío ─────────────────────────────────────
             Step::make('revision')
                 ->label('Revisión')
                 ->description('Confirme y genere la citación')
@@ -574,7 +542,6 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         'lugar_libre'      => $get('lugar_libre'),
                                         'en_horario'       => $get('en_horario_laboral'),
                                         'tiene_evidencias' => $get('tiene_evidencias'),
-                                        'tipos_evidencias' => $get('tipos_evidencias') ?? [],
                                         'hubo_testigos'    => $get('hubo_testigos'),
                                         'testigos'         => $get('testigos') ?? [],
                                         'trabajador_id'    => $get('trabajador_id'),
@@ -749,22 +716,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                 : ($lugarLabels[$lugarTipo] ?? null);
 
             // Construir texto de evidencias y contexto adicional
-            $evidenciasLabels = [
-                'correo'             => 'correos electrónicos',
-                'asistencia'         => 'registros de asistencia',
-                'camaras'            => 'cámaras de seguridad',
-                'documento'          => 'documentos internos',
-                'reporte_supervisor' => 'reporte del supervisor',
-                'testigos'           => 'testigos presenciales',
-                'otro'               => 'otras evidencias',
-            ];
-            $tiposEvidencias = $this->data['tipos_evidencias'] ?? [];
             $partes = [];
-
-            if (!empty($tiposEvidencias)) {
-                $labels   = array_map(fn($k) => $evidenciasLabels[$k] ?? $k, $tiposEvidencias);
-                $partes[] = 'Se cuenta con: ' . implode(', ', $labels);
-            }
 
             $testigos = $this->data['testigos'] ?? [];
             if (!empty($testigos)) {
@@ -1452,23 +1404,8 @@ class CreateProcesoDisciplinario extends CreateRecord
             $data['fecha_ocurrencia'] = $this->datosExtraidos['fecha_ocurrencia'];
         }
 
-        // pruebas_iniciales: compilar desde evidencias + testigos
+        // pruebas_iniciales: compilar desde testigos
         $pruebas = [];
-        $evidenciasLabels = [
-            'correo'             => 'correos electrónicos',
-            'asistencia'         => 'registros de asistencia',
-            'camaras'            => 'cámaras de seguridad',
-            'documento'          => 'documentos internos',
-            'reporte_supervisor' => 'reporte del supervisor',
-            'testigos'           => 'testigos presenciales',
-            'otro'               => 'otras evidencias',
-        ];
-
-        $tiposEvidencias = $data['tipos_evidencias'] ?? [];
-        if (!empty($tiposEvidencias)) {
-            $labels    = array_map(fn($k) => $evidenciasLabels[$k] ?? $k, $tiposEvidencias);
-            $pruebas[] = 'Tipos de evidencia disponibles: ' . implode(', ', $labels);
-        }
 
         $testigos = $data['testigos'] ?? [];
         if (!empty($testigos)) {
@@ -1492,7 +1429,6 @@ class CreateProcesoDisciplinario extends CreateRecord
             $data['lugar_libre'],
             $data['en_horario_laboral'],
             $data['tiene_evidencias'],
-            $data['tipos_evidencias'],
             $data['hubo_testigos'],
             $data['testigos'],
             $data['hechos_ia'],

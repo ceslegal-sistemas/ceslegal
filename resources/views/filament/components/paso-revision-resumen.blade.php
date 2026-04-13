@@ -18,15 +18,6 @@
         'virtual' => 'Entorno virtual / remoto',
         'otro' => $lugar_libre ?? 'Otro',
     ];
-    $evidenciasLabels = [
-        'correo' => 'Correo electrónico',
-        'asistencia' => 'Registro de asistencia',
-        'camaras' => 'Cámaras de seguridad',
-        'documento' => 'Documento interno',
-        'reporte_supervisor' => 'Reporte del supervisor',
-        'testigos' => 'Testigos presenciales',
-        'otro' => 'Otro',
-    ];
     $horarioLabels = ['si' => 'Sí', 'no' => 'No', 'parcial' => 'Parcialmente'];
     $trabajador = $trabajador_id ? \App\Models\Trabajador::find($trabajador_id) : null;
 
@@ -774,12 +765,8 @@
                         </svg>
                         <p class="er-sec-label">Evidencias</p>
                     </div>
-                    @if ($tiene_evidencias === 'si' && !empty($tipos_evidencias))
-                        @foreach ($tipos_evidencias as $ev)
-                            <span class="er-tag">{{ $evidenciasLabels[$ev] ?? $ev }}</span>
-                        @endforeach
-                    @elseif($tiene_evidencias === 'si')
-                        <p class="er-sec-val">Sí (sin tipo especificado)</p>
+                    @if ($tiene_evidencias === 'si')
+                        <p class="er-sec-val">Sí, con archivos adjuntos</p>
                     @elseif($tiene_evidencias === 'no')
                         <p class="er-sec-val empty">Sin evidencia registrada</p>
                     @else
