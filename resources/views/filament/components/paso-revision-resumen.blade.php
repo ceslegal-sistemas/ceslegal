@@ -9,15 +9,6 @@
         'cliente' => 'Un cliente o proveedor',
         'otro' => 'Otro',
     ];
-    $lugarLabels = [
-        'planta' => 'Planta de producción',
-        'oficina' => 'Oficina',
-        'sede_principal' => 'Sede principal',
-        'bodega' => 'Bodega / Almacén',
-        'externo' => 'Lugar externo a la empresa',
-        'virtual' => 'Entorno virtual / remoto',
-        'otro' => $lugar_libre ?? 'Otro',
-    ];
     $horarioLabels = ['si' => 'Sí', 'no' => 'No', 'parcial' => 'Parcialmente'];
     $trabajador = $trabajador_id ? \App\Models\Trabajador::find($trabajador_id) : null;
 
@@ -714,7 +705,7 @@
                 @endif
             </div>
 
-            {{-- Cuándo/dónde + Quién reporta --}}
+            {{-- Cuándo + Quién reporta --}}
             <div class="er-sec-grid" style="border-bottom:1px solid rgba(255,255,255,.07);">
                 <div class="er-section" data-color style="--sc:#34d399">
                     <div class="er-sec-header">
@@ -723,7 +714,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                         </svg>
-                        <p class="er-sec-label">Cuándo y dónde</p>
+                        <p class="er-sec-label">Cuándo</p>
                     </div>
                     <p class="er-sec-val {{ !$fecha ? 'empty' : '' }}">
                         {{ $fecha ? \Carbon\Carbon::parse($fecha)->format('d/m/Y') : 'Fecha no indicada' }}
@@ -732,9 +723,8 @@
                         @endif
                     </p>
                     <p class="er-sec-sub">
-                        {{ $lugarLabels[$lugar_tipo] ?? ($lugar_tipo ?: '—') }}
                         @if ($en_horario)
-                            &nbsp;·&nbsp; {{ $horarioLabels[$en_horario] ?? $en_horario }}
+                            {{ $horarioLabels[$en_horario] ?? $en_horario }}
                         @endif
                     </p>
                 </div>

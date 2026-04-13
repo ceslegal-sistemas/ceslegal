@@ -282,11 +282,11 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ]),
                 ]),
 
-            // ── Paso 2: Cuándo y dónde ───────────────────────────────────────
+            // ── Paso 2: Cuándo ocurrió ──────────────────────────────────────
             Step::make('cuando')
-                ->label('Cuándo y dónde')
-                ->description('Fecha, hora y lugar')
-                ->icon('heroicon-o-map-pin')
+                ->label('Cuándo')
+                ->description('Fecha y hora del hecho')
+                ->icon('heroicon-o-clock')
                 ->schema([
                     Forms\Components\Section::make()
                         ->schema([
@@ -308,12 +308,6 @@ class CreateProcesoDisciplinario extends CreateRecord
                             TimePickerField::make('hora_aproximada_hecho')
                                 ->label('Hora aproximada (opcional)')
                                 ->helperText('Horario Colombia (UTC-5)'),
-
-                            Forms\Components\TextInput::make('lugar_tipo')
-                                ->label('¿Dónde ocurrió?')
-                                ->placeholder('Ej: planta de producción, oficina de recursos humanos...')
-                                ->required()
-                                ->columnSpanFull(),
 
                             Forms\Components\Radio::make('en_horario_laboral')
                                 ->label('¿Ocurrió en horario laboral?')
@@ -538,8 +532,6 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         'descripcion'      => $get('descripcion_hecho'),
                                         'fecha'            => $get('fecha_hecho'),
                                         'hora'             => $get('hora_aproximada_hecho'),
-                                        'lugar_tipo'       => $get('lugar_tipo'),
-                                        'lugar_libre'      => $get('lugar_libre'),
                                         'en_horario'       => $get('en_horario_laboral'),
                                         'tiene_evidencias' => $get('tiene_evidencias'),
                                         'hubo_testigos'    => $get('hubo_testigos'),
@@ -701,21 +693,7 @@ class CreateProcesoDisciplinario extends CreateRecord
         try {
             $trabajador = Trabajador::find($trabajadorId);
 
-            // Construir texto de lugar
-            $lugarLabels = [
-                'planta'         => 'Planta de producción',
-                'oficina'        => 'Oficina',
-                'sede_principal' => 'Sede principal',
-                'bodega'         => 'Bodega / Almacén',
-                'externo'        => 'Lugar externo a la empresa',
-                'virtual'        => 'Entorno virtual / remoto',
-            ];
-            $lugarTipo  = $this->data['lugar_tipo'] ?? null;
-            $lugarHecho = $lugarTipo === 'otro'
-                ? ($this->data['lugar_libre'] ?? null)
-                : ($lugarLabels[$lugarTipo] ?? null);
-
-            // Construir texto de evidencias y contexto adicional
+            // Construir contexto adicional
             $partes = [];
 
             $testigos = $this->data['testigos'] ?? [];
@@ -734,7 +712,6 @@ class CreateProcesoDisciplinario extends CreateRecord
                 datosFormulario: [
                     'descripcion_hecho'      => $this->data['descripcion_hecho'] ?? '',
                     'fecha_hecho'            => $this->data['fecha_hecho'] ?? '',
-                    'lugar_hecho'            => $lugarHecho,
                     'trabajador_notifico'    => false,
                     'detalle_notificacion'   => null,
                     'evidencias_disponibles' => !empty($partes) ? implode('. ', $partes) : null,
@@ -763,15 +740,6 @@ class CreateProcesoDisciplinario extends CreateRecord
     private function buildContextoFormulario(): array
     {
         $contexto    = [];
-        $lugarLabels = [
-            'planta'         => 'Planta de producción',
-            'oficina'        => 'Oficina',
-            'sede_principal' => 'Sede principal',
-            'bodega'         => 'Bodega / Almacén',
-            'externo'        => 'Lugar externo a la empresa',
-            'virtual'        => 'Entorno virtual / remoto',
-        ];
-
         $empresaId = $this->data['empresa_id'] ?? null;
         if ($empresaId) {
             $e = Empresa::find($empresaId);
@@ -803,12 +771,6 @@ class CreateProcesoDisciplinario extends CreateRecord
         if (!empty($this->data['hora_aproximada_hecho'])) {
             $contexto['hora_hecho'] = \Carbon\Carbon::createFromFormat('H:i:s', $this->data['hora_aproximada_hecho'])
                 ->format('g:i A');
-        }
-        $lugarTipo = $this->data['lugar_tipo'] ?? null;
-        if ($lugarTipo) {
-            $contexto['lugar'] = $lugarTipo === 'otro'
-                ? ($this->data['lugar_libre'] ?? '')
-                : ($lugarLabels[$lugarTipo] ?? $lugarTipo);
         }
         $enHorario = $this->data['en_horario_laboral'] ?? null;
         if ($enHorario) {
@@ -1425,8 +1387,6 @@ class CreateProcesoDisciplinario extends CreateRecord
             $data['quien_reporta'],
             $data['fecha_hecho'],
             $data['hora_aproximada_hecho'],
-            $data['lugar_tipo'],
-            $data['lugar_libre'],
             $data['en_horario_laboral'],
             $data['tiene_evidencias'],
             $data['hubo_testigos'],
