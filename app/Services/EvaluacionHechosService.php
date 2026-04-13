@@ -105,7 +105,7 @@ class EvaluacionHechosService
         $detalle    = $datosFormulario['detalle_notificacion']
             ? "\n  Justificación: " . $datosFormulario['detalle_notificacion']
             : '';
-        $lugar      = $datosFormulario['lugar_hecho']
+        $lugar      = !empty($datosFormulario['lugar_hecho'] ?? null)
             ? "\n- Lugar: " . $datosFormulario['lugar_hecho']
             : '';
         $evidencias = $datosFormulario['evidencias_disponibles']
