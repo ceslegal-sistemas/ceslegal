@@ -114,7 +114,6 @@
     cursor: pointer;
     transition: transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s ease;
     position: relative;
-    overflow: hidden;
     transform-style: preserve-3d;
     display: flex;
     flex-direction: column;
@@ -417,7 +416,7 @@ html:not(.dark) .ps-trial-pill {
     </div>
 
     {{-- ── Grid de planes ─────────────────────────────────────────── --}}
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.875rem;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.875rem;padding-top:1rem;">
 
         @foreach ($planes_config as $p)
         <div
@@ -462,23 +461,40 @@ html:not(.dark) .ps-trial-pill {
                 @endif
 
                 {{-- Precio --}}
-                <div style="margin-top:.5rem;min-height:3rem;">
+                <div style="margin-top:.5rem;min-height:3.5rem;">
                     @if($p['key'] === 'basico')
+                    {{-- Básico: trial pill + precio --}}
                     <div class="ps-trial-pill">
                         <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         7 días gratis
                     </div>
-                    <p class="ps-t-sub">
-                        luego <span style="font-weight:700;" x-text="fmt(precio('basico'))"></span> / <span x-text="periodo()"></span>
+                    {{-- Mensual --}}
+                    <p class="ps-t-sub" x-show="ciclo === 'mensual'">
+                        luego <span style="font-weight:700;color:#f1f5f9;" x-text="fmt(planes.basico.mensual)"></span> / mes
                     </p>
+                    {{-- Anual: tachado + precio anual --}}
+                    <div x-show="ciclo === 'anual'" style="line-height:1.3;">
+                        <p class="ps-t-sub" style="margin:0;">
+                            luego
+                            <span style="text-decoration:line-through;opacity:.45;" x-text="fmt(planes.basico.mensual * 12)"></span>
+                            <span style="font-weight:700;color:#34d399;" x-text="fmt(planes.basico.anual)"></span>
+                            / año
+                        </p>
+                    </div>
                     @else
-                    <p class="ps-t-price" x-text="fmt(precio('{{ $p['key'] }}'))"></p>
-                    <p class="ps-t-sub">
-                        por <span x-text="periodo()"></span>
-                        <span x-show="ciclo === 'anual'" style="color:#34d399;font-weight:600;">&nbsp;· 15 % dto.</span>
-                    </p>
+                    {{-- Pro / Firma: mensual --}}
+                    <div x-show="ciclo === 'mensual'">
+                        <p class="ps-t-price" x-text="fmt(planes.{{ $p['key'] }}.mensual)"></p>
+                        <p class="ps-t-sub">/ mes</p>
+                    </div>
+                    {{-- Pro / Firma: anual con tachado --}}
+                    <div x-show="ciclo === 'anual'">
+                        <p style="font-size:.78rem;text-decoration:line-through;opacity:.4;margin:0;color:#94a3b8;" x-text="fmt(planes.{{ $p['key'] }}.mensual * 12)"></p>
+                        <p class="ps-t-price" style="color:#34d399;" x-text="fmt(planes.{{ $p['key'] }}.anual)"></p>
+                        <p class="ps-t-sub">/ año · <span style="color:#34d399;font-weight:700;">ahorras 15 %</span></p>
+                    </div>
                     @endif
                 </div>
 
