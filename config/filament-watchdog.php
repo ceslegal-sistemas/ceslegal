@@ -89,11 +89,10 @@ return [
         'enabled' => true,
         'email_enabled' => true,
         'email_recipients' => [
-            'jprendon9@gmail.com', // Vervang met jouw email
+            'jprendon9@gmail.com',
         ],
         'admin_emails' => [
-            'jprendon9@gmail.com',     // Vervang met jouw admin email
-            'jprendon9@gmail.com',  // Vervang met jouw security email
+            'jprendon9@gmail.com',
         ],
         'alert_levels' => [
             'low' => 1,
