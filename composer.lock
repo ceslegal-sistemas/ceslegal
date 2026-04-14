@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7473382544fa45c7f4ccb62679f6ff86",
+    "content-hash": "9959632567a6981f5e69b7fe9405d5ca",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -4097,67 +4097,6 @@
                 "source": "https://github.com/Masterminds/html5-php/tree/2.10.0"
             },
             "time": "2025-07-25T09:04:22+00:00"
-        },
-        {
-            "name": "mkwebdesign/filament-watchdog",
-            "version": "v1.0.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/MKWebDesign/filament-watchdog.git",
-                "reference": "18619bc639e320462601bfb29150d8510c6a1869"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/MKWebDesign/filament-watchdog/zipball/18619bc639e320462601bfb29150d8510c6a1869",
-                "reference": "18619bc639e320462601bfb29150d8510c6a1869",
-                "shasum": ""
-            },
-            "require": {
-                "filament/filament": "^3.3",
-                "guzzlehttp/guzzle": "^7.0",
-                "illuminate/contracts": "^11.0|^12.0",
-                "illuminate/database": "^11.0|^12.0",
-                "illuminate/mail": "^11.0|^12.0",
-                "illuminate/support": "^11.0|^12.0",
-                "php": "^8.2"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "MKWebDesign\\FilamentWatchdog\\FilamentWatchdogServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "MKWebDesign\\FilamentWatchdog\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Martin Knops",
-                    "email": "info@mkwebdesign.nl",
-                    "homepage": "https://mkwebdesign.nl"
-                }
-            ],
-            "description": "Advanced security monitoring and intrusion detection plugin for FilamentPHP",
-            "keywords": [
-                "filament",
-                "intrusion-detection",
-                "malware",
-                "monitoring",
-                "security"
-            ],
-            "support": {
-                "issues": "https://github.com/MKWebDesign/filament-watchdog/issues",
-                "source": "https://github.com/MKWebDesign/filament-watchdog/tree/v1.0.0"
-            },
-            "time": "2025-07-18T14:55:37+00:00"
         },
         {
             "name": "moataz-01/filament-notification-sound",

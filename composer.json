@@ -18,7 +18,6 @@
         "laravel/tinker": "^2.10.1",
         "marcelweidum/filament-expiration-notice": "^1.0",
         "martinpetricko/filament-sentry-feedback": "^1.0",
-        "mkwebdesign/filament-watchdog": "1.0",
         "moataz-01/filament-notification-sound": "^1.0",
         "phpoffice/phpspreadsheet": "^5.4",
         "phpoffice/phpword": "^1.4",

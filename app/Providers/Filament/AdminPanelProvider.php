@@ -22,9 +22,6 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use MartinPetricko\FilamentSentryFeedback\Enums\ColorScheme;
-use MartinPetricko\FilamentSentryFeedback\FilamentSentryFeedbackPlugin;
-use MKWebDesign\FilamentWatchdog\FilamentWatchdogPlugin;
 use Moataz01\FilamentNotificationSound\FilamentNotificationSoundPlugin;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
@@ -102,13 +99,6 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugins([
                 FilamentShieldPlugin::make(),
-                // FilamentWatchdogPlugin::make(),
-                // FilamentSentryFeedbackPlugin::make()
-                //     ->colorScheme(ColorScheme::Auto)
-                //     ->showBranding(false)
-                //     ->showName(true)
-                //     ->showEmail(true)   
-                //     ->enableScreenshot(true),
                 LightSwitchPlugin::make(),
                 FilamentNotificationSoundPlugin::make()
                     ->volume(1.0) // Volume (0.0 to 1.0)
