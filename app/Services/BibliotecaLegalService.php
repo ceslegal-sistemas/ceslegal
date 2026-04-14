@@ -45,7 +45,7 @@ class BibliotecaLegalService
             $texto = $this->extraerTexto($documento);
 
             if (empty(trim($texto))) {
-                throw new \RuntimeException('No se pudo extraer texto del documento. Verifique que el PDF no sea solo imágenes escaneadas.');
+                throw new \RuntimeException('No se pudo extraer texto del documento. El archivo puede estar dañado o protegido.');
             }
 
             // 2. Fragmentar
@@ -200,11 +200,142 @@ class BibliotecaLegalService
 
     protected function extraerTextoPDF(string $ruta): string
     {
-        $parser = new \Smalot\PdfParser\Parser();
-        $pdf    = $parser->parseFile($ruta);
-        $texto  = $pdf->getText();
+        // 1. Intentar extracción de texto nativa (PDF con texto embebido)
+        try {
+            $parser = new \Smalot\PdfParser\Parser();
+            $pdf    = $parser->parseFile($ruta);
+            $texto  = $this->limpiarTexto($pdf->getText());
 
-        return $this->limpiarTexto($texto);
+            if (mb_strlen($texto) >= 200) {
+                return $texto;
+            }
+        } catch (\Throwable $e) {
+            Log::info('BibliotecaLegal: parser PDF falló, usando Gemini Vision', ['error' => $e->getMessage()]);
+        }
+
+        // 2. Fallback: PDF escaneado → Gemini Vision
+        if (empty($this->apiKey)) {
+            throw new \RuntimeException('PDF sin texto extraíble y sin API key para usar Vision. Configure la clave de Gemini.');
+        }
+
+        Log::info('BibliotecaLegal: PDF escaneado detectado, usando Gemini Vision', ['archivo' => basename($ruta)]);
+        return $this->extraerTextoConGeminiVision($ruta);
+    }
+
+    protected function extraerTextoConGeminiVision(string $ruta): string
+    {
+        $tamano = filesize($ruta);
+
+        // PDFs grandes (>15 MB) → Files API de Gemini
+        if ($tamano > 15 * 1024 * 1024) {
+            return $this->extraerTextoConGeminiFilesAPI($ruta);
+        }
+
+        // PDFs pequeños/medianos → inline base64
+        $base64 = base64_encode(file_get_contents($ruta));
+
+        $response = Http::timeout(180)
+            ->post(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$this->apiKey}",
+                [
+                    'contents' => [[
+                        'parts' => [
+                            [
+                                'inline_data' => [
+                                    'mime_type' => 'application/pdf',
+                                    'data'      => $base64,
+                                ],
+                            ],
+                            [
+                                'text' => 'Extrae TODO el texto de este documento de forma literal y completa. No resumas ni omitas nada. Transcribe el contenido íntegro tal como aparece. Devuelve SOLO el texto extraído, sin comentarios ni explicaciones adicionales.',
+                            ],
+                        ],
+                    ]],
+                ]
+            );
+
+        if ($response->successful()) {
+            $texto = $response->json('candidates.0.content.parts.0.text') ?? '';
+            return $this->limpiarTexto($texto);
+        }
+
+        Log::warning('BibliotecaLegal: Gemini Vision inline falló', [
+            'status' => $response->status(),
+            'body'   => substr($response->body(), 0, 300),
+        ]);
+
+        throw new \RuntimeException(
+            'No se pudo extraer texto del PDF. Status: ' . $response->status()
+        );
+    }
+
+    protected function extraerTextoConGeminiFilesAPI(string $ruta): string
+    {
+        $contenido     = file_get_contents($ruta);
+        $tamano        = strlen($contenido);
+        $nombreArchivo = basename($ruta);
+
+        // 1. Iniciar subida resumable
+        $initResponse = Http::withHeaders([
+            'X-Goog-Upload-Protocol'              => 'resumable',
+            'X-Goog-Upload-Command'               => 'start',
+            'X-Goog-Upload-Header-Content-Length' => $tamano,
+            'X-Goog-Upload-Header-Content-Type'   => 'application/pdf',
+            'Content-Type'                         => 'application/json',
+        ])->post(
+            "https://generativelanguage.googleapis.com/upload/v1beta/files?key={$this->apiKey}",
+            ['file' => ['display_name' => $nombreArchivo]]
+        );
+
+        if (!$initResponse->successful()) {
+            throw new \RuntimeException('No se pudo iniciar subida a Gemini Files API.');
+        }
+
+        $uploadUrl = $initResponse->header('X-Goog-Upload-URL');
+
+        // 2. Subir el archivo completo
+        $uploadResponse = Http::timeout(120)->withHeaders([
+            'Content-Length'         => $tamano,
+            'X-Goog-Upload-Offset'   => '0',
+            'X-Goog-Upload-Command'  => 'upload, finalize',
+        ])->withBody($contenido, 'application/pdf')->put($uploadUrl);
+
+        if (!$uploadResponse->successful()) {
+            throw new \RuntimeException('Error subiendo PDF a Gemini Files API.');
+        }
+
+        $fileUri  = $uploadResponse->json('file.uri');
+        $fileName = $uploadResponse->json('file.name'); // e.g. "files/abc123"
+
+        try {
+            // 3. Extraer texto desde el archivo subido
+            $response = Http::timeout(180)->post(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$this->apiKey}",
+                [
+                    'contents' => [[
+                        'parts' => [
+                            ['file_data' => ['mime_type' => 'application/pdf', 'file_uri' => $fileUri]],
+                            ['text' => 'Extrae TODO el texto de este documento de forma literal y completa. No resumas ni omitas nada. Transcribe el contenido íntegro tal como aparece. Devuelve SOLO el texto extraído, sin comentarios ni explicaciones adicionales.'],
+                        ],
+                    ]],
+                ]
+            );
+
+            if (!$response->successful()) {
+                throw new \RuntimeException('Gemini Vision no pudo leer el PDF. Status: ' . $response->status());
+            }
+
+            $texto = $response->json('candidates.0.content.parts.0.text') ?? '';
+            return $this->limpiarTexto($texto);
+
+        } finally {
+            // 4. Eliminar el archivo de Gemini (se auto-elimina a las 48h pero limpiamos ya)
+            if ($fileName) {
+                Http::delete(
+                    "https://generativelanguage.googleapis.com/v1beta/{$fileName}?key={$this->apiKey}"
+                );
+            }
+        }
     }
 
     protected function extraerTextoDocx(string $ruta): string
