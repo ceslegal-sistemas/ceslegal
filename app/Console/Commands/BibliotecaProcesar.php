@@ -41,7 +41,7 @@ class BibliotecaProcesar extends Command
         // Procesar pendientes (o todos si --todos)
         $query = DocumentoLegal::activos();
         if (!$todos) {
-            $query->whereIn('estado', ['pendiente', 'error']);
+            $query->where('estado', '!=', 'procesado');
         }
 
         $documentos = $query->get();
