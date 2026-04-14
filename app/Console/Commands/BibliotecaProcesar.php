@@ -28,6 +28,16 @@ class BibliotecaProcesar extends Command
             return $this->procesarUno($documento, $biblioteca);
         }
 
+        // Resetear documentos atascados en "procesando" por más de 10 minutos
+        $atascados = DocumentoLegal::where('estado', 'procesando')
+            ->where('updated_at', '<', now()->subMinutes(10))
+            ->get();
+
+        foreach ($atascados as $doc) {
+            $doc->update(['estado' => 'pendiente']);
+            $this->line("  ↺ Reseteado (atascado): <comment>{$doc->titulo}</comment>");
+        }
+
         // Procesar pendientes (o todos si --todos)
         $query = DocumentoLegal::activos();
         if (!$todos) {
