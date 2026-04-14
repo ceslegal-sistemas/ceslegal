@@ -4,7 +4,6 @@ namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\BibliotecaLegalResource\Pages;
 use App\Models\DocumentoLegal;
-use App\Services\BibliotecaLegalService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -191,29 +190,21 @@ class BibliotecaLegalResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make('procesar')
-                    ->label('Procesar')
+                    ->label(fn(DocumentoLegal $record) => $record->estado === 'procesando' ? 'Procesando...' : 'Encolar')
                     ->icon('heroicon-o-cpu-chip')
                     ->color('primary')
+                    ->disabled(fn(DocumentoLegal $record) => $record->estado === 'procesando')
                     ->requiresConfirmation()
-                    ->modalHeading('Procesar documento')
-                    ->modalDescription('Se extraerá el texto, se fragmentará y se generarán los embeddings. Esto puede tomar unos segundos por MB de archivo.')
-                    ->modalSubmitActionLabel('Sí, procesar')
+                    ->modalHeading('Encolar documento para procesar')
+                    ->modalDescription('El documento se marcará como pendiente y el sistema lo procesará en el próximo ciclo del cron (máx. 5 minutos). No cierre esta ventana mientras espera — recargue la página pasados unos minutos.')
+                    ->modalSubmitActionLabel('Encolar')
                     ->action(function (DocumentoLegal $record) {
-                        try {
-                            app(BibliotecaLegalService::class)->procesarDocumento($record);
-                            $record->refresh();
-                            Notification::make()
-                                ->success()
-                                ->title('Documento procesado')
-                                ->body("{$record->total_fragmentos} fragmentos · {$record->total_palabras} palabras")
-                                ->send();
-                        } catch (\Throwable $e) {
-                            Notification::make()
-                                ->danger()
-                                ->title('Error al procesar')
-                                ->body($e->getMessage())
-                                ->send();
-                        }
+                        $record->update(['estado' => 'pendiente', 'error_mensaje' => null]);
+                        Notification::make()
+                            ->success()
+                            ->title('Documento encolado')
+                            ->body('Se procesará en el próximo ciclo. Recargue la página en 1-2 minutos para ver el resultado.')
+                            ->send();
                     }),
 
                 Tables\Actions\Action::make('ver_error')
@@ -239,28 +230,20 @@ class BibliotecaLegalResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\BulkAction::make('procesar_seleccionados')
-                        ->label('Procesar seleccionados')
+                        ->label('Encolar seleccionados')
                         ->icon('heroicon-o-cpu-chip')
                         ->color('primary')
                         ->requiresConfirmation()
                         ->action(function ($records) {
-                            $servicio = app(BibliotecaLegalService::class);
-                            $exitosos = 0;
-                            $fallidos = 0;
-
+                            $total = 0;
                             foreach ($records as $doc) {
-                                try {
-                                    $servicio->procesarDocumento($doc);
-                                    $exitosos++;
-                                } catch (\Throwable $e) {
-                                    $fallidos++;
-                                }
+                                $doc->update(['estado' => 'pendiente', 'error_mensaje' => null]);
+                                $total++;
                             }
-
                             Notification::make()
                                 ->success()
-                                ->title("Procesamiento completado")
-                                ->body("{$exitosos} exitoso(s), {$fallidos} fallido(s).")
+                                ->title("{$total} documento(s) encolados")
+                                ->body('Se procesarán en el próximo ciclo del cron. Recargue en 1-2 minutos.')
                                 ->send();
                         }),
 
