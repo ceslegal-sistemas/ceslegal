@@ -102,7 +102,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugins([
                 FilamentShieldPlugin::make(),
-                // FilamentWatchdogPlugin::make(),
+                FilamentWatchdogPlugin::make(),
                 // FilamentSentryFeedbackPlugin::make()
                 //     ->colorScheme(ColorScheme::Auto)
                 //     ->showBranding(false)
