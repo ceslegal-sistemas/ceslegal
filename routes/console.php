@@ -13,3 +13,17 @@ Schedule::command('procesos:actualizar-estados-descargos')
     ->everyFiveMinutes()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Procesar documentos pendientes de la Biblioteca Legal
+Schedule::command('biblioteca:procesar --todos')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Sincronizar nuevas sentencias desde fuentes oficiales (semanal)
+Schedule::command('biblioteca:sincronizar --limite=15')
+    ->weekly()
+    ->sundays()
+    ->at('03:00')
+    ->withoutOverlapping()
+    ->runInBackground();
