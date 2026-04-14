@@ -482,6 +482,9 @@ html:not(.dark) .ps-trial-pill {
                             <span style="font-weight:700;color:#34d399;" x-text="fmt(planes.basico.anual)"></span>
                             / año
                         </p>
+                        <p class="ps-t-sub" style="margin:.1rem 0 0;">
+                            <span style="color:#34d399;font-weight:700;" x-text="'ahorras ' + fmt(planes.basico.mensual * 12 - planes.basico.anual)"></span>
+                        </p>
                     </div>
                     @else
                     {{-- Pro / Firma: mensual --}}
@@ -493,7 +496,7 @@ html:not(.dark) .ps-trial-pill {
                     <div x-show="ciclo === 'anual'">
                         <p style="font-size:.78rem;text-decoration:line-through;opacity:.4;margin:0;color:#94a3b8;" x-text="fmt(planes.{{ $p['key'] }}.mensual * 12)"></p>
                         <p class="ps-t-price" style="color:#34d399;" x-text="fmt(planes.{{ $p['key'] }}.anual)"></p>
-                        <p class="ps-t-sub">/ año · <span style="color:#34d399;font-weight:700;">ahorras 15 %</span></p>
+                        <p class="ps-t-sub">/ año · <span style="color:#34d399;font-weight:700;" x-text="'ahorras ' + fmt(planes.{{ $p['key'] }}.mensual * 12 - planes.{{ $p['key'] }}.anual)"></span></p>
                     </div>
                     @endif
                 </div>
