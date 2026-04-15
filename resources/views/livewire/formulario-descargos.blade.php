@@ -716,7 +716,7 @@
                                             <p class="text-gray-900">
                                                 @if($feedbackPaso === 1) ¿Cómo fue su experiencia usando la aplicación?
                                                 @elseif($feedbackPaso === 2) ¿Encontró algo confuso durante el proceso?
-                                                @elseif($feedbackPaso === 3) ¿Qué cambiaría o mejoraría?
+                                                @elseif($feedbackPaso === 3) ¿Qué cambiaría o mejoraría del proceso?
                                                 @elseif($feedbackPaso === 4) ¿Las preguntas del formulario fueron claras?
                                                 @elseif($feedbackPaso === 5) ¿Pudo completar el proceso sin ayuda?
                                                 @endif
@@ -757,7 +757,8 @@
                                     @elseif($feedbackPaso === 3)
                                         <textarea wire:model="fbQueCambiaria" rows="4"
                                             class="w-full text-base border-gray-300 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 resize-none"
-                                            placeholder="Escriba aquí sus sugerencias... (opcional)"></textarea>
+                                            placeholder="Escriba aquí sus sugerencias..."></textarea>
+                                        <p class="mt-1 text-xs text-gray-500">Este campo es obligatorio para continuar.</p>
 
                                     @elseif($feedbackPaso === 4)
                                         <div class="flex gap-3">

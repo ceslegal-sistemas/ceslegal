@@ -581,6 +581,12 @@ class FormularioDescargos extends Component
             return;
         }
 
+        // Paso 3: sugerencia de texto obligatoria
+        if ($this->feedbackPaso === 3 && trim($this->fbQueCambiaria) === '') {
+            $this->addError('fb', 'Por favor escriba su sugerencia para continuar.');
+            return;
+        }
+
         $this->resetErrorBag('fb');
         $this->feedbackPaso++;
 
@@ -616,10 +622,6 @@ class FormularioDescargos extends Component
      */
     private function guardarFeedbackOrganico(): void
     {
-        if ($this->fbExperiencia === '') {
-            return; // El trabajador no respondió ninguna pregunta de feedback
-        }
-
         try {
             $calificacionMap = ['muy_buena' => 5, 'buena' => 4, 'mala' => 2, 'muy_mala' => 1];
 
