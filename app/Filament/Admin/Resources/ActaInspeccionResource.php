@@ -7,7 +7,6 @@ use App\Models\ActaInspeccion;
 use App\Models\Empresa;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -26,15 +25,13 @@ class ActaInspeccionResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         $role = auth()->user()?->role;
-        return in_array($role, ['super_admin', 'admin', 'abogado', 'cliente']);
+        return in_array($role, ['super_admin', 'abogado']);
     }
 
     // ─── Formulario ──────────────────────────────────────────────────────
 
     public static function form(Form $form): Form
     {
-        $user = auth()->user();
-
         return $form->schema([
 
             Forms\Components\Section::make('Información del Acta')
@@ -50,16 +47,10 @@ class ActaInspeccionResource extends Resource
 
                     Forms\Components\Select::make('empresa_id')
                         ->label('Empresa')
-                        ->options(fn () => $user->isCliente()
-                            ? Empresa::where('id', $user->empresa_id)->pluck('razon_social', 'id')
-                            : Empresa::orderBy('razon_social')->pluck('razon_social', 'id')
-                        )
-                        ->default(fn () => $user->isCliente() ? $user->empresa_id : null)
-                        ->disabled(fn () => $user->isCliente())
-                        ->dehydrated()
+                        ->options(fn () => Empresa::orderBy('razon_social')->pluck('razon_social', 'id'))
                         ->required()
                         ->searchable()
-                        ->columnSpan($user->isCliente() ? 1 : 1),
+                        ->columnSpan(1),
 
                     Forms\Components\Select::make('estado')
                         ->label('Estado')
@@ -194,8 +185,7 @@ class ActaInspeccionResource extends Resource
                 Tables\Columns\TextColumn::make('empresa.razon_social')
                     ->label('Empresa')
                     ->searchable()
-                    ->limit(30)
-                    ->visible(fn () => !auth()->user()->isCliente()),
+                    ->limit(30),
 
                 Tables\Columns\TextColumn::make('fecha')
                     ->label('Fecha')
@@ -278,15 +268,4 @@ class ActaInspeccionResource extends Resource
         ];
     }
 
-    public static function getEloquentQuery(): Builder
-    {
-        $query = parent::getEloquentQuery();
-        $user  = auth()->user();
-
-        if ($user->isCliente() && $user->empresa_id) {
-            $query->where('empresa_id', $user->empresa_id);
-        }
-
-        return $query;
-    }
 }
