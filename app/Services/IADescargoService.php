@@ -360,13 +360,13 @@ PROMPT;
     {
         $apiKey = $this->config['api_key'];
 
-        // Cadena de modelos: preferir flash-lite (más rápido y barato para generar preguntas),
-        // luego el modelo configurado, y por último 1.5-flash como fallback estable.
-        $modeloPrincipal = $this->config['model'] ?? 'gemini-2.5-flash';
+        $modeloPrincipal = $this->config['model'] ?? 'gemini-1.5-flash';
+        // Orden: los más estables primero. 1.5-flash y 2.0-flash son los más confiables
+        // en producción. Los modelos 2.5 son experimentales y se saturan con frecuencia.
         $modelos = array_unique(array_filter([
-            'gemini-2.5-flash-lite',
-            $modeloPrincipal,
             'gemini-1.5-flash',
+            'gemini-2.0-flash',
+            $modeloPrincipal,
         ]));
 
         $payload = [
