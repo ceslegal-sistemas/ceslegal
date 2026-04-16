@@ -17,6 +17,10 @@ class IADescargoService
     protected string $provider;
     protected array $config;
 
+    // Control de timeout y reintentos — se ajustan según el modo de uso
+    protected int $timeoutSegundos = 20;  // para generación en batch
+    protected int $maxReintentos   = 2;   // para generación en batch
+
     // Límite máximo de preguntas totales por diligencia
     const LIMITE_MAXIMO_PREGUNTAS = 30;
 
@@ -71,6 +75,11 @@ class IADescargoService
             ]);
             return [];
         }
+
+        // Modo realtime: falla rápido para no bloquear el formulario del trabajador.
+        // 7s por modelo (4 modelos = 28s máx si todos fallan), sin reintentos.
+        $this->timeoutSegundos = 7;
+        $this->maxReintentos   = 0;
 
         $contexto = $this->construirContexto($diligencia);
         $prompt = $this->construirPromptGeneracionPreguntas($contexto, $preguntaRespondida, $respuesta);
@@ -290,13 +299,12 @@ PROMPT;
      */
     protected function llamarIA(string $prompt): string
     {
-        $maxReintentos = 2;
-        $ultimoError   = null;
+        $ultimoError = null;
 
-        for ($intento = 0; $intento <= $maxReintentos; $intento++) {
+        for ($intento = 0; $intento <= $this->maxReintentos; $intento++) {
             try {
                 if ($intento > 0) {
-                    Log::warning("Reintentando llamada a IA (intento {$intento}/{$maxReintentos})", [
+                    Log::warning("Reintentando llamada a IA (intento {$intento}/{$this->maxReintentos})", [
                         'provider'     => $this->provider,
                         'error_previo' => substr($ultimoError->getMessage(), 0, 200),
                     ]);
@@ -429,7 +437,7 @@ PROMPT;
 
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
-            ])->timeout(20)->post($url, $payload);
+            ])->timeout($this->timeoutSegundos)->post($url, $payload);
 
             // En 503/404 pasar al siguiente modelo
             if (in_array($response->status(), [503, 404])) {
