@@ -1498,6 +1498,15 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->title('Citación enviada')
                                 ->body('La citación fue generada y enviada al correo del trabajador. El proceso pasó a estado "Citación enviada".')
                                 ->send();
+
+                            if (empty($result['preguntas_ia_generadas'])) {
+                                \Filament\Notifications\Notification::make()
+                                    ->warning()
+                                    ->title('Preguntas IA no generadas')
+                                    ->body('La IA no pudo generar preguntas en este momento. Use el botón "Regenerar preguntas IA" en el módulo de Descargos para intentarlo de nuevo.')
+                                    ->persistent()
+                                    ->send();
+                            }
                         } else {
                             \Filament\Notifications\Notification::make()
                                 ->danger()
@@ -1550,6 +1559,15 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->title('¡Citación enviada!')
                                 ->body('La citación se generó y envió exitosamente al correo del trabajador.')
                                 ->send();
+
+                            if (empty($result['preguntas_ia_generadas'])) {
+                                \Filament\Notifications\Notification::make()
+                                    ->warning()
+                                    ->title('Preguntas IA no generadas')
+                                    ->body('La IA no pudo generar preguntas en este momento. Use el botón "Regenerar preguntas IA" en el módulo de Descargos para intentarlo de nuevo.')
+                                    ->persistent()
+                                    ->send();
+                            }
                         } else {
                             \Filament\Notifications\Notification::make()
                                 ->danger()

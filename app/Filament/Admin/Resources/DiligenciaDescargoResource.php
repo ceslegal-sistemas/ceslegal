@@ -417,6 +417,45 @@ class DiligenciaDescargoResource extends Resource
                         })
                         ->visible(fn(DiligenciaDescargo $record) => !empty($record->token_acceso)),
 
+                    Tables\Actions\Action::make('regenerar_preguntas_ia')
+                        ->label('Regenerar preguntas IA')
+                        ->icon('heroicon-o-cpu-chip')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalHeading('¿Regenerar preguntas con IA?')
+                        ->modalDescription('Se generarán nuevas preguntas de IA y se insertarán antes de las preguntas de cierre. Las preguntas existentes de IA serán eliminadas primero.')
+                        ->modalSubmitActionLabel('Regenerar')
+                        ->action(function (DiligenciaDescargo $record) {
+                            // Eliminar preguntas de IA anteriores
+                            $record->preguntas()->where('es_generada_por_ia', true)->delete();
+
+                            // Regenerar
+                            try {
+                                $iaService = new \App\Services\IADescargoService();
+                                $nuevas    = $iaService->generarPreguntasIA($record, 2);
+
+                                if (count($nuevas) > 0) {
+                                    Notification::make()
+                                        ->success()
+                                        ->title('Preguntas IA generadas')
+                                        ->body(count($nuevas) . ' pregunta(s) generadas exitosamente.')
+                                        ->send();
+                                } else {
+                                    Notification::make()
+                                        ->warning()
+                                        ->title('Sin preguntas IA')
+                                        ->body('La IA respondió NO_REQUIERE o no pudo generar preguntas. Intente de nuevo más tarde.')
+                                        ->send();
+                                }
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Error al generar preguntas IA')
+                                    ->body('Servicio de IA no disponible en este momento. Intente más tarde.')
+                                    ->send();
+                            }
+                        }),
+
                     Tables\Actions\Action::make('regenerar_acta')
                         ->label('Regenerar Acta')
                         ->icon('heroicon-o-arrow-path')
