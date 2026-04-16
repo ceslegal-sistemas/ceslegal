@@ -514,17 +514,19 @@ HTML;
                 ]
             );
 
-            // Generar token de acceso si no existe
-            if (!$diligencia->token_acceso) {
-                $diligencia->generarTokenAcceso();
-            }
-
-            // Configurar acceso temporal
+            // Configurar fecha de acceso ANTES de generar el token
+            // (generarTokenAcceso usa fecha_acceso_permitida para calcular la expiración)
             $diligencia->fecha_acceso_permitida = $proceso->fecha_descargos_programada
                 ? Carbon::parse($proceso->fecha_descargos_programada)->toDateString()
                 : now()->toDateString();
             $diligencia->acceso_habilitado = true;
-            $diligencia->save();
+
+            // Generar token de acceso si no existe
+            if (!$diligencia->token_acceso) {
+                $diligencia->generarTokenAcceso(); // guarda internamente
+            } else {
+                $diligencia->save();
+            }
 
             // Intentar generar preguntas completas (estándar + IA + cierre) si no existen
             $preguntasGeneradasConIA = false;

@@ -76,7 +76,14 @@ class DiligenciaDescargo extends Model
     public function generarTokenAcceso(): string
     {
         $this->token_acceso = bin2hex(random_bytes(32));
-        $this->token_expira_en = now()->addDays(6);
+
+        // Expira al final del día permitido. Si no hay fecha, 30 días de margen.
+        if ($this->fecha_acceso_permitida) {
+            $this->token_expira_en = Carbon::parse($this->fecha_acceso_permitida)->endOfDay();
+        } else {
+            $this->token_expira_en = now()->addDays(30);
+        }
+
         $this->save();
 
         return $this->token_acceso;
