@@ -360,12 +360,14 @@ PROMPT;
     {
         $apiKey = $this->config['api_key'];
 
-        $modeloPrincipal = $this->config['model'] ?? 'gemini-1.5-flash';
-        // Orden: los más estables primero. 1.5-flash y 2.0-flash son los más confiables
-        // en producción. Los modelos 2.5 son experimentales y se saturan con frecuencia.
+        $modeloPrincipal = $this->config['model'] ?? 'gemini-2.0-flash';
+        // Orden: más ligeros primero para minimizar 503 bajo alta demanda.
+        // 2.0-flash-lite y 2.0-flash son los más estables disponibles.
+        // 2.5-flash y 2.5-pro se saturan con frecuencia.
         $modelos = array_unique(array_filter([
-            'gemini-1.5-flash',
+            'gemini-2.0-flash-lite',
             'gemini-2.0-flash',
+            'gemini-2.5-flash',
             $modeloPrincipal,
         ]));
 
