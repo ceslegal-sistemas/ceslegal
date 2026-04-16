@@ -454,30 +454,35 @@ class BibliotecaLegalService
             return null;
         }
 
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/" . self::EMBEDDING_MODEL . ":embedContent?key={$this->apiKey}";
+        // Cachear por texto + taskType: mismo texto nunca necesita recalcularse en 24h.
+        $cacheKey = 'emb_' . $taskType . '_' . md5($texto);
 
-        try {
-            $response = Http::timeout(20)->post($url, [
-                'model'   => 'models/' . self::EMBEDDING_MODEL,
-                'content' => ['parts' => [['text' => mb_substr($texto, 0, 8000)]]],
-                'taskType' => $taskType,
-            ]);
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(24), function () use ($texto, $taskType) {
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/" . self::EMBEDDING_MODEL . ":embedContent?key={$this->apiKey}";
 
-            if (!$response->successful()) {
-                Log::warning('BibliotecaLegal: embedding API error', [
-                    'status' => $response->status(),
-                    'body'   => substr($response->body(), 0, 300),
+            try {
+                $response = Http::timeout(20)->post($url, [
+                    'model'   => 'models/' . self::EMBEDDING_MODEL,
+                    'content' => ['parts' => [['text' => mb_substr($texto, 0, 8000)]]],
+                    'taskType' => $taskType,
                 ]);
+
+                if (!$response->successful()) {
+                    Log::warning('BibliotecaLegal: embedding API error', [
+                        'status' => $response->status(),
+                        'body'   => substr($response->body(), 0, 300),
+                    ]);
+                    return null;
+                }
+
+                $values = $response->json('embedding.values');
+                return is_array($values) && !empty($values) ? $values : null;
+
+            } catch (\Throwable $e) {
+                Log::warning('BibliotecaLegal: embedding excepción', ['error' => $e->getMessage()]);
                 return null;
             }
-
-            $values = $response->json('embedding.values');
-            return is_array($values) && !empty($values) ? $values : null;
-
-        } catch (\Throwable $e) {
-            Log::warning('BibliotecaLegal: embedding excepción', ['error' => $e->getMessage()]);
-            return null;
-        }
+        });
     }
 
     protected function cosineSimilarity(array $a, array $b): float

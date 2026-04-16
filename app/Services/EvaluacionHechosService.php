@@ -747,23 +747,29 @@ SYSTEM;
             return null;
         }
 
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={$apiKey}";
+        // Cachear por hash: los hechos del proceso no cambian, no tiene sentido
+        // recalcular el embedding cada vez que se evalúan.
+        $cacheKey = 'emb_query_' . md5($texto);
 
-        try {
-            $response = Http::timeout(10)->post($url, [
-                'content'  => ['parts' => [['text' => $texto]]],
-                'taskType' => 'RETRIEVAL_QUERY',
-            ]);
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(24), function () use ($texto, $apiKey) {
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={$apiKey}";
 
-            if (!$response->successful()) {
+            try {
+                $response = Http::timeout(10)->post($url, [
+                    'content'  => ['parts' => [['text' => $texto]]],
+                    'taskType' => 'RETRIEVAL_QUERY',
+                ]);
+
+                if (!$response->successful()) {
+                    return null;
+                }
+
+                $values = $response->json('embedding.values');
+                return is_array($values) && !empty($values) ? $values : null;
+            } catch (\Exception) {
                 return null;
             }
-
-            $values = $response->json('embedding.values');
-            return is_array($values) && !empty($values) ? $values : null;
-        } catch (\Exception) {
-            return null;
-        }
+        });
     }
 
     /**
