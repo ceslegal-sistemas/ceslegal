@@ -769,7 +769,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                 ->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
         }
         if (!empty($this->data['hora_aproximada_hecho'])) {
-            $contexto['hora_hecho'] = \Carbon\Carbon::createFromFormat('H:i:s', $this->data['hora_aproximada_hecho'])
+            // Carbon::parse() acepta 'H:i' y 'H:i:s' sin fallar
+            $contexto['hora_hecho'] = \Carbon\Carbon::parse($this->data['hora_aproximada_hecho'])
                 ->format('g:i A');
         }
         $enHorario = $this->data['en_horario_laboral'] ?? null;

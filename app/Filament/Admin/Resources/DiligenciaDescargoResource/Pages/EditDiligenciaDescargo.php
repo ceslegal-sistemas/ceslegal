@@ -24,7 +24,9 @@ class EditDiligenciaDescargo extends EditRecord
         // Cuando cambia la fecha de acceso, recalcular la expiración del token
         // para que NUNCA expire antes de que el trabajador pueda acceder.
         if (!empty($data['fecha_acceso_permitida'])) {
-            $data['token_expira_en'] = Carbon::parse($data['fecha_acceso_permitida'])->endOfDay();
+            $finDiaPermitido = Carbon::parse($data['fecha_acceso_permitida'])->endOfDay();
+            $minimoTresDias  = now()->addDays(3)->endOfDay();
+            $data['token_expira_en'] = $finDiaPermitido->max($minimoTresDias);
         }
 
         return $data;

@@ -99,9 +99,12 @@ class DiligenciaDescargo extends Model
     {
         $this->token_acceso = bin2hex(random_bytes(32));
 
-        // Expira al final del día permitido. Si no hay fecha, 30 días de margen.
+        // Expiración: fin del día permitido, garantizando MÍNIMO 3 días desde ahora.
+        // Esto evita que el token expire el mismo día en que se crea el proceso.
         if ($this->fecha_acceso_permitida) {
-            $this->token_expira_en = Carbon::parse($this->fecha_acceso_permitida)->endOfDay();
+            $finDiaPermitido = Carbon::parse($this->fecha_acceso_permitida)->endOfDay();
+            $minimoTresDias  = now()->addDays(3)->endOfDay();
+            $this->token_expira_en = $finDiaPermitido->max($minimoTresDias);
         } else {
             $this->token_expira_en = now()->addDays(30);
         }
@@ -134,7 +137,11 @@ class DiligenciaDescargo extends Model
             return false;
         }
 
-        return now()->toDateString() === $this->fecha_acceso_permitida->toDateString();
+        // Permite acceder DESDE el día de la diligencia en adelante.
+        // El límite superior lo controla token_expira_en (mínimo 3 días).
+        // La restricción "solo ese día exacto" causaba falsos rechazos cuando
+        // el enlace se abría al día siguiente o había diferencia de zona horaria.
+        return now()->toDateString() >= $this->fecha_acceso_permitida->toDateString();
     }
 
     // Métodos de acceso por día
