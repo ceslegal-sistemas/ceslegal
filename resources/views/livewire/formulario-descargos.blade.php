@@ -233,6 +233,11 @@
                 @else
                     {{-- Estado: Formulario activo --}}
                     <div class="space-y-5">
+                        {{-- Polling silencioso: detecta preguntas IA generadas en background --}}
+                        @if ($esperandoPreguntasIA)
+                            <div wire:poll.3000ms="verificarNuevasPreguntas" style="display:none"></div>
+                        @endif
+
                         @if (session('error'))
                             <div class="bg-danger-50 border border-danger-200 rounded-xl p-4">
                                 <p class="text-sm text-danger-700">{{ session('error') }}</p>
