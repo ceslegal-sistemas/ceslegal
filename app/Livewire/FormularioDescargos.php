@@ -6,12 +6,10 @@ use App\Models\DiligenciaDescargo;
 use App\Models\Feedback;
 use App\Models\PreguntaDescargo;
 use App\Models\RespuestaDescargo;
-use App\Jobs\GenerarPreguntasDinamicasJob;
 use App\Services\IADescargoService;
 use App\Services\ActaDescargosService;
 use App\Services\DocumentGeneratorService;
 use App\Services\EstadoProcesoService;
-use Illuminate\Support\Facades\Bus;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Log;
@@ -40,11 +38,6 @@ class FormularioDescargos extends Component
     protected $listeners = ['respuestaGuardada' => 'refrescarPreguntas'];
 
     public bool $tiempoExpiradoMostrarEvidencias = false;
-
-    // Polling para detectar preguntas IA generadas en background
-    public bool $esperandoPreguntasIA = false;
-    public int  $contadorSondeo       = 0;
-    const       MAX_SONDEO            = 10; // 10 × 3s = 30s máximo de espera
 
     // Feedback orgánico — paso actual (1-5 = pregunta activa, 6 = completado)
     public int    $feedbackPaso      = 1;
@@ -405,13 +398,14 @@ class FormularioDescargos extends Component
             $esPreguntaRelevante = $pregunta->es_generada_por_ia || !$esPreguntaAdministrativa;
 
             if ($esPreguntaRelevante) {
-                // Despachar en background: la respuesta llega al navegador sin esperar a Gemini.
-                // wire:poll en el blade detectará las nuevas preguntas cuando el job termine.
-                Bus::dispatchAfterResponse(
-                    new GenerarPreguntasDinamicasJob($pregunta->id, $respuesta->id)
-                );
-                $this->esperandoPreguntasIA = true;
-                $this->contadorSondeo = 0;
+                // Llamada sincrónica: el circuit breaker en llamarGemini() garantiza que
+                // si Gemini está caído, falla en ~0ms en lugar de bloquear 7+ segundos.
+                $iaService = new IADescargoService();
+                $nuevasPreguntas = $iaService->generarPreguntasDinamicas($pregunta, $respuesta);
+                foreach ($nuevasPreguntas as $nuevaPregunta) {
+                    $this->respuestas[$nuevaPregunta->id] = '';
+                    $this->preguntasProcesadas[$nuevaPregunta->id] = false;
+                }
             }
 
             $this->dispatch('respuestaGuardada', preguntaId: $preguntaId);
@@ -438,43 +432,6 @@ class FormularioDescargos extends Component
     {
         $this->diligencia->refresh();
         $this->cargarRespuestasExistentes();
-    }
-
-    /**
-     * Detecta nuevas preguntas IA generadas en background por GenerarPreguntasDinamicasJob.
-     * Llamado cada 3s por wire:poll mientras $esperandoPreguntasIA === true.
-     */
-    public function verificarNuevasPreguntas(): void
-    {
-        if (!$this->esperandoPreguntasIA) {
-            return;
-        }
-
-        $this->contadorSondeo++;
-
-        // Timeout de seguridad: detener polling si el job tardó demasiado
-        if ($this->contadorSondeo >= self::MAX_SONDEO) {
-            $this->esperandoPreguntasIA = false;
-            $this->contadorSondeo = 0;
-            return;
-        }
-
-        $this->diligencia->refresh();
-        $preguntas = $this->diligencia->preguntas()->get();
-
-        $hayNuevas = false;
-        foreach ($preguntas as $pregunta) {
-            if (!array_key_exists($pregunta->id, $this->respuestas)) {
-                $this->respuestas[$pregunta->id] = '';
-                $this->preguntasProcesadas[$pregunta->id] = false;
-                $hayNuevas = true;
-            }
-        }
-
-        if ($hayNuevas) {
-            $this->esperandoPreguntasIA = false;
-            $this->contadorSondeo = 0;
-        }
     }
 
     /**
