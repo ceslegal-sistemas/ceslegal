@@ -1,5 +1,6 @@
 <div class="space-y-4">
-    <div class="rounded-lg bg-gray-50 p-4">
+    {{-- URL completa almacenada en un atributo data para evitar truncamiento del input --}}
+    <div class="rounded-lg bg-gray-50 p-4" data-full-url="{{ $url }}">
         <p class="text-sm text-gray-600 mb-2">Link de acceso para el trabajador:</p>
         <div class="flex items-center gap-2">
             <input
@@ -7,30 +8,67 @@
                 value="{{ $url }}"
                 readonly
                 class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
-                onclick="this.select()"
+                onclick="this.select(); this.setSelectionRange(0, 99999);"
             />
             <button
                 type="button"
                 onclick="
-                    const input = this.previousElementSibling;
-                    input.select();
-                    document.execCommand('copy');
+                    const fullUrl = this.closest('[data-full-url]').dataset.fullUrl;
                     const btn = this;
-                    const originalText = btn.textContent;
-                    btn.textContent = '¡Copiado!';
-                    btn.classList.add('bg-success-600');
-                    btn.classList.remove('bg-primary-600');
-                    setTimeout(() => {
-                        btn.textContent = originalText;
-                        btn.classList.remove('bg-success-600');
-                        btn.classList.add('bg-primary-600');
-                    }, 2000);
+                    function mostrarCopiado() {
+                        btn.textContent = '¡Copiado!';
+                        btn.classList.add('bg-success-600');
+                        btn.classList.remove('bg-primary-600');
+                        setTimeout(() => {
+                            btn.textContent = 'Copiar';
+                            btn.classList.remove('bg-success-600');
+                            btn.classList.add('bg-primary-600');
+                        }, 2000);
+                    }
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(fullUrl).then(mostrarCopiado).catch(() => {
+                            const input = this.previousElementSibling;
+                            input.select(); input.setSelectionRange(0, 99999);
+                            document.execCommand('copy');
+                            mostrarCopiado();
+                        });
+                    } else {
+                        const input = this.previousElementSibling;
+                        input.select(); input.setSelectionRange(0, 99999);
+                        document.execCommand('copy');
+                        mostrarCopiado();
+                    }
                 "
                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
             >
                 Copiar
             </button>
         </div>
+        {{-- Botón compartir nativo (visible solo en móviles con Web Share API) --}}
+        <button
+            type="button"
+            id="btn-compartir-link"
+            onclick="
+                const fullUrl = this.closest('.rounded-lg').dataset.fullUrl;
+                if (navigator.share) {
+                    navigator.share({ title: 'Descargos', url: fullUrl });
+                }
+            "
+            class="mt-2 w-full inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            style="display:none"
+        >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+            </svg>
+            Compartir enlace
+        </button>
+        <script>
+            // Mostrar botón compartir solo si el dispositivo lo soporta (móviles)
+            if (navigator.share) {
+                document.getElementById('btn-compartir-link').style.display = 'flex';
+            }
+        </script>
     </div>
 
     <div class="grid grid-cols-2 gap-4 text-sm">
@@ -68,8 +106,9 @@
 
     <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
         <p class="text-sm text-blue-800">
-            <strong>Nota:</strong> El trabajador solo podrá acceder el día programado ({{ $diligencia->fecha_acceso_permitida?->format('d/m/Y') }})
-            y antes de que expire el token ({{ $diligencia->token_expira_en?->format('d/m/Y') }}).
+            <strong>Nota:</strong> El trabajador podrá acceder desde el día programado
+            ({{ $diligencia->fecha_acceso_permitida?->format('d/m/Y') }})
+            hasta que expire el token ({{ $diligencia->token_expira_en?->format('d/m/Y') }}).
         </p>
     </div>
 </div>
