@@ -1,75 +1,79 @@
 <div class="space-y-4">
-    {{-- URL del enlace --}}
+
+    {{-- ── Enlace de acceso ── --}}
     <div>
-        <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Link de acceso para el trabajador:</p>
-        <div class="flex gap-2">
-            <textarea
-                readonly
-                rows="2"
-                onclick="this.select(); this.setSelectionRange(0, 99999);"
-                class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm p-2 resize-none font-mono break-all"
-            >{{ $url }}</textarea>
-            <button
-                type="button"
-                onclick="
-                    const url = @js($url);
-                    const btn = this;
-                    function ok() {
-                        btn.textContent = '✓';
-                        setTimeout(() => { btn.textContent = 'Copiar'; }, 2000);
-                    }
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(url).then(ok).catch(() => {
-                            document.execCommand('copy'); ok();
-                        });
-                    } else {
-                        const ta = btn.previousElementSibling;
-                        ta.select(); ta.setSelectionRange(0, 99999);
-                        document.execCommand('copy'); ok();
-                    }
-                "
-                class="self-start px-3 py-2 text-sm font-medium rounded-lg bg-primary-600 hover:bg-primary-700 text-white whitespace-nowrap"
-            >Copiar</button>
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+            Enlace de acceso para el trabajador
+        </p>
+
+        {{-- Toque único selecciona todo gracias a user-select:all --}}
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 mb-1">
+            <p
+                class="font-mono text-xs text-gray-800 dark:text-gray-100 break-all leading-relaxed"
+                style="user-select:all; -webkit-user-select:all; cursor:text;"
+            >{{ $url }}</p>
         </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">También puede seleccionar el texto y copiarlo manualmente.</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500">
+            Toca el enlace para seleccionarlo todo · o usa el botón
+        </p>
     </div>
 
-    {{-- Detalles del token --}}
-    <div class="grid grid-cols-2 gap-3 text-sm">
+    {{-- ── Botón copiar principal ── --}}
+    <button
+        type="button"
+        onclick="
+            const url = @js($url);
+            const btn = this;
+            const orig = btn.innerHTML;
+            function ok() {
+                btn.innerHTML = '<span>✓ ¡Copiado!</span>';
+                btn.classList.remove('bg-primary-600','hover:bg-primary-700');
+                btn.classList.add('bg-success-600');
+                setTimeout(() => {
+                    btn.innerHTML = orig;
+                    btn.classList.add('bg-primary-600','hover:bg-primary-700');
+                    btn.classList.remove('bg-success-600');
+                }, 2500);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(ok).catch(ok);
+            } else {
+                ok();
+            }
+        "
+        class="w-full py-3 text-base font-semibold rounded-xl bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white transition-colors"
+    >
+        <span>Copiar enlace completo</span>
+    </button>
+
+    {{-- ── Info del token ── --}}
+    <div class="grid grid-cols-2 gap-3 text-sm pt-1 border-t border-gray-100 dark:border-gray-700">
         <div>
-            <p class="font-semibold text-gray-600 dark:text-gray-400">Token Expira:</p>
-            <p class="text-gray-900 dark:text-gray-100">{{ $diligencia->token_expira_en?->format('d/m/Y H:i') ?? 'N/A' }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Acceso habilitado</p>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ $diligencia->acceso_habilitado ? 'Sí' : 'No' }}</p>
         </div>
         <div>
-            <p class="font-semibold text-gray-600 dark:text-gray-400">Fecha Permitida:</p>
-            <p class="text-gray-900 dark:text-gray-100">{{ $diligencia->fecha_acceso_permitida?->format('d/m/Y') ?? 'N/A' }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Fecha permitida</p>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ $diligencia->fecha_acceso_permitida?->format('d/m/Y') ?? '—' }}</p>
         </div>
-        <div>
-            <p class="font-semibold text-gray-600 dark:text-gray-400">Acceso Habilitado:</p>
-            <p class="text-gray-900 dark:text-gray-100">{{ $diligencia->acceso_habilitado ? 'Sí' : 'No' }}</p>
-        </div>
-        <div>
-            <p class="font-semibold text-gray-600 dark:text-gray-400">Token (primeros 16):</p>
-            <p class="text-gray-900 dark:text-gray-100 font-mono text-xs">{{ substr($diligencia->token_acceso ?? '', 0, 16) }}…</p>
+        <div class="col-span-2">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Token expira</p>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ $diligencia->token_expira_en?->format('d/m/Y H:i') ?? '—' }}</p>
         </div>
     </div>
 
-    {{-- Estado de acceso --}}
+    {{-- ── Estado de acceso ── --}}
     @if($diligencia->trabajador_accedio_en)
-        <div class="rounded-lg bg-green-50 dark:bg-green-900/20 p-3 border border-green-200 dark:border-green-800">
-            <p class="text-sm font-semibold text-green-800 dark:text-green-300">Trabajador ya accedió</p>
-            <p class="text-sm text-green-700 dark:text-green-400">
-                {{ $diligencia->trabajador_accedio_en->format('d/m/Y H:i') }} — IP: {{ $diligencia->ip_acceso }}
+        <div class="rounded-xl bg-success-50 dark:bg-success-900/20 p-3 border border-success-200 dark:border-success-800">
+            <p class="text-sm font-semibold text-success-800 dark:text-success-300">Trabajador ya accedió</p>
+            <p class="text-xs text-success-700 dark:text-success-400 mt-0.5">
+                {{ $diligencia->trabajador_accedio_en->format('d/m/Y H:i') }} &middot; IP: {{ $diligencia->ip_acceso }}
             </p>
         </div>
     @else
-        <div class="rounded-lg bg-yellow-50 dark:bg-yellow-900/20 p-3 border border-yellow-200 dark:border-yellow-800">
-            <p class="text-sm text-yellow-800 dark:text-yellow-300">El trabajador aún no ha accedido al formulario.</p>
+        <div class="rounded-xl bg-warning-50 dark:bg-warning-900/20 p-3 border border-warning-200 dark:border-warning-800">
+            <p class="text-sm text-warning-800 dark:text-warning-300">El trabajador aún no ha accedido.</p>
         </div>
     @endif
 
-    <p class="text-xs text-gray-500 dark:text-gray-400">
-        Acceso disponible desde <strong>{{ $diligencia->fecha_acceso_permitida?->format('d/m/Y') }}</strong>
-        hasta <strong>{{ $diligencia->token_expira_en?->format('d/m/Y') }}</strong>.
-    </p>
 </div>
