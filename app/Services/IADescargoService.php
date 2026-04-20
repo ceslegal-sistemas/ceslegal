@@ -492,37 +492,45 @@ PROMPT;
 
         $preguntas = [];
 
-        preg_match_all('/PREGUNTA_\d+:\s*(.+?)(?=PREGUNTA_\d+:|$)/s', $respuestaIA, $matches);
+        // Patrón principal: PREGUNTA_1: o PREGUNTA 1: (con o sin guión bajo, cualquier case)
+        preg_match_all('/PREGUNTA[\s_]\d+\s*:\s*(.+?)(?=PREGUNTA[\s_]\d+\s*:|$)/si', $respuestaIA, $matches);
 
         if (!empty($matches[1])) {
             foreach ($matches[1] as $pregunta) {
                 $preguntaLimpia = trim($pregunta);
-
-                // Validar que la pregunta no esté vacía
-                if (empty($preguntaLimpia)) {
+                if (empty($preguntaLimpia) || strlen($preguntaLimpia) < 20) {
                     continue;
                 }
-
-                // Si no termina con ?, agregar el signo de interrogación
-                // if (!str_ends_with($preguntaLimpia, '?')) {
-                //     $preguntaLimpia .= '?';
-                //     Log::info('Pregunta de IA corregida (agregado signo ?)', [
-                //         'pregunta_original' => trim($pregunta),
-                //         'pregunta_corregida' => $preguntaLimpia,
-                //     ]);
-                // }
-
-                // Validar longitud mínima (al menos 20 caracteres)
-                if (strlen($preguntaLimpia) < 20) {
-                    Log::warning('Pregunta de IA descartada por ser demasiado corta', [
-                        'pregunta' => $preguntaLimpia,
-                        'longitud' => strlen($preguntaLimpia),
-                    ]);
-                    continue;
-                }
-
                 $preguntas[] = $preguntaLimpia;
             }
+        }
+
+        // Fallback 1: formato "1. ¿texto?" o "- ¿texto?" cuando el modelo no usa el prefijo PREGUNTA_N
+        if (empty($preguntas)) {
+            preg_match_all('/(?:^|\n)\s*(?:\d+[.)]\s*|-\s*)(¿.+?\?)/su', $respuestaIA, $fb);
+            foreach ($fb[1] ?? [] as $pregunta) {
+                $preguntaLimpia = trim($pregunta);
+                if (strlen($preguntaLimpia) >= 20) {
+                    $preguntas[] = $preguntaLimpia;
+                }
+            }
+        }
+
+        // Fallback 2: cada línea que sea una pregunta (empieza con ¿ y termina con ?)
+        if (empty($preguntas)) {
+            foreach (explode("\n", $respuestaIA) as $linea) {
+                $linea = trim($linea);
+                if (str_starts_with($linea, '¿') && str_ends_with($linea, '?') && strlen($linea) >= 20) {
+                    $preguntas[] = $linea;
+                }
+            }
+        }
+
+        if (!empty($preguntas)) {
+            Log::info('IADescargoService: preguntas parseadas de la respuesta IA', [
+                'total'  => count($preguntas),
+                'limite' => $limite,
+            ]);
         }
 
         return $limite !== null ? array_slice($preguntas, 0, $limite) : $preguntas;
