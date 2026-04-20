@@ -83,7 +83,9 @@ class IADescargoService
         $this->timeoutSegundos = 7;
         $this->maxReintentos   = 0;
 
+        $preguntasDisponibles = self::LIMITE_MAXIMO_PREGUNTAS - $totalPreguntasActuales;
         $contexto = $this->construirContexto($diligencia);
+        $contexto['preguntas_disponibles'] = $preguntasDisponibles;
         $prompt = $this->construirPromptGeneracionPreguntas($contexto, $preguntaRespondida, $respuesta);
 
         try {
@@ -96,8 +98,6 @@ class IADescargoService
                 'generacion_preguntas'
             );
 
-            // Calcular cuántas preguntas dinámicas se pueden agregar sin exceder el límite
-            $preguntasDisponibles = self::LIMITE_MAXIMO_PREGUNTAS - $totalPreguntasActuales;
             $limitePreguntasDinamicas = min(2, $preguntasDisponibles);
 
             // Limitar preguntas dinámicas según el espacio disponible
@@ -201,6 +201,11 @@ class IADescargoService
             ? "\nNORMAS LEGALES RECUPERADAS (RIT, CST, jurisprudencia — cita solo estas):\n{$contexto['normas_rag']}\n"
             : '';
 
+        $disponibles = $contexto['preguntas_disponibles'] ?? 10;
+        $notaLimite  = $disponibles <= 4
+            ? "\n⚠ ESPACIO REDUCIDO: Solo puedes añadir {$disponibles} pregunta(s) más. Prioriza las más críticas para el expediente.\n"
+            : '';
+
         // Lista completa de todas las preguntas del formulario (para anti-repetición)
         $todasText = '';
         foreach ($contexto['todas_las_preguntas'] as $i => $p) {
@@ -208,17 +213,19 @@ class IADescargoService
         }
 
         return <<<PROMPT
-Eres un abogado especialista en derecho laboral colombiano, con enfoque estrictamente garantista conforme al Art. 29 de la Constitución Política y al Art. 115 del CST (modificado por Ley 2466 de 2025).
+Eres un abogado especialista en derecho laboral colombiano conduciendo una diligencia de descargos.
+Tu misión es construir un expediente disciplinario COMPLETO que permita a la empresa tomar una
+decisión fundamentada (llamado de atención, suspensión o terminación del contrato) con respaldo
+jurídico sólido conforme al Art. 29 C.P. y al Art. 115 CST (Ley 2466 de 2025).
+Fundamento: Sentencia T-239/2021, SL1861-2024, C-1270/2000.
 
 ════════════════════════════════════════════════════════
-MARCO JURÍDICO — PRINCIPIOS IRRENUNCIABLES
+PRINCIPIOS IRRENUNCIABLES
 ════════════════════════════════════════════════════════
-• Presunción de inocencia — los hechos son PRESUNTOS; el trabajador no ha sido hallado culpable.
-• Derecho a la defensa y a la contradicción (Art. 29 C.P.) — la diligencia existe para que él/ella explique su versión, no para acusarlo.
-• Dignidad humana — ninguna pregunta puede intimidar, coaccionar ni humillar.
-• Imparcialidad — no se asume culpabilidad; solo se recoge información objetiva.
-• In dubio pro disciplinado — ante duda, se favorece al trabajador.
-Fundamento: Sentencia T-239/2021, SL1861-2024, C-1270/2000 (Corte Constitucional y Corte Suprema).
+• Presunción de inocencia — los hechos son PRESUNTOS.
+• Derecho a la defensa — el trabajador debe poder explicar su versión completamente.
+• Dignidad humana — ninguna pregunta puede intimidar ni humillar.
+• Imparcialidad — se recoge información objetiva, no se asume culpabilidad.
 
 ════════════════════════════════════════════════════════
 CONTEXTO DEL PROCESO
@@ -226,71 +233,79 @@ CONTEXTO DEL PROCESO
 Trabajador: {$contexto['trabajador']}
 Cargo: {$contexto['cargo']}
 
-Hechos presuntos (versión del empleador — aún no probados):
+Hechos presuntos (versión del empleador):
 {$contexto['hechos']}
 
 Artículos presuntamente incumplidos:
 - {$articulosText}
 {$ritBloque}{$normasBloque}
-Preguntas ya respondidas (orden cronológico):
+════════════════════════════════════════════════════════
+LO QUE EL TRABAJADOR YA DECLARÓ
+════════════════════════════════════════════════════════
 {$preguntasRespuestasText}
-
 ÚLTIMA PREGUNTA RESPONDIDA:
 {$preguntaRespondida->pregunta}
 
 RESPUESTA DEL TRABAJADOR:
 {$respuesta->respuesta}
 
-TODAS LAS PREGUNTAS DEL FORMULARIO (para evitar repetición):
+════════════════════════════════════════════════════════
+PREGUNTAS YA INCLUIDAS EN EL FORMULARIO (NO repetir ninguna)
+════════════════════════════════════════════════════════
 {$todasText}
+════════════════════════════════════════════════════════
+ASPECTOS QUE DEBE CUBRIR UN EXPEDIENTE DISCIPLINARIO COMPLETO
+════════════════════════════════════════════════════════
+Revisa cuáles de estos aspectos aún NO han sido suficientemente documentados en lo ya declarado:
+
+1. VERSIÓN COMPLETA — ¿El trabajador explicó con detalle qué pasó, cuándo, dónde y cómo?
+2. PERSONAS INVOLUCRADAS — ¿Mencionó a otras personas? ¿Quedó claro el rol de cada una?
+3. CONOCIMIENTO DE LA NORMA — ¿Sabía que esa conducta estaba regulada o prohibida?
+4. INTENCIONALIDAD — ¿Fue deliberado, accidental, por descuido, por instrucción de otro?
+5. AUTORIZACIÓN O JUSTIFICACIÓN — ¿Tenía permiso, orden o causa justificada?
+6. EVIDENCIA A FAVOR — ¿Tiene pruebas, testigos o documentos que respalden su versión?
+7. IMPACTO Y CONSECUENCIAS — ¿Es consciente del efecto de sus actos?
+8. FACTORES ATENUANTES — ¿Hay circunstancias que expliquen (no justifiquen) lo ocurrido?
+9. CONTRADICCIONES — ¿Hay puntos en su declaración que sean vagos, incompletos o contradictorios?
+
+════════════════════════════════════════════════════════
+TU TAREA
+════════════════════════════════════════════════════════
+Identifica hasta 2 aspectos del expediente que AÚN NO están cubiertos o quedaron incompletos
+en las declaraciones, y formula una pregunta para cada uno.
+
+CRITERIOS para incluir una pregunta:
+✓ El aspecto no fue respondido, fue respondido vagamente, o la respuesta abre nuevos puntos.
+✓ La pregunta ayuda a completar el expediente (para beneficio del trabajador O de la empresa).
+✓ No existe ya en la lista del formulario una pregunta que cubra ese punto.
+
+CRITERIOS para NO incluir una pregunta:
+✗ El aspecto ya fue completamente documentado en declaraciones anteriores.
+✗ Ya existe en la lista del formulario una pregunta pendiente que lo cubre.
+✗ La pregunta sería sugestiva, acusatoria, sobre vida privada o violatoria de la dignidad.
+✗ La pregunta busca que el trabajador se autoincrimine en vez de ejercer su defensa.
 
 ════════════════════════════════════════════════════════
 PREGUNTAS ABSOLUTAMENTE PROHIBIDAS
 ════════════════════════════════════════════════════════
-1. SUGESTIVAS O CAPCIOSAS — inducen la respuesta o confunden al trabajador.
-   ✗ "¿Verdad que actuó de forma negligente?" → ✓ "¿Qué ocurrió desde su punto de vista?"
-
-2. ACUSATORIAS O PREJUZGADORAS — dan por hecho la culpa antes de que se defienda.
-   ✗ "¿Por qué cometió esa falta?" → ✓ "¿Qué nos puede contar sobre lo que pasó?"
-
-3. IMPERTINENTES — sin relación directa con los hechos que motivaron la citación.
-
-4. SOBRE VIDA PRIVADA — aspectos personales sin incidencia en el hecho investigado.
-
-5. QUE VIOLEN LA DIGNIDAD — buscan intimidar, presionar o humillar al trabajador.
-
-6. SOBRE AUTOEVALUACIÓN O CUMPLIMIENTO DE FUNCIONES.
-   ✗ "¿Usted sigue las instrucciones de su jefe?" / "¿Cumple con sus deberes?"
-   Razón: nadie admite incumplimientos; no tienen valor probatorio.
+✗ Sugestivas: "¿Verdad que actuó negligentemente?" → ✓ "¿Qué ocurrió desde su punto de vista?"
+✗ Acusatorias: "¿Por qué cometió esa falta?" → ✓ "¿Qué puede contarnos sobre lo que ocurrió?"
+✗ Sobre vida privada sin relación con el hecho investigado.
+✗ Sobre autoevaluación: "¿Cumple con sus funciones?" — no tienen valor probatorio.
+✗ Que intimiden, presionen o humillen al trabajador.
 
 ════════════════════════════════════════════════════════
-CUÁNDO GENERAR UNA PREGUNTA ADICIONAL
+FORMATO DE RESPUESTA
 ════════════════════════════════════════════════════════
-Solo genera UNA pregunta si se cumplen SIMULTÁNEAMENTE las tres condiciones:
-1. La respuesta del trabajador abre un aspecto relevante de su defensa que aún no ha podido explicar.
-2. Esa aclaración puede beneficiar al trabajador o es necesaria para un expediente completo y justo.
-3. No existe ya en la lista completa una pregunta que cubra ese mismo punto.
-
-NUNCA preguntes si:
-• La respuesta ya es completa o coherente (aunque sea desfavorable al trabajador).
-• Ya existe una pregunta en la lista que cubre ese tema (aunque no haya sido respondida aún).
-• La pregunta busca confirmar culpabilidad en vez de dar espacio para la defensa.
-• La respuesta es sobre datos básicos (cargo, empresa, jefe, acompañante).
-
-EN CASO DE DUDA → responde NO_REQUIERE.
-Es mejor no preguntar que vulnerar el debido proceso.
-
-════════════════════════════════════════════════════════
-FORMATO
-════════════════════════════════════════════════════════
-• Lenguaje SENCILLO — sin términos jurídicos.
-• Pregunta BREVE, ABIERTA y NEUTRA — máximo 2 líneas.
+• Lenguaje SENCILLO — sin tecnicismos jurídicos.
+• Preguntas BREVES, ABIERTAS y NEUTRAS — máximo 2 líneas cada una.
 • NUNCA reformules una pregunta ya existente en la lista.
 
-Si hay una pregunta válida:
-PREGUNTA_1: [texto]
-
-Si no se requiere:
+Si hay aspectos sin documentar (1 o 2 preguntas):
+PREGUNTA_1: [texto de la pregunta]
+PREGUNTA_2: [texto de la pregunta] ← solo si hay un segundo aspecto genuinamente sin cubrir
+{$notaLimite}
+Si todos los aspectos relevantes ya están documentados o cubiertos por preguntas pendientes:
 NO_REQUIERE
 PROMPT;
     }
