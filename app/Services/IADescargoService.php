@@ -279,37 +279,55 @@ Si generas una que cubre el mismo aspecto, es un ERROR GRAVE que arruina el expe
 HISTORIAL COMPLETO DEL FORMULARIO (respondidas + pendientes — NO repetir ninguna)
 ════════════════════════════════════════════════════════
 {$todasText}
+████████████████████████████████████████████████████████
+⛔ PATRONES DE PREGUNTA SIEMPRE PROHIBIDOS (aunque cambies las palabras)
+████████████████████████████████████████████████████████
+
+1. VERSIÓN DE LOS HECHOS — Si el trabajador ya narró qué pasó (aunque sea brevemente),
+   está CUBIERTO. NUNCA vuelvas a pedir "su versión", "qué ocurrió", "describa el incidente",
+   "relate los hechos" ni ninguna variante. Pedir la misma historia de nuevo viola el Art. 29 C.P.
+
+2. PRUEBAS Y TESTIGOS — Si ya se preguntó sobre pruebas, documentos o testigos en cualquier
+   forma anterior, está CUBIERTO. PROHIBIDO volver a preguntar sobre ello.
+
+3. CONOCIMIENTO DE NORMAS/POLÍTICAS — Si ya se preguntó si el trabajador conocía reglas,
+   políticas o el reglamento, está CUBIERTO. No repetir aunque uses otras palabras.
+
+4. RESPUESTAS TAJANTES — Si el trabajador respondió "ya lo respondí", "ya lo expliqué",
+   "no" de forma definitiva, o algo similar, ese tema está CERRADO. No generes más preguntas
+   sobre él bajo ninguna circunstancia.
+
 ════════════════════════════════════════════════════════
 ASPECTOS QUE DEBE CUBRIR UN EXPEDIENTE DISCIPLINARIO COMPLETO
 ════════════════════════════════════════════════════════
-Revisa cuáles de estos aspectos aún NO han sido suficientemente documentados en lo ya declarado:
+Antes de generar una pregunta, verifica en "LO QUE EL TRABAJADOR YA DECLARÓ" si el aspecto
+ya fue abordado. Si fue respondido (aunque sea brevemente), está CUBIERTO → no preguntes.
 
-1. VERSIÓN COMPLETA — ¿El trabajador explicó con detalle qué pasó, cuándo, dónde y cómo?
+1. VERSIÓN COMPLETA — ¿El trabajador explicó qué pasó, cuándo y cómo? (una vez es suficiente)
 2. PERSONAS INVOLUCRADAS — ¿Mencionó a otras personas? ¿Quedó claro el rol de cada una?
-3. CONOCIMIENTO DE LA NORMA — ¿Sabía que esa conducta estaba regulada o prohibida?
-4. INTENCIONALIDAD — ¿Fue deliberado, accidental, por descuido, por instrucción de otro?
-5. AUTORIZACIÓN O JUSTIFICACIÓN — ¿Tenía permiso, orden o causa justificada?
-6. EVIDENCIA A FAVOR — ¿Tiene pruebas, testigos o documentos que respalden su versión?
-7. IMPACTO Y CONSECUENCIAS — ¿Es consciente del efecto de sus actos?
-8. FACTORES ATENUANTES — ¿Hay circunstancias que expliquen (no justifiquen) lo ocurrido?
-9. CONTRADICCIONES — ¿Hay puntos en su declaración que sean vagos, incompletos o contradictorios?
+3. INTENCIONALIDAD — ¿Fue deliberado, accidental, por descuido, por instrucción de otro?
+4. AUTORIZACIÓN O JUSTIFICACIÓN — ¿Tenía permiso, orden o causa justificada?
+5. EVIDENCIA A FAVOR — ¿Tiene pruebas, testigos o documentos? (solo preguntar una vez)
+6. IMPACTO Y CONSECUENCIAS — ¿Es consciente del efecto de sus actos en la compañera/empresa?
+7. FACTORES ATENUANTES — ¿Hay circunstancias que expliquen (no justifiquen) lo ocurrido?
+8. CONTRADICCIONES — ¿Hay puntos vagos o contradictorios que requieran aclaración ESPECÍFICA?
+   (una contradicción específica, no pedir que repita todo de nuevo)
 
 ════════════════════════════════════════════════════════
 TU TAREA
 ════════════════════════════════════════════════════════
-Identifica hasta 2 aspectos del expediente que AÚN NO están cubiertos o quedaron incompletos
-en las declaraciones, y formula una pregunta para cada uno.
-
-CRITERIOS para incluir una pregunta:
-✓ El aspecto no fue respondido, fue respondido vagamente, o la respuesta abre nuevos puntos.
-✓ La pregunta ayuda a completar el expediente (para beneficio del trabajador O de la empresa).
-✓ No existe ya en la lista del formulario una pregunta que cubra ese punto.
+PASO 1 — Lee el historial completo y marca cuáles de los 8 aspectos ya están cubiertos.
+PASO 2 — De los aspectos NO cubiertos, formula máximo 2 preguntas NUEVAS que:
+✓ Ofrezcan información genuinamente nueva, no repetida en ninguna forma anterior.
+✓ Sean específicas (un punto concreto), no generales ("cuénteme todo").
+✓ Aporten valor real para la decisión disciplinaria.
 
 CRITERIOS para NO incluir una pregunta:
-✗ El aspecto ya fue completamente documentado en declaraciones anteriores.
+✗ El aspecto ya fue abordado en cualquier declaración anterior (aunque el trabajador haya dado poco detalle).
 ✗ Ya existe en la lista del formulario una pregunta pendiente que lo cubre.
-✗ La pregunta sería sugestiva, acusatoria, sobre vida privada o violatoria de la dignidad.
-✗ La pregunta busca que el trabajador se autoincrimine en vez de ejercer su defensa.
+✗ La pregunta es sugestiva, acusatoria, sobre vida privada o viola la dignidad.
+✗ La pregunta busca que el trabajador se autoincrimine.
+✗ Es una reformulación de cualquier pregunta ya existente en el historial.
 
 ════════════════════════════════════════════════════════
 PREGUNTAS ABSOLUTAMENTE PROHIBIDAS
