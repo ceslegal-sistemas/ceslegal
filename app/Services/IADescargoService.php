@@ -451,9 +451,10 @@ PROMPT;
 
         $modeloPrincipal = $this->config['model'] ?? 'gemini-2.5-flash';
         // gemini-2.0-flash-lite y gemini-2.0-flash retornan 404 en producción (deprecados).
-        // Lista actualizada: gemini-2.5-flash primero, luego gemini-1.5-flash como fallback.
+        // Orden: flash (rápido) → pro (más capaz) → 1.5-flash (fallback estable).
         $modelos = array_unique(array_filter([
             'gemini-2.5-flash',
+            'gemini-2.5-pro',
             'gemini-1.5-flash',
             $modeloPrincipal,
         ]));
