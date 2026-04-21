@@ -481,9 +481,19 @@ PROMPT;
         foreach ($modelos as $modelo) {
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent?key={$apiKey}";
 
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])->timeout($this->timeoutSegundos)->post($url, $payload);
+            try {
+                $response = Http::withHeaders([
+                    'Content-Type' => 'application/json',
+                ])->timeout($this->timeoutSegundos)->post($url, $payload);
+            } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                // Timeout o error de red — probar con el siguiente modelo
+                Log::warning("IADescargoService: timeout/conexión en {$modelo}, intentando siguiente modelo", [
+                    'error' => $e->getMessage(),
+                ]);
+                GeminiCircuitBreaker::recordFailure($modelo);
+                $response = null;
+                continue;
+            }
 
             // En 503/404 pasar al siguiente modelo y registrar fallo
             if (in_array($response->status(), [503, 404])) {
@@ -493,6 +503,10 @@ PROMPT;
             }
 
             break;
+        }
+
+        if ($response === null) {
+            throw new \Exception("Todos los modelos Gemini fallaron por timeout o error de red");
         }
 
         if (!$response->successful()) {
@@ -890,8 +904,11 @@ PROMPT;
             // Las últimas N preguntas estándar (es_generada_por_ia = false) son el cierre.
             $cantidadCierre = count(self::PREGUNTAS_CIERRE);
 
+            // reorder() limpia el ORDER BY ASC que trae la relación preguntas()
+            // para que orderBy('orden', 'desc') funcione correctamente.
             $preguntasCierre = $diligencia->preguntas()
                 ->where('es_generada_por_ia', false)
+                ->reorder()
                 ->orderBy('orden', 'desc')
                 ->limit($cantidadCierre)
                 ->get();
