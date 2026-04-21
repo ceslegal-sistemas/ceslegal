@@ -204,7 +204,8 @@ class IADescargoService
 
         $ritBloque   = !empty($contexto['rit_contexto'])
             ? "\nREGLAMENTO INTERNO DE LA EMPRESA (extracto relevante):\n{$contexto['rit_contexto']}\n"
-            : '';
+            : "\n⛔ ESTA EMPRESA NO TIENE REGLAMENTO INTERNO DE TRABAJO (RIT) REGISTRADO.\n"
+              . "ESTÁ PROHIBIDO generar preguntas sobre si el trabajador conocía el reglamento, las políticas internas o cualquier RIT.\n";
         $normasBloque = !empty($contexto['normas_rag'])
             ? "\nNORMAS LEGALES RECUPERADAS (RIT, CST, jurisprudencia — cita solo estas):\n{$contexto['normas_rag']}\n"
             : '';
@@ -785,7 +786,9 @@ PROMPT;
         $ritContexto = $empresaId ? $this->obtenerContextoRIT($empresaId) : '';
         $ritBloque   = $ritContexto
             ? "\nREGLAMENTO INTERNO DE LA EMPRESA (extracto relevante para estos hechos):\n{$ritContexto}\n"
-            : "\nNOTA: Esta empresa no tiene RIT cargado. Aplica el Código Sustantivo del Trabajo.\n";
+            : "\n⛔ ESTA EMPRESA NO TIENE REGLAMENTO INTERNO DE TRABAJO (RIT) REGISTRADO.\n"
+              . "ESTÁ PROHIBIDO generar preguntas sobre si el trabajador conocía el reglamento, las políticas internas o cualquier RIT.\n"
+              . "Aplica únicamente el Código Sustantivo del Trabajo.\n";
 
         // Normas relevantes por RAG (RIT + CST + jurisprudencia)
         $normasRag   = $this->buscarNormasRelevantes($proceso->hechos ?? '', $empresaId, limite: 3, proceso: $proceso);
