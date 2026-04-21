@@ -78,9 +78,9 @@ class IADescargoService
             return [];
         }
 
-        // Modo realtime: falla rápido para no bloquear el formulario del trabajador.
-        // 7s por modelo (4 modelos = 28s máx si todos fallan), sin reintentos.
-        $this->timeoutSegundos = 7;
+        // Modo realtime: con 2 modelos (2.5-flash + 1.5-flash), 25s cada uno = 50s máx.
+        // 25s es suficiente para gemini-2.5-flash bajo alta demanda.
+        $this->timeoutSegundos = 25;
         $this->maxReintentos   = 0;
 
         $preguntasDisponibles = self::LIMITE_MAXIMO_PREGUNTAS - $totalPreguntasActuales;
@@ -449,14 +449,12 @@ PROMPT;
 
         $apiKey = $this->config['api_key'];
 
-        $modeloPrincipal = $this->config['model'] ?? 'gemini-2.0-flash';
-        // Orden: más ligeros primero para minimizar 503 bajo alta demanda.
-        // 2.0-flash-lite y 2.0-flash son los más estables disponibles.
-        // 2.5-flash y 2.5-pro se saturan con frecuencia.
+        $modeloPrincipal = $this->config['model'] ?? 'gemini-2.5-flash';
+        // gemini-2.0-flash-lite y gemini-2.0-flash retornan 404 en producción (deprecados).
+        // Lista actualizada: gemini-2.5-flash primero, luego gemini-1.5-flash como fallback.
         $modelos = array_unique(array_filter([
-            'gemini-2.0-flash-lite',
-            'gemini-2.0-flash',
             'gemini-2.5-flash',
+            'gemini-1.5-flash',
             $modeloPrincipal,
         ]));
 
@@ -689,18 +687,19 @@ PROMPT;
             $this->crearPreguntasEstandar($diligencia, self::PREGUNTAS_INICIALES, 1, 'inicial')
         );
 
-        // 2. Generar preguntas específicas con IA (solo si no excede el límite)
-        if ($cantidadPreguntasIA > 0) {
-            $preguntasIA = $this->generarPreguntasIA($diligencia, $cantidadPreguntasIA);
-            $preguntasCreadas = array_merge($preguntasCreadas, $preguntasIA);
-        }
-
-        // 3. Crear preguntas de cierre
+        // 2. Crear preguntas de cierre PRIMERO para que generarPreguntasIA las detecte y
+        //    se inserte antes de ellas (orden correcto: BASE → IA → CIERRE)
         $ordenInicio = count($preguntasCreadas) + 1;
         $preguntasCreadas = array_merge(
             $preguntasCreadas,
             $this->crearPreguntasEstandar($diligencia, self::PREGUNTAS_CIERRE, $ordenInicio, 'cierre')
         );
+
+        // 3. Generar preguntas específicas con IA — se insertarán ANTES de las de cierre
+        if ($cantidadPreguntasIA > 0) {
+            $preguntasIA = $this->generarPreguntasIA($diligencia, $cantidadPreguntasIA);
+            $preguntasCreadas = array_merge($preguntasCreadas, $preguntasIA);
+        }
 
         return $preguntasCreadas;
     }
