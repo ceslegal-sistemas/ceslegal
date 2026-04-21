@@ -14,8 +14,8 @@ Schedule::command('procesos:actualizar-estados-descargos')
     ->withoutOverlapping()
     ->runInBackground();
 
-// Procesar documentos pendientes de la Biblioteca Legal
-Schedule::command('biblioteca:procesar --todos')
+// Procesar documentos pendientes de la Biblioteca Legal (sin --todos: solo estado != procesado)
+Schedule::command('biblioteca:procesar')
     ->everyFiveMinutes()
     ->withoutOverlapping()
     ->runInBackground();
