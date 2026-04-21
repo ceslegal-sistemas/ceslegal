@@ -6,6 +6,7 @@ use App\Models\ActaInspeccion;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\SimpleType\Jc;
 use PhpOffice\PhpWord\Style\Table as TableStyle;
+use PhpOffice\PhpWord\Style\Table;
 
 class ActaInspeccionDocService
 {
@@ -32,6 +33,7 @@ class ActaInspeccionDocService
             'width'       => 100,
             'unit'        => \PhpOffice\PhpWord\Style\Table::WIDTH_PERCENT,
         ];
+
 
         $celdaTh = ['bgColor' => '1F3864', 'valign' => 'center'];
         $fuenteTh = ['name' => 'Arial', 'size' => 10, 'bold' => true, 'color' => 'FFFFFF'];

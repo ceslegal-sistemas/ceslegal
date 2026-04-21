@@ -154,7 +154,14 @@ class IADescargoService
             })
             ->toArray();
 
-        // Lista completa de preguntas (incluyendo pendientes) solo para anti-repetición
+        // Preguntas pendientes (sin respuesta) — la IA NO debe regenerarlas
+        $preguntasPendientes = $diligencia->preguntas()
+            ->activas()
+            ->whereDoesntHave('respuesta')
+            ->pluck('pregunta')
+            ->toArray();
+
+        // Lista completa de preguntas para anti-repetición secundaria
         $todasLasPreguntas = $diligencia->preguntas()
             ->activas()
             ->pluck('pregunta')
@@ -168,7 +175,8 @@ class IADescargoService
             'hechos'              => $proceso->hechos,
             'articulos_legales'   => $articulosLegales,
             'preguntas_respuestas'=> $preguntasYRespuestas,
-            'todas_las_preguntas' => $todasLasPreguntas,
+            'todas_las_preguntas'  => $todasLasPreguntas,
+            'preguntas_pendientes' => $preguntasPendientes,
             'trabajador'          => $proceso->trabajador->nombre_completo,
             'cargo'               => $proceso->trabajador->cargo,
             'rit_contexto'        => $ritContexto,
@@ -206,7 +214,16 @@ class IADescargoService
             ? "\n⚠ ESPACIO REDUCIDO: Solo puedes añadir {$disponibles} pregunta(s) más. Prioriza las más críticas para el expediente.\n"
             : '';
 
-        // Lista completa de todas las preguntas del formulario (para anti-repetición)
+        // Preguntas pendientes — el trabajador las responderá próximamente, NO regenerar
+        $pendientesText = '';
+        foreach ($contexto['preguntas_pendientes'] ?? [] as $i => $p) {
+            $pendientesText .= ($i + 1) . '. ' . $p . "\n";
+        }
+        if (empty($pendientesText)) {
+            $pendientesText = '(ninguna — todas las preguntas anteriores ya fueron respondidas)';
+        }
+
+        // Lista completa de todas las preguntas del formulario (para anti-repetición secundaria)
         $todasText = '';
         foreach ($contexto['todas_las_preguntas'] as $i => $p) {
             $todasText .= ($i + 1) . '. ' . $p . "\n";
@@ -249,8 +266,16 @@ LO QUE EL TRABAJADOR YA DECLARÓ
 RESPUESTA DEL TRABAJADOR:
 {$respuesta->respuesta}
 
+████████████████████████████████████████████████████████
+⛔ PREGUNTAS EN COLA — YA ESTÁN PROGRAMADAS, NO LAS REPITAS
+████████████████████████████████████████████████████████
+Las siguientes preguntas ya están en el formulario esperando ser respondidas.
+ESTÁ ABSOLUTAMENTE PROHIBIDO generar preguntas iguales o similares a estas.
+Si generas una que cubre el mismo aspecto, es un ERROR GRAVE que arruina el expediente.
+
+{$pendientesText}
 ════════════════════════════════════════════════════════
-PREGUNTAS YA INCLUIDAS EN EL FORMULARIO (NO repetir ninguna)
+HISTORIAL COMPLETO DEL FORMULARIO (respondidas + pendientes — NO repetir ninguna)
 ════════════════════════════════════════════════════════
 {$todasText}
 ════════════════════════════════════════════════════════

@@ -47,7 +47,7 @@ class ActaInspeccionResource extends Resource
 
                     Forms\Components\Select::make('empresa_id')
                         ->label('Empresa')
-                        ->options(fn () => Empresa::orderBy('razon_social')->pluck('razon_social', 'id'))
+                        ->options(fn() => Empresa::orderBy('razon_social')->pluck('razon_social', 'id'))
                         ->required()
                         ->searchable()
                         ->columnSpan(1),
@@ -58,8 +58,9 @@ class ActaInspeccionResource extends Resource
                             'borrador'   => 'Borrador',
                             'finalizada' => 'Finalizada',
                         ])
-                        ->default('borrador')
+                        ->default('finalizada')
                         ->required()
+                        ->native(false)
                         ->columnSpan(1),
 
                     Forms\Components\DatePicker::make('fecha')
@@ -73,6 +74,7 @@ class ActaInspeccionResource extends Resource
                     Forms\Components\TextInput::make('hora_inicio')
                         ->label('Hora de Inicio')
                         ->type('time')
+                        ->default(now()->format('H:i'))
                         ->columnSpan(1),
 
                     Forms\Components\TextInput::make('hora_cierre')
@@ -198,7 +200,7 @@ class ActaInspeccionResource extends Resource
                 Tables\Columns\TextColumn::make('objetivo')
                     ->label('Objetivo')
                     ->limit(50)
-                    ->tooltip(fn ($record) => $record->objetivo),
+                    ->tooltip(fn($record) => $record->objetivo),
 
                 Tables\Columns\BadgeColumn::make('estado')
                     ->label('Estado')
@@ -206,7 +208,7 @@ class ActaInspeccionResource extends Resource
                         'warning' => 'borrador',
                         'success' => 'finalizada',
                     ])
-                    ->formatStateUsing(fn ($state) => match ($state) {
+                    ->formatStateUsing(fn($state) => match ($state) {
                         'borrador'   => 'Borrador',
                         'finalizada' => 'Finalizada',
                         default      => $state,
@@ -233,8 +235,8 @@ class ActaInspeccionResource extends Resource
                     ])
                     ->query(function (Builder $query, array $data) {
                         return $query
-                            ->when($data['desde'], fn ($q, $v) => $q->whereDate('fecha', '>=', $v))
-                            ->when($data['hasta'], fn ($q, $v) => $q->whereDate('fecha', '<=', $v));
+                            ->when($data['desde'], fn($q, $v) => $q->whereDate('fecha', '>=', $v))
+                            ->when($data['hasta'], fn($q, $v) => $q->whereDate('fecha', '<=', $v));
                     }),
             ])
             ->actions([
@@ -267,5 +269,4 @@ class ActaInspeccionResource extends Resource
             'edit'   => Pages\EditActaInspeccion::route('/{record}/edit'),
         ];
     }
-
 }
