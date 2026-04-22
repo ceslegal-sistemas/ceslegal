@@ -607,18 +607,19 @@ PROMPT;
             $this->crearPreguntasEstandar($diligencia, self::PREGUNTAS_INICIALES, 1, 'inicial')
         );
 
-        // 2. Generar preguntas específicas con IA (solo si no excede el límite)
-        if ($cantidadPreguntasIA > 0) {
-            $preguntasIA = $this->generarPreguntasIA($diligencia, $cantidadPreguntasIA);
-            $preguntasCreadas = array_merge($preguntasCreadas, $preguntasIA);
-        }
-
-        // 3. Crear preguntas de cierre
+        // 2. Crear preguntas de cierre PRIMERO para que generarPreguntasIA las detecte y
+        //    se inserte antes de ellas (orden correcto: INICIALES → IA → CIERRE)
         $ordenInicio = count($preguntasCreadas) + 1;
         $preguntasCreadas = array_merge(
             $preguntasCreadas,
             $this->crearPreguntasEstandar($diligencia, self::PREGUNTAS_CIERRE, $ordenInicio, 'cierre')
         );
+
+        // 3. Generar preguntas específicas con IA — se insertarán ANTES de las de cierre
+        if ($cantidadPreguntasIA > 0) {
+            $preguntasIA = $this->generarPreguntasIA($diligencia, $cantidadPreguntasIA);
+            $preguntasCreadas = array_merge($preguntasCreadas, $preguntasIA);
+        }
 
         return $preguntasCreadas;
     }
@@ -762,8 +763,10 @@ PROMPT;
             // Las últimas N preguntas estándar (es_generada_por_ia = false) son el cierre.
             $cantidadCierre = count(self::PREGUNTAS_CIERRE);
 
+            // reorder() limpia el ORDER BY ASC heredado de la relación preguntas()
             $preguntasCierre = $diligencia->preguntas()
                 ->where('es_generada_por_ia', false)
+                ->reorder()
                 ->orderBy('orden', 'desc')
                 ->limit($cantidadCierre)
                 ->get();
