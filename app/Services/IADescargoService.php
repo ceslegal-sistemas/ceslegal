@@ -17,7 +17,7 @@ class IADescargoService
     protected array $config;
 
     // Control de timeout y reintentos — se ajustan según el modo de uso
-    protected int $timeoutSegundos = 45;  // para generación en batch (gemini-2.5-flash puede ser lento)
+    protected int $timeoutSegundos = 20;  // para generación en batch
     protected int $maxReintentos   = 2;   // para generación en batch
 
     // Límite máximo de preguntas totales por diligencia
@@ -73,9 +73,8 @@ class IADescargoService
             return [];
         }
 
-        // Modo realtime: falla rápido para no bloquear el formulario del trabajador.
-        // 7s por modelo (4 modelos = 28s máx si todos fallan), sin reintentos.
-        $this->timeoutSegundos = 7;
+        // Modo realtime: gemini-2.5-flash necesita más de 7s en picos de demanda.
+        $this->timeoutSegundos = 25;
         $this->maxReintentos   = 0;
 
         $contexto = $this->construirContexto($diligencia);
@@ -369,12 +368,9 @@ PROMPT;
         $apiKey = $this->config['api_key'];
 
         $modeloPrincipal = $this->config['model'] ?? 'gemini-2.5-flash';
-        // gemini-2.0-flash-lite, gemini-2.0-flash, gemini-1.5-flash → 404 en v1beta (deprecados).
-        // gemini-2.5-pro → timeout frecuente (muy lento para uso síncrono).
-        // Fallback: 2.5-flash primero, luego 1.5-flash-002 (versión estable).
+        // gemini-2.0-flash-lite y gemini-2.0-flash retornan 404 (deprecados).
         $modelos = array_unique(array_filter([
             'gemini-2.5-flash',
-            'gemini-1.5-flash-002',
             $modeloPrincipal,
         ]));
 
@@ -405,14 +401,12 @@ PROMPT;
                     'Content-Type' => 'application/json',
                 ])->timeout($this->timeoutSegundos)->post($url, $payload);
             } catch (\Illuminate\Http\Client\ConnectionException $e) {
-                Log::warning("IADescargoService: timeout/conexión en {$modelo}, intentando siguiente modelo", [
-                    'error' => $e->getMessage(),
-                ]);
+                Log::warning("IADescargoService: timeout/conexión en {$modelo}", ['error' => $e->getMessage()]);
                 $response = null;
                 continue;
             }
 
-            // En 503/404 pasar al siguiente modelo (404 = modelo deprecado)
+            // En 503/404 pasar al siguiente modelo
             if (in_array($response->status(), [503, 404])) {
                 Log::warning("IADescargoService: Gemini {$response->status()} en {$modelo}, intentando siguiente modelo");
                 continue;
@@ -607,19 +601,18 @@ PROMPT;
             $this->crearPreguntasEstandar($diligencia, self::PREGUNTAS_INICIALES, 1, 'inicial')
         );
 
-        // 2. Crear preguntas de cierre PRIMERO para que generarPreguntasIA las detecte y
-        //    se inserte antes de ellas (orden correcto: INICIALES → IA → CIERRE)
+        // 2. Generar preguntas específicas con IA (solo si no excede el límite)
+        if ($cantidadPreguntasIA > 0) {
+            $preguntasIA = $this->generarPreguntasIA($diligencia, $cantidadPreguntasIA);
+            $preguntasCreadas = array_merge($preguntasCreadas, $preguntasIA);
+        }
+
+        // 3. Crear preguntas de cierre
         $ordenInicio = count($preguntasCreadas) + 1;
         $preguntasCreadas = array_merge(
             $preguntasCreadas,
             $this->crearPreguntasEstandar($diligencia, self::PREGUNTAS_CIERRE, $ordenInicio, 'cierre')
         );
-
-        // 3. Generar preguntas específicas con IA — se insertarán ANTES de las de cierre
-        if ($cantidadPreguntasIA > 0) {
-            $preguntasIA = $this->generarPreguntasIA($diligencia, $cantidadPreguntasIA);
-            $preguntasCreadas = array_merge($preguntasCreadas, $preguntasIA);
-        }
 
         return $preguntasCreadas;
     }
@@ -763,10 +756,8 @@ PROMPT;
             // Las últimas N preguntas estándar (es_generada_por_ia = false) son el cierre.
             $cantidadCierre = count(self::PREGUNTAS_CIERRE);
 
-            // reorder() limpia el ORDER BY ASC heredado de la relación preguntas()
             $preguntasCierre = $diligencia->preguntas()
                 ->where('es_generada_por_ia', false)
-                ->reorder()
                 ->orderBy('orden', 'desc')
                 ->limit($cantidadCierre)
                 ->get();
