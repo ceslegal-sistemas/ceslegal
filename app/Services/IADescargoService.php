@@ -111,7 +111,7 @@ class IADescargoService
 
             // Calcular cuántas preguntas dinámicas se pueden agregar sin exceder el límite
             $preguntasDisponibles = self::LIMITE_MAXIMO_PREGUNTAS - $totalPreguntasActuales;
-            $limitePreguntasDinamicas = min(2, $preguntasDisponibles);
+            $limitePreguntasDinamicas = min(1, $preguntasDisponibles);
 
             // Limitar preguntas dinámicas según el espacio disponible
             $nuevasPreguntas = $this->parsearRespuestaIA($respuestaIA, $limitePreguntasDinamicas);
@@ -238,9 +238,8 @@ EJEMPLOS DE LENGUAJE CLARO:
 ✅ "¿Le contó a su jefe?"
 
 FORMATO DE RESPUESTA:
-Si hay preguntas, responde en este formato:
+Si hay una pregunta, responde exactamente así:
 PREGUNTA_1: [texto de la pregunta]
-PREGUNTA_2: [texto de la pregunta]
 
 Si no se requieren preguntas, responde:
 NO_REQUIERE
