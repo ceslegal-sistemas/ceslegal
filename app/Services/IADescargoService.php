@@ -368,14 +368,13 @@ PROMPT;
     {
         $apiKey = $this->config['api_key'];
 
-        $modeloPrincipal = $this->config['model'] ?? 'gemini-2.0-flash';
-        // Orden: más ligeros primero para minimizar 503 bajo alta demanda.
-        // 2.0-flash-lite y 2.0-flash son los más estables disponibles.
-        // 2.5-flash y 2.5-pro se saturan con frecuencia.
+        $modeloPrincipal = $this->config['model'] ?? 'gemini-2.5-flash';
+        // gemini-2.0-flash-lite y gemini-2.0-flash retornan 404 (deprecados).
+        // Orden: flash (rápido) → pro (más capaz) → 1.5-flash (fallback estable).
         $modelos = array_unique(array_filter([
-            'gemini-2.0-flash-lite',
-            'gemini-2.0-flash',
             'gemini-2.5-flash',
+            'gemini-2.5-pro',
+            'gemini-1.5-flash',
             $modeloPrincipal,
         ]));
 
@@ -401,17 +400,29 @@ PROMPT;
         foreach ($modelos as $modelo) {
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent?key={$apiKey}";
 
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])->timeout($this->timeoutSegundos)->post($url, $payload);
+            try {
+                $response = Http::withHeaders([
+                    'Content-Type' => 'application/json',
+                ])->timeout($this->timeoutSegundos)->post($url, $payload);
+            } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                Log::warning("IADescargoService: timeout/conexión en {$modelo}, intentando siguiente modelo", [
+                    'error' => $e->getMessage(),
+                ]);
+                $response = null;
+                continue;
+            }
 
-            // En 503 pasar al siguiente modelo
-            if ($response->status() === 503) {
-                Log::warning("IADescargoService: Gemini 503 en {$modelo}, intentando siguiente modelo");
+            // En 503/404 pasar al siguiente modelo (404 = modelo deprecado)
+            if (in_array($response->status(), [503, 404])) {
+                Log::warning("IADescargoService: Gemini {$response->status()} en {$modelo}, intentando siguiente modelo");
                 continue;
             }
 
             break;
+        }
+
+        if ($response === null) {
+            throw new \Exception("Todos los modelos Gemini fallaron por timeout o error de red");
         }
 
         if (!$response->successful()) {

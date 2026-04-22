@@ -31,6 +31,20 @@ class ArticuloLegal extends Model
     }
 
     /**
+     * Scope para obtener artículos universales + los de una empresa específica.
+     * Si $empresaId es null, retorna solo los universales.
+     */
+    public function scopeParaEmpresa($query, ?int $empresaId = null)
+    {
+        return $query->where(function ($q) use ($empresaId) {
+            $q->whereNull('empresa_id');
+            if ($empresaId) {
+                $q->orWhere('empresa_id', $empresaId);
+            }
+        });
+    }
+
+    /**
      * Scope para ordenar por orden personalizado
      */
     public function scopeOrdenado($query)
