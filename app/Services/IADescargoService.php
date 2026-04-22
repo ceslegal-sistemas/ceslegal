@@ -4,12 +4,9 @@ namespace App\Services;
 
 use App\Models\DiligenciaDescargo;
 use App\Models\PreguntaDescargo;
-use App\Models\ProcesoDisciplinario;
 use App\Models\RespuestaDescargo;
 use App\Models\TrazabilidadIADescargo;
 use App\Models\ArticuloLegal;
-use App\Services\BibliotecaLegalService;
-use App\Services\GeminiCircuitBreaker;
 use App\Services\ReglamentoInternoService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -160,7 +157,7 @@ class IADescargoService
 
         // Contexto del RIT de la empresa y normas relevantes por RAG
         $ritContexto = $empresaId ? $this->obtenerContextoRIT($empresaId) : '';
-        $normasRag   = $this->buscarNormasRelevantes($proceso->hechos ?? '', $empresaId, limite: 3, proceso: $proceso);
+        $normasRag   = $this->buscarNormasRelevantes($proceso->hechos ?? '', $empresaId, limite: 3);
 
         return [
             'hechos'              => $proceso->hechos,
@@ -369,11 +366,6 @@ PROMPT;
      */
     protected function llamarGemini(string $prompt): string
     {
-        // Si el circuito está abierto, fallar rápido (API recuperándose)
-        if (GeminiCircuitBreaker::isOpen()) {
-            throw new \Exception('Gemini no disponible temporalmente (circuit breaker abierto)');
-        }
-
         $apiKey = $this->config['api_key'];
 
         $modeloPrincipal = $this->config['model'] ?? 'gemini-2.0-flash';
@@ -413,10 +405,9 @@ PROMPT;
                 'Content-Type' => 'application/json',
             ])->timeout($this->timeoutSegundos)->post($url, $payload);
 
-            // En 503/404 pasar al siguiente modelo y registrar fallo
-            if (in_array($response->status(), [503, 404])) {
-                Log::warning("IADescargoService: Gemini {$response->status()} en {$modelo}, intentando siguiente modelo");
-                GeminiCircuitBreaker::recordFailure($modelo);
+            // En 503 pasar al siguiente modelo
+            if ($response->status() === 503) {
+                Log::warning("IADescargoService: Gemini 503 en {$modelo}, intentando siguiente modelo");
                 continue;
             }
 
@@ -424,7 +415,6 @@ PROMPT;
         }
 
         if (!$response->successful()) {
-            GeminiCircuitBreaker::recordFailure($modeloPrincipal);
             throw new \Exception("Error en API Gemini: " . $response->body());
         }
 
@@ -433,8 +423,6 @@ PROMPT;
         if (!isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
             throw new \Exception("Respuesta de Gemini sin contenido válido");
         }
-
-        GeminiCircuitBreaker::recordSuccess();
 
         $finishReason = $responseData['candidates'][0]['finishReason'] ?? 'UNKNOWN';
         if ($finishReason === 'MAX_TOKENS') {
@@ -691,7 +679,7 @@ PROMPT;
             : "\nNOTA: Esta empresa no tiene RIT cargado. Aplica el Código Sustantivo del Trabajo.\n";
 
         // Normas relevantes por RAG (RIT + CST + jurisprudencia)
-        $normasRag   = $this->buscarNormasRelevantes($proceso->hechos ?? '', $empresaId, limite: 3, proceso: $proceso);
+        $normasRag   = $this->buscarNormasRelevantes($proceso->hechos ?? '', $empresaId, limite: 3);
         $normasBloque = $normasRag
             ? "\nNORMAS Y JURISPRUDENCIA RELEVANTES (recuperadas de la base de datos):\n{$normasRag}\n"
             : '';
@@ -839,29 +827,16 @@ PROMPT;
      * Recupera las normas más relevantes (RIT empresa + CST + jurisprudencia + RITs de referencia)
      * usando similitud coseno sobre embeddings Gemini.
      *
-     * Si se pasa $proceso, usa el embedding almacenado en BD (sin llamada a API).
-     * Si no existe o el texto cambió, lo genera y lo persiste para la próxima vez.
-     *
      * @return string Bloque de texto listo para inyectar en el prompt. Vacío si no hay embeddings.
      */
-    private function buscarNormasRelevantes(string $texto, ?int $empresaId = null, int $limite = 3, ?ProcesoDisciplinario $proceso = null): string
+    private function buscarNormasRelevantes(string $texto, ?int $empresaId = null, int $limite = 3): string
     {
         if (empty(trim($texto))) {
             return '';
         }
 
         try {
-            // Intentar usar el embedding persistido en BD (evita llamada a API)
-            $queryEmbedding = $proceso?->getHechosEmbedding($texto);
-
-            if (!$queryEmbedding) {
-                $queryEmbedding = $this->obtenerEmbeddingTexto($texto);
-                // Persistir en BD para que las próximas llamadas sean instantáneas
-                if ($queryEmbedding && $proceso) {
-                    $proceso->storeHechosEmbedding($queryEmbedding);
-                }
-            }
-
+            $queryEmbedding = $this->obtenerEmbeddingTexto($texto);
             if (!$queryEmbedding) {
                 return '';
             }

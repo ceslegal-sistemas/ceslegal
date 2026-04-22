@@ -46,8 +46,6 @@ class ProcesoDisciplinario extends Model
         'impugnado',
         'fecha_impugnacion',
         'fecha_cierre',
-        'hechos_embedding',
-        'hechos_md5',
     ];
 
     protected $casts = [
@@ -67,37 +65,7 @@ class ProcesoDisciplinario extends Model
         'fecha_cierre' => 'datetime',
         'articulos_legales_ids' => 'array',
         'sanciones_laborales_ids' => 'array',
-        'hechos_embedding' => 'array',
     ];
-
-    // ── Embedding de hechos (RAG persistido) ──────────────────────────────────
-
-    /**
-     * Retorna el embedding almacenado si el hash del texto actual coincide.
-     * Retorna null si no existe o si los hechos cambiaron desde que se calculó.
-     */
-    public function getHechosEmbedding(string $textoActual): ?array
-    {
-        if (!$this->hechos_embedding) {
-            return null;
-        }
-        if ($this->hechos_md5 !== md5($textoActual)) {
-            return null; // Texto cambió → embedding obsoleto
-        }
-        return $this->hechos_embedding;
-    }
-
-    /**
-     * Persiste el embedding en BD junto con el hash del texto actual.
-     * Las próximas búsquedas RAG lo usarán sin llamar a la API.
-     */
-    public function storeHechosEmbedding(array $embedding): void
-    {
-        $this->update([
-            'hechos_embedding' => $embedding,
-            'hechos_md5'       => md5($this->hechos ?? ''),
-        ]);
-    }
 
     /**
      * Obtener todas las fechas de ocurrencia (principal + adicionales)

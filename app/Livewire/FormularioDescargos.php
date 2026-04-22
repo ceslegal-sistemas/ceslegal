@@ -6,12 +6,10 @@ use App\Models\DiligenciaDescargo;
 use App\Models\Feedback;
 use App\Models\PreguntaDescargo;
 use App\Models\RespuestaDescargo;
-use App\Jobs\GenerarPreguntasDinamicasJob;
 use App\Services\IADescargoService;
 use App\Services\ActaDescargosService;
 use App\Services\DocumentGeneratorService;
 use App\Services\EstadoProcesoService;
-use Illuminate\Support\Facades\Bus;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Log;
@@ -34,11 +32,6 @@ class FormularioDescargos extends Component
     protected $listeners = ['respuestaGuardada' => 'refrescarPreguntas'];
 
     public bool $tiempoExpiradoMostrarEvidencias = false;
-
-    // Polling para detectar preguntas IA generadas en background
-    public bool $esperandoPreguntasIA = false;
-    public int  $contadorSondeo       = 0;
-    const       MAX_SONDEO            = 10; // 10 × 3s = 30s máximo de espera
 
     // Feedback orgánico — paso actual (1-5 = pregunta activa, 6 = completado)
     public int    $feedbackPaso      = 1;
@@ -224,38 +217,20 @@ class FormularioDescargos extends Component
             // Si es la pregunta sobre acompañantes y respondió NO, saltar preguntas hijas automáticamente
             $this->saltarPreguntasCondicionales($pregunta, $respuestaTexto);
 
-            // Generar preguntas dinámicas para preguntas IA y para estándar relevantes
-            // (excluir preguntas puramente administrativas que no aportan contexto disciplinario)
-            $preguntasAdministrativas = [
-                '¿Para qué empresa trabaja usted?',
-                '¿Cuál es su cargo en la empresa?',
-                '¿Quién es su jefe directo?',
-                '¿Va a asistir acompañado(a) por alguien?',
-                '¿Qué relación tiene esa persona con usted?',
-                'Acompañante: indique su nombre completo y en qué calidad asiste a esta diligencia (apoyo moral, representante sindical, apoderado, testigo u otro).',
-                '¿Cuál es el nombre de esa empresa contratista o tercero?',
-            ];
+            // Solo generar preguntas dinámicas si es una pregunta generada por IA
+            // (no las preguntas estándar que tienen es_generada_por_ia = false)
+            if ($pregunta->es_generada_por_ia) {
+                $iaService = new IADescargoService();
+                $nuevasPreguntas = $iaService->generarPreguntasDinamicas($pregunta, $respuesta);
 
-            // Prefijos para preguntas administrativas cuyo texto varía (contienen nombre de empresa)
-            $prefijosAdministrativos = [
-                '¿Trabaja usted para una empresa contratista o tercero diferente a',
-            ];
+                if (count($nuevasPreguntas) > 0) {
+                    foreach ($nuevasPreguntas as $nuevaPregunta) {
+                        $this->respuestas[$nuevaPregunta->id] = '';
+                        $this->preguntasProcesadas[$nuevaPregunta->id] = false;
+                    }
 
-            $esPreguntaAdministrativa = in_array($pregunta->pregunta, $preguntasAdministrativas)
-                || collect($prefijosAdministrativos)->contains(
-                    fn($p) => str_starts_with($pregunta->pregunta, $p)
-                );
-
-            $esPreguntaRelevante = $pregunta->es_generada_por_ia || !$esPreguntaAdministrativa;
-
-            if ($esPreguntaRelevante) {
-                // Despachar en background: la respuesta llega al navegador sin esperar a Gemini.
-                // wire:poll en el blade detectará las nuevas preguntas cuando el job termine.
-                Bus::dispatchAfterResponse(
-                    new GenerarPreguntasDinamicasJob($pregunta->id, $respuesta->id)
-                );
-                $this->esperandoPreguntasIA = true;
-                $this->contadorSondeo = 0;
+                    $this->dispatch('preguntasGeneradas', count: count($nuevasPreguntas));
+                }
             }
 
             $this->dispatch('respuestaGuardada', preguntaId: $preguntaId);
@@ -282,43 +257,6 @@ class FormularioDescargos extends Component
     {
         $this->diligencia->refresh();
         $this->cargarRespuestasExistentes();
-    }
-
-    /**
-     * Detecta nuevas preguntas IA generadas en background por GenerarPreguntasDinamicasJob.
-     * Llamado cada 3s por wire:poll mientras $esperandoPreguntasIA === true.
-     */
-    public function verificarNuevasPreguntas(): void
-    {
-        if (!$this->esperandoPreguntasIA) {
-            return;
-        }
-
-        $this->contadorSondeo++;
-
-        // Timeout de seguridad: detener polling si el job tardó demasiado
-        if ($this->contadorSondeo >= self::MAX_SONDEO) {
-            $this->esperandoPreguntasIA = false;
-            $this->contadorSondeo = 0;
-            return;
-        }
-
-        $this->diligencia->refresh();
-        $preguntas = $this->diligencia->preguntas()->get();
-
-        $hayNuevas = false;
-        foreach ($preguntas as $pregunta) {
-            if (!array_key_exists($pregunta->id, $this->respuestas)) {
-                $this->respuestas[$pregunta->id] = '';
-                $this->preguntasProcesadas[$pregunta->id] = false;
-                $hayNuevas = true;
-            }
-        }
-
-        if ($hayNuevas) {
-            $this->esperandoPreguntasIA = false;
-            $this->contadorSondeo = 0;
-        }
     }
 
     /**
