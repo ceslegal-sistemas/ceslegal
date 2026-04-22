@@ -17,7 +17,7 @@ class IADescargoService
     protected array $config;
 
     // Control de timeout y reintentos — se ajustan según el modo de uso
-    protected int $timeoutSegundos = 20;  // para generación en batch
+    protected int $timeoutSegundos = 45;  // para generación en batch (gemini-2.5-flash puede ser lento)
     protected int $maxReintentos   = 2;   // para generación en batch
 
     // Límite máximo de preguntas totales por diligencia
@@ -369,12 +369,12 @@ PROMPT;
         $apiKey = $this->config['api_key'];
 
         $modeloPrincipal = $this->config['model'] ?? 'gemini-2.5-flash';
-        // gemini-2.0-flash-lite y gemini-2.0-flash retornan 404 (deprecados).
-        // Orden: flash (rápido) → pro (más capaz) → 1.5-flash (fallback estable).
+        // gemini-2.0-flash-lite, gemini-2.0-flash, gemini-1.5-flash → 404 en v1beta (deprecados).
+        // gemini-2.5-pro → timeout frecuente (muy lento para uso síncrono).
+        // Fallback: 2.5-flash primero, luego 1.5-flash-002 (versión estable).
         $modelos = array_unique(array_filter([
             'gemini-2.5-flash',
-            'gemini-2.5-pro',
-            'gemini-1.5-flash',
+            'gemini-1.5-flash-002',
             $modeloPrincipal,
         ]));
 
