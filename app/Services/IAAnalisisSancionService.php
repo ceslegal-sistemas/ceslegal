@@ -356,7 +356,7 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown):
 }
 
 REGLAS ESTRICTAS:
-- Si es FALTA LEVE: gravedad="leve", nivel_gravedad="ninguno", sanciones=["llamado_atencion"]
+- Si es FALTA LEVE: gravedad="leve", nivel_gravedad="ninguno", sanciones=["llamado_atencion", "suspension"], dias=[1,2,3,5]
 - Si es FALTA GRAVE NIVEL BAJO: gravedad="grave", nivel_gravedad="bajo", sanciones=["llamado_atencion", "suspension"], dias=[1,2,3,5,8]
 - Si es FALTA GRAVE NIVEL ALTO: gravedad="grave", nivel_gravedad="alto", sanciones=["suspension", "terminacion"], dias=[8,15,30,60]
 - dias_suspension_sugeridos debe variar según el nivel de gravedad
