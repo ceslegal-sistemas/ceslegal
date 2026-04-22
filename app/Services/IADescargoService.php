@@ -749,32 +749,10 @@ PROMPT;
                 'generacion_preguntas'
             );
 
-            // No limitar las preguntas iniciales para obtener todas las generadas
             $preguntas = $this->parsearRespuestaIA($respuestaIA, $cantidadPreguntas);
 
-            // Insertar las preguntas IA ANTES de las preguntas de cierre.
-            // Las últimas N preguntas estándar (es_generada_por_ia = false) son el cierre.
-            $cantidadCierre = count(self::PREGUNTAS_CIERRE);
-
-            $preguntasCierre = $diligencia->preguntas()
-                ->where('es_generada_por_ia', false)
-                ->orderBy('orden', 'desc')
-                ->limit($cantidadCierre)
-                ->get();
-
-            if ($preguntasCierre->count() === $cantidadCierre) {
-                // Hay preguntas de cierre: empujarlas hacia abajo y colocar IA antes de ellas
-                $ordenInsercion = $preguntasCierre->min('orden');
-
-                PreguntaDescargo::where('diligencia_descargo_id', $diligencia->id)
-                    ->where('orden', '>=', $ordenInsercion)
-                    ->increment('orden', count($preguntas));
-
-                $ordenInicial = $ordenInsercion;
-            } else {
-                // Sin preguntas de cierre: añadir al final
-                $ordenInicial = ($diligencia->preguntas()->max('orden') ?? 0) + 1;
-            }
+            // Agregar al final del orden actual (generarPreguntasCompletas crea CIERRE después)
+            $ordenInicial = ($diligencia->preguntas()->max('orden') ?? 0) + 1;
 
             return $this->guardarPreguntasIA($diligencia, $preguntas, $ordenInicial);
         } catch (\Exception $e) {
