@@ -51,4 +51,9 @@ class Suscripcion extends Model
             && $this->trial_ends_at !== null
             && $this->trial_ends_at->gt(now());
     }
+
+    public function incluyeRIT(): bool
+    {
+        return (bool) config("ces.planes.{$this->plan}.incluye_rit", true);
+    }
 }

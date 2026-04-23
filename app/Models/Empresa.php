@@ -96,4 +96,13 @@ class Empresa extends Model
     {
         return $this->suscripcion?->estaActiva() ?? false;
     }
+
+    public function puedeUsarTodasLasSanciones(): bool
+    {
+        $suscripcion = $this->suscripcion;
+        if (!$suscripcion || !$suscripcion->incluyeRIT()) {
+            return false;
+        }
+        return $this->reglamentoInterno !== null;
+    }
 }

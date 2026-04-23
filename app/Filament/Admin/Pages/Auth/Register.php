@@ -212,20 +212,42 @@ class Register extends BaseRegister
                         ->icon('heroicon-o-document-text')
                         ->description('Reglamento Interno de Trabajo')
                         ->schema([
-                            Forms\Components\Placeholder::make('rit_cta')
+                            Forms\Components\Placeholder::make('rit_info')
                                 ->label('')
-                                ->content(fn() => new HtmlString($this->getRitCtaHtml()))
+                                ->content(new HtmlString(
+                                    '<div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700 text-sm text-blue-800 dark:text-blue-200">' .
+                                    '<p class="font-semibold mb-1">¿Por qué es importante el Reglamento Interno de Trabajo (RIT)?</p>' .
+                                    '<p>El RIT es obligatorio para empresas con más de 5 trabajadores (Art. 105 CST). <strong>Sin RIT activo, la plataforma solo puede aplicar terminación de contrato</strong> como medida disciplinaria. Con RIT puede aplicar también llamados de atención y suspensiones.</p>' .
+                                    '</div>'
+                                ))
+                                ->columnSpanFull(),
+
+                            Forms\Components\Radio::make('rit_opcion')
+                                ->label('¿Su empresa tiene Reglamento Interno de Trabajo (RIT)?')
+                                ->options([
+                                    'tiene'     => 'Sí, ya lo tengo — lo subo ahora',
+                                    'construir' => 'No lo tengo — quiero construirlo con IA (recomendado)',
+                                    'despues'   => 'Lo haré después (solo podré aplicar terminación de contrato)',
+                                ])
+                                ->descriptions([
+                                    'tiene'     => 'Suba el archivo .docx de su RIT aprobado por el Ministerio del Trabajo.',
+                                    'construir' => 'Al crear la cuenta, lo redirigiremos a un cuestionario guiado. La IA redactará su RIT completo.',
+                                    'despues'   => 'Puede subir o construir el RIT más adelante desde el panel de administración.',
+                                ])
+                                ->default('despues')
+                                ->live()
                                 ->columnSpanFull(),
 
                             Forms\Components\FileUpload::make('reglamento_docx_temp')
                                 ->label('Subir Reglamento Interno (.docx)')
-                                ->helperText('Si ya cuenta con su RIT aprobado por el Ministerio del Trabajo, súbalo aquí. Si aún no lo tiene, puede continuar sin cargarlo.')
+                                ->helperText('Suba el archivo .docx de su RIT aprobado por el Ministerio del Trabajo.')
                                 ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
                                 ->disk('local')
                                 ->directory('reglamentos-temp')
                                 ->visibility('private')
                                 ->maxSize(10240)
                                 ->nullable()
+                                ->visible(fn (Forms\Get $get) => $get('rit_opcion') === 'tiene')
                                 ->columnSpanFull(),
                         ]),
 
@@ -276,8 +298,10 @@ class Register extends BaseRegister
 
         $this->crearSuscripcion($empresa, $plan, $ciclo, $email);
 
-        $rutaDocx = $data['reglamento_docx_temp'] ?? null;
-        if ($rutaDocx) {
+        $ritOpcion = $data['rit_opcion'] ?? 'despues';
+        $rutaDocx  = $data['reglamento_docx_temp'] ?? null;
+
+        if ($ritOpcion === 'tiene' && $rutaDocx) {
             try {
                 app(ReglamentoInternoService::class)->procesarDocumento(
                     storage_path("app/{$rutaDocx}"),
@@ -289,6 +313,15 @@ class Register extends BaseRegister
                     'empresa_id' => $empresa->id,
                     'error'      => $e->getMessage(),
                 ]);
+            }
+        } elseif ($ritOpcion === 'construir') {
+            // Tras el registro, redirigir al constructor de RIT
+            // (se sobreescribe solo si no hay ya redirect a PayU)
+            if (empty($this->redirectUrl)) {
+                $this->redirectUrl = route('filament.admin.pages.rit-builder');
+            } else {
+                // Hay redirect a PayU; guardar en sesión para redirigir post-pago
+                session(['rit_construir_despues_pago' => true]);
             }
         }
 

@@ -14,10 +14,13 @@ class ReglamentoInterno extends Model
         'nombre',
         'texto_completo',
         'activo',
+        'respuestas_cuestionario',
+        'fuente',
     ];
 
     protected $casts = [
-        'activo' => 'boolean',
+        'activo'                 => 'boolean',
+        'respuestas_cuestionario' => 'array',
     ];
 
     public function empresa(): BelongsTo

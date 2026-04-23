@@ -111,6 +111,28 @@ Route::get('/admin/fotos-descargos/{diligencia}/{tipo}', function ($diligenciaId
         ->header('Cache-Control', 'private, max-age=3600');
 })->middleware(['auth'])->name('admin.fotos-descargos');
 
+// Descarga del RIT generado con IA
+Route::get('/descargar/rit', function () {
+    $user    = auth()->user();
+    $empresa = $user?->empresa;
+
+    if (!$empresa) {
+        abort(403, 'No autorizado');
+    }
+
+    $ruta = storage_path("app/private/rits/{$empresa->id}/reglamento.docx");
+
+    if (!file_exists($ruta)) {
+        abort(404, 'Documento no encontrado. Genere su RIT primero.');
+    }
+
+    $nombre = 'Reglamento_Interno_' . \Str::slug($empresa->razon_social) . '.docx';
+
+    return Response::download($ruta, $nombre, [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ]);
+})->middleware(['auth'])->name('rit.descargar');
+
 // Rutas de Email Tracking
 Route::get('/email/track/{token}.gif', [EmailTrackingController::class, 'pixel'])
     ->name('email.tracking.pixel');
