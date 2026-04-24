@@ -118,6 +118,12 @@ class CreateReglamentoInterno extends CreateRecord
                                         ? "{$a->codigo} — {$a->nombre}"
                                         : $value
                                 )
+                                ->getOptionLabelsUsing(fn(array $values) =>
+                                    ActividadEconomica::whereIn('id', $values)
+                                        ->get()
+                                        ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} — {$a->nombre}"])
+                                        ->all()
+                                )
                                 ->default($empresa?->actividadesSecundarias?->pluck('id')->toArray() ?? [])
                                 ->nullable()
                                 ->placeholder('Buscar por código o nombre...')
@@ -191,7 +197,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->columns(2)
                                 ->addActionLabel('Agregar cargo')
                                 ->minItems(1)
-                                ->defaultItems(2)
+                                ->defaultItems(1)
                                 ->columnSpanFull(),
                         ]),
 
@@ -240,10 +246,12 @@ class CreateReglamentoInterno extends CreateRecord
                         ->schema([
                             TimePickerField::make('horario_entrada')
                                 ->label('Hora de entrada')
+                                ->id('rit_horario_entrada')
                                 ->required(),
 
                             TimePickerField::make('horario_salida')
                                 ->label('Hora de salida (lunes a viernes)')
+                                ->id('rit_horario_salida')
                                 ->required(),
 
                             // Solo si la empresa trabaja lunes a sábado
@@ -475,11 +483,14 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->options([
                                     'llamado_verbal'  => 'Llamado de atención verbal',
                                     'llamado_escrito' => 'Llamado de atención escrito',
-                                    'suspension_1_3'  => 'Suspensión 1-3 días',
-                                    'suspension_4_8'  => 'Suspensión 4-8 días',
+                                    'suspension_1_8'  => 'Suspensión 1-8 días',
+                                    'suspension_1_15'  => 'Suspensión 1-15 días',
+                                    'suspension_1_30' => 'Suspensión 1-30 días',
+                                    'suspension_1_40' => 'Suspensión 1-40 días',
+                                    'suspension_1_60' => 'Suspensión 1-60 días',
                                     'terminacion'     => 'Terminación con justa causa',
                                 ])
-                                ->default(['llamado_verbal', 'llamado_escrito', 'suspension_1_3', 'terminacion'])
+                                ->default(['llamado_verbal', 'llamado_escrito', 'suspension_1_8', 'suspension_1_15', 'terminacion'])
                                 ->columns(2),
                         ]),
                 ]),
@@ -678,9 +689,21 @@ class CreateReglamentoInterno extends CreateRecord
             ($empresa->departamento ?? '')
         );
 
-        // 4. Llamar a la IA (puede tardar hasta 90s)
+        // 4. Guardar cuestionario PRIMERO (así no se pierde nada si la IA falla)
+        $record = ReglamentoInterno::updateOrCreate(
+            ['empresa_id' => $empresa->id],
+            [
+                'nombre'                  => 'Reglamento Interno — ' . now()->format('d/m/Y'),
+                'texto_completo'          => '',
+                'activo'                  => false,
+                'respuestas_cuestionario' => $data,
+                'fuente'                  => 'construido_ia',
+            ]
+        );
+
+        // 5. Llamar a la IA (puede tardar hasta 90s)
+        $service = app(RITGeneratorService::class);
         try {
-            $service  = app(RITGeneratorService::class);
             $textoRIT = $service->generarTextoRIT($data, $empresa);
         } catch (\Exception $e) {
             Log::error('Error generando RIT con IA', [
@@ -689,25 +712,20 @@ class CreateReglamentoInterno extends CreateRecord
             ]);
             Notification::make()
                 ->danger()
-                ->title('Error al generar el RIT')
-                ->body('No se pudo conectar con la IA. Intente nuevamente.')
+                ->title('Error al generar el texto con IA')
+                ->body('Sus respuestas quedaron guardadas. Contáctenos para completar la generación del documento.')
                 ->send();
-            return new ReglamentoInterno();
+            return $record;
         }
 
-        // 5. Guardar en BD (un solo RIT activo por empresa)
-        $record = ReglamentoInterno::updateOrCreate(
-            ['empresa_id' => $empresa->id],
-            [
-                'nombre'                  => 'Reglamento Interno generado con IA — ' . now()->format('d/m/Y'),
-                'texto_completo'          => $textoRIT,
-                'activo'                  => true,
-                'respuestas_cuestionario' => $data,
-                'fuente'                  => 'construido_ia',
-            ]
-        );
+        // 6. Actualizar con el texto generado
+        $record->update([
+            'nombre'         => 'Reglamento Interno generado con IA — ' . now()->format('d/m/Y'),
+            'texto_completo' => $textoRIT,
+            'activo'         => true,
+        ]);
 
-        // 6. Generar DOCX (no fatal si falla)
+        // 7. Generar DOCX (no fatal si falla)
         try {
             $service->generarDocumentoWord($textoRIT, $empresa);
         } catch (\Exception $e) {

@@ -1,4 +1,5 @@
 @php
+    $fmtHora = fn($t) => $t ? \Carbon\Carbon::createFromFormat('H:i:s', $t)->format('g:i A') : null;
     $formaPagoLabels = [
         'transferencia' => 'Transferencia bancaria',
         'cheque'        => 'Cheque',
@@ -292,7 +293,7 @@ html:not(.dark) .rr-tag.muy-grave { background:rgba(220,38,38,.09);color:#991b1b
             <p class="rr-sec-label">Jornada</p>
           </div>
           <p class="rr-sec-val {{ !$horario_entrada ? 'empty' : '' }}">
-            {{ $horario_entrada ?: '—' }} → {{ $horario_salida ?: '—' }}
+            {{ $fmtHora($horario_entrada) ?? '—' }} → {{ $fmtHora($horario_salida) ?? '—' }}
           </p>
           <p class="rr-sec-sub">
             Sáb: {{ $jornadaSabadoLabel }}
