@@ -601,34 +601,31 @@ class CreateReglamentoInterno extends CreateRecord
                 ->icon('heroicon-o-cpu-chip')
                 ->schema([
 
-                    Forms\Components\Placeholder::make('aviso_ia')
+                    Forms\Components\Placeholder::make('revision_rit')
                         ->label('')
-                        ->content(fn() => new HtmlString(
-                            '<div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700">'
-                            . '<p class="font-semibold text-blue-900 dark:text-blue-100 text-base">Listo para generar su Reglamento Interno</p>'
-                            . '<p class="text-sm text-blue-700 dark:text-blue-300 mt-1">'
-                            . 'Al hacer clic en <strong>"Crear"</strong> la IA redactará el RIT completo con cumplimiento del Art. 105 CST '
-                            . 'y la Ley 2365/2024 (prevención acoso sexual). Este proceso puede tardar hasta 60 segundos — no cierre la ventana.'
-                            . '</p>'
-                            . '<p class="text-xs text-blue-600 dark:text-blue-400 mt-2">'
-                            . '<strong>Importante:</strong> El documento generado debe ser revisado por un abogado laboral '
-                            . 'antes de presentarlo ante el Ministerio del Trabajo.'
-                            . '</p>'
-                            . '</div>'
-                        ))
-                        ->columnSpanFull(),
-
-                    Forms\Components\Placeholder::make('resumen')
-                        ->label('Resumen de sus respuestas')
                         ->content(fn(Get $get) => new HtmlString(
-                            '<div class="grid grid-cols-2 gap-2 text-sm text-gray-700 dark:text-gray-300">'
-                            . '<div><span class="font-medium">Trabajadores:</span> ' . ($get('num_trabajadores') ?: '—') . '</div>'
-                            . '<div><span class="font-medium">Horario:</span> ' . ($get('horario_entrada') ?: '—') . ' — ' . ($get('horario_salida') ?: '—') . '</div>'
-                            . '<div><span class="font-medium">Forma de pago:</span> ' . ($get('forma_pago') ?: '—') . '</div>'
-                            . '<div><span class="font-medium">Turnos:</span> ' . ($get('tiene_turnos') === 'si' ? 'Sí' : 'No') . '</div>'
-                            . '<div><span class="font-medium">SG-SST:</span> ' . ($get('tiene_sg_sst') ?: '—') . '</div>'
-                            . '<div><span class="font-medium">Sucursales:</span> ' . ($get('tiene_sucursales') === 'si' ? 'Sí' : 'No') . '</div>'
-                            . '</div>'
+                            view('filament.components.rit-revision-resumen', [
+                                'empresa'              => $this->getEmpresa(),
+                                'num_trabajadores'     => $get('num_trabajadores'),
+                                'tiene_sucursales'     => $get('tiene_sucursales'),
+                                'sucursales'           => $get('sucursales') ?? [],
+                                'cargos'               => $get('cargos') ?? [],
+                                'tipos_contrato'       => $get('tipos_contrato') ?? [],
+                                'horario_entrada'      => $get('horario_entrada'),
+                                'horario_salida'       => $get('horario_salida'),
+                                'jornada_sabado'       => $get('jornada_sabado'),
+                                'trabaja_dominicales'  => $get('trabaja_dominicales'),
+                                'tiene_turnos'         => $get('tiene_turnos'),
+                                'control_asistencia'   => $get('control_asistencia'),
+                                'forma_pago'           => $get('forma_pago'),
+                                'periodicidad_pago'    => $get('periodicidad_pago'),
+                                'faltas_leves'         => $get('faltas_leves') ?? [],
+                                'faltas_graves'        => $get('faltas_graves') ?? [],
+                                'faltas_muy_graves'    => $get('faltas_muy_graves') ?? [],
+                                'sanciones'            => $get('sanciones_contempladas') ?? [],
+                                'tiene_sg_sst'         => $get('tiene_sg_sst'),
+                                'riesgos_principales'  => $get('riesgos_principales') ?? [],
+                            ])->render()
                         ))
                         ->columnSpanFull(),
                 ]),
