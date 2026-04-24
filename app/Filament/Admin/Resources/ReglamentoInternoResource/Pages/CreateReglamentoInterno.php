@@ -10,6 +10,7 @@ use App\Services\RITGeneratorService;
 use Filament\Forms;
 use Filament\Forms\Components\Wizard\Step;
 use Filament\Forms\Get;
+use HusamTariq\FilamentTimePicker\Forms\Components\TimePickerField;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\CreateRecord\Concerns\HasWizard;
@@ -237,33 +238,33 @@ class CreateReglamentoInterno extends CreateRecord
 
                     Forms\Components\Section::make('Horario ordinario')
                         ->schema([
-                            Forms\Components\TextInput::make('horario_entrada')
+                            TimePickerField::make('horario_entrada')
                                 ->label('Hora de entrada')
-                                ->required()
-                                ->placeholder('Ej: 8:00 a.m.'),
+                                ->required(),
 
-                            Forms\Components\TextInput::make('horario_salida')
-                                ->label('Hora de salida')
-                                ->required()
-                                ->placeholder('Ej: 5:00 p.m.'),
+                            TimePickerField::make('horario_salida')
+                                ->label('Hora de salida (lunes a viernes)')
+                                ->required(),
 
-                            Forms\Components\Radio::make('trabaja_sabados')
-                                ->label('¿Trabaja los sábados?')
-                                ->options([
-                                    'no'            => 'No',
-                                    'media_jornada' => 'Sí, media jornada',
-                                    'dia_completo'  => 'Sí, jornada completa',
-                                ])
-                                ->default('no')
-                                ->inline()
-                                ->live()
-                                ->columnSpanFull(),
+                            // Solo si la empresa trabaja lunes a sábado
+                            ...($empresa?->dias_laborales === 'lunes_sabado' ? [
+                                Forms\Components\Radio::make('jornada_sabado')
+                                    ->label('Los sábados, ¿cuál es la jornada?')
+                                    ->options([
+                                        'media_jornada' => 'Media jornada',
+                                        'dia_completo'  => 'Jornada completa',
+                                    ])
+                                    ->default('media_jornada')
+                                    ->inline()
+                                    ->live()
+                                    ->columnSpanFull(),
 
-                            Forms\Components\TextInput::make('horario_salida_sabado')
-                                ->label('Hora de salida los sábados')
-                                ->placeholder('Ej: 1:00 p.m.')
-                                ->visible(fn(Get $get) => $get('trabaja_sabados') !== 'no')
-                                ->columnSpanFull(),
+                                TimePickerField::make('horario_salida_sabado')
+                                    ->label('Hora de salida los sábados')
+                                    ->columnSpanFull(),
+                            ] : [
+                                Forms\Components\Hidden::make('jornada_sabado')->default('no'),
+                            ]),
 
                             Forms\Components\Radio::make('trabaja_dominicales')
                                 ->label('¿Trabaja domingos o festivos?')
