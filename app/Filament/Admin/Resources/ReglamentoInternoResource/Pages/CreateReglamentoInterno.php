@@ -732,6 +732,14 @@ class CreateReglamentoInterno extends CreateRecord
         return $record;
     }
 
+    public function getBreadcrumbs(): array
+    {
+        return [
+            route('filament.admin.pages.dashboard') => 'Panel',
+            'Construir Reglamento Interno de Trabajo',
+        ];
+    }
+
     protected function getRedirectUrl(): string
     {
         return route('filament.admin.pages.dashboard');
