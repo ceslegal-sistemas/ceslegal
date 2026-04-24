@@ -15,6 +15,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\CreateRecord\Concerns\HasWizard;
 use Illuminate\Database\Eloquent\Model;
+use Filament\Support\Exceptions\Halt;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
@@ -657,7 +658,7 @@ class CreateReglamentoInterno extends CreateRecord
                 ->title('Error')
                 ->body('No se encontró la empresa asociada a su cuenta.')
                 ->send();
-            return new ReglamentoInterno();
+            throw new Halt();
         }
 
         // 1. Resolver actividad_economica_id → texto legible
@@ -713,9 +714,10 @@ class CreateReglamentoInterno extends CreateRecord
             Notification::make()
                 ->danger()
                 ->title('Error al generar el texto con IA')
-                ->body('Sus respuestas quedaron guardadas. Contáctenos para completar la generación del documento.')
+                ->body('Sus respuestas quedaron guardadas. Puede intentar de nuevo con el botón "Crear".')
+                ->persistent()
                 ->send();
-            return $record;
+            throw new Halt();
         }
 
         // 6. Actualizar con el texto generado
