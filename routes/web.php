@@ -133,6 +133,27 @@ Route::get('/descargar/rit', function () {
     ]);
 })->middleware(['auth'])->name('rit.descargar');
 
+// Descarga del RIT para super admin (por empresa_id)
+Route::get('/descargar/rit/admin/{empresa}', function (\App\Models\Empresa $empresa) {
+    $user = auth()->user();
+    if (!$user || (!$user->hasRole('super_admin') && !$user->hasRole('abogado'))) {
+        abort(403, 'No autorizado');
+    }
+    $ruta = storage_path("app/private/rits/{$empresa->id}/reglamento.docx");
+    if (!file_exists($ruta)) {
+        abort(404, 'Documento no encontrado para esta empresa.');
+    }
+    $nombre = 'RIT_' . \Str::slug($empresa->razon_social) . '.docx';
+    return \Symfony\Component\HttpFoundation\Response::create(
+        file_get_contents($ruta),
+        200,
+        [
+            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Disposition' => "attachment; filename=\"{$nombre}\"",
+        ]
+    );
+})->middleware(['auth'])->name('rit.descargar.admin');
+
 // Rutas de Email Tracking
 Route::get('/email/track/{token}.gif', [EmailTrackingController::class, 'pixel'])
     ->name('email.tracking.pixel');

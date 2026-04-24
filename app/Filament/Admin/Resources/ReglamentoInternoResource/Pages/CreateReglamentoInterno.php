@@ -26,6 +26,23 @@ class CreateReglamentoInterno extends CreateRecord
 
     protected static string $resource = ReglamentoInternoResource::class;
 
+    public function mount(): void
+    {
+        parent::mount();
+
+        // Pre-llenar con respuestas anteriores si ya existe un RIT
+        $empresa = $this->getEmpresa();
+        if (!$empresa) return;
+
+        $rit = ReglamentoInterno::where('empresa_id', $empresa->id)
+            ->orderByDesc('updated_at')
+            ->first();
+
+        if ($rit?->respuestas_cuestionario) {
+            $this->form->fill($rit->respuestas_cuestionario);
+        }
+    }
+
     protected function getSteps(): array
     {
         $empresa = $this->getEmpresa();
@@ -756,7 +773,7 @@ class CreateReglamentoInterno extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        return route('filament.admin.pages.dashboard');
+        return route('filament.admin.pages.mi-reglamento-interno');
     }
 
     private function getEmpresa(): ?Empresa

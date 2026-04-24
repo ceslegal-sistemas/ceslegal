@@ -20,7 +20,7 @@ class ReglamentoInternoResource extends Resource
 
     public static function getNavigationUrl(): string
     {
-        return static::getUrl('create');
+        return route('filament.admin.pages.mi-reglamento-interno');
     }
 
     public static function form(Form $form): Form
