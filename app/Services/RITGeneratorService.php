@@ -130,24 +130,96 @@ class RITGeneratorService
         return $rutaRelativa;
     }
 
-    private function construirPrompt(array $respuestas, Empresa $empresa): string
+    private function construirPrompt(array $r, Empresa $empresa): string
     {
         $razonSocial = $empresa->razon_social;
         $nit         = $empresa->nit;
 
-        $infoEmpresa = '';
-        foreach ($respuestas as $seccion => $preguntas) {
-            if (is_array($preguntas)) {
-                $infoEmpresa .= "\n[{$seccion}]\n";
-                foreach ($preguntas as $pregunta => $respuesta) {
-                    if (!empty($respuesta)) {
-                        $infoEmpresa .= "- {$pregunta}: {$respuesta}\n";
-                    }
-                }
-            } elseif (!empty($preguntas)) {
-                $infoEmpresa .= "- {$seccion}: {$preguntas}\n";
-            }
+        // Helpers para aplanar arrays a texto legible
+        $lista  = fn($arr) => is_array($arr) ? implode(', ', array_filter($arr)) : ($arr ?? '');
+        $lineas = fn($arr) => is_array($arr) ? implode("\n  ", array_filter($arr)) : ($arr ?? '');
+
+        // Cargos: array de {nombre_cargo, puede_sancionar}
+        $cargosTexto = '';
+        foreach ((array)($r['cargos'] ?? []) as $c) {
+            $nombre   = $c['nombre_cargo'] ?? '';
+            $sanciona = ($c['puede_sancionar'] ?? false) ? 'puede sancionar' : 'no sanciona';
+            if ($nombre) $cargosTexto .= "  - {$nombre} ({$sanciona})\n";
         }
+
+        // Sucursales: array de {ciudad, direccion, num_trabajadores}
+        $sucursalesTexto = '';
+        foreach ((array)($r['sucursales'] ?? []) as $s) {
+            $ciudad = $s['ciudad'] ?? '';
+            $dir    = $s['direccion'] ?? '';
+            $trab   = $s['num_trabajadores'] ?? '';
+            if ($ciudad) $sucursalesTexto .= "  - {$ciudad}: {$dir}, {$trab} trabajadores\n";
+        }
+
+        // Beneficios extralegalesdocument: array de {nombre_beneficio, descripcion}
+        $beneficiosTexto = '';
+        foreach ((array)($r['beneficios_extralegales'] ?? []) as $b) {
+            $nb = $b['nombre_beneficio'] ?? '';
+            $db = $b['descripcion'] ?? '';
+            if ($nb) $beneficiosTexto .= "  - {$nb}: {$db}\n";
+        }
+
+        $infoEmpresa = "
+EMPRESA Y ACTIVIDAD
+- Razón social: {$razonSocial}
+- NIT: {$nit}
+- Domicilio: " . ($r['domicilio'] ?? '') . "
+- Actividad económica principal: " . ($r['actividad_economica'] ?? '') . "
+- Actividades secundarias: " . ($r['actividades_secundarias'] ?? 'N/A') . "
+- Número de trabajadores: " . ($r['num_trabajadores'] ?? '') . "
+- Tiene sucursales: " . ($r['tiene_sucursales'] === 'si' ? "Sí\n{$sucursalesTexto}" : 'No') . "
+
+ESTRUCTURA ORGANIZACIONAL
+- Cargos:\n{$cargosTexto}
+- Tiene manual de funciones: " . ($r['tiene_manual_funciones'] ?? '') . "
+- Tipos de contrato: " . $lista($r['tipos_contrato'] ?? []) . "
+- Usa trabajadores de misión (temporal): " . ($r['tiene_trabajadores_mision'] ?? 'no') . "
+
+JORNADA LABORAL
+- Horario de entrada: " . ($r['horario_entrada'] ?? '') . "
+- Horario de salida (L-V): " . ($r['horario_salida'] ?? '') . "
+- Jornada sábados: " . ($r['jornada_sabado'] ?? 'no') . "
+- Hora salida sábados: " . ($r['horario_salida_sabado'] ?? 'N/A') . "
+- Trabaja dominicales/festivos: " . ($r['trabaja_dominicales'] ?? 'no') . "
+- Tiene turnos rotativos/nocturnos: " . ($r['tiene_turnos'] ?? 'no') . "
+- Descripción turnos: " . ($r['descripcion_turnos'] ?? 'N/A') . "
+- Control de asistencia: " . ($r['control_asistencia'] ?? '') . "
+- Política horas extras: " . ($r['politica_horas_extras'] ?? '') . "
+
+SALARIO Y BENEFICIOS
+- Forma de pago: " . ($r['forma_pago'] ?? '') . "
+- Periodicidad de pago: " . ($r['periodicidad_pago'] ?? '') . "
+- Maneja comisiones/bonificaciones: " . ($r['maneja_comisiones'] ?? 'no') . "
+- Tipo de comisiones: " . ($r['tipo_comisiones'] ?? 'N/A') . "
+- Beneficios extralegales:\n" . ($beneficiosTexto ?: "  - Ninguno\n") . "
+- Política de permisos personales: " . ($r['politica_permisos'] ?? '') . "
+- Licencias especiales: " . ($r['tiene_licencias_especiales'] ?? 'no') . "
+- Descripción licencias: " . ($r['descripcion_licencias'] ?? 'N/A') . "
+
+RÉGIMEN DISCIPLINARIO
+- Faltas leves: " . $lista($r['faltas_leves'] ?? []) . "
+- Faltas graves: " . $lista($r['faltas_graves'] ?? []) . "
+- Faltas muy graves: " . $lista($r['faltas_muy_graves'] ?? []) . "
+- Sanciones contempladas: " . $lista($r['sanciones_contempladas'] ?? []) . "
+
+SEGURIDAD Y SALUD EN EL TRABAJO
+- Tiene SG-SST implementado: " . ($r['tiene_sg_sst'] ?? '') . "
+- Riesgos principales: " . $lista($r['riesgos_principales'] ?? []) . "
+- Usa EPP: " . ($r['tiene_epp'] ?? 'no') . "
+- EPP requerido: " . ($r['epp_descripcion'] ?? 'N/A') . "
+
+CONDUCTA Y CONVIVENCIA
+- Política uso celular: " . ($r['politica_celular'] ?? '') . "
+- Usa uniforme: " . ($r['usa_uniforme'] ?? 'no') . "
+- Tiene código de ética: " . ($r['tiene_codigo_etica'] ?? 'no') . "
+- Política de confidencialidad: " . ($r['politica_confidencialidad'] ?? '') . "
+- Qué quiere prevenir: " . ($r['que_quiere_prevenir'] ?? '') . "
+";
 
         return <<<PROMPT
 Eres un abogado laboral colombiano experto en reglamentos internos de trabajo.
