@@ -22,6 +22,11 @@ class RITBuilder extends Page
 
     protected static ?int $navigationSort = 20;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     protected static string $view = 'filament.admin.pages.rit-builder';
 
     public static function getSlug(): string

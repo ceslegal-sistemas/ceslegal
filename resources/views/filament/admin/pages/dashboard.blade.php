@@ -17,7 +17,7 @@
                     </p>
                 </div>
             </div>
-            <a href="{{ route('filament.admin.pages.rit-builder') }}"
+            <a href="{{ route('filament.admin.resources.reglamento-internos.create') }}"
                class="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-600 text-white font-semibold text-sm hover:bg-amber-500 transition-colors shadow-sm whitespace-nowrap">
                 <x-heroicon-o-document-plus class="w-4 h-4" />
                 Construir RIT

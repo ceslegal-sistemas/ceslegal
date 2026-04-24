@@ -318,7 +318,7 @@ class Register extends BaseRegister
             // Tras el registro, redirigir al constructor de RIT
             // (se sobreescribe solo si no hay ya redirect a PayU)
             if (empty($this->redirectUrl)) {
-                $this->redirectUrl = route('filament.admin.pages.rit-builder');
+                $this->redirectUrl = route('filament.admin.resources.reglamento-internos.create');
             } else {
                 // Hay redirect a PayU; guardar en sesión para redirigir post-pago
                 session(['rit_construir_despues_pago' => true]);
