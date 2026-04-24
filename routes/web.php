@@ -120,12 +120,19 @@ Route::get('/descargar/rit', function () {
         abort(403, 'No autorizado');
     }
 
-    $ruta = storage_path("app/private/rits/{$empresa->id}/reglamento.docx");
+    $rit = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
+        ->orderByDesc('updated_at')
+        ->first();
 
-    if (!file_exists($ruta)) {
+    if (!$rit || empty($rit->texto_completo)) {
         abort(404, 'Documento no encontrado. Genere su RIT primero.');
     }
 
+    // Regenerar el DOCX desde el texto en BD (siempre actualizado)
+    $service = app(\App\Services\RITGeneratorService::class);
+    $service->generarDocumentoWord($rit->texto_completo, $empresa);
+
+    $ruta   = storage_path("app/private/rits/{$empresa->id}/reglamento.docx");
     $nombre = 'Reglamento_Interno_' . \Str::slug($empresa->razon_social) . '.docx';
 
     return Response::download($ruta, $nombre, [
@@ -139,19 +146,24 @@ Route::get('/descargar/rit/admin/{empresa}', function (\App\Models\Empresa $empr
     if (!$user || (!$user->hasRole('super_admin') && !$user->hasRole('abogado'))) {
         abort(403, 'No autorizado');
     }
-    $ruta = storage_path("app/private/rits/{$empresa->id}/reglamento.docx");
-    if (!file_exists($ruta)) {
+
+    $rit = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
+        ->orderByDesc('updated_at')
+        ->first();
+
+    if (!$rit || empty($rit->texto_completo)) {
         abort(404, 'Documento no encontrado para esta empresa.');
     }
+
+    $service = app(\App\Services\RITGeneratorService::class);
+    $service->generarDocumentoWord($rit->texto_completo, $empresa);
+
+    $ruta   = storage_path("app/private/rits/{$empresa->id}/reglamento.docx");
     $nombre = 'RIT_' . \Str::slug($empresa->razon_social) . '.docx';
-    return \Symfony\Component\HttpFoundation\Response::create(
-        file_get_contents($ruta),
-        200,
-        [
-            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'Content-Disposition' => "attachment; filename=\"{$nombre}\"",
-        ]
-    );
+
+    return Response::download($ruta, $nombre, [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ]);
 })->middleware(['auth'])->name('rit.descargar.admin');
 
 // Rutas de Email Tracking

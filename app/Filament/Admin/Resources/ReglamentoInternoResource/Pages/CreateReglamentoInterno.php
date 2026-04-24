@@ -737,7 +737,21 @@ class CreateReglamentoInterno extends CreateRecord
             throw new Halt();
         }
 
-        // 6. Actualizar con el texto generado
+        // 6. Post-procesar: reemplazar cualquier placeholder que haya dejado la IA
+        $representante = $empresa->representante_legal ?? '_______________';
+        $textoRIT = str_replace(
+            ['[DÍA]', '[MES]', '[AÑO]', '[NOMBRE DEL REPRESENTANTE LEGAL]', '[NOMBRE REPRESENTANTE LEGAL]',
+             '[NÚMERO DE CÉDULA]', '[NÚMERO CÉDULA]', '[NIT]', '[RAZÓN SOCIAL]', '[DOMICILIO]'],
+            [now()->day, now()->locale('es')->translatedFormat('F'), now()->year,
+             $representante, $representante,
+             '_______________', '_______________',
+             $empresa->nit ?? '_______________',
+             $empresa->razon_social ?? '_______________',
+             trim(($empresa->direccion ?? '') . ' ' . ($empresa->ciudad ?? ''))],
+            $textoRIT
+        );
+
+        // 7. Actualizar con el texto generado
         $record->update([
             'nombre'         => 'Reglamento Interno generado con IA — ' . now()->format('d/m/Y'),
             'texto_completo' => $textoRIT,

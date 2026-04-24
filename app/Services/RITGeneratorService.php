@@ -164,11 +164,15 @@ class RITGeneratorService
             if ($nb) $beneficiosTexto .= "  - {$nb}: {$db}\n";
         }
 
+        $representante = $empresa->representante_legal ?? '';
+        $fechaHoy      = now()->locale('es')->translatedFormat('j \d\e F \d\e Y');
+
         $infoEmpresa = "
 EMPRESA Y ACTIVIDAD
 - Razón social: {$razonSocial}
 - NIT: {$nit}
 - Domicilio: " . ($r['domicilio'] ?? '') . "
+- Representante Legal: {$representante}
 - Actividad económica principal: " . ($r['actividad_economica'] ?? '') . "
 - Actividades secundarias: " . ($r['actividades_secundarias'] ?? 'N/A') . "
 - Número de trabajadores: " . ($r['num_trabajadores'] ?? '') . "
@@ -234,6 +238,9 @@ INSTRUCCIONES:
 - Redacta de manera lista para presentar ante el Ministerio del Trabajo
 - Si alguna información no fue proporcionada, usa valores razonables y típicos para una empresa colombiana
 - NO incluyas comentarios ni aclaraciones fuera del texto del reglamento
+- NUNCA uses corchetes ni placeholders como [DÍA], [MES], [AÑO], [NOMBRE], [NÚMERO], [NIT], ni ningún otro; usa siempre los datos reales proporcionados
+- La fecha de elaboración es: {$fechaHoy}
+- El representante legal firmante es: {$representante}
 
 CAPÍTULOS OBLIGATORIOS A INCLUIR:
 1. Denominación, domicilio, naturaleza y objeto de la empresa
