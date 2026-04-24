@@ -14,11 +14,9 @@ class ReglamentoInternoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
-    // Oculto del menú lateral — solo accesible por enlace directo
-    public static function shouldRegisterNavigation(): bool
-    {
-        return false;
-    }
+    protected static ?string $navigationLabel = 'Construir RIT';
+
+    protected static ?string $navigationGroup = 'Empresa';
 
     public static function form(Form $form): Form
     {
