@@ -395,14 +395,10 @@ class CreateReglamentoInterno extends CreateRecord
 
                     Forms\Components\Section::make('Permisos y licencias')
                         ->schema([
-                            Forms\Components\Select::make('politica_permisos')
+                            Forms\Components\Textarea::make('politica_permisos')
                                 ->label('¿Cómo maneja los permisos personales?')
-                                ->options([
-                                    'solicitud_anticipada' => 'Solicitud escrita con 24h de anticipación',
-                                    'sin_politica'         => 'Sin política formal',
-                                ])
-                                ->default('solicitud_anticipada')
-                                ->native(false)
+                                ->placeholder('Ej: El trabajador solicita el permiso por escrito con 24 horas de anticipación al jefe inmediato...')
+                                ->rows(2)
                                 ->columnSpanFull(),
 
                             Forms\Components\Radio::make('tiene_licencias_especiales')
