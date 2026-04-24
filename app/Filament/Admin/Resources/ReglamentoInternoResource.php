@@ -36,6 +36,7 @@ class ReglamentoInternoResource extends Resource
     public static function getPages(): array
     {
         return [
+            'index'  => Pages\ListReglamentosInternos::route('/'),
             'create' => Pages\CreateReglamentoInterno::route('/create'),
         ];
     }
