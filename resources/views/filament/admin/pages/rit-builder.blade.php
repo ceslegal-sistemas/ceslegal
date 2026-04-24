@@ -12,7 +12,7 @@
                 </p>
                 @if($this->yaExisteRIT())
                     <p class="text-sm font-semibold text-amber-700 dark:text-amber-300 mt-2">
-                        ⚠️ Su empresa ya tiene un Reglamento Interno activo. Completar este formulario lo reemplazará.
+                        Su empresa ya tiene un Reglamento Interno activo. Completar este formulario lo reemplazará.
                     </p>
                 @endif
             </div>
@@ -41,24 +41,31 @@
             <div class="px-4 pb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Razón Social completa <span class="text-red-500">*</span></label>
-                    <input type="text" wire:model="respuestas.razon_social_completa"
+                    <input type="text" wire:model="respuestas.razon_social_completa" disabled
                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                            placeholder="Ej: EMPRESA ABC S.A.S" />
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">NIT <span class="text-red-500">*</span></label>
-                    <input type="text" wire:model="respuestas.nit_empresa"
+                    <input type="text" wire:model="respuestas.nit_empresa" disabled
                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                            placeholder="900123456-7" />
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Domicilio principal</label>
-                    <input type="text" wire:model="respuestas.domicilio_principal"
+                    <input type="text" wire:model="respuestas.domicilio_principal" disabled
                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                            placeholder="Calle 123 # 45-67, Bogotá D.C." />
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Actividad económica principal <span class="text-red-500">*</span></label>
+                    {{-- <select wire:model="respuestas.actividad_economica" disabled
+                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Seleccione...</option>
+                        @foreach($actividadesEconomicas as $actividad)
+                            <option value="{{ $actividad }}">{{ $actividad }}</option>
+                        @endforeach
+                    </select> --}}
                     <input type="text" wire:model="respuestas.actividad_economica"
                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                            placeholder="Ej: Comercio al por menor de prendas de vestir (CIIU 4771)" />
