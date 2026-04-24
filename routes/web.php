@@ -128,16 +128,14 @@ Route::get('/descargar/rit', function () {
         abort(404, 'Documento no encontrado. Genere su RIT primero.');
     }
 
-    // Regenerar el DOCX desde el texto en BD (siempre actualizado)
+    // Generar DOCX en temp (evita problemas de permisos en hosting compartido)
     $service = app(\App\Services\RITGeneratorService::class);
-    $service->generarDocumentoWord($rit->texto_completo, $empresa);
+    $tmpPath = $service->generarDocumentoWordTemp($rit->texto_completo, $empresa);
+    $nombre  = 'Reglamento_Interno_' . \Str::slug($empresa->razon_social) . '.docx';
 
-    $ruta   = storage_path("app/private/rits/{$empresa->id}/reglamento.docx");
-    $nombre = 'Reglamento_Interno_' . \Str::slug($empresa->razon_social) . '.docx';
-
-    return Response::download($ruta, $nombre, [
+    return response()->download($tmpPath, $nombre, [
         'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ]);
+    ])->deleteFileAfterSend();
 })->middleware(['auth'])->name('rit.descargar');
 
 // Descarga del RIT para super admin (por empresa_id)
@@ -156,14 +154,12 @@ Route::get('/descargar/rit/admin/{empresa}', function (\App\Models\Empresa $empr
     }
 
     $service = app(\App\Services\RITGeneratorService::class);
-    $service->generarDocumentoWord($rit->texto_completo, $empresa);
+    $tmpPath = $service->generarDocumentoWordTemp($rit->texto_completo, $empresa);
+    $nombre  = 'RIT_' . \Str::slug($empresa->razon_social) . '.docx';
 
-    $ruta   = storage_path("app/private/rits/{$empresa->id}/reglamento.docx");
-    $nombre = 'RIT_' . \Str::slug($empresa->razon_social) . '.docx';
-
-    return Response::download($ruta, $nombre, [
+    return response()->download($tmpPath, $nombre, [
         'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ]);
+    ])->deleteFileAfterSend();
 })->middleware(['auth'])->name('rit.descargar.admin');
 
 // Rutas de Email Tracking

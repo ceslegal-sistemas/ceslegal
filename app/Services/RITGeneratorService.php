@@ -60,7 +60,40 @@ class RITGeneratorService
      * Genera el documento Word (.docx) con el texto del RIT.
      * Retorna la ruta relativa dentro de storage/app/private/.
      */
+    /**
+     * Genera el DOCX y lo guarda en storage/app/private/rits/{id}/reglamento.docx.
+     * Retorna la ruta relativa. Lanza excepción si no puede escribir.
+     */
     public function generarDocumentoWord(string $textoRIT, Empresa $empresa): string
+    {
+        $directorio = "private/rits/{$empresa->id}";
+        Storage::makeDirectory($directorio);
+
+        $rutaRelativa = "{$directorio}/reglamento.docx";
+        $rutaAbsoluta = storage_path("app/{$rutaRelativa}");
+
+        $this->escribirDocx($textoRIT, $empresa, $rutaAbsoluta);
+
+        Log::info('RITGeneratorService: documento Word guardado', [
+            'empresa_id' => $empresa->id,
+            'ruta'       => $rutaRelativa,
+        ]);
+
+        return $rutaRelativa;
+    }
+
+    /**
+     * Genera el DOCX en un archivo temporal del sistema y retorna su ruta absoluta.
+     * Usar para descargas en servidores con permisos restringidos en storage.
+     */
+    public function generarDocumentoWordTemp(string $textoRIT, Empresa $empresa): string
+    {
+        $tmpPath = tempnam(sys_get_temp_dir(), 'rit_') . '.docx';
+        $this->escribirDocx($textoRIT, $empresa, $tmpPath);
+        return $tmpPath;
+    }
+
+    private function escribirDocx(string $textoRIT, Empresa $empresa, string $rutaAbsoluta): void
     {
         $phpWord = new PhpWord();
         $phpWord->setDefaultFontName('Times New Roman');
@@ -73,7 +106,6 @@ class RITGeneratorService
             'marginRight'  => Converter::cmToTwip(2.5),
         ]);
 
-        // Título
         $section->addText(
             'REGLAMENTO INTERNO DE TRABAJO',
             ['bold' => true, 'size' => 14, 'name' => 'Times New Roman'],
@@ -86,7 +118,6 @@ class RITGeneratorService
             ['alignment' => Jc::CENTER, 'spaceAfter' => 240]
         );
 
-        // Parsear el texto por líneas y agregar al documento
         $lineas = explode("\n", $textoRIT);
         foreach ($lineas as $linea) {
             $linea = rtrim($linea);
@@ -96,7 +127,6 @@ class RITGeneratorService
                 continue;
             }
 
-            // Detectar títulos de capítulo (CAPÍTULO, ARTÍCULO, números romanos al inicio)
             if (preg_match('/^(CAPÍTULO|CAPÍTULO\s+[IVXLC]+|ARTÍCULO\s+\d+|ART\.\s+\d+)/ui', $linea)) {
                 $section->addText(
                     $linea,
@@ -112,22 +142,8 @@ class RITGeneratorService
             }
         }
 
-        // Guardar archivo
-        $directorio = "private/rits/{$empresa->id}";
-        Storage::makeDirectory($directorio);
-
-        $rutaRelativa = "{$directorio}/reglamento.docx";
-        $rutaAbsoluta = storage_path("app/{$rutaRelativa}");
-
         $writer = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
         $writer->save($rutaAbsoluta);
-
-        Log::info('RITGeneratorService: documento Word generado', [
-            'empresa_id' => $empresa->id,
-            'ruta'       => $rutaRelativa,
-        ]);
-
-        return $rutaRelativa;
     }
 
     private function construirPrompt(array $r, Empresa $empresa): string
