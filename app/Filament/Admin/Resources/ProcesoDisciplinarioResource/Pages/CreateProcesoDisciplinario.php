@@ -1357,6 +1357,11 @@ class CreateProcesoDisciplinario extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        // Clientes tienen empresa_id oculto — asignarlo desde su perfil si no llegó
+        if (empty($data['empresa_id'])) {
+            $data['empresa_id'] = auth()->user()?->empresa_id;
+        }
+
         $data['modalidad_descargos'] = 'virtual';
         $data['hechos'] = $data['hechos_ia'] ?? $this->datosExtraidos['hechos'] ?? '';
 
