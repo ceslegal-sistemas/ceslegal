@@ -18,6 +18,11 @@ class ReglamentoInternoResource extends Resource
 
     protected static ?string $navigationGroup = 'Empresa';
 
+    public static function getNavigationUrl(): string
+    {
+        return static::getUrl('create');
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([]);
