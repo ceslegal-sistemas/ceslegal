@@ -177,42 +177,59 @@ class AuditoriaRITService
         // 1. Extraer fragmento relevante del RIT para esta sección (sin enviar todo el documento)
         $fragmentoRIT = $this->extraerFragmentoRIT($textoRIT, $config['palabras_clave']);
 
-        // 2. Buscar normativa relevante en la biblioteca legal (RAG)
+        // 2. Buscar normativa relevante en la biblioteca legal (RAG) — umbral bajo para capturar más
         $normativa = $this->biblioteca->buscarFragmentos(
             texto: $config['query'],
-            limite: 3,
-            umbral: 0.45
+            limite: 5,
+            umbral: 0.35
         );
 
-        // 3. Construir prompt compacto y estructurado
+        // 3. Sin documentos en la biblioteca → no se puede auditar esta sección con fundamento
+        if (empty(trim($normativa ?? ''))) {
+            Log::warning("AuditoriaRIT: biblioteca sin documentos para sección '{$config['titulo']}'");
+            return [
+                'titulo'              => $config['titulo'],
+                'cumple'              => false,
+                'calificacion'        => 'Sin base normativa',
+                'score'               => 0,
+                'hallazgos'           => ['La biblioteca legal no contiene documentos para auditar esta sección.'],
+                'recomendaciones'     => ['Cargue los documentos normativos correspondientes en la biblioteca legal.'],
+                'articulos_referencia' => [],
+                'seccion_encontrada'  => !empty(trim($fragmentoRIT)),
+            ];
+        }
+
+        // 4. Construir prompt — Gemini debe limitarse EXCLUSIVAMENTE a la biblioteca legal
         $seccionEncontrada = !empty(trim($fragmentoRIT));
         $contextoRIT = $seccionEncontrada
             ? "TEXTO DEL RIT (sección relevante):\n{$fragmentoRIT}"
             : "TEXTO DEL RIT: Esta sección NO fue encontrada en el documento.";
 
-        $contextoNormativa = $normativa
-            ? "NORMATIVA VIGENTE DE LA BIBLIOTECA LEGAL:\n{$normativa}"
-            : "NORMATIVA: No se encontraron fragmentos específicos en la biblioteca; usa tu conocimiento del CST colombiano vigente.";
-
         $prompt = <<<PROMPT
-Eres un abogado laboral colombiano auditando el Reglamento Interno de Trabajo de "{$razonSocial}".
+Eres un auditor legal que revisa el Reglamento Interno de Trabajo de "{$razonSocial}".
+
+INSTRUCCIÓN CRÍTICA: Basa tu análisis EXCLUSIVAMENTE en los fragmentos de la biblioteca jurídica
+proporcionados a continuación. NO uses tu conocimiento de entrenamiento, NO cites normas que no
+aparezcan en los fragmentos provistos. Si los fragmentos no son suficientes para evaluar un aspecto,
+indícalo en hallazgos. Cita siempre el documento fuente de cada hallazgo.
 
 SECCIÓN A AUDITAR: {$config['titulo']}
 
-{$contextoNormativa}
+FRAGMENTOS DE LA BIBLIOTECA JURÍDICA (única fuente autorizada):
+{$normativa}
 
 {$contextoRIT}
 
-Analiza si la sección cumple con la normativa colombiana vigente. Devuelve un JSON con exactamente estos campos:
+Analiza si la sección del RIT cumple con la normativa de los fragmentos anteriores. Devuelve un JSON con exactamente estos campos:
 - cumple: boolean (true si cumple, false si no)
 - calificacion: string ("Completo", "Parcial" o "Ausente")
-- score: integer (0-100 según nivel de cumplimiento)
-- hallazgos: array de strings (máximo 3, máximo 120 caracteres cada uno)
+- score: integer (0-100 según nivel de cumplimiento con la normativa provista)
+- hallazgos: array de strings (máximo 3, máximo 120 caracteres cada uno, citar artículo fuente)
 - recomendaciones: array de strings (máximo 3, máximo 120 caracteres cada uno)
-- articulos_referencia: array de strings con los artículos aplicables (ej: "Art. 76 CST")
+- articulos_referencia: array de strings solo de los fragmentos anteriores (ej: "Art. 76 CST")
 
 Si la sección no fue encontrada en el RIT, usa calificacion "Ausente" y score 0.
-Sé conciso. Cada hallazgo y recomendación máximo 120 caracteres.
+Sé conciso. Máximo 120 caracteres por hallazgo y recomendación.
 PROMPT;
 
         $respuesta = $this->llamarIA($prompt, true);
