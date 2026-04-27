@@ -1,5 +1,11 @@
 @php
-    $fmtHora = fn($t) => $t ? \Carbon\Carbon::createFromFormat('H:i:s', $t)->format('g:i A') : null;
+    $fmtHora = function($t) {
+        if (!$t) return null;
+        foreach (['H:i:s', 'H:i', 'G:i:s', 'G:i'] as $fmt) {
+            try { return \Carbon\Carbon::createFromFormat($fmt, $t)->format('g:i A'); } catch (\Throwable $e) {}
+        }
+        return $t;
+    };
     $formaPagoLabels = [
         'transferencia' => 'Transferencia bancaria',
         'cheque'        => 'Cheque',
