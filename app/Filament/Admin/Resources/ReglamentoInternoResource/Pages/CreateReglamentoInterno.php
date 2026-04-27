@@ -758,14 +758,10 @@ class CreateReglamentoInterno extends CreateRecord
             'activo'         => true,
         ]);
 
-        // 7. Generar DOCX (no fatal si falla)
-        try {
-            $service->generarDocumentoWord($textoRIT, $empresa);
-        } catch (\Exception $e) {
-            Log::warning('Error generando DOCX del RIT', [
-                'empresa_id' => $empresa->id,
-                'error'      => $e->getMessage(),
-            ]);
+        // 8. Guardar DOCX en disco público para adjunto nativo (no fatal si falla)
+        $rutaDocx = $service->guardarDocxPublico($textoRIT, $empresa);
+        if ($rutaDocx) {
+            $record->update(['ruta_docx' => $rutaDocx]);
         }
 
         Notification::make()

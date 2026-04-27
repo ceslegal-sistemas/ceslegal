@@ -13,6 +13,7 @@ class ReglamentoInterno extends Model
         'empresa_id',
         'nombre',
         'texto_completo',
+        'ruta_docx',
         'activo',
         'respuestas_cuestionario',
         'fuente',

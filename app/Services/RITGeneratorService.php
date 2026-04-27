@@ -93,6 +93,31 @@ class RITGeneratorService
         return $tmpPath;
     }
 
+    /**
+     * Genera el DOCX, lo almacena en el disco 'public' y retorna la ruta relativa.
+     * Usa un temp file intermedio para evitar errores de permisos en directorios storage.
+     * Retorna null si no pudo guardar en disco.
+     */
+    public function guardarDocxPublico(string $textoRIT, Empresa $empresa): ?string
+    {
+        try {
+            $tmpPath     = tempnam(sys_get_temp_dir(), 'rit_') . '.docx';
+            $this->escribirDocx($textoRIT, $empresa, $tmpPath);
+
+            $rutaPublica = "rits/{$empresa->id}/reglamento.docx";
+            Storage::disk('public')->put($rutaPublica, file_get_contents($tmpPath));
+            @unlink($tmpPath);
+
+            return $rutaPublica;
+        } catch (\Throwable $e) {
+            Log::warning('RITGeneratorService: no se pudo guardar DOCX en disco público', [
+                'empresa_id' => $empresa->id,
+                'error'      => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
     private function escribirDocx(string $textoRIT, Empresa $empresa, string $rutaAbsoluta): void
     {
         $phpWord = new PhpWord();

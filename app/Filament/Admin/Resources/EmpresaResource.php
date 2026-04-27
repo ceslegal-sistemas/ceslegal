@@ -210,34 +210,23 @@ class EmpresaResource extends Resource
                     ->description('Documento normativo interno de la empresa')
                     ->icon('heroicon-o-document-text')
                     ->schema([
-                        Forms\Components\Placeholder::make('reglamento_actual')
-                            ->label('Estado del RIT')
-                            ->content(function ($record) {
-                                if (!$record) {
-                                    return new \Illuminate\Support\HtmlString(
-                                        '<span class="text-gray-400 text-sm">Guarde la empresa primero para ver el RIT.</span>'
-                                    );
-                                }
-                                $rit = $record->reglamentoInterno;
-                                if (!$rit || empty($rit->texto_completo)) {
-                                    return new \Illuminate\Support\HtmlString(
-                                        '<span class="text-gray-400 text-sm italic">Sin reglamento interno. Use el wizard "Construir RIT" para generarlo con IA.</span>'
-                                    );
-                                }
-                                $chars   = number_format(strlen($rit->texto_completo));
-                                $fecha   = $rit->updated_at->format('d/m/Y H:i');
-                                $fuente  = $rit->fuente === 'construido_ia' ? '✦ Generado con IA' : '↑ Subido manualmente';
-                                $activo  = $rit->activo ? '<span class="text-success-600 font-semibold">Activo</span>' : '<span class="text-warning-600">Inactivo</span>';
-                                $dlUrl   = route('rit.descargar.admin', ['empresa' => $record->id]);
-                                return new \Illuminate\Support\HtmlString(
-                                    "<div class='space-y-1'>" .
-                                    "<div class='font-medium text-sm'>{$rit->nombre}</div>" .
-                                    "<div class='text-xs text-gray-500'>{$fuente} &nbsp;·&nbsp; {$chars} caracteres &nbsp;·&nbsp; Actualizado {$fecha} &nbsp;·&nbsp; {$activo}</div>" .
-                                    "<div class='mt-2 flex gap-3'>" .
-                                    "<a href='{$dlUrl}' class='text-xs font-semibold text-primary-600 underline underline-offset-2'>⬇ Descargar Word</a>" .
-                                    "</div></div>"
-                                );
+                        Forms\Components\FileUpload::make('rit_docx_adjunto')
+                            ->label('Documento generado')
+                            ->disk('public')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->downloadable()
+                            ->afterStateHydrated(function ($component, $record) {
+                                $ruta = $record?->reglamentoInterno?->ruta_docx;
+                                $component->state($ruta ? [$ruta] : []);
                             })
+                            ->visible(fn ($record) => (bool) $record?->reglamentoInterno?->ruta_docx)
+                            ->columnSpanFull(),
+
+                        Forms\Components\Placeholder::make('rit_sin_docx')
+                            ->label('Reglamento Interno')
+                            ->content('Sin reglamento generado. Use el wizard "Construir RIT" para generarlo con IA.')
+                            ->visible(fn ($record) => $record && !$record?->reglamentoInterno?->ruta_docx)
                             ->columnSpanFull(),
 
                         Forms\Components\FileUpload::make('reglamento_docx_temp')
