@@ -215,7 +215,7 @@ Analiza si la sección cumple con la normativa colombiana vigente. Responde ÚNI
 Máximo 3 hallazgos y 3 recomendaciones. Sé preciso y jurídico.
 PROMPT;
 
-        $respuesta = $this->llamarIA($prompt);
+        $respuesta = $this->llamarIA($prompt, true);
         $datos     = $this->parsearJSON($respuesta);
 
         return array_merge([
@@ -231,32 +231,40 @@ PROMPT;
     }
 
     /**
-     * Extrae los párrafos más relevantes del RIT para una sección temática.
-     * Evita enviar el documento completo a la IA.
+     * Extrae las líneas más relevantes del RIT para una sección temática.
+     * Divide por línea individual (el RIT generado usa \n simples, no dobles).
+     * Toma ±4 líneas de contexto alrededor de cada coincidencia.
      */
     private function extraerFragmentoRIT(string $textoRIT, array $palabrasClave): string
     {
-        $parrafos    = preg_split('/\n{2,}/', $textoRIT);
-        $relevantes  = [];
-        $totalChars  = 0;
+        $lineas     = explode("\n", $textoRIT);
+        $indices    = [];
 
-        foreach ($parrafos as $parrafo) {
-            $parrafo = trim($parrafo);
-            if (strlen($parrafo) < 20) continue;
-
-            $parrafoNorm = mb_strtolower($parrafo);
+        foreach ($lineas as $i => $linea) {
+            $lineaNorm = mb_strtolower($linea);
             foreach ($palabrasClave as $clave) {
-                if (str_contains($parrafoNorm, mb_strtolower($clave))) {
-                    $relevantes[] = $parrafo;
-                    $totalChars  += strlen($parrafo);
+                if (str_contains($lineaNorm, mb_strtolower($clave))) {
+                    // Incluir contexto ±4 líneas
+                    for ($j = max(0, $i - 4); $j <= min(count($lineas) - 1, $i + 4); $j++) {
+                        $indices[$j] = true;
+                    }
                     break;
                 }
             }
-
-            if ($totalChars >= self::MAX_CHARS_SECCION) break;
         }
 
-        return implode("\n\n", $relevantes);
+        if (empty($indices)) return '';
+
+        ksort($indices);
+        $fragmento = '';
+        $prev = -2;
+        foreach (array_keys($indices) as $i) {
+            if ($i > $prev + 1) $fragmento .= "\n"; // separador entre bloques
+            $fragmento .= $lineas[$i] . "\n";
+            $prev = $i;
+        }
+
+        return mb_substr(trim($fragmento), 0, self::MAX_CHARS_SECCION);
     }
 
     /**
@@ -287,12 +295,20 @@ PROMPT;
         }
     }
 
-    private function llamarIA(string $prompt): string
+    private function llamarIA(string $prompt, bool $forzarJSON = false): string
     {
         $config  = config('services.ia.gemini', []);
         $apiKey  = $config['api_key'] ?? '';
         $model   = $config['model'] ?? 'gemini-2.5-flash';
         $url     = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+
+        $genConfig = [
+            'temperature'     => 0.2,
+            'maxOutputTokens' => $forzarJSON ? 2048 : 1024,
+        ];
+        if ($forzarJSON) {
+            $genConfig['responseMimeType'] = 'application/json';
+        }
 
         $response = Http::withHeaders(['Content-Type' => 'application/json'])
             ->timeout(60)
@@ -300,10 +316,7 @@ PROMPT;
                 'contents' => [
                     ['parts' => [['text' => $prompt]]],
                 ],
-                'generationConfig' => [
-                    'temperature'     => 0.2,
-                    'maxOutputTokens' => 1024,
-                ],
+                'generationConfig' => $genConfig,
             ]);
 
         if (!$response->successful()) {

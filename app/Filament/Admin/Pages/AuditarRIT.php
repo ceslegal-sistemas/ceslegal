@@ -120,14 +120,32 @@ class AuditarRIT extends Page implements HasForms
         $this->auditoria = $service->iniciar($this->empresa, $textoExterno);
         $this->procesando = true;
 
-        // Despachar Job (o procesar síncronamente si la cola es 'sync')
+        // Despachar Job (con cola 'sync' se ejecuta en la misma solicitud)
         ProcesarAuditoriaRIT::dispatch($this->auditoria, Auth::id());
 
-        Notification::make()
-            ->info()
-            ->title('Auditoría iniciada')
-            ->body('Estamos revisando su RIT sección por sección. Le notificaremos cuando termine.')
-            ->send();
+        // Refrescar estado desde BD (para cola sync donde el job ya terminó)
+        $this->auditoria  = $this->auditoria->fresh();
+        $this->procesando = $this->auditoria?->estaEnProceso() ?? false;
+
+        if ($this->auditoria?->estado === 'completado') {
+            Notification::make()
+                ->success()
+                ->title('Auditoría completada')
+                ->body("La revisión finalizó con un score de {$this->auditoria->score}/100. Revise los resultados.")
+                ->send();
+        } elseif ($this->auditoria?->estado === 'error') {
+            Notification::make()
+                ->danger()
+                ->title('Error en la auditoría')
+                ->body($this->auditoria->mensaje_error ?? 'Ocurrió un error inesperado.')
+                ->send();
+        } else {
+            Notification::make()
+                ->info()
+                ->title('Auditoría en proceso')
+                ->body('Estamos revisando su RIT sección por sección. Recibirá una notificación al terminar.')
+                ->send();
+        }
     }
 
     #[Poll(5000)] // Pollar cada 5 segundos mientras procesa

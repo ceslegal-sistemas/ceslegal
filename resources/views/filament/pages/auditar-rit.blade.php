@@ -93,6 +93,8 @@ html:not(.dark) .audit-list-item{color:#475569}
 html:not(.dark) .audit-art{background:rgba(79,70,229,.08);color:#4338ca}
 .audit-score-ring{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.25rem;font-weight:800;border:5px solid;flex-shrink:0}
 .audit-sub-label{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#64748b;margin-bottom:.375rem}
+.audit-result-title{font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 .25rem}
+html:not(.dark) .audit-result-title{color:#0f172a}
 </style>
 
 <div style="display:flex;flex-direction:column;gap:1.25rem;max-width:900px;margin:0 auto">
@@ -216,7 +218,7 @@ html:not(.dark) .audit-art{background:rgba(79,70,229,.08);color:#4338ca}
             {{ $score }}
           </div>
           <div style="flex:1;min-width:0">
-            <p style="font-size:1rem;font-weight:700;color:var(--fi-color-gray-900,#0f172a);margin:0 0 .25rem">
+            <p class="audit-result-title">
               @if($score >= 80) Reglamento jurídicamente actualizado
               @elseif($score >= 50) Reglamento con observaciones importantes
               @else Reglamento requiere actualización urgente
@@ -333,7 +335,7 @@ html:not(.dark) .audit-art{background:rgba(79,70,229,.08);color:#4338ca}
           <button type="submit" wire:loading.attr="disabled" class="rit-btn rit-btn-primary" style="font-size:.875rem;padding:.65rem 1.375rem">
             <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803M10.5 7.5v6m3-3h-6"/></svg>
             <span wire:loading.remove>Iniciar Auditoría Legal</span>
-            <span wire:loading>Iniciando...</span>
+            <span wire:loading>Analizando RIT... puede tardar varios minutos</span>
           </button>
         </div>
       </form>
