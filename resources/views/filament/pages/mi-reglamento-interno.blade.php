@@ -4,7 +4,10 @@
     $eIA   = $reglamento?->fuente === 'construido_ia';
     $fecha = $reglamento?->updated_at?->format('d/m/Y \a \l\a\s g:i A');
     $wizardUrl  = route('filament.admin.resources.reglamento-internos.create');
-    $descargaUrl = $tiene && $eIA ? route('rit.descargar') : null;
+    $esAdmin = auth()->user()?->hasRole('super_admin') || auth()->user()?->hasRole('abogado');
+    $descargaUrl = $tiene && $eIA
+        ? ($esAdmin && $empresa ? route('rit.descargar.admin', $empresa) : route('rit.descargar'))
+        : null;
 @endphp
 
 <style>
