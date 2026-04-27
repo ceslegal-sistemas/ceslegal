@@ -162,6 +162,14 @@ Route::get('/descargar/rit/admin/{empresa}', function (\App\Models\Empresa $empr
     ])->deleteFileAfterSend();
 })->middleware(['auth'])->name('rit.descargar.admin');
 
+// Descarga de documentos de la Biblioteca Legal
+Route::get('/biblioteca-legal/{documento}/descargar', function (\App\Models\DocumentoLegal $documento) {
+    abort_if(!auth()->user()?->hasRole('super_admin'), 403);
+    $path = \Illuminate\Support\Facades\Storage::disk('public')->path($documento->archivo_path);
+    abort_if(!file_exists($path), 404, 'Archivo no encontrado.');
+    return response()->download($path, $documento->archivo_nombre_original ?? basename($documento->archivo_path));
+})->middleware(['auth'])->name('biblioteca.descargar');
+
 // Rutas de Email Tracking
 Route::get('/email/track/{token}.gif', [EmailTrackingController::class, 'pixel'])
     ->name('email.tracking.pixel');
