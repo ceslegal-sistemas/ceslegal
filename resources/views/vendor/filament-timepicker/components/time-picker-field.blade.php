@@ -8,6 +8,20 @@
     $suffixIcon = $getSuffixIcon();
     $suffixLabel = $getSuffixLabel();
     $isDisabled = $isDisabled();
+
+    // Convertir valor guardado (HH:mm:ss / HH:mm) a formato 12h para mdtimepicker.
+    // mdtimepicker usa format:'h:mm tt' para parsear el value inicial; si el valor
+    // está en 24h, parseTime() falla y el picker muestra vacío.
+    $raw = $getState();
+    $initDisplayVal = '';
+    if ($raw) {
+        foreach (['H:i:s', 'H:i', 'G:i:s', 'G:i'] as $_fmt) {
+            try {
+                $initDisplayVal = \Carbon\Carbon::createFromFormat($_fmt, $raw)->format('g:i A');
+                break;
+            } catch (\Throwable $_e) {}
+        }
+    }
 @endphp
 <x-dynamic-component :component="$getFieldWrapperView()" :id="$getId()" :label="$getLabel()" :label-sr-only="$isLabelHidden()" :helper-text="$getHelperText()"
     :hint="$getHint()" :hint-icon="$getHintIcon()" :required="$isRequired()" :state-path="$getStatePath()" :field="$field">
@@ -30,7 +44,7 @@
 
 
         <input {{ $isDisabled ? 'disabled' : '' }} type="time"
-            value="{{ $getState() ?? '' }}"
+            value="{{ $initDisplayVal }}"
             x-data="{}"
             x-init="$nextTick(() => mdtimepicker($el, {
                 okLabel: '{{ $getOkLabel() }}',
