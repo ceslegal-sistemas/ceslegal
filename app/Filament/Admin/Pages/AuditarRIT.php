@@ -84,7 +84,11 @@ class AuditarRIT extends Page implements HasForms
         $this->form->validate();
 
         // Verificar que hay algo que auditar
+        // FileUpload guarda siempre como array aunque sea un solo archivo
         $archivoExterno = $this->data['rit_externo'] ?? null;
+        if (is_array($archivoExterno)) {
+            $archivoExterno = $archivoExterno[0] ?? null;
+        }
         if (!$archivoExterno && (!$this->rit || empty($this->rit->texto_completo))) {
             Notification::make()
                 ->warning()
