@@ -207,23 +207,16 @@ Analiza si la sección cumple con la normativa colombiana vigente. Devuelve un J
 - cumple: boolean (true si cumple, false si no)
 - calificacion: string ("Completo", "Parcial" o "Ausente")
 - score: integer (0-100 según nivel de cumplimiento)
-- hallazgos: array de strings (máximo 3, vacío si cumple completamente)
-- recomendaciones: array de strings (máximo 3, vacío si cumple completamente)
+- hallazgos: array de strings (máximo 3, máximo 120 caracteres cada uno)
+- recomendaciones: array de strings (máximo 3, máximo 120 caracteres cada uno)
 - articulos_referencia: array de strings con los artículos aplicables (ej: "Art. 76 CST")
 
 Si la sección no fue encontrada en el RIT, usa calificacion "Ausente" y score 0.
+Sé conciso. Cada hallazgo y recomendación máximo 120 caracteres.
 PROMPT;
 
         $respuesta = $this->llamarIA($prompt, true);
         $datos     = $this->parsearJSON($respuesta);
-
-        Log::info('AuditoriaRIT: diagnóstico sección', [
-            'seccion'           => $config['titulo'],
-            'fragmento_chars'   => strlen($fragmentoRIT),
-            'seccion_encontrada' => $seccionEncontrada,
-            'respuesta_raw'     => substr($respuesta, 0, 400),
-            'datos_parsed'      => $datos,
-        ]);
 
         return array_merge([
             'titulo'              => $config['titulo'],
@@ -311,7 +304,7 @@ PROMPT;
 
         $genConfig = [
             'temperature'     => 0.2,
-            'maxOutputTokens' => $forzarJSON ? 2048 : 1024,
+            'maxOutputTokens' => $forzarJSON ? 4096 : 1024,
         ];
         if ($forzarJSON) {
             $genConfig['responseMimeType'] = 'application/json';
