@@ -238,7 +238,6 @@ class EmpresaResource extends Resource
                                     "</div></div>"
                                 );
                             })
-                            ->visibleOn('edit')
                             ->columnSpanFull(),
 
                         Forms\Components\FileUpload::make('reglamento_docx_temp')
@@ -249,7 +248,8 @@ class EmpresaResource extends Resource
                             ->directory('reglamentos-temp')
                             ->visibility('private')
                             ->maxSize(10240)
-                            ->dehydrated(false),
+                            ->dehydrated(false)
+                            ->visibleOn('edit'),
                     ]),
             ]);
     }
