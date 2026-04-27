@@ -203,20 +203,27 @@ SECCIÓN A AUDITAR: {$config['titulo']}
 
 {$contextoRIT}
 
-Analiza si la sección cumple con la normativa colombiana vigente. Responde ÚNICAMENTE en JSON válido:
-{
-  "cumple": true o false,
-  "calificacion": "Completo" | "Parcial" | "Ausente",
-  "score": número entre 0 y 100,
-  "hallazgos": ["hallazgo 1", "hallazgo 2"],
-  "recomendaciones": ["recomendación 1", "recomendación 2"],
-  "articulos_referencia": ["Art. X del CST", "Ley Y de Z"]
-}
-Máximo 3 hallazgos y 3 recomendaciones. Sé preciso y jurídico.
+Analiza si la sección cumple con la normativa colombiana vigente. Devuelve un JSON con exactamente estos campos:
+- cumple: boolean (true si cumple, false si no)
+- calificacion: string ("Completo", "Parcial" o "Ausente")
+- score: integer (0-100 según nivel de cumplimiento)
+- hallazgos: array de strings (máximo 3, vacío si cumple completamente)
+- recomendaciones: array de strings (máximo 3, vacío si cumple completamente)
+- articulos_referencia: array de strings con los artículos aplicables (ej: "Art. 76 CST")
+
+Si la sección no fue encontrada en el RIT, usa calificacion "Ausente" y score 0.
 PROMPT;
 
         $respuesta = $this->llamarIA($prompt, true);
         $datos     = $this->parsearJSON($respuesta);
+
+        Log::info('AuditoriaRIT: diagnóstico sección', [
+            'seccion'           => $config['titulo'],
+            'fragmento_chars'   => strlen($fragmentoRIT),
+            'seccion_encontrada' => $seccionEncontrada,
+            'respuesta_raw'     => substr($respuesta, 0, 400),
+            'datos_parsed'      => $datos,
+        ]);
 
         return array_merge([
             'titulo'              => $config['titulo'],
