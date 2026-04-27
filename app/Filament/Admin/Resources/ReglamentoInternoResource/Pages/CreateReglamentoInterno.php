@@ -29,18 +29,53 @@ class CreateReglamentoInterno extends CreateRecord
     public function mount(): void
     {
         parent::mount();
+    }
 
-        // Pre-llenar con respuestas anteriores si ya existe un RIT
+    /**
+     * Sobrescribir fillForm() para pasar los datos guardados en el PRIMER
+     * y único fill(), evitando que Alpine/mdtimepicker ya esté inicializado
+     * con estado vacío cuando llegue el segundo fill() desde mount().
+     */
+    protected function fillForm(): void
+    {
+        $this->callHook('beforeFill');
+
         $empresa = $this->getEmpresa();
-        if (!$empresa) return;
+        $saved   = [];
 
-        $rit = ReglamentoInterno::where('empresa_id', $empresa->id)
-            ->orderByDesc('updated_at')
-            ->first();
+        if ($empresa) {
+            $rit = ReglamentoInterno::where('empresa_id', $empresa->id)
+                ->orderByDesc('updated_at')
+                ->first();
 
-        if ($rit?->respuestas_cuestionario) {
-            $this->form->fill($rit->respuestas_cuestionario);
+            if ($rit?->respuestas_cuestionario) {
+                $saved = $this->normalizarCuestionario($rit->respuestas_cuestionario);
+            }
         }
+
+        $this->form->fill($saved);
+
+        $this->callHook('afterFill');
+    }
+
+    /**
+     * Normaliza los datos del cuestionario antes de pasarlos al form->fill():
+     * - Convierte booleanos 0/1 a false/true en items del Repeater (Toggle)
+     * - Asegura que los arrays de Repeater tengan la estructura correcta
+     */
+    private function normalizarCuestionario(array $data): array
+    {
+        // Normalizar booleanos en el Repeater de cargos
+        if (isset($data['cargos']) && is_array($data['cargos'])) {
+            $data['cargos'] = array_map(function ($item) {
+                if (isset($item['puede_sancionar'])) {
+                    $item['puede_sancionar'] = (bool) $item['puede_sancionar'];
+                }
+                return $item;
+            }, $data['cargos']);
+        }
+
+        return $data;
     }
 
     protected function getSteps(): array
@@ -210,7 +245,8 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->placeholder('Ej: Gerente General'),
                                     Forms\Components\Toggle::make('puede_sancionar')
                                         ->label('¿Puede sancionar?')
-                                        ->default(false),
+                                        ->default(false)
+                                        ->afterStateHydrated(fn ($component, $state) => $component->state((bool) $state)),
                                 ])
                                 ->columns(2)
                                 ->addActionLabel('Agregar cargo')
