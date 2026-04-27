@@ -186,6 +186,10 @@ class EmpresaResource extends Resource
                             ->label('Actividad Económica Principal')
                             ->relationship('actividadEconomica', 'nombre')
                             ->getOptionLabelFromRecordUsing(fn (ActividadEconomica $record) => "{$record->codigo} - {$record->nombre}")
+                            ->getOptionLabelUsing(function ($value): ?string {
+                                $a = ActividadEconomica::find($value);
+                                return $a ? "{$a->codigo} - {$a->nombre}" : null;
+                            })
                             ->searchable(['codigo', 'nombre'])
                             ->preload(false)
                             ->nullable()
@@ -197,6 +201,10 @@ class EmpresaResource extends Resource
                             ->label('Actividades Secundarias')
                             ->relationship('actividadesSecundarias', 'nombre')
                             ->getOptionLabelFromRecordUsing(fn (ActividadEconomica $record) => "{$record->codigo} - {$record->nombre}")
+                            ->getOptionLabelUsing(function ($value): ?string {
+                                $a = ActividadEconomica::find($value);
+                                return $a ? "{$a->codigo} - {$a->nombre}" : null;
+                            })
                             ->searchable(['codigo', 'nombre'])
                             ->preload(false)
                             ->multiple()
