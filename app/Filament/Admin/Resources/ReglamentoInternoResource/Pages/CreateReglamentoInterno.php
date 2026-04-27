@@ -51,6 +51,17 @@ class CreateReglamentoInterno extends CreateRecord
             if ($rit?->respuestas_cuestionario) {
                 $saved = $this->normalizarCuestionario($rit->respuestas_cuestionario);
             }
+
+            // Si no hay IDs guardados en el cuestionario, tomarlos de la empresa
+            if (empty($saved['actividad_economica_id']) && $empresa->actividad_economica_id) {
+                $saved['actividad_economica_id'] = $empresa->actividad_economica_id;
+            }
+            if (empty($saved['actividades_secundarias_ids'])) {
+                $ids = $empresa->actividadesSecundarias()->pluck('actividades_economicas.id')->toArray();
+                if (!empty($ids)) {
+                    $saved['actividades_secundarias_ids'] = $ids;
+                }
+            }
         }
 
         $this->form->fill($saved);
