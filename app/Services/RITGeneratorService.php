@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Empresa;
+use App\Services\BibliotecaLegalService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -207,6 +208,17 @@ class RITGeneratorService
 
     private function construirPrompt(array $r, Empresa $empresa): string
     {
+        // Buscar fragmentos relevantes de la biblioteca legal
+        $biblioteca = app(BibliotecaLegalService::class);
+        $queryBiblioteca = implode(' ', array_filter([
+            'reglamento interno de trabajo artículos obligatorios Código Sustantivo del Trabajo',
+            'jornada laboral horas extras trabajo nocturno dominicales festivos',
+            'régimen disciplinario faltas sanciones descargos procedimiento',
+            'acoso sexual laboral prevención Ley 2365 2024',
+            'Seguridad Salud Trabajo SG-SST obligaciones empleador',
+        ]));
+        $contextoBiblioteca = $biblioteca->buscarFragmentos($queryBiblioteca, limite: 8, umbral: 0.50);
+
         $razonSocial = $empresa->razon_social;
         $nit         = $empresa->nit;
 
@@ -300,6 +312,10 @@ CONDUCTA Y CONVIVENCIA
 - Qué quiere prevenir: " . ($r['que_quiere_prevenir'] ?? '') . "
 ";
 
+        $seccionBiblioteca = $contextoBiblioteca
+            ? "\nBASE NORMATIVA Y JURISPRUDENCIAL (extraída de la biblioteca legal actualizada):\nUsa estos fragmentos como fundamento jurídico. Cítalos cuando sean aplicables.\n\n{$contextoBiblioteca}\n"
+            : '';
+
         return <<<PROMPT
 Eres un abogado laboral colombiano experto en reglamentos internos de trabajo.
 
@@ -311,6 +327,7 @@ INSTRUCCIONES:
 - Incluye TODOS los capítulos obligatorios del CST
 - Incluye capítulo sobre Política de Prevención de Acoso Sexual según la Ley 2365 de 2024
 - Redacta de manera lista para presentar ante el Ministerio del Trabajo
+- Basa la redacción en los fragmentos normativos de la base legal que se adjuntan más abajo; NO uses conocimiento genérico de internet
 - Si alguna información no fue proporcionada, usa valores razonables y típicos para una empresa colombiana
 - NO incluyas comentarios ni aclaraciones fuera del texto del reglamento
 - NUNCA uses corchetes ni placeholders como [DÍA], [MES], [AÑO], [NOMBRE], [NÚMERO], [NIT], ni ningún otro; usa siempre los datos reales proporcionados
@@ -334,7 +351,7 @@ CAPÍTULOS OBLIGATORIOS A INCLUIR:
 13. Uso de equipos, uniformes y bienes de la empresa
 14. Política de prevención del acoso sexual (Ley 2365 de 2024)
 15. Disposiciones finales
-
+{$seccionBiblioteca}
 INFORMACIÓN DE LA EMPRESA PROPORCIONADA POR EL ADMINISTRADOR:
 {$infoEmpresa}
 
