@@ -32,28 +32,17 @@
         <input {{ $isDisabled ? 'disabled' : '' }} type="time"
             value="{{ $getState() ?? '' }}"
             x-data="{}"
-            x-init="
-                $nextTick(function() {
-                    // Read 24h value; convert to 'h:mm tt' so mdtimepicker parseTime works
-                    var raw = $el.value || '{{ $getState() ?? '' }}';
-                    if (raw && /^\d{1,2}:\d{2}/.test(raw)) {
-                        var p = raw.split(':'), h = parseInt(p[0], 10), m = p[1];
-                        var ampm = h >= 12 ? 'PM' : 'AM';
-                        h = (h % 12) || 12;
-                        $el.value = h + ':' + m + ' ' + ampm;
+            x-init="$nextTick(() => mdtimepicker($el, {
+                okLabel: '{{ $getOkLabel() }}',
+                cancelLabel: '{{ $getCancelLabel() }}',
+                format: 'h:mm tt',
+                timeFormat: 'HH:mm:ss',
+                events: {
+                    timeChanged: function(data, timepicker) {
+                        @this.set('{!! $getStatePath() !!}', data.time);
                     }
-                    mdtimepicker($el, {
-                        okLabel: '{{ $getOkLabel() }}',
-                        cancelLabel: '{{ $getCancelLabel() }}',
-                        format: 'h:mm tt',
-                        timeFormat: 'HH:mm:ss',
-                        events: {
-                            timeChanged: function(data, timepicker) {
-                                @this.set('{!! $getStatePath() !!}', data.time);
-                            }
-                        }
-                    });
-                })"
+                }
+            }))"
 
             {{ $applyStateBindingModifiers('wire:model') }}="{{ $getStatePath() }}" @class([
                 'time-input-picker fi-input block w-full border-none bg-transparent text-base text-gray-950 outline-none transition duration-75 placeholder:text-gray-400 focus:ring-0 disabled:text-gray-500 disabled:[-webkit-text-fill-color:theme(colors.gray.500)] disabled:placeholder:[-webkit-text-fill-color:theme(colors.gray.400)] dark:text-white dark:placeholder:text-gray-500 dark:disabled:text-gray-400 dark:disabled:[-webkit-text-fill-color:theme(colors.gray.400)] dark:disabled:placeholder:[-webkit-text-fill-color:theme(colors.gray.500)] sm:text-sm sm:leading-6',
@@ -61,4 +50,3 @@
             ])>
         </x-filament::input.wrapper>
 </x-dynamic-component>
-
