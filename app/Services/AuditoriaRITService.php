@@ -327,20 +327,36 @@ PROMPT;
             $genConfig['responseMimeType'] = 'application/json';
         }
 
-        $response = Http::withHeaders(['Content-Type' => 'application/json'])
-            ->timeout(60)
-            ->post($url, [
-                'contents' => [
-                    ['parts' => [['text' => $prompt]]],
-                ],
-                'generationConfig' => $genConfig,
-            ]);
+        $payload = [
+            'contents'         => [['parts' => [['text' => $prompt]]]],
+            'generationConfig' => $genConfig,
+        ];
 
-        if (!$response->successful()) {
-            throw new \RuntimeException('Error Gemini: ' . $response->body());
+        // Reintentos con backoff exponencial para errores 503/429 (transitorios)
+        $maxIntentos = 4;
+        for ($intento = 1; $intento <= $maxIntentos; $intento++) {
+            $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                ->timeout(90)
+                ->post($url, $payload);
+
+            if ($response->successful()) {
+                return $response->json('candidates.0.content.parts.0.text', '');
+            }
+
+            $status = $response->status();
+
+            // Errores permanentes → fallar inmediatamente
+            if (!in_array($status, [429, 503]) || $intento === $maxIntentos) {
+                throw new \RuntimeException('Error Gemini: ' . $response->body());
+            }
+
+            // Backoff: 5 s → 10 s → 20 s
+            $espera = 5 * (int) pow(2, $intento - 1);
+            Log::warning("AuditoriaRIT: Gemini {$status}, reintento {$intento}/{$maxIntentos} en {$espera}s");
+            sleep($espera);
         }
 
-        return $response->json('candidates.0.content.parts.0.text', '');
+        throw new \RuntimeException('Error Gemini: máximo de reintentos alcanzado.');
     }
 
     private function parsearJSON(string $texto): array
