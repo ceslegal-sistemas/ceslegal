@@ -22,38 +22,62 @@ class RITGeneratorService
         $model   = $config['model'] ?? 'gemini-2.5-flash';
         $url     = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
-        $prompt = $this->construirPrompt($respuestas, $empresa);
+        $prompt  = $this->construirPrompt($respuestas, $empresa);
+        $payload = [
+            'contents' => [
+                ['parts' => [['text' => $prompt]]],
+            ],
+            'generationConfig' => [
+                'temperature'     => 0.3,
+                'maxOutputTokens' => 16384,
+                'topP'            => 0.95,
+                'topK'            => 40,
+            ],
+        ];
 
         Log::info('RITGeneratorService: generando texto con Gemini', [
             'empresa_id' => $empresa->id,
             'model'      => $model,
         ]);
 
-        $response = Http::withHeaders(['Content-Type' => 'application/json'])
-            ->timeout(90)
-            ->post($url, [
-                'contents' => [
-                    ['parts' => [['text' => $prompt]]],
-                ],
-                'generationConfig' => [
-                    'temperature'     => 0.3,
-                    'maxOutputTokens' => 16384,
-                    'topP'            => 0.95,
-                    'topK'            => 40,
-                ],
+        // Reintentos con backoff exponencial para errores transitorios (503, 429)
+        $maxIntentos = 3;
+        $esperas     = [5, 15, 30]; // segundos entre intentos
+        $lastError   = null;
+
+        for ($intento = 1; $intento <= $maxIntentos; $intento++) {
+            $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                ->timeout(120)
+                ->post($url, $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (!isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                    throw new \RuntimeException('Respuesta de Gemini sin contenido válido');
+                }
+                return trim($data['candidates'][0]['content']['parts'][0]['text']);
+            }
+
+            $status    = $response->status();
+            $lastError = $response->body();
+
+            // Solo reintentar en errores transitorios de servidor
+            $esTransitorio = in_array($status, [429, 500, 502, 503, 504]);
+
+            Log::warning('RITGeneratorService: fallo en intento ' . $intento, [
+                'empresa_id' => $empresa->id,
+                'status'     => $status,
+                'reintento'  => $esTransitorio && $intento < $maxIntentos,
             ]);
 
-        if (!$response->successful()) {
-            throw new \RuntimeException('Error en API Gemini: ' . $response->body());
+            if (!$esTransitorio || $intento === $maxIntentos) {
+                break;
+            }
+
+            sleep($esperas[$intento - 1]);
         }
 
-        $data = $response->json();
-
-        if (!isset($data['candidates'][0]['content']['parts'][0]['text'])) {
-            throw new \RuntimeException('Respuesta de Gemini sin contenido válido');
-        }
-
-        return trim($data['candidates'][0]['content']['parts'][0]['text']);
+        throw new \RuntimeException('Error en API Gemini: ' . $lastError);
     }
 
     /**
