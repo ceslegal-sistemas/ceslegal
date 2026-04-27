@@ -216,27 +216,26 @@ class RITBuilder extends Page
 
     public function getDescargarUrl(): ?string
     {
+        $empresa = $this->getEmpresa();
+        if (!$empresa) return null;
+
+        $user = Auth::user();
+        $esAdmin = $user?->hasRole('super_admin') || $user?->hasRole('abogado');
+
         if (!$this->docxPath) {
             // Verificar si ya existe un RIT generado previamente
-            $empresa = $this->getEmpresa();
-            if ($empresa) {
-                $rit = ReglamentoInterno::where('empresa_id', $empresa->id)
-                    ->where('fuente', 'construido_ia')
-                    ->where('activo', true)
-                    ->latest()
-                    ->first();
+            $rit = ReglamentoInterno::where('empresa_id', $empresa->id)
+                ->where('fuente', 'construido_ia')
+                ->where('activo', true)
+                ->latest()
+                ->first();
 
-                if ($rit) {
-                    $ruta = "private/rits/{$empresa->id}/reglamento.docx";
-                    if (file_exists(storage_path("app/{$ruta}"))) {
-                        return route('rit.descargar');
-                    }
-                }
-            }
-            return null;
+            if (!$rit) return null;
         }
 
-        return route('rit.descargar');
+        return $esAdmin
+            ? route('rit.descargar.admin', $empresa)
+            : route('rit.descargar');
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
