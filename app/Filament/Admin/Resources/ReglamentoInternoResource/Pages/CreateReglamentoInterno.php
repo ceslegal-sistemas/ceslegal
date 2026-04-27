@@ -714,25 +714,31 @@ class CreateReglamentoInterno extends CreateRecord
             throw new Halt();
         }
 
-        // 1. Resolver actividad_economica_id → texto legible
+        // 1. Resolver actividad_economica_id → texto legible (conservar ID para re-edición)
         $actividadId = $data['actividad_economica_id'] ?? null;
         if ($actividadId) {
             $actividad = ActividadEconomica::find($actividadId);
             $data['actividad_economica'] = $actividad
                 ? "{$actividad->codigo} — {$actividad->nombre}"
                 : '';
+            // Mantener el ID para que fillForm() lo restaure al editar
+            $data['actividad_economica_id'] = $actividadId;
+        } else {
+            unset($data['actividad_economica_id']);
         }
-        unset($data['actividad_economica_id']);
 
-        // 2. Resolver actividades secundarias → texto
+        // 2. Resolver actividades secundarias → texto (conservar IDs para re-edición)
         $actividadesIds = $data['actividades_secundarias_ids'] ?? [];
         if (!empty($actividadesIds)) {
             $data['actividades_secundarias'] = ActividadEconomica::whereIn('id', $actividadesIds)
                 ->get()
                 ->map(fn($a) => "{$a->codigo} — {$a->nombre}")
                 ->join(', ');
+            // Mantener los IDs para que fillForm() los restaure al editar
+            $data['actividades_secundarias_ids'] = $actividadesIds;
+        } else {
+            unset($data['actividades_secundarias_ids']);
         }
-        unset($data['actividades_secundarias_ids']);
 
         // 3. Añadir datos base de la empresa
         $data['razon_social'] = $empresa->razon_social ?? '';
