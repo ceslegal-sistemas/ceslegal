@@ -45,7 +45,7 @@ html:not(.dark) .rit-viewer-header{background:rgba(0,0,0,.03);border-bottom-colo
 .rit-viewer-label{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
 .rit-viewer-body{max-height:65vh;overflow-y:auto;padding:1.5rem 1.75rem;background:rgba(0,0,0,.15)}
 html:not(.dark) .rit-viewer-body{background:#fafafa}
-.rit-text{white-space:pre-wrap;font-family:'Georgia','Times New Roman',serif;font-size:.875rem;line-height:1.9;color:#cbd5e1;word-break:break-word}
+.rit-text{white-space:normal;font-family:'Georgia','Times New Roman',serif;font-size:.875rem;line-height:1.9;color:#cbd5e1;word-break:break-word}
 html:not(.dark) .rit-text{color:#1e293b}
 .rit-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3.5rem 2rem;text-align:center}
 .rit-empty-icon{width:56px;height:56px;border-radius:50%;background:rgba(99,102,241,.12);border:1.5px solid rgba(99,102,241,.25);display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
@@ -125,7 +125,7 @@ html:not(.dark) .rit-empty-title{color:#0f172a}
         </span>
       </div>
       <div class="rit-viewer-body">
-        <div class="rit-text">{{ $reglamento->texto_completo }}</div>
+        <div class="rit-text">{!! preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '<strong>$1</strong>', nl2br(e($reglamento->texto_completo))) !!}</div>
       </div>
     </div>
   @else

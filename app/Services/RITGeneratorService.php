@@ -127,15 +127,25 @@ class RITGeneratorService
                 continue;
             }
 
-            if (preg_match('/^(CAPÍTULO|CAPÍTULO\s+[IVXLC]+|ARTÍCULO\s+\d+|ART\.\s+\d+)/ui', $linea)) {
+            // Detectar líneas completamente en negrita markdown (**texto**)
+            $esNegritaMarkdown = preg_match('/^\*{1,2}(.+?)\*{1,2}$/', $linea, $m);
+            $textoLimpio = $esNegritaMarkdown
+                ? trim($m[1])
+                : preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '$1', $linea); // quitar ** inline
+
+            // Detectar títulos: CAPÍTULO, ARTÍCULO, o línea markdown-bold
+            $esTitulo = $esNegritaMarkdown
+                || preg_match('/^(CAPÍTULO|ARTÍCULO|ART\.)\s*/ui', $textoLimpio);
+
+            if ($esTitulo) {
                 $section->addText(
-                    $linea,
+                    $textoLimpio,
                     ['bold' => true, 'size' => 12, 'name' => 'Times New Roman'],
                     ['spaceAfter' => 80, 'spaceBefore' => 120]
                 );
             } else {
                 $section->addText(
-                    $linea,
+                    $textoLimpio,
                     ['size' => 12, 'name' => 'Times New Roman'],
                     ['spaceAfter' => 60, 'lineHeight' => 1.5]
                 );
@@ -257,6 +267,7 @@ INSTRUCCIONES:
 - NUNCA uses corchetes ni placeholders como [DÍA], [MES], [AÑO], [NOMBRE], [NÚMERO], [NIT], ni ningún otro; usa siempre los datos reales proporcionados
 - La fecha de elaboración es: {$fechaHoy}
 - El representante legal firmante es: {$representante}
+- NO uses formato Markdown: sin asteriscos (*), sin almohadillas (#), sin guiones de lista al inicio de línea; escribe los títulos de capítulo y artículo completamente en MAYÚSCULAS
 
 CAPÍTULOS OBLIGATORIOS A INCLUIR:
 1. Denominación, domicilio, naturaleza y objeto de la empresa
