@@ -29,12 +29,14 @@
     >
 
 
-        <input {{ $isDisabled ? 'disabled' : '' }} type="time" x-data="{}"
+        <input {{ $isDisabled ? 'disabled' : '' }} type="time"
+            value="{{ $getState() ?? '' }}"
+            x-data="{}"
             x-init="$nextTick(() => mdtimepicker($el, {
                 okLabel: '{{ $getOkLabel() }}',
                 cancelLabel: '{{ $getCancelLabel() }}',
                 format: 'h:mm tt',
-                timeFormat: 'hh:mm:ss',
+                timeFormat: 'HH:mm:ss',
                 events: {
                     timeChanged: function(data, timepicker) {
                         @this.set('{!! $getStatePath() !!}', data.time);

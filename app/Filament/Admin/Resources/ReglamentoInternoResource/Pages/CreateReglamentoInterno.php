@@ -301,18 +301,12 @@ class CreateReglamentoInterno extends CreateRecord
                             TimePickerField::make('horario_entrada')
                                 ->label('Hora de entrada')
                                 ->id('rit_horario_entrada')
-                                ->required()
-                                ->extraAttributes(fn ($component) =>
-                                    ($v = $component->getState()) ? ['value' => $v] : []
-                                ),
+                                ->required(),
 
                             TimePickerField::make('horario_salida')
                                 ->label('Hora de salida (lunes a viernes)')
                                 ->id('rit_horario_salida')
-                                ->required()
-                                ->extraAttributes(fn ($component) =>
-                                    ($v = $component->getState()) ? ['value' => $v] : []
-                                ),
+                                ->required(),
 
                             // Solo si la empresa trabaja lunes a sábado
                             ...($empresa?->dias_laborales === 'lunes_sabado' ? [
@@ -329,10 +323,7 @@ class CreateReglamentoInterno extends CreateRecord
 
                                 TimePickerField::make('horario_salida_sabado')
                                     ->label('Hora de salida los sábados')
-                                    ->columnSpanFull()
-                                    ->extraAttributes(fn ($component) =>
-                                        ($v = $component->getState()) ? ['value' => $v] : []
-                                    ),
+                                    ->columnSpanFull(),
                             ] : [
                                 Forms\Components\Hidden::make('jornada_sabado')->default('no'),
                             ]),
