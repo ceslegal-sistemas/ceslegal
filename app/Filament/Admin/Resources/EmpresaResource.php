@@ -19,6 +19,11 @@ class EmpresaResource extends Resource
 {
     protected static ?string $model = Empresa::class;
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with('reglamentoInterno');
+    }
+
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 
     protected static ?string $navigationLabel = 'Empresas';
@@ -324,6 +329,26 @@ class EmpresaResource extends Resource
                     ->color('primary')
                     ->toggleable(),
 
+                Tables\Columns\TextColumn::make('rit_estado')
+                    ->label('RIT')
+                    ->badge()
+                    ->getStateUsing(fn(Empresa $record): string =>
+                        match($record->reglamentoInterno?->fuente) {
+                            'construido_ia' => 'IA generado',
+                            default         => $record->reglamentoInterno ? 'Manual' : 'Sin RIT',
+                        }
+                    )
+                    ->color(fn(string $state): string => match($state) {
+                        'IA generado' => 'success',
+                        'Manual'      => 'info',
+                        default       => 'gray',
+                    })
+                    ->icon(fn(string $state): string => match($state) {
+                        'IA generado' => 'heroicon-o-cpu-chip',
+                        'Manual'      => 'heroicon-o-document-arrow-up',
+                        default       => 'heroicon-o-document-minus',
+                    }),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creada')
                     ->dateTime('d/m/Y')
@@ -355,6 +380,13 @@ class EmpresaResource extends Resource
                     ->multiple(),
             ])
             ->actions([
+                Tables\Actions\Action::make('descargar_rit')
+                    ->label('Descargar RIT')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->url(fn(Empresa $record): string => route('rit.descargar.admin', $record))
+                    ->openUrlInNewTab()
+                    ->visible(fn(Empresa $record): bool => $record->reglamentoInterno !== null),
                 Tables\Actions\ViewAction::make()
                     ->label('Ver'),
                 Tables\Actions\EditAction::make()
