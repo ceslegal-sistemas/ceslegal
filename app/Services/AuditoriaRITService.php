@@ -354,6 +354,15 @@ PROMPT;
                 ->post($url, $payload);
 
             if ($response->successful()) {
+                // gemini-2.5-flash (thinking model) incluye el pensamiento en parts[0]
+                // y la respuesta real en el último part que no sea "thought"
+                $parts = $response->json('candidates.0.content.parts', []);
+                foreach (array_reverse($parts) as $part) {
+                    if (empty($part['thought']) && isset($part['text']) && $part['text'] !== '') {
+                        return $part['text'];
+                    }
+                }
+                // Fallback por si no hay parts o todos son thought
                 return $response->json('candidates.0.content.parts.0.text', '');
             }
 
@@ -371,14 +380,28 @@ PROMPT;
 
     private function parsearJSON(string $texto): array
     {
-        // Extraer JSON aunque venga envuelto en markdown
-        if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $texto, $m)) {
-            $texto = $m[1];
-        } elseif (preg_match('/(\{.*\})/s', $texto, $m)) {
-            $texto = $m[1];
+        $texto = trim($texto);
+
+        // Con responseMimeType:application/json el texto ya es JSON puro → intentar directo
+        $datos = json_decode($texto, true);
+        if (is_array($datos)) {
+            return $datos;
         }
 
-        $datos = json_decode(trim($texto), true);
+        // Fallback: extraer JSON de bloque markdown o texto libre
+        if (preg_match('/```(?:json)?\s*(\{.*\})\s*```/s', $texto, $m)) {
+            $datos = json_decode(trim($m[1]), true);
+        } elseif (preg_match('/(\{.*\})/s', $texto, $m)) {
+            $datos = json_decode(trim($m[1]), true);
+        }
+
+        if (!is_array($datos)) {
+            Log::warning('AuditoriaRIT: parsearJSON falló', [
+                'chars'  => strlen($texto),
+                'inicio' => substr($texto, 0, 200),
+            ]);
+        }
+
         return is_array($datos) ? $datos : [];
     }
 
