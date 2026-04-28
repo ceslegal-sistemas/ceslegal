@@ -69,209 +69,280 @@ class DocumentGeneratorService
     }
 
     /**
-     * Genera el HTML del documento de citación a descargos
-     * Formato idéntico al DOCX original
+     * Genera el HTML del documento de citación a descargos.
+     * Estructura: Comunicación Formal de Apertura de Investigación Disciplinaria
+     * conforme al Artículo 7 de la Ley 2466 de 2025.
      */
     private function generarHTMLCitacionDescargos(ProcesoDisciplinario $proceso): string
     {
-        $trabajador = $proceso->trabajador;
-        $empresa = $proceso->empresa;
+        $trabajador  = $proceso->trabajador;
+        $empresa     = $proceso->empresa;
         $fechaActual = Carbon::now()->locale('es');
 
-        // Formatear fecha de descargos
+        // ── Fecha de elaboración ─────────────────────────────────────────────
+        $dia = $fechaActual->format('d');
+        $mes = $fechaActual->isoFormat('MMMM');
+        $anio = $fechaActual->year;
+
+        // ── Datos de la diligencia ───────────────────────────────────────────
         $fechaDescargos = $proceso->fecha_descargos_programada
             ? Carbon::parse($proceso->fecha_descargos_programada)->locale('es')
             : null;
 
-        // Formatear hora de descargos
         $horaDescargos = null;
         if ($proceso->hora_descargos_programada) {
             try {
-                $horaDescargos = Carbon::createFromFormat('H:i:s', $proceso->hora_descargos_programada)
-                    ->locale('es')
-                    ->format('h:i A');
+                $horaDescargos = Carbon::createFromFormat('H:i:s', $proceso->hora_descargos_programada)->format('h:i A');
             } catch (\Exception $e) {
                 try {
-                    $horaDescargos = Carbon::parse($proceso->hora_descargos_programada)
-                        ->locale('es')
-                        ->format('h:i A');
+                    $horaDescargos = Carbon::parse($proceso->hora_descargos_programada)->format('h:i A');
                 } catch (\Exception $e2) {
                     $horaDescargos = $proceso->hora_descargos_programada;
                 }
             }
         }
 
-        // Formatear fecha de ocurrencia (principal)
-        $fechaOcurrencia = $proceso->fecha_ocurrencia
-            ? Carbon::parse($proceso->fecha_ocurrencia)->locale('es')
-            : null;
-
-        // Obtener todas las fechas de ocurrencia (principal + adicionales)
-        $fechasOcurrenciaTexto = $proceso->fechas_ocurrencia_texto ?? 'No especificada';
-
-        // Hechos del proceso
-        $hechosTexto = html_entity_decode(strip_tags($proceso->hechos ?? ''), ENT_QUOTES, 'UTF-8');
-        // Formatear variables igual que en el DOCX
-        $ciudad = !empty($empresa->ciudad) ? $empresa->ciudad . ', ' : '';
-        $departamento = !empty($empresa->departamento) ? $empresa->departamento . '. ' : '';
-        $dia = $fechaActual->format('d');
-        $mes = $fechaActual->isoFormat('MMMM');
-        $anio = $fechaActual->year;
-
-        // Separar nombres y apellidos
-        $nombreCompleto = $trabajador->nombre_completo ?? '';
-        $partes = explode(' ', $nombreCompleto);
-        // Asumimos: primeros 2 elementos son nombres, resto son apellidos
-        $nombres = '';
-        $apellidos = '';
-        if (count($partes) >= 4) {
-            $nombres = $partes[0] . ' ' . $partes[1];
-            $apellidos = implode(' ', array_slice($partes, 2));
-        } elseif (count($partes) >= 2) {
-            $nombres = $partes[0];
-            $apellidos = implode(' ', array_slice($partes, 1));
-        } else {
-            $nombres = $nombreCompleto;
-        }
-
-        $numeroDocumento = $trabajador->numero_documento ?? '';
-        $cargo = $trabajador->cargo ?? '';
-
-        // Fecha de descargos
-        $diaLetraDescargos = $fechaDescargos ? $fechaDescargos->isoFormat('dddd') : '';
-        $diaDescargos = $fechaDescargos ? $fechaDescargos->format('d') : '';
-        $mesDescargos = $fechaDescargos ? $fechaDescargos->isoFormat('MMMM') : '';
-        $anioDescargos = $fechaDescargos ? $fechaDescargos->year : '';
-        $horaDescargosTexto = $horaDescargos ?? '';
+        $diaDescargos  = $fechaDescargos ? $fechaDescargos->format('d') : '___';
+        $mesDescargos  = $fechaDescargos ? $fechaDescargos->isoFormat('MMMM') : '_______________';
+        $anioDescargos = $fechaDescargos ? $fechaDescargos->year : '20__';
+        $horaTexto     = $horaDescargos ?? '___:___';
 
         $modalidad = strtolower($proceso->modalidad_descargos ?? 'presencial');
 
-        // Dirección según modalidad
-        $direccionEmpresa = '';
-        $ciudadEmpresa = '';
-        $departamentoEmpresa = '';
+        // ── Lugar de la diligencia ───────────────────────────────────────────
         if ($modalidad === 'presencial') {
-            $direccionEmpresa = !empty($empresa->direccion) ? 'ubicada en la dirección ' . $empresa->direccion . ', ' : '';
-            $ciudadEmpresa = !empty($empresa->ciudad) ? $empresa->ciudad . ', ' : '';
-            $departamentoEmpresa = !empty($empresa->departamento) ? $empresa->departamento : '';
-        }
-
-        // Fecha de ocurrencia
-        $diaLetraOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->isoFormat('dddd') : '';
-        $diaOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->format('d') : '';
-        $mesOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->isoFormat('MMMM') : '';
-        $anioOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->year : '';
-
-        // Determinar si hay múltiples fechas de ocurrencia
-        $tieneMultiplesFechas = !empty($proceso->fechas_ocurrencia_adicionales) && count($proceso->fechas_ocurrencia_adicionales) > 0;
-
-        // Texto de fecha(s) de ocurrencia para el documento
-        if ($tieneMultiplesFechas) {
-            $textoFechaOcurrencia = "en las fechas: <strong>{$fechasOcurrenciaTexto}</strong>";
+            $lugarDiligencia = trim(implode(', ', array_filter([
+                $empresa->direccion ?? null,
+                $empresa->ciudad ?? null,
+                $empresa->departamento ?? null,
+            ])));
+            $lugarDiligencia = $lugarDiligencia ?: 'instalaciones de la empresa';
         } else {
-            $textoFechaOcurrencia = "el día {$diaLetraOcurrencia} ({$diaOcurrencia}) de {$mesOcurrencia} de {$anioOcurrencia}";
+            $lugarDiligencia = 'diligencia virtual — se remitirá el enlace de acceso al correo registrado';
         }
 
-        $nombreEmpresa = $empresa->razon_social ?? '';
-        $nombreEmpleador = $empresa->representante_legal ?? 'Representante Legal';
-        $nit = $empresa->nit ?? '';
+        // ── Datos del trabajador ─────────────────────────────────────────────
+        $nombreTrabajador = e($trabajador->nombre_completo ?? '');
+        $numDocTrabajador = e($trabajador->numero_documento ?? '');
+        $tipoDoc          = e($trabajador->tipo_documento ?? 'C.C.');
+        $cargoTrabajador  = e($trabajador->cargo ?? 'cargo en la empresa');
+        $dirTrabajador    = e($trabajador->direccion ?? '');
+        $ciudadTrabajador = e(trim(implode(', ', array_filter([
+            $empresa->ciudad ?? null,
+            $empresa->departamento ?? null,
+        ]))));
+
+        // ── Datos de la empresa ──────────────────────────────────────────────
+        $nombreEmpresa     = e($empresa->razon_social ?? '');
+        $nit               = e($empresa->nit ?? '');
+        $representante     = e($empresa->representante_legal ?? 'Representante Legal');
+        $emailContacto     = e($empresa->email_contacto ?? $empresa->email ?? '');
+        $telefonoEmpresa   = e($empresa->telefono ?? '');
+
+        // ── Hechos ───────────────────────────────────────────────────────────
+        $hechosTexto = html_entity_decode(strip_tags($proceso->hechos ?? ''), ENT_QUOTES, 'UTF-8');
+        // Convertir saltos de línea en ítems numerados para la sección de conductas
+        $lineasHechos = array_values(array_filter(
+            array_map('trim', explode("\n", $hechosTexto))
+        ));
+        if (count($lineasHechos) <= 1) {
+            // Un solo bloque → usar como ítem 1
+            $conductasHTML = '<ol><li>' . nl2br(e($hechosTexto)) . '</li></ol>';
+        } else {
+            $items = array_map(fn($l) => '<li>' . e($l) . '</li>', $lineasHechos);
+            $conductasHTML = '<ol>' . implode('', $items) . '</ol>';
+        }
+
+        // ── Normas incumplidas ───────────────────────────────────────────────
+        $normasTexto = trim($proceso->normas_incumplidas ?? '');
+        if ($normasTexto) {
+            $normasLineas = array_values(array_filter(array_map('trim', explode("\n", $normasTexto))));
+            $normasItems  = array_map(fn($l) => '<li>' . e($l) . '</li>', $normasLineas);
+            $normasHTML   = '<ul>' . implode('', $normasItems) . '</ul>';
+        } else {
+            $normasHTML = '<ul>
+                <li>Artículo 58 del Código Sustantivo del Trabajo, que establece las obligaciones del trabajador.</li>
+                <li>Las disposiciones del Reglamento Interno de Trabajo de ' . $nombreEmpresa . ' sobre obligaciones y conducta en el trabajo.</li>
+            </ul>';
+        }
+
+        // ── Consecuencias según tipo de sanción considerada ──────────────────
+        $tipoSancion = $proceso->tipo_sancion ?? '';
+        $diasSuspension = $proceso->dias_suspension ?? 8;
+        if ($tipoSancion === 'llamado_atencion') {
+            $consecuenciasHTML = '<ul>
+                <li>Llamado de atención verbal y/o escrito, con anotación en la hoja de vida laboral.</li>
+                <li>En caso de reincidencia, podrá derivar en sanciones de mayor gravedad.</li>
+            </ul>';
+        } elseif ($tipoSancion === 'suspension') {
+            $consecuenciasHTML = '<ul>
+                <li>Suspensión laboral sin derecho a salario por un período de hasta <strong>' . $diasSuspension . ' días</strong>.</li>
+                <li>En caso de reincidencia o calificación más grave de la falta, terminación del contrato de trabajo con justa causa.</li>
+            </ul>';
+        } elseif ($tipoSancion === 'terminacion') {
+            $consecuenciasHTML = '<ul>
+                <li>Terminación del contrato de trabajo con justa causa, de conformidad con el artículo 62 del Código Sustantivo del Trabajo.</li>
+                <li>Las conductas probadas pueden dar lugar a acciones civiles o penales adicionales según la normativa vigente.</li>
+            </ul>';
+        } else {
+            $consecuenciasHTML = '<ul>
+                <li>Suspensión laboral sin derecho a salario.</li>
+                <li>Terminación del contrato de trabajo con justa causa, en caso de que las faltas sean calificadas como graves tras el análisis de las pruebas y su defensa.</li>
+            </ul>';
+        }
+
+        // ── Fecha disponibilidad pruebas (día hábil siguiente) ───────────────
+        $fechaDisponibilidadPruebas = Carbon::now()->addWeekday()->locale('es');
+        $fechaDispTexto = $fechaDisponibilidadPruebas->isoFormat('D [de] MMMM [de] YYYY');
+
+        // ── Fragmentos HTML condicionales (no se pueden usar ternarios en heredoc) ─
+        $htmlDirTrabajador   = $dirTrabajador   ? "<p>{$dirTrabajador}</p>" : '';
+        $htmlTelefonoEmpresa = $telefonoEmpresa ? "<p>Tel: {$telefonoEmpresa}</p>" : '';
+        $htmlEmailFirma      = $emailContacto   ? "<p>{$emailContacto}</p>" : '';
 
         return <<<HTML
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Citación a Diligencia de Descargos</title>
+    <title>Comunicación Formal de Apertura de Investigación Disciplinaria</title>
     <style>
-        @page {
-            margin: 2.5cm 2.5cm 2.5cm 2.5cm;
-        }
+        @page { margin: 2.5cm 2.5cm 2.5cm 3cm; }
         body {
             font-family: 'Calibri', 'Arial', sans-serif;
-            font-size: 12pt;
+            font-size: 11pt;
             line-height: 1.5;
-            color: #000000;
+            color: #000;
             text-align: justify;
         }
-        .fecha-lugar {
-            text-align: right;
-            margin-bottom: 30px;
+        .destinatario { margin-bottom: 18px; }
+        .destinatario p { margin: 0; line-height: 1.4; }
+        .asunto { margin-bottom: 18px; }
+        .asunto p { margin: 0; }
+        p { margin: 0 0 12px 0; }
+        h3 {
+            font-size: 11pt;
+            font-weight: bold;
+            margin: 18px 0 6px 0;
+            text-decoration: underline;
         }
-        .destinatario {
-            margin-bottom: 20px;
+        ul, ol { margin: 4px 0 12px 0; padding-left: 24px; }
+        li { margin-bottom: 6px; }
+        .diligencia-datos {
+            margin: 8px 0 12px 16px;
         }
-        .destinatario p {
-            margin: 0;
-            line-height: 1.4;
-        }
-        .referencia {
-            margin-bottom: 20px;
-        }
-        .referencia p {
-            margin: 0;
-        }
-        .contenido {
-            margin-bottom: 20px;
-        }
-        .contenido p {
-            margin: 0 0 15px 0;
-            text-align: justify;
-        }
-        .firma {
-            margin-top: 50px;
-        }
-        .firma p {
-            margin: 0;
-        }
+        .diligencia-datos p { margin: 0; line-height: 1.6; }
+        .firma-bloque { margin-top: 48px; }
+        .firma-bloque p { margin: 0; line-height: 1.4; }
         .linea-firma {
-            margin-top: 60px;
-            border-top: 1px solid #000000;
-            width: 250px;
+            margin-top: 56px;
+            border-top: 1px solid #000;
+            width: 260px;
             padding-top: 5px;
         }
-        strong, b {
-            font-weight: bold;
+        .constancia {
+            margin-top: 36px;
+            border-top: 2px solid #000;
+            padding-top: 14px;
         }
+        .constancia h3 { text-decoration: none; }
+        .firma-trabajador {
+            margin-top: 50px;
+            border-top: 1px solid #000;
+            width: 260px;
+            padding-top: 5px;
+        }
+        strong { font-weight: bold; }
+        .italic { font-style: italic; }
     </style>
 </head>
 <body>
-    <div class="fecha-lugar">
-        <p>{$ciudad}{$departamento}{$dia} de {$mes} de {$anio}.</p>
-    </div>
 
+    <!-- DESTINATARIO -->
     <div class="destinatario">
-        <p><strong>Señor(a):</strong></p>
-        <p><strong>{$nombres} {$apellidos}.</strong></p>
-        <p>C.C. No. {$numeroDocumento}.</p>
-        <p>Cargo: {$cargo}.</p>
+        <p>Señora/Señor</p>
+        <p><strong>{$nombreTrabajador}</strong></p>
+        {$htmlDirTrabajador}
+        <p>{$ciudadTrabajador}</p>
+        <p><strong>Fecha:</strong> {$dia} de {$mes} de {$anio}</p>
     </div>
 
-    <div class="referencia">
-        <p><strong>Referencia:</strong> Citación a diligencia de descargos al empleado {$nombres} {$apellidos}.</p>
+    <!-- ASUNTO -->
+    <div class="asunto">
+        <p><strong>Asunto:</strong> Citación a Diligencia Administrativa por apertura de Proceso Disciplinario Laboral</p>
     </div>
 
-    <div class="contenido">
-        <p>Respetado(a) {$nombres} {$apellidos},</p>
+    <!-- APERTURA -->
+    <p>De conformidad con lo establecido en el Artículo 7 de la Ley 2466 de 2025, la empresa <strong>{$nombreEmpresa}</strong>, en su calidad de empleador, le notifica formalmente la apertura de un proceso disciplinario laboral en su contra, derivado de las conductas que se describen a continuación.</p>
 
-        <p>Por medio de la presente comunicación en calidad de la empresa <strong>{$nombreEmpresa}</strong>, le informamos que, de conformidad con lo establecido en el Reglamento de Trabajo, Usted ha sido citado a una diligencia de descargos para el día <strong>{$diaLetraDescargos} ({$diaDescargos}) de {$mesDescargos} de {$anioDescargos}</strong> a las <strong>{$horaDescargosTexto}</strong> de forma <strong>{$modalidad}</strong>, {$direccionEmpresa}{$ciudadEmpresa}{$departamentoEmpresa} a la hora señalada.</p>
+    <!-- SECCIÓN 1: CONDUCTAS IMPUTADAS -->
+    <h3>Detalles de las Conductas Imputadas</h3>
+    <p>Se le imputan las siguientes conductas, las cuales constituyen posibles faltas disciplinarias:</p>
+    {$conductasHTML}
 
-        <p>Las razones por las cuales es citado a diligencia de descargos, se dan por el hecho de que usted presuntamente {$textoFechaOcurrencia}, razón de los descargos:</p>
+    <!-- SECCIÓN 2: INCUMPLIMIENTOS -->
+    <h3>Incumplimientos Contractuales o Legales</h3>
+    <p>Las conductas descritas contravienen:</p>
+    {$normasHTML}
 
-        <p>{$hechosTexto}</p>
+    <!-- SECCIÓN 3: CONSECUENCIAS -->
+    <h3>Consecuencias de las Faltas</h3>
+    <p>Las conductas imputadas podrían dar lugar a las siguientes sanciones, de acuerdo con el Reglamento Interno de Trabajo y la normativa aplicable:</p>
+    {$consecuenciasHTML}
 
-        <p>De esta manera incumpliendo con sus obligaciones contractuales, reglamentarias y legales, como también los procedimientos y protocolos de la compañía.</p>
-
-        <p>Así las cosas, los anteriores hechos implican una posible violación a sus obligaciones contractuales, reglamentarias y legales, que pueden ser constitutivos de una falta disciplinaria.</p>
+    <!-- SECCIÓN 4: CITACIÓN -->
+    <h3>Citación a Diligencia de Descargos</h3>
+    <p>Con el fin de que pueda ejercer su derecho de defensa, se le cita a rendir descargos en la siguiente diligencia:</p>
+    <div class="diligencia-datos">
+        <p><strong>Fecha:</strong> {$diaDescargos} de {$mesDescargos} de {$anioDescargos}</p>
+        <p><strong>Hora:</strong> {$horaTexto}</p>
+        <p><strong>Lugar:</strong> {$lugarDiligencia}</p>
     </div>
+    <p>Durante esta diligencia, usted tendrá la oportunidad de presentar sus explicaciones, controvertir las pruebas que le están siendo trasladadas y aportar las pruebas que considere necesarias para sustentar su defensa. Las pruebas que fundamentan los cargos formulados serán puestas a su disposición en el área de Gestión Humana a partir del {$fechaDispTexto}, en el horario de atención de la empresa.</p>
+    <p>Esta citación tiene como propósito garantizar su derecho al debido proceso, permitiéndole rendir explicaciones y ejercer su defensa frente a los cargos formulados.</p>
 
-    <div class="firma">
+    <!-- SECCIÓN 5: TRASLADO DE PRUEBAS -->
+    <h3>Traslado de Pruebas</h3>
+    <p>Se le informa que la empresa ha puesto a su disposición todas las pruebas que sustentan los cargos imputados. Estas pruebas le serán trasladadas para su revisión y análisis por un término de <strong>cinco (5) días hábiles</strong>, contados a partir de la fecha de la notificación de este documento. Usted podrá acceder a ellas en el área de Gestión Humana, en el horario de atención, con el fin de que pueda preparar su defensa de manera adecuada y oportuna.</p>
+
+    <!-- SECCIÓN 6: ADVERTENCIA -->
+    <h3>Advertencia</h3>
+    <p>De no presentarse a la diligencia sin justa causa, la empresa procederá a continuar el proceso disciplinario con base en las pruebas disponibles, conforme a lo establecido en la Ley 2466 de 2025.</p>
+
+    <!-- SECCIÓN 7: SOLICITUDES PREVIAS -->
+    <h3>Solicitudes Previas</h3>
+    <p>Sírvase responder al correo electrónico <strong>{$emailContacto}</strong> las siguientes preguntas, a más tardar un (1) día hábil antes de la diligencia:</p>
+    <p>¿Desea que lo acompañen testigos?<br>
+    <span class="italic">Respuesta del trabajador: (SI/NO). Si es afirmativa, registre los datos del o los testigos, especialmente correo electrónico.</span></p>
+    <p>¿Desea que lo asistan uno o dos representantes del sindicato al cual se encuentre afiliado?<br>
+    <span class="italic">Respuesta del trabajador: (SI/NO). Si es afirmativa, registre los datos del o los representantes, especialmente correo electrónico.</span></p>
+    <p>¿Requiere algún ajuste razonable para la comunicación o comprensión de la diligencia debido a una condición de discapacidad?<br>
+    <span class="italic">Respuesta del trabajador: (SI/NO). Si es afirmativa, infórmela.</span></p>
+    <p>Quedamos atentos a cualquier comunicación previa a la diligencia, la cual puede ser remitida al correo <strong>{$emailContacto}</strong>.</p>
+
+    <!-- FIRMA -->
+    <div class="firma-bloque">
         <p>Atentamente,</p>
         <div class="linea-firma">
-            <p><strong>{$nombreEmpleador}.</strong></p>
-            <p>NIT. {$nit}.</p>
+            <p><strong>{$representante}</strong></p>
+            <p>Representante Legal</p>
+            <p><strong>{$nombreEmpresa}</strong></p>
+            {$htmlTelefonoEmpresa}
+            {$htmlEmailFirma}
         </div>
     </div>
+
+    <!-- CONSTANCIA DE RECIBO -->
+    <div class="constancia">
+        <h3>CONSTANCIA DE RECIBO</h3>
+        <p>Yo, <strong>{$nombreTrabajador}</strong>, identificado(a) con {$tipoDoc} No. <strong>{$numDocTrabajador}</strong>, declaro que recibí copia de la presente comunicación el día ___ de _______________ de _______, en la cual se me notifica la apertura del proceso de investigación disciplinario.</p>
+        <div class="firma-trabajador">
+            <p><strong>Firma del Trabajador:</strong></p>
+            <p>Nombre: {$nombreTrabajador}</p>
+            <p>{$tipoDoc}: {$numDocTrabajador}</p>
+        </div>
+    </div>
+
 </body>
 </html>
 HTML;
