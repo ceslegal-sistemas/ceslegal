@@ -30,7 +30,7 @@ class RITGeneratorService
             ],
             'generationConfig' => [
                 'temperature'     => 0.3,
-                'maxOutputTokens' => 16384,
+                'maxOutputTokens' => 32768,
                 'topP'            => 0.95,
                 'topK'            => 40,
             ],
@@ -224,26 +224,26 @@ class RITGeneratorService
         $biblioteca = app(BibliotecaLegalService::class);
 
         $queriesTematicas = [
-            'admisión período de prueba contrato trabajo requisitos ingreso',
-            'jornada laboral horas extras trabajo nocturno dominicales festivos recargos',
-            'vacaciones descanso remunerado licencias maternidad paternidad luto',
-            'salario forma de pago remuneración periodicidad modalidades',
-            'régimen disciplinario faltas sanciones descargos procedimiento due process',
-            'seguridad salud trabajo SG-SST COPASST accidentes laborales EPP obligaciones',
-            'acoso laboral sexual comité convivencia Ley 1010 Ley 2365 prevención',
-            'protección maternidad embarazo discapacidad fuero sindical sujetos especiales',
+            'admisión período de prueba jornada laboral horas extras recargos',
+            'vacaciones licencias maternidad paternidad salario forma de pago',
+            'régimen disciplinario faltas sanciones procedimiento descargos',
+            'seguridad salud trabajo SG-SST acoso laboral comité convivencia Ley 2365',
         ];
 
         $fragmentosPorTema = [];
         $yaVisto = [];
         foreach ($queriesTematicas as $query) {
-            $resultado = $biblioteca->buscarFragmentos($query, limite: 3, umbral: 0.40);
+            $resultado = $biblioteca->buscarFragmentos($query, limite: 3, umbral: 0.45);
             if ($resultado && !in_array(md5($resultado), $yaVisto)) {
                 $fragmentosPorTema[] = $resultado;
                 $yaVisto[] = md5($resultado);
             }
         }
         $contextoBiblioteca = implode("\n\n---\n\n", array_filter($fragmentosPorTema));
+        // Limitar el contexto de biblioteca para no saturar el prompt
+        if (strlen($contextoBiblioteca) > 8000) {
+            $contextoBiblioteca = substr($contextoBiblioteca, 0, 8000) . "\n[...fragmentos adicionales omitidos por límite de longitud]";
+        }
 
         $razonSocial = $empresa->razon_social;
         $nit         = $empresa->nit;
