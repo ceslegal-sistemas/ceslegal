@@ -233,16 +233,17 @@ class RITGeneratorService
         $biblioteca = app(BibliotecaLegalService::class);
 
         $queriesTematicas = [
-            'admisión período de prueba jornada laboral horas extras recargos',
-            'vacaciones licencias maternidad paternidad salario forma de pago',
-            'régimen disciplinario faltas sanciones procedimiento descargos',
-            'seguridad salud trabajo SG-SST acoso laboral comité convivencia Ley 2365',
+            'admisión período de prueba jornada laboral horas extras recargos nocturnos',
+            'vacaciones licencias maternidad paternidad salario forma de pago periodicidad',
+            'régimen disciplinario faltas sanciones procedimiento descargos suspensión',
+            'seguridad salud trabajo SG-SST COPASST vigía accidentes exámenes médicos EPP Decreto 1072',
+            'acoso laboral sexual comité convivencia Ley 1010 Ley 2365 protocolo denuncia',
         ];
 
         $fragmentosPorTema = [];
         $yaVisto = [];
         foreach ($queriesTematicas as $query) {
-            $resultado = $biblioteca->buscarFragmentos($query, limite: 3, umbral: 0.45);
+            $resultado = $biblioteca->buscarFragmentos($query, limite: 5, umbral: 0.35);
             if ($resultado && !in_array(md5($resultado), $yaVisto)) {
                 $fragmentosPorTema[] = $resultado;
                 $yaVisto[] = md5($resultado);
@@ -348,13 +349,16 @@ CONDUCTA Y CONVIVENCIA
 ";
 
         $seccionBiblioteca = $contextoBiblioteca
-            ? "\nFRAGMENTOS DE LA BIBLIOTECA JURÍDICA (ÚNICA FUENTE AUTORIZADA PARA CITAS):\n"
-              . "Cita artículos, leyes y sentencias ÚNICAMENTE si aparecen en estos fragmentos.\n"
-              . "Si un tema no está cubierto por los fragmentos, redacta la obligación en términos\n"
-              . "generales sin inventar números de artículos ni referencias normativas.\n\n"
+            ? "\nFRAGMENTOS DE LA BIBLIOTECA JURÍDICA (FUENTE AUTORIZADA PARA CITAS DE ARTÍCULOS):\n"
+              . "REGLA DE CITAS: Usa números de artículo y referencias normativas ÚNICAMENTE cuando\n"
+              . "aparezcan en estos fragmentos. Si un artículo específico no está en los fragmentos,\n"
+              . "omite el número pero REDACTA EL CONTENIDO IGUAL — no suprimas el capítulo.\n"
+              . "REGLA DE CONTENIDO: TODOS los capítulos son OBLIGATORIOS independientemente de los\n"
+              . "fragmentos disponibles. La falta de fragmentos sobre un tema nunca justifica omitir\n"
+              . "o reducir un capítulo — usa el texto de referencia indicado en cada capítulo.\n\n"
               . $contextoBiblioteca . "\n"
-            : "\nADVERTENCIA: La biblioteca legal no devolvió fragmentos. Redacta el RIT en términos\n"
-              . "generales sin citar artículos ni leyes específicas.\n";
+            : "\nADVERTENCIA: La biblioteca legal no devolvió fragmentos. Redacta TODOS los capítulos\n"
+              . "con contenido completo sin citar números de artículos específicos.\n";
 
         return <<<PROMPT
 Eres un abogado laboral colombiano experto en reglamentos internos de trabajo.
@@ -438,24 +442,27 @@ CAPÍTULO XI — NORMAS DE CONDUCTA Y COMPORTAMIENTO
 - Prohibiciones específicas de la empresa
 
 CAPÍTULO XII — SEGURIDAD Y SALUD EN EL TRABAJO (SG-SST)
-- Política de SST y compromiso de la alta dirección (Decreto 1072/2015, Art. 2.2.4.6.5)
-- Obligaciones del empleador en SST (Art. 56 CST; Art. 8 Decreto 1295/1994)
-- Obligaciones del trabajador en SST (Art. 58 CST núm. 7)
-- COPASST (empresas ≥10 trabajadores) o Vigía de SST (empresas <10) con funciones y periodicidad
-- Programas de prevención según riesgos principales de la empresa
-- Reporte e investigación de accidentes de trabajo (Art. 62 Decreto 1295/1994); notificación a ARL y Mintrabajo
-- Uso obligatorio de EPP y consecuencias de incumplimiento
-- Prohibición de trabajar bajo efectos de alcohol o sustancias psicoactivas
+[CAPÍTULO OBLIGATORIO — generar mínimo 6 artículos desarrollados]
+- Artículo: Política de SST firmada por el representante legal con compromisos concretos
+- Artículo: Obligaciones del empleador: proveer condiciones seguras, afiliar a ARL, suministrar EPP, realizar exámenes de ingreso/periódicos/egreso, investigar accidentes
+- Artículo: Obligaciones del trabajador: usar EPP, reportar peligros, asistir a capacitaciones, no manipular equipos de seguridad
+- Artículo: COPASST (empresas con 10 o más trabajadores) O Vigía de Seguridad y Salud (empresas con menos de 10): conformación paritaria, vigencia de 2 años, reunión mensual, funciones de vigilancia y seguimiento
+- Artículo: Exámenes médicos ocupacionales obligatorios: de ingreso, periódicos y de egreso; reserva de la información médica
+- Artículo: Reporte de accidentes de trabajo y enfermedades laborales: notificación al empleador el mismo día, a la ARL dentro de los 2 días hábiles, investigación interna obligatoria
+- Artículo: Uso obligatorio de EPP según el riesgo del cargo; consecuencias disciplinarias del incumplimiento
+- Artículo: Prohibición absoluta de presentarse o permanecer en el lugar de trabajo bajo efectos de alcohol, sustancias psicoactivas o medicamentos que alteren la capacidad
 
 CAPÍTULO XIII — USO DE EQUIPOS, UNIFORMES Y BIENES DE LA EMPRESA
 Responsabilidad del trabajador sobre activos, política de daños, uso del uniforme y devolución a la terminación.
 
 CAPÍTULO XIV — COMITÉ DE CONVIVENCIA LABORAL Y PREVENCIÓN DE ACOSO
-- Definición y modalidades de acoso laboral (Art. 2 Ley 1010/2006)
-- Comité de Convivencia Laboral: conformación paritaria, elección, período, funciones y periodicidad de reuniones (Resolución 652/2012 y 1356/2012)
-- Mecanismos de prevención: capacitación, canales de denuncia, seguimiento
-- Procedimiento interno de queja por acoso laboral
-- Política de prevención del acoso sexual (Art. 12 Ley 2365/2024): definición, conductas prohibidas, responsabilidades del empleador, protocolo de atención
+[CAPÍTULO OBLIGATORIO — generar mínimo 6 artículos desarrollados]
+- Artículo: Definición de acoso laboral y sus modalidades: persecución, discriminación, entorpecimiento, inequidad y desprotección (Ley 1010/2006)
+- Artículo: Comité de Convivencia Laboral: conformación paritaria (igual número de representantes del empleador y los trabajadores), período de 2 años, elección democrática de representantes de los trabajadores, se reúne mensualmente y de manera extraordinaria cuando se presente un caso de acoso (Resolución 652/2012 Ministerio de Trabajo)
+- Artículo: Funciones del Comité de Convivencia Laboral: recibir y dar trámite a quejas, examinar conductas denunciadas, crear espacios de diálogo, hacer seguimiento, informar a la alta dirección
+- Artículo: Procedimiento interno de queja por acoso laboral: presentación escrita al Comité, investigación en 30 días, audiencia de conciliación, informe final con medidas correctivas
+- Artículo: Política de prevención y atención del acoso sexual en el trabajo (Ley 2365 de 2024): definición de acoso sexual, conductas que lo constituyen, canal confidencial de denuncia, protocolo de atención, responsabilidad del empleador de investigar y sancionar, prohibición de represalias contra quien denuncia
+- Artículo: Sanciones por acoso laboral o sexual: disciplinarias internas hasta terminación del contrato, denuncia ante el Inspector del Trabajo o autoridades penales según la gravedad
 
 CAPÍTULO XV — PROTECCIÓN DE SUJETOS DE ESPECIAL PROTECCIÓN
 - Protección a la mujer embarazada: prohibición de despido sin autorización del Inspector del Trabajo (Art. 239 CST)
@@ -469,6 +476,12 @@ Vigencia, modificaciones, publicación, depósito ante el Inspector del Trabajo.
 {$seccionBiblioteca}
 INFORMACIÓN DE LA EMPRESA PROPORCIONADA POR EL ADMINISTRADOR:
 {$infoEmpresa}
+
+VERIFICACIÓN OBLIGATORIA ANTES DE TERMINAR:
+Antes de concluir, confirma que tu respuesta contiene estos 4 capítulos críticos con contenido sustancial (mínimo 4 artículos cada uno):
+- CAPÍTULO XII (SG-SST): política SST, obligaciones empleador, obligaciones trabajador, COPASST/Vigía, exámenes médicos, reporte accidentes, EPP
+- CAPÍTULO XIV (Acoso): definición acoso, Comité Convivencia Laboral, procedimiento queja, política acoso sexual Ley 2365/2024
+Si alguno está ausente o tiene menos de 4 artículos, complétalo antes de enviar la respuesta.
 
 Redacta el Reglamento Interno de Trabajo completo:
 PROMPT;
