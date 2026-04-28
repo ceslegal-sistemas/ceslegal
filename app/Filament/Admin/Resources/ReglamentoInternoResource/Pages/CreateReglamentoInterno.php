@@ -307,73 +307,123 @@ class CreateReglamentoInterno extends CreateRecord
                 ->icon('heroicon-o-clock')
                 ->schema([
 
-                    Forms\Components\Section::make('Horario ordinario')
+                    Forms\Components\Section::make('Modalidades de jornada')
+                        ->description('Seleccione todas las modalidades que aplican a su empresa.')
+                        ->schema([
+                            Forms\Components\CheckboxList::make('modalidades_jornada')
+                                ->label('¿Qué modalidades de jornada maneja la empresa?')
+                                ->options([
+                                    'jornada_fija_diurna'     => 'Jornada fija diurna',
+                                    'turnos_rotativos'        => 'Turnos rotativos (día/noche)',
+                                    'turno_nocturno_regular'  => 'Turno nocturno regular',
+                                    'operacion_continua_247'  => 'Operación continua 24/7',
+                                    'jornada_flexible'        => 'Jornada flexible o variable',
+                                    'teletrabajo'             => 'Teletrabajo / trabajo en casa',
+                                    'trabajo_campo_obra'      => 'Trabajo en campo / obra / mina',
+                                    'vigilancia_guardias'     => 'Vigilancia / guardias de seguridad',
+                                ])
+                                ->default(['jornada_fija_diurna'])
+                                ->columns(2)
+                                ->columnSpanFull(),
+                        ]),
+
+                    Forms\Components\Section::make('Horario principal o administrativo')
+                        ->description('Si la empresa opera únicamente en turnos variables, puede dejar estos campos en blanco y describir los turnos en la sección siguiente.')
                         ->schema([
                             TimePickerField::make('horario_entrada')
                                 ->label('Hora de entrada')
-                                ->id('rit_horario_entrada')
-                                ->required(),
+                                ->id('rit_horario_entrada'),
 
                             TimePickerField::make('horario_salida')
                                 ->label('Hora de salida (lunes a viernes)')
-                                ->id('rit_horario_salida')
-                                ->required(),
+                                ->id('rit_horario_salida'),
+                        ])
+                        ->columns(2),
 
-                            // Solo si la empresa trabaja lunes a sábado
-                            ...($empresa?->dias_laborales === 'lunes_sabado' ? [
-                                Forms\Components\Radio::make('jornada_sabado')
-                                    ->label('Los sábados, ¿cuál es la jornada?')
-                                    ->options([
-                                        'media_jornada' => 'Media jornada',
-                                        'dia_completo'  => 'Jornada completa',
-                                    ])
-                                    ->default('media_jornada')
-                                    ->inline()
-                                    ->live()
-                                    ->columnSpanFull(),
-
-                                TimePickerField::make('horario_salida_sabado')
-                                    ->label('Hora de salida los sábados')
-                                    ->columnSpanFull(),
-                            ] : [
-                                Forms\Components\Hidden::make('jornada_sabado')->default('no'),
-                            ]),
-
-                            Forms\Components\Radio::make('trabaja_dominicales')
-                                ->label('¿Trabaja domingos o festivos?')
+                    Forms\Components\Section::make('Turnos y rotaciones')
+                        ->schema([
+                            Forms\Components\Select::make('opera_en_turnos')
+                                ->label('¿Opera en múltiples turnos o jornadas?')
                                 ->options([
-                                    'no'             => 'No',
-                                    'ocasionalmente' => 'Ocasionalmente',
-                                    'regularmente'   => 'Regularmente',
+                                    'no'           => 'No — jornada única',
+                                    '2_turnos'     => 'Sí — 2 turnos',
+                                    '3_turnos'     => 'Sí — 3 turnos',
+                                    '4_mas_turnos' => 'Sí — 4 o más turnos',
+                                    'continuo_247' => 'Operación continua 24/7',
                                 ])
                                 ->default('no')
-                                ->inline()
+                                ->native(false),
+
+                            Forms\Components\Select::make('rotacion_turnos')
+                                ->label('¿Cómo rotan los trabajadores entre turnos?')
+                                ->options([
+                                    'turno_fijo'          => 'No aplica — turno fijo por cargo',
+                                    'rotacion_semanal'    => 'Rotación semanal',
+                                    'rotacion_quincenal'  => 'Rotación quincenal',
+                                    'rotacion_mensual'    => 'Rotación mensual',
+                                    'por_programacion'    => 'Según programación del supervisor',
+                                ])
+                                ->default('turno_fijo')
+                                ->native(false),
+
+                            Forms\Components\Textarea::make('descripcion_turnos')
+                                ->label('Descripción completa de los turnos')
+                                ->rows(3)
+                                ->placeholder('Ej: Turno A (operarios planta): 06:00 a 14:00 / Turno B (operarios planta): 14:00 a 22:00 / Turno C (vigilantes y mantenimiento): 22:00 a 06:00 / Turno adm: 08:00 a 17:30 L-V')
+                                ->helperText('Incluya nombre del turno, horario exacto y cargos que lo operan')
+                                ->columnSpanFull(),
+
+                            Forms\Components\TextInput::make('cargos_nocturnos')
+                                ->label('Cargos que trabajan regularmente en horario nocturno (21:00 – 06:00)')
+                                ->placeholder('Ej: Vigilantes, operadores planta turno C, conductores de larga distancia, enfermeros nocturnos')
                                 ->columnSpanFull(),
                         ])
                         ->columns(2),
 
-                    Forms\Components\Section::make('Turnos y control')
+                    Forms\Components\Section::make('Fines de semana y régimen especial')
                         ->schema([
-                            Forms\Components\Radio::make('tiene_turnos')
-                                ->label('¿Tiene turnos rotativos o nocturnos?')
-                                ->options(['no' => 'No', 'si' => 'Sí'])
+                            Forms\Components\Select::make('jornada_sabado')
+                                ->label('¿Trabaja los sábados?')
+                                ->options([
+                                    'no'             => 'No',
+                                    'media_jornada'  => 'Sí, media jornada (hasta el mediodía)',
+                                    'dia_completo'   => 'Sí, día completo',
+                                    'algunos_cargos' => 'Sí, algunos cargos (operativos/guardia)',
+                                    'en_turnos'      => 'Sí, incluido en turnos rotativos',
+                                ])
+                                ->default($empresa?->dias_laborales === 'lunes_sabado' ? 'media_jornada' : 'no')
+                                ->native(false),
+
+                            Forms\Components\Select::make('trabaja_dominicales')
+                                ->label('¿Trabaja domingos o festivos?')
+                                ->options([
+                                    'no'             => 'No',
+                                    'ocasionalmente' => 'Ocasionalmente (con compensatorio)',
+                                    'algunos_cargos' => 'Sí, regularmente — algunos cargos',
+                                    'regularmente'   => 'Sí, operación completa (recargo 75%)',
+                                    'en_turnos'      => 'Sí, incluido en turnos rotativos',
+                                ])
                                 ->default('no')
-                                ->inline()
-                                ->live(),
+                                ->native(false),
 
-                            Forms\Components\Textarea::make('descripcion_turnos')
-                                ->label('Describa los turnos')
-                                ->rows(2)
-                                ->placeholder('Ej: Turno A 6am-2pm, Turno B 2pm-10pm')
-                                ->visible(fn(Get $get) => $get('tiene_turnos') === 'si'),
+                            Forms\Components\TextInput::make('cargos_exentos_jornada')
+                                ->label('Cargos de dirección, confianza o manejo (exentos jornada máxima — Art. 162 CST)')
+                                ->placeholder('Ej: Gerente General, Director Financiero, Jefe de Operaciones, Supervisor de turno')
+                                ->helperText('Déjelo en blanco si no aplica.')
+                                ->columnSpanFull(),
+                        ])
+                        ->columns(2),
 
+                    Forms\Components\Section::make('Control y horas extras')
+                        ->schema([
                             Forms\Components\Select::make('control_asistencia')
                                 ->label('¿Cómo controla la asistencia?')
                                 ->options([
-                                    'biometrico'  => 'Reloj biométrico',
-                                    'planilla'    => 'Planilla manual',
-                                    'app'         => 'App móvil',
-                                    'sin_control' => 'Sin control formal',
+                                    'biometrico'         => 'Reloj biométrico',
+                                    'planilla'           => 'Planilla manual por turno',
+                                    'app'                => 'App móvil',
+                                    'supervision_rondas' => 'Rondas de supervisión',
+                                    'sin_control'        => 'Sin control formal',
                                 ])
                                 ->default('planilla')
                                 ->native(false),
@@ -381,9 +431,9 @@ class CreateReglamentoInterno extends CreateRecord
                             Forms\Components\Select::make('politica_horas_extras')
                                 ->label('Política de horas extras')
                                 ->options([
-                                    'recargo_legal'  => 'Se pagan con recargo legal',
+                                    'recargo_legal'  => 'Se pagan con recargo legal (previa autorización escrita)',
                                     'no_autorizadas' => 'No se autorizan',
-                                    'compensatorio'  => 'Compensatorio en tiempo',
+                                    'compensatorio'  => 'Compensatorio en tiempo libre',
                                 ])
                                 ->default('recargo_legal')
                                 ->native(false),
@@ -413,15 +463,26 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->required()
                                 ->native(false),
 
-                            Forms\Components\Select::make('periodicidad_pago')
-                                ->label('Periodicidad de pago')
+                            Forms\Components\CheckboxList::make('periodicidad_pago')
+                                ->label('Periodicidad de pago del salario')
+                                ->helperText('Puede seleccionar varias si distintos cargos tienen diferentes periodicidades.')
                                 ->options([
                                     'mensual'   => 'Mensual (último día hábil)',
                                     'quincenal' => 'Quincenal (15 y último día)',
                                     'semanal'   => 'Semanal',
+                                    'diario'    => 'Diario / jornaleros',
+                                    'destajo'   => 'Por obra o destajo',
                                 ])
-                                ->default('mensual')
-                                ->native(false),
+                                ->default(['mensual'])
+                                ->columns(3)
+                                ->columnSpanFull()
+                                ->required(),
+
+                            Forms\Components\Textarea::make('periodicidad_detalle')
+                                ->label('Si hay múltiples periodicidades, indique cuáles cargos aplican a cada una')
+                                ->rows(2)
+                                ->placeholder('Ej: Conductores y operativos: semanal (viernes) / Personal administrativo: quincenal (15 y último día hábil)')
+                                ->columnSpanFull(),
                         ])
                         ->columns(2),
 
@@ -681,26 +742,31 @@ class CreateReglamentoInterno extends CreateRecord
                         ->label('')
                         ->content(fn(Get $get) => new HtmlString(
                             view('filament.components.rit-revision-resumen', [
-                                'empresa'              => $this->getEmpresa(),
-                                'num_trabajadores'     => $get('num_trabajadores'),
-                                'tiene_sucursales'     => $get('tiene_sucursales'),
-                                'sucursales'           => $get('sucursales') ?? [],
-                                'cargos'               => $get('cargos') ?? [],
-                                'tipos_contrato'       => $get('tipos_contrato') ?? [],
-                                'horario_entrada'      => $get('horario_entrada'),
-                                'horario_salida'       => $get('horario_salida'),
-                                'jornada_sabado'       => $get('jornada_sabado'),
-                                'trabaja_dominicales'  => $get('trabaja_dominicales'),
-                                'tiene_turnos'         => $get('tiene_turnos'),
-                                'control_asistencia'   => $get('control_asistencia'),
-                                'forma_pago'           => $get('forma_pago'),
-                                'periodicidad_pago'    => $get('periodicidad_pago'),
-                                'faltas_leves'         => $get('faltas_leves') ?? [],
-                                'faltas_graves'        => $get('faltas_graves') ?? [],
-                                'faltas_muy_graves'    => $get('faltas_muy_graves') ?? [],
-                                'sanciones'            => $get('sanciones_contempladas') ?? [],
-                                'tiene_sg_sst'         => $get('tiene_sg_sst'),
-                                'riesgos_principales'  => $get('riesgos_principales') ?? [],
+                                'empresa'               => $this->getEmpresa(),
+                                'num_trabajadores'      => $get('num_trabajadores'),
+                                'tiene_sucursales'      => $get('tiene_sucursales'),
+                                'sucursales'            => $get('sucursales') ?? [],
+                                'cargos'                => $get('cargos') ?? [],
+                                'tipos_contrato'        => $get('tipos_contrato') ?? [],
+                                'modalidades_jornada'   => $get('modalidades_jornada') ?? [],
+                                'horario_entrada'       => $get('horario_entrada'),
+                                'horario_salida'        => $get('horario_salida'),
+                                'opera_en_turnos'       => $get('opera_en_turnos'),
+                                'descripcion_turnos'    => $get('descripcion_turnos'),
+                                'cargos_nocturnos'      => $get('cargos_nocturnos'),
+                                'jornada_sabado'        => $get('jornada_sabado'),
+                                'trabaja_dominicales'   => $get('trabaja_dominicales'),
+                                'cargos_exentos_jornada' => $get('cargos_exentos_jornada'),
+                                'control_asistencia'    => $get('control_asistencia'),
+                                'forma_pago'            => $get('forma_pago'),
+                                'periodicidad_pago'     => $get('periodicidad_pago') ?? [],
+                                'periodicidad_detalle'  => $get('periodicidad_detalle'),
+                                'faltas_leves'          => $get('faltas_leves') ?? [],
+                                'faltas_graves'         => $get('faltas_graves') ?? [],
+                                'faltas_muy_graves'     => $get('faltas_muy_graves') ?? [],
+                                'sanciones'             => $get('sanciones_contempladas') ?? [],
+                                'tiene_sg_sst'          => $get('tiene_sg_sst'),
+                                'riesgos_principales'   => $get('riesgos_principales') ?? [],
                             ])->render()
                         ))
                         ->columnSpanFull(),
