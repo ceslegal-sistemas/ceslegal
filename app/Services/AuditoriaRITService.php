@@ -125,11 +125,28 @@ class AuditoriaRITService
                     'auditoria_id' => $auditoria->id,
                 ]);
 
-                $resultado = $this->auditarSeccion(
-                    textoRIT: $textoRIT,
-                    config: $config,
-                    razonSocial: $empresa->razon_social,
-                );
+                try {
+                    $resultado = $this->auditarSeccion(
+                        textoRIT: $textoRIT,
+                        config: $config,
+                        razonSocial: $empresa->razon_social,
+                    );
+                } catch (\Throwable $e) {
+                    // Sección fallida → marcar y continuar con las demás
+                    Log::warning("AuditoriaRIT: sección '{$config['titulo']}' falló, se continúa", [
+                        'error' => substr($e->getMessage(), 0, 200),
+                    ]);
+                    $resultado = [
+                        'titulo'              => $config['titulo'],
+                        'cumple'              => false,
+                        'calificacion'        => 'Error',
+                        'score'               => 0,
+                        'hallazgos'           => ['No se pudo analizar esta sección. Intente de nuevo.'],
+                        'recomendaciones'     => [],
+                        'articulos_referencia' => [],
+                        'seccion_encontrada'  => false,
+                    ];
+                }
 
                 $secciones[$clave] = $resultado;
                 $scoreTotal += $resultado['score'] ?? 0;
@@ -220,16 +237,13 @@ FRAGMENTOS DE LA BIBLIOTECA JURÍDICA (única fuente autorizada):
 
 {$contextoRIT}
 
-Analiza si la sección del RIT cumple con la normativa de los fragmentos anteriores. Devuelve un JSON con exactamente estos campos:
-- cumple: boolean (true si cumple, false si no)
-- calificacion: string ("Completo", "Parcial" o "Ausente")
-- score: integer (0-100 según nivel de cumplimiento con la normativa provista)
-- hallazgos: array de strings (máximo 3, máximo 120 caracteres cada uno, citar artículo fuente)
-- recomendaciones: array de strings (máximo 3, máximo 120 caracteres cada uno)
-- articulos_referencia: array de strings solo de los fragmentos anteriores (ej: "Art. 76 CST")
-
-Si la sección no fue encontrada en el RIT, usa calificacion "Ausente" y score 0.
-Sé conciso. Máximo 120 caracteres por hallazgo y recomendación.
+Analiza si el RIT cumple la normativa provista. JSON de respuesta (sin texto adicional):
+- cumple: boolean
+- calificacion: "Completo", "Parcial" o "Ausente"
+- score: integer 0-100
+- hallazgos: array máximo 2 strings, cada uno máximo 80 caracteres
+- recomendaciones: array máximo 2 strings, cada uno máximo 80 caracteres
+- articulos_referencia: array máximo 4 strings cortos (ej: "Art. 76 CST")
 PROMPT;
 
         $respuesta = $this->llamarIA($prompt, true);
@@ -321,7 +335,7 @@ PROMPT;
 
         $genConfig = [
             'temperature'     => 0.2,
-            'maxOutputTokens' => $forzarJSON ? 4096 : 1024,
+            'maxOutputTokens' => $forzarJSON ? 2048 : 768,
         ];
         if ($forzarJSON) {
             $genConfig['responseMimeType'] = 'application/json';
@@ -332,11 +346,11 @@ PROMPT;
             'generationConfig' => $genConfig,
         ];
 
-        // Reintentos con backoff exponencial para errores 503/429 (transitorios)
-        $maxIntentos = 4;
-        for ($intento = 1; $intento <= $maxIntentos; $intento++) {
+        // Un único reintento inmediato para 503/429 — sin sleep() porque
+        // en cola sync el tiempo de espera acumula y desborda el timeout del servidor
+        for ($intento = 1; $intento <= 2; $intento++) {
             $response = Http::withHeaders(['Content-Type' => 'application/json'])
-                ->timeout(90)
+                ->timeout(60)
                 ->post($url, $payload);
 
             if ($response->successful()) {
@@ -345,18 +359,14 @@ PROMPT;
 
             $status = $response->status();
 
-            // Errores permanentes → fallar inmediatamente
-            if (!in_array($status, [429, 503]) || $intento === $maxIntentos) {
-                throw new \RuntimeException('Error Gemini: ' . $response->body());
+            if (!in_array($status, [429, 503]) || $intento === 2) {
+                throw new \RuntimeException('Error Gemini (' . $status . '): ' . $response->body());
             }
 
-            // Backoff: 5 s → 10 s → 20 s
-            $espera = 5 * (int) pow(2, $intento - 1);
-            Log::warning("AuditoriaRIT: Gemini {$status}, reintento {$intento}/{$maxIntentos} en {$espera}s");
-            sleep($espera);
+            Log::warning("AuditoriaRIT: Gemini {$status}, reintentando inmediatamente…");
         }
 
-        throw new \RuntimeException('Error Gemini: máximo de reintentos alcanzado.');
+        throw new \RuntimeException('Error Gemini: reintento fallido.');
     }
 
     private function parsearJSON(string $texto): array
