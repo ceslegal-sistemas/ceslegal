@@ -16,7 +16,13 @@
         'mensual'   => 'Mensual',
         'quincenal' => 'Quincenal',
         'semanal'   => 'Semanal',
+        'diario'    => 'Diario / jornaleros',
+        'destajo'   => 'Por obra / destajo',
     ];
+    // Normalizar: puede llegar como array (CheckboxList) o string (datos anteriores)
+    $periodicidadTexto = is_array($periodicidad_pago ?? null)
+        ? implode(' · ', array_filter(array_map(fn($p) => $periodicidadLabels[$p] ?? $p, $periodicidad_pago)))
+        : ($periodicidadLabels[$periodicidad_pago ?? ''] ?? ($periodicidad_pago ?: '—'));
     $controlLabels = [
         'biometrico'  => 'Biométrico',
         'planilla'    => 'Planilla manual',
@@ -317,7 +323,7 @@ html:not(.dark) .rr-tag.muy-grave { background:rgba(220,38,38,.09);color:#991b1b
           <p class="rr-sec-val {{ !$forma_pago ? 'empty' : '' }}">
             {{ $formaPagoLabels[$forma_pago ?? ''] ?? ($forma_pago ?: '—') }}
           </p>
-          <p class="rr-sec-sub">{{ $periodicidadLabels[$periodicidad_pago ?? ''] ?? ($periodicidad_pago ?: '') }}</p>
+          <p class="rr-sec-sub">{{ $periodicidadTexto }}</p>
         </div>
       </div>
 
