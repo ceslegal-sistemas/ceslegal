@@ -154,15 +154,24 @@ class DocumentGeneratorService
         }
 
         // ── Normas incumplidas ───────────────────────────────────────────────
+        // Fuente válida: normas_incumplidas del proceso (completado en el wizard a partir del
+        // RIT de la empresa y del CST de la biblioteca legal). Si está vacío, se referencia
+        // el RIT y el Art. 58 CST sin inventar números de artículos.
         $normasTexto = trim($proceso->normas_incumplidas ?? '');
         if ($normasTexto) {
             $normasLineas = array_values(array_filter(array_map('trim', explode("\n", $normasTexto))));
             $normasItems  = array_map(fn($l) => '<li>' . e($l) . '</li>', $normasLineas);
             $normasHTML   = '<ul>' . implode('', $normasItems) . '</ul>';
         } else {
+            // Referencia genérica sin inventar artículos: RIT de la empresa + Art. 58 CST
+            $tieneRIT = $empresa->reglamentoInterno !== null;
+            $referenciaRIT = $tieneRIT
+                ? 'el Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong> (depositado ante el Ministerio del Trabajo)'
+                : 'el Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong>';
             $normasHTML = '<ul>
-                <li>Artículo 58 del Código Sustantivo del Trabajo, que establece las obligaciones del trabajador.</li>
-                <li>Las disposiciones del Reglamento Interno de Trabajo de ' . $nombreEmpresa . ' sobre obligaciones y conducta en el trabajo.</li>
+                <li>' . $referenciaRIT . ', en sus disposiciones sobre obligaciones, conducta y disciplina del trabajador.</li>
+                <li>Artículo 58 del Código Sustantivo del Trabajo, que establece las obligaciones especiales del trabajador frente al empleador.</li>
+                <li>Las cláusulas del contrato de trabajo suscrito entre las partes.</li>
             </ul>';
         }
 
@@ -311,14 +320,13 @@ class DocumentGeneratorService
 
     <!-- SECCIÓN 7: SOLICITUDES PREVIAS -->
     <h3>Solicitudes Previas</h3>
-    <p>Sírvase responder al correo electrónico <strong>{$emailContacto}</strong> las siguientes preguntas, a más tardar un (1) día hábil antes de la diligencia:</p>
-    <p>¿Desea que lo acompañen testigos?<br>
-    <span class="italic">Respuesta del trabajador: (SI/NO). Si es afirmativa, registre los datos del o los testigos, especialmente correo electrónico.</span></p>
-    <p>¿Desea que lo asistan uno o dos representantes del sindicato al cual se encuentre afiliado?<br>
-    <span class="italic">Respuesta del trabajador: (SI/NO). Si es afirmativa, registre los datos del o los representantes, especialmente correo electrónico.</span></p>
-    <p>¿Requiere algún ajuste razonable para la comunicación o comprensión de la diligencia debido a una condición de discapacidad?<br>
-    <span class="italic">Respuesta del trabajador: (SI/NO). Si es afirmativa, infórmela.</span></p>
-    <p>Quedamos atentos a cualquier comunicación previa a la diligencia, la cual puede ser remitida al correo <strong>{$emailContacto}</strong>.</p>
+    <p>Las solicitudes sobre acompañantes, representación sindical y ajuste razonable por discapacidad deberán ser respondidas a través del <strong>formulario digital de descargos</strong> que recibirá por correo electrónico junto con esta comunicación, de conformidad con el Artículo 7 de la Ley 2466 de 2025. Dichas solicitudes incluyen:</p>
+    <ul>
+        <li>Si asistirá acompañado(a) y en qué calidad (testigo, representante sindical, apoderado u otro).</li>
+        <li>Si desea ser asistido(a) por uno o dos representantes del sindicato al que pertenezca.</li>
+        <li>Si requiere algún ajuste razonable para la comunicación o comprensión de la diligencia debido a una condición de discapacidad (Ley 2466/2025, Art. 7).</li>
+    </ul>
+    <p>Para comunicaciones previas urgentes, puede contactar a la empresa al correo <strong>{$emailContacto}</strong>.</p>
 
     <!-- FIRMA -->
     <div class="firma-bloque">
@@ -334,7 +342,11 @@ class DocumentGeneratorService
 
     <!-- CONSTANCIA DE RECIBO -->
     <div class="constancia">
-        <h3>CONSTANCIA DE RECIBO</h3>
+        <h3>CONSTANCIA DE RECIBO / NOTIFICACIÓN</h3>
+        <p><strong>Notificación electrónica (equivalencia funcional):</strong> De conformidad con los artículos 6 y 18 de la Ley 527 de 1999 y el principio de equivalencia funcional del mensaje de datos, si la presente comunicación fue entregada por correo electrónico al trabajador, el registro de envío, primera apertura, dirección IP y marca de tiempo constituyen <em>constancia idónea de notificación</em>, sin necesidad de firma física. La apertura del mensaje equivale al acuse de recibo (Art. 18 Ley 527/1999). La Ley 2466 de 2025 (Art. 7) permite expresamente el uso de tecnologías de la información en el proceso disciplinario.</p>
+
+        <p><strong>Entrega en medio físico (cuando aplique):</strong> Si la comunicación fue entregada personalmente, el trabajador firma a continuación:</p>
+
         <p>Yo, <strong>{$nombreTrabajador}</strong>, identificado(a) con {$tipoDoc} No. <strong>{$numDocTrabajador}</strong>, declaro que recibí copia de la presente comunicación el día ___ de _______________ de _______, en la cual se me notifica la apertura del proceso de investigación disciplinario.</p>
         <div class="firma-trabajador">
             <p><strong>Firma del Trabajador:</strong></p>

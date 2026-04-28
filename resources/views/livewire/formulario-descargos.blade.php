@@ -616,6 +616,84 @@
                             </div>
                         @endif
 
+                        {{-- ── SOLICITUD DE AJUSTE RAZONABLE POR DISCAPACIDAD ──────────────────
+                             Ley 2466/2025 Art. 7: el empleador debe garantizar ajustes razonables
+                             para trabajadores con discapacidad durante el proceso disciplinario.
+                        ────────────────────────────────────────────────────────────────────── --}}
+                        @if (!$ajusteGuardado)
+                            <div class="border border-primary-200 bg-primary-50 rounded-xl overflow-hidden">
+                                <div class="px-4 py-3 border-b border-primary-200 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-primary-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                    </svg>
+                                    <span class="text-sm font-semibold text-primary-800">Solicitud previa — Ajuste razonable</span>
+                                    <span class="ml-auto text-xs text-primary-600 bg-primary-100 px-2 py-0.5 rounded-full">Ley 2466/2025, Art. 7</span>
+                                </div>
+                                <div class="p-4 space-y-4">
+                                    <p class="text-sm text-primary-900">
+                                        Antes de iniciar, informe si necesita algún ajuste especial para participar en esta diligencia de manera plena y equitativa.
+                                    </p>
+
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-800 mb-2">
+                                            ¿Requiere algún ajuste razonable para la comunicación o comprensión de la diligencia debido a una condición de discapacidad?
+                                        </p>
+                                        <div class="flex gap-4">
+                                            <label class="flex items-center gap-2 cursor-pointer">
+                                                <input type="radio" wire:model.live="ajusteDiscapacidad" value="no"
+                                                    class="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500">
+                                                <span class="text-sm text-gray-700">No requiero ajuste</span>
+                                            </label>
+                                            <label class="flex items-center gap-2 cursor-pointer">
+                                                <input type="radio" wire:model.live="ajusteDiscapacidad" value="si"
+                                                    class="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500">
+                                                <span class="text-sm text-gray-700">Sí, necesito un ajuste</span>
+                                            </label>
+                                        </div>
+                                        @error('ajusteDiscapacidad')
+                                            <p class="mt-1 text-xs text-danger-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                    @if ($ajusteDiscapacidad === 'si')
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                Describa el ajuste que necesita
+                                            </label>
+                                            <textarea wire:model="ajusteDiscapacidadDetalle" rows="3"
+                                                placeholder="Ej: Requiero intérprete de lenguaje de señas, material en Braille, tiempo adicional, etc."
+                                                class="w-full rounded-xl border-gray-300 text-sm focus:ring-primary-500 focus:border-primary-500 resize-none">
+                                            </textarea>
+                                            @error('ajusteDiscapacidadDetalle')
+                                                <p class="mt-1 text-xs text-danger-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+                                    @endif
+
+                                    @if ($ajusteDiscapacidad !== '')
+                                        <button type="button" wire:click="guardarAjusteDiscapacidad"
+                                            wire:loading.attr="disabled"
+                                            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50">
+                                            <span wire:loading.remove wire:target="guardarAjusteDiscapacidad">Guardar y continuar</span>
+                                            <span wire:loading wire:target="guardarAjusteDiscapacidad">Guardando...</span>
+                                        </button>
+                                    @endif
+                                </div>
+                            </div>
+                        @else
+                            {{-- Ya respondido: mostrar resumen compacto --}}
+                            <div class="flex items-center gap-3 px-4 py-3 bg-success-50 border border-success-200 rounded-xl text-sm">
+                                <svg class="w-4 h-4 text-success-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                                <span class="text-success-800">
+                                    Ajuste razonable:
+                                    <strong>{{ $ajusteDiscapacidad === 'si' ? 'Sí — ' . $ajusteDiscapacidadDetalle : 'No requerido' }}</strong>
+                                </span>
+                            </div>
+                        @endif
+
                         {{-- Hechos (colapsable) --}}
                         <details class="group">
                             <summary
