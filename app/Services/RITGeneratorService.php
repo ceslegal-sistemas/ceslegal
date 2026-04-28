@@ -52,11 +52,23 @@ class RITGeneratorService
                 ->post($url, $payload);
 
             if ($response->successful()) {
-                $data = $response->json();
-                if (!isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                $data  = $response->json();
+                $parts = $data['candidates'][0]['content']['parts'] ?? [];
+                // gemini-2.5-flash (thinking model): el texto real está en el último part sin "thought"
+                $texto = '';
+                foreach (array_reverse($parts) as $part) {
+                    if (empty($part['thought']) && !empty($part['text'])) {
+                        $texto = $part['text'];
+                        break;
+                    }
+                }
+                if (empty($texto)) {
+                    $texto = $parts[0]['text'] ?? '';
+                }
+                if (empty($texto)) {
                     throw new \RuntimeException('Respuesta de Gemini sin contenido válido');
                 }
-                return trim($data['candidates'][0]['content']['parts'][0]['text']);
+                return trim($texto);
             }
 
             $status    = $response->status();
@@ -335,22 +347,97 @@ INSTRUCCIONES:
 - El representante legal firmante es: {$representante}
 - NO uses formato Markdown: sin asteriscos (*), sin almohadillas (#), sin guiones de lista al inicio de línea; escribe los títulos de capítulo y artículo completamente en MAYÚSCULAS
 
-CAPÍTULOS OBLIGATORIOS A INCLUIR:
-1. Denominación, domicilio, naturaleza y objeto de la empresa
-2. Condiciones de admisión y período de prueba
-3. Horas de trabajo (jornada ordinaria y nocturna)
-4. Trabajo en horas extra, dominicales y festivos
-5. Remuneración, modalidades y períodos de pago
-6. Vacaciones y permisos
-7. Permisos especiales y licencias
-8. Régimen disciplinario: faltas leves, graves y muy graves
-9. Escalas de sanciones y procedimiento de descargos
-10. Reclamos y procedimientos
-11. Normas de conducta y comportamiento
-12. Seguridad y Salud en el Trabajo (SG-SST)
-13. Uso de equipos, uniformes y bienes de la empresa
-14. Política de prevención del acoso sexual (Ley 2365 de 2024)
-15. Disposiciones finales
+CAPÍTULOS OBLIGATORIOS — incluye el contenido mínimo indicado en cada uno:
+
+CAPÍTULO I — DENOMINACIÓN, DOMICILIO Y OBJETO
+Identificación completa de la empresa, domicilio principal, sucursales, actividad económica y representante legal.
+
+CAPÍTULO II — ADMISIÓN Y PERÍODO DE PRUEBA
+- Requisitos de ingreso sin solicitar documentos prohibidos por ley (certificado de antecedentes judiciales sí; prueba de embarazo NO, Art. 26 Ley 1010/2006)
+- Período de prueba: máximo 2 meses en contratos indefinidos; proporcional al plazo en fijos (Art. 78 CST)
+- Prohibición de discriminación en el proceso de selección
+
+CAPÍTULO III — JORNADA ORDINARIA DE TRABAJO
+- Jornada máxima: 47 horas semanales (Art. 161 CST, Ley 2101/2021 — reducción gradual hasta 42h en 2026)
+- Definición de trabajo nocturno: entre las 9 p.m. y las 6 a.m. (Art. 160 CST)
+- Descanso obligatorio dominical (Art. 172 CST)
+- Horario específico de la empresa (usar datos proporcionados)
+
+CAPÍTULO IV — TRABAJO SUPLEMENTARIO, DOMINICALES Y FESTIVOS
+- Límite legal: máximo 2 horas extras diarias y 12 semanales (Art. 167A CST)
+- Recargo trabajo extra diurno: 25% sobre el valor hora ordinaria (Art. 168 CST)
+- Recargo trabajo extra nocturno: 75% sobre el valor hora ordinaria (Art. 168 CST)
+- Recargo trabajo dominical o festivo habitual: 75% (Art. 179 CST)
+- Procedimiento de autorización de horas extras
+
+CAPÍTULO V — REMUNERACIÓN Y FORMA DE PAGO
+- Modalidades de salario: fijo, variable, en especie (Art. 127-132 CST)
+- Períodos de pago: jornales semanal o quincenalmente; sueldos mensualmente (Art. 134 CST)
+- Salario en especie: máximo 50% del salario total (Art. 129 CST)
+- Lugar y forma de pago; prohibición de pago en especie de bebidas alcohólicas
+
+CAPÍTULO VI — VACACIONES Y PERMISOS
+- Vacaciones: 15 días hábiles remunerados por año de servicio (Art. 186 CST)
+- Trabajadores menores de 18 años: 15 días hábiles de vacaciones continuas (Art. 187 CST)
+- Acumulación de vacaciones: hasta por 4 años con acuerdo escrito (Art. 190 CST)
+- Compensación en dinero de vacaciones (Art. 189 CST)
+- Permisos remunerados y no remunerados: calamidad, diligencias personales, sufragio
+
+CAPÍTULO VII — LICENCIAS ESPECIALES
+- Licencia de maternidad: 18 semanas (Ley 2114/2021)
+- Licencia de paternidad: 2 semanas (Ley 2114/2021)
+- Licencia de luto: 5 días hábiles por fallecimiento de familiar hasta segundo grado (Ley 1280/2009)
+- Licencia por calamidad doméstica
+- Licencias no remuneradas
+
+CAPÍTULO VIII — RÉGIMEN DISCIPLINARIO: CLASIFICACIÓN DE FALTAS
+- Faltas leves, graves y muy graves con ejemplos concretos de la empresa
+- Procedimiento garantista: citación escrita, audiencia de descargos, fallo motivado (Art. 115 CST)
+
+CAPÍTULO IX — ESCALA DE SANCIONES
+- Amonestación verbal y escrita
+- Suspensión sin sueldo hasta 8 días para la primera vez; hasta 2 meses para reincidencia (Art. 112 CST)
+- Multas: hasta el 1% del salario diario por faltas leves (Art. 113 CST)
+- Terminación del contrato con justa causa
+- Garantía del debido proceso en toda sanción
+
+CAPÍTULO X — RECLAMOS Y PROCEDIMIENTOS
+Procedimiento interno de quejas, instancias, plazos de respuesta y autoridades competentes.
+
+CAPÍTULO XI — NORMAS DE CONDUCTA Y COMPORTAMIENTO
+- Obligaciones del trabajador (Art. 58 CST) y del empleador (Art. 57 CST)
+- Política de uso de dispositivos móviles, uniformes, confidencialidad
+- Prohibiciones específicas de la empresa
+
+CAPÍTULO XII — SEGURIDAD Y SALUD EN EL TRABAJO (SG-SST)
+- Política de SST y compromiso de la alta dirección (Decreto 1072/2015, Art. 2.2.4.6.5)
+- Obligaciones del empleador en SST (Art. 56 CST; Art. 8 Decreto 1295/1994)
+- Obligaciones del trabajador en SST (Art. 58 CST núm. 7)
+- COPASST (empresas ≥10 trabajadores) o Vigía de SST (empresas <10) con funciones y periodicidad
+- Programas de prevención según riesgos principales de la empresa
+- Reporte e investigación de accidentes de trabajo (Art. 62 Decreto 1295/1994); notificación a ARL y Mintrabajo
+- Uso obligatorio de EPP y consecuencias de incumplimiento
+- Prohibición de trabajar bajo efectos de alcohol o sustancias psicoactivas
+
+CAPÍTULO XIII — USO DE EQUIPOS, UNIFORMES Y BIENES DE LA EMPRESA
+Responsabilidad del trabajador sobre activos, política de daños, uso del uniforme y devolución a la terminación.
+
+CAPÍTULO XIV — COMITÉ DE CONVIVENCIA LABORAL Y PREVENCIÓN DE ACOSO
+- Definición y modalidades de acoso laboral (Art. 2 Ley 1010/2006)
+- Comité de Convivencia Laboral: conformación paritaria, elección, período, funciones y periodicidad de reuniones (Resolución 652/2012 y 1356/2012)
+- Mecanismos de prevención: capacitación, canales de denuncia, seguimiento
+- Procedimiento interno de queja por acoso laboral
+- Política de prevención del acoso sexual (Art. 12 Ley 2365/2024): definición, conductas prohibidas, responsabilidades del empleador, protocolo de atención
+
+CAPÍTULO XV — PROTECCIÓN DE SUJETOS DE ESPECIAL PROTECCIÓN
+- Protección a la mujer embarazada: prohibición de despido sin autorización del Inspector del Trabajo (Art. 239 CST)
+- Prohibición de solicitar prueba de embarazo para acceso al trabajo o continuidad (Art. 241A CST)
+- Protección a personas en situación de discapacidad (Ley 361/1997, Art. 26)
+- Protección a personas con fuero sindical (Art. 405 CST)
+- No discriminación por orientación sexual, raza, religión o ideología (Art. 10 CST)
+
+CAPÍTULO XVI — DISPOSICIONES FINALES
+Vigencia, modificaciones, publicación, depósito ante el Inspector del Trabajo.
 {$seccionBiblioteca}
 INFORMACIÓN DE LA EMPRESA PROPORCIONADA POR EL ADMINISTRADOR:
 {$infoEmpresa}
