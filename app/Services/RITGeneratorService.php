@@ -365,114 +365,99 @@ Eres un abogado laboral colombiano experto en reglamentos internos de trabajo.
 
 Redacta el Reglamento Interno de Trabajo de {$razonSocial} (NIT: {$nit}) con cumplimiento estricto del Artículo 105 y siguientes del Código Sustantivo del Trabajo de Colombia.
 
-INSTRUCCIONES:
+INSTRUCCIONES DE CONTENIDO:
 - Usa lenguaje formal y técnico-jurídico
-- Numera cada artículo de forma consecutiva
+- Numera cada artículo de forma consecutiva (Artículo 1, Artículo 2, ...)
 - Incluye TODOS los capítulos obligatorios del CST
 - Incluye capítulo sobre Política de Prevención de Acoso Sexual según la Ley 2365 de 2024
 - Redacta de manera lista para presentar ante el Ministerio del Trabajo
-- Basa TODAS las citas de artículos y leyes exclusivamente en los fragmentos de la biblioteca jurídica que se adjuntan; NO inventes ni uses artículos de tu entrenamiento que no aparezcan en esos fragmentos
+- Regla de citas: usa números de artículo y nombres de ley ÚNICAMENTE cuando aparezcan en los fragmentos de biblioteca adjuntos; si no aparecen, omite el número pero redacta el contenido completo
 - Si alguna información no fue proporcionada, usa valores razonables y típicos para una empresa colombiana
 - NO incluyas comentarios ni aclaraciones fuera del texto del reglamento
-- NUNCA uses corchetes ni placeholders como [DÍA], [MES], [AÑO], [NOMBRE], [NÚMERO], [NIT], ni ningún otro; usa siempre los datos reales proporcionados
+- NUNCA uses corchetes ni placeholders ([DÍA], [MES], [AÑO], [NOMBRE], [NIT], etc.); usa siempre los datos reales
 - La fecha de elaboración es: {$fechaHoy}
 - El representante legal firmante es: {$representante}
-- NO uses formato Markdown: sin asteriscos (*), sin almohadillas (#), sin guiones de lista al inicio de línea; escribe los títulos de capítulo y artículo completamente en MAYÚSCULAS
 
-CAPÍTULOS OBLIGATORIOS — incluye el contenido mínimo indicado en cada uno:
+INSTRUCCIONES DE FORMATO — CRÍTICAS, INCUMPLIRLAS INVALIDA EL DOCUMENTO:
+1. CADA artículo es un párrafo independiente de mínimo 60 palabras. NUNCA un resumen de una línea.
+2. NUNCA colapses varios artículos en una sola línea. Ejemplo PROHIBIDO: "Artículo 5-8: SST..."
+3. NUNCA uses guiones (-), asteriscos (*), almohadillas (#) ni viñetas al inicio de línea.
+4. El título del capítulo va en línea propia en MAYÚSCULAS: CAPÍTULO I — DENOMINACIÓN, DOMICILIO Y OBJETO
+5. Cada artículo comienza en línea propia así: ARTÍCULO 1. NOMBRE DEL ARTÍCULO. Seguido del texto completo en el mismo párrafo.
+6. Para listas dentro de un artículo usa numeración interna: "1) ... 2) ... 3) ..." integrada en el párrafo.
+7. Sin Markdown: sin asteriscos, sin # ni **.
+
+EJEMPLO DE FORMATO CORRECTO (sigue este modelo exactamente):
+CAPÍTULO II — ADMISIÓN Y PERÍODO DE PRUEBA
+
+ARTÍCULO 4. REQUISITOS DE INGRESO. Para ingresar como trabajador de {$razonSocial} se requerirá la presentación de hoja de vida con soportes, fotocopia del documento de identidad, certificados de estudios y experiencia laboral, certificado de antecedentes judiciales y disciplinarios, y los demás documentos que la empresa estime pertinentes conforme a la naturaleza del cargo. Queda expresamente prohibido solicitar prueba de embarazo o estado de gravidez como requisito de ingreso, así como cualquier otra condición que configure discriminación en el proceso de selección.
+
+ARTÍCULO 5. PERÍODO DE PRUEBA. El período de prueba deberá pactarse siempre por escrito como cláusula expresa del contrato de trabajo. En contratos a término indefinido, el período de prueba no podrá exceder de dos (2) meses. En contratos a término fijo, el período de prueba no podrá exceder de la quinta parte del término pactado, sin que pueda exceder de dos (2) meses. Durante el período de prueba cualquiera de las partes podrá dar por terminado el contrato en cualquier momento, sin previo aviso y sin indemnización, pero la terminación debe ser fundamentada y comunicada por escrito.
+
+CAPÍTULOS OBLIGATORIOS — redacta CADA artículo como párrafo completo, no como resumen:
 
 CAPÍTULO I — DENOMINACIÓN, DOMICILIO Y OBJETO
-Identificación completa de la empresa, domicilio principal, sucursales, actividad económica y representante legal.
+Artículos requeridos: ámbito de aplicación del reglamento, denominación y NIT de la empresa, domicilio principal y sucursales, actividad económica, representante legal y su facultad para sancionar.
 
 CAPÍTULO II — ADMISIÓN Y PERÍODO DE PRUEBA
-- Requisitos de ingreso sin solicitar documentos prohibidos por ley (certificado de antecedentes judiciales sí; prueba de embarazo NO, Art. 26 Ley 1010/2006)
-- Período de prueba: máximo 2 meses en contratos indefinidos; proporcional al plazo en fijos (Art. 78 CST)
-- Prohibición de discriminación en el proceso de selección
+Artículos requeridos: documentos exigidos para ingreso (incluir que el certificado de antecedentes judiciales ES permitido pero la prueba de embarazo NO); período de prueba estipulado siempre por escrito — máximo 2 meses en indefinidos y proporcional al plazo en fijos; prohibición expresa de discriminación en selección.
+ARTÍCULO OBLIGATORIO VERBATIM — incluir esta regla exacta: "El período de prueba deberá pactarse siempre por escrito como cláusula expresa del contrato de trabajo. La terminación durante el período de prueba debe comunicarse con fundamentación y por escrito."
 
 CAPÍTULO III — JORNADA ORDINARIA DE TRABAJO
-- Jornada máxima: 47 horas semanales (Art. 161 CST, Ley 2101/2021 — reducción gradual hasta 42h en 2026)
-- Definición de trabajo nocturno: entre las 9 p.m. y las 6 a.m. (Art. 160 CST)
-- Descanso obligatorio dominical (Art. 172 CST)
-- Horario específico de la empresa (usar datos proporcionados)
+Artículos requeridos: jornada máxima semanal (47h con reducción progresiva a 42h — Ley 2101/2021); definición de trabajo diurno y nocturno con horas exactas; descanso obligatorio en dominicales y festivos; horario específico de la empresa (usar datos del cuestionario); empleados de dirección y confianza excluidos de jornada máxima.
 
 CAPÍTULO IV — TRABAJO SUPLEMENTARIO, DOMINICALES Y FESTIVOS
-- Límite legal: máximo 2 horas extras diarias y 12 semanales (Art. 167A CST)
-- Recargo trabajo extra diurno: 25% sobre el valor hora ordinaria (Art. 168 CST)
-- Recargo trabajo extra nocturno: 75% sobre el valor hora ordinaria (Art. 168 CST)
-- Recargo trabajo dominical o festivo habitual: 75% (Art. 179 CST)
-- Procedimiento de autorización de horas extras
+Artículos requeridos: límite de 2 horas extras diarias y 12 semanales (texto literal: "El trabajo suplementario no podrá exceder de dos (2) horas diarias ni de doce (12) horas semanales"); recargos exactos — extra diurno 25%, extra nocturno 75%, dominical/festivo 75%; autorización previa y escrita para horas extras; registro de trabajo suplementario por trabajador.
 
 CAPÍTULO V — REMUNERACIÓN Y FORMA DE PAGO
-- Modalidades de salario: fijo, variable, en especie (Art. 127-132 CST)
-- Períodos de pago: jornales semanal o quincenalmente; sueldos mensualmente (Art. 134 CST)
-- Salario en especie: máximo 50% del salario total (Art. 129 CST)
-- Lugar y forma de pago; prohibición de pago en especie de bebidas alcohólicas
+Artículos requeridos: modalidades de salario (por unidad de tiempo, por obra o tarea, variable); período de pago (jornales: semanal o quincenalmente; sueldos: mensualmente); salario en especie máximo 50% del total; prohibición de pago con bebidas alcohólicas ni sustancias alucinógenas; prohibición de trueque de salario por mercancías o víveres; comprobante de pago discriminado.
 
 CAPÍTULO VI — VACACIONES Y PERMISOS
-- Vacaciones: 15 días hábiles remunerados por año de servicio (Art. 186 CST)
-- Trabajadores menores de 18 años: 15 días hábiles de vacaciones continuas (Art. 187 CST)
-- Acumulación de vacaciones: hasta por 4 años con acuerdo escrito (Art. 190 CST)
-- Compensación en dinero de vacaciones (Art. 189 CST)
-- Permisos remunerados y no remunerados: calamidad, diligencias personales, sufragio
+Artículos requeridos: 15 días hábiles remunerados por año de servicio; período de disfrute acordado entre partes con aviso previo de 15 días; registro especial de vacaciones que lleva la empresa; acumulación hasta 4 años por acuerdo escrito entre las partes; compensación en dinero solo en los casos autorizados por ley; permisos remunerados (calamidad doméstica, sufragio, diligencias personales con aviso previo).
 
 CAPÍTULO VII — LICENCIAS ESPECIALES
-- Licencia de maternidad: 18 semanas (Ley 2114/2021)
-- Licencia de paternidad: 2 semanas (Ley 2114/2021)
-- Licencia de luto: 5 días hábiles por fallecimiento de familiar hasta segundo grado (Ley 1280/2009)
-- Licencia por calamidad doméstica
-- Licencias no remuneradas
+Artículos requeridos: licencia de maternidad 18 semanas remuneradas (Ley 2114/2021); licencia de paternidad 2 semanas remuneradas (Ley 2114/2021); licencia de luto 5 días hábiles por cónyuge, compañero permanente o familiar hasta segundo grado de consanguinidad (Ley 1280/2009); licencia por calamidad doméstica grave; licencias no remuneradas.
 
 CAPÍTULO VIII — RÉGIMEN DISCIPLINARIO: CLASIFICACIÓN DE FALTAS
-- Faltas leves, graves y muy graves con ejemplos concretos de la empresa
-- Procedimiento garantista: citación escrita, audiencia de descargos, fallo motivado (Art. 115 CST)
+Artículos requeridos: definición de falta disciplinaria; catálogo completo de faltas LEVES con ejemplos concretos de la empresa; catálogo completo de faltas GRAVES con ejemplos concretos; catálogo de faltas MUY GRAVES con ejemplos concretos; procedimiento garantista completo: comunicación escrita de cargos, traslado de pruebas, plazo mínimo 5 días hábiles para descargos, audiencia de descargos, fallo motivado por escrito.
 
 CAPÍTULO IX — ESCALA DE SANCIONES
-- Amonestación verbal y escrita
-- Suspensión sin sueldo hasta 8 días para la primera vez; hasta 2 meses para reincidencia (Art. 112 CST)
-- Multas: hasta el 1% del salario diario por faltas leves (Art. 113 CST)
-- Terminación del contrato con justa causa
-- Garantía del debido proceso en toda sanción
+Artículos requeridos: amonestación verbal (faltas leves primera vez); amonestación escrita (faltas leves reiteradas); suspensión sin remuneración hasta 8 días primera vez y hasta 2 meses en reincidencia; multas por faltas leves máximo 1/5 del salario diario destinadas a premios para trabajadores; terminación con justa causa; garantía del debido proceso y proporcionalidad en toda sanción; derecho del trabajador a impugnar la sanción.
 
 CAPÍTULO X — RECLAMOS Y PROCEDIMIENTOS
-Procedimiento interno de quejas, instancias, plazos de respuesta y autoridades competentes.
+Artículos requeridos: instancias internas para presentar reclamos; plazos de respuesta máximo 15 días hábiles; procedimiento cuando el reclamo involucra al superior jerárquico; acceso a Ministerio del Trabajo o jurisdicción laboral cuando no hay acuerdo.
 
 CAPÍTULO XI — NORMAS DE CONDUCTA Y COMPORTAMIENTO
-- Obligaciones del trabajador (Art. 58 CST) y del empleador (Art. 57 CST)
-- Política de uso de dispositivos móviles, uniformes, confidencialidad
-- Prohibiciones específicas de la empresa
+Artículos requeridos: obligaciones especiales del trabajador (puntualidad, cuidado de bienes, respeto, confidencialidad, obediencia razonable); obligaciones del empleador (instrumentos, seguridad, pago oportuno, respeto a la dignidad); prohibiciones del trabajador (sustracción de bienes, actividades personales en jornada, consumo de alcohol/sustancias, proselitismo, uso ilícito de recursos); política de uso de celulares/dispositivos personales en jornada; política de confidencialidad de información empresarial.
 
 CAPÍTULO XII — SEGURIDAD Y SALUD EN EL TRABAJO (SG-SST)
-[CAPÍTULO OBLIGATORIO — generar mínimo 6 artículos desarrollados]
-- Artículo: Política de SST firmada por el representante legal con compromisos concretos
-- Artículo: Obligaciones del empleador: proveer condiciones seguras, afiliar a ARL, suministrar EPP, realizar exámenes de ingreso/periódicos/egreso, investigar accidentes
-- Artículo: Obligaciones del trabajador: usar EPP, reportar peligros, asistir a capacitaciones, no manipular equipos de seguridad
-- Artículo: COPASST (empresas con 10 o más trabajadores) O Vigía de Seguridad y Salud (empresas con menos de 10): conformación paritaria, vigencia de 2 años, reunión mensual, funciones de vigilancia y seguimiento
-- Artículo: Exámenes médicos ocupacionales obligatorios: de ingreso, periódicos y de egreso; reserva de la información médica
-- Artículo: Reporte de accidentes de trabajo y enfermedades laborales: notificación al empleador el mismo día, a la ARL dentro de los 2 días hábiles, investigación interna obligatoria
-- Artículo: Uso obligatorio de EPP según el riesgo del cargo; consecuencias disciplinarias del incumplimiento
-- Artículo: Prohibición absoluta de presentarse o permanecer en el lugar de trabajo bajo efectos de alcohol, sustancias psicoactivas o medicamentos que alteren la capacidad
+ARTÍCULOS OBLIGATORIOS — cada uno como párrafo completo de mínimo 60 palabras:
+A) Política de SST: compromiso de la alta dirección, recursos asignados, ámbito de aplicación
+B) Obligaciones del empleador en SST: afiliar a ARL, proveer EPP, garantizar condiciones seguras, realizar exámenes médicos ocupacionales de ingreso/periódicos/egreso, investigar accidentes y enfermedades laborales
+C) Obligaciones del trabajador en SST: usar correctamente el EPP, reportar condiciones inseguras, asistir a capacitaciones, no manipular equipos de seguridad sin autorización
+D) Vigía de SST (empresas con menos de 10 trabajadores) o COPASST (10 o más): designación, período de 2 años, reunión mensual, funciones de vigilancia
+E) Exámenes médicos ocupacionales: ingreso, periódicos y egreso; obligatorios; reserva absoluta de la información médica
+F) Reporte de accidentes: el trabajador notifica al empleador el mismo día; la empresa notifica a la ARL dentro de los 2 días hábiles siguientes; investigación interna obligatoria
+G) EPP: uso obligatorio según matriz de riesgos del cargo; incumplimiento = falta disciplinaria grave
+H) Prohibición absoluta de presentarse o permanecer en el trabajo bajo efectos de alcohol, sustancias psicoactivas o medicamentos que alteren el estado de alerta
 
 CAPÍTULO XIII — USO DE EQUIPOS, UNIFORMES Y BIENES DE LA EMPRESA
-Responsabilidad del trabajador sobre activos, política de daños, uso del uniforme y devolución a la terminación.
+Artículos requeridos: asignación formal de equipos con acta; responsabilidad del trabajador por daño causado por negligencia o mal uso; política de uniformes (si aplica) o presentación personal; devolución formal de todos los bienes al terminar el contrato.
 
 CAPÍTULO XIV — COMITÉ DE CONVIVENCIA LABORAL Y PREVENCIÓN DE ACOSO
-[CAPÍTULO OBLIGATORIO — generar mínimo 6 artículos desarrollados]
-- Artículo: Definición de acoso laboral y sus modalidades: persecución, discriminación, entorpecimiento, inequidad y desprotección (Ley 1010/2006)
-- Artículo: Comité de Convivencia Laboral: conformación paritaria (igual número de representantes del empleador y los trabajadores), período de 2 años, elección democrática de representantes de los trabajadores, se reúne mensualmente y de manera extraordinaria cuando se presente un caso de acoso (Resolución 652/2012 Ministerio de Trabajo)
-- Artículo: Funciones del Comité de Convivencia Laboral: recibir y dar trámite a quejas, examinar conductas denunciadas, crear espacios de diálogo, hacer seguimiento, informar a la alta dirección
-- Artículo: Procedimiento interno de queja por acoso laboral: presentación escrita al Comité, investigación en 30 días, audiencia de conciliación, informe final con medidas correctivas
-- Artículo: Política de prevención y atención del acoso sexual en el trabajo (Ley 2365 de 2024): definición de acoso sexual, conductas que lo constituyen, canal confidencial de denuncia, protocolo de atención, responsabilidad del empleador de investigar y sancionar, prohibición de represalias contra quien denuncia
-- Artículo: Sanciones por acoso laboral o sexual: disciplinarias internas hasta terminación del contrato, denuncia ante el Inspector del Trabajo o autoridades penales según la gravedad
+ARTÍCULOS OBLIGATORIOS — cada uno como párrafo completo de mínimo 60 palabras:
+A) Definición y modalidades de acoso laboral: persecución, discriminación, entorpecimiento, inequidad y desprotección (Ley 1010/2006, Art. 2)
+B) Comité de Convivencia Laboral: conformación paritaria, elección democrática de representantes de los trabajadores, período de 2 años, reunión mensual ordinaria y extraordinaria cuando se presente un caso (Resolución 652/2012)
+C) Funciones del Comité: recibir quejas, examinar conductas, facilitar diálogo entre las partes, formular recomendaciones, hacer seguimiento, informar a la dirección
+D) Procedimiento interno de queja: presentación escrita al Comité, investigación en 30 días, audiencia de conciliación, informe final con medidas correctivas concretas
+E) Política de prevención del acoso sexual (Ley 2365/2024): definición, conductas que lo constituyen, canal confidencial de denuncia, protocolo de atención, prohibición de represalias
+F) Sanciones por acoso laboral o sexual: falta muy grave con terminación justificada, denuncia ante Inspector del Trabajo, acciones penales según gravedad
 
 CAPÍTULO XV — PROTECCIÓN DE SUJETOS DE ESPECIAL PROTECCIÓN
-- Protección a la mujer embarazada: prohibición de despido sin autorización del Inspector del Trabajo (Art. 239 CST)
-- Prohibición de solicitar prueba de embarazo para acceso al trabajo o continuidad (Art. 241A CST)
-- Protección a personas en situación de discapacidad (Ley 361/1997, Art. 26)
-- Protección a personas con fuero sindical (Art. 405 CST)
-- No discriminación por orientación sexual, raza, religión o ideología (Art. 10 CST)
+Artículos requeridos: mujer embarazada y en lactancia — prohibición de despido sin autorización del Inspector del Trabajo, licencia de maternidad de 18 semanas; prohibición de solicitar prueba de embarazo para acceso al empleo o continuidad; personas en situación de discapacidad — estabilidad laboral reforzada; trabajadores con fuero sindical — prohibición de despido, traslado o desmejora sin autorización judicial; no discriminación por orientación sexual, raza, religión o ideología.
 
 CAPÍTULO XVI — DISPOSICIONES FINALES
-Vigencia, modificaciones, publicación, depósito ante el Inspector del Trabajo.
+Artículos requeridos: vigencia desde la publicación a los trabajadores; procedimiento para modificaciones (comunicación a trabajadores y depósito ante Ministerio del Trabajo); obligación de publicar en lugar visible y entregar copia a cada trabajador; depósito ante la Dirección Territorial del Ministerio del Trabajo competente; incorporación del RIT a todos los contratos individuales de trabajo.
 {$seccionBiblioteca}
 INFORMACIÓN DE LA EMPRESA PROPORCIONADA POR EL ADMINISTRADOR:
 {$infoEmpresa}
