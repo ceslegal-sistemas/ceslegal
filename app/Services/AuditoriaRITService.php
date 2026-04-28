@@ -339,6 +339,9 @@ PROMPT;
         ];
         if ($forzarJSON) {
             $genConfig['responseMimeType'] = 'application/json';
+            // gemini-2.5-flash usa el presupuesto de thinking antes del output;
+            // con thinkingBudget:0 los 2048 tokens van íntegros al JSON de respuesta
+            $genConfig['thinkingConfig'] = ['thinkingBudget' => 0];
         }
 
         $payload = [
