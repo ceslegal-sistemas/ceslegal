@@ -204,6 +204,10 @@ class RITGeneratorService
                 ? trim($m[1])
                 : preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '$1', $linea); // quitar ** inline
 
+            // Quitar guiones, asteriscos, almohadillas al inicio (e.g. "- ARTÍCULO 1.")
+            $textoLimpio = ltrim($textoLimpio, '-*# ');
+            $textoLimpio = trim($textoLimpio);
+
             // Detectar títulos: CAPÍTULO, ARTÍCULO, o línea markdown-bold
             $esTitulo = $esNegritaMarkdown
                 || preg_match('/^(CAPÍTULO|ARTÍCULO|ART\.)\s*/ui', $textoLimpio);
