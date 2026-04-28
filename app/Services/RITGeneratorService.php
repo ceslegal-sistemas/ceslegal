@@ -220,16 +220,30 @@ class RITGeneratorService
 
     private function construirPrompt(array $r, Empresa $empresa): string
     {
-        // Buscar fragmentos relevantes de la biblioteca legal
+        // RAG por área temática: múltiples consultas para mayor cobertura de la biblioteca
         $biblioteca = app(BibliotecaLegalService::class);
-        $queryBiblioteca = implode(' ', array_filter([
-            'reglamento interno de trabajo artículos obligatorios Código Sustantivo del Trabajo',
-            'jornada laboral horas extras trabajo nocturno dominicales festivos',
-            'régimen disciplinario faltas sanciones descargos procedimiento',
-            'acoso sexual laboral prevención Ley 2365 2024',
-            'Seguridad Salud Trabajo SG-SST obligaciones empleador',
-        ]));
-        $contextoBiblioteca = $biblioteca->buscarFragmentos($queryBiblioteca, limite: 8, umbral: 0.50);
+
+        $queriesTematicas = [
+            'admisión período de prueba contrato trabajo requisitos ingreso',
+            'jornada laboral horas extras trabajo nocturno dominicales festivos recargos',
+            'vacaciones descanso remunerado licencias maternidad paternidad luto',
+            'salario forma de pago remuneración periodicidad modalidades',
+            'régimen disciplinario faltas sanciones descargos procedimiento due process',
+            'seguridad salud trabajo SG-SST COPASST accidentes laborales EPP obligaciones',
+            'acoso laboral sexual comité convivencia Ley 1010 Ley 2365 prevención',
+            'protección maternidad embarazo discapacidad fuero sindical sujetos especiales',
+        ];
+
+        $fragmentosPorTema = [];
+        $yaVisto = [];
+        foreach ($queriesTematicas as $query) {
+            $resultado = $biblioteca->buscarFragmentos($query, limite: 3, umbral: 0.40);
+            if ($resultado && !in_array(md5($resultado), $yaVisto)) {
+                $fragmentosPorTema[] = $resultado;
+                $yaVisto[] = md5($resultado);
+            }
+        }
+        $contextoBiblioteca = implode("\n\n---\n\n", array_filter($fragmentosPorTema));
 
         $razonSocial = $empresa->razon_social;
         $nit         = $empresa->nit;
@@ -325,8 +339,13 @@ CONDUCTA Y CONVIVENCIA
 ";
 
         $seccionBiblioteca = $contextoBiblioteca
-            ? "\nBASE NORMATIVA Y JURISPRUDENCIAL (extraída de la biblioteca legal actualizada):\nUsa estos fragmentos como fundamento jurídico. Cítalos cuando sean aplicables.\n\n{$contextoBiblioteca}\n"
-            : '';
+            ? "\nFRAGMENTOS DE LA BIBLIOTECA JURÍDICA (ÚNICA FUENTE AUTORIZADA PARA CITAS):\n"
+              . "Cita artículos, leyes y sentencias ÚNICAMENTE si aparecen en estos fragmentos.\n"
+              . "Si un tema no está cubierto por los fragmentos, redacta la obligación en términos\n"
+              . "generales sin inventar números de artículos ni referencias normativas.\n\n"
+              . $contextoBiblioteca . "\n"
+            : "\nADVERTENCIA: La biblioteca legal no devolvió fragmentos. Redacta el RIT en términos\n"
+              . "generales sin citar artículos ni leyes específicas.\n";
 
         return <<<PROMPT
 Eres un abogado laboral colombiano experto en reglamentos internos de trabajo.
@@ -339,7 +358,7 @@ INSTRUCCIONES:
 - Incluye TODOS los capítulos obligatorios del CST
 - Incluye capítulo sobre Política de Prevención de Acoso Sexual según la Ley 2365 de 2024
 - Redacta de manera lista para presentar ante el Ministerio del Trabajo
-- Basa la redacción en los fragmentos normativos de la base legal que se adjuntan más abajo; NO uses conocimiento genérico de internet
+- Basa TODAS las citas de artículos y leyes exclusivamente en los fragmentos de la biblioteca jurídica que se adjuntan; NO inventes ni uses artículos de tu entrenamiento que no aparezcan en esos fragmentos
 - Si alguna información no fue proporcionada, usa valores razonables y típicos para una empresa colombiana
 - NO incluyas comentarios ni aclaraciones fuera del texto del reglamento
 - NUNCA uses corchetes ni placeholders como [DÍA], [MES], [AÑO], [NOMBRE], [NÚMERO], [NIT], ni ningún otro; usa siempre los datos reales proporcionados
