@@ -171,64 +171,155 @@
             <summary class="flex items-center justify-between p-4 cursor-pointer font-semibold text-gray-900 dark:text-gray-100 list-none">
                 <span class="flex items-center gap-2">
                     <x-heroicon-o-clock class="w-5 h-5 text-primary-500" />
-                    4. Jornada Laboral
+                    4. Jornada Laboral y Turnos
                 </span>
                 <x-heroicon-o-chevron-down class="w-4 h-4 text-gray-500 group-open:rotate-180 transition-transform" />
             </summary>
-            <div class="px-4 pb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="px-4 pb-4 space-y-4">
+
+                {{-- Modalidades de jornada (checkboxes) --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hora de entrada <span class="text-red-500">*</span></label>
-                    <input type="text" wire:model="respuestas.horario_entrada"
-                           class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                           placeholder="Ej: 8:00 a.m." />
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        ¿Qué modalidades de jornada maneja la empresa?
+                        <span class="text-gray-500 font-normal">(puede marcar varias)</span>
+                    </label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        @foreach([
+                            'Jornada fija diurna'                  => 'Jornada fija diurna',
+                            'Turnos rotativos día/noche'           => 'Turnos rotativos',
+                            'Turno nocturno regular'               => 'Turno nocturno regular',
+                            'Operación continua 24/7'              => 'Operación 24/7',
+                            'Jornada flexible o variable'          => 'Jornada flexible',
+                            'Teletrabajo / trabajo en casa'        => 'Teletrabajo / remoto',
+                            'Trabajo en campo (obra, mina, agro)'  => 'Trabajo en campo/obra',
+                            'Vigilancia / guardias de seguridad'   => 'Vigilancia / guardias',
+                        ] as $val => $etiqueta)
+                            <label class="flex items-center gap-2 text-sm cursor-pointer p-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <input type="checkbox"
+                                       wire:model="respuestas.modalidades_jornada"
+                                       value="{{ $val }}"
+                                       class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500" />
+                                <span class="text-gray-700 dark:text-gray-300">{{ $etiqueta }}</span>
+                            </label>
+                        @endforeach
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hora de salida <span class="text-red-500">*</span></label>
-                    <input type="text" wire:model="respuestas.horario_salida"
-                           class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                           placeholder="Ej: 6:00 p.m." />
+
+                {{-- Horario principal --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Hora de entrada (jornada principal o administrativa)
+                            <span class="text-gray-500 font-normal text-xs"> — deje en blanco si opera solo en turnos</span>
+                        </label>
+                        <input type="text" wire:model="respuestas.horario_entrada"
+                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="Ej: 8:00 a.m." />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hora de salida (jornada principal o administrativa)</label>
+                        <input type="text" wire:model="respuestas.horario_salida"
+                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="Ej: 6:00 p.m." />
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">¿Trabaja los sábados?</label>
-                    <select wire:model="respuestas.trabaja_sabados"
-                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        <option value="">Seleccione...</option>
-                        <option value="No">No</option>
-                        <option value="Sí, mañana">Sí, mañana</option>
-                        <option value="Sí, día completo">Sí, día completo</option>
-                    </select>
+
+                {{-- Configuración de turnos --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">¿Opera en múltiples turnos o jornadas?</label>
+                        <select wire:model="respuestas.opera_en_turnos"
+                                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option value="">Seleccione...</option>
+                            <option value="No — jornada única">No — jornada única</option>
+                            <option value="Sí — 2 turnos">Sí — 2 turnos</option>
+                            <option value="Sí — 3 turnos">Sí — 3 turnos</option>
+                            <option value="Sí — 4 o más turnos">Sí — 4 o más turnos</option>
+                            <option value="Operación continua 24/7">Operación continua 24/7</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">¿Cómo rotan los trabajadores entre turnos?</label>
+                        <select wire:model="respuestas.rotacion_turnos"
+                                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option value="">Seleccione...</option>
+                            <option value="No aplica — turno fijo por cargo">No aplica — turno fijo por cargo</option>
+                            <option value="Rotación semanal">Rotación semanal</option>
+                            <option value="Rotación quincenal">Rotación quincenal</option>
+                            <option value="Rotación mensual">Rotación mensual</option>
+                            <option value="Según programación del supervisor">Según programación del supervisor</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Descripción completa de los turnos (si aplica)
+                            <span class="text-gray-500 font-normal text-xs"> — nombre, horario y cargos de cada turno</span>
+                        </label>
+                        <textarea wire:model="respuestas.definicion_turnos" rows="3"
+                                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                  placeholder="Ej: Turno A (operarios planta): 06:00 a 14:00 / Turno B (operarios planta): 14:00 a 22:00 / Turno C (vigilantes y mantenimiento): 22:00 a 06:00 / Turno administrativo: 08:00 a 17:30 lunes a viernes"></textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">¿Qué cargos trabajan regularmente en horario nocturno? (21:00 – 06:00)</label>
+                        <input type="text" wire:model="respuestas.cargos_nocturnos"
+                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="Ej: Vigilantes, operadores de planta turno C, conductores de larga distancia, enfermeros nocturnos" />
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">¿Trabaja domingos o festivos?</label>
-                    <select wire:model="respuestas.trabaja_dominicales"
-                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        <option value="">Seleccione...</option>
-                        <option value="No">No</option>
-                        <option value="Ocasionalmente">Ocasionalmente</option>
-                        <option value="Sí, regularmente">Sí, regularmente</option>
-                    </select>
+
+                {{-- Fines de semana --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">¿Trabaja los sábados?</label>
+                        <select wire:model="respuestas.trabaja_sabados"
+                                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option value="">Seleccione...</option>
+                            <option value="No">No</option>
+                            <option value="Sí, media jornada">Sí, media jornada (hasta el mediodía)</option>
+                            <option value="Sí, día completo">Sí, día completo</option>
+                            <option value="Sí, algunos cargos">Sí, algunos cargos (operativos/guardia)</option>
+                            <option value="Sí, en turnos rotativos">Sí, incluido en turnos rotativos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">¿Trabaja domingos o festivos?</label>
+                        <select wire:model="respuestas.trabaja_dominicales"
+                                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option value="">Seleccione...</option>
+                            <option value="No">No</option>
+                            <option value="Ocasionalmente">Ocasionalmente (con compensatorio)</option>
+                            <option value="Sí, regularmente — algunos cargos">Sí, regularmente — algunos cargos</option>
+                            <option value="Sí, operación completa">Sí, operación completa (con recargo 75%)</option>
+                            <option value="Sí, incluido en turnos rotativos">Sí, incluido en turnos rotativos</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">¿Tiene turnos rotativos o nocturnos?</label>
-                    <select wire:model="respuestas.tiene_turnos"
-                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        <option value="">Seleccione...</option>
-                        <option value="No">No</option>
-                        <option value="Sí">Sí</option>
-                    </select>
+
+                {{-- Exentos y control --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Cargos de dirección, confianza o manejo (exentos de jornada máxima — Art. 162 CST)
+                        </label>
+                        <input type="text" wire:model="respuestas.cargos_exentos_jornada"
+                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="Ej: Gerente General, Director Financiero, Jefe de Operaciones, Supervisor de turno" />
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Estos cargos no están sujetos al límite de jornada máxima legal. Déjelo en blanco si no aplica.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">¿Cómo controla la asistencia?</label>
+                        <input type="text" wire:model="respuestas.control_asistencia"
+                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="Ej: Reloj biométrico, planilla por turno, app móvil, rondas de supervisión" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Política de horas extras</label>
+                        <textarea wire:model="respuestas.politica_horas_extras" rows="2"
+                                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                  placeholder="Ej: Se pagan con el recargo legal. Requieren autorización escrita previa del jefe inmediato. No se reconocen horas extras no autorizadas."></textarea>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">¿Cómo controla la asistencia?</label>
-                    <input type="text" wire:model="respuestas.control_asistencia"
-                           class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                           placeholder="Ej: Reloj biométrico, planilla manual, app" />
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Política de horas extras</label>
-                    <textarea wire:model="respuestas.politica_horas_extras" rows="2"
-                              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                              placeholder="Ej: Se pagan con el recargo legal. Requieren autorización previa del jefe inmediato"></textarea>
-                </div>
+
             </div>
         </details>
 
@@ -253,15 +344,34 @@
                         <option value="Mixto (transferencia y efectivo)">Mixto</option>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Periodicidad de pago</label>
-                    <select wire:model="respuestas.periodicidad_pago"
-                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        <option value="">Seleccione...</option>
-                        <option value="Mensual">Mensual (último día hábil)</option>
-                        <option value="Quincenal">Quincenal (15 y último día)</option>
-                        <option value="Semanal">Semanal</option>
-                    </select>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Periodicidad de pago del salario <span class="text-red-500">*</span>
+                        <span class="text-gray-500 font-normal">(puede seleccionar varias — por ejemplo: operativos semanal, administrativos quincenal)</span>
+                    </label>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                        @foreach([
+                            'Mensual'               => 'Mensual',
+                            'Quincenal'             => 'Quincenal',
+                            'Semanal'               => 'Semanal',
+                            'Diario (jornaleros)'   => 'Diario / jornaleros',
+                            'Por obra o destajo'    => 'Por obra / destajo',
+                        ] as $val => $etiqueta)
+                            <label class="flex items-center gap-2 text-sm cursor-pointer p-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <input type="checkbox"
+                                       wire:model="respuestas.periodicidad_pago"
+                                       value="{{ $val }}"
+                                       class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500" />
+                                <span class="text-gray-700 dark:text-gray-300">{{ $etiqueta }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Si hay múltiples periodicidades, especifique cuáles cargos aplican a cada una</label>
+                    <textarea wire:model="respuestas.periodicidad_detalle" rows="2"
+                              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                              placeholder="Ej: Conductores y operativos: pago semanal (viernes) / Personal administrativo y coordinadores: quincenal (15 y último día hábil)"></textarea>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">¿Maneja comisiones o bonos?</label>

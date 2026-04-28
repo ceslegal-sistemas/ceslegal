@@ -312,19 +312,23 @@ ESTRUCTURA ORGANIZACIONAL
 - Usa trabajadores de misión (temporal): " . ($r['tiene_trabajadores_mision'] ?? 'no') . "
 
 JORNADA LABORAL
-- Horario de entrada: " . ($r['horario_entrada'] ?? '') . "
-- Horario de salida (L-V): " . ($r['horario_salida'] ?? '') . "
-- Jornada sábados: " . ($r['jornada_sabado'] ?? 'no') . "
-- Hora salida sábados: " . ($r['horario_salida_sabado'] ?? 'N/A') . "
+- Modalidades de jornada: " . $lista($r['modalidades_jornada'] ?? []) . "
+- Horario principal/administrativo: " . ($r['horario_entrada'] ?? '') . " a " . ($r['horario_salida'] ?? '') . "
+- Opera en múltiples turnos: " . ($r['opera_en_turnos'] ?? 'No') . "
+- Número de turnos: " . ($r['numero_turnos'] ?? 'N/A') . "
+- Definición de turnos: " . ($r['definicion_turnos'] ?? 'N/A') . "
+- Sistema de rotación: " . ($r['rotacion_turnos'] ?? 'N/A') . "
+- Cargos con turno nocturno regular (21:00-06:00): " . ($r['cargos_nocturnos'] ?? 'N/A') . "
+- Trabaja sábados: " . ($r['trabaja_sabados'] ?? 'no') . "
 - Trabaja dominicales/festivos: " . ($r['trabaja_dominicales'] ?? 'no') . "
-- Tiene turnos rotativos/nocturnos: " . ($r['tiene_turnos'] ?? 'no') . "
-- Descripción turnos: " . ($r['descripcion_turnos'] ?? 'N/A') . "
+- Cargos exentos jornada máxima (Art. 162 CST): " . ($r['cargos_exentos_jornada'] ?? 'N/A') . "
 - Control de asistencia: " . ($r['control_asistencia'] ?? '') . "
 - Política horas extras: " . ($r['politica_horas_extras'] ?? '') . "
 
 SALARIO Y BENEFICIOS
 - Forma de pago: " . ($r['forma_pago'] ?? '') . "
-- Periodicidad de pago: " . ($r['periodicidad_pago'] ?? '') . "
+- Periodicidad de pago: " . $lista($r['periodicidad_pago'] ?? []) . "
+- Detalle periodicidad por cargo: " . ($r['periodicidad_detalle'] ?? 'N/A') . "
 - Maneja comisiones/bonificaciones: " . ($r['maneja_comisiones'] ?? 'no') . "
 - Tipo de comisiones: " . ($r['tipo_comisiones'] ?? 'N/A') . "
 - Beneficios extralegales:\n" . ($beneficiosTexto ?: "  - Ninguno\n") . "
@@ -408,10 +412,12 @@ Artículos requeridos: documentos exigidos para ingreso (incluir que el certific
 ARTÍCULO OBLIGATORIO VERBATIM — incluir esta regla exacta: "El período de prueba deberá pactarse siempre por escrito como cláusula expresa del contrato de trabajo. La terminación durante el período de prueba debe comunicarse con fundamentación y por escrito."
 
 CAPÍTULO III — JORNADA ORDINARIA DE TRABAJO
-Artículos requeridos: jornada máxima semanal (47h con reducción progresiva a 42h — Ley 2101/2021); definición de trabajo diurno y nocturno con horas exactas; descanso obligatorio en dominicales y festivos; horario específico de la empresa (usar datos del cuestionario); empleados de dirección y confianza excluidos de jornada máxima.
+Artículos requeridos: jornada máxima semanal (47h con reducción progresiva a 42h — Ley 2101/2021); definición de trabajo diurno (06:00-21:00) y nocturno (21:00-06:00) con horas exactas; descanso obligatorio en dominicales y festivos con sus compensatorios; horario específico de la empresa según datos del cuestionario.
+Si la empresa opera en múltiples turnos: redactar un artículo específico para cada turno con su nombre, horario exacto (inicio y fin), cargos o categorías que lo operan, y sistema de rotación. Si opera 24/7, artículo expreso de operación continua con designación de turnos.
+Si existen cargos de dirección, manejo o confianza (Art. 162 CST): artículo expreso indicando que dichos cargos —nombrando los de la empresa— quedan excluidos del límite de jornada máxima, sin que esto les prive de descanso dominical remunerado.
 
 CAPÍTULO IV — TRABAJO SUPLEMENTARIO, DOMINICALES Y FESTIVOS
-Artículos requeridos: límite de 2 horas extras diarias y 12 semanales (texto literal: "El trabajo suplementario no podrá exceder de dos (2) horas diarias ni de doce (12) horas semanales"); recargos exactos — extra diurno 25%, extra nocturno 75%, dominical/festivo 75%; autorización previa y escrita para horas extras; registro de trabajo suplementario por trabajador.
+Artículos requeridos: límite de 2 horas extras diarias y 12 semanales (texto literal: "El trabajo suplementario no podrá exceder de dos (2) horas diarias ni de doce (12) horas semanales"); recargos exactos — extra diurno 25%, extra nocturno 75%, dominical/festivo 75%; si la empresa opera en turnos nocturnos regulares, artículo sobre recargo nocturno ordinario del 35% aplicable; autorización previa y escrita para horas extras; registro de trabajo suplementario por trabajador.
 
 CAPÍTULO V — REMUNERACIÓN Y FORMA DE PAGO
 Artículos requeridos: modalidades de salario (por unidad de tiempo, por obra o tarea, variable); período de pago (jornales: semanal o quincenalmente; sueldos: mensualmente); salario en especie máximo 50% del total; prohibición de pago con bebidas alcohólicas ni sustancias alucinógenas; prohibición de trueque de salario por mercancías o víveres; comprobante de pago discriminado.

@@ -56,19 +56,25 @@ class RITBuilder extends Page
         'tiene_aprendices'         => '',
         'tiene_trabajadores_mision' => '',
 
-        // Sección 4: Jornada laboral
-        'horario_entrada'          => '',
+        // Sección 4: Jornada laboral (multi-turno / multi-jornada)
+        'modalidades_jornada'      => [],   // checkboxes: múltiples modalidades
+        'horario_entrada'          => '',   // jornada principal/administrativa
         'horario_salida'           => '',
-        'tiene_turnos'             => '',
-        'descripcion_turnos'       => '',
-        'control_asistencia'       => '',
+        'opera_en_turnos'          => '',   // No / Sí — 2 turnos / etc.
+        'numero_turnos'            => '',
+        'definicion_turnos'        => '',   // descripción completa de cada turno
+        'rotacion_turnos'          => '',   // fija / semanal / quincenal / mensual
+        'cargos_nocturnos'         => '',   // cargos que operan 21:00-06:00
         'trabaja_sabados'          => '',
         'trabaja_dominicales'      => '',
+        'cargos_exentos_jornada'   => '',   // Art. 162 CST: dirección, confianza, manejo
+        'control_asistencia'       => '',
         'politica_horas_extras'    => '',
 
         // Sección 5: Salario y beneficios
         'forma_pago'               => '',
-        'periodicidad_pago'        => '',
+        'periodicidad_pago'        => [],   // checkboxes: múltiples periodicidades
+        'periodicidad_detalle'     => '',   // qué cargos aplican a qué periodicidad
         'maneja_comisiones'        => '',
         'beneficios_extralegales'  => '',
 
@@ -139,14 +145,12 @@ class RITBuilder extends Page
         $this->textoGenerado = null;
         $this->docxPath      = null;
 
-        // Validación mínima
+        // Validación campos de texto simples
         $camposRequeridos = [
             'razon_social_completa' => 'Razón social',
             'actividad_economica'   => 'Actividad económica',
             'numero_trabajadores'   => 'Número de trabajadores',
-            'horario_entrada'       => 'Horario de entrada',
-            'horario_salida'        => 'Horario de salida',
-            'forma_pago'            => 'Forma de pago',
+            'forma_pago'            => 'Forma de pago (Sección 5)',
         ];
 
         foreach ($camposRequeridos as $campo => $label) {
@@ -159,6 +163,24 @@ class RITBuilder extends Page
                     ->send();
                 return;
             }
+        }
+
+        // Validar jornada: horario fijo O descripción de turnos
+        $tieneHorario = !empty(trim($this->respuestas['horario_entrada'] ?? ''))
+                     && !empty(trim($this->respuestas['horario_salida'] ?? ''));
+        $tieneTurnos  = !empty(trim($this->respuestas['definicion_turnos'] ?? ''));
+
+        if (!$tieneHorario && !$tieneTurnos) {
+            $this->error = 'Debe ingresar el horario de trabajo (entrada/salida) o la descripción de los turnos en la Sección 4.';
+            Notification::make()->warning()->title('Campo requerido')->body($this->error)->send();
+            return;
+        }
+
+        // Validar periodicidad de pago (multi-select)
+        if (empty($this->respuestas['periodicidad_pago'])) {
+            $this->error = 'Debe seleccionar al menos una periodicidad de pago en la Sección 5.';
+            Notification::make()->warning()->title('Campo requerido')->body($this->error)->send();
+            return;
         }
 
         $empresa = $this->getEmpresa();
