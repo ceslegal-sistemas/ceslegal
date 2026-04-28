@@ -24,6 +24,15 @@ class RITGeneratorService
         $url     = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
         $prompt  = $this->construirPrompt($respuestas, $empresa);
+
+        // Limpiar bytes UTF-8 inválidos que provienen de fragmentos de PDFs/DOCX
+        // y que rompen json_encode al construir el payload
+        $prompt = preg_replace(
+            '/[^\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u',
+            '',
+            $prompt
+        ) ?? iconv('UTF-8', 'UTF-8//IGNORE', $prompt);
+
         $payload = [
             'contents' => [
                 ['parts' => [['text' => $prompt]]],
