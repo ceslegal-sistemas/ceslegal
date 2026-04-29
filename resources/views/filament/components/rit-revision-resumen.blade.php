@@ -65,10 +65,34 @@
         'obra'        => 'Obra o labor',
         'aprendizaje' => 'Aprendizaje SENA',
     ];
-    $totalCargos     = count($cargos ?? []);
-    $totalFaltas     = count($faltas_leves ?? []) + count($faltas_graves ?? []);
-    $totalSanciones  = count($sanciones ?? []);
-    $totalRiesgos    = count($riesgos_principales ?? []);
+    $totalCargos    = count($cargos ?? []);
+    $totalFaltas    = count($faltas_leves ?? []) + count($faltas_graves ?? []);
+
+    $modalidadesJornadaLabels = [
+        'presencial'       => 'Presencial',
+        'teletrabajo'      => 'Teletrabajo',
+        'hibrido'          => 'Híbrido',
+        'turnos_rotativos' => 'Turnos rotativos',
+        'tiempo_parcial'   => 'Tiempo parcial',
+    ];
+    $capitulosRIT = [
+        'I'    => 'Denominación y Objeto',
+        'II'   => 'Admisión y Período de Prueba',
+        'III'  => 'Jornada Ordinaria',
+        'IV'   => 'Trabajo Suplementario y Festivos',
+        'V'    => 'Remuneración y Forma de Pago',
+        'VI'   => 'Vacaciones y Permisos',
+        'VII'  => 'Licencias Especiales',
+        'VIII' => 'Régimen Disciplinario',
+        'IX'   => 'Escala de Sanciones',
+        'X'    => 'Reclamos y Procedimientos',
+        'XI'   => 'Conducta y Comportamiento',
+        'XII'  => 'Seguridad y Salud (SG-SST)',
+        'XIII' => 'Equipos y Bienes',
+        'XIV'  => 'Comité de Convivencia / Acoso',
+        'XV'   => 'Protección de Sujetos Especiales',
+        'XVI'  => 'Disposiciones Finales',
+    ];
 @endphp
 
 @verbatim
@@ -198,6 +222,27 @@ html:not(.dark) .rr-tag.muy-grave { background:rgba(220,38,38,.09);color:#991b1b
 </style>
 @endverbatim
 
+<style>
+.rr-caps-grid {
+  display:grid;grid-template-columns:1fr 1fr;gap:.35rem;
+}
+@media(max-width:480px){ .rr-caps-grid { grid-template-columns:1fr } }
+.rr-cap-item {
+  display:flex;align-items:flex-start;gap:.4rem;
+  font-size:.75rem;color:#94a3b8;line-height:1.4;padding:.3rem .25rem;
+}
+html:not(.dark) .rr-cap-item { color:#4b5563 }
+.rr-cap-item strong { color:#e2e8f0;font-weight:600 }
+html:not(.dark) .rr-cap-item strong { color:#111827 }
+.rr-caps-container {
+  border:1px solid rgba(255,255,255,.09);border-radius:.875rem;
+  padding:1rem 1.125rem;
+}
+html:not(.dark) .rr-caps-container {
+  border-color:rgba(0,0,0,.08);background:rgba(0,0,0,.02);
+}
+</style>
+
 <div style="display:flex;flex-direction:column;gap:1.125rem;padding:.25rem 0;">
 
   {{-- ══ HERO ══ --}}
@@ -215,12 +260,12 @@ html:not(.dark) .rr-tag.muy-grave { background:rgba(220,38,38,.09);color:#991b1b
         </svg>
       </div>
 
-      <p class="rr-hero-label">Paso final</p>
-      <h2 class="rr-hero-title">Confirme y construya su RIT</h2>
+      <p class="rr-hero-label">Resumen de su información</p>
+      <h2 class="rr-hero-title">Reglamento Interno de Trabajo</h2>
       <p class="rr-hero-sub">
-        Revise el resumen de sus respuestas. Al hacer clic en <strong style="color:#f1f5f9">"Crear"</strong>
-        la IA redactará el Reglamento Interno completo con cumplimiento del Art. 105 CST
-        y la Ley 2365/2024 (prevención de acoso sexual).
+        Verifique que todo sea correcto. Si necesita cambiar algo, use el botón <strong style="color:#f1f5f9">"Anterior"</strong>.
+        Al hacer clic en <strong style="color:#f1f5f9">"Crear"</strong>, la IA redactará
+        los 16 capítulos con cumplimiento del Art. 105 CST y la Ley 2365/2024.
       </p>
 
       <div class="rr-bullets rr-a2" style="max-width:500px;margin-left:auto;margin-right:auto;">
@@ -251,16 +296,16 @@ html:not(.dark) .rr-tag.muy-grave { background:rgba(220,38,38,.09);color:#991b1b
           <div class="rr-stat-lbl">Trabajadores</div>
         </div>
         <div class="rr-stat">
-          <div class="rr-stat-num">{{ $totalCargos }}</div>
+          <div class="rr-stat-num">{{ $totalCargos ?: '—' }}</div>
           <div class="rr-stat-lbl">Cargos</div>
         </div>
         <div class="rr-stat">
-          <div class="rr-stat-num">{{ $totalFaltas }}</div>
-          <div class="rr-stat-lbl">Faltas</div>
+          <div class="rr-stat-num">16</div>
+          <div class="rr-stat-lbl">Capítulos</div>
         </div>
         <div class="rr-stat">
-          <div class="rr-stat-num">{{ $totalSanciones }}</div>
-          <div class="rr-stat-lbl">Sanciones</div>
+          <div class="rr-stat-num">~80</div>
+          <div class="rr-stat-lbl">Artículos</div>
         </div>
       </div>
 
@@ -290,6 +335,11 @@ html:not(.dark) .rr-tag.muy-grave { background:rgba(220,38,38,.09);color:#991b1b
           NIT {{ $empresa?->nit ?? '—' }}
           @if($empresa?->ciudad) &nbsp;·&nbsp; {{ $empresa->ciudad }}@if($empresa->departamento), {{ $empresa->departamento }}@endif @endif
         </p>
+        @if(!empty($actividad_economica))
+          <p class="rr-sec-sub" style="margin-top:.3rem;color:#94a3b8">
+            <span style="color:#64748b">Actividad:</span> {{ $actividad_economica }}
+          </p>
+        @endif
         @if($tiene_sucursales === 'si')
           <p class="rr-sec-sub" style="margin-top:.35rem">{{ count($sucursales ?? []) }} sucursal(es) registrada(s)</p>
         @endif
@@ -311,6 +361,13 @@ html:not(.dark) .rr-tag.muy-grave { background:rgba(220,38,38,.09);color:#991b1b
             Sáb: {{ $jornadaSabadoLabel }}
             &nbsp;·&nbsp; Dom: {{ $dominicalesLabels[$trabaja_dominicales ?? 'no'] ?? 'No' }}
           </p>
+          @if(!empty($modalidades_jornada))
+            <div style="margin-top:.35rem">
+              @foreach($modalidades_jornada as $mj)
+                <span class="rr-tag">{{ $modalidadesJornadaLabels[$mj] ?? $mj }}</span>
+              @endforeach
+            </div>
+          @endif
         </div>
 
         <div class="rr-section" data-color style="--sc:#f59e0b">
@@ -417,6 +474,31 @@ html:not(.dark) .rr-tag.muy-grave { background:rgba(220,38,38,.09);color:#991b1b
       </div>
 
     </div>{{-- /rr-doc --}}
+
+    {{-- ── CAPÍTULOS DEL RIT ── --}}
+    <div style="margin-top:1.25rem">
+      <div class="rr-rule">
+        <div class="rr-rule-line"></div>
+        <span class="rr-rule-txt">Capítulos que generará la IA</span>
+        <div class="rr-rule-line"></div>
+      </div>
+      <div class="rr-caps-container">
+        <div class="rr-caps-grid">
+          @foreach($capitulosRIT as $num => $titulo)
+            <div class="rr-cap-item">
+              <svg style="width:13px;height:13px;color:#22c55e;flex-shrink:0;margin-top:1px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+              </svg>
+              <span><strong>Cap. {{ $num }}</strong>&nbsp;— {{ $titulo }}</span>
+            </div>
+          @endforeach
+        </div>
+        <p style="font-size:.68rem;color:#475569;margin-top:.875rem;text-align:center;border-top:1px solid rgba(255,255,255,.07);padding-top:.625rem">
+          Todos los capítulos son obligatorios según el Art. 105 CST. La IA los redacta artículo por artículo basándose en la información que usted proporcionó.
+        </p>
+      </div>
+    </div>
+
   </div>
 
 </div>

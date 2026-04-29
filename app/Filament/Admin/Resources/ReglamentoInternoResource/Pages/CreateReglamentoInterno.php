@@ -810,6 +810,7 @@ class CreateReglamentoInterno extends CreateRecord
                             view('filament.components.rit-revision-resumen', [
                                 'empresa'               => $this->getEmpresa(),
                                 'num_trabajadores'      => $get('num_trabajadores'),
+                'actividad_economica'   => $get('actividad_economica'),
                                 'tiene_sucursales'      => $get('tiene_sucursales'),
                                 'sucursales'            => $get('sucursales') ?? [],
                                 'cargos'                => $get('cargos') ?? [],
