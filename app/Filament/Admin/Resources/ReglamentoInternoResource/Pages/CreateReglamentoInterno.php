@@ -647,19 +647,6 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->helperText('Conductas que afectan seriamente el trabajo o el ambiente laboral.')
                                 ->columnSpanFull(),
 
-                            Forms\Components\TagsInput::make('faltas_muy_graves')
-                                ->label('Faltas muy graves — pueden llevar a despido con justa causa')
-                                ->suggestions([
-                                    'Hurto',
-                                    'Agresión física',
-                                    'Acoso sexual',
-                                    'Divulgación de secretos empresariales',
-                                    'Presentarse en estado de embriaguez',
-                                    'Falsificación de documentos',
-                                ])
-                                ->placeholder('Escriba una falta y presione Enter para agregar')
-                                ->helperText('Las conductas más serias: hurto, violencia física, acoso, presentarse bajo efectos de sustancias.')
-                                ->columnSpanFull(),
                         ]),
 
                     Forms\Components\Section::make('¿Qué medidas disciplinarias puede aplicar la empresa?')
@@ -842,7 +829,6 @@ class CreateReglamentoInterno extends CreateRecord
                                 'periodicidad_detalle'  => $get('periodicidad_detalle'),
                                 'faltas_leves'          => $get('faltas_leves') ?? [],
                                 'faltas_graves'         => $get('faltas_graves') ?? [],
-                                'faltas_muy_graves'     => $get('faltas_muy_graves') ?? [],
                                 'sanciones'             => $get('sanciones_contempladas') ?? [],
                                 'tiene_sg_sst'          => $get('tiene_sg_sst'),
                                 'riesgos_principales'   => $get('riesgos_principales') ?? [],

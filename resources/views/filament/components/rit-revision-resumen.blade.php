@@ -66,7 +66,7 @@
         'aprendizaje' => 'Aprendizaje SENA',
     ];
     $totalCargos     = count($cargos ?? []);
-    $totalFaltas     = count($faltas_leves ?? []) + count($faltas_graves ?? []) + count($faltas_muy_graves ?? []);
+    $totalFaltas     = count($faltas_leves ?? []) + count($faltas_graves ?? []);
     $totalSanciones  = count($sanciones ?? []);
     $totalRiesgos    = count($riesgos_principales ?? []);
 @endphp
@@ -375,11 +375,7 @@ html:not(.dark) .rr-tag.muy-grave { background:rgba(220,38,38,.09);color:#991b1b
             <p class="rr-sec-sub" style="margin:.5rem 0 .25rem;color:#fb923c">Graves</p>
             @foreach($faltas_graves as $f)<span class="rr-tag grave">{{ $f }}</span>@endforeach
           @endif
-          @if(!empty($faltas_muy_graves))
-            <p class="rr-sec-sub" style="margin:.5rem 0 .25rem;color:#f87171">Muy graves</p>
-            @foreach($faltas_muy_graves as $f)<span class="rr-tag muy-grave">{{ $f }}</span>@endforeach
-          @endif
-          @if(empty($faltas_leves) && empty($faltas_graves) && empty($faltas_muy_graves))
+          @if(empty($faltas_leves) && empty($faltas_graves))
             <p class="rr-sec-val empty">Sin faltas registradas</p>
           @endif
         </div>
