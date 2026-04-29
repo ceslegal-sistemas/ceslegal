@@ -13,6 +13,9 @@ use PhpOffice\PhpWord\SimpleType\Jc;
 
 class RITGeneratorService
 {
+    /** Modelo que terminó generando el texto. Consultable desde el código llamador. */
+    public string $modeloUsado = '';
+
     /**
      * Genera el texto completo del RIT usando Gemini a partir de las respuestas del cuestionario F2.
      */
@@ -58,8 +61,10 @@ class RITGeneratorService
         foreach (array_values($modelosCascada) as $idx => $model) {
             $url         = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
             $esUltimo    = ($idx === $totalModelos - 1);
-            $maxIntentos = $esUltimo ? 3 : 2;
-            $esperas     = [5, 15, 30];
+            // Modelo principal: 4 intentos con esperas crecientes antes de ceder al lite.
+            // Modelo lite (último): 3 intentos.
+            $maxIntentos = $esUltimo ? 3 : 4;
+            $esperas     = [15, 30, 60, 120]; // segundos entre intentos
 
             Log::info('RITGeneratorService: generando texto con Gemini', [
                 'empresa_id' => $empresa->id,
@@ -93,6 +98,8 @@ class RITGeneratorService
                     if (empty($texto)) {
                         throw new \RuntimeException('Respuesta de Gemini sin contenido válido');
                     }
+
+                    $this->modeloUsado = $model;
 
                     if ($idx > 0) {
                         Log::info('RITGeneratorService: texto generado con modelo de respaldo', [
