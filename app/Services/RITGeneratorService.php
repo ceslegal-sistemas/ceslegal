@@ -18,12 +18,18 @@ class RITGeneratorService
      */
     public function generarTextoRIT(array $respuestas, Empresa $empresa): string
     {
-        $config  = config('services.ia.gemini', []);
-        $apiKey  = $config['api_key'] ?? '';
-        $model   = $config['model'] ?? 'gemini-2.5-flash';
-        $url     = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+        $config = config('services.ia.gemini', []);
+        $apiKey = $config['api_key'] ?? '';
 
-        $prompt  = $this->construirPrompt($respuestas, $empresa);
+        // Cascade de modelos: si el principal falla por sobrecarga (503/429), probar el siguiente
+        $modelPrincipal   = $config['model'] ?? 'gemini-2.5-flash';
+        $modelosCascada   = array_unique(array_filter([
+            $modelPrincipal,
+            'gemini-2.0-flash',
+            'gemini-1.5-flash',
+        ]));
+
+        $prompt = $this->construirPrompt($respuestas, $empresa);
 
         // Limpiar bytes UTF-8 inválidos que provienen de fragmentos de PDFs/DOCX
         // y que rompen json_encode al construir el payload
@@ -45,61 +51,105 @@ class RITGeneratorService
             ],
         ];
 
-        Log::info('RITGeneratorService: generando texto con Gemini', [
-            'empresa_id' => $empresa->id,
-            'model'      => $model,
-        ]);
+        $lastError    = null;
+        $totalModelos = count($modelosCascada);
 
-        // Reintentos con backoff exponencial para errores transitorios (503, 429)
-        $maxIntentos = 3;
-        $esperas     = [5, 15, 30]; // segundos entre intentos
-        $lastError   = null;
+        foreach (array_values($modelosCascada) as $idx => $model) {
+            $url         = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+            $esUltimo    = ($idx === $totalModelos - 1);
+            $maxIntentos = $esUltimo ? 3 : 2;
+            $esperas     = [5, 15, 30];
 
-        for ($intento = 1; $intento <= $maxIntentos; $intento++) {
-            $response = Http::withHeaders(['Content-Type' => 'application/json'])
-                ->timeout(120)
-                ->post($url, $payload);
-
-            if ($response->successful()) {
-                $data  = $response->json();
-                $parts = $data['candidates'][0]['content']['parts'] ?? [];
-                // gemini-2.5-flash (thinking model): el texto real está en el último part sin "thought"
-                $texto = '';
-                foreach (array_reverse($parts) as $part) {
-                    if (empty($part['thought']) && !empty($part['text'])) {
-                        $texto = $part['text'];
-                        break;
-                    }
-                }
-                if (empty($texto)) {
-                    $texto = $parts[0]['text'] ?? '';
-                }
-                if (empty($texto)) {
-                    throw new \RuntimeException('Respuesta de Gemini sin contenido válido');
-                }
-                return trim($texto);
-            }
-
-            $status    = $response->status();
-            $lastError = $response->body();
-
-            // Solo reintentar en errores transitorios de servidor
-            $esTransitorio = in_array($status, [429, 500, 502, 503, 504]);
-
-            Log::warning('RITGeneratorService: fallo en intento ' . $intento, [
+            Log::info('RITGeneratorService: generando texto con Gemini', [
                 'empresa_id' => $empresa->id,
-                'status'     => $status,
-                'reintento'  => $esTransitorio && $intento < $maxIntentos,
+                'model'      => $model,
+                'intento_modelo' => $idx + 1,
             ]);
 
-            if (!$esTransitorio || $intento === $maxIntentos) {
-                break;
+            $sobrecarga = false;
+
+            for ($intento = 1; $intento <= $maxIntentos; $intento++) {
+                $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                    ->timeout(120)
+                    ->post($url, $payload);
+
+                if ($response->successful()) {
+                    $data  = $response->json();
+                    $parts = $data['candidates'][0]['content']['parts'] ?? [];
+
+                    // gemini-2.5-flash (thinking model): el texto real está en el último part sin "thought"
+                    // gemini-2.0/1.5-flash: parts[0]['text'] es el contenido directamente
+                    $texto = '';
+                    foreach (array_reverse($parts) as $part) {
+                        if (empty($part['thought']) && !empty($part['text'])) {
+                            $texto = $part['text'];
+                            break;
+                        }
+                    }
+                    if (empty($texto)) {
+                        $texto = $parts[0]['text'] ?? '';
+                    }
+                    if (empty($texto)) {
+                        throw new \RuntimeException('Respuesta de Gemini sin contenido válido');
+                    }
+
+                    if ($idx > 0) {
+                        Log::info('RITGeneratorService: texto generado con modelo de respaldo', [
+                            'empresa_id'    => $empresa->id,
+                            'model_usado'   => $model,
+                            'model_primario' => $modelPrincipal,
+                        ]);
+                    }
+
+                    return trim($texto);
+                }
+
+                $status    = $response->status();
+                $lastError = $response->body();
+
+                // 503/429 = sobrecarga → probar siguiente modelo en cascade
+                // Otros errores (400, 401, 404) → no tiene sentido reintentar con otro modelo
+                $esSobrecarga  = in_array($status, [429, 503]);
+                $esTransitorio = in_array($status, [500, 502, 504]);
+
+                Log::warning('RITGeneratorService: fallo en intento', [
+                    'empresa_id'  => $empresa->id,
+                    'model'       => $model,
+                    'intento'     => $intento,
+                    'status'      => $status,
+                    'cascade'     => $esSobrecarga && !$esUltimo,
+                ]);
+
+                if ($esSobrecarga) {
+                    // Espera corta y luego intenta con el siguiente modelo
+                    if ($intento < $maxIntentos) {
+                        sleep($esperas[$intento - 1]);
+                    } else {
+                        $sobrecarga = true;
+                        break;
+                    }
+                } elseif ($esTransitorio && $intento < $maxIntentos) {
+                    sleep($esperas[$intento - 1]);
+                } else {
+                    // Error permanente — no tiene sentido probar otro modelo
+                    throw new \RuntimeException('Error en API Gemini: ' . $lastError);
+                }
             }
 
-            sleep($esperas[$intento - 1]);
+            // Si llegamos aquí por sobrecarga y hay más modelos, continuar cascade
+            if ($sobrecarga && !$esUltimo) {
+                Log::warning('RITGeneratorService: modelo saturado, cambiando al siguiente', [
+                    'empresa_id'    => $empresa->id,
+                    'model_fallido' => $model,
+                    'model_next'    => $modelosCascada[$idx + 1] ?? 'ninguno',
+                ]);
+                continue;
+            }
+
+            break;
         }
 
-        throw new \RuntimeException('Error en API Gemini: ' . $lastError);
+        throw new \RuntimeException('Error en API Gemini (todos los modelos intentados): ' . $lastError);
     }
 
     /**
