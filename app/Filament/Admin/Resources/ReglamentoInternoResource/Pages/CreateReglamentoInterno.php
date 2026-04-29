@@ -520,13 +520,14 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->default(['mensual'])
                                 ->columns(3)
                                 ->columnSpanFull()
+                                ->live()
                                 ->required(),
 
                             Forms\Components\Textarea::make('periodicidad_detalle')
-                                ->label('Si hay varios grupos con diferente frecuencia, ¿a quiénes paga diferente?')
+                                ->label('¿A quiénes paga diferente? Indique el cargo y su periodicidad')
                                 ->rows(2)
                                 ->placeholder('Ej: Conductores y operativos: semanal (viernes) / Personal administrativo: quincenal (15 y último día hábil)')
-                                ->helperText('Solo si marcó más de una opción arriba.')
+                                ->visible(fn(Get $get) => count((array) $get('periodicidad_pago')) > 1)
                                 ->columnSpanFull(),
                         ])
                         ->columns(2),
