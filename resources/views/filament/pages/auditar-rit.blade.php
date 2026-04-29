@@ -111,17 +111,22 @@ html:not(.dark) .audit-result-title{color:#0f172a}
         @if(($score ?? 0) >= 80)
           <span class="rit-badge rit-badge-ok">
             <svg style="width:11px;height:11px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            RIT actualizado
+            Aprobado
+          </span>
+        @elseif(($score ?? 0) >= 65)
+          <span class="rit-badge rit-badge-ok" style="opacity:.85">
+            <svg style="width:11px;height:11px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Aprobado con sugerencias
           </span>
         @elseif(($score ?? 0) >= 50)
           <span class="rit-badge rit-badge-warn">
             <svg style="width:11px;height:11px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"/></svg>
-            Requiere ajustes
+            Con observaciones
           </span>
         @else
           <span class="rit-badge rit-badge-none">
             <svg style="width:11px;height:11px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-            Actualización urgente
+            Requiere revisión
           </span>
         @endif
       @elseif($procesando)
@@ -220,8 +225,9 @@ html:not(.dark) .audit-result-title{color:#0f172a}
           <div style="flex:1;min-width:0">
             <p class="audit-result-title">
               @if($score >= 80) Reglamento jurídicamente actualizado
-              @elseif($score >= 50) Reglamento con observaciones importantes
-              @else Reglamento requiere actualización urgente
+              @elseif($score >= 65) Reglamento aprobado — con sugerencias de mejora
+              @elseif($score >= 50) Reglamento con observaciones
+              @else Reglamento requiere revisión urgente
               @endif
             </p>
             @if($auditoria->resumen_general)

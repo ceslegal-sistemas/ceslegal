@@ -469,6 +469,7 @@ Artículos requeridos: ámbito de aplicación del reglamento, denominación y NI
 CAPÍTULO II — ADMISIÓN Y PERÍODO DE PRUEBA
 Artículos requeridos: documentos exigidos para ingreso (certificado de antecedentes judiciales ES permitido; prueba de embarazo y libreta militar NO son exigibles como requisito de ingreso); período de prueba estipulado siempre por escrito — máximo 2 meses en indefinidos y proporcional al plazo en fijos; prórroga del período de prueba solo por acuerdo escrito dentro del plazo original; prohibición expresa de discriminación en selección.
 ARTÍCULO OBLIGATORIO VERBATIM — incluir esta regla exacta: "El período de prueba deberá pactarse siempre por escrito como cláusula expresa del contrato de trabajo. La terminación durante el período de prueba debe comunicarse con fundamentación y por escrito."
+ARTÍCULO OBLIGATORIO VERBATIM sobre prohibiciones de ingreso — incluir con esta redacción exacta: "Queda expresamente prohibido exigir como requisito de ingreso la presentación de la libreta militar, certificados o pruebas de gravidez o estado de embarazo, o cualquier otro documento que pueda constituir discriminación en el proceso de selección, de conformidad con el artículo 77 del Decreto 2663 de 1950 y la Ley 1010 de 2006."
 
 CAPÍTULO III — JORNADA ORDINARIA DE TRABAJO
 Artículos requeridos:
@@ -481,7 +482,7 @@ Si existen cargos de dirección, manejo o confianza (Art. 162 CST): artículo ex
 
 CAPÍTULO IV — TRABAJO SUPLEMENTARIO, DOMINICALES Y FESTIVOS
 Artículos requeridos:
-A) Límite horas extras — VERBATIM OBLIGATORIO: "El trabajo suplementario o de horas extras no podrá exceder de dos (2) horas diarias ni de doce (12) horas semanales." (Art. 167 CST). Autorización previa y escrita del empleador; horas extras no autorizadas no generan pago.
+A) Límite horas extras — VERBATIM OBLIGATORIO: "El trabajo suplementario o de horas extras no podrá exceder de dos (2) horas diarias ni de doce (12) horas semanales, de conformidad con el artículo 167A del Decreto 2663 de 1950 (Código Sustantivo del Trabajo)." Autorización previa y escrita del empleador; horas extras no autorizadas no generan pago.
 B) Recargos exactos: hora extra diurna 25% sobre el ordinario; hora extra nocturna 75%; trabajo en dominical o festivo 75%; recargo nocturno ordinario 35% (trabajo entre 21:00-06:00 no en jornada ordinaria).
 C) Si la empresa opera en turnos nocturnos regulares: artículo expreso sobre recargo nocturno del 35% para quienes tienen jornada ordinaria nocturna.
 D) Registro individual del trabajo suplementario por trabajador, firmado por ambas partes.
@@ -496,7 +497,9 @@ E) Salario en especie: máximo el 50% del salario total; debe pactarse por escri
 F) Comprobante de pago discriminado que detalle devengados y descuentos.
 
 CAPÍTULO VI — VACACIONES Y PERMISOS
-Artículos requeridos: 15 días hábiles remunerados por año de servicio; período de disfrute acordado entre partes con aviso previo de 15 días; registro especial de vacaciones que lleva la empresa; acumulación hasta 4 años por acuerdo escrito entre las partes; compensación en dinero solo en los casos autorizados por ley; permisos remunerados (calamidad doméstica, sufragio, diligencias personales con aviso previo).
+Artículos requeridos:
+ARTÍCULO OBLIGATORIO VERBATIM — incluir esta frase exacta: "Todo trabajador tiene derecho a quince (15) días hábiles consecutivos de vacaciones remuneradas por cada año de servicio, de conformidad con el artículo 186 del Código Sustantivo del Trabajo."
+Adicionalmente: período de disfrute acordado entre partes con aviso previo de 15 días; la empresa llevará un registro especial de vacaciones con nombre del trabajador, fecha de salida, fecha de retorno y saldo acumulado; acumulación hasta 4 años por acuerdo escrito entre las partes; compensación en dinero solo en los casos autorizados por ley; permisos remunerados (calamidad doméstica, sufragio, diligencias personales con aviso previo).
 
 CAPÍTULO VII — LICENCIAS ESPECIALES
 Artículos requeridos: licencia de maternidad 18 semanas remuneradas (Ley 2114/2021); licencia de paternidad 2 semanas remuneradas (Ley 2114/2021); licencia de luto 5 días hábiles por cónyuge, compañero permanente o familiar hasta segundo grado de consanguinidad (Ley 1280/2009); licencia por calamidad doméstica grave; licencias no remuneradas.
@@ -535,7 +538,7 @@ Artículos requeridos: asignación formal de equipos con acta; responsabilidad d
 CAPÍTULO XIV — COMITÉ DE CONVIVENCIA LABORAL Y PREVENCIÓN DE ACOSO
 ARTÍCULOS OBLIGATORIOS — cada uno como párrafo completo de mínimo 60 palabras:
 A) Definición y modalidades de acoso laboral: persecución, discriminación, entorpecimiento, inequidad y desprotección (Ley 1010/2006, Art. 2). Definir cada modalidad con ejemplo.
-B) Comité de Convivencia Laboral: conformación paritaria, elección democrática de representantes de los trabajadores, período de 2 años, reunión mensual ordinaria y extraordinaria cuando se presente un caso (Resolución 652/2012).
+B) Comité de Convivencia Laboral — VERBATIM OBLIGATORIO incluir esta frase exacta: "El comité estará conformado de manera bipartita por dos (2) representantes del empleador y dos (2) representantes de los trabajadores, para la adopción de medidas de prevención y corrección del acoso laboral, de conformidad con la Resolución 734 de 2006 y la Resolución 652 de 2012." Elección democrática de representantes de los trabajadores, período de 2 años, reunión mensual ordinaria y extraordinaria cuando se presente un caso.
 C) Funciones del Comité: recibir quejas, examinar conductas, facilitar diálogo entre las partes, formular recomendaciones, hacer seguimiento, informar a la dirección.
 D) Procedimiento interno de queja por acoso laboral — artículo con pasos numerados: 1) presentación escrita al Comité; 2) aviso al presunto acosador en máx 5 días; 3) investigación confidencial en máx 30 días; 4) audiencia de conciliación; 5) informe final con medidas correctivas concretas y plazos; 6) seguimiento trimestral.
 E) POLÍTICA DE PREVENCIÓN DEL ACOSO SEXUAL — LEY 2365 DE 2024 — ARTÍCULO AUTÓNOMO CON ESTE TÍTULO EXACTO. Contenido mínimo: definición legal de acoso sexual en el trabajo; conductas que lo constituyen (solicitudes de favores sexuales, comentarios, contacto físico no deseado, exhibicionismo, acoso digital); canal confidencial exclusivo para denuncias de acoso sexual; protocolo de atención con plazos máximos; garantía de confidencialidad de la víctima; prohibición expresa de represalias contra quien denuncie; obligación del empleador de investigar dentro de los 5 días hábiles siguientes a la denuncia.
@@ -551,14 +554,16 @@ INFORMACIÓN DE LA EMPRESA PROPORCIONADA POR EL ADMINISTRADOR:
 {$infoEmpresa}
 
 VERIFICACIÓN OBLIGATORIA ANTES DE TERMINAR — revisa CADA punto:
-1. CAP. II: ¿incluye prohibición de exigir libreta militar? ¿incluye prórroga del período de prueba?
+1. CAP. II: ¿incluye prohibición de exigir libreta militar y prueba de embarazo con referencia al Art. 77 del Decreto 2663 de 1950? ¿incluye prórroga del período de prueba?
 2. CAP. III: ¿tiene ARTÍCULO INDEPENDIENTE de descanso dominical remunerado (Art. 181 CST)? ¿tiene ARTÍCULO INDEPENDIENTE de descanso compensatorio (Art. 182 CST)? ¿describe la distribución de la jornada diaria?
-3. CAP. IV: ¿contiene la frase literal "no podrá exceder de dos (2) horas diarias ni de doce (12) horas semanales"? ¿especifica los recargos exactos (25%, 75%)?
+3. CAP. IV: ¿contiene la frase literal "no podrá exceder de dos (2) horas diarias ni de doce (12) horas semanales" con referencia al "artículo 167A del Decreto 2663 de 1950"? ¿especifica los recargos exactos (25%, 75%)?
 4. CAP. V: ¿contiene la prohibición de pago con fichas, mercancías o víveres? ¿menciona el salario integral?
-5. CAP. VIII: ¿el procedimiento disciplinario incluye el derecho del trabajador a estar acompañado de un representante sindical o persona de su confianza en la audiencia de descargos?
-6. CAP. IX: ¿la escala diferencia claramente entre faltas leves (multa, no suspensión), graves (suspensión 1-8 días) y muy graves (hasta 2 meses o terminación)?
-7. CAP. XII: ¿incluye exámenes de alcoholemia/sustancias para cargos de riesgo? ¿tiene artículo de prohibición expresa para trabajadores en cargos de riesgo para terceros?
-8. CAP. XIV: ¿tiene un ARTÍCULO AUTÓNOMO titulado "POLÍTICA DE PREVENCIÓN DEL ACOSO SEXUAL — LEY 2365 DE 2024" con canal de denuncia y protocolo de atención separado del artículo del Comité?
+5. CAP. VI: ¿contiene la frase "quince (15) días hábiles consecutivos de vacaciones remuneradas"? ¿menciona el registro especial de vacaciones?
+6. CAP. VIII: ¿el procedimiento disciplinario incluye el derecho del trabajador a estar acompañado de un representante sindical o persona de su confianza en la audiencia de descargos?
+7. CAP. IX: ¿la escala diferencia claramente entre faltas leves (multa, no suspensión), graves (suspensión 1-8 días) y muy graves (hasta 2 meses o terminación)?
+8. CAP. XII: ¿incluye exámenes de alcoholemia/sustancias para cargos de riesgo? ¿tiene artículo de prohibición expresa para trabajadores en cargos de riesgo para terceros?
+9. CAP. XIV B: ¿contiene la frase "comité conformado de manera bipartita por dos (2) representantes del empleador y dos (2) representantes de los trabajadores" y referencia a la "Resolución 734 de 2006"?
+10. CAP. XIV E: ¿tiene un ARTÍCULO AUTÓNOMO titulado "POLÍTICA DE PREVENCIÓN DEL ACOSO SEXUAL — LEY 2365 DE 2024" con canal de denuncia y protocolo de atención separado del artículo del Comité?
 Si cualquiera de estos puntos está ausente, REDÁCTALO AHORA antes de finalizar.
 
 Redacta el Reglamento Interno de Trabajo completo:
