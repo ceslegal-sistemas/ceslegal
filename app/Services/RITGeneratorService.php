@@ -21,12 +21,13 @@ class RITGeneratorService
         $config = config('services.ia.gemini', []);
         $apiKey = $config['api_key'] ?? '';
 
-        // Cascade de modelos: si el principal falla por sobrecarga (503/429), probar el siguiente
-        $modelPrincipal   = $config['model'] ?? 'gemini-2.5-flash';
-        $modelosCascada   = array_unique(array_filter([
+        // Cascade de modelos: si el principal falla por sobrecarga (503/429), probar el siguiente.
+        // gemini-2.5-flash-lite es el único fallback estable en la familia 2.5 activa.
+        // gemini-2.0-flash y gemini-1.5-flash están deprecados (abril 2026).
+        $modelPrincipal = $config['model'] ?? 'gemini-2.5-flash';
+        $modelosCascada = array_unique(array_filter([
             $modelPrincipal,
-            'gemini-2.0-flash',
-            'gemini-1.5-flash',
+            'gemini-2.5-flash-lite',
         ]));
 
         $prompt = $this->construirPrompt($respuestas, $empresa);
