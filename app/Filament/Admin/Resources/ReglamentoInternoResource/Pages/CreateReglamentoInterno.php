@@ -904,21 +904,19 @@ class CreateReglamentoInterno extends CreateRecord
         );
 
         // 5. Llamar a la IA (puede tardar hasta 90s)
-        $config   = config('services.ia.gemini', []);
-        $modelPrincipal = $config['model'] ?? 'gemini-2.5-flash';
-        $service  = app(RITGeneratorService::class);
+        $service = app(RITGeneratorService::class);
         try {
             $textoRIT = $service->generarTextoRIT($data, $empresa);
 
-            // Si se usó el modelo de respaldo, advertir al usuario
-            if ($service->modeloUsado && $service->modeloUsado !== $modelPrincipal) {
+            // Advertir solo si se llegó al último recurso (flash-lite = calidad reducida)
+            if ($service->esFallbackLite) {
                 Notification::make()
                     ->warning()
-                    ->title('Generado con modelo alternativo')
+                    ->title('Documento generado con modelo alternativo')
                     ->body(
-                        'El modelo de IA principal estaba con alta demanda y se usó un modelo alternativo ('
-                        . $service->modeloUsado . '). '
-                        . 'Le recomendamos auditar el documento antes de presentarlo.'
+                        'Los modelos principales de IA tenían alta demanda. El reglamento fue generado '
+                        . 'con un modelo de menor capacidad. Le recomendamos ejecutar la auditoría '
+                        . 'antes de presentar el documento.'
                     )
                     ->persistent()
                     ->send();

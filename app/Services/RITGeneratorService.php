@@ -16,6 +16,9 @@ class RITGeneratorService
     /** Modelo que terminó generando el texto. Consultable desde el código llamador. */
     public string $modeloUsado = '';
 
+    /** True solo cuando se llegó al último recurso (flash-lite). */
+    public bool $esFallbackLite = false;
+
     /**
      * Genera el texto completo del RIT usando Gemini a partir de las respuestas del cuestionario F2.
      */
@@ -24,14 +27,11 @@ class RITGeneratorService
         $config = config('services.ia.gemini', []);
         $apiKey = $config['api_key'] ?? '';
 
-        // Cascade de modelos: si el principal falla por sobrecarga (503/429), probar el siguiente.
-        // gemini-2.5-flash-lite es el único fallback estable en la familia 2.5 activa.
-        // gemini-2.0-flash y gemini-1.5-flash están deprecados (abril 2026).
-        $modelPrincipal = $config['model'] ?? 'gemini-2.5-flash';
-        $modelosCascada = array_unique(array_filter([
-            $modelPrincipal,
-            'gemini-2.5-flash-lite',
-        ]));
+        // El RIT es un documento legal crítico de 16 capítulos — usar el modelo más capaz.
+        // Cascade exclusivo para esta tarea: Pro → Flash → Flash-Lite (último recurso).
+        // La notificación de advertencia solo se envía al caer al Flash-Lite.
+        $modelPrincipal = 'gemini-2.5-pro';
+        $modelosCascada = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 
         $prompt = $this->construirPrompt($respuestas, $empresa);
 
@@ -99,7 +99,8 @@ class RITGeneratorService
                         throw new \RuntimeException('Respuesta de Gemini sin contenido válido');
                     }
 
-                    $this->modeloUsado = $model;
+                    $this->modeloUsado    = $model;
+                    $this->esFallbackLite = ($model === 'gemini-2.5-flash-lite');
 
                     if ($idx > 0) {
                         Log::info('RITGeneratorService: texto generado con modelo de respaldo', [
