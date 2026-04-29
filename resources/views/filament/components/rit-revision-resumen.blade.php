@@ -24,10 +24,11 @@
         ? implode(' · ', array_filter(array_map(fn($p) => $periodicidadLabels[$p] ?? $p, $periodicidad_pago)))
         : ($periodicidadLabels[$periodicidad_pago ?? ''] ?? ($periodicidad_pago ?: '—'));
     $controlLabels = [
-        'biometrico'  => 'Biométrico',
-        'planilla'    => 'Planilla manual',
-        'app'         => 'App móvil',
-        'sin_control' => 'Sin control formal',
+        'biometrico'         => 'Reloj biométrico',
+        'planilla'           => 'Planilla manual',
+        'app'                => 'App móvil / digital',
+        'supervision_rondas' => 'Supervisión directa',
+        'sin_control'        => 'Sin sistema formal',
     ];
     $sgSstLabels = [
         'si'         => 'Sí, implementado',
@@ -53,11 +54,14 @@
         'otro'        => 'Otro',
     ];
     $sancionesLabels = [
-        'llamado_verbal'   => 'Llamado verbal',
-        'llamado_escrito'  => 'Llamado escrito',
-        'suspension_1_3'   => 'Suspensión 1-3 días',
-        'suspension_4_8'   => 'Suspensión 4-8 días',
-        'terminacion'      => 'Terminación justa causa',
+        'llamado_verbal'  => 'Llamado verbal',
+        'llamado_escrito' => 'Llamado escrito',
+        'suspension_1_8'  => 'Suspensión 1-8 días',
+        'suspension_1_15' => 'Suspensión 1-15 días',
+        'suspension_1_30' => 'Suspensión 1-30 días',
+        'suspension_1_40' => 'Suspensión 1-40 días',
+        'suspension_1_60' => 'Suspensión 1-60 días',
+        'terminacion'     => 'Terminación justa causa',
     ];
     $tiposContratoLabels = [
         'indefinido'  => 'Término indefinido',
@@ -69,11 +73,14 @@
     $totalFaltas    = count($faltas_leves ?? []) + count($faltas_graves ?? []);
 
     $modalidadesJornadaLabels = [
-        'presencial'       => 'Presencial',
-        'teletrabajo'      => 'Teletrabajo',
-        'hibrido'          => 'Híbrido',
-        'turnos_rotativos' => 'Turnos rotativos',
-        'tiempo_parcial'   => 'Tiempo parcial',
+        'jornada_fija_diurna'    => 'Jornada fija diurna',
+        'turnos_rotativos'       => 'Turnos rotativos',
+        'turno_nocturno_regular' => 'Turno nocturno fijo',
+        'operacion_continua_247' => 'Operación 24/7',
+        'jornada_flexible'       => 'Horario flexible',
+        'teletrabajo'            => 'Teletrabajo',
+        'trabajo_campo_obra'     => 'Trabajo en campo/obra',
+        'vigilancia_guardias'    => 'Vigilancia / guardias',
     ];
     $capitulosRIT = [
         'I'    => 'Denominación y Objeto',
