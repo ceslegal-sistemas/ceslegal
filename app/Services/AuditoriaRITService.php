@@ -19,50 +19,60 @@ use Illuminate\Support\Facades\Log;
  */
 class AuditoriaRITService
 {
-    /** Máximo de caracteres del RIT a enviar por sección (~375 palabras) */
-    private const MAX_CHARS_SECCION = 2000;
+    /** Máximo de caracteres del RIT a enviar por sección (~1200 palabras).
+     *  Un capítulo típico tiene 5-7 artículos de ~100 palabras = ~4500 chars.
+     *  Con 5000 se captura el capítulo completo sin truncar artículos clave. */
+    private const MAX_CHARS_SECCION = 5000;
 
     /** Secciones obligatorias del CST con sus queries RAG y palabras clave */
     private const SECCIONES = [
         'admision' => [
             'titulo'         => 'Admisión y Período de Prueba',
             'query'          => 'admisión trabajadores período de prueba requisitos contrato Art. 76 80 CST',
-            'palabras_clave' => ['admis', 'prueba', 'contrat', 'vinculac', 'ingres'],
+            'palabras_clave' => ['admis', 'prueba', 'contrat', 'vinculac', 'ingres', 'libreta', 'embarazo', 'decreto 2663'],
+            'capitulos'      => ['ADMISIÓN', 'ADMISION', 'PERÍODO DE PRUEBA', 'PERIODO DE PRUEBA'],
         ],
         'jornada' => [
             'titulo'         => 'Jornada Laboral y Horas Extras',
             'query'          => 'jornada laboral horas extras trabajo nocturno dominicales festivos Art. 158 168 179 CST',
-            'palabras_clave' => ['jornada', 'horario', 'hora extra', 'nocturno', 'dominical', 'festiv'],
+            'palabras_clave' => ['jornada', 'horario', 'hora extra', 'suplementar', 'nocturno', 'dominical', 'festiv', '167A', 'diarias', 'semanales', 'recargo'],
+            'capitulos'      => ['JORNADA', 'TRABAJO SUPLEMENTARIO', 'HORAS EXTRAS', 'DOMINICALES'],
         ],
         'descansos' => [
             'titulo'         => 'Descansos y Vacaciones',
             'query'          => 'descanso remunerado vacaciones compensación permisos Art. 186 192 CST',
-            'palabras_clave' => ['vacacion', 'descanso', 'compensa', 'permiso', 'licencia'],
+            'palabras_clave' => ['vacacion', 'descanso', 'compensa', 'permiso', 'licencia', 'hábiles', 'consecutiv', 'registro especial', 'registro de vacac'],
+            'capitulos'      => ['VACACIONES', 'DESCANSO', 'PERMISOS Y LICENCIAS', 'LICENCIAS'],
         ],
         'salario' => [
             'titulo'         => 'Remuneración y Forma de Pago',
             'query'          => 'salario remuneración forma periodicidad pago deducciones Art. 127 149 CST',
-            'palabras_clave' => ['salario', 'remunera', 'pago', 'sueldo', 'deduccion', 'nómina'],
+            'palabras_clave' => ['salario', 'remunera', 'pago', 'sueldo', 'deduccion', 'nómina', 'trueque', 'fichas', 'víveres'],
+            'capitulos'      => ['REMUNERACIÓN', 'REMUNERACION', 'SALARIO', 'FORMA DE PAGO'],
         ],
         'disciplina' => [
             'titulo'         => 'Régimen Disciplinario',
             'query'          => 'régimen disciplinario faltas leves graves sanciones descargos procedimiento Art. 105 113 CST',
-            'palabras_clave' => ['falta', 'sanc', 'disciplin', 'descargo', 'amonestac', 'suspens'],
+            'palabras_clave' => ['falta', 'sanc', 'disciplin', 'descargo', 'amonestac', 'suspens', 'sindical', 'multa', '1/5'],
+            'capitulos'      => ['RÉGIMEN DISCIPLINARIO', 'REGIMEN DISCIPLINARIO', 'FALTAS', 'SANCIONES', 'ESCALA DE SANCIONES'],
         ],
         'sst' => [
             'titulo'         => 'Seguridad y Salud en el Trabajo (SG-SST)',
             'query'          => 'seguridad salud trabajo SG-SST riesgos profesionales accidentes enfermedades laborales obligaciones empleador',
-            'palabras_clave' => ['seguridad', 'salud', 'riesgo', 'accidente', 'SST', 'ARL', 'EPP'],
+            'palabras_clave' => ['seguridad', 'salud', 'riesgo', 'accidente', 'SST', 'ARL', 'EPP', 'alcoholemia', 'psicoactiv', 'médico'],
+            'capitulos'      => ['SEGURIDAD Y SALUD', 'SG-SST', 'SST'],
         ],
         'acoso' => [
             'titulo'         => 'Acoso Laboral y Sexual',
             'query'          => 'acoso laboral sexual prevención Ley 1010 2006 Ley 2365 2024 comité convivencia',
-            'palabras_clave' => ['acoso', 'hostigamiento', 'sexual', 'convivencia', 'matonismo', 'Ley 1010', 'Ley 2365'],
+            'palabras_clave' => ['acoso', 'hostigamiento', 'sexual', 'convivencia', 'matonismo', 'Ley 1010', 'Ley 2365', 'bipartit', '734', 'comité'],
+            'capitulos'      => ['ACOSO', 'CONVIVENCIA LABORAL', 'COMITÉ DE CONVIVENCIA', 'PREVENCIÓN DE ACOSO'],
         ],
         'grupos_protegidos' => [
             'titulo'         => 'Protección de Sujetos Especiales',
             'query'          => 'mujer embarazada maternidad paternidad discapacidad fuero circunstancial trabajadores protegidos',
-            'palabras_clave' => ['maternidad', 'paternidad', 'embarazo', 'discapacidad', 'fuero', 'mujer', 'sindical'],
+            'palabras_clave' => ['maternidad', 'paternidad', 'embarazo', 'discapacidad', 'fuero', 'mujer', 'sindical', 'protección', 'sujetos'],
+            'capitulos'      => ['PROTECCIÓN', 'SUJETOS DE ESPECIAL PROTECCIÓN', 'GRUPOS PROTEGIDOS'],
         ],
     ];
 
@@ -192,7 +202,11 @@ class AuditoriaRITService
     private function auditarSeccion(string $textoRIT, array $config, string $razonSocial): array
     {
         // 1. Extraer fragmento relevante del RIT para esta sección (sin enviar todo el documento)
-        $fragmentoRIT = $this->extraerFragmentoRIT($textoRIT, $config['palabras_clave']);
+        $fragmentoRIT = $this->extraerFragmentoRIT(
+            $textoRIT,
+            $config['palabras_clave'],
+            $config['capitulos'] ?? []
+        );
 
         // 2. Buscar normativa relevante en la biblioteca legal (RAG) — umbral bajo para capturar más
         $normativa = $this->biblioteca->buscarFragmentos(
@@ -262,21 +276,59 @@ PROMPT;
     }
 
     /**
-     * Extrae las líneas más relevantes del RIT para una sección temática.
-     * Divide por línea individual (el RIT generado usa \n simples, no dobles).
-     * Toma ±4 líneas de contexto alrededor de cada coincidencia.
+     * Extrae el fragmento relevante del RIT para una sección temática.
+     *
+     * Estrategia 1 (preferida): detectar el CAPÍTULO correspondiente y extraer
+     *   el texto completo hasta el siguiente CAPÍTULO. Garantiza capturar todos
+     *   los artículos del capítulo, no solo los que contienen la palabra clave.
+     *
+     * Estrategia 2 (fallback): búsqueda por palabras_clave con ±10 líneas de
+     *   contexto alrededor de cada coincidencia.
      */
-    private function extraerFragmentoRIT(string $textoRIT, array $palabrasClave): string
+    private function extraerFragmentoRIT(string $textoRIT, array $palabrasClave, array $capitulos = []): string
     {
-        $lineas     = explode("\n", $textoRIT);
-        $indices    = [];
+        $lineas = explode("\n", $textoRIT);
+        $total  = count($lineas);
 
+        // ── Estrategia 1: extracción por encabezado CAPÍTULO ──────────────────
+        if (!empty($capitulos)) {
+            $inicio = null;
+            foreach ($lineas as $i => $linea) {
+                // Buscar línea que contenga "CAPÍTULO" y alguna de las palabras del capítulo
+                if (!preg_match('/CAP[IÍ]TULO/ui', $linea)) continue;
+                $lineaUp = mb_strtoupper($linea);
+                foreach ($capitulos as $keyword) {
+                    if (str_contains($lineaUp, mb_strtoupper($keyword))) {
+                        $inicio = $i;
+                        break 2;
+                    }
+                }
+            }
+
+            if ($inicio !== null) {
+                // Buscar el siguiente encabezado CAPÍTULO para delimitar el bloque
+                $fin = $total;
+                for ($i = $inicio + 1; $i < $total; $i++) {
+                    if (preg_match('/CAP[IÍ]TULO/ui', $lineas[$i])) {
+                        $fin = $i;
+                        break;
+                    }
+                }
+
+                $fragmento = implode("\n", array_slice($lineas, $inicio, $fin - $inicio));
+                if (!empty(trim($fragmento))) {
+                    return mb_substr(trim($fragmento), 0, self::MAX_CHARS_SECCION);
+                }
+            }
+        }
+
+        // ── Estrategia 2: palabras clave con ±10 líneas de contexto ───────────
+        $indices = [];
         foreach ($lineas as $i => $linea) {
             $lineaNorm = mb_strtolower($linea);
             foreach ($palabrasClave as $clave) {
                 if (str_contains($lineaNorm, mb_strtolower($clave))) {
-                    // Incluir contexto ±4 líneas
-                    for ($j = max(0, $i - 4); $j <= min(count($lineas) - 1, $i + 4); $j++) {
+                    for ($j = max(0, $i - 10); $j <= min($total - 1, $i + 10); $j++) {
                         $indices[$j] = true;
                     }
                     break;
@@ -290,7 +342,7 @@ PROMPT;
         $fragmento = '';
         $prev = -2;
         foreach (array_keys($indices) as $i) {
-            if ($i > $prev + 1) $fragmento .= "\n"; // separador entre bloques
+            if ($i > $prev + 1) $fragmento .= "\n";
             $fragmento .= $lineas[$i] . "\n";
             $prev = $i;
         }
