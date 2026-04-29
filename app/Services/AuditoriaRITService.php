@@ -37,6 +37,8 @@ class AuditoriaRITService
             'query'          => 'jornada laboral horas extras trabajo nocturno dominicales festivos Art. 158 168 179 CST',
             'palabras_clave' => ['jornada', 'horario', 'hora extra', 'suplementar', 'nocturno', 'dominical', 'festiv', '167A', 'diarias', 'semanales', 'recargo'],
             'capitulos'      => ['JORNADA', 'TRABAJO SUPLEMENTARIO', 'HORAS EXTRAS', 'DOMINICALES'],
+            // Captura Cap III (jornada ordinaria) + Cap IV (suplementario/extras) juntos
+            'num_capitulos'  => 2,
         ],
         'descansos' => [
             'titulo'         => 'Descansos y Vacaciones',
@@ -55,6 +57,8 @@ class AuditoriaRITService
             'query'          => 'régimen disciplinario faltas leves graves sanciones descargos procedimiento Art. 105 113 CST',
             'palabras_clave' => ['falta', 'sanc', 'disciplin', 'descargo', 'amonestac', 'suspens', 'sindical', 'multa', '1/5'],
             'capitulos'      => ['RÉGIMEN DISCIPLINARIO', 'REGIMEN DISCIPLINARIO', 'FALTAS', 'SANCIONES', 'ESCALA DE SANCIONES'],
+            // Captura Cap VIII (clasificación de faltas) + Cap IX (escala de sanciones) juntos
+            'num_capitulos'  => 2,
         ],
         'sst' => [
             'titulo'         => 'Seguridad y Salud en el Trabajo (SG-SST)',
@@ -71,8 +75,9 @@ class AuditoriaRITService
         'grupos_protegidos' => [
             'titulo'         => 'Protección de Sujetos Especiales',
             'query'          => 'mujer embarazada maternidad paternidad discapacidad fuero circunstancial trabajadores protegidos',
-            'palabras_clave' => ['maternidad', 'paternidad', 'embarazo', 'discapacidad', 'fuero', 'mujer', 'sindical', 'protección', 'sujetos'],
-            'capitulos'      => ['PROTECCIÓN', 'SUJETOS DE ESPECIAL PROTECCIÓN', 'GRUPOS PROTEGIDOS'],
+            'palabras_clave' => ['maternidad', 'paternidad', 'embarazo', 'discapacidad', 'fuero', 'sindical', 'sujetos especial'],
+            // 'PROTECCIÓN' sola es demasiado genérica (puede coincidir con Cap XIV PREVENCIÓN DE ACOSO)
+            'capitulos'      => ['SUJETOS DE ESPECIAL', 'ESPECIAL PROTECCIÓN', 'GRUPOS PROTEGIDOS', 'TRABAJADORES PROTEGIDOS'],
         ],
     ];
 
@@ -205,7 +210,8 @@ class AuditoriaRITService
         $fragmentoRIT = $this->extraerFragmentoRIT(
             $textoRIT,
             $config['palabras_clave'],
-            $config['capitulos'] ?? []
+            $config['capitulos'] ?? [],
+            $config['num_capitulos'] ?? 1
         );
 
         // 2. Buscar normativa relevante en la biblioteca legal (RAG) — umbral bajo para capturar más
@@ -285,7 +291,7 @@ PROMPT;
      * Estrategia 2 (fallback): búsqueda por palabras_clave con ±10 líneas de
      *   contexto alrededor de cada coincidencia.
      */
-    private function extraerFragmentoRIT(string $textoRIT, array $palabrasClave, array $capitulos = []): string
+    private function extraerFragmentoRIT(string $textoRIT, array $palabrasClave, array $capitulos = [], int $numCapitulos = 1): string
     {
         $lineas = explode("\n", $textoRIT);
         $total  = count($lineas);
@@ -306,12 +312,17 @@ PROMPT;
             }
 
             if ($inicio !== null) {
-                // Buscar el siguiente encabezado CAPÍTULO para delimitar el bloque
-                $fin = $total;
+                // Buscar el encabezado CAPÍTULO que delimita el bloque.
+                // num_capitulos > 1 captura N capítulos consecutivos (ej: jornada=2 toma Cap III + Cap IV).
+                $fin           = $total;
+                $chapterCount  = 0;
                 for ($i = $inicio + 1; $i < $total; $i++) {
                     if (preg_match('/CAP[IÍ]TULO/ui', $lineas[$i])) {
-                        $fin = $i;
-                        break;
+                        $chapterCount++;
+                        if ($chapterCount >= $numCapitulos) {
+                            $fin = $i;
+                            break;
+                        }
                     }
                 }
 
