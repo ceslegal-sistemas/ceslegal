@@ -391,10 +391,13 @@ PROMPT;
 
     private function llamarIA(string $prompt, bool $forzarJSON = false): string
     {
-        $config  = config('services.ia.gemini', []);
-        $apiKey  = $config['api_key'] ?? '';
-        $model   = $config['model'] ?? 'gemini-2.5-flash';
-        $url     = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+        $config = config('services.ia.gemini', []);
+        $apiKey = $config['api_key'] ?? '';
+
+        // Cascade: flash → flash-lite → pro
+        // Sin sleep() entre modelos porque llamarIA() se invoca 8+ veces por auditoría;
+        // sleeps acumulados desbordarían el timeout del servidor en cola sync.
+        $modelos = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
 
         $genConfig = [
             'temperature'     => 0.2,
@@ -402,8 +405,7 @@ PROMPT;
         ];
         if ($forzarJSON) {
             $genConfig['responseMimeType'] = 'application/json';
-            // gemini-2.5-flash usa el presupuesto de thinking antes del output;
-            // con thinkingBudget:0 los 2048 tokens van íntegros al JSON de respuesta
+            // thinkingBudget:0 → los tokens van íntegros al JSON de respuesta
             $genConfig['thinkingConfig'] = ['thinkingBudget' => 0];
         }
 
@@ -412,36 +414,64 @@ PROMPT;
             'generationConfig' => $genConfig,
         ];
 
-        // Un único reintento inmediato para 503/429 — sin sleep() porque
-        // en cola sync el tiempo de espera acumula y desborda el timeout del servidor
-        for ($intento = 1; $intento <= 2; $intento++) {
-            $response = Http::withHeaders(['Content-Type' => 'application/json'])
-                ->timeout(60)
-                ->post($url, $payload);
+        $lastError    = '';
+        $totalModelos = count($modelos);
 
-            if ($response->successful()) {
-                // gemini-2.5-flash (thinking model) incluye el pensamiento en parts[0]
-                // y la respuesta real en el último part que no sea "thought"
-                $parts = $response->json('candidates.0.content.parts', []);
-                foreach (array_reverse($parts) as $part) {
-                    if (empty($part['thought']) && isset($part['text']) && $part['text'] !== '') {
-                        return $part['text'];
+        foreach (array_values($modelos) as $idx => $model) {
+            $url      = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+            $esUltimo = ($idx === $totalModelos - 1);
+            $sobrecarga = false;
+
+            // Dos intentos por modelo para errores transitorios (sin sleep)
+            for ($intento = 1; $intento <= 2; $intento++) {
+                $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                    ->timeout(60)
+                    ->post($url, $payload);
+
+                if ($response->successful()) {
+                    // El thinking model incluye el razonamiento en parts anteriores;
+                    // la respuesta real es el último part que no sea "thought"
+                    $parts = $response->json('candidates.0.content.parts', []);
+                    foreach (array_reverse($parts) as $part) {
+                        if (empty($part['thought']) && isset($part['text']) && $part['text'] !== '') {
+                            return $part['text'];
+                        }
                     }
+                    return $response->json('candidates.0.content.parts.0.text', '');
                 }
-                // Fallback por si no hay parts o todos son thought
-                return $response->json('candidates.0.content.parts.0.text', '');
+
+                $status    = $response->status();
+                $lastError = $response->body();
+
+                Log::warning("AuditoriaRIT: Gemini {$status} en modelo {$model}, intento {$intento}", [
+                    'cascade' => in_array($status, [429, 503]) && !$esUltimo,
+                ]);
+
+                if (in_array($status, [429, 503])) {
+                    // Sobrecarga → saltar al siguiente modelo sin esperar
+                    $sobrecarga = true;
+                    break;
+                }
+
+                // Error permanente (autenticación, modelo inválido, etc.) → no reintentar
+                if (!in_array($status, [500, 502, 504])) {
+                    throw new \RuntimeException('Error Gemini (' . $status . '): ' . $lastError);
+                }
+                // 500/502/504 transitorio → segundo intento inmediato
             }
 
-            $status = $response->status();
-
-            if (!in_array($status, [429, 503]) || $intento === 2) {
-                throw new \RuntimeException('Error Gemini (' . $status . '): ' . $response->body());
+            if ($sobrecarga && !$esUltimo) {
+                Log::warning("AuditoriaRIT: {$model} saturado, cambiando al siguiente modelo", [
+                    'model_next' => $modelos[$idx + 1] ?? 'ninguno',
+                ]);
+                continue;
             }
 
-            Log::warning("AuditoriaRIT: Gemini {$status}, reintentando inmediatamente…");
+            // Si no fue sobrecarga (error transitorio persistente) o es el último modelo, salir
+            break;
         }
 
-        throw new \RuntimeException('Error Gemini: reintento fallido.');
+        throw new \RuntimeException('Error Gemini (todos los modelos intentados): ' . $lastError);
     }
 
     private function parsearJSON(string $texto): array
