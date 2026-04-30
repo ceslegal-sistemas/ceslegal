@@ -16,8 +16,10 @@ class ProcesarAuditoriaRIT implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** Segundos máximos por job (9 secciones × ~30s c/u + margen) */
-    public int $timeout = 360;
+    /** Segundos máximos por job.
+     *  9 secciones × ~20s c/u con cascade rápido = ~180s real.
+     *  280 deja margen bajo el límite CLI de 300s de shared hosting. */
+    public int $timeout = 280;
 
     /** Sin reintentos automáticos: las secciones tienen su propio cascade de modelos */
     public int $tries = 1;
