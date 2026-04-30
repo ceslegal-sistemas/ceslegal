@@ -8,6 +8,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\SerializesModels;
 use Filament\Notifications\Notification;
 
@@ -15,13 +16,28 @@ class ProcesarAuditoriaRIT implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    /** Segundos máximos por job (9 secciones × ~30s c/u + margen) */
     public int $timeout = 360;
-    public int $tries   = 1;
+
+    /** Sin reintentos automáticos: las secciones tienen su propio cascade de modelos */
+    public int $tries = 1;
 
     public function __construct(
         public readonly AuditoriaRIT $auditoria,
         public readonly int $userId,
-    ) {}
+    ) {
+        // Cola dedicada para IA — permite controlar concurrencia con --queue=gemini
+        $this->onQueue('gemini');
+    }
+
+    /**
+     * Throttle global: máximo 800 llamadas/min a Gemini entre todos los workers.
+     * Si se supera, el job se libera de vuelta a la cola y se reintenta en 5 segundos.
+     */
+    public function middleware(): array
+    {
+        return [new RateLimited('gemini-api')];
+    }
 
     public function handle(AuditoriaRITService $service): void
     {
