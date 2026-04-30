@@ -223,6 +223,31 @@ class ActualizarEstadosDescargos extends Command
                     ]);
                     $this->error("   ✗ Error en {$proceso->codigo}: {$e->getMessage()}");
                 }
+            } else {
+                // CASO 3: El trabajador respondió algunas preguntas pero no finalizó (cerró sin enviar).
+                // Se cuenta como diligencia realizada ya que sí participó.
+                try {
+                    $diligencia->update([
+                        'trabajador_asistio' => true,
+                        'fecha_diligencia'   => now(),
+                    ]);
+                    $estadoService->alCompletarDescargos($proceso);
+                    $actualizados++;
+
+                    Log::info('Estado actualizado a descargos_realizados (respuestas parciales, fallback cron)', [
+                        'proceso_id'          => $proceso->id,
+                        'codigo'              => $proceso->codigo,
+                        'preguntas_respondidas' => $preguntasRespondidas,
+                    ]);
+
+                    $this->info("   ✓ {$proceso->codigo} → descargos_realizados ({$preguntasRespondidas} respuestas parciales)");
+                } catch (\Exception $e) {
+                    Log::error('Error al actualizar estado (respuestas parciales)', [
+                        'proceso_id' => $proceso->id,
+                        'error'      => $e->getMessage(),
+                    ]);
+                    $this->error("   ✗ Error en {$proceso->codigo}: {$e->getMessage()}");
+                }
             }
         }
 

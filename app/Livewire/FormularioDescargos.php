@@ -76,7 +76,20 @@ class FormularioDescargos extends Component
                     $this->tiempoExpiradoMostrarEvidencias = true;
                 } else {
                     // Quedan preguntas sin responder: el trabajador no completó a tiempo
-                    // No se marca asistencia ni se cambia estado hasta que todas las preguntas tengan respuesta
+                    // Si respondió al menos una pregunta, contar como diligencia realizada
+                    $preguntasRespondidas = $this->diligencia->preguntas()
+                        ->whereHas('respuesta')
+                        ->count();
+
+                    if ($preguntasRespondidas > 0 && !$this->diligencia->trabajador_asistio) {
+                        $this->diligencia->update([
+                            'trabajador_asistio' => true,
+                            'fecha_diligencia'   => now(),
+                        ]);
+                        $estadoService = app(EstadoProcesoService::class);
+                        $estadoService->alCompletarDescargos($this->diligencia->proceso);
+                    }
+
                     $this->formularioCompletado = true;
                     session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
                     return;
@@ -297,7 +310,20 @@ class FormularioDescargos extends Component
                 $this->tiempoExpiradoMostrarEvidencias = true;
                 session()->flash('info', 'El tiempo ha expirado, pero puede adjuntar evidencias antes de enviar.');
             } else {
-                // Quedan preguntas sin responder: no se marca asistencia ni se cambia estado
+                // Quedan preguntas sin responder: si el trabajador respondió al menos una, contar como realizado
+                $preguntasRespondidas = $this->diligencia->preguntas()
+                    ->whereHas('respuesta')
+                    ->count();
+
+                if ($preguntasRespondidas > 0 && !$this->diligencia->trabajador_asistio) {
+                    $this->diligencia->update([
+                        'trabajador_asistio' => true,
+                        'fecha_diligencia'   => now(),
+                    ]);
+                    $estadoService = app(EstadoProcesoService::class);
+                    $estadoService->alCompletarDescargos($this->diligencia->proceso);
+                }
+
                 $this->formularioCompletado = true;
                 session()->flash('error', 'El tiempo ha expirado.');
             }
