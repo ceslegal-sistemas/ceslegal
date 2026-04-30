@@ -61,7 +61,6 @@ class IAAnalisisSancionService
                     'temperature' => 0.3,
                     'maxOutputTokens' => max((int) ($config['max_tokens'] ?? 4096), 8192),
                     'topP' => 0.95,
-                    'topK' => 40,
                 ],
             ]);
 

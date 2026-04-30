@@ -51,7 +51,6 @@ class RITGeneratorService
                 'temperature'     => 0.3,
                 'maxOutputTokens' => 32768,
                 'topP'            => 0.95,
-                'topK'            => 40,
             ],
         ];
 

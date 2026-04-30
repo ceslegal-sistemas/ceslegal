@@ -818,7 +818,6 @@ HTML;
                         'temperature' => 0.7,
                         'maxOutputTokens' => 8192,
                         'topP' => 0.95,
-                        'topK' => 40,
                     ],
                 ]);
 
