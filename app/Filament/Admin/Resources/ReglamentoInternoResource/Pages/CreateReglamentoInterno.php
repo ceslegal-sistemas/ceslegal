@@ -846,6 +846,9 @@ class CreateReglamentoInterno extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
+        // Flash genera en ~15-30s. Permitir hasta 3 minutos como máximo absoluto.
+        set_time_limit(180);
+
         $empresa = $this->getEmpresa();
 
         if (!$empresa) {
@@ -904,7 +907,7 @@ class CreateReglamentoInterno extends CreateRecord
             ]
         );
 
-        // 5. Llamar a la IA (puede tardar hasta 90s)
+        // 5. Llamar a la IA (Flash: ~15-30s habitual)
         $service = app(RITGeneratorService::class);
         try {
             $textoRIT = $service->generarTextoRIT($data, $empresa);

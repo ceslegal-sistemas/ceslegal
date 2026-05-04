@@ -27,11 +27,11 @@ class RITGeneratorService
         $config = config('services.ia.gemini', []);
         $apiKey = $config['api_key'] ?? '';
 
-        // El RIT es un documento legal crítico de 16 capítulos — usar el modelo más capaz.
-        // Cascade exclusivo para esta tarea: Pro → Flash → Flash-Lite (último recurso).
-        // La notificación de advertencia solo se envía al caer al Flash-Lite.
-        $modelPrincipal = 'gemini-2.5-pro';
-        $modelosCascada = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+        // RIT: Flash genera en 10-30s (dentro del timeout HTTP).
+        // Pro tomaba 60-120s síncronamente → timeout de Livewire/nginx.
+        // Cascade: Flash → Flash-Lite (último recurso, activa aviso de calidad reducida).
+        $modelPrincipal = 'gemini-2.5-flash';
+        $modelosCascada = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 
         $prompt = $this->construirPrompt($respuestas, $empresa);
 
@@ -60,10 +60,9 @@ class RITGeneratorService
         foreach (array_values($modelosCascada) as $idx => $model) {
             $url         = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
             $esUltimo    = ($idx === $totalModelos - 1);
-            // Modelo principal: 4 intentos con esperas crecientes antes de ceder al lite.
-            // Modelo lite (último): 3 intentos.
-            $maxIntentos = $esUltimo ? 3 : 4;
-            $esperas     = [15, 30, 60, 120]; // segundos entre intentos
+            // Flash: 2 intentos antes de ceder al lite. Flash-lite: 2 intentos.
+            $maxIntentos = 2;
+            $esperas     = [10, 30]; // segundos entre intentos
 
             Log::info('RITGeneratorService: generando texto con Gemini', [
                 'empresa_id' => $empresa->id,
@@ -75,7 +74,7 @@ class RITGeneratorService
 
             for ($intento = 1; $intento <= $maxIntentos; $intento++) {
                 $response = Http::withHeaders(['Content-Type' => 'application/json'])
-                    ->timeout(120)
+                    ->timeout(90)
                     ->post($url, $payload);
 
                 if ($response->successful()) {
