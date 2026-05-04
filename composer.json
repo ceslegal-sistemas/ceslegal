@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "awcodes/light-switch": "^1.0",
+        "aws/aws-sdk-php": "^3.380",
         "barryvdh/laravel-dompdf": "^3.1",
         "bezhansalleh/filament-shield": "^3.9",
         "doctrine/dbal": "^4.4",
