@@ -186,6 +186,7 @@ class Register extends BaseRegister
                     // ── Paso 4: Plan de Suscripción ───────────────────────────────
                     // TEMPORALMENTE COMENTADO — se activará cuando el módulo de pagos esté listo
                     // Al estar comentado, el registro usa plan 'basico' + ciclo 'mensual' por defecto
+                    
                     /*
                     Forms\Components\Wizard\Step::make('Plan')
                         ->label('Plan')
