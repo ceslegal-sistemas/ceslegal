@@ -362,7 +362,7 @@ html:not(.dark) .rr-caps-container {
             <p class="rr-sec-label">Jornada</p>
           </div>
           <p class="rr-sec-val {{ !$horario_entrada ? 'empty' : '' }}">
-            {{ $fmtHora($horario_entrada) ?? '—' }} → {{ $fmtHora($horario_salida) ?? '—' }}
+            {{ $horario_entrada ?? '—' }} → {{ $horario_salida ?? '—' }}
           </p>
           <p class="rr-sec-sub">
             Sáb: {{ $jornadaSabadoLabel }}
