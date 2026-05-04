@@ -89,7 +89,20 @@ class IADescargoService
         $prompt = $this->construirPromptGeneracionPreguntas($contexto, $preguntaRespondida, $respuesta);
 
         try {
+            $t0Gemini = microtime(true);
+            Log::channel('descargos')->info('[IA] llamarIA INICIO', [
+                'diligencia_id' => $diligencia->id,
+                'pregunta_id'   => $preguntaRespondida->id,
+                'total_preguntas_actuales' => $totalPreguntasActuales,
+            ]);
+
             $respuestaIA = $this->llamarIA($prompt);
+
+            Log::channel('descargos')->info('[IA] llamarIA OK', [
+                'diligencia_id' => $diligencia->id,
+                'pregunta_id'   => $preguntaRespondida->id,
+                'ms'            => round((microtime(true) - $t0Gemini) * 1000),
+            ]);
 
             $this->registrarTrazabilidad(
                 $diligencia->id,
@@ -109,6 +122,12 @@ class IADescargoService
 
             return [];
         } catch (\Exception $e) {
+            Log::channel('descargos')->error('[IA] ERROR en llamarIA', [
+                'diligencia_id' => $diligencia->id,
+                'pregunta_id'   => $preguntaRespondida->id,
+                'error'         => $e->getMessage(),
+                'ms'            => isset($t0Gemini) ? round((microtime(true) - $t0Gemini) * 1000) : null,
+            ]);
             Log::error('Error al generar preguntas dinámicas con IA', [
                 'pregunta_id' => $preguntaRespondida->id,
                 'error' => $e->getMessage(),

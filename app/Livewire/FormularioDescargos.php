@@ -166,11 +166,20 @@ class FormularioDescargos extends Component
         $this->otpError = '';
 
         if ($this->diligencia->otpBloqueado()) {
+            Log::channel('descargos')->warning('[OTP] Acceso bloqueado por intentos', [
+                'diligencia_id' => $this->diligencia->id,
+                'otp_intentos'  => $this->diligencia->otp_intentos,
+                'ip'            => request()->ip(),
+            ]);
             $this->otpError = 'bloqueado';
             return;
         }
 
         if (!$this->diligencia->otpEsValido()) {
+            Log::channel('descargos')->warning('[OTP] Código expirado', [
+                'diligencia_id' => $this->diligencia->id,
+                'otp_expira_en' => $this->diligencia->otp_expira_en,
+            ]);
             $this->otpError = 'expirado';
             return;
         }
@@ -178,12 +187,24 @@ class FormularioDescargos extends Component
         $this->diligencia->refresh();
 
         if ($this->diligencia->verificarOtp(trim($this->otpCodigo))) {
+            Log::channel('descargos')->info('[OTP] Verificado exitosamente', [
+                'diligencia_id' => $this->diligencia->id,
+                'ip'            => request()->ip(),
+            ]);
             $this->etapa = 'disclaimer';
         } else {
             $this->diligencia->refresh();
             if ($this->diligencia->otpBloqueado()) {
+                Log::channel('descargos')->warning('[OTP] Cuenta bloqueada tras intentos fallidos', [
+                    'diligencia_id' => $this->diligencia->id,
+                    'otp_intentos'  => $this->diligencia->otp_intentos,
+                ]);
                 $this->otpError = 'bloqueado';
             } else {
+                Log::channel('descargos')->info('[OTP] Código incorrecto', [
+                    'diligencia_id' => $this->diligencia->id,
+                    'otp_intentos'  => $this->diligencia->otp_intentos,
+                ]);
                 $this->otpError = 'incorrecto';
             }
         }
@@ -389,12 +410,23 @@ class FormularioDescargos extends Component
 
         try {
             if ($this->preguntasProcesadas[$preguntaId]) {
+                Log::channel('descargos')->warning('[guardarRespuesta] Pregunta ya procesada (posible doble envío)', [
+                    'diligencia_id' => $this->diligencia->id,
+                    'pregunta_id'   => $preguntaId,
+                ]);
                 $this->addError(
                     "respuesta_{$preguntaId}",
                     'Esta pregunta ya fue respondida y procesada.'
                 );
                 return;
             }
+
+            $t0 = microtime(true);
+            Log::channel('descargos')->info('[guardarRespuesta] INICIO', [
+                'diligencia_id' => $this->diligencia->id,
+                'pregunta_id'   => $preguntaId,
+                'chars'         => strlen($respuestaTexto),
+            ]);
 
             $respuesta = RespuestaDescargo::updateOrCreate(
                 ['pregunta_descargo_id' => $preguntaId],
@@ -448,9 +480,23 @@ class FormularioDescargos extends Component
 
             $this->dispatch('respuestaGuardada', preguntaId: $preguntaId);
 
+            Log::channel('descargos')->info('[guardarRespuesta] OK', [
+                'diligencia_id'    => $this->diligencia->id,
+                'pregunta_id'      => $preguntaId,
+                'respuesta_id'     => $respuesta->id,
+                'nuevas_preguntas' => count($nuevasPreguntas ?? []),
+                'ms'               => round((microtime(true) - $t0) * 1000),
+            ]);
+
             $this->resetErrorBag("respuesta_{$preguntaId}");
 
         } catch (\Exception $e) {
+            Log::channel('descargos')->error('[guardarRespuesta] ERROR', [
+                'diligencia_id' => $this->diligencia->id,
+                'pregunta_id'   => $preguntaId,
+                'error'         => $e->getMessage(),
+                'trace'         => $e->getFile() . ':' . $e->getLine(),
+            ]);
             Log::error('Error al guardar respuesta', [
                 'pregunta_id' => $preguntaId,
                 'error' => $e->getMessage(),
@@ -492,8 +538,17 @@ class FormularioDescargos extends Component
      */
     public function finalizarDescargos()
     {
+        Log::channel('descargos')->info('[finalizarDescargos] LLAMADA', [
+            'diligencia_id'         => $this->diligencia->id,
+            'formulario_ya_cerrado' => $this->formularioCompletado,
+            'trabajador_asistio_bd' => $this->diligencia->trabajador_asistio,
+        ]);
+
         // Guard: evitar doble ejecución si el formulario ya fue completado
         if ($this->formularioCompletado) {
+            Log::channel('descargos')->warning('[finalizarDescargos] Guard activado - ya estaba completado', [
+                'diligencia_id' => $this->diligencia->id,
+            ]);
             return;
         }
 
@@ -506,6 +561,8 @@ class FormularioDescargos extends Component
             $this->addError('finalizacion', 'Debe responder todas las preguntas antes de finalizar.');
             return;
         }
+
+        $t0Finalizar = microtime(true);
 
         try {
             // Guardar archivos de evidencia si existen
@@ -543,6 +600,12 @@ class FormularioDescargos extends Component
             $estadoService->alCompletarDescargos($this->diligencia->proceso);
 
         } catch (\Exception $e) {
+            Log::channel('descargos')->error('[finalizarDescargos] ERROR en bloque principal', [
+                'diligencia_id' => $this->diligencia->id,
+                'error'         => $e->getMessage(),
+                'trace'         => $e->getFile() . ':' . $e->getLine(),
+                'ms'            => round((microtime(true) - $t0Finalizar) * 1000),
+            ]);
             Log::error('Error al finalizar descargos', [
                 'diligencia_id' => $this->diligencia->id,
                 'error' => $e->getMessage(),
@@ -550,6 +613,12 @@ class FormularioDescargos extends Component
             $this->addError('finalizacion', 'Ocurrió un error al finalizar. Por favor, intente nuevamente.');
             return;
         }
+
+        Log::channel('descargos')->info('[finalizarDescargos] COMPLETADO', [
+            'diligencia_id' => $this->diligencia->id,
+            'archivos_guardados' => count($archivosGuardados),
+            'ms' => round((microtime(true) - $t0Finalizar) * 1000),
+        ]);
 
         // Operaciones exitosas: marcar como completado
         $this->formularioCompletado = true;
@@ -565,6 +634,9 @@ class FormularioDescargos extends Component
 
         // Generar el acta de descargos automáticamente (no crítico)
         try {
+            $t0Acta = microtime(true);
+            Log::channel('descargos')->info('[acta] INICIO generación', ['diligencia_id' => $this->diligencia->id]);
+
             $actaService = new ActaDescargosService();
             $resultado = $actaService->generarActaDescargos($this->diligencia);
 
@@ -573,13 +645,28 @@ class FormularioDescargos extends Component
                     'acta_generada' => true,
                     'ruta_acta' => $resultado['path'],
                 ]);
+                Log::channel('descargos')->info('[acta] Generada OK', [
+                    'diligencia_id' => $this->diligencia->id,
+                    'path'          => $resultado['path'],
+                    'ms'            => round((microtime(true) - $t0Acta) * 1000),
+                ]);
             } else {
+                Log::channel('descargos')->warning('[acta] Falló la generación', [
+                    'diligencia_id' => $this->diligencia->id,
+                    'error'         => $resultado['error'] ?? 'Error desconocido',
+                    'ms'            => round((microtime(true) - $t0Acta) * 1000),
+                ]);
                 Log::warning('No se pudo generar el acta automáticamente', [
                     'diligencia_id' => $this->diligencia->id,
                     'error' => $resultado['error'] ?? 'Error desconocido',
                 ]);
             }
         } catch (\Exception $e) {
+            Log::channel('descargos')->error('[acta] Excepción', [
+                'diligencia_id' => $this->diligencia->id,
+                'error'         => $e->getMessage(),
+                'trace'         => $e->getFile() . ':' . $e->getLine(),
+            ]);
             Log::warning('Excepción al generar acta automáticamente', [
                 'diligencia_id' => $this->diligencia->id,
                 'error' => $e->getMessage(),
