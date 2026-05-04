@@ -373,6 +373,25 @@ class TrabajadorResource extends Resource
                             // ->columnSpanFull()
                             ,
                     ])->columns(2),
+
+                Forms\Components\Section::make('Foto de referencia')
+                    ->description('Suba una foto clara del rostro del trabajador (desde su documento de identidad o una foto reciente). Esta imagen se usará para verificar automáticamente que sea el mismo trabajador al momento de los descargos.')
+                    ->icon('heroicon-o-camera')
+                    ->collapsible()
+                    ->collapsed(fn ($record) => $record?->foto_referencia_path === null)
+                    ->schema([
+                        Forms\Components\FileUpload::make('foto_referencia_path')
+                            ->label('Foto del trabajador')
+                            ->image()
+                            ->disk('local')
+                            ->directory('private/fotos-referencia')
+                            ->imagePreviewHeight('200')
+                            ->maxSize(5120)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->helperText('JPG, PNG o WebP · máx 5 MB · el rostro debe ser claramente visible')
+                            ->downloadable()
+                            ->openable(),
+                    ]),
             ]);
     }
 
