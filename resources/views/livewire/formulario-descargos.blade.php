@@ -239,33 +239,94 @@
                             stream: null,
                             fotoCapturada: null,
                             errorCamara: false,
+                            modelsCargados: false,
+                            estadoRostro: 'esperando',
+                            intervaloDeteccion: null,
+                            validando: false,
+                            errorValidacion: '',
+
                             async iniciarCamara() {
                                 try {
-                                    this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                                    this.stream = await navigator.mediaDevices.getUserMedia({
+                                        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+                                    });
                                     this.$refs.video.srcObject = this.stream;
                                     this.errorCamara = false;
+                                    await this.cargarModelos();
                                 } catch (e) {
                                     this.errorCamara = true;
                                 }
                             },
+
+                            async cargarModelos() {
+                                try {
+                                    await faceapi.nets.tinyFaceDetector.loadFromUri(
+                                        'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'
+                                    );
+                                    this.modelsCargados = true;
+                                    this.iniciarDeteccion();
+                                } catch (e) {
+                                    this.modelsCargados = true;
+                                    this.estadoRostro = 'ok';
+                                }
+                            },
+
+                            iniciarDeteccion() {
+                                this.intervaloDeteccion = setInterval(async () => {
+                                    const video = this.$refs.video;
+                                    if (!video || video.readyState < 2 || !video.videoWidth) return;
+                                    try {
+                                        const detecciones = await faceapi.detectAllFaces(
+                                            video,
+                                            new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+                                        );
+                                        if (detecciones.length === 0) {
+                                            this.estadoRostro = 'sin_rostro';
+                                        } else {
+                                            const det = detecciones[0];
+                                            const ratio = (det.box.width * det.box.height) / (video.videoWidth * video.videoHeight);
+                                            this.estadoRostro = ratio < 0.08 ? 'muy_lejos' : 'ok';
+                                        }
+                                    } catch (e) { /* ignorar errores de detección */ }
+                                }, 500);
+                            },
+
                             tomarFoto() {
                                 const canvas = this.$refs.canvas;
-                                const video = this.$refs.video;
-                                canvas.width = video.videoWidth;
+                                const video  = this.$refs.video;
+                                canvas.width  = video.videoWidth;
                                 canvas.height = video.videoHeight;
                                 canvas.getContext('2d').drawImage(video, 0, 0);
-                                this.fotoCapturada = canvas.toDataURL('image/jpeg', 0.70);
+                                this.fotoCapturada   = canvas.toDataURL('image/jpeg', 0.80);
+                                this.errorValidacion = '';
+                                this.detenerDeteccion();
                             },
+
                             volverATomarFoto() {
-                                this.fotoCapturada = null;
+                                this.fotoCapturada   = null;
+                                this.errorValidacion = '';
+                                this.estadoRostro    = 'esperando';
+                                this.iniciarDeteccion();
                             },
+
                             detenerCamara() {
-                                if (this.stream) {
-                                    this.stream.getTracks().forEach(t => t.stop());
+                                this.detenerDeteccion();
+                                if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+                            },
+
+                            detenerDeteccion() {
+                                if (this.intervaloDeteccion) {
+                                    clearInterval(this.intervaloDeteccion);
+                                    this.intervaloDeteccion = null;
                                 }
                             }
                         }"
-                        x-init="iniciarCamara()"
+                        x-init="
+                            iniciarCamara();
+                            $wire.$watch('errorValidacionFoto', value => {
+                                if (value) { validando = false; errorValidacion = value; }
+                            });
+                        "
                         @descargosFinalizados.window="detenerCamara()">
 
                         <div>
@@ -289,12 +350,52 @@
                             <div class="space-y-4">
                                 <template x-if="!fotoCapturada">
                                     <div class="space-y-3">
+                                        {{-- Video con overlay de estado --}}
                                         <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
                                             <video x-ref="video" autoplay playsinline muted
                                                 class="w-full h-full object-cover"></video>
+
+                                            {{-- Borde de estado (rojo / amarillo / verde) --}}
+                                            <div class="absolute inset-0 pointer-events-none rounded-xl border-4 transition-colors duration-300"
+                                                :class="{
+                                                    'border-green-400':  estadoRostro === 'ok',
+                                                    'border-red-400':    estadoRostro === 'sin_rostro',
+                                                    'border-yellow-400': estadoRostro === 'muy_lejos',
+                                                    'border-transparent': estadoRostro === 'esperando'
+                                                }">
+                                            </div>
+
+                                            {{-- Mensaje de estado superpuesto --}}
+                                            <div class="absolute bottom-2 left-0 right-0 flex justify-center px-2">
+                                                <template x-if="!modelsCargados">
+                                                    <span class="bg-black/70 text-white text-xs px-3 py-1 rounded-full">
+                                                        Cargando sistema de verificación...
+                                                    </span>
+                                                </template>
+                                                <template x-if="modelsCargados && estadoRostro === 'sin_rostro'">
+                                                    <span class="bg-red-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                        Coloque su rostro frente a la cámara
+                                                    </span>
+                                                </template>
+                                                <template x-if="modelsCargados && estadoRostro === 'muy_lejos'">
+                                                    <span class="bg-yellow-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                        Acérquese más a la cámara
+                                                    </span>
+                                                </template>
+                                                <template x-if="modelsCargados && estadoRostro === 'ok'">
+                                                    <span class="bg-green-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                        ✓ Listo para tomar foto
+                                                    </span>
+                                                </template>
+                                            </div>
                                         </div>
+
                                         <button type="button" @click="tomarFoto()"
-                                            class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                            :disabled="!modelsCargados || estadoRostro !== 'ok'"
+                                            :class="(modelsCargados && estadoRostro === 'ok')
+                                                ? 'bg-primary-600 hover:bg-primary-700 cursor-pointer'
+                                                : 'bg-gray-300 cursor-not-allowed'"
+                                            class="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-white font-semibold rounded-xl shadow-sm transition-colors">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
@@ -310,15 +411,33 @@
                                         <div class="rounded-xl overflow-hidden border-2 border-success-400">
                                             <img :src="fotoCapturada" class="w-full object-cover" alt="Vista previa" />
                                         </div>
+
+                                        {{-- Error de validación IA --}}
+                                        <template x-if="errorValidacion">
+                                            <div class="bg-danger-50 border border-danger-200 rounded-xl p-3 text-sm text-danger-800">
+                                                <p class="font-semibold mb-0.5">Foto rechazada</p>
+                                                <p x-text="errorValidacion"></p>
+                                            </div>
+                                        </template>
+
                                         <p class="text-center text-sm text-gray-600">¿La foto es clara y muestra su rostro?</p>
                                         <div class="flex gap-3">
-                                            <button type="button" @click="volverATomarFoto()"
-                                                class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                                            <button type="button" @click="volverATomarFoto()" :disabled="validando"
+                                                class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50">
                                                 Volver a tomar
                                             </button>
-                                            <button type="button" @click="$wire.guardarFotoInicio(fotoCapturada)"
-                                                class="flex-1 px-4 py-2.5 bg-success-600 hover:bg-success-700 text-white rounded-xl text-sm font-semibold transition-colors">
-                                                Confirmar foto
+                                            <button type="button"
+                                                @click="validando = true; errorValidacion = ''; $wire.validarFotoConIA(fotoCapturada, 'inicio')"
+                                                :disabled="validando"
+                                                class="flex-1 px-4 py-2.5 bg-success-600 hover:bg-success-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-75">
+                                                <span x-show="!validando">Confirmar foto</span>
+                                                <span x-show="validando" class="flex items-center justify-center gap-2">
+                                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                                    </svg>
+                                                    Verificando...
+                                                </span>
                                             </button>
                                         </div>
                                     </div>
@@ -339,28 +458,94 @@
                             stream: null,
                             fotoCapturada: null,
                             errorCamara: false,
+                            modelsCargados: false,
+                            estadoRostro: 'esperando',
+                            intervaloDeteccion: null,
+                            validando: false,
+                            errorValidacion: '',
+
                             async iniciarCamara() {
                                 try {
-                                    this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                                    this.stream = await navigator.mediaDevices.getUserMedia({
+                                        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+                                    });
                                     this.$refs.video.srcObject = this.stream;
                                     this.errorCamara = false;
+                                    await this.cargarModelos();
                                 } catch (e) {
                                     this.errorCamara = true;
                                 }
                             },
+
+                            async cargarModelos() {
+                                try {
+                                    await faceapi.nets.tinyFaceDetector.loadFromUri(
+                                        'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'
+                                    );
+                                    this.modelsCargados = true;
+                                    this.iniciarDeteccion();
+                                } catch (e) {
+                                    this.modelsCargados = true;
+                                    this.estadoRostro = 'ok';
+                                }
+                            },
+
+                            iniciarDeteccion() {
+                                this.intervaloDeteccion = setInterval(async () => {
+                                    const video = this.$refs.video;
+                                    if (!video || video.readyState < 2 || !video.videoWidth) return;
+                                    try {
+                                        const detecciones = await faceapi.detectAllFaces(
+                                            video,
+                                            new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+                                        );
+                                        if (detecciones.length === 0) {
+                                            this.estadoRostro = 'sin_rostro';
+                                        } else {
+                                            const det = detecciones[0];
+                                            const ratio = (det.box.width * det.box.height) / (video.videoWidth * video.videoHeight);
+                                            this.estadoRostro = ratio < 0.08 ? 'muy_lejos' : 'ok';
+                                        }
+                                    } catch (e) { /* ignorar */ }
+                                }, 500);
+                            },
+
                             tomarFoto() {
                                 const canvas = this.$refs.canvas;
-                                const video = this.$refs.video;
-                                canvas.width = video.videoWidth;
+                                const video  = this.$refs.video;
+                                canvas.width  = video.videoWidth;
                                 canvas.height = video.videoHeight;
                                 canvas.getContext('2d').drawImage(video, 0, 0);
-                                this.fotoCapturada = canvas.toDataURL('image/jpeg', 0.70);
+                                this.fotoCapturada   = canvas.toDataURL('image/jpeg', 0.80);
+                                this.errorValidacion = '';
+                                this.detenerDeteccion();
                             },
+
                             volverATomarFoto() {
-                                this.fotoCapturada = null;
+                                this.fotoCapturada   = null;
+                                this.errorValidacion = '';
+                                this.estadoRostro    = 'esperando';
+                                this.iniciarDeteccion();
+                            },
+
+                            detenerCamara() {
+                                this.detenerDeteccion();
+                                if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+                            },
+
+                            detenerDeteccion() {
+                                if (this.intervaloDeteccion) {
+                                    clearInterval(this.intervaloDeteccion);
+                                    this.intervaloDeteccion = null;
+                                }
                             }
                         }"
-                        x-init="iniciarCamara()">
+                        x-init="
+                            iniciarCamara();
+                            $wire.$watch('errorValidacionFoto', value => {
+                                if (value) { validando = false; errorValidacion = value; }
+                            });
+                        ">
 
                         <div>
                             <h2 class="text-base font-semibold text-gray-900 mb-1">Verificación fotográfica — Cierre</h2>
@@ -383,12 +568,52 @@
                             <div class="space-y-4">
                                 <template x-if="!fotoCapturada">
                                     <div class="space-y-3">
+                                        {{-- Video con overlay de estado --}}
                                         <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
                                             <video x-ref="video" autoplay playsinline muted
                                                 class="w-full h-full object-cover"></video>
+
+                                            {{-- Borde de estado --}}
+                                            <div class="absolute inset-0 pointer-events-none rounded-xl border-4 transition-colors duration-300"
+                                                :class="{
+                                                    'border-green-400':  estadoRostro === 'ok',
+                                                    'border-red-400':    estadoRostro === 'sin_rostro',
+                                                    'border-yellow-400': estadoRostro === 'muy_lejos',
+                                                    'border-transparent': estadoRostro === 'esperando'
+                                                }">
+                                            </div>
+
+                                            {{-- Mensaje de estado superpuesto --}}
+                                            <div class="absolute bottom-2 left-0 right-0 flex justify-center px-2">
+                                                <template x-if="!modelsCargados">
+                                                    <span class="bg-black/70 text-white text-xs px-3 py-1 rounded-full">
+                                                        Cargando sistema de verificación...
+                                                    </span>
+                                                </template>
+                                                <template x-if="modelsCargados && estadoRostro === 'sin_rostro'">
+                                                    <span class="bg-red-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                        Coloque su rostro frente a la cámara
+                                                    </span>
+                                                </template>
+                                                <template x-if="modelsCargados && estadoRostro === 'muy_lejos'">
+                                                    <span class="bg-yellow-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                        Acérquese más a la cámara
+                                                    </span>
+                                                </template>
+                                                <template x-if="modelsCargados && estadoRostro === 'ok'">
+                                                    <span class="bg-green-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                        ✓ Listo para tomar foto
+                                                    </span>
+                                                </template>
+                                            </div>
                                         </div>
+
                                         <button type="button" @click="tomarFoto()"
-                                            class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                            :disabled="!modelsCargados || estadoRostro !== 'ok'"
+                                            :class="(modelsCargados && estadoRostro === 'ok')
+                                                ? 'bg-primary-600 hover:bg-primary-700 cursor-pointer'
+                                                : 'bg-gray-300 cursor-not-allowed'"
+                                            class="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-white font-semibold rounded-xl shadow-sm transition-colors">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
@@ -404,15 +629,33 @@
                                         <div class="rounded-xl overflow-hidden border-2 border-success-400">
                                             <img :src="fotoCapturada" class="w-full object-cover" alt="Vista previa" />
                                         </div>
+
+                                        {{-- Error de validación IA --}}
+                                        <template x-if="errorValidacion">
+                                            <div class="bg-danger-50 border border-danger-200 rounded-xl p-3 text-sm text-danger-800">
+                                                <p class="font-semibold mb-0.5">Foto rechazada</p>
+                                                <p x-text="errorValidacion"></p>
+                                            </div>
+                                        </template>
+
                                         <p class="text-center text-sm text-gray-600">¿La foto es clara y muestra su rostro?</p>
                                         <div class="flex gap-3">
-                                            <button type="button" @click="volverATomarFoto()"
-                                                class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                                            <button type="button" @click="volverATomarFoto()" :disabled="validando"
+                                                class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50">
                                                 Volver a tomar
                                             </button>
-                                            <button type="button" @click="$wire.guardarFotoFin(fotoCapturada)"
-                                                class="flex-1 px-4 py-2.5 bg-success-600 hover:bg-success-700 text-white rounded-xl text-sm font-semibold transition-colors">
-                                                Confirmar y enviar
+                                            <button type="button"
+                                                @click="validando = true; errorValidacion = ''; $wire.validarFotoConIA(fotoCapturada, 'fin')"
+                                                :disabled="validando"
+                                                class="flex-1 px-4 py-2.5 bg-success-600 hover:bg-success-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-75">
+                                                <span x-show="!validando">Confirmar y enviar</span>
+                                                <span x-show="validando" class="flex items-center justify-center gap-2">
+                                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                                    </svg>
+                                                    Verificando identidad...
+                                                </span>
                                             </button>
                                         </div>
                                     </div>
