@@ -10,6 +10,7 @@ use App\Services\IADescargoService;
 use App\Services\ActaDescargosService;
 use App\Services\DocumentGeneratorService;
 use App\Services\EstadoProcesoService;
+use App\Services\VerificacionFacialService;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Log;
@@ -43,6 +44,10 @@ class FormularioDescargos extends Component
     public string $ajusteDiscapacidad      = '';  // 'si' | 'no'
     public string $ajusteDiscapacidadDetalle = '';
     public bool   $ajusteGuardado          = false;
+
+    // Verificación facial — Capas 2 y 3
+    public bool   $validandoFoto        = false;
+    public string $errorValidacionFoto  = '';
 
     // Feedback orgánico — paso actual (1-5 = pregunta activa, 6 = completado)
     public int    $feedbackPaso      = 1;
@@ -256,6 +261,61 @@ class FormularioDescargos extends Component
         // Regresar al formulario para adjuntar evidencias y enviar
         // (NO finalizar aquí — el trabajador puede adjuntar archivos antes)
         $this->etapa = 'formulario';
+    }
+
+    /**
+     * Orquesta las 3 capas de verificación facial antes de guardar la foto.
+     *
+     * Capa 1 (face-api.js): ya corrió en el navegador; aquí asumimos que pasó.
+     * Capa 2: Gemini Vision valida calidad (gafas, tapabocas, blur, etc.).
+     * Capa 3: AWS Rekognition compara contra foto de referencia del trabajador.
+     *
+     * Si alguna capa falla, asigna $errorValidacionFoto y retorna sin guardar.
+     * Si todas pasan, guarda la foto y avanza la etapa.
+     */
+    public function validarFotoConIA(string $base64, string $tipo): void
+    {
+        $this->validandoFoto       = true;
+        $this->errorValidacionFoto = '';
+
+        $servicio = app(VerificacionFacialService::class);
+
+        // Capa 2 — Gemini Vision
+        $resultadoGemini = $servicio->validarCalidadFoto($base64);
+
+        if (!$resultadoGemini['ok']) {
+            $this->validandoFoto       = false;
+            $this->errorValidacionFoto = $resultadoGemini['motivo']
+                ?? 'La foto no cumple los requisitos. Por favor intente de nuevo.';
+            return;
+        }
+
+        // Capa 3 — Rekognition (solo si el trabajador tiene foto de referencia)
+        $trabajador = $this->diligencia->proceso->trabajador;
+
+        if ($trabajador->foto_referencia_path) {
+            $referenciaBytes = Storage::get($trabajador->foto_referencia_path);
+
+            if ($referenciaBytes) {
+                $resultadoRek = $servicio->compararRostros($referenciaBytes, $base64);
+
+                if (!$resultadoRek['ok']) {
+                    $this->validandoFoto       = false;
+                    $this->errorValidacionFoto = $resultadoRek['motivo']
+                        ?? 'No se pudo verificar su identidad. Por favor intente de nuevo.';
+                    return;
+                }
+            }
+        }
+
+        // Todas las capas pasaron → guardar y avanzar
+        $this->validandoFoto = false;
+
+        if ($tipo === 'inicio') {
+            $this->guardarFotoInicio($base64);
+        } else {
+            $this->guardarFotoFin($base64);
+        }
     }
 
     private function guardarFotoBase64(string $base64, string $nombre): string
