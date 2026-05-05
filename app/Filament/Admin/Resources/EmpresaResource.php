@@ -238,14 +238,16 @@ class EmpresaResource extends Resource
                             ->columnSpanFull(),
 
                         Forms\Components\FileUpload::make('reglamento_docx_temp')
-                            ->label('Subir / Actualizar Reglamento Interno (.docx)')
-                            ->helperText('Si no sube un reglamento, el sistema usará el Código Sustantivo del Trabajo como referencia para la validación de hechos.')
-                            ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
+                            ->label('Subir / Actualizar Reglamento Interno (.docx o .pdf)')
+                            ->helperText('Formatos aceptados: .docx y .pdf — máx. 10 MB.')
+                            ->acceptedFileTypes([
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                'application/pdf',
+                            ])
                             ->disk('local')
                             ->directory('reglamentos-temp')
                             ->visibility('private')
                             ->maxSize(10240)
-                            ->dehydrated(false)
                             ->visibleOn('edit'),
                     ]),
             ]);

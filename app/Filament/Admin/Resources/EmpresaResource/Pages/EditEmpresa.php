@@ -6,7 +6,7 @@ use App\Filament\Admin\Resources\EmpresaResource;
 use App\Services\ReglamentoInternoService;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class EditEmpresa extends EditRecord
 {
@@ -19,22 +19,27 @@ class EditEmpresa extends EditRecord
         ];
     }
 
-    protected function afterSave(): void
+    /**
+     * Interceptar los datos antes de guardar en el modelo Empresa:
+     * - Si se subió un RIT, procesarlo y guardarlo en reglamentos_internos.
+     * - Eliminar el campo temporal para que no intente guardarse en la tabla empresas.
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
     {
-        $path = $this->data['reglamento_docx_temp'] ?? null;
-        if ($path) {
-            try {
-                app(ReglamentoInternoService::class)->procesarDocumento(
-                    storage_path("app/{$path}"),
-                    $this->record->id,
-                    basename($path)
-                );
-            } catch (\Exception $e) {
-                Log::error('Error al procesar reglamento interno en EditEmpresa', [
-                    'empresa_id' => $this->record->id,
-                    'error'      => $e->getMessage(),
-                ]);
-            }
+        $rutaRelativa = $data['reglamento_docx_temp'] ?? null;
+
+        if ($rutaRelativa) {
+            $rutaAbsoluta = Storage::disk('local')->path($rutaRelativa);
+
+            app(ReglamentoInternoService::class)->procesarDocumento(
+                $rutaAbsoluta,
+                $this->record->id,
+                basename($rutaRelativa)
+            );
         }
+
+        unset($data['reglamento_docx_temp']);
+
+        return $data;
     }
 }
