@@ -35,12 +35,24 @@ class EditEmpresa extends EditRecord
         }
 
         if ($raw) {
-            $rutaAbsoluta = Storage::disk('local')->path($raw);
+            // Mover el archivo de reglamentos-temp a ubicación permanente privada
+            $extension    = pathinfo($raw, PATHINFO_EXTENSION);
+            $nombreFinal  = 'reglamento.' . strtolower($extension);
+            $rutaPermanente = "rits/{$this->record->id}/{$nombreFinal}";
+
+            if (Storage::disk('local')->exists($raw)) {
+                Storage::disk('local')->move($raw, $rutaPermanente);
+            } else {
+                $rutaPermanente = $raw; // fallback: usar la ruta temporal
+            }
+
+            $rutaAbsoluta = Storage::disk('local')->path($rutaPermanente);
 
             app(ReglamentoInternoService::class)->procesarDocumento(
                 $rutaAbsoluta,
                 $this->record->id,
-                basename($raw)
+                basename($raw),
+                $rutaPermanente,   // ruta relativa para ruta_docx
             );
 
             Notification::make()

@@ -15,8 +15,18 @@ class ReglamentoInternoService
      * La extracción de texto es opcional — si falla, el registro se crea de
      * todas formas con activo=true para que la empresa quede con RIT activo.
      */
-    public function procesarDocumento(string $rutaArchivo, int $empresaId, string $nombreOriginal): ReglamentoInterno
-    {
+    /**
+     * @param  string      $rutaArchivo    Ruta absoluta al archivo (temp o permanente)
+     * @param  int         $empresaId
+     * @param  string      $nombreOriginal Nombre visible del archivo
+     * @param  string|null $rutaRelativa   Ruta relativa en disco 'local' para guardar en ruta_docx
+     */
+    public function procesarDocumento(
+        string $rutaArchivo,
+        int    $empresaId,
+        string $nombreOriginal,
+        ?string $rutaRelativa = null,
+    ): ReglamentoInterno {
         $texto = '';
 
         try {
@@ -35,14 +45,21 @@ class ReglamentoInternoService
             ]);
         }
 
+        $campos = [
+            'nombre'         => $nombreOriginal,
+            'texto_completo' => $texto ?: null,
+            'activo'         => true,
+            'fuente'         => 'subido',
+        ];
+
+        // Si se proporciona una ruta permanente, guardarla para descarga directa
+        if ($rutaRelativa) {
+            $campos['ruta_docx'] = $rutaRelativa;
+        }
+
         $reglamento = ReglamentoInterno::updateOrCreate(
             ['empresa_id' => $empresaId],
-            [
-                'nombre'         => $nombreOriginal,
-                'texto_completo' => $texto ?: null,
-                'activo'         => true,
-                'fuente'         => 'subido',
-            ]
+            $campos
         );
 
         Log::info('ReglamentoInternoService: documento registrado', [
