@@ -16,7 +16,7 @@ class TranscribeController extends Controller
         ]);
 
         $apiKey = config('services.ia.gemini.api_key');
-        $url    = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={$apiKey}";
+        $url    = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}";
 
         // Gemini solo acepta el tipo base sin codec
         $mime = explode(';', $validated['tipo'] ?? 'audio/webm')[0];

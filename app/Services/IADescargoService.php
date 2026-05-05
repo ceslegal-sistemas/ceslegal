@@ -488,13 +488,11 @@ PROMPT;
         $apiKey = $this->config['api_key'];
 
         $modeloPrincipal = $this->config['model'] ?? 'gemini-2.5-flash';
-        // gemini-2.0-flash-lite y gemini-2.0-flash retornan 404 en producción (deprecados).
-        // Orden: flash (rápido) → pro (más capaz) → 1.5-flash (fallback estable).
+        // Modelos activos (abril 2026). gemini-1.5-* y gemini-2.0-* están deprecados.
         $modelos = array_unique(array_filter([
-            'gemini-2.5-flash',
-            'gemini-2.5-pro',
-            'gemini-1.5-flash',
             $modeloPrincipal,
+            'gemini-2.5-flash',
+            'gemini-2.5-flash-lite',
         ]));
 
         $payload = [
