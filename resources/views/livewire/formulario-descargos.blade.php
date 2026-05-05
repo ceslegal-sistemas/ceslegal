@@ -258,11 +258,23 @@
                                 }
                             },
 
+                            get colorEncuadre() {
+                                if (this.estadoRostro === 'ok') return '#4ade80';
+                                if (this.estadoRostro === 'muy_lejos') return '#fbbf24';
+                                if (this.estadoRostro === 'esperando') return 'rgba(255,255,255,0.45)';
+                                return '#f87171';
+                            },
+
                             async cargarModelos() {
                                 try {
-                                    await faceapi.nets.tinyFaceDetector.loadFromUri(
-                                        'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'
-                                    );
+                                    await Promise.all([
+                                        faceapi.nets.tinyFaceDetector.loadFromUri(
+                                            'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'
+                                        ),
+                                        faceapi.nets.faceLandmark68TinyNet.loadFromUri(
+                                            'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'
+                                        ),
+                                    ]);
                                     this.modelsCargados = true;
                                     this.iniciarDeteccion();
                                 } catch (e) {
@@ -276,16 +288,25 @@
                                     const video = this.$refs.video;
                                     if (!video || video.readyState < 2 || !video.videoWidth) return;
                                     try {
-                                        const detecciones = await faceapi.detectAllFaces(
-                                            video,
-                                            new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
-                                        );
-                                        if (detecciones.length === 0) {
+                                        const detection = await faceapi
+                                            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.65 }))
+                                            .withFaceLandmarks(true);
+
+                                        if (!detection) {
                                             this.estadoRostro = 'sin_rostro';
                                         } else {
-                                            const det = detecciones[0];
-                                            const ratio = (det.box.width * det.box.height) / (video.videoWidth * video.videoHeight);
-                                            this.estadoRostro = ratio < 0.08 ? 'muy_lejos' : 'ok';
+                                            const ratio = (detection.detection.box.width * detection.detection.box.height) / (video.videoWidth * video.videoHeight);
+                                            if (ratio < 0.08) {
+                                                this.estadoRostro = 'muy_lejos';
+                                            } else {
+                                                // Verificar que los ojos estén visibles y separados
+                                                // (mano tapando el rostro → separación ocular anormalmente pequeña)
+                                                const leftEye  = detection.landmarks.getLeftEye();
+                                                const rightEye = detection.landmarks.getRightEye();
+                                                const eyeSep   = Math.abs(rightEye[0].x - leftEye[0].x);
+                                                const minSep   = detection.detection.box.width * 0.18;
+                                                this.estadoRostro = eyeSep < minSep ? 'sin_rostro' : 'ok';
+                                            }
                                         }
                                     } catch (e) { /* ignorar errores de detección */ }
                                 }, 500);
@@ -350,20 +371,28 @@
                             <div class="space-y-4">
                                 <template x-if="!fotoCapturada">
                                     <div class="space-y-3">
-                                        {{-- Video con overlay de estado --}}
+                                        {{-- Video con encuadre guía oval --}}
                                         <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
                                             <video x-ref="video" autoplay playsinline muted
                                                 class="w-full h-full object-cover"></video>
 
-                                            {{-- Borde de estado (rojo / amarillo / verde) --}}
-                                            <div class="absolute inset-0 pointer-events-none rounded-xl border-4 transition-colors duration-300"
-                                                :class="{
-                                                    'border-green-400':  estadoRostro === 'ok',
-                                                    'border-red-400':    estadoRostro === 'sin_rostro',
-                                                    'border-yellow-400': estadoRostro === 'muy_lejos',
-                                                    'border-transparent': estadoRostro === 'esperando'
-                                                }">
-                                            </div>
+                                            {{-- Encuadre: overlay oscuro fuera del óvalo + borde dinámico --}}
+                                            <svg class="absolute inset-0 w-full h-full pointer-events-none"
+                                                viewBox="0 0 100 75" preserveAspectRatio="none">
+                                                <defs>
+                                                    <mask id="encuadre-inicio">
+                                                        <rect width="100" height="75" fill="white"/>
+                                                        <ellipse cx="50" cy="36" rx="23" ry="29" fill="black"/>
+                                                    </mask>
+                                                </defs>
+                                                <rect width="100" height="75" fill="rgba(0,0,0,0.48)" mask="url(#encuadre-inicio)"/>
+                                                <ellipse cx="50" cy="36" rx="23" ry="29" fill="none"
+                                                    :stroke="colorEncuadre" stroke-width="0.9" stroke-dasharray="3,1.5"/>
+                                                <text x="50" y="71" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="3.8"
+                                                    x-show="modelsCargados && estadoRostro !== 'ok' && estadoRostro !== 'muy_lejos'">
+                                                    Centre su rostro aquí
+                                                </text>
+                                            </svg>
 
                                             {{-- Mensaje de estado superpuesto --}}
                                             <div class="absolute bottom-2 left-0 right-0 flex justify-center px-2">
@@ -477,11 +506,23 @@
                                 }
                             },
 
+                            get colorEncuadre() {
+                                if (this.estadoRostro === 'ok') return '#4ade80';
+                                if (this.estadoRostro === 'muy_lejos') return '#fbbf24';
+                                if (this.estadoRostro === 'esperando') return 'rgba(255,255,255,0.45)';
+                                return '#f87171';
+                            },
+
                             async cargarModelos() {
                                 try {
-                                    await faceapi.nets.tinyFaceDetector.loadFromUri(
-                                        'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'
-                                    );
+                                    await Promise.all([
+                                        faceapi.nets.tinyFaceDetector.loadFromUri(
+                                            'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'
+                                        ),
+                                        faceapi.nets.faceLandmark68TinyNet.loadFromUri(
+                                            'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'
+                                        ),
+                                    ]);
                                     this.modelsCargados = true;
                                     this.iniciarDeteccion();
                                 } catch (e) {
@@ -495,16 +536,23 @@
                                     const video = this.$refs.video;
                                     if (!video || video.readyState < 2 || !video.videoWidth) return;
                                     try {
-                                        const detecciones = await faceapi.detectAllFaces(
-                                            video,
-                                            new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
-                                        );
-                                        if (detecciones.length === 0) {
+                                        const detection = await faceapi
+                                            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.65 }))
+                                            .withFaceLandmarks(true);
+
+                                        if (!detection) {
                                             this.estadoRostro = 'sin_rostro';
                                         } else {
-                                            const det = detecciones[0];
-                                            const ratio = (det.box.width * det.box.height) / (video.videoWidth * video.videoHeight);
-                                            this.estadoRostro = ratio < 0.08 ? 'muy_lejos' : 'ok';
+                                            const ratio = (detection.detection.box.width * detection.detection.box.height) / (video.videoWidth * video.videoHeight);
+                                            if (ratio < 0.08) {
+                                                this.estadoRostro = 'muy_lejos';
+                                            } else {
+                                                const leftEye  = detection.landmarks.getLeftEye();
+                                                const rightEye = detection.landmarks.getRightEye();
+                                                const eyeSep   = Math.abs(rightEye[0].x - leftEye[0].x);
+                                                const minSep   = detection.detection.box.width * 0.18;
+                                                this.estadoRostro = eyeSep < minSep ? 'sin_rostro' : 'ok';
+                                            }
                                         }
                                     } catch (e) { /* ignorar */ }
                                 }, 500);
@@ -568,20 +616,28 @@
                             <div class="space-y-4">
                                 <template x-if="!fotoCapturada">
                                     <div class="space-y-3">
-                                        {{-- Video con overlay de estado --}}
+                                        {{-- Video con encuadre guía oval --}}
                                         <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
                                             <video x-ref="video" autoplay playsinline muted
                                                 class="w-full h-full object-cover"></video>
 
-                                            {{-- Borde de estado --}}
-                                            <div class="absolute inset-0 pointer-events-none rounded-xl border-4 transition-colors duration-300"
-                                                :class="{
-                                                    'border-green-400':  estadoRostro === 'ok',
-                                                    'border-red-400':    estadoRostro === 'sin_rostro',
-                                                    'border-yellow-400': estadoRostro === 'muy_lejos',
-                                                    'border-transparent': estadoRostro === 'esperando'
-                                                }">
-                                            </div>
+                                            {{-- Encuadre: overlay oscuro fuera del óvalo + borde dinámico --}}
+                                            <svg class="absolute inset-0 w-full h-full pointer-events-none"
+                                                viewBox="0 0 100 75" preserveAspectRatio="none">
+                                                <defs>
+                                                    <mask id="encuadre-fin">
+                                                        <rect width="100" height="75" fill="white"/>
+                                                        <ellipse cx="50" cy="36" rx="23" ry="29" fill="black"/>
+                                                    </mask>
+                                                </defs>
+                                                <rect width="100" height="75" fill="rgba(0,0,0,0.48)" mask="url(#encuadre-fin)"/>
+                                                <ellipse cx="50" cy="36" rx="23" ry="29" fill="none"
+                                                    :stroke="colorEncuadre" stroke-width="0.9" stroke-dasharray="3,1.5"/>
+                                                <text x="50" y="71" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="3.8"
+                                                    x-show="modelsCargados && estadoRostro !== 'ok' && estadoRostro !== 'muy_lejos'">
+                                                    Centre su rostro aquí
+                                                </text>
+                                            </svg>
 
                                             {{-- Mensaje de estado superpuesto --}}
                                             <div class="absolute bottom-2 left-0 right-0 flex justify-center px-2">
