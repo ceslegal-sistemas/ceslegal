@@ -231,10 +231,16 @@ class EmpresaResource extends Resource
                             ->visible(fn ($record) => (bool) $record?->reglamentoInterno?->ruta_docx)
                             ->columnSpanFull(),
 
+                        Forms\Components\Placeholder::make('rit_registrado_manual')
+                            ->label('Reglamento Interno')
+                            ->content('RIT registrado en el sistema (subido manualmente). Puede reemplazarlo subiendo un nuevo archivo abajo.')
+                            ->visible(fn ($record) => $record && $record?->reglamentoInterno && !$record?->reglamentoInterno?->ruta_docx)
+                            ->columnSpanFull(),
+
                         Forms\Components\Placeholder::make('rit_sin_docx')
                             ->label('Reglamento Interno')
-                            ->content('Sin reglamento generado. Use el wizard "Construir RIT" para generarlo con IA.')
-                            ->visible(fn ($record) => $record && !$record?->reglamentoInterno?->ruta_docx)
+                            ->content('Sin reglamento registrado. Suba un archivo .docx o .pdf abajo, o use el wizard "Construir RIT" para generarlo con IA.')
+                            ->visible(fn ($record) => $record && !$record?->reglamentoInterno)
                             ->columnSpanFull(),
 
                         Forms\Components\FileUpload::make('reglamento_docx_temp')
