@@ -16,7 +16,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\CreateRecord\Concerns\HasWizard;
 use Filament\Forms\Components\Wizard\Step;
-use Filament\Forms\Components\TimePicker;
+use HusamTariq\FilamentTimePicker\Forms\Components\TimePickerField;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -305,10 +305,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->maxDate(now())
                                 ->helperText('Fecha en que ocurrió el hecho'),
 
-                            TimePicker::make('hora_aproximada_hecho')
+                            TimePickerField::make('hora_aproximada_hecho')
                                 ->label('Hora aproximada (opcional)')
-                                ->seconds(false)
-                                ->native(false)
                                 ->helperText('Horario Colombia (UTC-5)'),
 
                             Forms\Components\Radio::make('en_horario_laboral')
@@ -641,11 +639,9 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         : 'Fines de semana y festivos no disponibles (mínimo 6 días hábiles)';
                                 }),
 
-                            TimePicker::make('hora_descargos_programada')
+                            TimePickerField::make('hora_descargos_programada')
                                 ->label('Hora de la audiencia')
                                 ->required()
-                                ->seconds(false)
-                                ->native(false)
                                 ->helperText('Horario Colombia (UTC-5)'),
                         ])
                         ->columns(2),

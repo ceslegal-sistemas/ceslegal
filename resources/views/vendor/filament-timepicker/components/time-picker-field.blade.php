@@ -9,15 +9,14 @@
     $suffixLabel = $getSuffixLabel();
     $isDisabled = $isDisabled();
 
-    // Convertir valor guardado (HH:mm:ss / HH:mm) a formato 12h para mdtimepicker.
-    // mdtimepicker usa format:'h:mm tt' para parsear el value inicial; si el valor
-    // está en 24h, parseTime() falla y el picker muestra vacío.
-    $raw = $getState();
-    $initDisplayVal = '';
+    // <input type="time"> exige formato HH:mm (24h).
+    // El valor almacenado en Livewire ya viene en HH:mm:ss — lo normalizamos a HH:mm.
+    $raw = $getState() ?? '';
+    $initVal = '';
     if ($raw) {
         foreach (['H:i:s', 'H:i', 'G:i:s', 'G:i'] as $_fmt) {
             try {
-                $initDisplayVal = \Carbon\Carbon::createFromFormat($_fmt, $raw)->format('g:i A');
+                $initVal = \Carbon\Carbon::createFromFormat($_fmt, $raw)->format('H:i');
                 break;
             } catch (\Throwable $_e) {}
         }
@@ -41,26 +40,24 @@
         :valid="! $errors->has($getStatePath())"
         :attributes="\Filament\Support\prepare_inherited_attributes($getExtraAttributeBag())"
     >
-
-
         <input {{ $isDisabled ? 'disabled' : '' }} type="time"
-            value="{{ $initDisplayVal }}"
+            value="{{ $initVal }}"
             x-data="{}"
             x-init="$nextTick(() => mdtimepicker($el, {
                 okLabel: '{{ $getOkLabel() }}',
                 cancelLabel: '{{ $getCancelLabel() }}',
                 format: 'h:mm tt',
-                timeFormat: 'HH:mm:ss',
+                timeFormat: 'HH:mm',
                 events: {
                     timeChanged: function(data, timepicker) {
-                        @this.set('{!! $getStatePath() !!}', data.time);
+                        $el.value = data.time;
+                        $el.dispatchEvent(new Event('input',  { bubbles: true }));
+                        $el.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 }
             }))"
-
             {{ $applyStateBindingModifiers('wire:model') }}="{{ $getStatePath() }}" @class([
                 'time-input-picker fi-input block w-full border-none bg-transparent text-base text-gray-950 outline-none transition duration-75 placeholder:text-gray-400 focus:ring-0 disabled:text-gray-500 disabled:[-webkit-text-fill-color:theme(colors.gray.500)] disabled:placeholder:[-webkit-text-fill-color:theme(colors.gray.400)] dark:text-white dark:placeholder:text-gray-500 dark:disabled:text-gray-400 dark:disabled:[-webkit-text-fill-color:theme(colors.gray.400)] dark:disabled:placeholder:[-webkit-text-fill-color:theme(colors.gray.500)] sm:text-sm sm:leading-6',
-
             ])>
-        </x-filament::input.wrapper>
+    </x-filament::input.wrapper>
 </x-dynamic-component>
