@@ -218,28 +218,30 @@ class EmpresaResource extends Resource
                     ->description('Documento normativo interno de la empresa')
                     ->icon('heroicon-o-document-text')
                     ->schema([
-                        // Estado: RIT activo (manual o IA) — muestra info + link de descarga
-                        Forms\Components\Placeholder::make('rit_activo_info')
-                            ->label('Estado del RIT')
-                            ->content(function ($record) {
-                                $rit = $record?->reglamentoInterno;
-                                if (!$rit) return '';
-                                $fuente = $rit->fuente === 'construido_ia' ? 'Generado con IA' : 'Subido manualmente';
-                                $nombre = $rit->nombre ?? 'Reglamento Interno';
-                                $url    = route('rit.descargar.admin', $record);
-                                return new \Illuminate\Support\HtmlString(
-                                    "<div class='flex items-center gap-3'>" .
-                                    "<span class='text-success-600 font-medium'>✓ RIT activo — {$fuente}</span>" .
-                                    "&nbsp;·&nbsp;" .
-                                    "<a href='{$url}' target='_blank' class='text-primary-600 underline text-sm'>Descargar: {$nombre}</a>" .
-                                    "</div>"
-                                );
+                        // RIT con archivo físico guardado — FileUpload nativo con descarga
+                        Forms\Components\FileUpload::make('rit_docx_display')
+                            ->label('Reglamento Interno actual')
+                            ->disk('local')
+                            ->visibility('private')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->downloadable()
+                            ->afterStateHydrated(function ($component, $record) {
+                                $ruta = $record?->reglamentoInterno?->ruta_docx;
+                                $component->state($ruta ? [$ruta] : []);
                             })
-                            ->visible(fn ($record) => $record && $record?->reglamentoInterno !== null)
+                            ->visible(fn ($record) => (bool) $record?->reglamentoInterno?->ruta_docx)
+                            ->columnSpanFull(),
+
+                        // RIT sin archivo físico (registro legado sin ruta_docx)
+                        Forms\Components\Placeholder::make('rit_registrado_sin_archivo')
+                            ->label('Reglamento Interno')
+                            ->content('RIT registrado en el sistema (sin archivo descargable). Puede reemplazarlo subiendo un nuevo archivo abajo.')
+                            ->visible(fn ($record) => $record && $record?->reglamentoInterno && !$record?->reglamentoInterno?->ruta_docx)
                             ->columnSpanFull(),
 
                         Forms\Components\Placeholder::make('rit_sin_docx')
-                            ->label('Estado del RIT')
+                            ->label('Reglamento Interno')
                             ->content('Sin reglamento registrado. Suba un archivo .docx o .pdf abajo, o use el wizard "Construir RIT" para generarlo con IA.')
                             ->visible(fn ($record) => $record && !$record?->reglamentoInterno)
                             ->columnSpanFull(),
