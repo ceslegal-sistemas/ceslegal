@@ -226,6 +226,7 @@ class EmpresaResource extends Resource
                             ->disabled()
                             ->dehydrated(false)
                             ->downloadable()
+                            ->openable(true)
                             ->afterStateHydrated(function ($component, $record) {
                                 $ruta = $record?->reglamentoInterno?->ruta_docx;
                                 $component->state($ruta ? [$ruta] : []);
