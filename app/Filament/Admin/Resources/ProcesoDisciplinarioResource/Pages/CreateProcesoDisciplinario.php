@@ -472,10 +472,10 @@ class CreateProcesoDisciplinario extends CreateRecord
 
                             Forms\Components\FileUpload::make('evidencias_empleador')
                                 ->label('Adjuntar archivos (opcional)')
-                                ->helperText('Máx. 5 archivos · 5 MB c/u · PDF, imágenes, Word.')
+                                ->helperText('Máx. 5 archivos · 10 MB c/u · PDF, imágenes, Word.')
                                 ->multiple()
                                 ->maxFiles(5)
-                                ->maxSize(5120)
+                                ->maxSize(10240)
                                 ->disk('public')
                                 ->directory('evidencias')
                                 ->acceptedFileTypes([
