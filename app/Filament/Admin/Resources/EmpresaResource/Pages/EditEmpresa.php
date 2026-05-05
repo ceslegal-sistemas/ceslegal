@@ -35,25 +35,36 @@ class EditEmpresa extends EditRecord
         }
 
         if ($raw) {
-            // Mover el archivo de reglamentos-temp a ubicación permanente privada
-            $extension    = pathinfo($raw, PATHINFO_EXTENSION);
-            $nombreFinal  = 'reglamento.' . strtolower($extension);
-            $rutaPermanente = "rits/{$this->record->id}/{$nombreFinal}";
+            $basename       = basename($raw);
+            $dirDestino     = "rits/{$this->record->id}";
+            $rutaPermanente = "{$dirDestino}/{$basename}";
 
-            if (Storage::disk('local')->exists($raw)) {
+            // Crear directorio si no existe y mover el archivo a ubicación permanente
+            try {
+                Storage::disk('local')->makeDirectory($dirDestino);
                 Storage::disk('local')->move($raw, $rutaPermanente);
-            } else {
-                $rutaPermanente = $raw; // fallback: usar la ruta temporal
+            } catch (\Throwable $e) {
+                // Si el move falla, continuar con la ruta temporal
+                \Illuminate\Support\Facades\Log::warning('EditEmpresa: no se pudo mover RIT a permanente', [
+                    'from'  => $raw,
+                    'to'    => $rutaPermanente,
+                    'error' => $e->getMessage(),
+                ]);
+                $rutaPermanente = Storage::disk('local')->exists($raw) ? $raw : null;
             }
 
-            $rutaAbsoluta = Storage::disk('local')->path($rutaPermanente);
+            $rutaAbsoluta = $rutaPermanente
+                ? Storage::disk('local')->path($rutaPermanente)
+                : null;
 
-            app(ReglamentoInternoService::class)->procesarDocumento(
-                $rutaAbsoluta,
-                $this->record->id,
-                basename($raw),
-                $rutaPermanente,   // ruta relativa para ruta_docx
-            );
+            if ($rutaAbsoluta && file_exists($rutaAbsoluta)) {
+                app(ReglamentoInternoService::class)->procesarDocumento(
+                    $rutaAbsoluta,
+                    $this->record->id,
+                    $basename,
+                    $rutaPermanente,
+                );
+            }
 
             Notification::make()
                 ->success()

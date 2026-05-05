@@ -153,29 +153,30 @@ Route::get('/descargar/rit/admin/{empresa}', function (\App\Models\Empresa $empr
         abort(404, 'Documento no encontrado para esta empresa.');
     }
 
-    $extension = 'docx';
-    $nombre    = 'RIT_' . \Str::slug($empresa->razon_social);
-
-    // Prioridad 1: servir el archivo original subido (ruta en disco local privado)
-    if ($rit->ruta_docx && \Illuminate\Support\Facades\Storage::disk('local')->exists($rit->ruta_docx)) {
-        $extension = strtolower(pathinfo($rit->ruta_docx, PATHINFO_EXTENSION)) ?: 'docx';
-        $mimeTypes = [
-            'pdf'  => 'application/pdf',
-            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        ];
-        return \Illuminate\Support\Facades\Storage::disk('local')->download(
-            $rit->ruta_docx,
-            "{$nombre}.{$extension}",
-            ['Content-Type' => $mimeTypes[$extension] ?? 'application/octet-stream']
-        );
+    // Prioridad 1: servir el archivo original tal como fue subido
+    if ($rit->ruta_docx) {
+        $rutaAbsoluta = \Illuminate\Support\Facades\Storage::disk('local')->path($rit->ruta_docx);
+        if (file_exists($rutaAbsoluta)) {
+            $extension = strtolower(pathinfo($rutaAbsoluta, PATHINFO_EXTENSION)) ?: 'docx';
+            $mimeTypes = [
+                'pdf'  => 'application/pdf',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ];
+            // Usar el nombre original guardado en el registro
+            $nombreDescarga = $rit->nombre ?? ('RIT_' . \Str::slug($empresa->razon_social) . ".{$extension}");
+            return response()->download($rutaAbsoluta, $nombreDescarga, [
+                'Content-Type' => $mimeTypes[$extension] ?? 'application/octet-stream',
+            ]);
+        }
     }
 
-    // Prioridad 2: regenerar DOCX desde texto_completo (RIT generado por IA o upload con texto extraído)
+    // Prioridad 2: regenerar DOCX desde texto_completo (RIT generado por IA)
     if (!empty($rit->texto_completo)) {
         $service = app(\App\Services\RITGeneratorService::class);
         $tmpPath = $service->generarDocumentoWordTemp($rit->texto_completo, $empresa);
+        $nombre  = 'RIT_' . \Str::slug($empresa->razon_social) . '.docx';
 
-        return response()->download($tmpPath, "{$nombre}.docx", [
+        return response()->download($tmpPath, $nombre, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ])->deleteFileAfterSend();
     }
