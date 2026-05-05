@@ -15,6 +15,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Pages\Auth\Register as BaseRegister;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
 /**
@@ -235,7 +236,7 @@ class Register extends BaseRegister
                                     'despues'   => 'Lo haré después (solo podré aplicar terminación de contrato)',
                                 ])
                                 ->descriptions([
-                                    'tiene'     => 'Suba el archivo .docx de su RIT aprobado por el Ministerio del Trabajo.',
+                                    'tiene'     => 'Suba el archivo .docx o .pdf de su RIT aprobado por el Ministerio del Trabajo.',
                                     'construir' => 'Al crear la cuenta, lo redirigiremos a un cuestionario guiado. La IA redactará su RIT completo.',
                                     'despues'   => 'Puede subir o construir el RIT más adelante desde el panel de administración.',
                                 ])
@@ -244,9 +245,12 @@ class Register extends BaseRegister
                                 ->columnSpanFull(),
 
                             Forms\Components\FileUpload::make('reglamento_docx_temp')
-                                ->label('Subir Reglamento Interno (.docx)')
-                                ->helperText('Suba el archivo .docx de su RIT aprobado por el Ministerio del Trabajo.')
-                                ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
+                                ->label('Subir Reglamento Interno (.docx o .pdf)')
+                                ->helperText('Formatos aceptados: .docx y .pdf — máx. 10 MB.')
+                                ->acceptedFileTypes([
+                                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                    'application/pdf',
+                                ])
                                 ->disk('local')
                                 ->directory('reglamentos-temp')
                                 ->visibility('private')
@@ -307,18 +311,13 @@ class Register extends BaseRegister
         $rutaDocx  = $data['reglamento_docx_temp'] ?? null;
 
         if ($ritOpcion === 'tiene' && $rutaDocx) {
-            try {
-                app(ReglamentoInternoService::class)->procesarDocumento(
-                    storage_path("app/{$rutaDocx}"),
-                    $empresa->id,
-                    basename($rutaDocx)
-                );
-            } catch (\Exception $e) {
-                Log::warning('No se pudo procesar el RIT durante el registro', [
-                    'empresa_id' => $empresa->id,
-                    'error'      => $e->getMessage(),
-                ]);
-            }
+            $rutaAbsoluta = Storage::disk('local')->path($rutaDocx);
+
+            app(ReglamentoInternoService::class)->procesarDocumento(
+                $rutaAbsoluta,
+                $empresa->id,
+                basename($rutaDocx)
+            );
         } elseif ($ritOpcion === 'construir') {
             // Tras el registro, redirigir al constructor de RIT
             // (se sobreescribe solo si no hay ya redirect a PayU)

@@ -574,7 +574,6 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->label('Fecha de la audiencia')
                                 ->required()
                                 ->native(false)
-                                ->live()
                                 ->displayFormat('d/m/Y')
                                 ->minDate(function (Get $get) {
                                     // Super admin puede seleccionar desde hoy
@@ -582,61 +581,57 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         return now()->startOfDay();
                                     }
 
-                                    $empresaId     = $get('empresa_id');
-                                    $empresa       = $empresaId ? Empresa::find($empresaId) : null;
+                                    $festivos       = self::getFestivosDatepicker();
+                                    $empresaId      = $get('empresa_id');
+                                    $empresa        = $empresaId ? Empresa::find($empresaId) : null;
                                     $trabajaSabados = $empresa?->trabajaSabados() ?? false;
 
-                                    if ($trabajaSabados) {
-                                        // Contar 6 días hábiles: lunes–sábado, excluir domingos y festivos
-                                        $fecha    = now()->copy();
-                                        $contados = 0;
-                                        $festivos = self::getFestivosDatepicker();
+                                    // Contar 6 días hábiles según jornada de la empresa
+                                    $fecha    = now()->copy();
+                                    $contados = 0;
 
-                                        while ($contados < 6) {
-                                            $fecha->addDay();
-                                            if (!$fecha->isSunday() && !in_array($fecha->format('Y-m-d'), $festivos)) {
-                                                $contados++;
-                                            }
+                                    while ($contados < 6) {
+                                        $fecha->addDay();
+                                        $esFestivo  = in_array($fecha->format('Y-m-d'), $festivos);
+                                        $esInhabil  = $trabajaSabados
+                                            ? $fecha->isSunday()
+                                            : $fecha->isWeekend();
+
+                                        if (!$esInhabil && !$esFestivo) {
+                                            $contados++;
                                         }
-                                        return $fecha->startOfDay();
                                     }
 
-                                    // Lunes–Viernes: usa TerminoLegalService
-                                    return app(TerminoLegalService::class)
-                                        ->calcularFechaVencimiento(now(), 6)
-                                        ->startOfDay();
+                                    return $fecha->startOfDay();
                                 })
-                                ->maxDate(fn() => now()->addMonth()->endOfDay())
+                                ->maxDate(fn() => now()->addMonths(3)->endOfDay())
                                 ->disabledDates(function (Get $get) {
-                                    $deshabilitadas = [];
-                                    $inicio         = now()->startOfDay();
-                                    $fin            = now()->addYear();
-
-                                    $empresaId     = $get('empresa_id');
-                                    $empresa       = $empresaId ? Empresa::find($empresaId) : null;
+                                    $empresaId      = $get('empresa_id');
+                                    $empresa        = $empresaId ? Empresa::find($empresaId) : null;
                                     $trabajaSabados = $empresa?->trabajaSabados() ?? false;
 
                                     $festivos = self::getFestivosDatepicker();
 
+                                    // Solo iterar el rango visible (3 meses) para mantener el payload pequeño
+                                    $deshabilitadas = [];
+                                    $inicio         = now()->startOfDay();
+                                    $fin            = now()->addMonths(3);
+
                                     for ($d = $inicio->copy(); $d->lte($fin); $d->addDay()) {
-                                        if ($trabajaSabados) {
-                                            // Solo domingos bloqueados
-                                            if ($d->isSunday()) {
-                                                $deshabilitadas[] = $d->format('Y-m-d');
-                                            }
-                                        } else {
-                                            // Sábados y domingos bloqueados
-                                            if ($d->isWeekend()) {
-                                                $deshabilitadas[] = $d->format('Y-m-d');
-                                            }
+                                        $esInhabil = $trabajaSabados
+                                            ? $d->isSunday()
+                                            : $d->isWeekend();
+
+                                        if ($esInhabil) {
+                                            $deshabilitadas[] = $d->format('Y-m-d');
                                         }
                                     }
 
                                     return array_unique(array_merge($deshabilitadas, $festivos));
                                 })
                                 ->helperText(function (Get $get) {
-                                    $empresaId     = $get('empresa_id');
-                                    $empresa       = $empresaId ? Empresa::find($empresaId) : null;
+                                    $empresaId      = $get('empresa_id');
+                                    $empresa        = $empresaId ? Empresa::find($empresaId) : null;
                                     $trabajaSabados = $empresa?->trabajaSabados() ?? false;
 
                                     return $trabajaSabados

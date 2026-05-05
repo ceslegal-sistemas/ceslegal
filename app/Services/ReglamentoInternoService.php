@@ -5,29 +5,50 @@ namespace App\Services;
 use App\Models\ReglamentoInterno;
 use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpWord\IOFactory;
+use Smalot\PdfParser\Parser as PdfParser;
 
 class ReglamentoInternoService
 {
     /**
-     * Procesa un archivo .docx, extrae el texto y lo guarda en BD.
+     * Procesa un archivo (.docx o .pdf), extrae el texto y lo guarda en BD.
+     *
+     * La extracción de texto es opcional — si falla, el registro se crea de
+     * todas formas con activo=true para que la empresa quede con RIT activo.
      */
     public function procesarDocumento(string $rutaArchivo, int $empresaId, string $nombreOriginal): ReglamentoInterno
     {
-        $texto = $this->extraerTexto($rutaArchivo);
+        $texto = '';
+
+        try {
+            $extension = strtolower(pathinfo($rutaArchivo, PATHINFO_EXTENSION));
+
+            $texto = match ($extension) {
+                'pdf'  => $this->extraerTextoPdf($rutaArchivo),
+                default => $this->extraerTextoDocx($rutaArchivo),
+            };
+        } catch (\Exception $e) {
+            // La extracción de texto falla con gracia — el RIT aún se registra
+            Log::warning('ReglamentoInternoService: no se pudo extraer texto del documento', [
+                'empresa_id' => $empresaId,
+                'archivo'    => basename($rutaArchivo),
+                'error'      => $e->getMessage(),
+            ]);
+        }
 
         $reglamento = ReglamentoInterno::updateOrCreate(
             ['empresa_id' => $empresaId],
             [
                 'nombre'         => $nombreOriginal,
-                'texto_completo' => $texto,
+                'texto_completo' => $texto ?: null,
                 'activo'         => true,
+                'fuente'         => 'subido',
             ]
         );
 
-        Log::info('Reglamento interno procesado', [
-            'empresa_id'  => $empresaId,
-            'nombre'      => $nombreOriginal,
-            'chars'       => strlen($texto),
+        Log::info('ReglamentoInternoService: documento registrado', [
+            'empresa_id' => $empresaId,
+            'nombre'     => $nombreOriginal,
+            'chars'      => strlen($texto),
         ]);
 
         return $reglamento;
@@ -47,9 +68,9 @@ class ReglamentoInternoService
     }
 
     /**
-     * Extrae el texto plano de un archivo .docx usando PhpWord.
+     * Extrae texto plano de un .docx usando PhpWord.
      */
-    private function extraerTexto(string $rutaArchivo): string
+    private function extraerTextoDocx(string $rutaArchivo): string
     {
         $phpWord = IOFactory::load($rutaArchivo);
         $lineas  = [];
@@ -61,6 +82,17 @@ class ReglamentoInternoService
         }
 
         return trim(implode("\n", array_filter($lineas)));
+    }
+
+    /**
+     * Extrae texto plano de un .pdf usando smalot/pdfparser.
+     */
+    private function extraerTextoPdf(string $rutaArchivo): string
+    {
+        $parser = new PdfParser();
+        $pdf    = $parser->parseFile($rutaArchivo);
+
+        return trim($pdf->getText());
     }
 
     /**

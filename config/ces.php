@@ -22,7 +22,7 @@ DECLARACIÓN DE IDENTIDAD Y GARANTÍAS PROCESALES
 
 Yo, quien diligenció sus datos en el sistema, declaro bajo la gravedad del juramento:
 
-1. IDENTIDAD: Soy la persona citada a esta diligencia de descargos, identificada con el número de cédula de ciudadanía registrado en el sistema, y estoy participando voluntaria y conscientemente en este proceso.
+1. IDENTIDAD: Soy la persona citada a esta diligencia de descargos, identificada con el número de cédula de ciudadanía {$trabajador->cedula}, registrado en el sistema, y estoy participando voluntaria y conscientemente en este proceso.
 
 2. DERECHO DE DEFENSA (Art. 29 Constitución Política): Conozco que la Constitución me garantiza el derecho a ser oído, a presentar pruebas y a controvertir las que se alleguen en mi contra. Esta diligencia es precisamente el mecanismo para ejercer ese derecho.
 
