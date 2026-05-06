@@ -29,7 +29,7 @@
                 data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
                 style="width:20px;height:20px;flex-shrink:0">
             </lord-icon>
-            <span>El empleado podrá completar el formulario virtual sin límite de tiempo.</span>
+            <span>El empleado completará el formulario virtual durante la audiencia.</span>
         </div>
 
         <div class="pt-bullet">
