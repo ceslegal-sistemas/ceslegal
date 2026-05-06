@@ -128,7 +128,20 @@
                     <li><strong>Analizar las evidencias</strong> aportadas como parte de su defensa</li>
                     <li><strong>Emitir la sanción correspondiente</strong> según la gravedad de los hechos y las respuestas recibidas</li>
                 </ol>
-                <p>Puede acceder al proceso desde el panel de administración para revisar toda la información.</p>
+                @if(isset($linkEmitirSancion) && $linkEmitirSancion)
+                    <p>Haga clic en el botón para ir directamente al proceso y emitir la sanción:</p>
+                    <div style="text-align: center;">
+                        <a href="{{ $linkEmitirSancion }}" class="btn">Ir al Proceso — Emitir Sanción</a>
+                    </div>
+                @else
+                    <p>Puede acceder al proceso desde el panel de administración para revisar toda la información.</p>
+                @endif
+            </div>
+
+            <div class="info-box" style="border-left-color: #16a34a; background-color: #f0fdf4;">
+                <h2 style="color: #15803d;">Acta de Descargos Adjunta</h2>
+                <p>Se adjunta a este correo el <strong>Acta de Descargos</strong> del proceso <strong>{{ $proceso->codigo }}</strong>,
+                    con el registro completo de las preguntas y respuestas de la diligencia.</p>
             </div>
 
         @else

@@ -417,10 +417,8 @@ class FormularioDescargos extends Component
         // Guardar feedback orgánico si el trabajador respondió al menos la primera pregunta
         $this->guardarFeedbackOrganico();
 
-        // Notificaciones al trabajador y al cliente (no críticas)
-        $this->enviarNotificacionesCompletado();
-
         // Generar el acta de descargos automáticamente (no crítico)
+        // Se genera ANTES de las notificaciones para poder adjuntarla al correo del cliente
         try {
             $actaService = new ActaDescargosService();
             $resultado = $actaService->generarActaDescargos($this->diligencia);
@@ -430,6 +428,7 @@ class FormularioDescargos extends Component
                     'acta_generada' => true,
                     'ruta_acta' => $resultado['path'],
                 ]);
+                $this->diligencia->refresh();
             } else {
                 Log::warning('No se pudo generar el acta automáticamente', [
                     'diligencia_id' => $this->diligencia->id,
@@ -442,6 +441,10 @@ class FormularioDescargos extends Component
                 'error' => $e->getMessage(),
             ]);
         }
+
+        // Notificaciones al trabajador y al cliente (no críticas)
+        // Se envían DESPUÉS de generar el acta para poder adjuntarla al correo del cliente
+        $this->enviarNotificacionesCompletado();
     }
 
     /**

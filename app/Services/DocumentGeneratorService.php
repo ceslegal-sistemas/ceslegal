@@ -1472,6 +1472,22 @@ HTML;
             default => 'Actualización del Proceso Disciplinario ' . $proceso->codigo,
         };
 
+        // Preparar adjunto del acta y link de sanción (solo cuando descargos completados)
+        $rutaActa = null;
+        $linkEmitirSancion = null;
+
+        if ($estado === 'descargos_realizados') {
+            $diligencia = $proceso->diligenciaDescargo;
+            if ($diligencia && $diligencia->acta_generada && !empty($diligencia->ruta_acta) && file_exists($diligencia->ruta_acta)) {
+                $rutaActa = $diligencia->ruta_acta;
+            }
+            try {
+                $linkEmitirSancion = route('filament.admin.resources.proceso-disciplinarios.edit', ['record' => $proceso->id]);
+            } catch (\Exception $e) {
+                Log::warning('No se pudo generar link de sanción', ['proceso_id' => $proceso->id]);
+            }
+        }
+
         foreach ($usuariosCliente as $cliente) {
             try {
                 // Crear registro de tracking para el correo
@@ -1491,9 +1507,21 @@ HTML;
                     'cliente' => $cliente,
                     'estado' => $estado,
                     'trackingToken' => $tracking->token,
-                ], function ($message) use ($cliente, $asunto) {
+                    'linkEmitirSancion' => $linkEmitirSancion,
+                ], function ($message) use ($cliente, $asunto, $rutaActa, $proceso) {
                     $message->to($cliente->email, $cliente->name)
                         ->subject($asunto);
+
+                    if ($rutaActa) {
+                        $extension = pathinfo($rutaActa, PATHINFO_EXTENSION);
+                        $mimeType = $extension === 'docx'
+                            ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            : 'application/pdf';
+                        $message->attach($rutaActa, [
+                            'as' => 'Acta_Descargos_' . $proceso->codigo . '.' . $extension,
+                            'mime' => $mimeType,
+                        ]);
+                    }
                 });
 
                 Log::info('Notificación de estado de descargos enviada al cliente', [
