@@ -247,7 +247,7 @@
                     <li>Tenga a la mano este correo con el boton de acceso.</li>
                     <li>Prepare documentos o evidencias que quiera presentar.</li>
                     <li>Asegurese de tener conexion a internet estable.</li>
-                    <li>Reserve aproximadamente <strong>45 minutos</strong> para completar el formulario.</li>
+                    <li>Reserve el tiempo necesario para completar el formulario con calma.</li>
                 </ul>
             </div>
 

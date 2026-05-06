@@ -29,7 +29,7 @@
                 data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
                 style="width:20px;height:20px;flex-shrink:0">
             </lord-icon>
-            <span>El empleado tendrá <strong>45 minutos</strong> para completar el formulario virtual.</span>
+            <span>El empleado podrá completar el formulario virtual sin límite de tiempo.</span>
         </div>
 
         <div class="pt-bullet">

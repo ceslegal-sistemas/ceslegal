@@ -718,7 +718,7 @@
 
         <div class="bv-process-grid" id="{{ $uid }}_steps">
             @foreach ([
-        ['n' => '1', 'sc' => '#60a5fa', 'ib' => 'rgba(96,165,250,.12)', 'ibc' => 'rgba(96,165,250,.25)', 'tag' => 'Paso 1', 'title' => 'Datos del trabajador', 'body' => 'Identifique al trabajador y su cargo. El empleado tendrá 45 minutos en la audiencia y sus respuestas quedarán registradas.'],
+        ['n' => '1', 'sc' => '#60a5fa', 'ib' => 'rgba(96,165,250,.12)', 'ibc' => 'rgba(96,165,250,.25)', 'tag' => 'Paso 1', 'title' => 'Datos del trabajador', 'body' => 'Identifique al trabajador y su cargo. El empleado podrá presentar sus descargos en línea y sus respuestas quedarán registradas.'],
         ['n' => '2', 'sc' => '#34d399', 'ib' => 'rgba(52,211,153,.12)', 'ibc' => 'rgba(52,211,153,.25)', 'tag' => 'Paso 2', 'title' => 'Cuándo y dónde', 'body' => 'Confirme la fecha, hora aproximada, lugar del hecho y si ocurrió dentro del horario laboral.'],
         ['n' => '3', 'sc' => '#c9a84c', 'ib' => 'rgba(201,168,76,.12)', 'ibc' => 'rgba(201,168,76,.25)', 'tag' => 'Paso 3', 'title' => 'Hechos reportados', 'body' => '¿Quién reporta el incidente? Describa lo ocurrido — la IA verifica que no falte alguna acción concreta.'],
         ['n' => '4', 'sc' => '#a78bfa', 'ib' => 'rgba(167,139,250,.12)', 'ibc' => 'rgba(167,139,250,.25)', 'tag' => 'Paso 4', 'title' => 'Evidencias', 'body' => '¿Existe evidencia? Correos, registros de asistencia, cámaras, documentos, testigos... suba los archivos disponibles.'],

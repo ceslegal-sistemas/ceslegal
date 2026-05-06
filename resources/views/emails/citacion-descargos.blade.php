@@ -255,7 +255,7 @@
                 </div>
                 <div class="step">
                     <div class="step-num">3</div>
-                    <div class="step-text">Complete el formulario en linea y envie sus descargos. Tiene aproximadamente <strong>45 minutos</strong>.</div>
+                    <div class="step-text">Complete el formulario en linea y envie sus descargos.</div>
                 </div>
             </div>
 
