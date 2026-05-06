@@ -1545,9 +1545,9 @@ class ProcesoDisciplinarioResource extends Resource
 
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
-                        !empty($record->trabajador->email) && !empty($record->fecha_descargos_programada)
+                        !empty($record->trabajador->email)
+                            && !empty($record->fecha_descargos_programada)
                             && $record->estado === 'descargos_pendientes'
-                            && \Carbon\Carbon::parse($record->fecha_descargos_programada)->isFuture()
                     )
                     ->action(function (ProcesoDisciplinario $record) {
                         $service = new \App\Services\DocumentGeneratorService();
