@@ -6,6 +6,7 @@ use App\Models\ProcesoDisciplinario;
 use App\Models\EmailTracking;
 use App\Services\TimelineService;
 use App\Services\EstadoProcesoService;
+use App\Services\ReglamentoInternoService;
 use PhpOffice\PhpWord\TemplateProcessor;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Settings;
@@ -554,6 +555,20 @@ HTML;
         $mimeType = $extension === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
         $nombreArchivo = 'Citacion_Descargos_' . $proceso->codigo . '.' . $extension;
 
+        // Extraer faltas/sanciones del RIT para la tabla del email (wizard o subido)
+        $sancionesRIT = [];
+        $rit = $empresa->reglamentoInterno;
+        if ($rit) {
+            try {
+                $sancionesRIT = app(ReglamentoInternoService::class)->extraerSancionesParaEmail($rit);
+            } catch (\Throwable $e) {
+                Log::warning('enviarCitacionPorEmail: no se pudo extraer sanciones del RIT', [
+                    'empresa_id' => $empresa->id,
+                    'error'      => $e->getMessage(),
+                ]);
+            }
+        }
+
         Mail::send('emails.citacion-descargos', [
             'proceso' => $proceso,
             'trabajador' => $trabajador,
@@ -561,6 +576,7 @@ HTML;
             'linkDescargos' => $linkDescargos,
             'fechaAccesoPermitida' => $fechaAccesoPermitida,
             'trackingToken' => $tracking->token,
+            'sancionesRIT' => $sancionesRIT,
         ], function ($message) use ($trabajador, $proceso, $pdfPath, $nombreArchivo, $mimeType) {
             $message->to($trabajador->email, $trabajador->nombre_completo)
                 ->subject('Citación a Audiencia de Descargos - Proceso ' . $proceso->codigo)

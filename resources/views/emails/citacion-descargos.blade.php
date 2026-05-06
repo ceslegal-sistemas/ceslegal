@@ -266,36 +266,22 @@
                 <p><strong>Su cargo:</strong> {{ $trabajador->cargo }}</p>
             </div>
 
-            {{-- TABLA DE SANCIONES — ARTICULO 20 (datos del RIT de la empresa) --}}
+            {{-- TABLA DE SANCIONES — ARTICULO 20 --}}
+            {{-- $sancionesRIT viene pre-computado de DocumentGeneratorService
+                 con strings legibles en español (tanto wizard como RIT manual) --}}
             @php
-                $rit            = $empresa->reglamentoInterno;
-                $cuestionario   = $rit?->respuestas_cuestionario ?? [];
-                $faltasLeves    = $cuestionario['faltas_leves']        ?? [];
-                $faltasGraves   = $cuestionario['faltas_graves']       ?? [];
-                $sancionesRIT   = $cuestionario['sanciones_contempladas'] ?? $cuestionario['sanciones'] ?? [];
+                $faltasLeves   = $sancionesRIT['faltas_leves']  ?? [];
+                $faltasGraves  = $sancionesRIT['faltas_graves'] ?? [];
+                $sancionesData = $sancionesRIT['sanciones']     ?? [];
 
-                // Mapeo de claves del wizard a texto legible
-                $sancionTexto = [
-                    'llamado_verbal'  => 'Llamado de Atención Verbal',
-                    'llamado_escrito' => 'Llamado de Atención Escrito',
-                    'suspension_1_8'  => 'Suspensión 1 a 8 días sin sueldo',
-                    'suspension_1_15' => 'Suspensión 1 a 15 días sin sueldo',
-                    'suspension_1_30' => 'Suspensión 1 a 30 días sin sueldo',
-                    'suspension_1_40' => 'Suspensión 1 a 40 días sin sueldo',
-                    'suspension_1_60' => 'Suspensión 1 a 60 días sin sueldo',
-                    'terminacion'     => 'Terminación del Contrato con Justa Causa',
-                ];
-
-                // Sanción para faltas leves (llamados de atención disponibles)
-                $sancionLeve = collect($sancionesRIT)
-                    ->filter(fn($s) => str_starts_with($s, 'llamado'))
-                    ->map(fn($s) => $sancionTexto[$s] ?? $s)
+                // Sanciones leves: las que mencionan "llamado" o "atención"
+                $sancionLeve = collect($sancionesData)
+                    ->filter(fn($s) => preg_match('/llamado|atenci[oó]n|advertencia|verbal|escrito/i', $s))
                     ->join(' / ') ?: 'Llamado de Atención';
 
-                // Sanciones para faltas graves (suspensiones y terminación)
-                $sancionGrave = collect($sancionesRIT)
-                    ->filter(fn($s) => str_starts_with($s, 'suspension') || $s === 'terminacion')
-                    ->map(fn($s) => $sancionTexto[$s] ?? $s)
+                // Sanciones graves: las que mencionan suspensión o terminación
+                $sancionGrave = collect($sancionesData)
+                    ->filter(fn($s) => preg_match('/suspensi[oó]n|terminaci[oó]n|despido/i', $s))
                     ->join(' / ') ?: 'Suspensión / Terminación';
 
                 $tieneTabla = !empty($faltasLeves) || !empty($faltasGraves);
