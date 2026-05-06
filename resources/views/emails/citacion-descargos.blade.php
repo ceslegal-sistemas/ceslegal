@@ -266,12 +266,41 @@
                 <p><strong>Su cargo:</strong> {{ $trabajador->cargo }}</p>
             </div>
 
-            {{-- TABLA DE SANCIONES — ARTICULO 20 --}}
+            {{-- TABLA DE SANCIONES — ARTICULO 20 (datos del RIT de la empresa) --}}
             @php
-                $sancionesLaborales = $proceso->sancionesLaborales ?? collect();
-                $otroMotivo         = $proceso->otro_motivo_descargos ?? null;
+                $rit            = $empresa->reglamentoInterno;
+                $cuestionario   = $rit?->respuestas_cuestionario ?? [];
+                $faltasLeves    = $cuestionario['faltas_leves']        ?? [];
+                $faltasGraves   = $cuestionario['faltas_graves']       ?? [];
+                $sancionesRIT   = $cuestionario['sanciones_contempladas'] ?? $cuestionario['sanciones'] ?? [];
+
+                // Mapeo de claves del wizard a texto legible
+                $sancionTexto = [
+                    'llamado_verbal'  => 'Llamado de Atención Verbal',
+                    'llamado_escrito' => 'Llamado de Atención Escrito',
+                    'suspension_1_8'  => 'Suspensión 1 a 8 días sin sueldo',
+                    'suspension_1_15' => 'Suspensión 1 a 15 días sin sueldo',
+                    'suspension_1_30' => 'Suspensión 1 a 30 días sin sueldo',
+                    'suspension_1_40' => 'Suspensión 1 a 40 días sin sueldo',
+                    'suspension_1_60' => 'Suspensión 1 a 60 días sin sueldo',
+                    'terminacion'     => 'Terminación del Contrato con Justa Causa',
+                ];
+
+                // Sanción para faltas leves (llamados de atención disponibles)
+                $sancionLeve = collect($sancionesRIT)
+                    ->filter(fn($s) => str_starts_with($s, 'llamado'))
+                    ->map(fn($s) => $sancionTexto[$s] ?? $s)
+                    ->join(' / ') ?: 'Llamado de Atención';
+
+                // Sanciones para faltas graves (suspensiones y terminación)
+                $sancionGrave = collect($sancionesRIT)
+                    ->filter(fn($s) => str_starts_with($s, 'suspension') || $s === 'terminacion')
+                    ->map(fn($s) => $sancionTexto[$s] ?? $s)
+                    ->join(' / ') ?: 'Suspensión / Terminación';
+
+                $tieneTabla = !empty($faltasLeves) || !empty($faltasGraves);
             @endphp
-            @if($sancionesLaborales->isNotEmpty() || $otroMotivo)
+            @if($tieneTabla)
             <div style="margin: 0 0 20px 0;">
                 <p style="font-size:13px; font-weight:bold; color:#1f2937; margin:0 0 6px 0; text-transform:uppercase; letter-spacing:0.4px;">
                     Consecuencias de las Faltas &mdash; Articulo 20
@@ -289,32 +318,48 @@
                         </td>
                     </tr>
                     <tr style="background-color:#e5e7eb;">
-                        <th style="border:1px solid #374151; padding:5px 8px; text-align:center; width:20%; font-size:11px;">Tipo de Falta</th>
-                        <th style="border:1px solid #374151; padding:5px 8px; text-align:left;   width:55%; font-size:11px;">Descripcion de la conducta</th>
-                        <th style="border:1px solid #374151; padding:5px 8px; text-align:center; width:25%; font-size:11px;">Sancion aplicable</th>
+                        <th style="border:1px solid #374151; padding:5px 8px; text-align:center; width:18%; font-size:11px;">Tipo de Falta</th>
+                        <th style="border:1px solid #374151; padding:5px 8px; text-align:left;   width:55%; font-size:11px;">Conductas reguladas por el Reglamento Interno</th>
+                        <th style="border:1px solid #374151; padding:5px 8px; text-align:center; width:27%; font-size:11px;">Sancion aplicable</th>
                     </tr>
-                    @foreach($sancionesLaborales as $sancion)
+
+                    @if(!empty($faltasLeves))
                     <tr>
-                        <td style="border:1px solid #374151; padding:4px 8px; text-align:center; font-weight:bold; color:{{ $sancion->tipo_falta === 'leve' ? '#15803d' : '#b91c1c' }};">
-                            {{ ucfirst($sancion->tipo_falta) }}
+                        <td style="border:1px solid #374151; padding:5px 8px; text-align:center; font-weight:bold; color:#15803d; vertical-align:top;">
+                            LEVE
                         </td>
-                        <td style="border:1px solid #374151; padding:4px 8px;">
-                            {{ $sancion->descripcion ?? $sancion->nombre_claro }}
+                        <td style="border:1px solid #374151; padding:5px 8px; vertical-align:top;">
+                            <ul style="margin:0; padding-left:16px;">
+                                @foreach($faltasLeves as $falta)
+                                <li style="margin-bottom:2px;">{{ $falta }}</li>
+                                @endforeach
+                            </ul>
                         </td>
-                        <td style="border:1px solid #374151; padding:4px 8px; text-align:center;">
-                            {{ $sancion->tipo_sancion_texto }}
+                        <td style="border:1px solid #374151; padding:5px 8px; text-align:center; vertical-align:top; font-size:11px;">
+                            {{ $sancionLeve }}
                         </td>
                     </tr>
-                    @endforeach
-                    @if($otroMotivo)
+                    @endif
+
+                    @if(!empty($faltasGraves))
                     <tr>
-                        <td style="border:1px solid #374151; padding:4px 8px; text-align:center; font-weight:bold; color:#b45309;">Por determinar</td>
-                        <td style="border:1px solid #374151; padding:4px 8px; color:#4b5563; font-style:italic;">{{ $otroMotivo }}</td>
-                        <td style="border:1px solid #374151; padding:4px 8px; text-align:center; color:#4b5563;">Segun analisis</td>
+                        <td style="border:1px solid #374151; padding:5px 8px; text-align:center; font-weight:bold; color:#b91c1c; vertical-align:top;">
+                            GRAVE
+                        </td>
+                        <td style="border:1px solid #374151; padding:5px 8px; vertical-align:top;">
+                            <ul style="margin:0; padding-left:16px;">
+                                @foreach($faltasGraves as $falta)
+                                <li style="margin-bottom:2px;">{{ $falta }}</li>
+                                @endforeach
+                            </ul>
+                        </td>
+                        <td style="border:1px solid #374151; padding:5px 8px; text-align:center; vertical-align:top; font-size:11px;">
+                            {{ $sancionGrave }}
+                        </td>
                     </tr>
                     @endif
                 </table>
-                <p style="font-size:10px; color:#6b7280; margin:4px 0 0 0;">Las sanciones anteriores se determinan con base en el Reglamento Interno de Trabajo de la empresa y la biblioteca legal vigente, de conformidad con la Ley 2466 de 2025.</p>
+                <p style="font-size:10px; color:#6b7280; margin:4px 0 0 0;">Tabla conforme al Reglamento Interno de Trabajo de {{ $empresa->razon_social }}, de conformidad con la Ley 2466 de 2025. Toda sancion se aplicara previa garantia del debido proceso.</p>
             </div>
             @endif
 
