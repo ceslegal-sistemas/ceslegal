@@ -10,7 +10,7 @@
     $isDisabled = $isDisabled();
 
     // <input type="time"> exige formato HH:mm (24h).
-    // El valor almacenado en Livewire ya viene en HH:mm:ss — lo normalizamos a HH:mm.
+    // El valor almacenado en Livewire ya viene en H:i o H:i:s — lo normalizamos a HH:mm.
     $raw = $getState() ?? '';
     $initVal = '';
     if ($raw) {
@@ -34,7 +34,7 @@
         :prefix-icon="$prefixIcon"
         :prefix-icon-color="$getPrefixIconColor()"
         :suffix="$suffixLabel"
-        :suffix-actions="$suffixActions"
+        :suffix-actions="$getSuffixActions()"
         :suffix-icon="$suffixIcon"
         :suffix-icon-color="$getSuffixIconColor()"
         :valid="! $errors->has($getStatePath())"
@@ -43,19 +43,25 @@
         <input {{ $isDisabled ? 'disabled' : '' }} type="time"
             value="{{ $initVal }}"
             x-data="{}"
-            x-init="$nextTick(() => mdtimepicker($el, {
-                okLabel: '{{ $getOkLabel() }}',
-                cancelLabel: '{{ $getCancelLabel() }}',
-                format: 'h:mm tt',
-                timeFormat: 'HH:mm',
-                events: {
-                    timeChanged: function(data, timepicker) {
-                        $el.value = data.time;
-                        $el.dispatchEvent(new Event('input',  { bubbles: true }));
-                        $el.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                }
-            }))"
+            x-init="
+                var _wire = $wire;
+                var _el   = $el;
+                var _path = '{{ $getStatePath() }}';
+                $nextTick(function () {
+                    mdtimepicker(_el, {
+                        okLabel:     '{{ $getOkLabel() }}',
+                        cancelLabel: '{{ $getCancelLabel() }}',
+                        format:      'h:mm tt',
+                        timeFormat:  'HH:mm',
+                        events: {
+                            timeChanged: function (data, timepicker) {
+                                _el.value = data.time;
+                                _wire.set(_path, data.time);
+                            }
+                        }
+                    });
+                });
+            "
             {{ $applyStateBindingModifiers('wire:model') }}="{{ $getStatePath() }}" @class([
                 'time-input-picker fi-input block w-full border-none bg-transparent text-base text-gray-950 outline-none transition duration-75 placeholder:text-gray-400 focus:ring-0 disabled:text-gray-500 disabled:[-webkit-text-fill-color:theme(colors.gray.500)] disabled:placeholder:[-webkit-text-fill-color:theme(colors.gray.400)] dark:text-white dark:placeholder:text-gray-500 dark:disabled:text-gray-400 dark:disabled:[-webkit-text-fill-color:theme(colors.gray.400)] dark:disabled:placeholder:[-webkit-text-fill-color:theme(colors.gray.500)] sm:text-sm sm:leading-6',
             ])>
