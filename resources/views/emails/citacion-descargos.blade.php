@@ -266,6 +266,58 @@
                 <p><strong>Su cargo:</strong> {{ $trabajador->cargo }}</p>
             </div>
 
+            {{-- TABLA DE SANCIONES — ARTICULO 20 --}}
+            @php
+                $sancionesLaborales = $proceso->sancionesLaborales ?? collect();
+                $otroMotivo         = $proceso->otro_motivo_descargos ?? null;
+            @endphp
+            @if($sancionesLaborales->isNotEmpty() || $otroMotivo)
+            <div style="margin: 0 0 20px 0;">
+                <p style="font-size:13px; font-weight:bold; color:#1f2937; margin:0 0 6px 0; text-transform:uppercase; letter-spacing:0.4px;">
+                    Consecuencias de las Faltas &mdash; Articulo 20
+                </p>
+                <table style="width:100%; border-collapse:collapse; font-size:12px; font-family:Arial,sans-serif;">
+                    <tr>
+                        <td colspan="3" style="border:1px solid #374151; padding:7px 8px; text-align:center; background-color:#f3f4f6;">
+                            <strong>TABLA DE SANCIONES LABORALES</strong><br>
+                            <span style="font-size:10px; color:#4b5563;">(Todas las sanciones contenidas en esta tabla solo se aplicaran previa garantia del debido proceso establecido en el Reglamento Interno, conforme a la Ley 2466 de 2025.)</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" style="border:1px solid #374151; padding:5px 8px; text-align:center; font-size:11px;">
+                            <strong>{{ $empresa->razon_social }}</strong> &nbsp;|&nbsp; NIT: {{ $empresa->nit }}
+                        </td>
+                    </tr>
+                    <tr style="background-color:#e5e7eb;">
+                        <th style="border:1px solid #374151; padding:5px 8px; text-align:center; width:20%; font-size:11px;">Tipo de Falta</th>
+                        <th style="border:1px solid #374151; padding:5px 8px; text-align:left;   width:55%; font-size:11px;">Descripcion de la conducta</th>
+                        <th style="border:1px solid #374151; padding:5px 8px; text-align:center; width:25%; font-size:11px;">Sancion aplicable</th>
+                    </tr>
+                    @foreach($sancionesLaborales as $sancion)
+                    <tr>
+                        <td style="border:1px solid #374151; padding:4px 8px; text-align:center; font-weight:bold; color:{{ $sancion->tipo_falta === 'leve' ? '#15803d' : '#b91c1c' }};">
+                            {{ ucfirst($sancion->tipo_falta) }}
+                        </td>
+                        <td style="border:1px solid #374151; padding:4px 8px;">
+                            {{ $sancion->descripcion ?? $sancion->nombre_claro }}
+                        </td>
+                        <td style="border:1px solid #374151; padding:4px 8px; text-align:center;">
+                            {{ $sancion->tipo_sancion_texto }}
+                        </td>
+                    </tr>
+                    @endforeach
+                    @if($otroMotivo)
+                    <tr>
+                        <td style="border:1px solid #374151; padding:4px 8px; text-align:center; font-weight:bold; color:#b45309;">Por determinar</td>
+                        <td style="border:1px solid #374151; padding:4px 8px; color:#4b5563; font-style:italic;">{{ $otroMotivo }}</td>
+                        <td style="border:1px solid #374151; padding:4px 8px; text-align:center; color:#4b5563;">Segun analisis</td>
+                    </tr>
+                    @endif
+                </table>
+                <p style="font-size:10px; color:#6b7280; margin:4px 0 0 0;">Las sanciones anteriores se determinan con base en el Reglamento Interno de Trabajo de la empresa y la biblioteca legal vigente, de conformidad con la Ley 2466 de 2025.</p>
+            </div>
+            @endif
+
             {{-- AVISO LEGAL --}}
             <div class="aviso">
                 <strong>Importante:</strong>
