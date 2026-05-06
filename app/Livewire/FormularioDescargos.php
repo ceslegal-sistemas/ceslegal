@@ -872,8 +872,12 @@ class FormularioDescargos extends Component
         $totalConFeedback     = $totalPreguntas + 5;
         $respondidosConFeedback = $preguntasRespondidas + ($this->feedbackPaso - 1);
 
-        // Disclaimer con variables del trabajador/empresa resueltas
+        // Disclaimer con variables del trabajador/empresa resueltas (BD con fallback a config)
         $empresa = $proceso->empresa;
+        $plantillaDisclaimer = \App\Models\ConfiguracionTexto::obtener(
+            'disclaimer_descargos',
+            config('ces.disclaimer_descargos', '')
+        );
         $textoDisclaimer = str_replace(
             [':nombre', ':cedula', ':empresa'],
             [
@@ -881,7 +885,7 @@ class FormularioDescargos extends Component
                 $trabajador->numero_documento ?? '',
                 $empresa->razon_social ?? '',
             ],
-            config('ces.disclaimer_descargos', '')
+            $plantillaDisclaimer
         );
 
         return view('livewire.formulario-descargos', [

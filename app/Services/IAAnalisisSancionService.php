@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ProcesoDisciplinario;
 use App\Models\Trabajador;
+use App\Services\ReglamentoInternoService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -25,13 +26,17 @@ class IAAnalisisSancionService
             // Obtener los descargos si existen
             $contextoDescargos = $this->obtenerContextoDescargos($proceso);
 
+            // Obtener sanciones del RIT de la empresa para contextualizar el análisis
+            $sancionesRIT = $this->obtenerSancionesRIT($empresa);
+
             // Construir el prompt para la IA
             $prompt = $this->construirPromptAnalisisSancion(
                 $proceso,
                 $trabajador,
                 $empresa,
                 $historialProcesos,
-                $contextoDescargos
+                $contextoDescargos,
+                $sancionesRIT
             );
 
             // Llamar a la API de IA
@@ -103,6 +108,28 @@ class IAAnalisisSancionService
                 'error' => $e->getMessage(),
                 'analisis' => $this->obtenerOpcionesPorDefecto(),
             ];
+        }
+    }
+
+    /**
+     * Obtiene las sanciones extraídas del RIT de la empresa.
+     * Retorna array con faltas_leves, faltas_graves y sanciones (strings legibles).
+     */
+    private function obtenerSancionesRIT($empresa): array
+    {
+        $rit = $empresa->reglamentoInterno;
+        if (!$rit) {
+            return [];
+        }
+
+        try {
+            return app(ReglamentoInternoService::class)->extraerSancionesParaEmail($rit);
+        } catch (\Throwable $e) {
+            Log::warning('IAAnalisisSancionService: no se pudo obtener sanciones del RIT', [
+                'empresa_id' => $empresa->id,
+                'error'      => $e->getMessage(),
+            ]);
+            return [];
         }
     }
 
@@ -204,11 +231,10 @@ class IAAnalisisSancionService
         Trabajador $trabajador,
         $empresa,
         array $historialProcesos,
-        string $contextoDescargos
+        string $contextoDescargos,
+        array $sancionesRIT = []
     ): string {
         $hechosTexto = strip_tags($proceso->hechos);
-        // COMENTADO: Artículos legales - Ahora se usan Sanciones Laborales
-        // $articulosLegales = $proceso->articulos_legales_texto ?? 'No especificado';
         $sancionesLaborales = $proceso->sanciones_laborales_texto ?? 'No especificado';
         $cantidadProcesosPrevios = count($historialProcesos);
 
@@ -248,6 +274,38 @@ class IAAnalisisSancionService
             $seccionOtroMotivo .= "4. Proporcionar una justificación clara para ayudar al cliente a tomar la mejor decisión\n";
         }
 
+        // Construir sección del RIT de la empresa
+        $seccionRIT = '';
+        if (!empty($sancionesRIT['faltas_leves']) || !empty($sancionesRIT['faltas_graves'])) {
+            $seccionRIT = "\n═══════════════════════════════════════════════════════════════════\n";
+            $seccionRIT .= "RÉGIMEN DISCIPLINARIO DEL RIT DE {$empresa->razon_social}:\n";
+            $seccionRIT .= "═══════════════════════════════════════════════════════════════════\n";
+
+            if (!empty($sancionesRIT['faltas_leves'])) {
+                $seccionRIT .= "FALTAS LEVES definidas en el RIT:\n";
+                foreach ($sancionesRIT['faltas_leves'] as $f) {
+                    $seccionRIT .= "  - {$f}\n";
+                }
+            }
+
+            if (!empty($sancionesRIT['faltas_graves'])) {
+                $seccionRIT .= "FALTAS GRAVES definidas en el RIT:\n";
+                foreach ($sancionesRIT['faltas_graves'] as $f) {
+                    $seccionRIT .= "  - {$f}\n";
+                }
+            }
+
+            if (!empty($sancionesRIT['sanciones'])) {
+                $seccionRIT .= "SANCIONES CONTEMPLADAS en el RIT:\n";
+                foreach ($sancionesRIT['sanciones'] as $s) {
+                    $seccionRIT .= "  - {$s}\n";
+                }
+            }
+
+            $seccionRIT .= "INSTRUCCIÓN: Las sanciones disponibles para tu recomendación final deben respetar\n";
+            $seccionRIT .= "lo que el RIT de la empresa contempla. No sugiera sanciones que el RIT no prevea.\n";
+        }
+
         return <<<PROMPT
 Eres un experto en derecho laboral colombiano. Analiza el siguiente proceso disciplinario y determina qué tipos de sanciones son APROPIADAS según la gravedad de la falta, el Código Sustantivo del Trabajo, el reglamento interno de trabajo de la empresa y el historial del trabajador.
 
@@ -258,7 +316,7 @@ INFORMACIÓN DEL PROCESO:
 
 HECHOS DEL CASO ACTUAL:
 {$hechosTexto}
-
+{$seccionRIT}
 ═══════════════════════════════════════════════════════════════════
 MOTIVOS DE LOS DESCARGOS SELECCIONADOS (del reglamento interno):
 ═══════════════════════════════════════════════════════════════════
