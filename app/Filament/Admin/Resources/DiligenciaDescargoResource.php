@@ -205,7 +205,14 @@ class DiligenciaDescargoResource extends Resource
 
                 Tables\Columns\TextColumn::make('proceso.trabajador.nombre_completo')
                     ->label('Trabajador')
-                    ->searchable(),
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('proceso', function (Builder $query) use ($search) {
+                            $query->whereHas('trabajador', function (Builder $query) use ($search) {
+                                $query->where('nombres', 'like', "%{$search}%")
+                                      ->orWhere('apellidos', 'like', "%{$search}%");
+                            });
+                        });
+                    }),
 
                 Tables\Columns\TextColumn::make('fecha_diligencia')
                     ->label('Fecha Diligencia')
