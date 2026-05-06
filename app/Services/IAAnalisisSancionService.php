@@ -158,7 +158,7 @@ class IAAnalisisSancionService
 
             // Verificar si es reincidencia
             if ($sancion->esReincidencia()) {
-                $detalle .= "   ⚠️ NOTA: Este motivo es una REINCIDENCIA (no es la primera vez)\n";
+                $detalle .= "   NOTA: Este motivo es una REINCIDENCIA (no es la primera vez)\n";
             }
 
             $detalle .= "\n";

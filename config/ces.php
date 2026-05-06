@@ -12,30 +12,32 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Disclaimer jurídico — Formulario de descargos (Art. 29 CN, Art. 115 CST)
+    | Disclaimer jurídico — Formulario de descargos (Ley 1581/2012, Art. 29 CN, Art. 115 CST)
     |--------------------------------------------------------------------------
-    | Este texto se muestra al trabajador antes de diligenciar el formulario.
-    | Puede ser personalizado por la empresa. Reemplazar con texto definitivo.
+    | Plantilla con marcadores: :nombre :cedula :empresa
+    | Se reemplazan en FormularioDescargos.php con los datos del trabajador/empresa.
     */
-    'disclaimer_descargos' => env('CES_DISCLAIMER_DESCARGOS', <<<'TEXT'
-DECLARACIÓN DE IDENTIDAD Y GARANTÍAS PROCESALES
+    'disclaimer_descargos' => 'AUTORIZACIÓN DE DATOS PERSONALES Y DECLARACIÓN DE IDENTIDAD
 
-Yo, quien diligenció sus datos en el sistema, declaro bajo la gravedad del juramento:
+Yo, :nombre, declaro bajo la gravedad del juramento lo siguiente:
 
-1. IDENTIDAD: Soy la persona citada a esta diligencia de descargos, identificada con el número de cédula de ciudadanía {$trabajador->cedula}, registrado en el sistema, y estoy participando voluntaria y conscientemente en este proceso.
+1. IDENTIDAD: Soy :nombre, la persona citada a esta diligencia de descargos, identificada con la cédula de ciudadanía N.º :cedula, en la cual participé libre, voluntaria y conscientemente.
 
-2. DERECHO DE DEFENSA (Art. 29 Constitución Política): Conozco que la Constitución me garantiza el derecho a ser oído, a presentar pruebas y a controvertir las que se alleguen en mi contra. Esta diligencia es precisamente el mecanismo para ejercer ese derecho.
+2. VERACIDAD: Declaro que la información suministrada en la presente diligencia de descargos es veraz, completa y corresponde fielmente a los hechos por los cuales se me cita.
 
-3. PRESUNCIÓN DE INOCENCIA: Entiendo que soy inocente mientras no se me pruebe lo contrario mediante un proceso legalmente conducido, y que las respuestas que brinde serán evaluadas con criterio objetivo.
+3. CAPACIDAD: Asisto a esta diligencia de manera libre, voluntaria y consciente.
 
-4. DERECHO A LOS DESCARGOS (Art. 115 Código Sustantivo del Trabajo): Conozco que la ley colombiana exige que antes de imponer una sanción disciplinaria se me debe conceder la oportunidad de ser escuchado. Esta es dicha oportunidad.
+4. DEBIDO PROCESO: He tenido la oportunidad de ejercer mi derecho de defensa, contradicción y doble instancia.
 
-5. VERACIDAD: Entiendo que proporcionar información falsa o actuar en nombre de otra persona puede constituir el delito de fraude procesal tipificado en el artículo 453 del Código Penal colombiano, cuya pena puede ser de 4 a 8 años de prisión.
+5. CONOCIMIENTO PREVIO: Declaro conocer integralmente el Reglamento Interno de Trabajo de la empresa :empresa, el cual fue debidamente socializado por el Empleador, por lo que reconozco su contenido, alcance y obligatoriedad.
 
-6. CONSENTIMIENTO DE EVIDENCIA DIGITAL: Acepto que, como medida de seguridad y para garantizar la integridad del proceso, el sistema registrará: mi dirección IP, la fecha y hora exactas de cada acción, el canal de verificación utilizado, y las fotografías tomadas al inicio y al final de esta diligencia.
+6. AUTORIZACIÓN DE TRATAMIENTO DE DATOS PERSONALES: Esta diligencia de descargos se realizará a través de medios digitales, electrónicos y/o virtuales, por lo cual autorizo que mi dirección IP, la fecha y hora exactas de cada acción, el canal de verificación utilizado, las fotografías tomadas en el desarrollo de la diligencia y en general el tratamiento de mis datos personales sean tratados conforme a la Ley 1581 de 2012 y demás normas que la adicionen, modifiquen y/o complementen.
 
-Esta declaración hace parte integral del acta de descargos y tendrá valor probatorio en caso de controversia.
-TEXT),
+7. ADVERTENCIA DE LEGALIDAD: Cualquier manifestación falsa, inexacta o engañosa, así como la suplantación de mi identidad durante el desarrollo de esta diligencia, podrá acarrear consecuencias adversas de carácter legal, disciplinario y/o penal, de conformidad con lo dispuesto en la legislación colombiana y las normas internas del empleador.
+
+Esta declaración hace parte integral del acta de descargos y tendrá valor probatorio en caso de controversia. Declaro que actúo en nombre propio y que la información registrada corresponde a mi identidad y voluntad.
+
+Al marcar la casilla de aceptación manifiesto haber leído, entendido y aceptado el contenido del mismo en su integralidad.',
 
     /*
     |--------------------------------------------------------------------------

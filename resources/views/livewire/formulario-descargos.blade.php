@@ -195,16 +195,16 @@
                 @elseif ($etapa === 'disclaimer')
                     <div class="space-y-5" x-data="{ aceptado: false }">
                         <div>
-                            <h2 class="text-base font-semibold text-gray-900 mb-1">Declaración de identidad y derechos</h2>
-                            <p class="text-sm text-gray-500">Lea con atención el siguiente texto antes de continuar.</p>
+                            <h2 class="text-base font-semibold text-gray-900 mb-1">Autorización de datos personales y declaración de identidad</h2>
+                            <p class="text-sm text-gray-500">Lea con atención el siguiente texto. Es necesario aceptarlo para continuar con la diligencia.</p>
                         </div>
 
                         <div class="border border-gray-200 rounded-xl overflow-hidden">
                             <div class="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
-                                <p class="text-xs font-medium text-gray-600">Texto de declaración</p>
+                                <p class="text-xs font-medium text-gray-600 uppercase tracking-wide">Declaración jurídica</p>
                             </div>
-                            <div class="p-4 max-h-64 overflow-y-auto text-sm text-gray-700 leading-relaxed space-y-3">
-                                {!! nl2br(e(config('ces.disclaimer_descargos'))) !!}
+                            <div class="p-4 max-h-72 overflow-y-auto text-sm text-gray-700 leading-relaxed">
+                                {!! nl2br(e($textoDisclaimer)) !!}
                             </div>
                         </div>
 
@@ -213,8 +213,10 @@
                             <input type="checkbox" x-model="aceptado"
                                 class="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 flex-shrink-0" />
                             <span class="text-sm text-gray-700">
-                                He leído, entiendo y acepto esta declaración. Confirmo ser
-                                <strong>{{ $trabajador->nombre_completo }}</strong> y que estoy participando voluntariamente en esta diligencia.
+                                He leído, entiendo y acepto el contenido en su integralidad. Confirmo ser
+                                <strong>{{ $trabajador->nombre_completo }}</strong>,
+                                C.C. {{ $trabajador->numero_documento }},
+                                y que estoy participando libre y voluntariamente en esta diligencia.
                             </span>
                         </label>
 
@@ -223,7 +225,7 @@
                             x-bind:class="aceptado ? 'bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
                             wire:click="aceptarDisclaimer"
                             class="w-full flex items-center justify-center gap-2 px-5 py-3.5 font-semibold rounded-xl shadow-sm transition-colors">
-                            Continuar
+                            Aceptar y continuar
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                             </svg>

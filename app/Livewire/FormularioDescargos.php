@@ -872,12 +872,25 @@ class FormularioDescargos extends Component
         $totalConFeedback     = $totalPreguntas + 5;
         $respondidosConFeedback = $preguntasRespondidas + ($this->feedbackPaso - 1);
 
+        // Disclaimer con variables del trabajador/empresa resueltas
+        $empresa = $proceso->empresa;
+        $textoDisclaimer = str_replace(
+            [':nombre', ':cedula', ':empresa'],
+            [
+                $trabajador->nombre_completo ?? '',
+                $trabajador->numero_documento ?? '',
+                $empresa->razon_social ?? '',
+            ],
+            config('ces.disclaimer_descargos', '')
+        );
+
         return view('livewire.formulario-descargos', [
             'preguntaSiguiente'     => $preguntaSiguiente,
             'totalPreguntas'        => $totalConFeedback,
             'preguntasRespondidas'  => $respondidosConFeedback,
             'proceso'               => $proceso,
             'trabajador'            => $trabajador,
+            'textoDisclaimer'       => $textoDisclaimer,
         ]);
     }
 }

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\ReglamentoInterno;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpWord\IOFactory;
@@ -59,6 +58,9 @@ class ReglamentoInternoService
             $campos['ruta_docx'] = $rutaRelativa;
         }
 
+        // Al subir un nuevo RIT manual, limpiar sanciones previas para forzar re-extracción
+        $campos['sanciones_extraidas'] = null;
+
         $reglamento = ReglamentoInterno::updateOrCreate(
             ['empresa_id' => $empresaId],
             $campos
@@ -70,22 +72,28 @@ class ReglamentoInternoService
             'chars'      => strlen($texto),
         ]);
 
+        // Extraer sanciones inmediatamente si hay texto disponible
+        if (!empty($texto)) {
+            $this->extraerYPersistirSanciones($reglamento);
+        }
+
         return $reglamento;
     }
 
     /**
-     * Extrae faltas y sanciones del RIT para el correo de citación.
+     * Extrae faltas y sanciones del RIT para el correo de citación y procesos disciplinarios.
      *
-     * - RIT construido con el wizard → usa respuestas_cuestionario (sin llamada IA).
-     * - RIT subido manualmente       → extrae capítulo disciplinario + Gemini (caché 24 h).
-     * - Sin texto_completo           → array vacío (tabla no se mostrará en el correo).
+     * - RIT wizard (respuestas_cuestionario) → devuelve datos ya estructurados, sin IA.
+     * - RIT manual con sanciones_extraidas   → devuelve datos ya guardados en BD.
+     * - RIT manual sin sanciones_extraidas   → extrae con Gemini y persiste en BD.
+     * - Sin texto_completo                   → array vacío (tabla no se mostrará).
      *
-     * Siempre retorna arrays de strings legibles (ya mapeados), listos para el blade.
+     * Siempre retorna strings legibles en español.
      * Estructura: ['faltas_leves' => [...], 'faltas_graves' => [...], 'sanciones' => [...]]
      */
     public function extraerSancionesParaEmail(ReglamentoInterno $rit): array
     {
-        // ── Caso 1: wizard ─────────────────────────────────────────────────────
+        // ── Caso 1: wizard — datos ya estructurados ────────────────────────────
         $cuestionario = $rit->respuestas_cuestionario ?? [];
         if (!empty($cuestionario['faltas_leves']) || !empty($cuestionario['faltas_graves'])) {
             $mapa = $this->mapaClavesSanciones();
@@ -97,15 +105,33 @@ class ReglamentoInternoService
             ];
         }
 
-        // ── Caso 2: RIT manual — extraer con IA, cachear 24 h ──────────────────
+        // ── Caso 2: RIT manual con extracción ya guardada en BD ────────────────
+        if (!empty($rit->sanciones_extraidas)) {
+            return $rit->sanciones_extraidas;
+        }
+
+        // ── Caso 3: RIT manual sin extracción — extraer y persistir ───────────
         if (empty($rit->texto_completo)) {
             return [];
         }
 
-        $cacheKey = 'rit_sanciones_email_' . $rit->id . '_' . ($rit->updated_at?->timestamp ?? 0);
-        return Cache::remember($cacheKey, now()->addHours(24), function () use ($rit) {
-            return $this->extraerSancionesConIA($rit->texto_completo);
-        });
+        return $this->extraerYPersistirSanciones($rit);
+    }
+
+    /**
+     * Extrae sanciones con IA y las guarda en reglamentos_internos.sanciones_extraidas.
+     * Retorna el array resultante (vacío si falla).
+     */
+    public function extraerYPersistirSanciones(ReglamentoInterno $rit): array
+    {
+        $datos = $this->extraerSancionesConIA($rit->texto_completo ?? '');
+
+        if (!empty($datos)) {
+            $rit->sanciones_extraidas = $datos;
+            $rit->saveQuietly(); // sin disparar eventos/observers
+        }
+
+        return $datos;
     }
 
     /**

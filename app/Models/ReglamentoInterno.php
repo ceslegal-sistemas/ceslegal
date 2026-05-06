@@ -17,11 +17,13 @@ class ReglamentoInterno extends Model
         'activo',
         'respuestas_cuestionario',
         'fuente',
+        'sanciones_extraidas',
     ];
 
     protected $casts = [
         'activo'                 => 'boolean',
         'respuestas_cuestionario' => 'array',
+        'sanciones_extraidas'    => 'array',
     ];
 
     public function empresa(): BelongsTo
