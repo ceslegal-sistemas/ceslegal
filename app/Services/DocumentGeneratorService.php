@@ -398,7 +398,6 @@ class DocumentGeneratorService
     <!-- SECCIÓN 3: CONSECUENCIAS -->
     <h3>Consecuencias de las Faltas</h3>
     <p>Las conductas imputadas podrían dar lugar a las siguientes sanciones, de acuerdo con el Reglamento Interno de Trabajo y la normativa aplicable:</p>
-    {$consecuenciasHTML}
     {$tablaSancionesHTML}
 
     <!-- SECCIÓN 4: CITACIÓN -->
