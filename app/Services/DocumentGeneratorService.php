@@ -201,6 +201,67 @@ class DocumentGeneratorService
             </ul>';
         }
 
+        // ── Tabla de sanciones del RIT (Artículo 20) ─────────────────────────
+        $tablaSancionesHTML = '';
+        $rit = $empresa->reglamentoInterno;
+        if ($rit) {
+            try {
+                $sancionesRIT  = app(ReglamentoInternoService::class)->extraerSancionesParaEmail($rit);
+                $faltasLeves   = $sancionesRIT['faltas_leves']  ?? [];
+                $faltasGraves  = $sancionesRIT['faltas_graves'] ?? [];
+                $sancionesData = $sancionesRIT['sanciones']     ?? [];
+
+                if (!empty($faltasLeves) || !empty($faltasGraves)) {
+                    $sancionLeve = collect($sancionesData)
+                        ->filter(fn($s) => preg_match('/llamado|atenci[oó]n|advertencia|verbal|escrito/i', $s))
+                        ->join(' / ') ?: 'Llamado de Atención';
+                    $sancionGrave = collect($sancionesData)
+                        ->filter(fn($s) => preg_match('/suspensi[oó]n|terminaci[oó]n|despido/i', $s))
+                        ->join(' / ') ?: 'Suspensión / Terminación';
+
+                    $filaLeves = '';
+                    if (!empty($faltasLeves)) {
+                        $itemsLeves = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $faltasLeves));
+                        $filaLeves = '<tr>
+                            <td class="tabla-rit-tipo" style="color:#15803d;">LEVE</td>
+                            <td class="tabla-rit-conductas"><ul>' . $itemsLeves . '</ul></td>
+                            <td class="tabla-rit-sancion">' . e($sancionLeve) . '</td>
+                        </tr>';
+                    }
+                    $filaGraves = '';
+                    if (!empty($faltasGraves)) {
+                        $itemsGraves = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $faltasGraves));
+                        $filaGraves = '<tr>
+                            <td class="tabla-rit-tipo" style="color:#b91c1c;">GRAVE</td>
+                            <td class="tabla-rit-conductas"><ul>' . $itemsGraves . '</ul></td>
+                            <td class="tabla-rit-sancion">' . e($sancionGrave) . '</td>
+                        </tr>';
+                    }
+
+                    $tablaSancionesHTML = '<table class="tabla-rit">
+                        <tr>
+                            <td colspan="3" class="tabla-rit-header-empresa">
+                                <strong>TABLA DE SANCIONES LABORALES</strong><br>
+                                <span style="font-size:8.5pt;">(Todas las sanciones contenidas en esta tabla solo se aplicarán previa garantía del debido proceso establecido en el Reglamento Interno, conforme a la Ley 2466 de 2025.)</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="tabla-rit-empresa">' . e($empresa->razon_social) . ' &nbsp;|&nbsp; NIT: ' . e($empresa->nit) . '</td>
+                        </tr>
+                        <tr class="tabla-rit-thead">
+                            <th style="width:15%;">Tipo de Falta</th>
+                            <th style="width:57%;">Conductas reguladas por el Reglamento Interno</th>
+                            <th style="width:28%;">Sanción aplicable</th>
+                        </tr>
+                        ' . $filaLeves . $filaGraves . '
+                    </table>
+                    <p class="tabla-rit-pie">Tabla conforme al Reglamento Interno de Trabajo de ' . e($empresa->razon_social) . ', de conformidad con la Ley 2466 de 2025. Toda sanción se aplicará previa garantía del debido proceso.</p>';
+                }
+            } catch (\Throwable $e) {
+                // Si falla la extracción, el documento se genera sin la tabla
+            }
+        }
+
         // ── Fecha disponibilidad pruebas (día hábil siguiente) ───────────────
         $fechaDisponibilidadPruebas = Carbon::now()->addWeekday()->locale('es');
         $fechaDispTexto = $fechaDisponibilidadPruebas->isoFormat('D [de] MMMM [de] YYYY');
@@ -264,6 +325,45 @@ class DocumentGeneratorService
         }
         strong { font-weight: bold; }
         .italic { font-style: italic; }
+        .tabla-rit {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+            margin: 8px 0 4px 0;
+        }
+        .tabla-rit td, .tabla-rit th {
+            border: 1px solid #374151;
+            padding: 5px 7px;
+            vertical-align: top;
+        }
+        .tabla-rit-header-empresa {
+            text-align: center;
+            background-color: #f3f4f6;
+        }
+        .tabla-rit-empresa {
+            text-align: center;
+            font-size: 9pt;
+        }
+        .tabla-rit-thead th {
+            background-color: #e5e7eb;
+            text-align: center;
+            font-weight: bold;
+        }
+        .tabla-rit-tipo {
+            text-align: center;
+            font-weight: bold;
+        }
+        .tabla-rit-conductas ul {
+            margin: 0;
+            padding-left: 14px;
+        }
+        .tabla-rit-conductas li { margin-bottom: 2px; }
+        .tabla-rit-sancion { text-align: center; }
+        .tabla-rit-pie {
+            font-size: 8pt;
+            color: #6b7280;
+            margin: 2px 0 0 0;
+        }
     </style>
 </head>
 <body>
@@ -299,6 +399,7 @@ class DocumentGeneratorService
     <h3>Consecuencias de las Faltas</h3>
     <p>Las conductas imputadas podrían dar lugar a las siguientes sanciones, de acuerdo con el Reglamento Interno de Trabajo y la normativa aplicable:</p>
     {$consecuenciasHTML}
+    {$tablaSancionesHTML}
 
     <!-- SECCIÓN 4: CITACIÓN -->
     <h3>Citación a Diligencia de Descargos</h3>
@@ -555,20 +656,6 @@ HTML;
         $mimeType = $extension === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
         $nombreArchivo = 'Citacion_Descargos_' . $proceso->codigo . '.' . $extension;
 
-        // Extraer faltas/sanciones del RIT para la tabla del email (wizard o subido)
-        $sancionesRIT = [];
-        $rit = $empresa->reglamentoInterno;
-        if ($rit) {
-            try {
-                $sancionesRIT = app(ReglamentoInternoService::class)->extraerSancionesParaEmail($rit);
-            } catch (\Throwable $e) {
-                Log::warning('enviarCitacionPorEmail: no se pudo extraer sanciones del RIT', [
-                    'empresa_id' => $empresa->id,
-                    'error'      => $e->getMessage(),
-                ]);
-            }
-        }
-
         Mail::send('emails.citacion-descargos', [
             'proceso' => $proceso,
             'trabajador' => $trabajador,
@@ -576,7 +663,6 @@ HTML;
             'linkDescargos' => $linkDescargos,
             'fechaAccesoPermitida' => $fechaAccesoPermitida,
             'trackingToken' => $tracking->token,
-            'sancionesRIT' => $sancionesRIT,
         ], function ($message) use ($trabajador, $proceso, $pdfPath, $nombreArchivo, $mimeType) {
             $message->to($trabajador->email, $trabajador->nombre_completo)
                 ->subject('Citación a Audiencia de Descargos - Proceso ' . $proceso->codigo)
