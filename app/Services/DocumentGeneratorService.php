@@ -1421,6 +1421,22 @@ HTML;
             default => 'Actualización del Proceso Disciplinario ' . $proceso->codigo,
         };
 
+        // Adjuntar acta y link de acceso (solo cuando descargos completados)
+        $rutaActa = null;
+        $linkDescargos = null;
+
+        if ($estado === 'descargos_realizados') {
+            $diligencia = $proceso->diligenciaDescargo;
+            if ($diligencia) {
+                if ($diligencia->acta_generada && !empty($diligencia->ruta_acta) && file_exists($diligencia->ruta_acta)) {
+                    $rutaActa = $diligencia->ruta_acta;
+                }
+                if (!empty($diligencia->token_acceso)) {
+                    $linkDescargos = route('descargos.acceso', ['token' => $diligencia->token_acceso]);
+                }
+            }
+        }
+
         Mail::send('emails.descargos-estado', [
             'proceso' => $proceso,
             'trabajador' => $trabajador,
@@ -1428,9 +1444,21 @@ HTML;
             'estado' => $estado,
             'estadoTexto' => $estadoTexto,
             'trackingToken' => $tracking->token,
-        ], function ($message) use ($trabajador, $asunto) {
+            'linkDescargos' => $linkDescargos,
+        ], function ($message) use ($trabajador, $asunto, $rutaActa, $proceso) {
             $message->to($trabajador->email, $trabajador->nombre_completo)
                 ->subject($asunto);
+
+            if ($rutaActa) {
+                $extension = pathinfo($rutaActa, PATHINFO_EXTENSION);
+                $mimeType = $extension === 'docx'
+                    ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                    : 'application/pdf';
+                $message->attach($rutaActa, [
+                    'as' => 'Acta_Descargos_' . $proceso->codigo . '.' . $extension,
+                    'mime' => $mimeType,
+                ]);
+            }
         });
 
         Log::info('Notificación de estado de descargos enviada', [

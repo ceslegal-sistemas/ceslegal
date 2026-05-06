@@ -100,6 +100,16 @@
                 <p>Sus respuestas y la documentación aportada han sido registradas exitosamente en el sistema.</p>
             </div>
 
+            <div class="info-box" style="border-left-color: #059669; background-color: #f0fdf4;">
+                <h2 style="color: #15803d;">Acta de Descargos Adjunta</h2>
+                <p>Se adjunta a este correo el <strong>Acta de Descargos</strong> del proceso <strong>{{ $proceso->codigo }}</strong>.
+                    Guárdela como comprobante de que presentó sus descargos.</p>
+                @if(isset($linkDescargos) && $linkDescargos)
+                    <p style="margin-top: 12px;">También puede consultar el registro completo de sus respuestas en el siguiente enlace:</p>
+                    <p><a href="{{ $linkDescargos }}" style="color: #059669; font-weight: bold;">Ver mis descargos</a></p>
+                @endif
+            </div>
+
             <div class="important">
                 <h2>Siguientes Pasos</h2>
                 <p>El equipo jurídico revisará la información proporcionada y procederá a emitir la decisión correspondiente.</p>
