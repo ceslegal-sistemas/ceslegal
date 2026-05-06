@@ -307,7 +307,13 @@ class IAAnalisisSancionService
         }
 
         return <<<PROMPT
-Eres un experto en derecho laboral colombiano. Analiza el siguiente proceso disciplinario y determina qué tipos de sanciones son APROPIADAS según la gravedad de la falta, el Código Sustantivo del Trabajo, el reglamento interno de trabajo de la empresa y el historial del trabajador.
+Eres un abogado laboralista colombiano con amplia experiencia en procesos disciplinarios. Analiza el siguiente proceso y determina la sanción apropiada basándote EXCLUSIVAMENTE en tres fuentes, en este orden de prioridad:
+
+1. EL REGLAMENTO INTERNO DE TRABAJO (RIT) DE LA EMPRESA — es la fuente primaria: define qué conductas son faltas leves o graves y qué sanciones contempla.
+2. EL CÓDIGO SUSTANTIVO DEL TRABAJO (CST) — establece los límites legales: Art. 112 (suspensión: máximo 8 días primera vez, hasta 2 meses en caso de reincidencia), Art. 62 (causales de terminación con justa causa).
+3. EL HISTORIAL DISCIPLINARIO DEL TRABAJADOR — determina reincidencia y agravantes.
+
+INSTRUCCIÓN CRÍTICA: No inventes rangos de días ni categorías de faltas. Deriva TODO de lo que el RIT de esta empresa específicamente contempla. Si el RIT dice "suspensión hasta 8 días", no puedes sugerir 30 días. Si el RIT no contempla terminación, no la sugieras.
 
 INFORMACIÓN DEL PROCESO:
 - Empresa: {$empresa->razon_social}
@@ -318,7 +324,7 @@ HECHOS DEL CASO ACTUAL:
 {$hechosTexto}
 {$seccionRIT}
 ═══════════════════════════════════════════════════════════════════
-MOTIVOS DE LOS DESCARGOS SELECCIONADOS (del reglamento interno):
+MOTIVOS DE LOS DESCARGOS SELECCIONADOS:
 ═══════════════════════════════════════════════════════════════════
 {$motivosDescargosDetalle}
 
@@ -333,66 +339,30 @@ DESCARGOS DEL TRABAJADOR:
 HISTORIAL DEL TRABAJADOR:
 {$historialTexto}
 
-INSTRUCCIONES:
-Analiza la gravedad de la falta según estos criterios del Código Sustantivo del Trabajo colombiano:
+PROCESO DE ANÁLISIS:
+1. Clasifica la conducta como LEVE o GRAVE según lo que el RIT de la empresa define. Si el RIT no tiene esa conducta, usa el CST como referencia.
+2. Verifica si hay reincidencia en el historial — agrava la sanción conforme al RIT y Art. 112 CST.
+3. Evalúa los descargos del trabajador — considera atenuantes y argumentos de defensa.
+4. De las sanciones que el RIT contempla, selecciona la apropiada. Si el RIT no aporta datos, aplica solo lo que el CST permite.
+5. Para suspensiones: indica únicamente días dentro del rango que el RIT establece, respetando el límite del Art. 112 CST.
 
-Solo existen DOS categorías de gravedad:
-
-1. FALTAS LEVES:
-   - Llegadas tarde ocasionales (primera o segunda vez)
-   - Incumplimientos menores sin impacto grave
-   - Primera vez cometiendo una falta (sin antecedentes previos)
-   - Descuidos leves que no causan daño significativo
-
-   → SANCIÓN: Solo llamado de atención (escrito o verbal)
-
-2. FALTAS GRAVES:
-   Incluye desde faltas moderadas hasta faltas que constituyen justa causa según el Art. 62 CST.
-
-   GRAVES - NIVEL BAJO (1-8 días de suspensión):
-   - Reincidencia en faltas leves (2 o más procesos previos por lo mismo)
-   - Insubordinación leve o falta de respeto
-   - Incumplimiento de normas de seguridad sin consecuencias graves
-   - Negligencia que cause daño leve o moderado
-   - Ausencias injustificadas (pocas)
-
-   GRAVES - NIVEL ALTO (8-60 días de suspensión o terminación):
-   - Hurto o fraude
-   - Agresión física
-   - Acoso laboral o sexual
-   - Violación grave de seguridad que ponga en riesgo vidas
-   - Reincidencia múltiple (3 o más procesos previos)
-   - Falsificación de documentos
-   - Cualquier conducta que constituya justa causa de terminación según Art. 62 CST
-
-   → SANCIÓN según el nivel:
-      • Nivel bajo: Llamado de atención O suspensión (1-8 días)
-      • Nivel alto: Suspensión (8-60 días) O terminación de contrato
-
-IMPORTANTE SOBRE SUSPENSIONES:
-- Suspensión de 1-3 días: Faltas graves nivel bajo, sin reincidencia reciente
-- Suspensión de 3-8 días: Faltas graves nivel bajo con reincidencia o impacto moderado
-- Suspensión de 8-15 días: Faltas graves nivel alto, conductas serias
-- Suspensión de 15-30 días: Faltas graves nivel alto, conductas muy serias
-- Suspensión de 30-60 días: Faltas graves nivel alto, máxima gravedad (alternativa a terminación)
-
-Responde EXACTAMENTE en este formato JSON (sin código markdown):
+Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adicional):
 {
   "gravedad": "leve|grave",
   "nivel_gravedad": "ninguno|bajo|alto",
   "es_reincidencia": true/false,
-  "justificacion": "Explicación clara de por qué se clasifica así y en qué nivel",
+  "justificacion": "Por qué la conducta es leve o grave, citando el RIT o CST aplicable",
   "sanciones_disponibles": ["llamado_atencion", "suspension", "terminacion"],
   "sancion_recomendada": "llamado_atencion|suspension|terminacion",
-  "dias_suspension_sugeridos": [1, 2, 3, 5, 8, 15, 30, 60],
-  "razonamiento_legal": "Explicación basada en el CST y las sanciones del reglamento incumplidas",
-  "consideraciones_especiales": "Información adicional relevante (historial, descargos, atenuantes, agravantes)",
+  "dias_suspension_sugeridos": [],
+  "razonamiento_legal": "Fundamento en el RIT de la empresa y el CST. Citar artículo o capítulo del RIT si aplica",
+  "consideraciones_especiales": "Historial, descargos del trabajador, atenuantes o agravantes relevantes",
   "motivos_analizados": [
     {
-      "motivo": "Nombre del motivo seleccionado",
+      "motivo": "Nombre del motivo",
       "tipo_falta": "leve|grave",
       "sancion_asociada": "llamado_atencion|suspension|terminacion",
-      "observacion": "Breve observación sobre este motivo"
+      "observacion": "Análisis breve de este motivo específico"
     }
   ],
   "analisis_otro_motivo": {
@@ -401,33 +371,29 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown):
     "tipo_falta_determinado": "leve|grave",
     "nivel_gravedad": "ninguno|bajo|alto",
     "sancion_recomendada": "llamado_atencion|suspension|terminacion",
-    "dias_suspension_recomendados": null o número,
-    "justificacion": "Explicación detallada de por qué se recomienda esta sanción para el otro motivo"
+    "dias_suspension_recomendados": null,
+    "justificacion": "Análisis de este motivo según RIT y CST"
   },
   "recomendacion_final": {
     "sancion_sugerida": "llamado_atencion|suspension|terminacion",
-    "dias_suspension": null o número,
+    "dias_suspension": null,
     "confianza": "alta|media|baja",
-    "mensaje_para_decision": "Mensaje claro para ayudar al cliente a tomar la mejor decisión, explicando las opciones y sus consecuencias"
+    "mensaje_para_decision": "Mensaje para el empleador explicando la recomendación, sus fundamentos y las opciones disponibles"
   }
 }
 
 REGLAS ESTRICTAS:
-- Si es FALTA LEVE: gravedad="leve", nivel_gravedad="ninguno", sanciones=["llamado_atencion"]
-- Si es FALTA GRAVE NIVEL BAJO: gravedad="grave", nivel_gravedad="bajo", sanciones=["llamado_atencion", "suspension"], dias=[1,2,3,5,8]
-- Si es FALTA GRAVE NIVEL ALTO: gravedad="grave", nivel_gravedad="alto", sanciones=["suspension", "terminacion"], dias=[8,15,30,60]
-- dias_suspension_sugeridos debe variar según el nivel de gravedad
-- Siempre basar el análisis en la legislación laboral colombiana
-- En "motivos_analizados" incluye CADA motivo seleccionado del reglamento con su análisis individual
-- Si hay "otro motivo", analisis_otro_motivo.aplica=true y completa TODOS los campos
-- Si NO hay "otro motivo", analisis_otro_motivo.aplica=false y los demás campos pueden ser null
-- La "recomendacion_final" debe ser un resumen claro que ayude al cliente a decidir
-
-REGLAS DE FORMATO:
-- Genera SOLO el JSON, sin texto adicional ni bloques de código markdown.
-- Sé CONCISO: máximo 150 palabras por campo de texto (justificacion, razonamiento_legal, consideraciones_especiales, mensaje_para_decision).
-- No repitas la misma información en campos diferentes.
-- No uses saltos de línea dentro de los valores string del JSON.
+- sanciones_disponibles: incluye SOLO las sanciones que el RIT de esta empresa contempla. Si no hay datos del RIT, aplica las que permite el CST según la gravedad.
+- dias_suspension_sugeridos: array con los días posibles DENTRO del rango que especifica el RIT (ej: si RIT dice "1 a 8 días", pon [1,2,3,5,8]). Array vacío si no aplica suspensión.
+- dias_suspension (recomendacion_final): un número concreto dentro del rango del RIT, o null si no hay suspensión.
+- Si es FALTA LEVE: nivel_gravedad="ninguno", sanciones solo incluye lo que el RIT contemple para faltas leves.
+- Si es FALTA GRAVE: nivel_gravedad="bajo" o "alto" según el impacto real de la conducta y el RIT.
+- Confianza "alta": el RIT clasifica explícitamente esta conducta. "media": se infiere del RIT. "baja": no hay datos del RIT, se aplica solo el CST.
+- En "motivos_analizados": incluye CADA motivo seleccionado con su análisis individual.
+- Si hay "otro motivo": analisis_otro_motivo.aplica=true y completa TODOS sus campos.
+- Si NO hay "otro motivo": analisis_otro_motivo.aplica=false y los demás campos son null.
+- Máximo 150 palabras por campo de texto. No uses saltos de línea dentro de strings JSON.
+- Genera SOLO el JSON, sin markdown ni texto fuera del objeto JSON.
 PROMPT;
     }
 
