@@ -1650,8 +1650,9 @@ class ProcesoDisciplinarioResource extends Resource
                         $nuevaFecha = \Carbon\Carbon::parse($data['fecha_temp'])
                             ->setTimeFromTimeString($data['hora_temp']);
 
-                        // 1. Actualizar fecha en el proceso
-                        $record->fecha_descargos_programada = $nuevaFecha;
+                        // 1. Actualizar fecha y hora en el proceso
+                        $record->fecha_descargos_programada = $nuevaFecha->toDateString();
+                        $record->hora_descargos_programada  = $data['hora_temp'];
                         $record->save();
 
                         // 2. Actualizar diligencia: nueva fecha, token_expira_en, limpiar intento anterior
