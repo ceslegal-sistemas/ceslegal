@@ -256,7 +256,6 @@ class RITGeneratorService
 
         $empresaNombre = htmlspecialchars($empresa->razon_social, ENT_QUOTES, 'UTF-8');
         $nit           = htmlspecialchars($empresa->nit ?? '', ENT_QUOTES, 'UTF-8');
-        $fecha         = \Carbon\Carbon::now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
 
         return <<<HTML
 <!DOCTYPE html>
@@ -272,14 +271,6 @@ body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5;
 .encabezado p  { font-size: 10pt; margin: 2pt 0; }
 .titulo { font-weight: bold; font-size: 12pt; margin: 14pt 0 4pt 0; }
 .cuerpo { font-size: 12pt; margin: 0 0 6pt 0; text-align: justify; }
-.pie {
-    border-top: 1pt solid #555;
-    margin-top: 24pt;
-    padding-top: 8pt;
-    font-size: 8.5pt;
-    color: #444;
-    text-align: center;
-}
 </style>
 </head>
 <body>
@@ -289,11 +280,6 @@ body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5;
     <p>NIT: {$nit}</p>
 </div>
 {$cuerpo}
-<div class="pie">
-    Documento generado el {$fecha} a trav&eacute;s de la plataforma CES LEGAL SAS.<br>
-    Este documento es de solo lectura. Para actualizarlo ingrese a <strong>ceslegal.com</strong>
-    y use la opci&oacute;n &ldquo;Texto del reglamento&rdquo;. Queda prohibida su edici&oacute;n por fuera de dicha plataforma.
-</div>
 </body>
 </html>
 HTML;
