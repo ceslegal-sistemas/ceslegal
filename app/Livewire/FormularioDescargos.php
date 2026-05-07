@@ -353,13 +353,7 @@ class FormularioDescargos extends Component
         $this->diligencia->update(['evidencia_metadata' => $meta]);
     }
 
-    /**
-     * El trabajador confirma que está listo para iniciar la diligencia
-     */
-    /**
-     * Guarda la solicitud de ajuste razonable por discapacidad en evidencia_metadata.
-     * Ley 2466/2025 Art. 7: el empleador debe realizar ajustes razonables cuando el
-    public function iniciarDiligencia()
+    public function iniciarDiligencia(): void
     {
         $this->diligencia->iniciarTimer();
         $this->mostrarAdvertencia = false;
