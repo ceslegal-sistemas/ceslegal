@@ -83,68 +83,64 @@ class VerificacionFacialService
     }
 
     /**
-     * Pre-captura: detecta accesorios faciales que obstaculicen la identificación
-     * (gorra, cualquier tipo de gafas, tapabocas, bufanda, etc.) usando Gemini Vision.
-     *
-     * Devuelve ['ok' => true] si el rostro está libre de obstrucciones.
-     * Devuelve ['ok' => false, 'motivo' => '...'] indicando qué debe retirarse.
+     * Pre-captura: detecta gafas (transparentes o de sol) usando AWS Rekognition DetectFaces.
+     * Rekognition tiene atributos específicos Eyeglasses y Sunglasses entrenados para esto.
      * Fail-open en errores para no bloquear al trabajador.
      */
     public function detectarAccesorios(string $base64): array
     {
-        $apiKey    = config('services.ia.gemini.api_key');
-        $imageData = preg_replace('/^data:image\/\w+;base64,/', '', $base64);
+        $imageBytes = base64_decode(
+            preg_replace('/^data:image\/\w+;base64,/', '', $base64)
+        );
 
-        $prompt = 'Analiza esta imagen de una persona frente a una cámara. '
-            . 'Tu única tarea es detectar si la persona tiene algún accesorio en el rostro o la cabeza. '
-            . 'Accesorios que DEBES reportar (ok=false): cualquier tipo de gafas (transparentes, oscuras, de sol, de lectura, deportivas), '
-            . 'gorra, sombrero, visera, tapabocas, mascarilla, balaclava, pañuelo cubriendo el rostro, bufanda tapando la cara. '
-            . 'Si la persona lleva cualquier tipo de gafas, SIEMPRE reporta ok=false. '
-            . 'Si no se detecta ninguno de esos accesorios, responde ok=true aunque la imagen sea poco clara. '
-            . 'Responde SOLO con JSON válido sin markdown: {"ok": true/false, "motivo": "string o null"}. '
-            . 'El campo motivo en español, máx 100 caracteres, indicando exactamente qué debe retirarse '
-            . '(ej: "Por favor retírese las gafas para que podamos verificar su identidad correctamente.").';
+        $client = new \Aws\Rekognition\RekognitionClient([
+            'version'     => 'latest',
+            'region'      => config('services.rekognition.region', 'us-east-1'),
+            'credentials' => [
+                'key'    => config('services.rekognition.key'),
+                'secret' => config('services.rekognition.secret'),
+            ],
+        ]);
 
         try {
-            $response = Http::withHeaders(['Content-Type' => 'application/json'])
-                ->timeout(20)
-                ->post(
-                    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey,
-                    [
-                        'contents' => [[
-                            'parts' => [
-                                ['text' => $prompt],
-                                ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => $imageData]],
-                            ],
-                        ]],
-                        'generationConfig' => [
-                            'temperature'     => 0.1,
-                            'maxOutputTokens' => 80,
-                            'thinkingConfig'  => ['thinkingBudget' => 0],
-                        ],
-                    ]
-                );
+            $result = $client->detectFaces([
+                'Image'      => ['Bytes' => $imageBytes],
+                'Attributes' => ['ALL'],
+            ]);
 
-            if (!$response->successful()) {
-                return ['ok' => true, 'motivo' => null]; // fail-open
+            $faces = $result['FaceDetails'] ?? [];
+
+            if (empty($faces)) {
+                // Sin rostro detectado — fail-open, la Capa 1 (face-api) y Capa 2 (Gemini) lo manejan
+                return ['ok' => true, 'motivo' => null];
             }
 
-            $text = '';
-            foreach (array_reverse($response->json('candidates.0.content.parts', [])) as $part) {
-                if (empty($part['thought']) && isset($part['text']) && $part['text'] !== '') {
-                    $text = trim($part['text']);
-                    break;
-                }
+            $face = $faces[0];
+
+            $sunglasses = $face['Sunglasses'] ?? null;
+            if (($sunglasses['Value'] ?? false) && ($sunglasses['Confidence'] ?? 0) >= 75) {
+                return [
+                    'ok'     => false,
+                    'motivo' => 'Por favor retírese las gafas de sol para verificar su identidad correctamente.',
+                ];
             }
 
-            $text = preg_replace('/^```json?\s*|\s*```$/', '', $text);
-            $json = json_decode($text, true);
-
-            if (!is_array($json) || !isset($json['ok'])) {
-                return ['ok' => true, 'motivo' => null]; // fail-open
+            $eyeglasses = $face['Eyeglasses'] ?? null;
+            if (($eyeglasses['Value'] ?? false) && ($eyeglasses['Confidence'] ?? 0) >= 75) {
+                return [
+                    'ok'     => false,
+                    'motivo' => 'Por favor retírese las gafas para verificar su identidad correctamente.',
+                ];
             }
 
-            return $json;
+            return ['ok' => true, 'motivo' => null];
+
+        } catch (\Aws\Rekognition\Exception\RekognitionException $e) {
+            Log::warning('VerificacionFacial: detectarAccesorios Rekognition error', [
+                'code'  => $e->getAwsErrorCode(),
+                'error' => $e->getMessage(),
+            ]);
+            return ['ok' => true, 'motivo' => null]; // fail-open
         } catch (\Exception $e) {
             Log::warning('VerificacionFacial: detectarAccesorios excepción', ['error' => $e->getMessage()]);
             return ['ok' => true, 'motivo' => null]; // fail-open
