@@ -106,7 +106,8 @@ class FormularioDescargos extends Component
             $this->formularioCompletado = true;
         } else {
             $this->etapa = 'formulario';
-            $this->mostrarAdvertencia = false;
+            // Mostrar advertencia si el usuario aún no confirmó "Iniciar Diligencia"
+            $this->mostrarAdvertencia = !$this->diligencia->primer_acceso_en;
 
             if ($this->diligencia->tiempoHaExpirado()) {
                 $this->diligencia->marcarTiempoExpirado();
@@ -230,9 +231,8 @@ class FormularioDescargos extends Component
         ]);
 
         $this->actualizarEvidenciaMetadata();
-        $this->iniciarDiligencia();
         $this->etapa = 'formulario';
-        $this->mostrarAdvertencia = true; // muestra la advertencia de 45 min
+        $this->mostrarAdvertencia = true; // muestra la advertencia — el timer arranca solo al confirmar
     }
 
     public function guardarFotoFin(string $base64): void
