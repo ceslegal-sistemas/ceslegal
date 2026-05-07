@@ -471,14 +471,13 @@
                                                         Acérquese más a la cámara
                                                     </span>
                                                 </template>
-                                                <template x-if="modelsCargados && estadoRostro === 'ok' && !alertaAccesorios">
-                                                    <span class="bg-green-600/85 text-white text-xs px-3 py-1 rounded-full">
-                                                        ✓ Listo para tomar foto
-                                                    </span>
-                                                </template>
-                                                <template x-if="modelsCargados && estadoRostro === 'ok' && alertaAccesorios">
-                                                    <span class="bg-orange-600/90 text-white text-xs px-3 py-1.5 rounded-full text-center leading-snug max-w-xs mx-2" x-text="alertaAccesorios"></span>
-                                                </template>
+                                                <span x-show="modelsCargados && estadoRostro === 'ok' && !alertaAccesorios"
+                                                    class="bg-green-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                    ✓ Listo para tomar foto
+                                                </span>
+                                                <span x-show="modelsCargados && estadoRostro === 'ok' && alertaAccesorios"
+                                                    x-text="alertaAccesorios"
+                                                    class="bg-orange-600/90 text-white text-xs px-3 py-1.5 rounded-full text-center leading-snug max-w-xs mx-2"></span>
                                             </div>
                                         </div>
 
@@ -800,14 +799,13 @@
                                                         Acérquese más a la cámara
                                                     </span>
                                                 </template>
-                                                <template x-if="modelsCargados && estadoRostro === 'ok' && !alertaAccesorios">
-                                                    <span class="bg-green-600/85 text-white text-xs px-3 py-1 rounded-full">
-                                                        ✓ Listo para tomar foto
-                                                    </span>
-                                                </template>
-                                                <template x-if="modelsCargados && estadoRostro === 'ok' && alertaAccesorios">
-                                                    <span class="bg-orange-600/90 text-white text-xs px-3 py-1.5 rounded-full text-center leading-snug max-w-xs mx-2" x-text="alertaAccesorios"></span>
-                                                </template>
+                                                <span x-show="modelsCargados && estadoRostro === 'ok' && !alertaAccesorios"
+                                                    class="bg-green-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                    ✓ Listo para tomar foto
+                                                </span>
+                                                <span x-show="modelsCargados && estadoRostro === 'ok' && alertaAccesorios"
+                                                    x-text="alertaAccesorios"
+                                                    class="bg-orange-600/90 text-white text-xs px-3 py-1.5 rounded-full text-center leading-snug max-w-xs mx-2"></span>
                                             </div>
                                         </div>
 
