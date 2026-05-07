@@ -202,17 +202,17 @@
 
         {{-- HEADER --}}
         <div class="header">
-            <h1>Citacion a Audiencia de Descargos</h1>
+            <h1>Citación a Audiencia de Descargos</h1>
             <p>{{ $empresa->razon_social }} &mdash; Proceso {{ $proceso->codigo }}</p>
         </div>
 
-        <div class="urgente-band">Accion requerida de su parte</div>
+        <div class="urgente-band">Acción requerida de su parte</div>
 
         <div class="content">
 
             <p style="margin:0 0 20px 0;">
                 Estimado(a) <strong>{{ $trabajador->nombre_completo }}</strong>,<br>
-                usted ha sido citado(a) formalmente a una audiencia de descargos. A continuacion encontrara la fecha, la hora y el enlace para participar.
+                usted ha sido citado(a) formalmente a una audiencia de descargos. A continuación encontrará la fecha, la hora y el enlace para participar.
             </p>
 
             {{-- FECHA Y HORA --}}
@@ -228,16 +228,16 @@
             {{-- BOTON CTA — PROTAGONISTA --}}
             @if($linkDescargos)
             <div class="cta-block">
-                <div class="cta-label">Enlace para sus descargos en linea</div>
+                <div class="cta-label">Enlace para sus descargos en línea</div>
                 <p class="cta-desc">
-                    El <strong>dia de la audiencia</strong> ingrese aqui para presentar sus descargos.<br>
-                    Guardelo ahora &mdash; solo funciona ese dia.
+                    El <strong>día de la audiencia</strong> ingrese aquí para presentar sus descargos.<br>
+                    Guárdelo ahora &mdash; solo funciona ese día.
                 </p>
                 <a href="{{ $linkDescargos }}" class="btn-primary">
                     Acceder al formulario de descargos
                 </a>
                 <div class="cta-url">
-                    Si el boton no abre, copie este enlace en su navegador:<br>
+                    Si el botón no abre, copie este enlace en su navegador:<br>
                     <a href="{{ $linkDescargos }}">{{ $linkDescargos }}</a>
                 </div>
             </div>
@@ -251,18 +251,18 @@
                 </div>
                 <div class="step">
                     <div class="step-num">2</div>
-                    <div class="step-text">El dia de la audiencia (<strong>{{ $proceso->fecha_descargos_programada ? \Carbon\Carbon::parse($proceso->fecha_descargos_programada)->locale('es')->isoFormat('D [de] MMMM') : 'fecha indicada' }}</strong>), haga clic en el boton verde de arriba.</div>
+                    <div class="step-text">El día de la audiencia (<strong>{{ $proceso->fecha_descargos_programada ? \Carbon\Carbon::parse($proceso->fecha_descargos_programada)->locale('es')->isoFormat('D [de] MMMM') : 'fecha indicada' }}</strong>), haga clic en el botón verde de arriba.</div>
                 </div>
                 <div class="step">
                     <div class="step-num">3</div>
-                    <div class="step-text">Complete el formulario en linea y envie sus descargos.</div>
+                    <div class="step-text">Complete el formulario en línea y envíe sus descargos.</div>
                 </div>
             </div>
 
             {{-- INFO PROCESO --}}
             <div class="info-box">
                 <p><strong>Empresa:</strong> {{ $empresa->razon_social }}</p>
-                <p><strong>Codigo del proceso:</strong> {{ $proceso->codigo }}</p>
+                <p><strong>Código del proceso:</strong> {{ $proceso->codigo }}</p>
                 <p><strong>Su cargo:</strong> {{ $trabajador->cargo }}</p>
             </div>
 
@@ -271,23 +271,23 @@
                 <strong>Importante:</strong>
                 <ul>
                     <li>Su asistencia a esta audiencia es <strong>obligatoria</strong>.</li>
-                    <li>Si no se presenta ni responde el formulario, el proceso continuara sin su participacion.</li>
+                    <li>Si no se presenta ni responde el formulario, el proceso continuará sin su participación.</li>
                     <li>Tiene derecho a presentar pruebas y argumentos en su defensa.</li>
                 </ul>
             </div>
 
-            <p style="font-size:14px; margin:0 0 6px 0;">Si tiene preguntas, comuniquese con el area de Recursos Humanos de <strong>{{ $empresa->razon_social }}</strong> antes de la fecha programada.</p>
+            <p style="font-size:14px; margin:0 0 6px 0;">Si tiene preguntas, comuníquese con el área de Recursos Humanos de <strong>{{ $empresa->razon_social }}</strong> antes de la fecha programada.</p>
 
             <p style="font-size:14px; margin:16px 0 0 0;">
                 Atentamente,<br>
                 <strong>{{ $empresa->razon_social }}</strong><br>
-                <span style="color:#6b7280;">Area de Recursos Humanos</span>
+                <span style="color:#6b7280;">Área de Recursos Humanos</span>
             </p>
 
         </div>{{-- /content --}}
 
         <div class="footer">
-            <p style="margin:0 0 4px 0;">Este correo fue generado automaticamente por el sistema de gestion de procesos disciplinarios.</p>
+            <p style="margin:0 0 4px 0;">Este correo fue generado automáticamente por el sistema de gestión de procesos disciplinarios.</p>
             <p style="margin:0;">Por favor no responda a este correo. Use los canales oficiales de la empresa.</p>
         </div>
 
