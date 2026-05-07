@@ -53,7 +53,7 @@ class ConfiguracionTextoResource extends Resource
                 Forms\Components\Section::make('Contenido')
                     ->description(function ($record) {
                         if ($record?->clave === 'disclaimer_descargos') {
-                            return 'Use los marcadores :nombre, :cedula y :empresa — se reemplazan automáticamente con los datos del trabajador y la empresa al mostrar el formulario.';
+                            return 'Use los marcadores :nombre, :cedula, :empresa y :cargo — se reemplazan automáticamente con los datos del trabajador y la empresa al mostrar el formulario.';
                         }
                         return null;
                     })
@@ -65,7 +65,7 @@ class ConfiguracionTextoResource extends Resource
                             ->columnSpanFull()
                             ->helperText(function ($record) {
                                 if ($record?->clave === 'disclaimer_descargos') {
-                                    return 'Marcadores disponibles: :nombre (nombre completo del trabajador), :cedula (número de documento), :empresa (razón social de la empresa).';
+                                    return 'Marcadores disponibles: :nombre (nombre completo del trabajador), :cedula (número de documento), :empresa (razón social de la empresa), :cargo (cargo del trabajador).';
                                 }
                                 return null;
                             }),
