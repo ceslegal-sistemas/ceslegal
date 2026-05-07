@@ -111,14 +111,21 @@ class VerificacionFacialService
             $faces = $result['FaceDetails'] ?? [];
 
             if (empty($faces)) {
-                // Sin rostro detectado — fail-open, la Capa 1 (face-api) y Capa 2 (Gemini) lo manejan
+                // Sin rostro detectado — fail-open
                 return ['ok' => true, 'motivo' => null];
             }
 
             $face = $faces[0];
 
+            // Log completo para diagnóstico
+            Log::info('VerificacionFacial: detectarAccesorios atributos', [
+                'Sunglasses'   => $face['Sunglasses']   ?? null,
+                'Eyeglasses'   => $face['Eyeglasses']   ?? null,
+                'FaceOccluded' => $face['FaceOccluded'] ?? null,
+            ]);
+
             $sunglasses = $face['Sunglasses'] ?? null;
-            if (($sunglasses['Value'] ?? false) && ($sunglasses['Confidence'] ?? 0) >= 75) {
+            if (($sunglasses['Value'] ?? false) && ($sunglasses['Confidence'] ?? 0) >= 55) {
                 return [
                     'ok'     => false,
                     'motivo' => 'Por favor retírese las gafas de sol para verificar su identidad correctamente.',
@@ -126,10 +133,18 @@ class VerificacionFacialService
             }
 
             $eyeglasses = $face['Eyeglasses'] ?? null;
-            if (($eyeglasses['Value'] ?? false) && ($eyeglasses['Confidence'] ?? 0) >= 75) {
+            if (($eyeglasses['Value'] ?? false) && ($eyeglasses['Confidence'] ?? 0) >= 55) {
                 return [
                     'ok'     => false,
                     'motivo' => 'Por favor retírese las gafas para verificar su identidad correctamente.',
+                ];
+            }
+
+            $occluded = $face['FaceOccluded'] ?? null;
+            if (($occluded['Value'] ?? false) && ($occluded['Confidence'] ?? 0) >= 70) {
+                return [
+                    'ok'     => false,
+                    'motivo' => 'Su rostro está parcialmente cubierto. Retire tapabocas, mano u objeto del rostro.',
                 ];
             }
 

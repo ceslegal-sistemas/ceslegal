@@ -327,19 +327,24 @@
                                     if (this.estadoRostro !== 'ok') return;
                                     const video = this.$refs.video;
                                     if (!video || video.readyState < 2 || !video.videoWidth) return;
+                                    // Escalar a 640px para reducir payload
+                                    const escala = Math.min(1, 640 / video.videoWidth);
                                     const tmp = document.createElement('canvas');
-                                    tmp.width  = video.videoWidth;
-                                    tmp.height = video.videoHeight;
+                                    tmp.width  = Math.round(video.videoWidth  * escala);
+                                    tmp.height = Math.round(video.videoHeight * escala);
                                     const ctx = tmp.getContext('2d');
                                     ctx.translate(tmp.width, 0);
                                     ctx.scale(-1, 1);
-                                    ctx.drawImage(video, 0, 0);
-                                    const foto = tmp.toDataURL('image/jpeg', 0.60);
+                                    ctx.drawImage(video, 0, 0, tmp.width, tmp.height);
+                                    const foto = tmp.toDataURL('image/jpeg', 0.70);
                                     this.verificandoAccesoriosVivo = true;
                                     try {
                                         await $wire.verificarAccesorios(foto);
                                         this.alertaAccesorios = $wire.alertaAccesorios;
-                                    } catch (e) {}
+                                        console.log('[Accesorios vivo]', $wire.alertaAccesorios || 'ok');
+                                    } catch (e) {
+                                        console.warn('[Accesorios vivo] error:', e);
+                                    }
                                     this.verificandoAccesoriosVivo = false;
                                 }, 4000);
                             },
@@ -652,19 +657,24 @@
                                     if (this.estadoRostro !== 'ok') return;
                                     const video = this.$refs.video;
                                     if (!video || video.readyState < 2 || !video.videoWidth) return;
+                                    // Escalar a 640px para reducir payload
+                                    const escala = Math.min(1, 640 / video.videoWidth);
                                     const tmp = document.createElement('canvas');
-                                    tmp.width  = video.videoWidth;
-                                    tmp.height = video.videoHeight;
+                                    tmp.width  = Math.round(video.videoWidth  * escala);
+                                    tmp.height = Math.round(video.videoHeight * escala);
                                     const ctx = tmp.getContext('2d');
                                     ctx.translate(tmp.width, 0);
                                     ctx.scale(-1, 1);
-                                    ctx.drawImage(video, 0, 0);
-                                    const foto = tmp.toDataURL('image/jpeg', 0.60);
+                                    ctx.drawImage(video, 0, 0, tmp.width, tmp.height);
+                                    const foto = tmp.toDataURL('image/jpeg', 0.70);
                                     this.verificandoAccesoriosVivo = true;
                                     try {
                                         await $wire.verificarAccesorios(foto);
                                         this.alertaAccesorios = $wire.alertaAccesorios;
-                                    } catch (e) {}
+                                        console.log('[Accesorios vivo]', $wire.alertaAccesorios || 'ok');
+                                    } catch (e) {
+                                        console.warn('[Accesorios vivo] error:', e);
+                                    }
                                     this.verificandoAccesoriosVivo = false;
                                 }, 4000);
                             },
