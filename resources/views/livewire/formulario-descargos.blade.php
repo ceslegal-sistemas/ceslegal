@@ -472,11 +472,13 @@
                                                     </span>
                                                 </template>
                                                 <span x-show="modelsCargados && estadoRostro === 'ok' && !alertaAccesorios"
+                                                    style="display:none"
                                                     class="bg-green-600/85 text-white text-xs px-3 py-1 rounded-full">
                                                     ✓ Listo para tomar foto
                                                 </span>
                                                 <span x-show="modelsCargados && estadoRostro === 'ok' && alertaAccesorios"
                                                     x-text="alertaAccesorios"
+                                                    style="display:none"
                                                     class="bg-orange-600/90 text-white text-xs px-3 py-1.5 rounded-full text-center leading-snug max-w-xs mx-2"></span>
                                             </div>
                                         </div>
@@ -800,11 +802,13 @@
                                                     </span>
                                                 </template>
                                                 <span x-show="modelsCargados && estadoRostro === 'ok' && !alertaAccesorios"
+                                                    style="display:none"
                                                     class="bg-green-600/85 text-white text-xs px-3 py-1 rounded-full">
                                                     ✓ Listo para tomar foto
                                                 </span>
                                                 <span x-show="modelsCargados && estadoRostro === 'ok' && alertaAccesorios"
                                                     x-text="alertaAccesorios"
+                                                    style="display:none"
                                                     class="bg-orange-600/90 text-white text-xs px-3 py-1.5 rounded-full text-center leading-snug max-w-xs mx-2"></span>
                                             </div>
                                         </div>
