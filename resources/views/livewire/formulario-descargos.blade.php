@@ -341,10 +341,7 @@
                                     try {
                                         await $wire.verificarAccesorios(foto);
                                         this.alertaAccesorios = $wire.alertaAccesorios;
-                                        console.log('[Accesorios vivo]', $wire.alertaAccesorios || 'ok');
-                                    } catch (e) {
-                                        console.warn('[Accesorios vivo] error:', e);
-                                    }
+                                    } catch (e) {}
                                     this.verificandoAccesoriosVivo = false;
                                 }, 4000);
                             },
@@ -672,10 +669,7 @@
                                     try {
                                         await $wire.verificarAccesorios(foto);
                                         this.alertaAccesorios = $wire.alertaAccesorios;
-                                        console.log('[Accesorios vivo]', $wire.alertaAccesorios || 'ok');
-                                    } catch (e) {
-                                        console.warn('[Accesorios vivo] error:', e);
-                                    }
+                                    } catch (e) {}
                                     this.verificandoAccesoriosVivo = false;
                                 }, 4000);
                             },
