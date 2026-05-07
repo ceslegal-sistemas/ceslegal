@@ -84,7 +84,7 @@ class VerificacionFacialService
 
     /**
      * Pre-captura: detecta accesorios faciales que obstaculicen la identificación
-     * (gorra, tapabocas, gafas oscuras, bufanda, etc.) usando Gemini Vision.
+     * (gorra, cualquier tipo de gafas, tapabocas, bufanda, etc.) usando Gemini Vision.
      *
      * Devuelve ['ok' => true] si el rostro está libre de obstrucciones.
      * Devuelve ['ok' => false, 'motivo' => '...'] indicando qué debe retirarse.
@@ -96,13 +96,14 @@ class VerificacionFacialService
         $imageData = preg_replace('/^data:image\/\w+;base64,/', '', $base64);
 
         $prompt = 'Analiza esta imagen de una persona frente a una cámara. '
-            . 'Tu única tarea es detectar si la persona tiene algún accesorio que IMPIDA la identificación correcta de su rostro. '
-            . 'Accesorios que DEBES reportar (ok=false): gorra, sombrero, gafas de sol, gafas oscuras, tapabocas, mascarilla, balaclava, pañuelo cubriendo el rostro, bufanda tapando la cara. '
-            . 'NO reportar: gafas de prescripción con lentes transparentes (permiten identificar el rostro). '
+            . 'Tu única tarea es detectar si la persona tiene algún accesorio en el rostro o la cabeza. '
+            . 'Accesorios que DEBES reportar (ok=false): cualquier tipo de gafas (transparentes, oscuras, de sol, de lectura, deportivas), '
+            . 'gorra, sombrero, visera, tapabocas, mascarilla, balaclava, pañuelo cubriendo el rostro, bufanda tapando la cara. '
+            . 'Si la persona lleva cualquier tipo de gafas, SIEMPRE reporta ok=false. '
             . 'Si no se detecta ninguno de esos accesorios, responde ok=true aunque la imagen sea poco clara. '
             . 'Responde SOLO con JSON válido sin markdown: {"ok": true/false, "motivo": "string o null"}. '
-            . 'El campo motivo en español, máx 100 caracteres, indicando qué debe retirarse y por qué '
-            . '(ej: "Por favor retírese la gorra para que podamos verificar su identidad correctamente.").';
+            . 'El campo motivo en español, máx 100 caracteres, indicando exactamente qué debe retirarse '
+            . '(ej: "Por favor retírese las gafas para que podamos verificar su identidad correctamente.").';
 
         try {
             $response = Http::withHeaders(['Content-Type' => 'application/json'])
