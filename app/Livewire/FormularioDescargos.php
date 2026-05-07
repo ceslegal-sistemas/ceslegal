@@ -40,11 +40,6 @@ class FormularioDescargos extends Component
 
     public bool $tiempoExpiradoMostrarEvidencias = false;
 
-    // Ajuste razonable por discapacidad (Ley 2466/2025 Art. 7)
-    public string $ajusteDiscapacidad      = '';  // 'si' | 'no'
-    public string $ajusteDiscapacidadDetalle = '';
-    public bool   $ajusteGuardado          = false;
-
     // Verificación facial — Capas 2 y 3
     public bool   $validandoFoto        = false;
     public string $errorValidacionFoto  = '';
@@ -96,14 +91,6 @@ class FormularioDescargos extends Component
 
             $this->cargarRespuestasExistentes();
             return;
-        }
-
-        // Cargar ajuste de discapacidad si ya fue guardado anteriormente
-        $meta = $this->diligencia->evidencia_metadata ?? [];
-        if (isset($meta['ajuste_discapacidad'])) {
-            $this->ajusteDiscapacidad       = $meta['ajuste_discapacidad'];
-            $this->ajusteDiscapacidadDetalle = $meta['ajuste_discapacidad_detalle'] ?? '';
-            $this->ajusteGuardado           = true;
         }
 
         // Máquina de estados v2
@@ -352,28 +339,6 @@ class FormularioDescargos extends Component
     /**
      * Guarda la solicitud de ajuste razonable por discapacidad en evidencia_metadata.
      * Ley 2466/2025 Art. 7: el empleador debe realizar ajustes razonables cuando el
-     * trabajador lo solicite durante el proceso disciplinario.
-     */
-    public function guardarAjusteDiscapacidad(): void
-    {
-        $this->validate([
-            'ajusteDiscapacidad'       => 'required|in:si,no',
-            'ajusteDiscapacidadDetalle' => 'required_if:ajusteDiscapacidad,si|max:500',
-        ], [
-            'ajusteDiscapacidad.required'          => 'Por favor indique si requiere ajuste razonable.',
-            'ajusteDiscapacidadDetalle.required_if' => 'Por favor describa el ajuste que necesita.',
-            'ajusteDiscapacidadDetalle.max'         => 'La descripción no puede superar 500 caracteres.',
-        ]);
-
-        $meta = $this->diligencia->evidencia_metadata ?? [];
-        $meta['ajuste_discapacidad']         = $this->ajusteDiscapacidad;
-        $meta['ajuste_discapacidad_detalle'] = $this->ajusteDiscapacidadDetalle;
-        $meta['ajuste_discapacidad_en']      = now()->toIso8601String();
-
-        $this->diligencia->update(['evidencia_metadata' => $meta]);
-        $this->ajusteGuardado = true;
-    }
-
     public function iniciarDiligencia()
     {
         $this->diligencia->iniciarTimer();
