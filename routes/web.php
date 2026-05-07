@@ -128,13 +128,13 @@ Route::get('/descargar/rit', function () {
         abort(404, 'Documento no encontrado. Genere su RIT primero.');
     }
 
-    // Generar DOCX en temp (evita problemas de permisos en hosting compartido)
+    // Generar PDF de solo lectura en temp
     $service = app(\App\Services\RITGeneratorService::class);
-    $tmpPath = $service->generarDocumentoWordTemp($rit->texto_completo, $empresa);
-    $nombre  = 'Reglamento_Interno_' . \Str::slug($empresa->razon_social) . '.docx';
+    $tmpPath = $service->generarPDFTemp($rit->texto_completo, $empresa);
+    $nombre  = 'Reglamento_Interno_' . \Str::slug($empresa->razon_social) . '.pdf';
 
     return response()->download($tmpPath, $nombre, [
-        'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'Content-Type' => 'application/pdf',
     ])->deleteFileAfterSend();
 })->middleware(['auth'])->name('rit.descargar');
 
@@ -170,14 +170,14 @@ Route::get('/descargar/rit/admin/{empresa}', function (\App\Models\Empresa $empr
         }
     }
 
-    // Prioridad 2: regenerar DOCX desde texto_completo (RIT generado por IA)
+    // Prioridad 2: generar PDF de solo lectura desde texto_completo (RIT construido en plataforma)
     if (!empty($rit->texto_completo)) {
         $service = app(\App\Services\RITGeneratorService::class);
-        $tmpPath = $service->generarDocumentoWordTemp($rit->texto_completo, $empresa);
-        $nombre  = 'RIT_' . \Str::slug($empresa->razon_social) . '.docx';
+        $tmpPath = $service->generarPDFTemp($rit->texto_completo, $empresa);
+        $nombre  = 'RIT_' . \Str::slug($empresa->razon_social) . '.pdf';
 
         return response()->download($tmpPath, $nombre, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Type' => 'application/pdf',
         ])->deleteFileAfterSend();
     }
 

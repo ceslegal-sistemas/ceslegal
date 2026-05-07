@@ -7,6 +7,9 @@ use App\Services\BibliotecaLegalService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Dompdf\Dompdf;
+use Dompdf\Options;
+use Dompdf\Adapter\CPDF as CpdfAdapter;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Shared\Converter;
 use PhpOffice\PhpWord\SimpleType\Jc;
@@ -183,6 +186,117 @@ class RITGeneratorService
         ]);
 
         return $rutaRelativa;
+    }
+
+    /**
+     * Genera un PDF de solo lectura (no editable) en un archivo temporal.
+     * Usa DOMPDF + encriptación Cpdf para bloquear modificaciones.
+     * El documento se abre sin contraseña pero no puede ser editado.
+     */
+    public function generarPDFTemp(string $textoRIT, Empresa $empresa): string
+    {
+        $html = $this->textoAHtml($textoRIT, $empresa);
+
+        $options = new Options();
+        $options->set('isRemoteEnabled', false);
+        $options->set('defaultPaperSize', 'letter');
+        $options->set('isFontSubsettingEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper('letter', 'portrait');
+        $dompdf->render();
+
+        // Encriptar: solo lectura + impresión permitida — sin contraseña para abrir
+        // La clave del propietario es derivada del app key + empresa → nadie la conoce
+        $canvas = $dompdf->getCanvas();
+        if ($canvas instanceof CpdfAdapter) {
+            $ownerPass = substr(hash('sha256', config('app.key') . $empresa->id . 'rit'), 0, 32);
+            $canvas->get_cpdf()->setEncryption('', $ownerPass, ['print']);
+        }
+
+        $tmpPath = tempnam(sys_get_temp_dir(), 'rit_') . '.pdf';
+        file_put_contents($tmpPath, $dompdf->output());
+
+        return $tmpPath;
+    }
+
+    /**
+     * Convierte el texto plano del RIT (con markdown básico) a HTML para DOMPDF.
+     */
+    private function textoAHtml(string $textoRIT, Empresa $empresa): string
+    {
+        $lineas = explode("\n", $textoRIT);
+        $cuerpo = '';
+
+        foreach ($lineas as $linea) {
+            $linea = rtrim($linea);
+
+            if ($linea === '') {
+                $cuerpo .= '<br>';
+                continue;
+            }
+
+            $esNegritaMarkdown = preg_match('/^\*{1,2}(.+?)\*{1,2}$/', $linea, $m);
+            $textoLimpio = $esNegritaMarkdown
+                ? trim($m[1])
+                : preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '$1', $linea);
+            $textoLimpio = ltrim($textoLimpio, '-*# ');
+            $textoLimpio = trim($textoLimpio);
+
+            $esTitulo = $esNegritaMarkdown
+                || preg_match('/^(CAPÍTULO|ARTÍCULO|ART\.)\s*/ui', $textoLimpio);
+
+            if ($esTitulo) {
+                $cuerpo .= '<p class="titulo">' . htmlspecialchars($textoLimpio, ENT_QUOTES, 'UTF-8') . '</p>';
+            } else {
+                $cuerpo .= '<p class="cuerpo">' . htmlspecialchars($textoLimpio, ENT_QUOTES, 'UTF-8') . '</p>';
+            }
+        }
+
+        $empresaNombre = htmlspecialchars($empresa->razon_social, ENT_QUOTES, 'UTF-8');
+        $nit           = htmlspecialchars($empresa->nit ?? '', ENT_QUOTES, 'UTF-8');
+        $fecha         = \Carbon\Carbon::now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+@page { margin: 2.5cm 2.5cm 2.5cm 3cm; }
+body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; color: #000; }
+.encabezado { text-align: center; margin-bottom: 24pt; }
+.encabezado h1 { font-size: 14pt; font-weight: bold; margin: 0 0 6pt 0; }
+.encabezado h2 { font-size: 12pt; font-weight: bold; margin: 0 0 4pt 0; }
+.encabezado p  { font-size: 10pt; margin: 2pt 0; }
+.titulo { font-weight: bold; font-size: 12pt; margin: 14pt 0 4pt 0; }
+.cuerpo { font-size: 12pt; margin: 0 0 6pt 0; text-align: justify; }
+.pie {
+    border-top: 1pt solid #555;
+    margin-top: 24pt;
+    padding-top: 8pt;
+    font-size: 8.5pt;
+    color: #444;
+    text-align: center;
+}
+</style>
+</head>
+<body>
+<div class="encabezado">
+    <h1>REGLAMENTO INTERNO DE TRABAJO</h1>
+    <h2>{$empresaNombre}</h2>
+    <p>NIT: {$nit}</p>
+</div>
+{$cuerpo}
+<div class="pie">
+    Documento generado el {$fecha} a trav&eacute;s de la plataforma CES LEGAL SAS.<br>
+    Este documento es de solo lectura. Para actualizarlo ingrese a <strong>ceslegal.com</strong>
+    y use la opci&oacute;n &ldquo;Texto del reglamento&rdquo;. Queda prohibida su edici&oacute;n por fuera de dicha plataforma.
+</div>
+</body>
+</html>
+HTML;
     }
 
     /**

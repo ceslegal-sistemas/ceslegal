@@ -321,7 +321,10 @@
                                 const video  = this.$refs.video;
                                 canvas.width  = video.videoWidth;
                                 canvas.height = video.videoHeight;
-                                canvas.getContext('2d').drawImage(video, 0, 0);
+                                const ctx = canvas.getContext('2d');
+                                ctx.translate(canvas.width, 0);
+                                ctx.scale(-1, 1);
+                                ctx.drawImage(video, 0, 0);
                                 const foto = canvas.toDataURL('image/jpeg', 0.80);
                                 this.revisandoAccesorios = true;
                                 this.alertaAccesorios    = '';
@@ -390,7 +393,8 @@
                                         {{-- Video con encuadre guía oval --}}
                                         <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
                                             <video x-ref="video" autoplay playsinline muted
-                                                class="w-full h-full object-cover"></video>
+                                                class="w-full h-full object-cover"
+                                                style="transform: scaleX(-1);"></video>
 
                                             {{-- Encuadre: overlay oscuro fuera del óvalo + borde dinámico --}}
                                             <svg class="absolute inset-0 w-full h-full pointer-events-none"
@@ -604,7 +608,10 @@
                                 const video  = this.$refs.video;
                                 canvas.width  = video.videoWidth;
                                 canvas.height = video.videoHeight;
-                                canvas.getContext('2d').drawImage(video, 0, 0);
+                                const ctx = canvas.getContext('2d');
+                                ctx.translate(canvas.width, 0);
+                                ctx.scale(-1, 1);
+                                ctx.drawImage(video, 0, 0);
                                 const foto = canvas.toDataURL('image/jpeg', 0.80);
                                 this.revisandoAccesorios = true;
                                 this.alertaAccesorios    = '';
@@ -672,7 +679,8 @@
                                         {{-- Video con encuadre guía oval --}}
                                         <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
                                             <video x-ref="video" autoplay playsinline muted
-                                                class="w-full h-full object-cover"></video>
+                                                class="w-full h-full object-cover"
+                                                style="transform: scaleX(-1);"></video>
 
                                             {{-- Encuadre: overlay oscuro fuera del óvalo + borde dinámico --}}
                                             <svg class="absolute inset-0 w-full h-full pointer-events-none"
