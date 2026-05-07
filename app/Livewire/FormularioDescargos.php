@@ -43,6 +43,7 @@ class FormularioDescargos extends Component
     // Verificación facial — Capas 2 y 3
     public bool   $validandoFoto        = false;
     public string $errorValidacionFoto  = '';
+    public string $alertaAccesorios     = '';  // pre-captura: gorra, tapabocas, gafas oscuras, etc.
 
     // Feedback orgánico — paso actual (1-5 = pregunta activa, 6 = completado)
     public int    $feedbackPaso      = 1;
@@ -260,6 +261,25 @@ class FormularioDescargos extends Component
      * Si alguna capa falla, asigna $errorValidacionFoto y retorna sin guardar.
      * Si todas pasan, guarda la foto y avanza la etapa.
      */
+
+    /**
+     * Pre-captura: detecta accesorios faciales (gorra, tapabocas, gafas oscuras, etc.)
+     * antes de mostrar el preview. Fail-open: si la API falla, no bloquea.
+     */
+    public function verificarAccesorios(string $base64): void
+    {
+        $this->alertaAccesorios = '';
+        try {
+            $resultado = app(VerificacionFacialService::class)->detectarAccesorios($base64);
+            if (!($resultado['ok'] ?? true)) {
+                $this->alertaAccesorios = $resultado['motivo']
+                    ?? 'Por favor retire cualquier accesorio que cubra su rostro antes de tomar la foto.';
+            }
+        } catch (\Throwable $e) {
+            // fail-open: si falla la detección, se permite continuar
+        }
+    }
+
     public function validarFotoConIA(string $base64, string $tipo): void
     {
         $this->validandoFoto       = true;

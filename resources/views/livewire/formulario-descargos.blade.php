@@ -246,6 +246,8 @@
                             intervaloDeteccion: null,
                             validando: false,
                             errorValidacion: '',
+                            revisandoAccesorios: false,
+                            alertaAccesorios: '',
 
                             async iniciarCamara() {
                                 try {
@@ -314,21 +316,33 @@
                                 }, 500);
                             },
 
-                            tomarFoto() {
+                            async tomarFoto() {
                                 const canvas = this.$refs.canvas;
                                 const video  = this.$refs.video;
                                 canvas.width  = video.videoWidth;
                                 canvas.height = video.videoHeight;
                                 canvas.getContext('2d').drawImage(video, 0, 0);
-                                this.fotoCapturada   = canvas.toDataURL('image/jpeg', 0.80);
-                                this.errorValidacion = '';
+                                const foto = canvas.toDataURL('image/jpeg', 0.80);
+                                this.revisandoAccesorios = true;
+                                this.alertaAccesorios    = '';
                                 this.detenerDeteccion();
+                                await $wire.verificarAccesorios(foto);
+                                this.revisandoAccesorios = false;
+                                if ($wire.alertaAccesorios) {
+                                    this.alertaAccesorios = $wire.alertaAccesorios;
+                                    this.iniciarDeteccion();
+                                } else {
+                                    this.alertaAccesorios = '';
+                                    this.fotoCapturada    = foto;
+                                    this.errorValidacion  = '';
+                                }
                             },
 
                             volverATomarFoto() {
-                                this.fotoCapturada   = null;
-                                this.errorValidacion = '';
-                                this.estadoRostro    = 'esperando';
+                                this.fotoCapturada       = null;
+                                this.errorValidacion     = '';
+                                this.alertaAccesorios    = '';
+                                this.estadoRostro        = 'esperando';
                                 this.iniciarDeteccion();
                             },
 
@@ -421,18 +435,41 @@
                                             </div>
                                         </div>
 
+                                        {{-- Alerta de accesorios detectados --}}
+                                        <template x-if="alertaAccesorios">
+                                            <div class="flex items-start gap-2 bg-orange-50 border border-orange-300 rounded-xl px-4 py-3 text-sm text-orange-900">
+                                                <svg class="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                </svg>
+                                                <p x-text="alertaAccesorios"></p>
+                                            </div>
+                                        </template>
+
                                         <button type="button" @click="tomarFoto()"
-                                            :disabled="!modelsCargados || estadoRostro !== 'ok'"
-                                            :class="(modelsCargados && estadoRostro === 'ok')
+                                            :disabled="!modelsCargados || estadoRostro !== 'ok' || revisandoAccesorios"
+                                            :class="(modelsCargados && estadoRostro === 'ok' && !revisandoAccesorios)
                                                 ? 'bg-primary-600 hover:bg-primary-700 cursor-pointer'
                                                 : 'bg-gray-300 cursor-not-allowed'"
                                             class="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-white font-semibold rounded-xl shadow-sm transition-colors">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            </svg>
-                                            Tomar foto
+                                            <template x-if="!revisandoAccesorios">
+                                                <span class="flex items-center gap-2">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    </svg>
+                                                    Tomar foto
+                                                </span>
+                                            </template>
+                                            <template x-if="revisandoAccesorios">
+                                                <span class="flex items-center gap-2">
+                                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                                    </svg>
+                                                    Verificando...
+                                                </span>
+                                            </template>
                                         </button>
                                     </div>
                                 </template>
@@ -494,6 +531,8 @@
                             intervaloDeteccion: null,
                             validando: false,
                             errorValidacion: '',
+                            revisandoAccesorios: false,
+                            alertaAccesorios: '',
 
                             async iniciarCamara() {
                                 try {
@@ -560,21 +599,33 @@
                                 }, 500);
                             },
 
-                            tomarFoto() {
+                            async tomarFoto() {
                                 const canvas = this.$refs.canvas;
                                 const video  = this.$refs.video;
                                 canvas.width  = video.videoWidth;
                                 canvas.height = video.videoHeight;
                                 canvas.getContext('2d').drawImage(video, 0, 0);
-                                this.fotoCapturada   = canvas.toDataURL('image/jpeg', 0.80);
-                                this.errorValidacion = '';
+                                const foto = canvas.toDataURL('image/jpeg', 0.80);
+                                this.revisandoAccesorios = true;
+                                this.alertaAccesorios    = '';
                                 this.detenerDeteccion();
+                                await $wire.verificarAccesorios(foto);
+                                this.revisandoAccesorios = false;
+                                if ($wire.alertaAccesorios) {
+                                    this.alertaAccesorios = $wire.alertaAccesorios;
+                                    this.iniciarDeteccion();
+                                } else {
+                                    this.alertaAccesorios = '';
+                                    this.fotoCapturada    = foto;
+                                    this.errorValidacion  = '';
+                                }
                             },
 
                             volverATomarFoto() {
-                                this.fotoCapturada   = null;
-                                this.errorValidacion = '';
-                                this.estadoRostro    = 'esperando';
+                                this.fotoCapturada       = null;
+                                this.errorValidacion     = '';
+                                this.alertaAccesorios    = '';
+                                this.estadoRostro        = 'esperando';
                                 this.iniciarDeteccion();
                             },
 
@@ -666,18 +717,41 @@
                                             </div>
                                         </div>
 
+                                        {{-- Alerta de accesorios detectados --}}
+                                        <template x-if="alertaAccesorios">
+                                            <div class="flex items-start gap-2 bg-orange-50 border border-orange-300 rounded-xl px-4 py-3 text-sm text-orange-900">
+                                                <svg class="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                </svg>
+                                                <p x-text="alertaAccesorios"></p>
+                                            </div>
+                                        </template>
+
                                         <button type="button" @click="tomarFoto()"
-                                            :disabled="!modelsCargados || estadoRostro !== 'ok'"
-                                            :class="(modelsCargados && estadoRostro === 'ok')
+                                            :disabled="!modelsCargados || estadoRostro !== 'ok' || revisandoAccesorios"
+                                            :class="(modelsCargados && estadoRostro === 'ok' && !revisandoAccesorios)
                                                 ? 'bg-primary-600 hover:bg-primary-700 cursor-pointer'
                                                 : 'bg-gray-300 cursor-not-allowed'"
                                             class="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-white font-semibold rounded-xl shadow-sm transition-colors">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            </svg>
-                                            Tomar foto
+                                            <template x-if="!revisandoAccesorios">
+                                                <span class="flex items-center gap-2">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    </svg>
+                                                    Tomar foto
+                                                </span>
+                                            </template>
+                                            <template x-if="revisandoAccesorios">
+                                                <span class="flex items-center gap-2">
+                                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                                    </svg>
+                                                    Verificando...
+                                                </span>
+                                            </template>
                                         </button>
                                     </div>
                                 </template>

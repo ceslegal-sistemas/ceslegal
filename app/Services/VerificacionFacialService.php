@@ -83,6 +83,74 @@ class VerificacionFacialService
     }
 
     /**
+     * Pre-captura: detecta accesorios faciales que obstaculicen la identificación
+     * (gorra, tapabocas, gafas oscuras, bufanda, etc.) usando Gemini Vision.
+     *
+     * Devuelve ['ok' => true] si el rostro está libre de obstrucciones.
+     * Devuelve ['ok' => false, 'motivo' => '...'] indicando qué debe retirarse.
+     * Fail-open en errores para no bloquear al trabajador.
+     */
+    public function detectarAccesorios(string $base64): array
+    {
+        $apiKey    = config('services.ia.gemini.api_key');
+        $imageData = preg_replace('/^data:image\/\w+;base64,/', '', $base64);
+
+        $prompt = 'Analiza esta imagen de una persona frente a una cámara. '
+            . 'Tu única tarea es detectar si la persona tiene algún accesorio que IMPIDA la identificación correcta de su rostro. '
+            . 'Accesorios que DEBES reportar (ok=false): gorra, sombrero, gafas de sol, gafas oscuras, tapabocas, mascarilla, balaclava, pañuelo cubriendo el rostro, bufanda tapando la cara. '
+            . 'NO reportar: gafas de prescripción con lentes transparentes (permiten identificar el rostro). '
+            . 'Si no se detecta ninguno de esos accesorios, responde ok=true aunque la imagen sea poco clara. '
+            . 'Responde SOLO con JSON válido sin markdown: {"ok": true/false, "motivo": "string o null"}. '
+            . 'El campo motivo en español, máx 100 caracteres, indicando qué debe retirarse y por qué '
+            . '(ej: "Por favor retírese la gorra para que podamos verificar su identidad correctamente.").';
+
+        try {
+            $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                ->timeout(20)
+                ->post(
+                    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey,
+                    [
+                        'contents' => [[
+                            'parts' => [
+                                ['text' => $prompt],
+                                ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => $imageData]],
+                            ],
+                        ]],
+                        'generationConfig' => [
+                            'temperature'     => 0.1,
+                            'maxOutputTokens' => 80,
+                            'thinkingConfig'  => ['thinkingBudget' => 0],
+                        ],
+                    ]
+                );
+
+            if (!$response->successful()) {
+                return ['ok' => true, 'motivo' => null]; // fail-open
+            }
+
+            $text = '';
+            foreach (array_reverse($response->json('candidates.0.content.parts', [])) as $part) {
+                if (empty($part['thought']) && isset($part['text']) && $part['text'] !== '') {
+                    $text = trim($part['text']);
+                    break;
+                }
+            }
+
+            $text = preg_replace('/^```json?\s*|\s*```$/', '', $text);
+            $json = json_decode($text, true);
+
+            if (!is_array($json) || !isset($json['ok'])) {
+                return ['ok' => true, 'motivo' => null]; // fail-open
+            }
+
+            return $json;
+        } catch (\Exception $e) {
+            Log::warning('VerificacionFacial: detectarAccesorios excepción', ['error' => $e->getMessage()]);
+            return ['ok' => true, 'motivo' => null]; // fail-open
+        }
+    }
+
+    /**
      * Capa 3: AWS Rekognition — Compara la selfie del trabajador contra la foto de referencia.
      *
      * @param  string $referenciaBytes  Contenido binario de la foto de referencia (Storage::get()).
