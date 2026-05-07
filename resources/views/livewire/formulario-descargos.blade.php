@@ -248,6 +248,8 @@
                             errorValidacion: '',
                             revisandoAccesorios: false,
                             alertaAccesorios: '',
+                            intervaloAccesorios: null,
+                            verificandoAccesoriosVivo: false,
 
                             async iniciarCamara() {
                                 try {
@@ -263,6 +265,7 @@
                             },
 
                             get colorEncuadre() {
+                                if (this.alertaAccesorios) return '#f97316';
                                 if (this.estadoRostro === 'ok') return '#4ade80';
                                 if (this.estadoRostro === 'muy_lejos') return '#fbbf24';
                                 if (this.estadoRostro === 'esperando') return 'rgba(255,255,255,0.45)';
@@ -281,9 +284,11 @@
                                     ]);
                                     this.modelsCargados = true;
                                     this.iniciarDeteccion();
+                                    this.iniciarDeteccionAccesorios();
                                 } catch (e) {
                                     this.modelsCargados = true;
                                     this.estadoRostro = 'ok';
+                                    this.iniciarDeteccionAccesorios();
                                 }
                             },
 
@@ -316,6 +321,29 @@
                                 }, 500);
                             },
 
+                            iniciarDeteccionAccesorios() {
+                                this.intervaloAccesorios = setInterval(async () => {
+                                    if (this.fotoCapturada || this.revisandoAccesorios || this.verificandoAccesoriosVivo) return;
+                                    if (this.estadoRostro !== 'ok') return;
+                                    const video = this.$refs.video;
+                                    if (!video || video.readyState < 2 || !video.videoWidth) return;
+                                    const tmp = document.createElement('canvas');
+                                    tmp.width  = video.videoWidth;
+                                    tmp.height = video.videoHeight;
+                                    const ctx = tmp.getContext('2d');
+                                    ctx.translate(tmp.width, 0);
+                                    ctx.scale(-1, 1);
+                                    ctx.drawImage(video, 0, 0);
+                                    const foto = tmp.toDataURL('image/jpeg', 0.60);
+                                    this.verificandoAccesoriosVivo = true;
+                                    try {
+                                        await $wire.verificarAccesorios(foto);
+                                        this.alertaAccesorios = $wire.alertaAccesorios;
+                                    } catch (e) {}
+                                    this.verificandoAccesoriosVivo = false;
+                                }, 4000);
+                            },
+
                             async tomarFoto() {
                                 const canvas = this.$refs.canvas;
                                 const video  = this.$refs.video;
@@ -334,6 +362,7 @@
                                 if ($wire.alertaAccesorios) {
                                     this.alertaAccesorios = $wire.alertaAccesorios;
                                     this.iniciarDeteccion();
+                                    this.iniciarDeteccionAccesorios();
                                 } else {
                                     this.alertaAccesorios = '';
                                     this.fotoCapturada    = foto;
@@ -347,6 +376,7 @@
                                 this.alertaAccesorios    = '';
                                 this.estadoRostro        = 'esperando';
                                 this.iniciarDeteccion();
+                                this.iniciarDeteccionAccesorios();
                             },
 
                             detenerCamara() {
@@ -359,6 +389,10 @@
                                     clearInterval(this.intervaloDeteccion);
                                     this.intervaloDeteccion = null;
                                 }
+                                if (this.intervaloAccesorios) {
+                                    clearInterval(this.intervaloAccesorios);
+                                    this.intervaloAccesorios = null;
+                                }
                             }
                         }"
                         x-init="
@@ -366,6 +400,7 @@
                             $wire.$watch('errorValidacionFoto', value => {
                                 if (value) { validando = false; errorValidacion = value; }
                             });
+                            $wire.$watch('alertaAccesorios', value => { alertaAccesorios = value; });
                         "
                         @descargosFinalizados.window="detenerCamara()">
 
@@ -431,10 +466,13 @@
                                                         Acérquese más a la cámara
                                                     </span>
                                                 </template>
-                                                <template x-if="modelsCargados && estadoRostro === 'ok'">
+                                                <template x-if="modelsCargados && estadoRostro === 'ok' && !alertaAccesorios">
                                                     <span class="bg-green-600/85 text-white text-xs px-3 py-1 rounded-full">
                                                         ✓ Listo para tomar foto
                                                     </span>
+                                                </template>
+                                                <template x-if="modelsCargados && estadoRostro === 'ok' && alertaAccesorios">
+                                                    <span class="bg-orange-600/90 text-white text-xs px-3 py-1.5 rounded-full text-center leading-snug max-w-xs mx-2" x-text="alertaAccesorios"></span>
                                                 </template>
                                             </div>
                                         </div>
@@ -450,8 +488,8 @@
                                         </template>
 
                                         <button type="button" @click="tomarFoto()"
-                                            :disabled="!modelsCargados || estadoRostro !== 'ok' || revisandoAccesorios"
-                                            :class="(modelsCargados && estadoRostro === 'ok' && !revisandoAccesorios)
+                                            :disabled="!modelsCargados || estadoRostro !== 'ok' || revisandoAccesorios || !!alertaAccesorios"
+                                            :class="(modelsCargados && estadoRostro === 'ok' && !revisandoAccesorios && !alertaAccesorios)
                                                 ? 'bg-primary-600 hover:bg-primary-700 cursor-pointer'
                                                 : 'bg-gray-300 cursor-not-allowed'"
                                             class="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-white font-semibold rounded-xl shadow-sm transition-colors">
@@ -537,6 +575,8 @@
                             errorValidacion: '',
                             revisandoAccesorios: false,
                             alertaAccesorios: '',
+                            intervaloAccesorios: null,
+                            verificandoAccesoriosVivo: false,
 
                             async iniciarCamara() {
                                 try {
@@ -552,6 +592,7 @@
                             },
 
                             get colorEncuadre() {
+                                if (this.alertaAccesorios) return '#f97316';
                                 if (this.estadoRostro === 'ok') return '#4ade80';
                                 if (this.estadoRostro === 'muy_lejos') return '#fbbf24';
                                 if (this.estadoRostro === 'esperando') return 'rgba(255,255,255,0.45)';
@@ -570,9 +611,11 @@
                                     ]);
                                     this.modelsCargados = true;
                                     this.iniciarDeteccion();
+                                    this.iniciarDeteccionAccesorios();
                                 } catch (e) {
                                     this.modelsCargados = true;
                                     this.estadoRostro = 'ok';
+                                    this.iniciarDeteccionAccesorios();
                                 }
                             },
 
@@ -603,6 +646,29 @@
                                 }, 500);
                             },
 
+                            iniciarDeteccionAccesorios() {
+                                this.intervaloAccesorios = setInterval(async () => {
+                                    if (this.fotoCapturada || this.revisandoAccesorios || this.verificandoAccesoriosVivo) return;
+                                    if (this.estadoRostro !== 'ok') return;
+                                    const video = this.$refs.video;
+                                    if (!video || video.readyState < 2 || !video.videoWidth) return;
+                                    const tmp = document.createElement('canvas');
+                                    tmp.width  = video.videoWidth;
+                                    tmp.height = video.videoHeight;
+                                    const ctx = tmp.getContext('2d');
+                                    ctx.translate(tmp.width, 0);
+                                    ctx.scale(-1, 1);
+                                    ctx.drawImage(video, 0, 0);
+                                    const foto = tmp.toDataURL('image/jpeg', 0.60);
+                                    this.verificandoAccesoriosVivo = true;
+                                    try {
+                                        await $wire.verificarAccesorios(foto);
+                                        this.alertaAccesorios = $wire.alertaAccesorios;
+                                    } catch (e) {}
+                                    this.verificandoAccesoriosVivo = false;
+                                }, 4000);
+                            },
+
                             async tomarFoto() {
                                 const canvas = this.$refs.canvas;
                                 const video  = this.$refs.video;
@@ -621,6 +687,7 @@
                                 if ($wire.alertaAccesorios) {
                                     this.alertaAccesorios = $wire.alertaAccesorios;
                                     this.iniciarDeteccion();
+                                    this.iniciarDeteccionAccesorios();
                                 } else {
                                     this.alertaAccesorios = '';
                                     this.fotoCapturada    = foto;
@@ -634,6 +701,7 @@
                                 this.alertaAccesorios    = '';
                                 this.estadoRostro        = 'esperando';
                                 this.iniciarDeteccion();
+                                this.iniciarDeteccionAccesorios();
                             },
 
                             detenerCamara() {
@@ -646,6 +714,10 @@
                                     clearInterval(this.intervaloDeteccion);
                                     this.intervaloDeteccion = null;
                                 }
+                                if (this.intervaloAccesorios) {
+                                    clearInterval(this.intervaloAccesorios);
+                                    this.intervaloAccesorios = null;
+                                }
                             }
                         }"
                         x-init="
@@ -653,6 +725,7 @@
                             $wire.$watch('errorValidacionFoto', value => {
                                 if (value) { validando = false; errorValidacion = value; }
                             });
+                            $wire.$watch('alertaAccesorios', value => { alertaAccesorios = value; });
                         ">
 
                         <div>
@@ -717,10 +790,13 @@
                                                         Acérquese más a la cámara
                                                     </span>
                                                 </template>
-                                                <template x-if="modelsCargados && estadoRostro === 'ok'">
+                                                <template x-if="modelsCargados && estadoRostro === 'ok' && !alertaAccesorios">
                                                     <span class="bg-green-600/85 text-white text-xs px-3 py-1 rounded-full">
                                                         ✓ Listo para tomar foto
                                                     </span>
+                                                </template>
+                                                <template x-if="modelsCargados && estadoRostro === 'ok' && alertaAccesorios">
+                                                    <span class="bg-orange-600/90 text-white text-xs px-3 py-1.5 rounded-full text-center leading-snug max-w-xs mx-2" x-text="alertaAccesorios"></span>
                                                 </template>
                                             </div>
                                         </div>
@@ -736,8 +812,8 @@
                                         </template>
 
                                         <button type="button" @click="tomarFoto()"
-                                            :disabled="!modelsCargados || estadoRostro !== 'ok' || revisandoAccesorios"
-                                            :class="(modelsCargados && estadoRostro === 'ok' && !revisandoAccesorios)
+                                            :disabled="!modelsCargados || estadoRostro !== 'ok' || revisandoAccesorios || !!alertaAccesorios"
+                                            :class="(modelsCargados && estadoRostro === 'ok' && !revisandoAccesorios && !alertaAccesorios)
                                                 ? 'bg-primary-600 hover:bg-primary-700 cursor-pointer'
                                                 : 'bg-gray-300 cursor-not-allowed'"
                                             class="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-white font-semibold rounded-xl shadow-sm transition-colors">
