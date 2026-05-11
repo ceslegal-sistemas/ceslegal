@@ -245,7 +245,6 @@ class CreateReglamentoInterno extends CreateRecord
                         ->schema([
                             Forms\Components\TextInput::make('ciudad')
                                 ->label('Ciudad')
-                                ->required()
                                 ->placeholder('Ej: Medellín'),
                             Forms\Components\TextInput::make('direccion')
                                 ->label('Dirección')
@@ -253,12 +252,10 @@ class CreateReglamentoInterno extends CreateRecord
                             Forms\Components\TextInput::make('num_trabajadores')
                                 ->label('N.° trabajadores en esa sede')
                                 ->numeric()
-                                ->required()
                                 ->placeholder('Ej: 5'),
                         ])
                         ->columns(3)
                         ->addActionLabel('Agregar otra sede')
-                        ->minItems(1)
                         ->visible(fn(Get $get) => $get('tiene_sucursales') === 'si')
                         ->columnSpanFull(),
                 ]),
@@ -287,7 +284,6 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->schema([
                                     Forms\Components\TextInput::make('nombre_cargo')
                                         ->label('Nombre del cargo')
-                                        ->required()
                                         ->placeholder('Ej: Gerente General, Operario planta, Vendedor externo'),
                                     Forms\Components\Select::make('instancia_sancionatoria')
                                         ->label('Rol disciplinario')
@@ -297,7 +293,6 @@ class CreateReglamentoInterno extends CreateRecord
                                             'segunda_instancia' => 'Segunda instancia (confirma o revoca apelaciones)',
                                         ])
                                         ->default('ninguna')
-                                        ->native(false)
                                         ->helperText('Solo los cargos con autoridad real deben tener esta facultad.'),
                                 ])
                                 ->columns(2)
@@ -471,7 +466,6 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->schema([
                                     Forms\Components\TextInput::make('nombre_turno')
                                         ->label('Nombre del turno')
-                                        ->required()
                                         ->placeholder('Ej: Turno A, Turno noche, Administrativo'),
 
                                     Forms\Components\TextInput::make('hora_inicio')
@@ -600,7 +594,6 @@ class CreateReglamentoInterno extends CreateRecord
                                     'efectivo'      => 'Efectivo',
                                     'mixto'         => 'Mixto (transferencia y efectivo)',
                                 ])
-                                ->required()
                                 ->native(false),
 
                             Forms\Components\CheckboxList::make('periodicidad_pago')
@@ -616,8 +609,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->default(['mensual'])
                                 ->columns(3)
                                 ->columnSpanFull()
-                                ->live()
-                                ->required(),
+                                ->live(),
 
                             Forms\Components\Textarea::make('periodicidad_detalle')
                                 ->label('¿A quiénes paga diferente? Indique el cargo y su periodicidad')
