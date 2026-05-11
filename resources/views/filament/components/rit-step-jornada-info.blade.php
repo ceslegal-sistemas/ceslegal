@@ -33,8 +33,6 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75" />
                 <circle cx="12" cy="12" r="9" stroke-width="1.5" />
             </svg>
-            <span>Los <strong>gerentes y jefes de confianza</strong> están exentos del límite de 8 horas diarias
-                — hay un campo específico para ellos.</span>
         </div>
 
     </div>

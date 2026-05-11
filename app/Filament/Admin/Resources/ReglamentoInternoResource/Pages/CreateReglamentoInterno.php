@@ -417,7 +417,6 @@ class CreateReglamentoInterno extends CreateRecord
                                     'operacion_continua_247'  => 'Operación continua 24/7 (nunca para)',
                                     'jornada_flexible'        => 'Horario flexible o variable',
                                     'teletrabajo'             => 'Teletrabajo / trabajo desde casa',
-                                    'trabajo_campo_obra'      => 'Trabajo en campo, obra o mina',
                                     'vigilancia_guardias'     => 'Vigilancia / guardias de seguridad',
                                 ])
                                 ->default(['jornada_fija_diurna'])
