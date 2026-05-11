@@ -319,10 +319,10 @@ class Register extends BaseRegister
                 basename($rutaDocx)
             );
         } elseif ($ritOpcion === 'construir') {
-            // Tras el registro, redirigir al constructor de RIT
+            // Tras el registro, redirigir a Mi Reglamento Interno
             // (se sobreescribe solo si no hay ya redirect a PayU)
             if (empty($this->redirectUrl)) {
-                $this->redirectUrl = route('filament.admin.resources.reglamento-internos.create');
+                $this->redirectUrl = route('filament.admin.pages.mi-reglamento-interno');
             } else {
                 // Hay redirect a PayU; guardar en sesión para redirigir post-pago
                 session(['rit_construir_despues_pago' => true]);

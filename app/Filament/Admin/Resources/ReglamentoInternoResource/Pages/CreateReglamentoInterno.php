@@ -53,6 +53,15 @@ class CreateReglamentoInterno extends CreateRecord
                 $saved = $this->normalizarCuestionario($rit->respuestas_cuestionario);
             }
 
+            // Garantizar siempre los datos de la empresa (Step 1 — campos disabled)
+            $saved['razon_social'] = $empresa->razon_social ?? '';
+            $saved['nit']          = $empresa->nit ?? '';
+            $saved['domicilio']    = trim(
+                ($empresa->direccion ?? '') . ' ' .
+                ($empresa->ciudad ?? '') . ', ' .
+                ($empresa->departamento ?? '')
+            );
+
             // Si no hay IDs guardados en el cuestionario, tomarlos de la empresa
             if (empty($saved['actividad_economica_id']) && $empresa->actividad_economica_id) {
                 $saved['actividad_economica_id'] = $empresa->actividad_economica_id;
@@ -62,6 +71,11 @@ class CreateReglamentoInterno extends CreateRecord
                 if (!empty($ids)) {
                     $saved['actividades_secundarias_ids'] = $ids;
                 }
+            }
+
+            // Garantizar al menos 1 ítem en el repeater de cargos
+            if (empty($saved['cargos'])) {
+                unset($saved['cargos']); // deja que defaultItems(1) lo cree
             }
         }
 

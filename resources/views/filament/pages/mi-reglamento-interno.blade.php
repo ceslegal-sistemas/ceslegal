@@ -94,6 +94,7 @@ html:not(.dark) .rit-empty-title{color:#0f172a}
       </p>
 
       {{-- Acciones --}}
+      @if($tiene || $descargaUrl)
       <div class="rit-actions">
         @if($descargaUrl)
           <a href="{{ $descargaUrl }}" class="rit-btn rit-btn-success">
@@ -107,13 +108,9 @@ html:not(.dark) .rit-empty-title{color:#0f172a}
             <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
             Actualizar RIT con IA
           </a>
-        @else
-          <a href="{{ $wizardUrl }}" class="rit-btn rit-btn-primary">
-            <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-            Construir mi primer RIT
-          </a>
         @endif
       </div>
+      @endif
 
     </div>
   </div>
