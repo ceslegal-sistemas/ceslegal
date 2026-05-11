@@ -23,6 +23,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Moataz01\FilamentNotificationSound\FilamentNotificationSoundPlugin;
+use App\Filament\Admin\Resources\ReglamentoInternoResource\Pages\CreateReglamentoInterno;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 
@@ -39,6 +40,16 @@ class AdminPanelProvider extends PanelProvider
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_END,
             fn(): string => '<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script><script src="' . asset('js/tour-descargos.js') . '"></script>',
+        );
+
+        // Fix: Mac browsers fire native HTML form validation before Livewire intercepts.
+        // Adding novalidate to the <form> prevents "An invalid form control with name=''
+        // is not focusable" errors caused by hidden required/native(false) Select fields
+        // in the RIT wizard (Tom Select creates a hidden <select> without name attribute).
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            fn(): string => '<script>document.addEventListener("DOMContentLoaded",function(){var f=document.querySelector("form");if(f)f.setAttribute("novalidate","");});</script>',
+            scopes: [CreateReglamentoInterno::class],
         );
     }
 
