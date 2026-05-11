@@ -6,6 +6,7 @@ use App\Filament\Admin\Resources\ReglamentoInternoResource;
 use App\Models\ActividadEconomica;
 use App\Models\Empresa;
 use App\Models\ReglamentoInterno;
+use App\Models\SancionLaboral;
 use App\Services\RITGeneratorService;
 use Filament\Forms;
 use Filament\Forms\Components\Wizard\Step;
@@ -708,48 +709,32 @@ class CreateReglamentoInterno extends CreateRecord
                         ->columnSpanFull(),
 
                     Forms\Components\Section::make('¿Qué conductas quiere regular?')
-                        ->description('Haga clic en el campo y verá sugerencias comunes — puede agregarlas con un clic o escribir las propias. Presione Enter para añadir cada falta.')
+                        ->description('Los campos ya vienen con las conductas del catálogo de Sanciones Laborales. Puede eliminar las que no apliquen a su empresa y agregar conductas adicionales específicas de su sector.')
                         ->schema([
                             Forms\Components\TagsInput::make('faltas_leves')
-                                ->label('Faltas leves — se sancionan con llamado de atención verbal o escrito')
-                                ->suggestions([
-                                    'Impuntualidad',
-                                    'No registrar asistencia al entrar o salir',
-                                    'No usar el uniforme o dotación asignada',
-                                    'Uso de celular personal en horario laboral',
-                                    'Desorden en el puesto de trabajo',
-                                    'No asistir a capacitación programada sin justificación',
-                                    'Descuido en el manejo de materiales o equipos',
-                                    'No portar el carnet o identificación',
-                                    'Incumplir el código de presentación personal',
-                                    'No diligenciar formatos o registros exigidos',
-                                    'Consumir alimentos fuera de las zonas autorizadas',
-                                    'Uso inadecuado de equipos o herramientas de la empresa',
-                                ])
-                                ->placeholder('Escriba una falta y presione Enter para agregar')
-                                ->helperText('Son comportamientos que afectan el trabajo pero no son graves. Haga clic en el campo para ver sugerencias.')
+                                ->label('Faltas leves — se sancionan con llamado de atención o suspensión')
+                                ->default(fn() => SancionLaboral::where('tipo_falta', 'leve')
+                                    ->where('activa', true)
+                                    ->whereNull('sancion_padre_id')
+                                    ->orderBy('orden')
+                                    ->pluck('nombre_claro')
+                                    ->toArray()
+                                )
+                                ->placeholder('Escriba una conducta adicional y presione Enter')
+                                ->helperText('Conductas del catálogo de Sanciones Laborales. Elimine las que no apliquen o agregue las propias de su sector.')
                                 ->columnSpanFull(),
 
                             Forms\Components\TagsInput::make('faltas_graves')
-                                ->label('Faltas graves — pueden llevar a suspensión sin sueldo')
-                                ->suggestions([
-                                    'Agresión verbal o física a compañero, cliente o proveedor',
-                                    'Ausentismo sin justificación',
-                                    'Incumplir normas de seguridad o no usar EPP obligatorio',
-                                    'Desobedecer órdenes del superior sin justificación',
-                                    'Daño a bienes de la empresa por descuido o negligencia',
-                                    'Conducir vehículo de la empresa bajo efectos del alcohol o sustancias',
-                                    'Trabajo en alturas sin arnés, permiso o acompañante',
-                                    'Uso de celular mientras conduce vehículo de la empresa',
-                                    'No reportar accidente o incidente de trabajo al jefe inmediato',
-                                    'Revelar información confidencial de clientes o de la empresa',
-                                    'Manipulación inadecuada de alimentos, insumos o sustancias peligrosas',
-                                    'Abandono del puesto de trabajo sin autorización del superior',
-                                    'Falsificación o alteración de documentos, registros o reportes',
-                                    'Exceso de velocidad o conducción imprudente en vehículo de la empresa',
-                                ])
-                                ->placeholder('Escriba una falta y presione Enter para agregar')
-                                ->helperText('Conductas que afectan seriamente el trabajo o el ambiente laboral. Haga clic en el campo para ver sugerencias.')
+                                ->label('Faltas graves — pueden llevar a terminación del contrato')
+                                ->default(fn() => SancionLaboral::where('tipo_falta', 'grave')
+                                    ->where('activa', true)
+                                    ->whereNull('sancion_padre_id')
+                                    ->orderBy('orden')
+                                    ->pluck('nombre_claro')
+                                    ->toArray()
+                                )
+                                ->placeholder('Escriba una conducta adicional y presione Enter')
+                                ->helperText('Conductas del catálogo de Sanciones Laborales. Elimine las que no apliquen o agregue las propias de su sector.')
                                 ->columnSpanFull(),
 
                         ]),
