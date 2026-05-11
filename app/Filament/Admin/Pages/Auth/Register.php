@@ -65,6 +65,7 @@ class Register extends BaseRegister
                                 ->maxLength(255)
                                 ->placeholder('Ej: EMPRESA ABC')
                                 ->helperText('Nombre legal de la empresa sin tipo societario')
+                                ->extraInputAttributes(['style' => 'text-transform:uppercase'])
                                 ->columnSpan(2),
 
                             Forms\Components\Select::make('tipo_societario')

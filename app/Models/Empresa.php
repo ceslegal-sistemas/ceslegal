@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -37,6 +38,14 @@ class Empresa extends Model
         'S.B.I.C.'       => 'S.B.I.C. — Sociedad de Beneficio e Interés Colectivo',
         'Persona Natural' => 'Persona Natural',
     ];
+
+    /** Almacena la razón social siempre en mayúsculas */
+    protected function razonSocial(): Attribute
+    {
+        return Attribute::make(
+            set: fn(string $value) => mb_strtoupper(trim($value)),
+        );
+    }
 
     /**
      * Nombre completo de la empresa: razón social + tipo societario.
