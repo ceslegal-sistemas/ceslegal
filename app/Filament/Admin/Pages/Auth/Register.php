@@ -73,15 +73,27 @@ class Register extends BaseRegister
                                 ->options(\App\Models\Empresa::TIPOS_SOCIETARIOS)
                                 ->searchable()
                                 ->placeholder('Seleccione...')
-                                ->helperText('Forma jurídica de la empresa'),
+                                ->helperText('Forma jurídica de la empresa')
+                                ->live(),
 
                             Forms\Components\TextInput::make('nit')
                                 ->label('NIT')
                                 ->required()
                                 ->unique('empresas', 'nit')
                                 ->maxLength(50)
-                                ->placeholder('Ej: 900123456-7')
-                                ->helperText('Número de Identificación Tributaria')
+                                ->mask(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                                    ? '999999999-9'
+                                    : null)
+                                ->placeholder(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                                    ? 'Ej: 900123456-7'
+                                    : 'Ej: 1023456789')
+                                ->helperText(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                                    ? 'Incluya el dígito de verificación separado por guion'
+                                    : 'Número de cédula de ciudadanía')
+                                ->rules(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                                    ? ['regex:/^\d{6,12}-\d$/']
+                                    : [])
+                                ->validationMessages(['regex' => 'El NIT debe incluir el dígito de verificación (ej: 900123456-7).'])
                                 ->suffixIcon('heroicon-o-identification'),
 
                             Forms\Components\TextInput::make('representante_legal')
