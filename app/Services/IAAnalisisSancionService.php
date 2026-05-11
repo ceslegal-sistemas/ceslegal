@@ -278,7 +278,7 @@ class IAAnalisisSancionService
         $seccionRIT = '';
         if (!empty($sancionesRIT['faltas_leves']) || !empty($sancionesRIT['faltas_graves'])) {
             $seccionRIT = "\n═══════════════════════════════════════════════════════════════════\n";
-            $seccionRIT .= "RÉGIMEN DISCIPLINARIO DEL RIT DE {$empresa->razon_social}:\n";
+            $seccionRIT .= "RÉGIMEN DISCIPLINARIO DEL RIT DE {$empresa->nombre_completo}:\n";
             $seccionRIT .= "═══════════════════════════════════════════════════════════════════\n";
 
             if (!empty($sancionesRIT['faltas_leves'])) {
@@ -316,7 +316,7 @@ Eres un abogado laboralista colombiano con amplia experiencia en procesos discip
 INSTRUCCIÓN CRÍTICA: No inventes rangos de días ni categorías de faltas. Deriva TODO de lo que el RIT de esta empresa específicamente contempla. Si el RIT dice "suspensión hasta 8 días", no puedes sugerir 30 días. Si el RIT no contempla terminación, no la sugieras.
 
 INFORMACIÓN DEL PROCESO:
-- Empresa: {$empresa->razon_social}
+- Empresa: {$empresa->nombre_completo}
 - Trabajador: {$trabajador->nombre_completo}
 - Cargo: {$trabajador->cargo}
 

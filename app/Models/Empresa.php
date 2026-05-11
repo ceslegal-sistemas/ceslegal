@@ -12,6 +12,7 @@ class Empresa extends Model
 {
     protected $fillable = [
         'razon_social',
+        'tipo_societario',
         'nit',
         'direccion',
         'telefono',
@@ -23,6 +24,29 @@ class Empresa extends Model
         'dias_laborales',
         'actividad_economica_id',
     ];
+
+    /** Tipos societarios reconocidos en Colombia */
+    public const TIPOS_SOCIETARIOS = [
+        'S.A.S.'         => 'S.A.S. — Sociedad por Acciones Simplificada',
+        'S.A.'           => 'S.A. — Sociedad Anónima',
+        'Ltda.'          => 'Ltda. — Sociedad de Responsabilidad Limitada',
+        'S.C.A.'         => 'S.C.A. — Sociedad en Comandita por Acciones',
+        'S.C.S.'         => 'S.C.S. — Sociedad en Comandita Simple',
+        'E.U.'           => 'E.U. — Empresa Unipersonal',
+        'E.S.P.'         => 'E.S.P. — Empresa de Servicios Públicos',
+        'S.B.I.C.'       => 'S.B.I.C. — Sociedad de Beneficio e Interés Colectivo',
+        'Persona Natural' => 'Persona Natural',
+    ];
+
+    /**
+     * Nombre completo de la empresa: razón social + tipo societario.
+     * Úsese en prompts de IA y encabezados de documentos.
+     */
+    public function getNombreCompletoAttribute(): string
+    {
+        $tipo = $this->tipo_societario ? " {$this->tipo_societario}" : '';
+        return trim($this->razon_social . $tipo);
+    }
 
     protected $casts = [
         'active' => 'boolean',

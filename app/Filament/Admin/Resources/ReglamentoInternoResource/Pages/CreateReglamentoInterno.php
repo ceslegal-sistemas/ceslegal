@@ -58,8 +58,9 @@ class CreateReglamentoInterno extends CreateRecord
             }
 
             // Garantizar siempre los datos de la empresa (Step 1 — campos disabled)
-            $saved['razon_social'] = $empresa->razon_social ?? '';
-            $saved['nit']          = $empresa->nit ?? '';
+            $saved['razon_social']    = $empresa->razon_social ?? '';
+            $saved['tipo_societario'] = $empresa->tipo_societario ?? '';
+            $saved['nit']             = $empresa->nit ?? '';
             $saved['domicilio']    = trim(
                 ($empresa->direccion ?? '') . ' ' .
                 ($empresa->ciudad ?? '') . ', ' .
@@ -136,11 +137,17 @@ class CreateReglamentoInterno extends CreateRecord
                         ->description('Estos datos vienen de su registro y aparecerán en el encabezado oficial del Reglamento.')
                         ->schema([
                             Forms\Components\TextInput::make('razon_social')
-                                ->label('Razón social / nombre de la empresa')
+                                ->label('Razón social')
                                 ->default($empresa?->razon_social ?? '')
                                 ->disabled()
                                 ->dehydrated(false)
-                                ->columnSpanFull(),
+                                ->columnSpan(2),
+
+                            Forms\Components\TextInput::make('tipo_societario')
+                                ->label('Tipo societario')
+                                ->default($empresa?->tipo_societario ?? '')
+                                ->disabled()
+                                ->dehydrated(false),
 
                             Forms\Components\TextInput::make('nit')
                                 ->label('NIT')

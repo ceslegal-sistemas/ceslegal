@@ -134,7 +134,7 @@ class DocumentGeneratorService
         ]))));
 
         // ── Datos de la empresa ──────────────────────────────────────────────
-        $nombreEmpresa     = e($empresa->razon_social ?? '');
+        $nombreEmpresa     = e($empresa->nombre_completo ?? '');
         $nit               = e($empresa->nit ?? '');
         $representante     = e($empresa->representante_legal ?? 'Representante Legal');
         $emailContacto     = e($empresa->email_contacto ?? $empresa->email ?? '');
@@ -246,7 +246,7 @@ class DocumentGeneratorService
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="3" class="tabla-rit-empresa">' . e($empresa->razon_social) . ' &nbsp;|&nbsp; NIT: ' . e($empresa->nit) . '</td>
+                            <td colspan="3" class="tabla-rit-empresa">' . e($empresa->nombre_completo) . ' &nbsp;|&nbsp; NIT: ' . e($empresa->nit) . '</td>
                         </tr>
                         <tr class="tabla-rit-thead">
                             <th style="width:15%;">Tipo de Falta</th>
@@ -255,7 +255,7 @@ class DocumentGeneratorService
                         </tr>
                         ' . $filaLeves . $filaGraves . '
                     </table>
-                    <p class="tabla-rit-pie">Tabla conforme al Reglamento Interno de Trabajo de ' . e($empresa->razon_social) . ', de conformidad con la Ley 2466 de 2025. Toda sanción se aplicará previa garantía del debido proceso.</p>';
+                    <p class="tabla-rit-pie">Tabla conforme al Reglamento Interno de Trabajo de ' . e($empresa->nombre_completo) . ', de conformidad con la Ley 2466 de 2025. Toda sanción se aplicará previa garantía del debido proceso.</p>';
                 }
             } catch (\Throwable $e) {
                 // Si falla la extracción, el documento se genera sin la tabla
@@ -1137,7 +1137,7 @@ HTML;
 Genera un documento oficial de {$nombreSancion} para un trabajador en Colombia usando formato profesional estilo Word.
 
 INFORMACIÓN DEL CASO:
-- Empresa: {$empresa->razon_social} (NIT: {$empresa->nit})
+- Empresa: {$empresa->nombre_completo} (NIT: {$empresa->nit})
 - Representante: {$empresa->representante_legal}
 - Trabajador: {$trabajador->nombre_completo} ({$trabajador->tipo_documento} {$trabajador->numero_documento})
 - Cargo: {$trabajador->cargo}
@@ -1174,7 +1174,7 @@ Genera HTML con exactamente esta estructura:
 <div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.2; text-align: justify; color: #000000;">
 
   <div style="text-align: center; margin-bottom: 15px;">
-    <h1 style="font-family: Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; margin: 5px 0; color: #000000;">{$empresa->razon_social}</h1>
+    <h1 style="font-family: Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; margin: 5px 0; color: #000000;">{$empresa->nombre_completo}</h1>
     <p style="font-size: 11pt; margin: 2px 0;">NIT: {$empresa->nit}</p>
     <h2 style="font-family: Calibri, Arial, sans-serif; font-size: 12pt; font-weight: bold; margin: 8px 0; color: #000000; text-transform: uppercase;">{$nombreSancion}</h2>
     <p style="font-size: 11pt; margin: 2px 0;">{$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}</p>
@@ -1191,7 +1191,7 @@ Genera HTML con exactamente esta estructura:
 
   <p style="margin: 6px 0;">Estimado(a) {$trabajador->nombre_completo}:</p>
 
-  <p style="margin: 6px 0;">Le escribimos para informarle sobre una decisión importante relacionada con su trabajo en {$empresa->razon_social}.</p>
+  <p style="margin: 6px 0;">Le escribimos para informarle sobre una decisión importante relacionada con su trabajo en {$empresa->nombre_completo}.</p>
 
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">1. Hechos que motivaron esta decisión</h3>
   <p style="margin: 4px 0;">[Describe los hechos claramente mencionando fechas específicas y acciones concretas. Usa 2-3 oraciones.]</p>
@@ -1226,7 +1226,7 @@ Genera HTML con exactamente esta estructura:
     <p style="margin: 2px 0;">Cordialmente,</p>
     <p style="margin-top: 25px; margin-bottom: 2px;"><strong>{$empresa->representante_legal}</strong></p>
     <p style="margin: 2px 0;">Representante Legal</p>
-    <p style="margin: 2px 0;">{$empresa->razon_social}</p>
+    <p style="margin: 2px 0;">{$empresa->nombre_completo}</p>
     <p style="margin: 2px 0;">NIT: {$empresa->nit}</p>
   </div>
 
@@ -1299,7 +1299,7 @@ HTML;
     </tr>
     <tr>
       <td colspan="3" style="border: 1px solid #000; padding: 4px 6px; text-align: center;">
-        <strong>{$empresa->razon_social}</strong><br>
+        <strong>{$empresa->nombre_completo}</strong><br>
         NIT: {$empresa->nit}
       </td>
     </tr>
@@ -1794,7 +1794,7 @@ HTML;
 </head>
 <body>
     <div style="text-align: center; margin-bottom: 15px;">
-        <h1>{$empresa->razon_social}</h1>
+        <h1>{$empresa->nombre_completo}</h1>
         <p style="margin: 2px 0;">NIT: {$empresa->nit}</p>
         <h2>RESOLUCIÓN DE IMPUGNACIÓN</h2>
         <p style="margin: 2px 0;">{$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}</p>
@@ -1853,7 +1853,7 @@ HTML;
         <p style="margin: 2px 0;">Cordialmente,</p>
         <p style="margin-top: 25px; margin-bottom: 2px;"><strong>{$empresa->representante_legal}</strong></p>
         <p style="margin: 2px 0;">Representante Legal</p>
-        <p style="margin: 2px 0;">{$empresa->razon_social}</p>
+        <p style="margin: 2px 0;">{$empresa->nombre_completo}</p>
         <p style="margin: 2px 0;">NIT: {$empresa->nit}</p>
     </div>
 </body>

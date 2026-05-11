@@ -63,9 +63,16 @@ class Register extends BaseRegister
                                 ->label('Razón Social')
                                 ->required()
                                 ->maxLength(255)
-                                ->placeholder('Ej: EMPRESA ABC S.A.S')
-                                ->helperText('Nombre legal completo de la empresa')
-                                ->columnSpanFull(),
+                                ->placeholder('Ej: EMPRESA ABC')
+                                ->helperText('Nombre legal de la empresa sin tipo societario')
+                                ->columnSpan(2),
+
+                            Forms\Components\Select::make('tipo_societario')
+                                ->label('Tipo Societario')
+                                ->options(\App\Models\Empresa::TIPOS_SOCIETARIOS)
+                                ->searchable()
+                                ->placeholder('Seleccione...')
+                                ->helperText('Forma jurídica de la empresa'),
 
                             Forms\Components\TextInput::make('nit')
                                 ->label('NIT')
@@ -285,6 +292,7 @@ class Register extends BaseRegister
     {
         $empresa = Empresa::create([
             'razon_social'           => $data['razon_social'],
+            'tipo_societario'        => $data['tipo_societario'] ?? null,
             'nit'                    => $data['nit'],
             'representante_legal'    => $data['representante_legal'],
             'telefono'               => $data['telefono'] ?? null,

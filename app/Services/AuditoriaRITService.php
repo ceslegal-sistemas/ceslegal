@@ -144,7 +144,7 @@ class AuditoriaRITService
                     $resultado = $this->auditarSeccion(
                         textoRIT: $textoRIT,
                         config: $config,
-                        razonSocial: $empresa->razon_social,
+                        razonSocial: $empresa->nombre_completo,
                     );
                 } catch (\Throwable $e) {
                     // Sección fallida → marcar y continuar con las demás
@@ -172,7 +172,7 @@ class AuditoriaRITService
 
             $numSecciones = count(self::SECCIONES);
             $scoreGeneral = (int) round($scoreTotal / $numSecciones);
-            $resumen      = $this->generarResumen($secciones, $empresa->razon_social, $scoreGeneral);
+            $resumen      = $this->generarResumen($secciones, $empresa->nombre_completo, $scoreGeneral);
 
             $auditoria->update([
                 'estado'          => 'completado',

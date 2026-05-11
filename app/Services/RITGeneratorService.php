@@ -254,7 +254,7 @@ class RITGeneratorService
             }
         }
 
-        $empresaNombre = htmlspecialchars($empresa->razon_social, ENT_QUOTES, 'UTF-8');
+        $empresaNombre = htmlspecialchars($empresa->nombre_completo, ENT_QUOTES, 'UTF-8');
         $nit           = htmlspecialchars($empresa->nit ?? '', ENT_QUOTES, 'UTF-8');
 
         return <<<HTML
@@ -341,7 +341,7 @@ HTML;
         );
 
         $section->addText(
-            strtoupper($empresa->razon_social),
+            strtoupper($empresa->nombre_completo),
             ['bold' => true, 'size' => 12, 'name' => 'Times New Roman'],
             ['alignment' => Jc::CENTER, 'spaceAfter' => 240]
         );
@@ -416,8 +416,8 @@ HTML;
             $contextoBiblioteca = substr($contextoBiblioteca, 0, 8000) . "\n[...fragmentos adicionales omitidos por límite de longitud]";
         }
 
-        $razonSocial = $empresa->razon_social;
-        $nit         = $empresa->nit;
+        $razonSocial  = $empresa->nombre_completo; // razón social + tipo societario
+        $nit          = $empresa->nit;
 
         // Helpers para aplanar arrays a texto legible
         $lista  = fn($arr) => is_array($arr) ? implode(', ', array_filter($arr)) : ($arr ?? '');
@@ -454,6 +454,7 @@ HTML;
         $infoEmpresa = "
 EMPRESA Y ACTIVIDAD
 - Razón social: {$razonSocial}
+- Tipo societario: " . ($empresa->tipo_societario ?? 'No especificado') . "
 - NIT: {$nit}
 - Domicilio: " . ($r['domicilio'] ?? '') . "
 - Representante Legal: {$representante}

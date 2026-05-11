@@ -766,7 +766,7 @@ PROMPT;
     ): array {
         $preguntasGuardadas = [];
 
-        $empresaNombre = $diligencia->proceso?->empresa?->razon_social ?? 'la empresa que lo cita';
+        $empresaNombre = $diligencia->proceso?->empresa?->nombre_completo ?? 'la empresa que lo cita';
 
         foreach ($preguntas as $index => $preguntaTexto) {
             $preguntaPadreId = null;

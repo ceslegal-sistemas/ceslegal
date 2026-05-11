@@ -48,9 +48,16 @@ class EmpresaResource extends Resource
                             ->label('Razón Social')
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('Ej: EMPRESA ABC S.A.S')
-                            ->helperText('Nombre legal completo de la empresa')
-                            ->columnSpanFull(),
+                            ->placeholder('Ej: EMPRESA ABC')
+                            ->helperText('Nombre legal sin tipo societario')
+                            ->columnSpan(2),
+
+                        Forms\Components\Select::make('tipo_societario')
+                            ->label('Tipo Societario')
+                            ->options(\App\Models\Empresa::TIPOS_SOCIETARIOS)
+                            ->searchable()
+                            ->placeholder('Seleccione...')
+                            ->helperText('Forma jurídica'),
 
                         Forms\Components\TextInput::make('nit')
                             ->label('NIT')
