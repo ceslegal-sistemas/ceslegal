@@ -76,11 +76,13 @@ class CreateReglamentoInterno extends CreateRecord
      */
     private function normalizarCuestionario(array $data): array
     {
-        // Normalizar booleanos en el Repeater de cargos
+        // Normalizar cargos del Repeater
         if (isset($data['cargos']) && is_array($data['cargos'])) {
             $data['cargos'] = array_map(function ($item) {
-                if (isset($item['puede_sancionar'])) {
-                    $item['puede_sancionar'] = (bool) $item['puede_sancionar'];
+                // Migración: campo antiguo puede_sancionar (Toggle) → instancia_sancionatoria (Select)
+                if (isset($item['puede_sancionar']) && !isset($item['instancia_sancionatoria'])) {
+                    $item['instancia_sancionatoria'] = $item['puede_sancionar'] ? 'primera_instancia' : 'ninguna';
+                    unset($item['puede_sancionar']);
                 }
                 return $item;
             }, $data['cargos']);
@@ -272,10 +274,16 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->label('Nombre del cargo')
                                         ->required()
                                         ->placeholder('Ej: Gerente General, Operario planta, Vendedor externo'),
-                                    Forms\Components\Toggle::make('puede_sancionar')
-                                        ->label('¿Puede imponer sanciones a otros?')
-                                        ->default(false)
-                                        ->afterStateHydrated(fn ($component, $state) => $component->state((bool) $state)),
+                                    Forms\Components\Select::make('instancia_sancionatoria')
+                                        ->label('Rol disciplinario')
+                                        ->options([
+                                            'ninguna'           => 'Sin facultad disciplinaria',
+                                            'primera_instancia' => 'Primera instancia (impone la sanción)',
+                                            'segunda_instancia' => 'Segunda instancia (confirma o revoca apelaciones)',
+                                        ])
+                                        ->default('ninguna')
+                                        ->native(false)
+                                        ->helperText('Solo los cargos con autoridad real deben tener esta facultad.'),
                                 ])
                                 ->columns(2)
                                 ->addActionLabel('Agregar otro cargo')
@@ -310,6 +318,15 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->columns(2)
                                 ->helperText('Seleccione todos los que usa actualmente.'),
 
+                            Forms\Components\TextInput::make('num_aprendices_sena')
+                                ->label('¿Cuántos aprendices SENA tiene actualmente?')
+                                ->numeric()
+                                ->minValue(0)
+                                ->default(0)
+                                ->placeholder('0')
+                                ->helperText('Si tiene contrato de aprendizaje, indique cuántos. Si no tiene, deje en 0.')
+                                ->visible(fn(Get $get) => in_array('aprendizaje', (array) $get('tipos_contrato'))),
+
                             Forms\Components\Radio::make('tiene_trabajadores_mision')
                                 ->label('¿Tiene temporales o trabajadores de una empresa de servicios?')
                                 ->options(['no' => 'No', 'si' => 'Sí'])
@@ -318,6 +335,43 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->helperText('Ej: Personal enviado por una temporal o empresa de outsourcing.'),
                         ])
                         ->columns(1),
+
+                    Forms\Components\Section::make('Relaciones colectivas de trabajo')
+                        ->description('Esta información define si el RIT debe incluir cláusulas sobre convención o pacto colectivo.')
+                        ->schema([
+                            Forms\Components\Radio::make('tiene_sindicato')
+                                ->label('¿Existe sindicato en la empresa?')
+                                ->options([
+                                    'no'           => 'No',
+                                    'si'           => 'Sí',
+                                    'en_formacion' => 'En proceso de formación',
+                                ])
+                                ->default('no')
+                                ->inline()
+                                ->live()
+                                ->columnSpanFull(),
+
+                            Forms\Components\TextInput::make('nombre_sindicato')
+                                ->label('Nombre del sindicato')
+                                ->placeholder('Ej: SINTRAINDUCON, Sindicato de Trabajadores de la Construcción')
+                                ->visible(fn(Get $get) => $get('tiene_sindicato') === 'si')
+                                ->columnSpanFull(),
+
+                            Forms\Components\Radio::make('tiene_convencion_colectiva')
+                                ->label('¿Tiene convención colectiva vigente?')
+                                ->options(['no' => 'No', 'si' => 'Sí'])
+                                ->default('no')
+                                ->inline()
+                                ->helperText('Acuerdo negociado con el sindicato que mejora condiciones de trabajo.'),
+
+                            Forms\Components\Radio::make('tiene_pacto_colectivo')
+                                ->label('¿Tiene pacto colectivo con trabajadores no sindicalizados?')
+                                ->options(['no' => 'No', 'si' => 'Sí'])
+                                ->default('no')
+                                ->inline()
+                                ->helperText('Acuerdo directo con trabajadores no afiliados al sindicato.'),
+                        ])
+                        ->columns(2),
                 ]),
 
             // ─────────────────────────────────────────────────────────────────
@@ -398,11 +452,39 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->default('turno_fijo')
                                 ->native(false),
 
+                            Forms\Components\Repeater::make('turnos_definidos')
+                                ->label('Defina sus turnos (uno por fila)')
+                                ->schema([
+                                    Forms\Components\TextInput::make('nombre_turno')
+                                        ->label('Nombre del turno')
+                                        ->required()
+                                        ->placeholder('Ej: Turno A, Turno noche, Administrativo'),
+
+                                    Forms\Components\TextInput::make('hora_inicio')
+                                        ->label('Hora inicio')
+                                        ->placeholder('06:00')
+                                        ->helperText('Formato 24h'),
+
+                                    Forms\Components\TextInput::make('hora_fin')
+                                        ->label('Hora fin')
+                                        ->placeholder('14:00')
+                                        ->helperText('Formato 24h'),
+
+                                    Forms\Components\TextInput::make('cargos_asignados')
+                                        ->label('Cargos en este turno')
+                                        ->placeholder('Ej: Operarios planta, Conductores')
+                                        ->columnSpanFull(),
+                                ])
+                                ->columns(3)
+                                ->addActionLabel('Agregar otro turno')
+                                ->visible(fn(Get $get) => $get('opera_en_turnos') !== 'no' && $get('opera_en_turnos') !== null)
+                                ->columnSpanFull(),
+
                             Forms\Components\Textarea::make('descripcion_turnos')
-                                ->label('Describa cada turno: nombre, horario y qué cargos lo tienen')
-                                ->rows(3)
-                                ->placeholder('Ej: Turno A (operarios planta): 06:00 a 14:00 / Turno B (operarios planta): 14:00 a 22:00 / Turno C (vigilantes): 22:00 a 06:00 / Administrativos: 08:00 a 17:30')
-                                ->helperText('Sea específico — el sistema usará esta descripción tal cual en el texto del RIT.')
+                                ->label('Notas adicionales sobre los turnos (opcional)')
+                                ->rows(2)
+                                ->placeholder('Ej: Los turnos rotan semanalmente. El turno nocturno incluye bono de compensación. Los administrativos no rotan.')
+                                ->helperText('Información adicional que no cabe en la tabla de turnos.')
                                 ->columnSpanFull(),
 
                             Forms\Components\TextInput::make('cargos_nocturnos')
@@ -599,6 +681,13 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->placeholder('Ej: Licencia de matrimonio 1 día remunerado, Calamidad doméstica 3 días remunerados')
                                 ->visible(fn(Get $get) => $get('tiene_licencias_especiales') === 'si')
                                 ->columnSpanFull(),
+
+                            Forms\Components\Textarea::make('politica_incapacidades')
+                                ->label('¿Cómo maneja las incapacidades médicas? (opcional)')
+                                ->rows(2)
+                                ->placeholder('Ej: El trabajador debe reportar la incapacidad el mismo día a su jefe. Debe entregar el original en los 3 días siguientes. La empresa cubre el primer día de incapacidad...')
+                                ->helperText('El sistema ya incluye las reglas legales base (EPS, ARL). Escriba aquí lo específico de su empresa.')
+                                ->columnSpanFull(),
                         ]),
                 ]),
 
@@ -625,26 +714,42 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->label('Faltas leves — se sancionan con llamado de atención verbal o escrito')
                                 ->suggestions([
                                     'Impuntualidad',
-                                    'No registrar asistencia',
-                                    'No usar el uniforme',
-                                    'Uso de celular en horario laboral',
+                                    'No registrar asistencia al entrar o salir',
+                                    'No usar el uniforme o dotación asignada',
+                                    'Uso de celular personal en horario laboral',
                                     'Desorden en el puesto de trabajo',
+                                    'No asistir a capacitación programada sin justificación',
+                                    'Descuido en el manejo de materiales o equipos',
+                                    'No portar el carnet o identificación',
+                                    'Incumplir el código de presentación personal',
+                                    'No diligenciar formatos o registros exigidos',
+                                    'Consumir alimentos fuera de las zonas autorizadas',
+                                    'Uso inadecuado de equipos o herramientas de la empresa',
                                 ])
                                 ->placeholder('Escriba una falta y presione Enter para agregar')
-                                ->helperText('Son comportamientos que afectan el trabajo pero no son graves. Ej: llegar tarde, no registrar la entrada, desorden.')
+                                ->helperText('Son comportamientos que afectan el trabajo pero no son graves. Haga clic en el campo para ver sugerencias.')
                                 ->columnSpanFull(),
 
                             Forms\Components\TagsInput::make('faltas_graves')
                                 ->label('Faltas graves — pueden llevar a suspensión sin sueldo')
                                 ->suggestions([
-                                    'Agresión verbal a compañero',
+                                    'Agresión verbal o física a compañero, cliente o proveedor',
                                     'Ausentismo sin justificación',
-                                    'Incumplir normas de seguridad',
-                                    'Desobedecer órdenes del superior',
-                                    'Daño a bienes de la empresa',
+                                    'Incumplir normas de seguridad o no usar EPP obligatorio',
+                                    'Desobedecer órdenes del superior sin justificación',
+                                    'Daño a bienes de la empresa por descuido o negligencia',
+                                    'Conducir vehículo de la empresa bajo efectos del alcohol o sustancias',
+                                    'Trabajo en alturas sin arnés, permiso o acompañante',
+                                    'Uso de celular mientras conduce vehículo de la empresa',
+                                    'No reportar accidente o incidente de trabajo al jefe inmediato',
+                                    'Revelar información confidencial de clientes o de la empresa',
+                                    'Manipulación inadecuada de alimentos, insumos o sustancias peligrosas',
+                                    'Abandono del puesto de trabajo sin autorización del superior',
+                                    'Falsificación o alteración de documentos, registros o reportes',
+                                    'Exceso de velocidad o conducción imprudente en vehículo de la empresa',
                                 ])
                                 ->placeholder('Escriba una falta y presione Enter para agregar')
-                                ->helperText('Conductas que afectan seriamente el trabajo o el ambiente laboral.')
+                                ->helperText('Conductas que afectan seriamente el trabajo o el ambiente laboral. Haga clic en el campo para ver sugerencias.')
                                 ->columnSpanFull(),
 
                         ]),
@@ -702,11 +807,17 @@ class CreateReglamentoInterno extends CreateRecord
                             Forms\Components\CheckboxList::make('riesgos_principales')
                                 ->label('¿Cuáles son los principales riesgos en su empresa? (seleccione todos los que aplican)')
                                 ->options([
-                                    'ergonomico'  => 'Ergonómico (computadores, posturas, levantamiento de cargas)',
-                                    'psicosocial' => 'Psicosocial (estrés laboral, turnos nocturnos, atención al público)',
-                                    'mecanico'    => 'Mecánico (maquinaria, herramientas, vehículos)',
-                                    'electrico'   => 'Eléctrico (instalaciones, equipos de alta tensión)',
-                                    'publico'     => 'Público (robo, violencia en atención al cliente)',
+                                    'ergonomico'  => 'Ergonómico — posturas, levantamiento de cargas, trabajo de pie',
+                                    'psicosocial' => 'Psicosocial — estrés, turnos nocturnos, atención al público',
+                                    'mecanico'    => 'Mecánico — maquinaria, herramientas, vehículos',
+                                    'electrico'   => 'Eléctrico — instalaciones eléctricas, equipos de alta tensión',
+                                    'publico'     => 'Público — riesgo de robo, violencia en atención al cliente',
+                                    'alturas'     => 'Alturas — trabajo en andamios, techos, superficies elevadas',
+                                    'quimico'     => 'Químico — exposición a solventes, pinturas, gases o sustancias tóxicas',
+                                    'vial'        => 'Vial — conducción de vehículos, motos o maquinaria en vías',
+                                    'fisico'      => 'Físico — ruido excesivo, vibraciones, temperatura extrema',
+                                    'biologico'   => 'Biológico — manipulación de alimentos, residuos o agentes biológicos',
+                                    'locativo'    => 'Locativo — pisos húmedos, escaleras, superficies irregulares',
                                     'otro'        => 'Otro riesgo específico de mi empresa',
                                 ])
                                 ->default(['ergonomico'])
@@ -808,31 +919,37 @@ class CreateReglamentoInterno extends CreateRecord
                         ->label('')
                         ->content(fn(Get $get) => new HtmlString(
                             view('filament.components.rit-revision-resumen', [
-                                'empresa'               => $this->getEmpresa(),
-                                'num_trabajadores'      => $get('num_trabajadores'),
-                'actividad_economica'   => $get('actividad_economica'),
-                                'tiene_sucursales'      => $get('tiene_sucursales'),
-                                'sucursales'            => $get('sucursales') ?? [],
-                                'cargos'                => $get('cargos') ?? [],
-                                'tipos_contrato'        => $get('tipos_contrato') ?? [],
-                                'modalidades_jornada'   => $get('modalidades_jornada') ?? [],
-                                'horario_entrada'       => $get('horario_entrada'),
-                                'horario_salida'        => $get('horario_salida'),
-                                'opera_en_turnos'       => $get('opera_en_turnos'),
-                                'descripcion_turnos'    => $get('descripcion_turnos'),
-                                'cargos_nocturnos'      => $get('cargos_nocturnos'),
-                                'jornada_sabado'        => $get('jornada_sabado'),
-                                'trabaja_dominicales'   => $get('trabaja_dominicales'),
-                                'cargos_exentos_jornada' => $get('cargos_exentos_jornada'),
-                                'control_asistencia'    => $get('control_asistencia'),
-                                'forma_pago'            => $get('forma_pago'),
-                                'periodicidad_pago'     => $get('periodicidad_pago') ?? [],
-                                'periodicidad_detalle'  => $get('periodicidad_detalle'),
-                                'faltas_leves'          => $get('faltas_leves') ?? [],
-                                'faltas_graves'         => $get('faltas_graves') ?? [],
-                                'sanciones'             => $get('sanciones_contempladas') ?? [],
-                                'tiene_sg_sst'          => $get('tiene_sg_sst'),
-                                'riesgos_principales'   => $get('riesgos_principales') ?? [],
+                                'empresa'                  => $this->getEmpresa(),
+                                'num_trabajadores'         => $get('num_trabajadores'),
+                                'actividad_economica'      => $get('actividad_economica'),
+                                'tiene_sucursales'         => $get('tiene_sucursales'),
+                                'sucursales'               => $get('sucursales') ?? [],
+                                'cargos'                   => $get('cargos') ?? [],
+                                'tipos_contrato'           => $get('tipos_contrato') ?? [],
+                                'num_aprendices_sena'      => $get('num_aprendices_sena'),
+                                'tiene_sindicato'          => $get('tiene_sindicato'),
+                                'tiene_convencion_colectiva' => $get('tiene_convencion_colectiva'),
+                                'tiene_pacto_colectivo'    => $get('tiene_pacto_colectivo'),
+                                'modalidades_jornada'      => $get('modalidades_jornada') ?? [],
+                                'horario_entrada'          => $get('horario_entrada'),
+                                'horario_salida'           => $get('horario_salida'),
+                                'opera_en_turnos'          => $get('opera_en_turnos'),
+                                'turnos_definidos'         => $get('turnos_definidos') ?? [],
+                                'descripcion_turnos'       => $get('descripcion_turnos'),
+                                'cargos_nocturnos'         => $get('cargos_nocturnos'),
+                                'jornada_sabado'           => $get('jornada_sabado'),
+                                'trabaja_dominicales'      => $get('trabaja_dominicales'),
+                                'cargos_exentos_jornada'   => $get('cargos_exentos_jornada'),
+                                'control_asistencia'       => $get('control_asistencia'),
+                                'forma_pago'               => $get('forma_pago'),
+                                'periodicidad_pago'        => $get('periodicidad_pago') ?? [],
+                                'periodicidad_detalle'     => $get('periodicidad_detalle'),
+                                'politica_incapacidades'   => $get('politica_incapacidades'),
+                                'faltas_leves'             => $get('faltas_leves') ?? [],
+                                'faltas_graves'            => $get('faltas_graves') ?? [],
+                                'sanciones'                => $get('sanciones_contempladas') ?? [],
+                                'tiene_sg_sst'             => $get('tiene_sg_sst'),
+                                'riesgos_principales'      => $get('riesgos_principales') ?? [],
                             ])->render()
                         ))
                         ->columnSpanFull(),

@@ -51,6 +51,12 @@
         'mecanico'    => 'Mecánico',
         'electrico'   => 'Eléctrico',
         'publico'     => 'Público',
+        'alturas'     => 'Alturas',
+        'quimico'     => 'Químico',
+        'vial'        => 'Vial',
+        'fisico'      => 'Físico',
+        'biologico'   => 'Biológico',
+        'locativo'    => 'Locativo',
         'otro'        => 'Otro',
     ];
     $sancionesLabels = [
