@@ -39,22 +39,43 @@ class Empresa extends Model
         'Persona Natural' => 'Persona Natural',
     ];
 
-    /** Almacena la razón social siempre en mayúsculas */
+    /**
+     * Patrón regex para detectar tipos societarios escritos de distintas formas
+     * al final de una cadena (con o sin puntos, mayúsculas/minúsculas).
+     * Orden: más largo primero para evitar coincidencias parciales (S.A.S. antes de S.A.).
+     */
+    private const TIPO_SOCIETARIO_PATRON = '/\s+(?:PERSONA\s+NATURAL|S\.?B\.?I\.?C\.?|S\.?C\.?A\.?|S\.?C\.?S\.?|E\.?S\.?P\.?|S\.?A\.?S\.?|S\.?A\.?|LTDA\.?|E\.?U\.?)\s*$/iu';
+
+    /** Almacena la razón social en mayúsculas y sin tipo societario al final */
     protected function razonSocial(): Attribute
     {
         return Attribute::make(
-            set: fn(string $value) => mb_strtoupper(trim($value)),
+            set: function (string $value) {
+                $val = mb_strtoupper(trim($value));
+                // Quitar cualquier tipo societario que el usuario haya escrito al final
+                $val = preg_replace(self::TIPO_SOCIETARIO_PATRON, '', $val);
+                return trim($val);
+            },
         );
     }
 
     /**
-     * Nombre completo de la empresa: razón social + tipo societario.
-     * Úsese en prompts de IA y encabezados de documentos.
+     * Nombre completo: razón social + tipo societario.
+     * La capa de deduplicación aquí protege datos legacy que ya tengan
+     * el tipo societario dentro de la razón social.
      */
     public function getNombreCompletoAttribute(): string
     {
-        $tipo = $this->tipo_societario ? " {$this->tipo_societario}" : '';
-        return trim($this->razon_social . $tipo);
+        if (!$this->tipo_societario) {
+            return $this->razon_social ?? '';
+        }
+        // Si razón social ya termina con el tipo societario, no duplicar
+        $razon = mb_strtoupper(trim($this->razon_social ?? ''));
+        $tipo  = mb_strtoupper(trim($this->tipo_societario));
+        if (str_ends_with($razon, $tipo)) {
+            return trim($this->razon_social);
+        }
+        return trim($this->razon_social . ' ' . $this->tipo_societario);
     }
 
     protected $casts = [
