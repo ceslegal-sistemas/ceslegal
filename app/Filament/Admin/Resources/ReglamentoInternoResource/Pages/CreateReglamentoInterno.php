@@ -27,6 +27,10 @@ class CreateReglamentoInterno extends CreateRecord
 
     protected static string $resource = ReglamentoInternoResource::class;
 
+    // Custom view adds novalidate to the <form> element at server-render time,
+    // preventing Mac browsers from triggering native HTML5 validation.
+    protected static string $view = 'filament.admin.resources.reglamento-internos.pages.create-reglamento-interno';
+
     public function mount(): void
     {
         parent::mount();
