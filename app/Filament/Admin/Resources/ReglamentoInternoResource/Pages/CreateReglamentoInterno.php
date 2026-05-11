@@ -227,7 +227,6 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->label('¿Cuántos empleados tiene actualmente?')
                                 ->numeric()
                                 ->minValue(1)
-                                ->required()
                                 ->placeholder('Ej: 15')
                                 ->helperText('Cuente todos los trabajadores, incluyendo los de tiempo parcial.'),
 
@@ -653,7 +652,6 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->schema([
                                     Forms\Components\TextInput::make('descripcion')
                                         ->label('¿Qué beneficio da?')
-                                        ->required()
                                         ->placeholder('Ej: Auxilio de alimentación $150.000/mes, Subsidio de transporte adicional $80.000/mes'),
                                 ])
                                 ->addActionLabel('Agregar otro beneficio')

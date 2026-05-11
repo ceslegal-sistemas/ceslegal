@@ -23,7 +23,6 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Moataz01\FilamentNotificationSound\FilamentNotificationSoundPlugin;
-use App\Filament\Admin\Resources\ReglamentoInternoResource\Pages\CreateReglamentoInterno;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 
@@ -42,14 +41,45 @@ class AdminPanelProvider extends PanelProvider
             fn(): string => '<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script><script src="' . asset('js/tour-descargos.js') . '"></script>',
         );
 
-        // Fix: Mac browsers fire native HTML form validation before Livewire intercepts.
-        // Adding novalidate to the <form> prevents "An invalid form control with name=''
-        // is not focusable" errors caused by hidden required/native(false) Select fields
-        // in the RIT wizard (Tom Select creates a hidden <select> without name attribute).
+        // Fix: Mac browsers fire native HTML form validation before Livewire intercepts,
+        // throwing "An invalid form control with name='' is not focusable" for hidden
+        // inputs created by Tom Select (native:false) and conditional repeaters.
+        // Three-layer fix (global — applies to all admin pages):
+        //   1. novalidate on <form> applied IMMEDIATELY on script parse (BODY_END =
+        //      DOM already loaded, DOMContentLoaded never re-fires)
+        //   2. MutationObserver to re-apply after Livewire DOM morphing removes the attr
+        //   3. Capture-phase invalid listener as absolute final safety net
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_END,
-            fn(): string => '<script>document.addEventListener("DOMContentLoaded",function(){var f=document.querySelector("form");if(f)f.setAttribute("novalidate","");});</script>',
-            scopes: [CreateReglamentoInterno::class],
+            fn(): string => <<<'HTML'
+            <script>
+            (function () {
+                function patchForms() {
+                    document.querySelectorAll('form').forEach(function (f) {
+                        f.setAttribute('novalidate', '');
+                    });
+                }
+                // Run immediately — DOM is already parsed at BODY_END
+                patchForms();
+                // Re-apply after Livewire updates (morphing can reset attributes)
+                document.addEventListener('livewire:update', patchForms);
+                document.addEventListener('livewire:updated', patchForms);
+                // MutationObserver catches any DOM restructuring Livewire does
+                if (window.MutationObserver) {
+                    new MutationObserver(function (mutations) {
+                        for (var i = 0; i < mutations.length; i++) {
+                            if (mutations[i].addedNodes.length) { patchForms(); break; }
+                        }
+                    }).observe(document.body, { childList: true, subtree: true });
+                }
+                // Absolute safety net: suppress browser invalid events in capture phase
+                document.addEventListener('invalid', function (e) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }, true);
+            })();
+            </script>
+            HTML,
         );
     }
 
