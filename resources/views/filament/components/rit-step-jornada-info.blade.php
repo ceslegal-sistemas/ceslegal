@@ -26,15 +26,6 @@
             <span>Si tiene personal de oficina <strong>y</strong> personal operativo con turnos, puede describir
                 ambos horarios en los campos de abajo.</span>
         </div>
-
-        <div class="pt-bullet">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
-                style="width:16px;height:16px;color:#6366f1;flex-shrink:0;margin-top:2px">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75" />
-                <circle cx="12" cy="12" r="9" stroke-width="1.5" />
-            </svg>
-        </div>
-
     </div>
 
     <p class="pt-footer">
