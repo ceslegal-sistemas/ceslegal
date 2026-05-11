@@ -14,6 +14,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 
 class EmpresaResource extends Resource
 {
@@ -237,37 +238,59 @@ class EmpresaResource extends Resource
                     ->description('Documento normativo interno de la empresa')
                     ->icon('heroicon-o-document-text')
                     ->schema([
-                        // RIT con archivo físico guardado — FileUpload nativo con descarga
-                        Forms\Components\FileUpload::make('rit_docx_display')
+
+                        // ── Visor / descarga cuando existe RIT ───────────────────────
+                        Forms\Components\Placeholder::make('rit_visor')
                             ->label('Reglamento Interno actual')
-                            ->disk('local')
-                            ->visibility('private')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->downloadable()
-                            ->openable(true)
-                            ->afterStateHydrated(function ($component, $record) {
-                                $ruta = $record?->reglamentoInterno?->ruta_docx;
-                                $component->state($ruta ? [$ruta] : []);
+                            ->content(function ($record) {
+                                $rit = $record?->reglamentoInterno;
+                                if (!$rit) return null;
+
+                                $fuente = match ($rit->fuente) {
+                                    'construido_ia' => '✦ Construido con IA',
+                                    default         => '↑ Subido manualmente',
+                                };
+                                $fecha  = $rit->updated_at?->format('d/m/Y H:i') ?? '—';
+                                $chars  = $rit->texto_completo
+                                    ? number_format(strlen($rit->texto_completo)) . ' caracteres'
+                                    : '—';
+                                $url = route('rit.descargar.admin', $record);
+
+                                return new HtmlString(<<<HTML
+                                <div style="display:flex;flex-direction:column;gap:.5rem">
+                                  <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:.8125rem;color:#64748b">
+                                    <span><strong>Fuente:</strong> {$fuente}</span>
+                                    <span><strong>Actualizado:</strong> {$fecha}</span>
+                                    <span><strong>Tamaño:</strong> {$chars}</span>
+                                  </div>
+                                  <a href="{$url}" target="_blank"
+                                     style="display:inline-flex;align-items:center;gap:.4rem;width:fit-content;
+                                            font-size:.8125rem;font-weight:600;padding:.45rem 1rem;border-radius:.5rem;
+                                            background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);
+                                            color:#166534;text-decoration:none">
+                                    <svg style="width:14px;height:14px" fill="none" viewBox="0 0 24 24"
+                                         stroke="currentColor" stroke-width="2">
+                                      <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                                    </svg>
+                                    Descargar PDF
+                                  </a>
+                                </div>
+                                HTML);
                             })
-                            ->visible(fn ($record) => (bool) $record?->reglamentoInterno?->ruta_docx)
+                            ->visible(fn ($record) => (bool) $record?->reglamentoInterno)
                             ->columnSpanFull(),
 
-                        // RIT sin archivo físico (registro legado sin ruta_docx)
-                        Forms\Components\Placeholder::make('rit_registrado_sin_archivo')
-                            ->label('Reglamento Interno')
-                            ->content('RIT registrado en el sistema (sin archivo descargable). Puede reemplazarlo subiendo un nuevo archivo abajo.')
-                            ->visible(fn ($record) => $record && $record?->reglamentoInterno && !$record?->reglamentoInterno?->ruta_docx)
-                            ->columnSpanFull(),
-
+                        // ── Sin RIT registrado ────────────────────────────────────────
                         Forms\Components\Placeholder::make('rit_sin_docx')
                             ->label('Reglamento Interno')
-                            ->content('Sin reglamento registrado. Suba un archivo .docx o .pdf abajo, o use el wizard "Construir RIT" para generarlo con IA.')
+                            ->content('Sin reglamento registrado. Suba un archivo .docx o .pdf abajo, o use el wizard "Construir RIT".')
                             ->visible(fn ($record) => $record && !$record?->reglamentoInterno)
                             ->columnSpanFull(),
 
+                        // ── Upload para agregar / reemplazar RIT ─────────────────────
                         Forms\Components\FileUpload::make('reglamento_docx_temp')
-                            ->label('Subir / Actualizar Reglamento Interno (.docx o .pdf)')
+                            ->label('Subir / Reemplazar Reglamento Interno (.docx o .pdf)')
                             ->helperText('Formatos aceptados: .docx y .pdf — máx. 10 MB.')
                             ->acceptedFileTypes([
                                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
