@@ -625,20 +625,25 @@ class DiligenciaDescargoResource extends Resource
                             $url  = Storage::disk('public')->url($a['path'] ?? '');
                             $name = $a['nombre'] ?? 'Archivo';
                             $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-                            $icon = in_array($ext, ['jpg','jpeg','png','gif','webp','bmp'])
-                                ? 'heroicon-o-photo'
+                            $isImg = in_array($ext, ['jpg','jpeg','png','gif','webp','bmp']);
+                            $icon  = $isImg ? 'heroicon-o-photo'
                                 : ($ext === 'pdf' ? 'heroicon-o-document-text' : 'heroicon-o-paper-clip');
+                            $content = $isImg
+                                ? "<div class='flex justify-center p-2'><img src='" . e($url) . "' class='max-w-full max-h-[75vh] object-contain rounded-lg' /></div>"
+                                : "<iframe src='" . e($url) . "' class='w-full h-[75vh] rounded-lg border-0'></iframe>";
                             return TextEntry::make("_archivo_{$i}")
                                 ->label('')
                                 ->getStateUsing(fn () => $name)
                                 ->icon($icon)
                                 ->iconColor('gray')
                                 ->hintActions([
-                                    \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make("ver_{$i}")
+                                    \Filament\Infolists\Components\Actions\Action::make("ver_{$i}")
                                         ->label('Ver')
                                         ->icon('heroicon-o-eye')
-                                        ->media($url)
-                                        ->modalHeading($name),
+                                        ->modalHeading($name)
+                                        ->modalContent(fn () => new \Illuminate\Support\HtmlString($content))
+                                        ->modalSubmitAction(false)
+                                        ->modalCancelActionLabel('Cerrar'),
                                 ]);
                         })->all();
                     })
