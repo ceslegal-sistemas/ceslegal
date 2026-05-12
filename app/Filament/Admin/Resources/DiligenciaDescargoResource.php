@@ -181,50 +181,7 @@ class DiligenciaDescargoResource extends Resource
                                     return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500 dark:text-gray-400 italic">El trabajador no ha adjuntado archivos.</p>');
                                 }
 
-                                $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-                                $html = '<div class="space-y-2">';
-                                foreach ($archivos as $i => $archivo) {
-                                    $nombre  = e($archivo['nombre'] ?? 'Archivo');
-                                    $path    = $archivo['path'] ?? '';
-                                    $ext     = strtolower(pathinfo($archivo['nombre'] ?? '', PATHINFO_EXTENSION));
-                                    $size    = isset($archivo['size']) ? number_format($archivo['size'] / 1024, 1) . ' KB' : '';
-                                    $url     = $path ? Storage::disk('public')->url($path) : '#';
-                                    $isImage = in_array($ext, $imageExts);
-                                    $isPdf   = $ext === 'pdf';
-
-                                    $html .= "<div x-data=\"{ open: false }\" class=\"flex items-center gap-3 px-3 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg\">";
-
-                                    if ($isImage) {
-                                        $html .= "<img src=\"{$url}\" alt=\"{$nombre}\" @click=\"open = true\" class=\"h-10 w-10 rounded object-cover shrink-0 cursor-pointer hover:opacity-75 transition-opacity\" />";
-                                    } else {
-                                        $iconCls = $isPdf ? 'bg-red-50 dark:bg-red-400/10 text-red-500 dark:text-red-400' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400';
-                                        $html .= "<div class=\"h-10 w-10 flex items-center justify-center rounded shrink-0 {$iconCls}\"><svg class=\"w-5 h-5\" fill=\"currentColor\" viewBox=\"0 0 20 20\"><path fill-rule=\"evenodd\" d=\"M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z\" clip-rule=\"evenodd\"/></svg></div>";
-                                    }
-
-                                    $html .= "<div class=\"min-w-0 flex-1\"><p class=\"text-sm font-medium text-gray-900 dark:text-white truncate\">{$nombre}</p>";
-                                    if ($size) $html .= "<p class=\"text-xs text-gray-500 dark:text-gray-400\">{$size}</p>";
-                                    $html .= "</div>";
-
-                                    $html .= "<div class=\"flex items-center gap-2 shrink-0\">";
-                                    if ($isImage || $isPdf) {
-                                        $verCls = $isImage
-                                            ? 'text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-500/30 hover:bg-primary-50 dark:hover:bg-primary-500/10'
-                                            : 'text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10';
-                                        $html .= "<button type=\"button\" @click=\"open = true\" class=\"inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border transition-colors {$verCls}\">Ver</button>";
-                                    }
-                                    $html .= "<a href=\"{$url}\" target=\"_blank\" rel=\"noopener\" class=\"inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20 no-underline hover:bg-gray-200 dark:hover:bg-white/20 transition-colors\">Descargar</a>";
-                                    $html .= "</div>";
-
-                                    if ($isImage) {
-                                        $html .= "<template x-teleport=\"body\"><div x-show=\"open\" x-cloak @click.self=\"open = false\" @keydown.escape.window=\"open = false\" class=\"fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80\"><div class=\"relative max-w-5xl w-full\"><button @click=\"open = false\" class=\"absolute -top-8 right-0 text-white/70 hover:text-white text-3xl font-light leading-none\">&times;</button><img src=\"{$url}\" alt=\"{$nombre}\" class=\"w-full h-auto max-h-[85vh] object-contain rounded-lg\" /><p class=\"mt-2 text-center text-sm text-white/60\">{$nombre}</p></div></div></template>";
-                                    } elseif ($isPdf) {
-                                        $html .= "<template x-teleport=\"body\"><div x-show=\"open\" x-cloak @click.self=\"open = false\" @keydown.escape.window=\"open = false\" class=\"fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80\"><div class=\"relative w-full max-w-5xl h-[85vh] bg-white dark:bg-gray-900 rounded-xl overflow-hidden flex flex-col\"><div class=\"flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0\"><p class=\"text-sm font-semibold text-gray-900 dark:text-white truncate\">{$nombre}</p><button @click=\"open = false\" class=\"text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl font-light leading-none ml-4\">&times;</button></div><iframe src=\"{$url}\" class=\"flex-1 w-full border-0\"></iframe></div></div></template>";
-                                    }
-
-                                    $html .= "</div>";
-                                }
-                                $html .= '</div>';
-                                return new \Illuminate\Support\HtmlString($html);
+                                return new \Illuminate\Support\HtmlString(self::renderArchivos($archivos, 'form-dd'));
                             })
                             ->columnSpanFull(),
                     ])
@@ -686,50 +643,7 @@ class DiligenciaDescargoResource extends Resource
                                     return '<p class="text-sm text-gray-500 dark:text-gray-400 italic">El trabajador no ha adjuntado archivos.</p>';
                                 }
 
-                                $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-                                $html = '<div class="space-y-2">';
-                                foreach ($archivos as $i => $archivo) {
-                                    $nombre  = e($archivo['nombre'] ?? 'Archivo');
-                                    $path    = $archivo['path'] ?? '';
-                                    $ext     = strtolower(pathinfo($archivo['nombre'] ?? '', PATHINFO_EXTENSION));
-                                    $size    = isset($archivo['size']) ? number_format($archivo['size'] / 1024, 1) . ' KB' : '';
-                                    $url     = $path ? Storage::disk('public')->url($path) : '#';
-                                    $isImage = in_array($ext, $imageExts);
-                                    $isPdf   = $ext === 'pdf';
-
-                                    $html .= "<div x-data=\"{ open: false }\" class=\"flex items-center gap-3 px-3 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg\">";
-
-                                    if ($isImage) {
-                                        $html .= "<img src=\"{$url}\" alt=\"{$nombre}\" @click=\"open = true\" class=\"h-10 w-10 rounded object-cover shrink-0 cursor-pointer hover:opacity-75 transition-opacity\" />";
-                                    } else {
-                                        $iconCls = $isPdf ? 'bg-red-50 dark:bg-red-400/10 text-red-500 dark:text-red-400' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400';
-                                        $html .= "<div class=\"h-10 w-10 flex items-center justify-center rounded shrink-0 {$iconCls}\"><svg class=\"w-5 h-5\" fill=\"currentColor\" viewBox=\"0 0 20 20\"><path fill-rule=\"evenodd\" d=\"M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z\" clip-rule=\"evenodd\"/></svg></div>";
-                                    }
-
-                                    $html .= "<div class=\"min-w-0 flex-1\"><p class=\"text-sm font-medium text-gray-900 dark:text-white truncate\">{$nombre}</p>";
-                                    if ($size) $html .= "<p class=\"text-xs text-gray-500 dark:text-gray-400\">{$size}</p>";
-                                    $html .= "</div>";
-
-                                    $html .= "<div class=\"flex items-center gap-2 shrink-0\">";
-                                    if ($isImage || $isPdf) {
-                                        $verCls = $isImage
-                                            ? 'text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-500/30 hover:bg-primary-50 dark:hover:bg-primary-500/10'
-                                            : 'text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10';
-                                        $html .= "<button type=\"button\" @click=\"open = true\" class=\"inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border transition-colors {$verCls}\">Ver</button>";
-                                    }
-                                    $html .= "<a href=\"{$url}\" target=\"_blank\" rel=\"noopener\" class=\"inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20 no-underline hover:bg-gray-200 dark:hover:bg-white/20 transition-colors\">Descargar</a>";
-                                    $html .= "</div>";
-
-                                    if ($isImage) {
-                                        $html .= "<template x-teleport=\"body\"><div x-show=\"open\" x-cloak @click.self=\"open = false\" @keydown.escape.window=\"open = false\" class=\"fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80\"><div class=\"relative max-w-5xl w-full\"><button @click=\"open = false\" class=\"absolute -top-8 right-0 text-white/70 hover:text-white text-3xl font-light leading-none\">&times;</button><img src=\"{$url}\" alt=\"{$nombre}\" class=\"w-full h-auto max-h-[85vh] object-contain rounded-lg\" /><p class=\"mt-2 text-center text-sm text-white/60\">{$nombre}</p></div></div></template>";
-                                    } elseif ($isPdf) {
-                                        $html .= "<template x-teleport=\"body\"><div x-show=\"open\" x-cloak @click.self=\"open = false\" @keydown.escape.window=\"open = false\" class=\"fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80\"><div class=\"relative w-full max-w-5xl h-[85vh] bg-white dark:bg-gray-900 rounded-xl overflow-hidden flex flex-col\"><div class=\"flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0\"><p class=\"text-sm font-semibold text-gray-900 dark:text-white truncate\">{$nombre}</p><button @click=\"open = false\" class=\"text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl font-light leading-none ml-4\">&times;</button></div><iframe src=\"{$url}\" class=\"flex-1 w-full border-0\"></iframe></div></div></template>";
-                                    }
-
-                                    $html .= "</div>";
-                                }
-                                $html .= '</div>';
-                                return $html;
+                                return self::renderArchivos($archivos, 'info-dd');
                             }),
                     ])
                     ->collapsible()
@@ -751,6 +665,100 @@ class DiligenciaDescargoResource extends Resource
                     ->collapsible()
                     ->collapsed(),
             ]);
+    }
+
+    /**
+     * Genera HTML nativo (sin Alpine) para listar archivos de evidencia con
+     * lightbox para imágenes y modal iframe para PDFs. Compatible con dark mode.
+     */
+    private static function renderArchivos(array $archivos, string $ctx): string
+    {
+        $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+        $html      = '<div class="space-y-2">';
+
+        foreach ($archivos as $i => $archivo) {
+            $nombre  = e($archivo['nombre'] ?? 'Archivo');
+            $path    = $archivo['path'] ?? '';
+            $ext     = strtolower(pathinfo($archivo['nombre'] ?? '', PATHINFO_EXTENSION));
+            $size    = isset($archivo['size']) ? number_format($archivo['size'] / 1024, 1) . ' KB' : '';
+            $url     = $path ? Storage::disk('public')->url($path) : '#';
+            $isImage = in_array($ext, $imageExts);
+            $isPdf   = $ext === 'pdf';
+            $uid     = 'ces-ev-' . $ctx . '-' . $i . '-' . substr(md5($path), 0, 6);
+            $open    = "document.getElementById('{$uid}').style.display='flex'";
+            $close   = "document.getElementById('{$uid}').style.display='none'";
+
+            // ── Fila de archivo ──────────────────────────────────────────
+            $html .= "<div class=\"flex items-center gap-3 px-3 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg\">";
+
+            // Thumbnail / ícono
+            if ($isImage) {
+                $html .= "<img src=\"{$url}\" alt=\"{$nombre}\" onclick=\"{$open}\" class=\"h-10 w-10 rounded object-cover shrink-0 cursor-pointer hover:opacity-75 transition-opacity\" />";
+            } else {
+                $iconCls = $isPdf
+                    ? 'bg-red-50 dark:bg-red-400/10 text-red-500 dark:text-red-400'
+                    : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400';
+                $html .= "<div class=\"h-10 w-10 flex items-center justify-center rounded shrink-0 {$iconCls}\">"
+                       . "<svg class=\"w-5 h-5\" fill=\"currentColor\" viewBox=\"0 0 20 20\">"
+                       . "<path fill-rule=\"evenodd\" d=\"M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z\" clip-rule=\"evenodd\"/>"
+                       . "</svg></div>";
+            }
+
+            // Nombre y tamaño
+            $html .= "<div class=\"min-w-0 flex-1\">"
+                   . "<p class=\"text-sm font-medium text-gray-900 dark:text-white truncate\">{$nombre}</p>";
+            if ($size) {
+                $html .= "<p class=\"text-xs text-gray-500 dark:text-gray-400\">{$size}</p>";
+            }
+            $html .= "</div>";
+
+            // Botones
+            $html .= "<div class=\"flex items-center gap-2 shrink-0\">";
+            if ($isImage || $isPdf) {
+                $verCls = $isImage
+                    ? 'text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-500/30 hover:bg-primary-50 dark:hover:bg-primary-500/10'
+                    : 'text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10';
+                $html .= "<button type=\"button\" onclick=\"{$open}\" class=\"inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border transition-colors {$verCls}\">Ver</button>";
+            }
+            $html .= "<a href=\"{$url}\" target=\"_blank\" rel=\"noopener\" "
+                   . "class=\"inline-flex items-center px-3 py-1 text-xs font-medium rounded-full "
+                   . "bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 "
+                   . "border border-gray-200 dark:border-white/20 no-underline "
+                   . "hover:bg-gray-200 dark:hover:bg-white/20 transition-colors\">Descargar</a>";
+            $html .= "</div></div>"; // close buttons + card row
+
+            // ── Modal ────────────────────────────────────────────────────
+            if ($isImage) {
+                $html .= "<div id=\"{$uid}\" onclick=\"if(event.target.id==='{$uid}'){$close}\" "
+                       . "style=\"display:none;position:fixed;inset:0;z-index:9999;"
+                       . "background:rgba(0,0,0,.88);align-items:center;justify-content:center;padding:16px\">"
+                       . "<div style=\"position:relative;max-width:960px;width:100%\">"
+                       . "<button onclick=\"{$close}\" "
+                       . "style=\"position:absolute;top:-36px;right:0;color:rgba(255,255,255,.7);"
+                       . "font-size:32px;font-weight:300;line-height:1;cursor:pointer;background:none;border:none;padding:4px\">&times;</button>"
+                       . "<img src=\"{$url}\" alt=\"{$nombre}\" "
+                       . "style=\"width:100%;height:auto;max-height:85vh;object-fit:contain;border-radius:8px\" />"
+                       . "<p style=\"margin-top:8px;text-align:center;font-size:.875rem;color:rgba(255,255,255,.6)\">{$nombre}</p>"
+                       . "</div></div>";
+            } elseif ($isPdf) {
+                $html .= "<div id=\"{$uid}\" onclick=\"if(event.target.id==='{$uid}'){$close}\" "
+                       . "style=\"display:none;position:fixed;inset:0;z-index:9999;"
+                       . "background:rgba(0,0,0,.88);align-items:center;justify-content:center;padding:16px\">"
+                       . "<div style=\"position:relative;width:100%;max-width:960px;height:85vh;"
+                       . "background:white;border-radius:12px;overflow:hidden;display:flex;flex-direction:column\">"
+                       . "<div style=\"display:flex;align-items:center;justify-content:space-between;"
+                       . "padding:12px 16px;border-bottom:1px solid #e5e7eb;flex-shrink:0\">"
+                       . "<span style=\"font-size:.875rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\">{$nombre}</span>"
+                       . "<button onclick=\"{$close}\" "
+                       . "style=\"color:#9ca3af;font-size:24px;font-weight:300;line-height:1;"
+                       . "cursor:pointer;background:none;border:none;margin-left:16px;flex-shrink:0;padding:4px\">&times;</button>"
+                       . "</div>"
+                       . "<iframe src=\"{$url}\" style=\"flex:1;width:100%;border:none\"></iframe>"
+                       . "</div></div>";
+            }
+        }
+
+        return $html . '</div>';
     }
 
     public static function getPages(): array
