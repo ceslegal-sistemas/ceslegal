@@ -626,34 +626,39 @@ class DiligenciaDescargoResource extends Resource
                     ->icon('heroicon-o-paper-clip')
                     ->description('Archivos adjuntados por el trabajador durante los descargos')
                     ->schema([
-                        ImageEntry::make('evidencia_imagenes')
-                            ->label('Imágenes')
-                            ->disk('public')
-                            ->height(100)
-                            ->lightbox()
-                            ->columnSpanFull()
-                            ->getStateUsing(fn($record) => collect(self::recopilarArchivos($record))
-                                ->filter(fn($a) => in_array(strtolower(pathinfo($a['nombre'] ?? '', PATHINFO_EXTENSION)), ['jpg','jpeg','png','gif','webp','bmp']))
-                                ->pluck('path')->all())
-                            ->hidden(fn($record) => empty(array_filter(self::recopilarArchivos($record),
-                                fn($a) => in_array(strtolower(pathinfo($a['nombre'] ?? '', PATHINFO_EXTENSION)), ['jpg','jpeg','png','gif','webp','bmp'])))),
-
-                        TextEntry::make('evidencia_otros')
-                            ->label('Otros archivos')
+                        TextEntry::make('archivos_evidencia_todos')
+                            ->label('')
                             ->html()
                             ->columnSpanFull()
                             ->getStateUsing(function ($record) {
-                                $otros = array_filter(self::recopilarArchivos($record),
-                                    fn($a) => !in_array(strtolower(pathinfo($a['nombre'] ?? '', PATHINFO_EXTENSION)), ['jpg','jpeg','png','gif','webp','bmp']));
-                                return collect($otros)->map(fn($a) =>
-                                    "<a href='" . e(Storage::disk('public')->url($a['path'] ?? '')) . "' target='_blank' rel='noopener' "
-                                    . "class='inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400 hover:underline'>"
-                                    . "<svg class='w-4 h-4 shrink-0' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z' clip-rule='evenodd'/></svg>"
-                                    . e($a['nombre'] ?? 'Archivo') . "</a>"
-                                )->join('<br>');
-                            })
-                            ->hidden(fn($record) => empty(array_filter(self::recopilarArchivos($record),
-                                fn($a) => !in_array(strtolower(pathinfo($a['nombre'] ?? '', PATHINFO_EXTENSION)), ['jpg','jpeg','png','gif','webp','bmp'])))),
+                                $archivos = self::recopilarArchivos($record);
+                                if (empty($archivos)) {
+                                    return '<p class="text-sm text-gray-500 dark:text-gray-400 italic">Sin archivos adjuntos.</p>';
+                                }
+                                $imageExts = ['jpg','jpeg','png','gif','webp','bmp'];
+                                $items = [];
+                                foreach ($archivos as $a) {
+                                    $url  = e(Storage::disk('public')->url($a['path'] ?? ''));
+                                    $name = e($a['nombre'] ?? 'Archivo');
+                                    $ext  = strtolower(pathinfo($a['nombre'] ?? '', PATHINFO_EXTENSION));
+                                    if (in_array($ext, $imageExts)) {
+                                        $items[] = "<a href='{$url}' target='_blank' rel='noopener' class='inline-block'>"
+                                                 . "<img src='{$url}' alt='{$name}' class='h-24 w-24 rounded-lg object-cover border border-gray-200 dark:border-white/10 hover:opacity-80 transition-opacity' title='{$name}' />"
+                                                 . "</a>";
+                                    } else {
+                                        $items[] = "<a href='{$url}' target='_blank' rel='noopener' "
+                                                 . "class='inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400 hover:underline'>"
+                                                 . "<svg class='w-4 h-4 shrink-0' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z' clip-rule='evenodd'/></svg>"
+                                                 . "{$name}</a>";
+                                    }
+                                }
+                                $imgs   = array_filter($items, fn($i) => str_contains($i, '<img'));
+                                $others = array_filter($items, fn($i) => !str_contains($i, '<img'));
+                                $html   = '';
+                                if ($imgs)   $html .= '<div class="flex flex-wrap gap-2 mb-3">' . implode('', $imgs) . '</div>';
+                                if ($others) $html .= '<div class="space-y-1">' . implode('', $others) . '</div>';
+                                return $html;
+                            }),
                     ])
                     ->collapsible()
                     ->collapsed(fn($record) => empty($record?->archivos_evidencia)),
