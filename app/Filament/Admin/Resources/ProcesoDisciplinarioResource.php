@@ -3300,29 +3300,20 @@ class ProcesoDisciplinarioResource extends Resource
                             return [Infolists\Components\TextEntry::make('_sin_archivos')->label('')->getStateUsing(fn () => 'Sin archivos adjuntos.')];
                         }
                         return collect($archivos)->map(function ($a, $i) {
-                            $url   = \Illuminate\Support\Facades\Storage::disk('public')->url($a['path'] ?? '');
-                            $name  = $a['nombre'] ?? 'Archivo';
-                            $ext   = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-                            $isImg = in_array($ext, ['jpg','jpeg','png','gif','webp','bmp']);
-                            $icon  = $isImg ? 'heroicon-o-photo'
+                            $url  = \Illuminate\Support\Facades\Storage::disk('public')->url($a['path'] ?? '');
+                            $name = $a['nombre'] ?? 'Archivo';
+                            $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                            $icon = in_array($ext, ['jpg','jpeg','png','gif','webp','bmp'])
+                                ? 'heroicon-o-photo'
                                 : ($ext === 'pdf' ? 'heroicon-o-document-text' : 'heroicon-o-paper-clip');
-                            $content = $isImg
-                                ? "<div class='flex justify-center p-2'><img src='" . e($url) . "' class='max-w-full max-h-[75vh] object-contain rounded-lg' /></div>"
-                                : "<iframe src='" . e($url) . "' class='w-full h-[75vh] rounded-lg border-0'></iframe>";
-                            return Infolists\Components\TextEntry::make("_archivo_{$i}")
-                                ->label('')
-                                ->getStateUsing(fn () => $name)
-                                ->icon($icon)
-                                ->iconColor('gray')
-                                ->hintActions([
-                                    \Filament\Infolists\Components\Actions\Action::make("ver_{$i}")
-                                        ->label('Ver')
-                                        ->icon('heroicon-o-eye')
-                                        ->modalHeading($name)
-                                        ->modalContent(fn () => new \Illuminate\Support\HtmlString($content))
-                                        ->modalSubmitAction(false)
-                                        ->modalCancelActionLabel('Cerrar'),
-                                ]);
+                            return Infolists\Components\Actions::make([
+                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make("ver_{$i}")
+                                    ->label($name)
+                                    ->icon($icon)
+                                    ->color('gray')
+                                    ->media($url)
+                                    ->modalHeading($name),
+                            ]);
                         })->all();
                     })
                     ->collapsible()
