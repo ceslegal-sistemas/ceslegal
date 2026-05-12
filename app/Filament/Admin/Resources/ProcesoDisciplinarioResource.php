@@ -3295,31 +3295,60 @@ class ProcesoDisciplinarioResource extends Resource
                             ->html()
                             ->columnSpanFull()
                             ->getStateUsing(function ($record) {
-                                $imageExts = ['jpg','jpeg','png','gif','webp','bmp'];
-                                $svgDl = "<svg class='w-4 h-4 shrink-0' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z' clip-rule='evenodd'/></svg>";
-                                $imgs = $others = [];
+                                $archivos = [];
                                 foreach ($record->diligencias()->with('preguntas.respuesta')->get() as $d) {
                                     foreach (array_merge($d->archivos_evidencia ?? [], ...$d->preguntas->map(fn($p) => $p->respuesta?->archivos_adjuntos ?? [])->all()) as $a) {
-                                        $url  = e(Storage::disk('public')->url($a['path'] ?? ''));
-                                        $name = e($a['nombre'] ?? 'Archivo');
-                                        $ext  = strtolower(pathinfo($a['nombre'] ?? '', PATHINFO_EXTENSION));
-                                        if (in_array($ext, $imageExts)) {
-                                            $imgs[]   = "<a href='{$url}' target='_blank' rel='noopener' class='inline-block'><img src='{$url}' alt='{$name}' class='h-24 w-24 rounded-lg object-cover border border-gray-200 dark:border-white/10 hover:opacity-80 transition-opacity' title='{$name}' /></a>";
-                                        } else {
-                                            $others[] = "<a href='{$url}' target='_blank' rel='noopener' class='inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400 hover:underline'>{$svgDl}{$name}</a>";
-                                        }
+                                        $archivos[] = $a;
                                     }
                                 }
-                                if (!$imgs && !$others) return '<p class="text-sm text-gray-500 dark:text-gray-400 italic">Sin archivos adjuntos.</p>';
-                                $html = '';
-                                if ($imgs)   $html .= '<div class="flex flex-wrap gap-2 mb-3">' . implode('', $imgs) . '</div>';
-                                if ($others) $html .= '<div class="space-y-1">' . implode('', $others) . '</div>';
-                                return $html;
+                                return self::renderArchivosHtml($archivos);
                             }),
                     ])
                     ->collapsible()
                     ->collapsed(false),
             ]);
+    }
+
+    /** Renderiza la galería de archivos: thumbnails para imágenes, chips de extensión para el resto. */
+    private static function renderArchivosHtml(array $archivos): string
+    {
+        if (empty($archivos)) {
+            return '<p class="text-sm text-gray-400 dark:text-gray-500 italic">Sin archivos adjuntos.</p>';
+        }
+
+        $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+        $items = [];
+
+        foreach ($archivos as $a) {
+            $url  = e(\Illuminate\Support\Facades\Storage::disk('public')->url($a['path'] ?? ''));
+            $name = e($a['nombre'] ?? 'Archivo');
+            $ext  = strtolower(pathinfo($a['nombre'] ?? '', PATHINFO_EXTENSION));
+
+            if (in_array($ext, $imageExts)) {
+                $thumb = "<div class='w-14 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10'>"
+                       . "<img src='{$url}' alt='{$name}' class='w-full h-full object-cover group-hover:opacity-70 transition-opacity' />"
+                       . "</div>";
+            } else {
+                $color = match ($ext) {
+                    'pdf'        => 'bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border-red-200 dark:border-red-500/20',
+                    'doc','docx' => 'bg-blue-50 dark:bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-200 dark:border-blue-500/20',
+                    'xls','xlsx' => 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-500/20',
+                    default      => 'bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/10',
+                };
+                $label = strtoupper($ext ?: '?');
+                $thumb = "<div class='w-14 h-14 rounded-lg border flex items-center justify-center {$color}'>"
+                       . "<span class='text-[10px] font-bold tracking-widest'>{$label}</span>"
+                       . "</div>";
+            }
+
+            $items[] = "<a href='{$url}' target='_blank' rel='noopener' title='{$name}' "
+                     . "class='group flex flex-col items-center gap-1 w-14 shrink-0'>"
+                     . $thumb
+                     . "<span class='text-[10px] text-gray-400 dark:text-gray-500 truncate w-full text-center leading-tight'>{$name}</span>"
+                     . "</a>";
+        }
+
+        return '<div class="flex flex-wrap gap-3 py-1">' . implode('', $items) . '</div>';
     }
 
     public static function getPages(): array
