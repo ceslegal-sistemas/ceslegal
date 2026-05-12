@@ -163,24 +163,45 @@ class DiligenciaDescargoResource extends Resource
                     ])->columns(2)->collapsible(),
 
                 Forms\Components\Section::make('Archivos de Evidencia')
-                    ->description('Archivos que el trabajador ha subido por internet')
+                    ->description('Archivos adjuntados por el trabajador durante los descargos')
                     ->schema([
                         Forms\Components\Placeholder::make('archivos_evidencia_info')
-                            ->label('Archivos Adjuntos')
+                            ->label('')
                             ->content(function ($record) {
-                                if (!$record || !$record->archivos_evidencia || empty($record->archivos_evidencia)) {
-                                    return 'El trabajador no ha subido archivos';
+                                if (!$record) return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500">Sin registro.</p>');
+
+                                // Archivos del nivel de diligencia
+                                $archivos = array_map(fn($a) => $a + ['origen' => 'diligencia'], $record->archivos_evidencia ?? []);
+
+                                // Archivos adjuntos en respuestas individuales
+                                foreach ($record->preguntas()->with('respuesta')->get() as $pregunta) {
+                                    foreach ($pregunta->respuesta?->archivos_adjuntos ?? [] as $adj) {
+                                        $archivos[] = $adj + ['origen' => 'respuesta'];
+                                    }
                                 }
 
-                                $html = '<div class="space-y-2">';
-                                foreach ($record->archivos_evidencia as $archivo) {
-                                    $nombre = $archivo['nombre'] ?? 'Archivo';
-                                    $path = $archivo['path'] ?? '';
-                                    $url = $path ? asset('storage/' . $path) : '#';
+                                if (empty($archivos)) {
+                                    return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500 italic">El trabajador no ha adjuntado archivos.</p>');
+                                }
 
-                                    $html .= "<div class='p-3 bg-gray-50 rounded flex justify-between items-center border'>";
-                                    $html .= "<span class='font-medium'>{$nombre}</span>";
-                                    $html .= "<a href='{$url}' target='_blank' class='px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700'>Descargar</a>";
+                                $html = '<div class="grid gap-2">';
+                                foreach ($archivos as $archivo) {
+                                    $nombre = e($archivo['nombre'] ?? 'Archivo');
+                                    $path   = $archivo['path'] ?? '';
+                                    $size   = isset($archivo['size']) ? number_format($archivo['size'] / 1024, 1) . ' KB' : '';
+                                    $url    = $path ? Storage::disk('public')->url($path) : '#';
+
+                                    $html .= "<div class='flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg border'>";
+                                    $html .= "<div class='flex items-center gap-2 min-w-0'>"
+                                           . "<svg class='w-5 h-5 text-gray-400 shrink-0' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='1.5'><path stroke-linecap='round' stroke-linejoin='round' d='M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13'/></svg>"
+                                           . "<span class='text-sm font-medium truncate'>{$nombre}</span>"
+                                           . ($size ? "<span class='text-xs text-gray-400 shrink-0'>{$size}</span>" : '')
+                                           . "</div>";
+                                    $html .= "<a href='{$url}' target='_blank' rel='noopener' "
+                                           . "style='flex-shrink:0;display:inline-flex;align-items:center;gap:4px;padding:4px 14px;border-radius:9999px;"
+                                           . "font-size:.75rem;font-weight:600;background:rgba(59,130,246,.1);color:#1d4ed8;"
+                                           . "border:1px solid rgba(59,130,246,.25);text-decoration:none'>"
+                                           . "Descargar</a>";
                                     $html .= "</div>";
                                 }
                                 $html .= '</div>';
@@ -190,7 +211,7 @@ class DiligenciaDescargoResource extends Resource
                             ->columnSpanFull(),
                     ])
                     ->collapsible()
-                    ->collapsed(fn($record) => !$record || !$record->archivos_evidencia || empty($record->archivos_evidencia)),
+                    ->collapsed(fn($record) => empty($record?->archivos_evidencia)),
             ]);
     }
 
@@ -625,6 +646,55 @@ class DiligenciaDescargoResource extends Resource
                             ->placeholder('—'),
                     ])
                     ->columns(2),
+
+                // ── Archivos adjuntos ─────────────────────────────────────
+                InfoSection::make('Archivos de Evidencia')
+                    ->icon('heroicon-o-paper-clip')
+                    ->description('Archivos adjuntados por el trabajador durante los descargos')
+                    ->schema([
+                        TextEntry::make('archivos_adjuntos_todos')
+                            ->label('')
+                            ->html()
+                            ->columnSpanFull()
+                            ->getStateUsing(function ($record) {
+                                $archivos = array_map(fn($a) => $a + ['origen' => 'diligencia'], $record->archivos_evidencia ?? []);
+
+                                foreach ($record->preguntas()->with('respuesta')->get() as $pregunta) {
+                                    foreach ($pregunta->respuesta?->archivos_adjuntos ?? [] as $adj) {
+                                        $archivos[] = $adj + ['origen' => 'respuesta'];
+                                    }
+                                }
+
+                                if (empty($archivos)) {
+                                    return '<p class="text-sm text-gray-500 italic">El trabajador no ha adjuntado archivos.</p>';
+                                }
+
+                                $html = '<div class="grid gap-2">';
+                                foreach ($archivos as $archivo) {
+                                    $nombre = htmlspecialchars($archivo['nombre'] ?? 'Archivo', ENT_QUOTES, 'UTF-8');
+                                    $path   = $archivo['path'] ?? '';
+                                    $size   = isset($archivo['size']) ? number_format($archivo['size'] / 1024, 1) . ' KB' : '';
+                                    $url    = $path ? Storage::disk('public')->url($path) : '#';
+
+                                    $html .= "<div style='display:flex;align-items:center;justify-content:space-between;gap:12px;"
+                                           . "padding:12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb'>";
+                                    $html .= "<div style='display:flex;align-items:center;gap:8px;min-width:0'>"
+                                           . "<span style='font-size:.875rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'>{$nombre}</span>"
+                                           . ($size ? "<span style='font-size:.75rem;color:#9ca3af;white-space:nowrap'>{$size}</span>" : '')
+                                           . "</div>";
+                                    $html .= "<a href='{$url}' target='_blank' rel='noopener' "
+                                           . "style='flex-shrink:0;display:inline-flex;align-items:center;padding:4px 14px;"
+                                           . "border-radius:9999px;font-size:.75rem;font-weight:600;background:rgba(59,130,246,.1);"
+                                           . "color:#1d4ed8;border:1px solid rgba(59,130,246,.25);text-decoration:none'>"
+                                           . "Descargar</a>";
+                                    $html .= "</div>";
+                                }
+                                $html .= '</div>';
+                                return $html;
+                            }),
+                    ])
+                    ->collapsible()
+                    ->collapsed(fn($record) => empty($record?->archivos_evidencia)),
 
                 // ── Metadata ──────────────────────────────────────────────
                 InfoSection::make('Metadatos de Evidencia')

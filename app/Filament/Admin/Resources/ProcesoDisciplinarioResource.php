@@ -26,6 +26,7 @@ use Illuminate\Support\Str;
 use HusamTariq\FilamentTimePicker\Forms\Components\TimePickerField;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ProcesoDisciplinarioResource extends Resource
 {
@@ -3284,6 +3285,61 @@ class ProcesoDisciplinarioResource extends Resource
                             ->columnSpanFull()
                             ->prose(),
                     ])->columns(2),
+
+                Infolists\Components\Section::make('Evidencias del trabajador')
+                    ->icon('heroicon-o-paper-clip')
+                    ->description('Archivos adjuntados por el trabajador durante los descargos')
+                    ->schema([
+                        Infolists\Components\TextEntry::make('evidencias_adjuntas')
+                            ->label('')
+                            ->html()
+                            ->columnSpanFull()
+                            ->getStateUsing(function ($record) {
+                                // Recopilar archivos de todas las diligencias
+                                $archivos = [];
+                                foreach ($record->diligencias()->with('preguntas.respuesta')->get() as $diligencia) {
+                                    foreach ($diligencia->archivos_evidencia ?? [] as $archivo) {
+                                        $archivos[] = $archivo;
+                                    }
+                                    foreach ($diligencia->preguntas as $pregunta) {
+                                        foreach ($pregunta->respuesta?->archivos_adjuntos ?? [] as $adj) {
+                                            $archivos[] = $adj;
+                                        }
+                                    }
+                                }
+
+                                if (empty($archivos)) {
+                                    return '<p style="font-size:.875rem;color:#6b7280;font-style:italic">El trabajador no ha adjuntado archivos.</p>';
+                                }
+
+                                $html = '<div style="display:grid;gap:8px">';
+                                foreach ($archivos as $archivo) {
+                                    $nombre = htmlspecialchars($archivo['nombre'] ?? 'Archivo', ENT_QUOTES, 'UTF-8');
+                                    $path   = $archivo['path'] ?? '';
+                                    $size   = isset($archivo['size']) ? number_format($archivo['size'] / 1024, 1) . ' KB' : '';
+                                    $url    = $path ? Storage::disk('public')->url($path) : '#';
+
+                                    $html .= "<div style='display:flex;align-items:center;justify-content:space-between;gap:12px;"
+                                           . "padding:12px 14px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb'>"
+                                           . "<div style='display:flex;align-items:center;gap:8px;min-width:0'>"
+                                           . "<svg style='width:18px;height:18px;color:#9ca3af;flex-shrink:0' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='1.5'>"
+                                           . "<path stroke-linecap='round' stroke-linejoin='round' d='M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 002.112 2.13'/>"
+                                           . "</svg>"
+                                           . "<span style='font-size:.875rem;font-weight:500'>{$nombre}</span>"
+                                           . ($size ? "<span style='font-size:.75rem;color:#9ca3af'>{$size}</span>" : '')
+                                           . "</div>"
+                                           . "<a href='{$url}' target='_blank' rel='noopener' "
+                                           . "style='flex-shrink:0;display:inline-block;padding:4px 14px;border-radius:9999px;"
+                                           . "font-size:.75rem;font-weight:600;background:rgba(59,130,246,.1);"
+                                           . "color:#1d4ed8;border:1px solid rgba(59,130,246,.25);text-decoration:none'>Descargar</a>"
+                                           . "</div>";
+                                }
+                                $html .= '</div>';
+                                return $html;
+                            }),
+                    ])
+                    ->collapsible()
+                    ->collapsed(false),
             ]);
     }
 

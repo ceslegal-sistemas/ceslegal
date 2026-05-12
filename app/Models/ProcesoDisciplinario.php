@@ -165,6 +165,12 @@ class ProcesoDisciplinario extends Model
         return $this->hasOne(DiligenciaDescargo::class, 'proceso_id');
     }
 
+    /** Todas las diligencias de descargos (puede haber varias sesiones) */
+    public function diligencias(): HasMany
+    {
+        return $this->hasMany(DiligenciaDescargo::class, 'proceso_id');
+    }
+
     public function analisisJuridicos(): HasMany
     {
         return $this->hasMany(AnalisisJuridico::class, 'proceso_id');
