@@ -3290,75 +3290,44 @@ class ProcesoDisciplinarioResource extends Resource
                     ->icon('heroicon-o-paper-clip')
                     ->description('Archivos adjuntados por el trabajador durante los descargos')
                     ->schema([
-                        Infolists\Components\TextEntry::make('evidencias_adjuntas')
-                            ->label('')
-                            ->html()
+                        Infolists\Components\ImageEntry::make('evidencia_imagenes')
+                            ->label('Imágenes')
+                            ->disk('public')
+                            ->height(100)
+                            ->lightbox()
                             ->columnSpanFull()
                             ->getStateUsing(function ($record) {
-                                $archivos = [];
-                                foreach ($record->diligencias()->with('preguntas.respuesta')->get() as $diligencia) {
-                                    foreach ($diligencia->archivos_evidencia ?? [] as $archivo) {
-                                        $archivos[] = $archivo;
-                                    }
-                                    foreach ($diligencia->preguntas as $pregunta) {
-                                        foreach ($pregunta->respuesta?->archivos_adjuntos ?? [] as $adj) {
-                                            $archivos[] = $adj;
+                                $imageExts = ['jpg','jpeg','png','gif','webp','bmp'];
+                                $paths = [];
+                                foreach ($record->diligencias()->with('preguntas.respuesta')->get() as $d) {
+                                    foreach (array_merge($d->archivos_evidencia ?? [], ...$d->preguntas->map(fn($p) => $p->respuesta?->archivos_adjuntos ?? [])->all()) as $a) {
+                                        if (in_array(strtolower(pathinfo($a['nombre'] ?? '', PATHINFO_EXTENSION)), $imageExts)) {
+                                            $paths[] = $a['path'];
                                         }
                                     }
                                 }
-
-                                if (empty($archivos)) {
-                                    return '<p class="text-sm text-gray-500 dark:text-gray-400 italic">El trabajador no ha adjuntado archivos.</p>';
-                                }
-
-                                $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-                                $html = '<div class="space-y-2">';
-                                foreach ($archivos as $i => $archivo) {
-                                    $nombre  = e($archivo['nombre'] ?? 'Archivo');
-                                    $path    = $archivo['path'] ?? '';
-                                    $ext     = strtolower(pathinfo($archivo['nombre'] ?? '', PATHINFO_EXTENSION));
-                                    $size    = isset($archivo['size']) ? number_format($archivo['size'] / 1024, 1) . ' KB' : '';
-                                    $url     = $path ? Storage::disk('public')->url($path) : '#';
-                                    $isImage = in_array($ext, $imageExts);
-                                    $isPdf   = $ext === 'pdf';
-                                    $uid     = 'ces-ev-pd-' . $i . '-' . substr(md5($path), 0, 6);
-                                    $open    = "document.getElementById('{$uid}').style.display='flex'";
-                                    $close   = "document.getElementById('{$uid}').style.display='none'";
-
-                                    // Fila de archivo
-                                    $html .= "<div class=\"flex items-center gap-3 px-3 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg\">";
-
-                                    if ($isImage) {
-                                        $html .= "<img src=\"{$url}\" alt=\"{$nombre}\" onclick=\"{$open}\" class=\"h-10 w-10 rounded object-cover shrink-0 cursor-pointer hover:opacity-75 transition-opacity\" />";
-                                    } else {
-                                        $iconCls = $isPdf ? 'bg-red-50 dark:bg-red-400/10 text-red-500 dark:text-red-400' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400';
-                                        $html .= "<div class=\"h-10 w-10 flex items-center justify-center rounded shrink-0 {$iconCls}\"><svg class=\"w-5 h-5\" fill=\"currentColor\" viewBox=\"0 0 20 20\"><path fill-rule=\"evenodd\" d=\"M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z\" clip-rule=\"evenodd\"/></svg></div>";
-                                    }
-
-                                    $html .= "<div class=\"min-w-0 flex-1\"><p class=\"text-sm font-medium text-gray-900 dark:text-white truncate\">{$nombre}</p>";
-                                    if ($size) $html .= "<p class=\"text-xs text-gray-500 dark:text-gray-400\">{$size}</p>";
-                                    $html .= "</div>";
-
-                                    $html .= "<div class=\"flex items-center gap-2 shrink-0\">";
-                                    if ($isImage || $isPdf) {
-                                        $verCls = $isImage
-                                            ? 'text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-500/30 hover:bg-primary-50 dark:hover:bg-primary-500/10'
-                                            : 'text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10';
-                                        $html .= "<button type=\"button\" onclick=\"{$open}\" class=\"inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border transition-colors {$verCls}\">Ver</button>";
-                                    }
-                                    $html .= "<a href=\"{$url}\" target=\"_blank\" rel=\"noopener\" class=\"inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20 no-underline hover:bg-gray-200 dark:hover:bg-white/20 transition-colors\">Descargar</a>";
-                                    $html .= "</div></div>"; // buttons + card row
-
-                                    // Modal
-                                    if ($isImage) {
-                                        $html .= "<div id=\"{$uid}\" onclick=\"if(event.target.id==='{$uid}'){$close}\" style=\"display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);align-items:center;justify-content:center;padding:16px\"><div style=\"position:relative;max-width:960px;width:100%\"><button onclick=\"{$close}\" style=\"position:absolute;top:-36px;right:0;color:rgba(255,255,255,.7);font-size:32px;font-weight:300;line-height:1;cursor:pointer;background:none;border:none;padding:4px\">&times;</button><img src=\"{$url}\" alt=\"{$nombre}\" style=\"width:100%;height:auto;max-height:85vh;object-fit:contain;border-radius:8px\" /><p style=\"margin-top:8px;text-align:center;font-size:.875rem;color:rgba(255,255,255,.6)\">{$nombre}</p></div></div>";
-                                    } elseif ($isPdf) {
-                                        $html .= "<div id=\"{$uid}\" onclick=\"if(event.target.id==='{$uid}'){$close}\" style=\"display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);align-items:center;justify-content:center;padding:16px\"><div style=\"position:relative;width:100%;max-width:960px;height:85vh;background:white;border-radius:12px;overflow:hidden;display:flex;flex-direction:column\"><div style=\"display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #e5e7eb;flex-shrink:0\"><span style=\"font-size:.875rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\">{$nombre}</span><button onclick=\"{$close}\" style=\"color:#9ca3af;font-size:24px;font-weight:300;line-height:1;cursor:pointer;background:none;border:none;margin-left:16px;flex-shrink:0;padding:4px\">&times;</button></div><iframe src=\"{$url}\" style=\"flex:1;width:100%;border:none\"></iframe></div></div>";
-                                    }
-                                }
-                                $html .= '</div>';
-                                return $html;
+                                return $paths;
                             }),
+
+                        Infolists\Components\TextEntry::make('evidencia_otros')
+                            ->label('Otros archivos')
+                            ->html()
+                            ->columnSpanFull()
+                            ->getStateUsing(function ($record) {
+                                $imageExts = ['jpg','jpeg','png','gif','webp','bmp'];
+                                $links = [];
+                                $svgDownload = "<svg class='w-4 h-4 shrink-0' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z' clip-rule='evenodd'/></svg>";
+                                foreach ($record->diligencias()->with('preguntas.respuesta')->get() as $d) {
+                                    foreach (array_merge($d->archivos_evidencia ?? [], ...$d->preguntas->map(fn($p) => $p->respuesta?->archivos_adjuntos ?? [])->all()) as $a) {
+                                        if (!in_array(strtolower(pathinfo($a['nombre'] ?? '', PATHINFO_EXTENSION)), $imageExts)) {
+                                            $url = e(Storage::disk('public')->url($a['path'] ?? ''));
+                                            $links[] = "<a href='{$url}' target='_blank' rel='noopener' class='inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400 hover:underline'>{$svgDownload}" . e($a['nombre'] ?? 'Archivo') . "</a>";
+                                        }
+                                    }
+                                }
+                                return $links ? implode('<br>', $links) : '<span class="text-sm text-gray-400 dark:text-gray-500">Sin archivos adjuntos.</span>';
+                            }),
+
                     ])
                     ->collapsible()
                     ->collapsed(false),
