@@ -634,7 +634,15 @@ class DiligenciaDescargoResource extends Resource
                                     ->icon($icon)
                                     ->color('gray')
                                     ->media($url)
-                                    ->modalHeading($name),
+                                    ->modalHeading($name)
+                                    ->extraModalFooterActions([
+                                        \Filament\Infolists\Components\Actions\Action::make("dl_{$i}")
+                                            ->label('Descargar')
+                                            ->icon('heroicon-o-arrow-down-tray')
+                                            ->color('gray')
+                                            ->url($url)
+                                            ->openUrlInNewTab(),
+                                    ]),
                             ]);
                         })->all();
                     })
