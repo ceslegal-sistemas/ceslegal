@@ -3289,66 +3289,40 @@ class ProcesoDisciplinarioResource extends Resource
                 Infolists\Components\Section::make('Evidencias del trabajador')
                     ->icon('heroicon-o-paper-clip')
                     ->description('Archivos adjuntados por el trabajador durante los descargos')
-                    ->schema([
-                        Infolists\Components\TextEntry::make('evidencias_trabajador')
-                            ->label('')
-                            ->html()
-                            ->columnSpanFull()
-                            ->getStateUsing(function ($record) {
-                                $archivos = [];
-                                foreach ($record->diligencias()->with('preguntas.respuesta')->get() as $d) {
-                                    foreach (array_merge($d->archivos_evidencia ?? [], ...$d->preguntas->map(fn($p) => $p->respuesta?->archivos_adjuntos ?? [])->all()) as $a) {
-                                        $archivos[] = $a;
-                                    }
-                                }
-                                return self::renderArchivosHtml($archivos);
-                            }),
-                    ])
+                    ->schema(function ($record) {
+                        $archivos = [];
+                        foreach ($record->diligencias()->with('preguntas.respuesta')->get() as $d) {
+                            foreach (array_merge($d->archivos_evidencia ?? [], ...$d->preguntas->map(fn($p) => $p->respuesta?->archivos_adjuntos ?? [])->all()) as $a) {
+                                $archivos[] = $a;
+                            }
+                        }
+                        if (empty($archivos)) {
+                            return [Infolists\Components\TextEntry::make('_sin_archivos')->label('')->getStateUsing(fn () => 'Sin archivos adjuntos.')];
+                        }
+                        return collect($archivos)->map(function ($a, $i) {
+                            $url  = \Illuminate\Support\Facades\Storage::disk('public')->url($a['path'] ?? '');
+                            $name = $a['nombre'] ?? 'Archivo';
+                            $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                            $icon = in_array($ext, ['jpg','jpeg','png','gif','webp','bmp'])
+                                ? 'heroicon-o-photo'
+                                : ($ext === 'pdf' ? 'heroicon-o-document-text' : 'heroicon-o-paper-clip');
+                            return Infolists\Components\TextEntry::make("_archivo_{$i}")
+                                ->label('')
+                                ->getStateUsing(fn () => $name)
+                                ->icon($icon)
+                                ->iconColor('gray')
+                                ->hintActions([
+                                    \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make("ver_{$i}")
+                                        ->label('Ver')
+                                        ->icon('heroicon-o-eye')
+                                        ->media($url)
+                                        ->modalHeading($name),
+                                ]);
+                        })->all();
+                    })
                     ->collapsible()
                     ->collapsed(false),
             ]);
-    }
-
-    /** Renderiza la galería de archivos: thumbnails para imágenes, chips de extensión para el resto. */
-    private static function renderArchivosHtml(array $archivos): string
-    {
-        if (empty($archivos)) {
-            return '<p class="text-sm text-gray-400 dark:text-gray-500 italic">Sin archivos adjuntos.</p>';
-        }
-
-        $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-        $items = [];
-
-        foreach ($archivos as $a) {
-            $url  = e(\Illuminate\Support\Facades\Storage::disk('public')->url($a['path'] ?? ''));
-            $name = e($a['nombre'] ?? 'Archivo');
-            $ext  = strtolower(pathinfo($a['nombre'] ?? '', PATHINFO_EXTENSION));
-
-            if (in_array($ext, $imageExts)) {
-                $thumb = "<div class='w-14 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10'>"
-                       . "<img src='{$url}' alt='{$name}' class='w-full h-full object-cover group-hover:opacity-70 transition-opacity' />"
-                       . "</div>";
-            } else {
-                $color = match ($ext) {
-                    'pdf'        => 'bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border-red-200 dark:border-red-500/20',
-                    'doc','docx' => 'bg-blue-50 dark:bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-200 dark:border-blue-500/20',
-                    'xls','xlsx' => 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-500/20',
-                    default      => 'bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/10',
-                };
-                $label = strtoupper($ext ?: '?');
-                $thumb = "<div class='w-14 h-14 rounded-lg border flex items-center justify-center {$color}'>"
-                       . "<span class='text-[10px] font-bold tracking-widest'>{$label}</span>"
-                       . "</div>";
-            }
-
-            $items[] = "<a href='{$url}' target='_blank' rel='noopener' title='{$name}' "
-                     . "class='group flex flex-col items-center gap-1 w-14 shrink-0'>"
-                     . $thumb
-                     . "<span class='text-[10px] text-gray-400 dark:text-gray-500 truncate w-full text-center leading-tight'>{$name}</span>"
-                     . "</a>";
-        }
-
-        return '<div class="flex flex-wrap gap-3 py-1">' . implode('', $items) . '</div>';
     }
 
     public static function getPages(): array

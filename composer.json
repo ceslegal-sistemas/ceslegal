@@ -14,6 +14,7 @@
         "doctrine/dbal": "^4.4",
         "dompdf/dompdf": "^3.1",
         "filament/filament": "^3.2",
+        "hugomyb/filament-media-action": "^3.0",
         "husam-tariq/filament-timepicker": "^3.0",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",

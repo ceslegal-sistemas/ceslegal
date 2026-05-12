@@ -616,15 +616,34 @@ class DiligenciaDescargoResource extends Resource
                 InfoSection::make('Archivos de Evidencia')
                     ->icon('heroicon-o-paper-clip')
                     ->description('Archivos adjuntados por el trabajador durante los descargos')
-                    ->schema([
-                        TextEntry::make('archivos_evidencia_todos')
-                            ->label('')
-                            ->html()
-                            ->columnSpanFull()
-                            ->getStateUsing(fn ($record) => self::renderArchivosHtml(self::recopilarArchivos($record))),
-                    ])
+                    ->schema(function ($record) {
+                        $archivos = self::recopilarArchivos($record);
+                        if (empty($archivos)) {
+                            return [TextEntry::make('_sin_archivos')->label('')->getStateUsing(fn () => 'Sin archivos adjuntos.')];
+                        }
+                        return collect($archivos)->map(function ($a, $i) {
+                            $url  = Storage::disk('public')->url($a['path'] ?? '');
+                            $name = $a['nombre'] ?? 'Archivo';
+                            $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                            $icon = in_array($ext, ['jpg','jpeg','png','gif','webp','bmp'])
+                                ? 'heroicon-o-photo'
+                                : ($ext === 'pdf' ? 'heroicon-o-document-text' : 'heroicon-o-paper-clip');
+                            return TextEntry::make("_archivo_{$i}")
+                                ->label('')
+                                ->getStateUsing(fn () => $name)
+                                ->icon($icon)
+                                ->iconColor('gray')
+                                ->hintActions([
+                                    \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make("ver_{$i}")
+                                        ->label('Ver')
+                                        ->icon('heroicon-o-eye')
+                                        ->media($url)
+                                        ->modalHeading($name),
+                                ]);
+                        })->all();
+                    })
                     ->collapsible()
-                    ->collapsed(fn($record) => empty($record?->archivos_evidencia)),
+                    ->collapsed(fn ($record) => empty($record?->archivos_evidencia)),
 
                 // ── Metadata ──────────────────────────────────────────────
                 InfoSection::make('Metadatos de Evidencia')
@@ -656,46 +675,22 @@ class DiligenciaDescargoResource extends Resource
         return $archivos;
     }
 
-    /** Renderiza la galería de archivos: thumbnails para imágenes, chips de extensión para el resto. */
+    /** Renderiza lista de archivos como links para el formulario (contexto de edición). */
     private static function renderArchivosHtml(array $archivos): string
     {
         if (empty($archivos)) {
             return '<p class="text-sm text-gray-400 dark:text-gray-500 italic">Sin archivos adjuntos.</p>';
         }
-
-        $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
         $items = [];
-
         foreach ($archivos as $a) {
             $url  = e(Storage::disk('public')->url($a['path'] ?? ''));
             $name = e($a['nombre'] ?? 'Archivo');
-            $ext  = strtolower(pathinfo($a['nombre'] ?? '', PATHINFO_EXTENSION));
-
-            if (in_array($ext, $imageExts)) {
-                $thumb = "<div class='w-14 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10'>"
-                       . "<img src='{$url}' alt='{$name}' class='w-full h-full object-cover group-hover:opacity-70 transition-opacity' />"
-                       . "</div>";
-            } else {
-                $color = match ($ext) {
-                    'pdf'        => 'bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border-red-200 dark:border-red-500/20',
-                    'doc','docx' => 'bg-blue-50 dark:bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-200 dark:border-blue-500/20',
-                    'xls','xlsx' => 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-500/20',
-                    default      => 'bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/10',
-                };
-                $label = strtoupper($ext ?: '?');
-                $thumb = "<div class='w-14 h-14 rounded-lg border flex items-center justify-center {$color}'>"
-                       . "<span class='text-[10px] font-bold tracking-widest'>{$label}</span>"
-                       . "</div>";
-            }
-
-            $items[] = "<a href='{$url}' target='_blank' rel='noopener' title='{$name}' "
-                     . "class='group flex flex-col items-center gap-1 w-14 shrink-0'>"
-                     . $thumb
-                     . "<span class='text-[10px] text-gray-400 dark:text-gray-500 truncate w-full text-center leading-tight'>{$name}</span>"
-                     . "</a>";
+            $items[] = "<a href='{$url}' target='_blank' rel='noopener' "
+                     . "class='inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400 hover:underline'>"
+                     . "<svg class='w-3.5 h-3.5 shrink-0' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13'/></svg>"
+                     . "{$name}</a>";
         }
-
-        return '<div class="flex flex-wrap gap-3 py-1">' . implode('', $items) . '</div>';
+        return '<div class="space-y-1.5">' . implode('', $items) . '</div>';
     }
 
     public static function getPages(): array
