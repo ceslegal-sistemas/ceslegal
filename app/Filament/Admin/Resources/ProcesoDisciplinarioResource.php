@@ -3166,6 +3166,50 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->send();
                             }
                         }),
+                    Tables\Actions\Action::make('ver_evidencias')
+                        ->label('Ver Evidencias')
+                        ->icon('heroicon-o-paper-clip')
+                        ->color('info')
+                        ->modalHeading('Evidencias del Trabajador')
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Cerrar')
+                        ->modalContent(function (ProcesoDisciplinario $record) {
+                            $archivos = [];
+                            foreach ($record->diligencias()->with('preguntas.respuesta')->get() as $d) {
+                                foreach (array_merge($d->archivos_evidencia ?? [], ...$d->preguntas->map(fn($p) => $p->respuesta?->archivos_adjuntos ?? [])->all()) as $a) {
+                                    $archivos[] = $a;
+                                }
+                            }
+                            if (empty($archivos)) {
+                                return new \Illuminate\Support\HtmlString(
+                                    '<p class="text-sm text-gray-400 dark:text-gray-500 italic p-4">Este proceso no tiene archivos de evidencia adjuntos.</p>'
+                                );
+                            }
+                            $imageExts = ['jpg','jpeg','png','gif','webp','bmp'];
+                            $items = '';
+                            foreach ($archivos as $i => $a) {
+                                $url   = e(\Illuminate\Support\Facades\Storage::disk('public')->url($a['path'] ?? ''));
+                                $name  = e($a['nombre'] ?? 'Archivo');
+                                $ext   = strtolower(pathinfo($a['nombre'] ?? '', PATHINFO_EXTENSION));
+                                $isImg = in_array($ext, $imageExts);
+                                $icon  = $isImg
+                                    ? '<svg class="w-4 h-4 shrink-0 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>'
+                                    : '<svg class="w-4 h-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>';
+                                $items .= "<div class='flex items-center justify-between gap-3 py-2 border-b border-gray-100 dark:border-white/5 last:border-0'>"
+                                        . "<span class='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 truncate'>{$icon}{$name}</span>"
+                                        . "<a href='{$url}' target='_blank' rel='noopener' class='shrink-0 inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:underline'>"
+                                        . "<svg class='w-3.5 h-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'/><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'/></svg>"
+                                        . "Ver / Descargar</a>"
+                                        . "</div>";
+                            }
+                            $count = count($archivos);
+                            return new \Illuminate\Support\HtmlString(
+                                "<div class='px-1'>"
+                                . "<p class='text-xs text-gray-400 dark:text-gray-500 mb-3'>{$count} " . ($count === 1 ? 'archivo' : 'archivos') . "</p>"
+                                . "<div>{$items}</div>"
+                                . "</div>"
+                            );
+                        }),
                     Tables\Actions\ForceDeleteAction::make()
                         ->label('Eliminar')
                         ->icon('heroicon-o-trash')
