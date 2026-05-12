@@ -3170,6 +3170,12 @@ class ProcesoDisciplinarioResource extends Resource
                         ->label('Ver Evidencias')
                         ->icon('heroicon-o-paper-clip')
                         ->color('info')
+                        ->visible(fn (ProcesoDisciplinario $record) =>
+                            $record->diligencias()
+                                ->whereNotNull('archivos_evidencia')
+                                ->whereRaw("archivos_evidencia NOT IN ('[]', 'null', '')")
+                                ->exists()
+                        )
                         ->modalHeading('Evidencias del Trabajador')
                         ->modalSubmitAction(false)
                         ->modalCancelActionLabel('Cerrar')
