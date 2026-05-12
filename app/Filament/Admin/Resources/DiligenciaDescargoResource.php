@@ -168,12 +168,9 @@ class DiligenciaDescargoResource extends Resource
                         Forms\Components\Placeholder::make('archivos_evidencia_info')
                             ->label('')
                             ->content(function ($record) {
-                                if (!$record) return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500">Sin registro.</p>');
+                                if (!$record) return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500 dark:text-gray-400">Sin registro.</p>');
 
-                                // Archivos del nivel de diligencia
                                 $archivos = array_map(fn($a) => $a + ['origen' => 'diligencia'], $record->archivos_evidencia ?? []);
-
-                                // Archivos adjuntos en respuestas individuales
                                 foreach ($record->preguntas()->with('respuesta')->get() as $pregunta) {
                                     foreach ($pregunta->respuesta?->archivos_adjuntos ?? [] as $adj) {
                                         $archivos[] = $adj + ['origen' => 'respuesta'];
@@ -181,31 +178,52 @@ class DiligenciaDescargoResource extends Resource
                                 }
 
                                 if (empty($archivos)) {
-                                    return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500 italic">El trabajador no ha adjuntado archivos.</p>');
+                                    return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-500 dark:text-gray-400 italic">El trabajador no ha adjuntado archivos.</p>');
                                 }
 
-                                $html = '<div class="grid gap-2">';
-                                foreach ($archivos as $archivo) {
-                                    $nombre = e($archivo['nombre'] ?? 'Archivo');
-                                    $path   = $archivo['path'] ?? '';
-                                    $size   = isset($archivo['size']) ? number_format($archivo['size'] / 1024, 1) . ' KB' : '';
-                                    $url    = $path ? Storage::disk('public')->url($path) : '#';
+                                $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+                                $html = '<div class="space-y-2">';
+                                foreach ($archivos as $i => $archivo) {
+                                    $nombre  = e($archivo['nombre'] ?? 'Archivo');
+                                    $path    = $archivo['path'] ?? '';
+                                    $ext     = strtolower(pathinfo($archivo['nombre'] ?? '', PATHINFO_EXTENSION));
+                                    $size    = isset($archivo['size']) ? number_format($archivo['size'] / 1024, 1) . ' KB' : '';
+                                    $url     = $path ? Storage::disk('public')->url($path) : '#';
+                                    $isImage = in_array($ext, $imageExts);
+                                    $isPdf   = $ext === 'pdf';
 
-                                    $html .= "<div class='flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg border'>";
-                                    $html .= "<div class='flex items-center gap-2 min-w-0'>"
-                                           . "<svg class='w-5 h-5 text-gray-400 shrink-0' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='1.5'><path stroke-linecap='round' stroke-linejoin='round' d='M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13'/></svg>"
-                                           . "<span class='text-sm font-medium truncate'>{$nombre}</span>"
-                                           . ($size ? "<span class='text-xs text-gray-400 shrink-0'>{$size}</span>" : '')
-                                           . "</div>";
-                                    $html .= "<a href='{$url}' target='_blank' rel='noopener' "
-                                           . "style='flex-shrink:0;display:inline-flex;align-items:center;gap:4px;padding:4px 14px;border-radius:9999px;"
-                                           . "font-size:.75rem;font-weight:600;background:rgba(59,130,246,.1);color:#1d4ed8;"
-                                           . "border:1px solid rgba(59,130,246,.25);text-decoration:none'>"
-                                           . "Descargar</a>";
+                                    $html .= "<div x-data=\"{ open: false }\" class=\"flex items-center gap-3 px-3 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg\">";
+
+                                    if ($isImage) {
+                                        $html .= "<img src=\"{$url}\" alt=\"{$nombre}\" @click=\"open = true\" class=\"h-10 w-10 rounded object-cover shrink-0 cursor-pointer hover:opacity-75 transition-opacity\" />";
+                                    } else {
+                                        $iconCls = $isPdf ? 'bg-red-50 dark:bg-red-400/10 text-red-500 dark:text-red-400' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400';
+                                        $html .= "<div class=\"h-10 w-10 flex items-center justify-center rounded shrink-0 {$iconCls}\"><svg class=\"w-5 h-5\" fill=\"currentColor\" viewBox=\"0 0 20 20\"><path fill-rule=\"evenodd\" d=\"M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z\" clip-rule=\"evenodd\"/></svg></div>";
+                                    }
+
+                                    $html .= "<div class=\"min-w-0 flex-1\"><p class=\"text-sm font-medium text-gray-900 dark:text-white truncate\">{$nombre}</p>";
+                                    if ($size) $html .= "<p class=\"text-xs text-gray-500 dark:text-gray-400\">{$size}</p>";
+                                    $html .= "</div>";
+
+                                    $html .= "<div class=\"flex items-center gap-2 shrink-0\">";
+                                    if ($isImage || $isPdf) {
+                                        $verCls = $isImage
+                                            ? 'text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-500/30 hover:bg-primary-50 dark:hover:bg-primary-500/10'
+                                            : 'text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10';
+                                        $html .= "<button type=\"button\" @click=\"open = true\" class=\"inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border transition-colors {$verCls}\">Ver</button>";
+                                    }
+                                    $html .= "<a href=\"{$url}\" target=\"_blank\" rel=\"noopener\" class=\"inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20 no-underline hover:bg-gray-200 dark:hover:bg-white/20 transition-colors\">Descargar</a>";
+                                    $html .= "</div>";
+
+                                    if ($isImage) {
+                                        $html .= "<template x-teleport=\"body\"><div x-show=\"open\" x-cloak @click.self=\"open = false\" @keydown.escape.window=\"open = false\" class=\"fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80\"><div class=\"relative max-w-5xl w-full\"><button @click=\"open = false\" class=\"absolute -top-8 right-0 text-white/70 hover:text-white text-3xl font-light leading-none\">&times;</button><img src=\"{$url}\" alt=\"{$nombre}\" class=\"w-full h-auto max-h-[85vh] object-contain rounded-lg\" /><p class=\"mt-2 text-center text-sm text-white/60\">{$nombre}</p></div></div></template>";
+                                    } elseif ($isPdf) {
+                                        $html .= "<template x-teleport=\"body\"><div x-show=\"open\" x-cloak @click.self=\"open = false\" @keydown.escape.window=\"open = false\" class=\"fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80\"><div class=\"relative w-full max-w-5xl h-[85vh] bg-white dark:bg-gray-900 rounded-xl overflow-hidden flex flex-col\"><div class=\"flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0\"><p class=\"text-sm font-semibold text-gray-900 dark:text-white truncate\">{$nombre}</p><button @click=\"open = false\" class=\"text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl font-light leading-none ml-4\">&times;</button></div><iframe src=\"{$url}\" class=\"flex-1 w-full border-0\"></iframe></div></div></template>";
+                                    }
+
                                     $html .= "</div>";
                                 }
                                 $html .= '</div>';
-
                                 return new \Illuminate\Support\HtmlString($html);
                             })
                             ->columnSpanFull(),
@@ -658,7 +676,6 @@ class DiligenciaDescargoResource extends Resource
                             ->columnSpanFull()
                             ->getStateUsing(function ($record) {
                                 $archivos = array_map(fn($a) => $a + ['origen' => 'diligencia'], $record->archivos_evidencia ?? []);
-
                                 foreach ($record->preguntas()->with('respuesta')->get() as $pregunta) {
                                     foreach ($pregunta->respuesta?->archivos_adjuntos ?? [] as $adj) {
                                         $archivos[] = $adj + ['origen' => 'respuesta'];
@@ -666,27 +683,49 @@ class DiligenciaDescargoResource extends Resource
                                 }
 
                                 if (empty($archivos)) {
-                                    return '<p class="text-sm text-gray-500 italic">El trabajador no ha adjuntado archivos.</p>';
+                                    return '<p class="text-sm text-gray-500 dark:text-gray-400 italic">El trabajador no ha adjuntado archivos.</p>';
                                 }
 
-                                $html = '<div class="grid gap-2">';
-                                foreach ($archivos as $archivo) {
-                                    $nombre = htmlspecialchars($archivo['nombre'] ?? 'Archivo', ENT_QUOTES, 'UTF-8');
-                                    $path   = $archivo['path'] ?? '';
-                                    $size   = isset($archivo['size']) ? number_format($archivo['size'] / 1024, 1) . ' KB' : '';
-                                    $url    = $path ? Storage::disk('public')->url($path) : '#';
+                                $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+                                $html = '<div class="space-y-2">';
+                                foreach ($archivos as $i => $archivo) {
+                                    $nombre  = e($archivo['nombre'] ?? 'Archivo');
+                                    $path    = $archivo['path'] ?? '';
+                                    $ext     = strtolower(pathinfo($archivo['nombre'] ?? '', PATHINFO_EXTENSION));
+                                    $size    = isset($archivo['size']) ? number_format($archivo['size'] / 1024, 1) . ' KB' : '';
+                                    $url     = $path ? Storage::disk('public')->url($path) : '#';
+                                    $isImage = in_array($ext, $imageExts);
+                                    $isPdf   = $ext === 'pdf';
 
-                                    $html .= "<div style='display:flex;align-items:center;justify-content:space-between;gap:12px;"
-                                           . "padding:12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb'>";
-                                    $html .= "<div style='display:flex;align-items:center;gap:8px;min-width:0'>"
-                                           . "<span style='font-size:.875rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'>{$nombre}</span>"
-                                           . ($size ? "<span style='font-size:.75rem;color:#9ca3af;white-space:nowrap'>{$size}</span>" : '')
-                                           . "</div>";
-                                    $html .= "<a href='{$url}' target='_blank' rel='noopener' "
-                                           . "style='flex-shrink:0;display:inline-flex;align-items:center;padding:4px 14px;"
-                                           . "border-radius:9999px;font-size:.75rem;font-weight:600;background:rgba(59,130,246,.1);"
-                                           . "color:#1d4ed8;border:1px solid rgba(59,130,246,.25);text-decoration:none'>"
-                                           . "Descargar</a>";
+                                    $html .= "<div x-data=\"{ open: false }\" class=\"flex items-center gap-3 px-3 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg\">";
+
+                                    if ($isImage) {
+                                        $html .= "<img src=\"{$url}\" alt=\"{$nombre}\" @click=\"open = true\" class=\"h-10 w-10 rounded object-cover shrink-0 cursor-pointer hover:opacity-75 transition-opacity\" />";
+                                    } else {
+                                        $iconCls = $isPdf ? 'bg-red-50 dark:bg-red-400/10 text-red-500 dark:text-red-400' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400';
+                                        $html .= "<div class=\"h-10 w-10 flex items-center justify-center rounded shrink-0 {$iconCls}\"><svg class=\"w-5 h-5\" fill=\"currentColor\" viewBox=\"0 0 20 20\"><path fill-rule=\"evenodd\" d=\"M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z\" clip-rule=\"evenodd\"/></svg></div>";
+                                    }
+
+                                    $html .= "<div class=\"min-w-0 flex-1\"><p class=\"text-sm font-medium text-gray-900 dark:text-white truncate\">{$nombre}</p>";
+                                    if ($size) $html .= "<p class=\"text-xs text-gray-500 dark:text-gray-400\">{$size}</p>";
+                                    $html .= "</div>";
+
+                                    $html .= "<div class=\"flex items-center gap-2 shrink-0\">";
+                                    if ($isImage || $isPdf) {
+                                        $verCls = $isImage
+                                            ? 'text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-500/30 hover:bg-primary-50 dark:hover:bg-primary-500/10'
+                                            : 'text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10';
+                                        $html .= "<button type=\"button\" @click=\"open = true\" class=\"inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border transition-colors {$verCls}\">Ver</button>";
+                                    }
+                                    $html .= "<a href=\"{$url}\" target=\"_blank\" rel=\"noopener\" class=\"inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20 no-underline hover:bg-gray-200 dark:hover:bg-white/20 transition-colors\">Descargar</a>";
+                                    $html .= "</div>";
+
+                                    if ($isImage) {
+                                        $html .= "<template x-teleport=\"body\"><div x-show=\"open\" x-cloak @click.self=\"open = false\" @keydown.escape.window=\"open = false\" class=\"fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80\"><div class=\"relative max-w-5xl w-full\"><button @click=\"open = false\" class=\"absolute -top-8 right-0 text-white/70 hover:text-white text-3xl font-light leading-none\">&times;</button><img src=\"{$url}\" alt=\"{$nombre}\" class=\"w-full h-auto max-h-[85vh] object-contain rounded-lg\" /><p class=\"mt-2 text-center text-sm text-white/60\">{$nombre}</p></div></div></template>";
+                                    } elseif ($isPdf) {
+                                        $html .= "<template x-teleport=\"body\"><div x-show=\"open\" x-cloak @click.self=\"open = false\" @keydown.escape.window=\"open = false\" class=\"fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80\"><div class=\"relative w-full max-w-5xl h-[85vh] bg-white dark:bg-gray-900 rounded-xl overflow-hidden flex flex-col\"><div class=\"flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0\"><p class=\"text-sm font-semibold text-gray-900 dark:text-white truncate\">{$nombre}</p><button @click=\"open = false\" class=\"text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl font-light leading-none ml-4\">&times;</button></div><iframe src=\"{$url}\" class=\"flex-1 w-full border-0\"></iframe></div></div></template>";
+                                    }
+
                                     $html .= "</div>";
                                 }
                                 $html .= '</div>';
