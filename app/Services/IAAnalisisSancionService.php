@@ -26,8 +26,8 @@ class IAAnalisisSancionService
             // Obtener los descargos si existen
             $contextoDescargos = $this->obtenerContextoDescargos($proceso);
 
-            // Obtener sanciones del RIT de la empresa para contextualizar el análisis
-            $sancionesRIT = $this->obtenerSancionesRIT($empresa);
+            // Obtener contexto del RIT: array estructurado (wizard) o fragmentos RAG (subido)
+            [$sancionesRIT, $contextoRITRag] = $this->obtenerContextoRIT($empresa, $proceso);
 
             // Construir el prompt para la IA
             $prompt = $this->construirPromptAnalisisSancion(
@@ -36,7 +36,8 @@ class IAAnalisisSancionService
                 $empresa,
                 $historialProcesos,
                 $contextoDescargos,
-                $sancionesRIT
+                $sancionesRIT,
+                $contextoRITRag
             );
 
             // Llamar a la API de IA
@@ -112,44 +113,59 @@ class IAAnalisisSancionService
     }
 
     /**
-     * Obtiene las sanciones del RIT de la empresa según la fuente activa:
-     * - 'construido_ia' (wizard): usa respuestas_cuestionario (faltas_leves, faltas_graves, sanciones).
-     * - 'subido' (DOCX/PDF):     usa sanciones_extraidas (caché) o extrae del texto con IA.
+     * Retorna [$sancionesRIT, $contextoRITRag]:
+     * - Wizard (construido_ia): $sancionesRIT = array estructurado, $contextoRITRag = ''.
+     * - Subido (DOCX/PDF):      $sancionesRIT = [],  $contextoRITRag = fragmentos RAG relevantes.
      */
-    private function obtenerSancionesRIT($empresa): array
+    private function obtenerContextoRIT($empresa, ProcesoDisciplinario $proceso): array
     {
         $rit = $empresa->reglamentoInterno;
         if (!$rit) {
-            return [];
+            return [[], ''];
         }
 
         try {
             $service = app(ReglamentoInternoService::class);
 
-            // Fuente: RIT construido con el wizard de IA
+            // Wizard: datos ya estructurados desde el cuestionario
             if ($rit->fuente === 'construido_ia') {
-                return $service->extraerSancionesParaEmail($rit);
+                return [$service->extraerSancionesParaEmail($rit), ''];
             }
 
-            // Fuente: documento subido (DOCX/PDF) — usar sanciones extraídas del archivo
-            if (!empty($rit->sanciones_extraidas)) {
-                return $rit->sanciones_extraidas;
-            }
+            // Documento subido: usar RAG sobre el texto completo
+            $query    = $this->construirQueryRIT($proceso);
+            $contexto = $service->buscarEnRIT($rit, $query);
 
-            if (!empty($rit->texto_completo)) {
-                return $service->extraerYPersistirSanciones($rit);
-            }
-
-            return [];
+            return [[], $contexto];
 
         } catch (\Throwable $e) {
-            Log::warning('IAAnalisisSancionService: no se pudo obtener sanciones del RIT', [
+            Log::warning('IAAnalisisSancionService: error obteniendo contexto RIT', [
                 'empresa_id' => $empresa->id,
                 'fuente'     => $rit->fuente ?? 'desconocida',
                 'error'      => $e->getMessage(),
             ]);
-            return [];
+            return [[], ''];
         }
+    }
+
+    /**
+     * Construye la query de búsqueda RAG combinando los motivos del proceso con
+     * términos disciplinarios clave para maximizar la recuperación de fragmentos relevantes.
+     */
+    private function construirQueryRIT(ProcesoDisciplinario $proceso): string
+    {
+        $partes = ['faltas leves graves sanciones disciplinarias suspensión terminación llamado atención reglamento disciplinario'];
+
+        $nombres = $proceso->sancionesLaborales->pluck('nombre_claro')->filter()->join(' ');
+        if ($nombres) {
+            $partes[] = $nombres;
+        }
+
+        if ($proceso->hechos) {
+            $partes[] = mb_substr(strip_tags($proceso->hechos), 0, 300);
+        }
+
+        return implode(' ', $partes);
     }
 
     /**
@@ -251,7 +267,8 @@ class IAAnalisisSancionService
         $empresa,
         array $historialProcesos,
         string $contextoDescargos,
-        array $sancionesRIT = []
+        array $sancionesRIT = [],
+        string $contextoRITRag = ''
     ): string {
         $hechosTexto = strip_tags($proceso->hechos);
         $sancionesLaborales = $proceso->sanciones_laborales_texto ?? 'No especificado';
@@ -295,8 +312,20 @@ class IAAnalisisSancionService
 
         // Construir sección del RIT de la empresa
         $seccionRIT = '';
-        if (!empty($sancionesRIT['faltas_leves']) || !empty($sancionesRIT['faltas_graves'])) {
-            $seccionRIT = "\n═══════════════════════════════════════════════════════════════════\n";
+
+        // Caso A: fragmentos RAG del documento subido (texto real del RIT)
+        if (!empty($contextoRITRag)) {
+            $seccionRIT  = "\n═══════════════════════════════════════════════════════════════════\n";
+            $seccionRIT .= "EXTRACTOS DEL REGLAMENTO INTERNO DE {$empresa->nombre_completo} (RAG):\n";
+            $seccionRIT .= "═══════════════════════════════════════════════════════════════════\n";
+            $seccionRIT .= $contextoRITRag . "\n";
+            $seccionRIT .= "INSTRUCCIÓN: Estos son fragmentos reales del RIT de la empresa. Úsalos para\n";
+            $seccionRIT .= "determinar qué conductas son faltas, qué sanciones contempla y sus límites.\n";
+            $seccionRIT .= "No sugieras sanciones que el RIT no prevea explícitamente.\n";
+
+        // Caso B: datos estructurados del wizard (construido_ia)
+        } elseif (!empty($sancionesRIT['faltas_leves']) || !empty($sancionesRIT['faltas_graves'])) {
+            $seccionRIT  = "\n═══════════════════════════════════════════════════════════════════\n";
             $seccionRIT .= "RÉGIMEN DISCIPLINARIO DEL RIT DE {$empresa->nombre_completo}:\n";
             $seccionRIT .= "═══════════════════════════════════════════════════════════════════\n";
 
@@ -306,21 +335,18 @@ class IAAnalisisSancionService
                     $seccionRIT .= "  - {$f}\n";
                 }
             }
-
             if (!empty($sancionesRIT['faltas_graves'])) {
                 $seccionRIT .= "FALTAS GRAVES definidas en el RIT:\n";
                 foreach ($sancionesRIT['faltas_graves'] as $f) {
                     $seccionRIT .= "  - {$f}\n";
                 }
             }
-
             if (!empty($sancionesRIT['sanciones'])) {
                 $seccionRIT .= "SANCIONES CONTEMPLADAS en el RIT:\n";
                 foreach ($sancionesRIT['sanciones'] as $s) {
                     $seccionRIT .= "  - {$s}\n";
                 }
             }
-
             $seccionRIT .= "INSTRUCCIÓN: Las sanciones disponibles para tu recomendación final deben respetar\n";
             $seccionRIT .= "lo que el RIT de la empresa contempla. No sugiera sanciones que el RIT no prevea.\n";
         }

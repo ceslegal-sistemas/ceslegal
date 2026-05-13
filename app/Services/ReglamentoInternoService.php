@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\FragmentoReglamento;
 use App\Models\ReglamentoInterno;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpWord\IOFactory;
@@ -10,6 +12,9 @@ use Smalot\PdfParser\Parser as PdfParser;
 
 class ReglamentoInternoService
 {
+    private const PALABRAS_POR_FRAGMENTO = 500;
+    private const PALABRAS_SOLAPAMIENTO  = 60;
+    private const EMBEDDING_MODEL        = 'gemini-embedding-001';
     /**
      * Procesa un archivo (.docx o .pdf), extrae el texto y lo guarda en BD.
      *
@@ -322,6 +327,188 @@ PROMPT;
             'suspension_1_60' => 'Suspensión 1 a 60 días sin sueldo',
             'terminacion'     => 'Terminación del Contrato con Justa Causa',
         ];
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // RAG — Fragmentación, embeddings y búsqueda semántica del RIT subido
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Busca en el RIT usando RAG: fragmenta y embebe si aún no existe caché,
+     * luego recupera los K fragmentos más relevantes para la query dada.
+     * Retorna texto listo para inyectar en el prompt (vacío si no hay resultado).
+     */
+    public function buscarEnRIT(ReglamentoInterno $rit, string $query, int $limite = 4, float $umbral = 0.48): string
+    {
+        if (empty($rit->texto_completo)) {
+            return '';
+        }
+
+        // Generar fragmentos y embeddings la primera vez (lazy)
+        if ($rit->fragmentos()->whereNotNull('embedding')->count() === 0) {
+            $this->generarFragmentosRIT($rit);
+        }
+
+        $queryEmbedding = $this->obtenerEmbedding($query, 'RETRIEVAL_QUERY');
+        if (empty($queryEmbedding)) {
+            return '';
+        }
+
+        $fragmentos = $rit->fragmentos()->whereNotNull('embedding')->get();
+        if ($fragmentos->isEmpty()) {
+            return '';
+        }
+
+        $scored = $fragmentos
+            ->map(fn ($f) => [
+                'fragmento' => $f,
+                'score'     => $this->cosineSimilaridad($queryEmbedding, $f->embedding),
+            ])
+            ->filter(fn ($item) => $item['score'] >= $umbral)
+            ->sortByDesc('score')
+            ->take($limite)
+            ->values();
+
+        if ($scored->isEmpty()) {
+            return '';
+        }
+
+        $lineas = [];
+        foreach ($scored as $item) {
+            $pct = number_format($item['score'] * 100, 0);
+            $lineas[] = "--- [RIT fragmento — relevancia {$pct}%] ---";
+            $lineas[] = trim($item['fragmento']->contenido);
+            $lineas[] = '';
+        }
+
+        return trim(implode("\n", $lineas));
+    }
+
+    /**
+     * Divide el texto en fragmentos de ~500 palabras con solapamiento de 60.
+     * Respeta límites de párrafo para no cortar oraciones a la mitad.
+     */
+    public function chunkear(string $texto): array
+    {
+        $parrafos = preg_split('/\n{2,}/', $texto);
+        $parrafos = array_values(array_filter($parrafos, fn ($p) => str_word_count($p) >= 5));
+
+        $fragmentos = [];
+        $buffer     = [];
+        $palabras   = 0;
+        $cola       = []; // palabras de solapamiento del fragmento anterior
+
+        foreach ($parrafos as $parrafo) {
+            $pw = str_word_count($parrafo);
+
+            if ($palabras + $pw > self::PALABRAS_POR_FRAGMENTO && $palabras >= 20) {
+                $fragmentos[] = implode("\n\n", $buffer);
+                // Solapamiento: últimas PALABRAS_SOLAPAMIENTO palabras
+                $todoTexto = implode(' ', $buffer);
+                $allWords  = explode(' ', $todoTexto);
+                $cola      = array_slice($allWords, -self::PALABRAS_SOLAPAMIENTO);
+                $buffer    = [implode(' ', $cola)];
+                $palabras  = count($cola);
+            }
+
+            $buffer[] = $parrafo;
+            $palabras += $pw;
+        }
+
+        if (!empty($buffer) && $palabras >= 20) {
+            $fragmentos[] = implode("\n\n", $buffer);
+        }
+
+        return $fragmentos;
+    }
+
+    /**
+     * Genera (o regenera) los fragmentos con embeddings del RIT en BD.
+     * Limpia fragmentos anteriores antes de generar los nuevos.
+     */
+    public function generarFragmentosRIT(ReglamentoInterno $rit): int
+    {
+        if (empty($rit->texto_completo)) {
+            return 0;
+        }
+
+        // Limpiar fragmentos anteriores
+        $rit->fragmentos()->delete();
+
+        $fragmentos = $this->chunkear($rit->texto_completo);
+        $guardados  = 0;
+
+        foreach ($fragmentos as $orden => $contenido) {
+            $embedding = $this->obtenerEmbedding($contenido, 'RETRIEVAL_DOCUMENT');
+
+            FragmentoReglamento::create([
+                'reglamento_interno_id' => $rit->id,
+                'orden'                 => $orden + 1,
+                'contenido'             => $contenido,
+                'embedding'             => $embedding ?: null,
+            ]);
+
+            $guardados++;
+        }
+
+        Log::info('ReglamentoInternoService: fragmentos RAG generados', [
+            'reglamento_id' => $rit->id,
+            'empresa_id'    => $rit->empresa_id,
+            'fragmentos'    => $guardados,
+        ]);
+
+        return $guardados;
+    }
+
+    /**
+     * Llama a la API de Gemini Embeddings y retorna el vector.
+     * Cachea 24 h por MD5 del texto para evitar llamadas repetidas.
+     */
+    private function obtenerEmbedding(string $texto, string $taskType = 'RETRIEVAL_DOCUMENT'): array
+    {
+        $cacheKey = 'rit_emb_' . md5($taskType . $texto);
+
+        return Cache::remember($cacheKey, 86400, function () use ($texto, $taskType) {
+            $apiKey = config('services.ia.gemini.api_key', '');
+            $url    = "https://generativelanguage.googleapis.com/v1beta/models/"
+                    . self::EMBEDDING_MODEL
+                    . ":embedContent?key={$apiKey}";
+
+            $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                ->timeout(30)
+                ->post($url, [
+                    'model'   => 'models/' . self::EMBEDDING_MODEL,
+                    'content' => ['parts' => [['text' => mb_substr($texto, 0, 8000)]]],
+                    'taskType' => $taskType,
+                ]);
+
+            if (!$response->successful()) {
+                Log::warning('ReglamentoInternoService: error embedding', [
+                    'status' => $response->status(),
+                ]);
+                return [];
+            }
+
+            return $response->json('embedding.values', []);
+        });
+    }
+
+    /**
+     * Similitud coseno entre dos vectores.
+     */
+    private function cosineSimilaridad(array $a, array $b): float
+    {
+        $dot = $magA = $magB = 0.0;
+        $n   = min(count($a), count($b));
+
+        for ($i = 0; $i < $n; $i++) {
+            $dot  += $a[$i] * $b[$i];
+            $magA += $a[$i] * $a[$i];
+            $magB += $b[$i] * $b[$i];
+        }
+
+        $mag = sqrt($magA) * sqrt($magB);
+        return $mag > 0 ? $dot / $mag : 0.0;
     }
 
     /**

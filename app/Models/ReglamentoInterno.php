@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ReglamentoInterno extends Model
 {
@@ -29,5 +30,10 @@ class ReglamentoInterno extends Model
     public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class);
+    }
+
+    public function fragmentos(): HasMany
+    {
+        return $this->hasMany(FragmentoReglamento::class, 'reglamento_interno_id')->orderBy('orden');
     }
 }
