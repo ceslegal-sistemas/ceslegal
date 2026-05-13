@@ -112,8 +112,9 @@ class IAAnalisisSancionService
     }
 
     /**
-     * Obtiene las sanciones extraídas del RIT de la empresa.
-     * Retorna array con faltas_leves, faltas_graves y sanciones (strings legibles).
+     * Obtiene las sanciones del RIT de la empresa según la fuente activa:
+     * - 'construido_ia' (wizard): usa respuestas_cuestionario (faltas_leves, faltas_graves, sanciones).
+     * - 'subido' (DOCX/PDF):     usa sanciones_extraidas (caché) o extrae del texto con IA.
      */
     private function obtenerSancionesRIT($empresa): array
     {
@@ -123,10 +124,28 @@ class IAAnalisisSancionService
         }
 
         try {
-            return app(ReglamentoInternoService::class)->extraerSancionesParaEmail($rit);
+            $service = app(ReglamentoInternoService::class);
+
+            // Fuente: RIT construido con el wizard de IA
+            if ($rit->fuente === 'construido_ia') {
+                return $service->extraerSancionesParaEmail($rit);
+            }
+
+            // Fuente: documento subido (DOCX/PDF) — usar sanciones extraídas del archivo
+            if (!empty($rit->sanciones_extraidas)) {
+                return $rit->sanciones_extraidas;
+            }
+
+            if (!empty($rit->texto_completo)) {
+                return $service->extraerYPersistirSanciones($rit);
+            }
+
+            return [];
+
         } catch (\Throwable $e) {
             Log::warning('IAAnalisisSancionService: no se pudo obtener sanciones del RIT', [
                 'empresa_id' => $empresa->id,
+                'fuente'     => $rit->fuente ?? 'desconocida',
                 'error'      => $e->getMessage(),
             ]);
             return [];

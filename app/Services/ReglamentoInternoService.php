@@ -93,24 +93,29 @@ class ReglamentoInternoService
      */
     public function extraerSancionesParaEmail(ReglamentoInterno $rit): array
     {
-        // ── Caso 1: wizard — datos ya estructurados ────────────────────────────
-        $cuestionario = $rit->respuestas_cuestionario ?? [];
-        if (!empty($cuestionario['faltas_leves']) || !empty($cuestionario['faltas_graves'])) {
-            $mapa = $this->mapaClavesSanciones();
-            $sancionesRaw = $cuestionario['sanciones_contempladas'] ?? $cuestionario['sanciones'] ?? [];
-            return [
-                'faltas_leves'  => $cuestionario['faltas_leves']  ?? [],
-                'faltas_graves' => $cuestionario['faltas_graves'] ?? [],
-                'sanciones'     => array_map(fn($s) => $mapa[$s] ?? $s, $sancionesRaw),
-            ];
+        // ── Caso 1: wizard (construido_ia) — datos ya estructurados ───────────
+        // Solo se usa si la fuente activa es el wizard; si se subió un documento
+        // posterior, respuestas_cuestionario puede seguir existiendo pero no es
+        // la fuente vigente.
+        if ($rit->fuente !== 'subido') {
+            $cuestionario = $rit->respuestas_cuestionario ?? [];
+            if (!empty($cuestionario['faltas_leves']) || !empty($cuestionario['faltas_graves'])) {
+                $mapa         = $this->mapaClavesSanciones();
+                $sancionesRaw = $cuestionario['sanciones_contempladas'] ?? $cuestionario['sanciones'] ?? [];
+                return [
+                    'faltas_leves'  => $cuestionario['faltas_leves']  ?? [],
+                    'faltas_graves' => $cuestionario['faltas_graves'] ?? [],
+                    'sanciones'     => array_map(fn($s) => $mapa[$s] ?? $s, $sancionesRaw),
+                ];
+            }
         }
 
-        // ── Caso 2: RIT manual con extracción ya guardada en BD ────────────────
+        // ── Caso 2: documento subido con extracción ya guardada en BD ──────────
         if (!empty($rit->sanciones_extraidas)) {
             return $rit->sanciones_extraidas;
         }
 
-        // ── Caso 3: RIT manual sin extracción — extraer y persistir ───────────
+        // ── Caso 3: documento subido sin extracción — extraer con IA y persistir
         if (empty($rit->texto_completo)) {
             return [];
         }
