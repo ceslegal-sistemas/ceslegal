@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ProcesoDisciplinario;
 use App\Models\Trabajador;
+use App\Services\GeminiCircuitBreaker;
 use App\Services\ReglamentoInternoService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -40,69 +41,13 @@ class IAAnalisisSancionService
                 $contextoRITRag
             );
 
-            // Llamar a la API de IA
-            $provider = config('services.ia.provider', 'openai');
-            $config = config("services.ia.{$provider}", []);
-            $apiKey = $config['api_key'];
-            $model = $config['model'];
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
-
             Log::info('Analizando proceso disciplinario para sugerir sanciones', [
                 'proceso_id' => $proceso->id,
                 'trabajador_id' => $trabajador->id,
                 'cantidad_procesos_previos' => count($historialProcesos),
             ]);
 
-            // Reintentos automáticos en 503/429 (alta demanda transitoria de Gemini)
-            $payload = [
-                'contents' => [
-                    [
-                        'parts' => [
-                            ['text' => $prompt]
-                        ]
-                    ]
-                ],
-                'generationConfig' => [
-                    'temperature' => 0.3,
-                    'maxOutputTokens' => max((int) ($config['max_tokens'] ?? 4096), 8192),
-                    'topP' => 0.95,
-                ],
-            ];
-
-            $maxIntentos = 3;
-            $response    = null;
-            for ($intento = 1; $intento <= $maxIntentos; $intento++) {
-                $response = Http::withHeaders(['Content-Type' => 'application/json'])
-                    ->timeout(90)
-                    ->post($url, $payload);
-
-                if ($response->successful()) break;
-
-                $status = $response->status();
-                if (in_array($status, [503, 429]) && $intento < $maxIntentos) {
-                    Log::warning('IAAnalisisSancion: reintentando tras error transitorio', [
-                        'proceso_id' => $proceso->id,
-                        'status'     => $status,
-                        'intento'    => $intento,
-                    ]);
-                    sleep(2 * $intento); // 2 s, 4 s
-                    continue;
-                }
-
-                throw new \Exception("Error en API de IA: " . $response->body());
-            }
-
-            if (!$response->successful()) {
-                throw new \Exception("Error en API de IA tras {$maxIntentos} intentos: " . $response->body());
-            }
-
-            $responseData = $response->json();
-
-            if (!isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
-                throw new \Exception("Respuesta de IA sin contenido válido");
-            }
-
-            $analisisTexto = $responseData['candidates'][0]['content']['parts'][0]['text'];
+            $analisisTexto = $this->llamarGemini($prompt);
 
             // Parsear la respuesta de la IA
             $analisis = $this->parsearAnalisisIA($analisisTexto);
@@ -468,6 +413,91 @@ REGLAS ESTRICTAS:
 - Máximo 150 palabras por campo de texto. No uses saltos de línea dentro de strings JSON.
 - Genera SOLO el JSON, sin markdown ni texto fuera del objeto JSON.
 PROMPT;
+    }
+
+    /**
+     * Llama a la API de Google Gemini con fallback automático entre modelos activos.
+     * Si el modelo principal devuelve 503/404, prueba con el siguiente.
+     * Integra GeminiCircuitBreaker para no martillar la API cuando está caída.
+     *
+     * Modelos activos (abril 2026). gemini-1.5-* y gemini-2.0-* están deprecados.
+     */
+    private function llamarGemini(string $prompt): string
+    {
+        if (GeminiCircuitBreaker::isOpen()) {
+            throw new \Exception('Gemini no disponible temporalmente (circuit breaker abierto)');
+        }
+
+        $config = config('services.ia.gemini', []);
+        $apiKey = $config['api_key'] ?? config('services.ia.' . config('services.ia.provider', 'gemini') . '.api_key');
+
+        $modeloPrincipal = $config['model'] ?? 'gemini-2.5-flash';
+        $modelos = array_unique(array_filter([
+            $modeloPrincipal,
+            'gemini-2.5-flash',
+            'gemini-2.5-flash-lite',
+        ]));
+
+        $payload = [
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt]
+                    ]
+                ]
+            ],
+            'generationConfig' => [
+                'temperature' => 0.3,
+                'maxOutputTokens' => max((int) ($config['max_tokens'] ?? 4096), 8192),
+                'topP' => 0.95,
+            ],
+        ];
+
+        $response = null;
+
+        foreach ($modelos as $modelo) {
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent?key={$apiKey}";
+
+            try {
+                $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                    ->timeout(90)
+                    ->post($url, $payload);
+            } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                Log::warning("IAAnalisisSancion: timeout/conexión en {$modelo}, intentando siguiente modelo", [
+                    'error' => $e->getMessage(),
+                ]);
+                GeminiCircuitBreaker::recordFailure($modelo);
+                $response = null;
+                continue;
+            }
+
+            if (in_array($response->status(), [503, 404])) {
+                Log::warning("IAAnalisisSancion: Gemini {$response->status()} en {$modelo}, intentando siguiente modelo");
+                GeminiCircuitBreaker::recordFailure($modelo);
+                continue;
+            }
+
+            break;
+        }
+
+        if ($response === null) {
+            throw new \Exception('Todos los modelos Gemini fallaron por timeout o error de red');
+        }
+
+        if (!$response->successful()) {
+            GeminiCircuitBreaker::recordFailure($modeloPrincipal);
+            throw new \Exception('Error en API Gemini: ' . $response->body());
+        }
+
+        $responseData = $response->json();
+
+        if (!isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
+            throw new \Exception('Respuesta de Gemini sin contenido válido');
+        }
+
+        GeminiCircuitBreaker::recordSuccess();
+
+        return $responseData['candidates'][0]['content']['parts'][0]['text'];
     }
 
     /**
