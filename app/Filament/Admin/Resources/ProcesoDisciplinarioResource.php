@@ -1992,8 +1992,8 @@ class ProcesoDisciplinarioResource extends Resource
                                     Forms\Components\Placeholder::make('declaracion_texto')
                                         ->hiddenLabel()
                                         ->content(fn() => new \Illuminate\Support\HtmlString(
-                                            '<div style="padding:14px 16px;background:rgba(129,140,248,0.08);border-radius:12px;border:1px solid rgba(129,140,248,0.25);border-left:3px solid #818cf8;">' .
-                                            '<p style="font-size:12px;font-weight:700;color:#818cf8;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 6px;">Declaración del Autorizador</p>' .
+                                            '<div style="padding:14px 16px;background:rgba(255,255,255,0.04);border-radius:12px;border:1px solid rgba(255,255,255,0.10);border-left:3px solid rgba(255,255,255,0.25);">' .
+                                            '<p style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.38);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px;">Declaración del Autorizador</p>' .
                                             '<p style="font-size:13px;color:rgba(255,255,255,0.72);line-height:1.6;margin:0;">Al marcar la casilla a continuación, declaro que tengo la potestad disciplinaria para emitir esta sanción, que he revisado los hechos del proceso y las evidencias aportadas, y que autorizo expresamente la emisión de esta decisión disciplinaria. Entiendo que esta acción queda registrada con fecha, hora e imagen de verificación como parte del expediente del proceso.</p>' .
                                             '</div>'
                                         )),

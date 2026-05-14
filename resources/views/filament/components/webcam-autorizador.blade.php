@@ -58,15 +58,17 @@
              recortado:   'Centre su rostro completamente en el óvalo',
              perfil:      'Mire directamente a la cámara (foto de frente)',
              ok:          'Listo — tome la foto ahora',
+             sin_modelo:  'Verificación automática no disponible',
          },
 
          colorEstado: {
-             esperando:  'rgba(255,255,255,0.45)',
-             sin_rostro: '#f87171',
-             muy_lejos:  '#fbbf24',
-             recortado:  '#fb923c',
-             perfil:     '#fb923c',
-             ok:         '#4ade80',
+             esperando:   'rgba(255,255,255,0.45)',
+             sin_rostro:  '#f87171',
+             muy_lejos:   '#fbbf24',
+             recortado:   '#fb923c',
+             perfil:      '#fb923c',
+             ok:          '#4ade80',
+             sin_modelo:  'rgba(255,255,255,0.45)',
          },
 
          get colorEncuadre() {
@@ -98,9 +100,10 @@
                  this.iniciarDeteccion();
                  this.iniciarDeteccionAccesorios();
              } catch (e) {
-                 // fail-open: si los modelos no cargan, permitir continuar
+                 // fail-open: modelos no disponibles — se permite la foto pero se advierte
+                 // NO poner estadoRostro = 'ok' para no saltarse la validación silenciosamente
                  this.modelsCargados = true;
-                 this.estadoRostro = 'ok';
+                 this.estadoRostro = 'sin_modelo';
                  this.iniciarDeteccionAccesorios();
              }
          },
@@ -136,10 +139,11 @@
 
                      // ③ Cara fuera del óvalo — el centro facial debe quedar dentro del óvalo
                      // Óvalo SVG: cx=50%, cy=36/75≈48%, rx=23%, ry=29/75≈38.7%
+                     // Tolerancias = dimensiones del óvalo × 1.15 (margen mínimo de holgura)
                      const faceCx = (box.x + box.width  / 2) / vw;
                      const faceCy = (box.y + box.height / 2) / vh;
-                     const dxN = (faceCx - 0.50) / 0.30; // tolerancia ±30% horizontal
-                     const dyN = (faceCy - 0.48) / 0.48; // tolerancia ±48% vertical
+                     const dxN = (faceCx - 0.50) / 0.265; // ±26.5% horizontal
+                     const dyN = (faceCy - 0.48) / 0.445; // ±44.5% vertical
                      if (dxN * dxN + dyN * dyN > 1.0) {
                          this.estadoRostro = 'recortado'; return;
                      }
@@ -329,6 +333,10 @@
                               x-text="alertaAccesorios"
                               class="wca-badge" style="background:rgba(180,83,9,0.90);color:white;max-width:280px;text-align:center;white-space:normal;display:none;">
                         </span>
+                        <span x-show="estadoRostro === 'sin_modelo'"
+                              class="wca-badge" style="background:rgba(75,85,99,0.88);color:rgba(255,255,255,0.80);display:none;">
+                            Verificación automática no disponible — puede tomar la foto
+                        </span>
                     </div>
                 </div>
 
@@ -346,10 +354,10 @@
                 {{-- Botón tomar foto --}}
                 <div style="display:flex;justify-content:center;">
                     <button type="button"
-                            :disabled="estadoRostro !== 'ok' || !!alertaAccesorios || revisandoAccesorios"
+                            :disabled="(estadoRostro !== 'ok' && estadoRostro !== 'sin_modelo') || !!alertaAccesorios || revisandoAccesorios"
                             @click.prevent="tomarFoto()"
                             class="wca-btn-primary"
-                            :style="(estadoRostro === 'ok' && !alertaAccesorios && !revisandoAccesorios)
+                            :style="((estadoRostro === 'ok' || estadoRostro === 'sin_modelo') && !alertaAccesorios && !revisandoAccesorios)
                                 ? 'background:#6366f1;color:white;'
                                 : 'background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.35);'">
 
