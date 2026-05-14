@@ -30,6 +30,12 @@ class AdminPanelProvider extends PanelProvider
 {
     public function boot(): void
     {
+        // Lordicon — iconos animados usados en modales y tarjetas
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            fn(): string => '<script src="https://cdn.lordicon.com/lordicon.js"></script>',
+        );
+
         // Incluir Driver.js para tours de onboarding
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,

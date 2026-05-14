@@ -1826,12 +1826,19 @@ class ProcesoDisciplinarioResource extends Resource
                     ->form(function (ProcesoDisciplinario $record) {
                         // Cachear el análisis en sesión para evitar re-llamadas a la IA
                         // cuando ->live() en ToggleButtons dispara un re-render de Livewire.
+                        // NO se cachea si la IA devolvió datos de fallback (análisis fallido).
                         $cacheKey = 'emitir_sancion_analisis_' . $record->id;
                         $resultado = session($cacheKey);
                         if (!$resultado || !is_array($resultado) || !isset($resultado['analisis'])) {
                             $iaService = new \App\Services\IAAnalisisSancionService();
                             $resultado = $iaService->analizarYSugerirSanciones($record);
-                            session([$cacheKey => $resultado]);
+                            $esFallback = str_contains(
+                                $resultado['analisis']['justificacion'] ?? '',
+                                'Análisis manual requerido'
+                            );
+                            if (!$esFallback) {
+                                session([$cacheKey => $resultado]);
+                            }
                         }
                         $analisis = $resultado['analisis'];
 
@@ -1850,78 +1857,14 @@ class ProcesoDisciplinarioResource extends Resource
                         $iaRecomendada      = $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null;
                         $autoridadRit       = $analisis['autoridad_sancion'] ?? [];
 
-                        // Lordicon script (una sola vez)
-                        $lordScript = '<script>if(!window._liLoaded){window._liLoaded=true;var s=document.createElement("script");s.src="https://cdn.lordicon.com/lordicon.js";document.head.appendChild(s);}</script>';
-
                         return [
-                            // ── Tarjeta: Análisis del Caso ───────────────────────────────────
-                            Forms\Components\Placeholder::make('analisis_card')
+                            // ── Tarjetas: Análisis + Recomendación (Blade view) ──────────────
+                            Forms\Components\Placeholder::make('analisis_recomendacion_cards')
                                 ->hiddenLabel()
-                                ->content(function () use ($analisis, $lordScript) {
-                                    $gravedad = $analisis['gravedad'] ?? 'leve';
-                                    $nivel    = $analisis['nivel_gravedad'] ?? null;
-
-                                    [$badgeLabel, $badgeBg, $badgeText] = match (true) {
-                                        $gravedad === 'leve'                       => ['Falta Leve',         'bg-green-100 dark:bg-green-900/30',   'text-green-800 dark:text-green-300 border border-green-300 dark:border-green-700'],
-                                        $gravedad === 'grave' && $nivel === 'alto' => ['Falta Grave — Alta', 'bg-red-100 dark:bg-red-900/30',       'text-red-800 dark:text-red-300 border border-red-300 dark:border-red-700'],
-                                        $gravedad === 'grave'                      => ['Falta Grave',        'bg-yellow-100 dark:bg-yellow-900/30', 'text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700'],
-                                        default                                    => [ucfirst($gravedad),   'bg-gray-100 dark:bg-gray-800',        'text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600'],
-                                    };
-
-                                    $reincBadge = ($analisis['es_reincidencia'] ?? false)
-                                        ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700">Reincidencia</span>'
-                                        : '';
-
-                                    $justificacion = e($analisis['justificacion'] ?? 'Análisis en proceso.');
-
-                                    $html  = $lordScript;
-                                    $html .= '<div class="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700">';
-                                    $html .= '<lord-icon src="https://cdn.lordicon.com/edcgvlnw.json" trigger="loop" delay="1000" stroke="bold" colors="primary:#6366f1,secondary:#a5b4fc" style="width:48px;height:48px;flex-shrink:0;margin-top:2px"></lord-icon>';
-                                    $html .= '<div class="flex-1 min-w-0">';
-                                    $html .= '<div class="flex items-center gap-2 flex-wrap mb-1.5">';
-                                    $html .= "<span class='text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400'>Gravedad de la falta</span>";
-                                    $html .= "<span class='px-2.5 py-0.5 rounded-full text-xs font-bold {$badgeBg} {$badgeText}'>{$badgeLabel}</span>";
-                                    $html .= $reincBadge;
-                                    $html .= '</div>';
-                                    $html .= "<p class='text-sm text-gray-700 dark:text-gray-300 leading-relaxed'>{$justificacion}</p>";
-                                    $html .= '</div></div>';
-                                    return new \Illuminate\Support\HtmlString($html);
-                                }),
-
-                            // ── Tarjeta: Recomendación de la IA ──────────────────────────────
-                            Forms\Components\Placeholder::make('recomendacion_card')
-                                ->hiddenLabel()
-                                ->content(function () use ($recomendacionFinal, $analisis) {
-                                    $sancion = $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null;
-
-                                    [$label, $colorBg, $colorText, $colorBorder, $lordSrc, $lordColors] = match ($sancion) {
-                                        'llamado_atencion' => ['Llamado de Atención',     'bg-blue-50 dark:bg-blue-900/20',   'text-blue-900 dark:text-blue-100',   'border-blue-300 dark:border-blue-700',   'jdgfsfzr.json', 'primary:#1d4ed8,secondary:#93c5fd'],
-                                        'suspension'       => ['Suspensión Laboral',      'bg-yellow-50 dark:bg-yellow-900/20','text-yellow-900 dark:text-yellow-100','border-yellow-300 dark:border-yellow-700','hmpomorl.json', 'primary:#b45309,secondary:#fcd34d'],
-                                        'terminacion'      => ['Terminación de Contrato', 'bg-red-50 dark:bg-red-900/20',     'text-red-900 dark:text-red-100',     'border-red-300 dark:border-red-700',     'hmpomorl.json', 'primary:#b91c1c,secondary:#fca5a5'],
-                                        default            => ['No determinado',           'bg-gray-50 dark:bg-gray-800',      'text-gray-900 dark:text-gray-100',   'border-gray-300 dark:border-gray-600',   'edcgvlnw.json', 'primary:#6366f1,secondary:#a5b4fc'],
-                                    };
-
-                                    $diasTexto = '';
-                                    if ($sancion === 'suspension' && ($recomendacionFinal['dias_suspension'] ?? null)) {
-                                        $d = $recomendacionFinal['dias_suspension'];
-                                        $diasTexto = " · {$d} día" . ($d > 1 ? 's' : '');
-                                    }
-
-                                    $mensaje = e($recomendacionFinal['mensaje_para_decision'] ?? $analisis['consideraciones_especiales'] ?? '');
-
-                                    $html  = "<div class='p-4 rounded-xl border {$colorBg} {$colorBorder}'>";
-                                    $html .= '<div class="flex items-center gap-3 mb-2">';
-                                    $html .= "<lord-icon src=\"https://cdn.lordicon.com/{$lordSrc}\" trigger=\"loop\" delay=\"1200\" stroke=\"bold\" colors=\"{$lordColors}\" style=\"width:40px;height:40px;flex-shrink:0\"></lord-icon>";
-                                    $html .= '<div>';
-                                    $html .= "<p class='text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400'>Recomendación de la IA</p>";
-                                    $html .= "<p class='text-base font-bold {$colorText}'>{$label}{$diasTexto}</p>";
-                                    $html .= '</div></div>';
-                                    if ($mensaje) {
-                                        $html .= "<p class='text-sm {$colorText} opacity-80 leading-relaxed'>{$mensaje}</p>";
-                                    }
-                                    $html .= '</div>';
-                                    return new \Illuminate\Support\HtmlString($html);
-                                }),
+                                ->content(fn() => view('filament.components.emitir-sancion-analisis', [
+                                    'analisis'      => $analisis,
+                                    'recomendacion' => $recomendacionFinal,
+                                ])),
 
                             // ── Aviso sin RIT ─────────────────────────────────────────────────
                             Forms\Components\Section::make('Empresa sin Reglamento Interno de Trabajo')
