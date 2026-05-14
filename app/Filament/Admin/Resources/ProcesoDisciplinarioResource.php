@@ -1923,7 +1923,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     'suspension'       => 'heroicon-o-clock',
                                     'terminacion'      => 'heroicon-o-x-circle',
                                 ])
-                                ->grouped()
+                                ->columns(['default' => 1, 'sm' => 3])
                                 ->default($iaRecomendada)
                                 ->live()
                                 ->required(),
