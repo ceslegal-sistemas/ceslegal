@@ -125,7 +125,7 @@
                      const ratio = (box.width * box.height) / (vw * vh);
                      if (ratio < 0.08) { this.estadoRostro = 'muy_lejos'; return; }
 
-                     // ② Cara recortada en los bordes del frame
+                     // ② Cara recortada en los bordes del frame (margen 5%)
                      const em = 0.05;
                      if (box.x / vw < em ||
                          (box.x + box.width)  / vw > (1 - em) ||
@@ -134,13 +134,23 @@
                          this.estadoRostro = 'recortado'; return;
                      }
 
-                     // ③ Ojos no visibles / cara tapada
+                     // ③ Cara fuera del óvalo — el centro facial debe quedar dentro del óvalo
+                     // Óvalo SVG: cx=50%, cy=36/75≈48%, rx=23%, ry=29/75≈38.7%
+                     const faceCx = (box.x + box.width  / 2) / vw;
+                     const faceCy = (box.y + box.height / 2) / vh;
+                     const dxN = (faceCx - 0.50) / 0.30; // tolerancia ±30% horizontal
+                     const dyN = (faceCy - 0.48) / 0.48; // tolerancia ±48% vertical
+                     if (dxN * dxN + dyN * dyN > 1.0) {
+                         this.estadoRostro = 'recortado'; return;
+                     }
+
+                     // ④ Ojos no visibles / cara tapada
                      const lEye = detection.landmarks.getLeftEye();
                      const rEye = detection.landmarks.getRightEye();
                      const eyeSep = Math.abs(rEye[0].x - lEye[0].x);
                      if (eyeSep < box.width * 0.18) { this.estadoRostro = 'sin_rostro'; return; }
 
-                     // ④ Foto de perfil — nariz no centrada entre los ojos
+                     // ⑤ Foto de perfil — nariz no centrada entre los ojos
                      const nose  = detection.landmarks.getNose();
                      const lCx   = lEye.reduce((s, p) => s + p.x, 0) / lEye.length;
                      const rCx   = rEye.reduce((s, p) => s + p.x, 0) / rEye.length;
@@ -207,12 +217,15 @@
          },
 
          volverATomarFoto() {
-             // El video SIEMPRE está en el DOM (x-show), el stream sigue activo
-             this.fotoCapturada    = null;
-             this.alertaAccesorios = '';
-             this.estadoRostro     = 'esperando';
+             // Limpiar estado — resetear flags que pueden quedar bloqueados
+             this.fotoCapturada           = null;
+             this.alertaAccesorios        = '';
+             this.estadoRostro            = 'esperando';
+             this.revisandoAccesorios     = false;   // por si tomarFoto lo dejó true
+             this.verificandoAccesoriosVivo = false; // evita que el nuevo intervalo quede bloqueado
              // No llamar $wire.$set(null) — evita re-render innecesario
-             // No reiniciar cámara — el stream sigue activo
+             // No reiniciar cámara — el stream sigue activo gracias a x-show
+             this.detenerDeteccion(); // limpiar cualquier intervalo anterior
              this.iniciarDeteccion();
              this.iniciarDeteccionAccesorios();
          },

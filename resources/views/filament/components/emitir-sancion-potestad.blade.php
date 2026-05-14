@@ -1,6 +1,7 @@
 {{--
     Tarjeta de Potestad Disciplinaria según el RIT
     Variables esperadas: $autoridadRit (array), $opcionesSancion (array)
+    Paleta: marco blanco/negro, colores solo en los tipos de sanción
 --}}
 @php
     $autoridad = $autoridadRit   ?? [];
@@ -30,7 +31,7 @@
 <style>
 .esp-card {
     border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.08);
     overflow: hidden;
     position: relative;
 }
@@ -39,14 +40,14 @@
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent);
 }
-.esp-label {
+.esp-label-top {
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.35);
+    color: rgba(255,255,255,0.30);
     margin: 0 0 4px;
 }
 .esp-row {
@@ -70,26 +71,26 @@
 </style>
 
 <div class="esp-card"
-     style="background: linear-gradient(135deg, rgba(129,140,248,0.09) 0%, rgba(255,255,255,0.015) 100%);
-            border-left: 3px solid #818cf8;">
+     style="background: linear-gradient(135deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.01) 100%);
+            border-left: 3px solid rgba(255,255,255,0.20);">
     <div style="padding: 16px 18px;">
 
         {{-- Header --}}
         <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:{{ count($filas) ? '14px' : '0' }};">
             <lord-icon
                 src="https://cdn.lordicon.com/jdgfsfzr.json"
-                trigger="loop" delay="1400" stroke="bold"
-                colors="primary:#818cf8,secondary:#c7d2fe"
-                style="width:38px;height:38px;flex-shrink:0;margin-top:-2px">
+                trigger="loop" delay="1600" stroke="bold"
+                colors="primary:rgba(255,255,255,0.80),secondary:rgba(255,255,255,0.40)"
+                style="width:36px;height:36px;flex-shrink:0;margin-top:-2px">
             </lord-icon>
             <div style="flex:1;min-width:0;">
-                <p class="esp-label">Potestad disciplinaria</p>
-                <p style="font-size:16px;font-weight:800;color:#818cf8;line-height:1.2;margin:0;">
+                <p class="esp-label-top">Potestad disciplinaria</p>
+                <p style="font-size:15px;font-weight:800;color:rgba(255,255,255,0.88);line-height:1.2;margin:0;">
                     Quién puede autorizar según el RIT
                 </p>
                 @if($todoVacio)
-                    <p style="font-size:12px;color:rgba(255,255,255,0.40);margin:4px 0 0;line-height:1.5;">
-                        El RIT no detalla las potestades disciplinarias para estos tipos de sanción.
+                    <p style="font-size:12px;color:rgba(255,255,255,0.38);margin:4px 0 0;line-height:1.5;font-style:italic;">
+                        El RIT no detalla potestades disciplinarias para estos tipos de sanción.
                         Verifique el reglamento interno directamente.
                     </p>
                 @endif
@@ -101,10 +102,10 @@
             <div class="esp-row">
                 <span class="esp-dot" style="background:{{ $fila['accent'] }};"></span>
                 <div style="flex:1;min-width:0;">
-                    <p style="font-size:11px;font-weight:700;color:{{ $fila['accent'] }};margin:0 0 3px;text-transform:uppercase;letter-spacing:0.04em;">
+                    <p style="font-size:11px;font-weight:700;color:{{ $fila['accent'] }};margin:0 0 3px;text-transform:uppercase;letter-spacing:0.05em;">
                         {{ $fila['label'] }}
                     </p>
-                    <p style="font-size:13px;color:{{ $fila['vacio'] ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.72)' }};margin:0;line-height:1.5;font-style:{{ $fila['vacio'] ? 'italic' : 'normal' }};">
+                    <p style="font-size:13px;color:{{ $fila['vacio'] ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.75)' }};margin:0;line-height:1.5;font-style:{{ $fila['vacio'] ? 'italic' : 'normal' }};">
                         {{ $fila['texto'] }}
                     </p>
                 </div>

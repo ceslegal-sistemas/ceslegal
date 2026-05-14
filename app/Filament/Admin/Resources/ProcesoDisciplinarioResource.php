@@ -1941,12 +1941,18 @@ class ProcesoDisciplinarioResource extends Resource
                                     Forms\Components\Placeholder::make('exoneracion_aviso')
                                         ->hiddenLabel()
                                         ->content(fn() => new \Illuminate\Support\HtmlString(
-                                            '<div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border-2 border-red-400 dark:border-red-600">' .
-                                            '<p class="font-bold text-red-800 dark:text-red-200 text-base mb-2">Advertencia Legal</p>' .
-                                            '<p class="text-sm text-red-700 dark:text-red-300">' .
+                                            '<div style="padding:16px 18px;background:rgba(239,68,68,0.11);border-radius:14px;' .
+                                            'border:1px solid rgba(239,68,68,0.22);border-left:3px solid #f87171;">' .
+                                            '<div style="display:flex;align-items:flex-start;gap:12px;">' .
+                                            '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="800" stroke="bold" ' .
+                                            'colors="primary:#f87171,secondary:#fca5a5" style="width:36px;height:36px;flex-shrink:0;margin-top:-2px"></lord-icon>' .
+                                            '<div style="flex:1;min-width:0;">' .
+                                            '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.35);margin:0 0 4px;">Advertencia Legal</p>' .
+                                            '<p style="font-size:15px;font-weight:800;color:#f87171;margin:0 0 10px;line-height:1.2;">Decisión contraria a la recomendación jurídica</p>' .
+                                            '<p style="font-size:13px;color:rgba(255,255,255,0.70);line-height:1.6;margin:0;">' .
                                             'La decisión que está tomando va en contra de la recomendación jurídica emitida por el sistema de inteligencia artificial de CES Legal. ' .
-                                            'CES Legal no se responsabiliza por las consecuencias legales, laborales o judiciales derivadas de esta decisión.' .
-                                            '</p></div>'
+                                            '<strong style="color:rgba(255,160,160,0.95);">CES Legal no se responsabiliza por las consecuencias legales, laborales o judiciales derivadas de esta decisión.</strong>' .
+                                            '</p></div></div></div>'
                                         )),
 
                                     Forms\Components\Textarea::make('razon_divergencia')
