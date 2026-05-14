@@ -11,7 +11,7 @@
     if (!window._faceApiAutLoaded) {
         window._faceApiAutLoaded = true;
         var s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js';
+        s.src = '{{ asset('vendor/face-api/face-api.js') }}';
         document.head.appendChild(s);
     }
 </script>
@@ -95,8 +95,8 @@
          async cargarModelos() {
              try {
                  await Promise.all([
-                     faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'),
-                     faceapi.nets.faceLandmark68TinyNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'),
+                     faceapi.nets.tinyFaceDetector.loadFromUri('{{ asset('vendor/face-api/model') }}'),
+                     faceapi.nets.faceLandmark68TinyNet.loadFromUri('{{ asset('vendor/face-api/model') }}'),
                  ]);
                  this.modelsCargados = true;
                  this.iniciarDeteccion();

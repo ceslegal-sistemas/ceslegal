@@ -1832,13 +1832,13 @@ class ProcesoDisciplinarioResource extends Resource
                         if (!$resultado || !is_array($resultado) || !isset($resultado['analisis'])) {
                             $iaService = new \App\Services\IAAnalisisSancionService();
                             $resultado = $iaService->analizarYSugerirSanciones($record);
-                            $esFallback = str_contains(
-                                $resultado['analisis']['justificacion'] ?? '',
-                                'Análisis manual requerido'
-                            );
+                            $esFallback = !($resultado['success'] ?? false)
+                                || str_contains($resultado['analisis']['justificacion'] ?? '', 'Análisis manual requerido');
                             if (!$esFallback) {
                                 session([$cacheKey => $resultado]);
                             }
+                        } else {
+                            $esFallback = false; // viene de caché = ya fue exitoso
                         }
                         $analisis = $resultado['analisis'];
 
@@ -1853,18 +1853,21 @@ class ProcesoDisciplinarioResource extends Resource
                                 'terminacion'      => 'Terminación de Contrato',
                             ];
 
-                        $recomendacionFinal = $analisis['recomendacion_final'] ?? null;
-                        $iaRecomendada      = $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null;
-                        $autoridadRit       = $analisis['autoridad_sancion'] ?? [];
+                        // Si la IA no estuvo disponible: no preseleccionar ni mostrar análisis engañoso
+                        $recomendacionFinal = $esFallback ? null : ($analisis['recomendacion_final'] ?? null);
+                        $iaRecomendada      = $esFallback ? null : ($recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null);
+                        $autoridadRit       = $esFallback ? [] : ($analisis['autoridad_sancion'] ?? []);
 
                         return [
-                            // ── Tarjetas: Análisis + Recomendación (Blade view) ──────────────
+                            // ── Tarjetas: Análisis + Recomendación (o error IA) ──────────────
                             Forms\Components\Placeholder::make('analisis_recomendacion_cards')
                                 ->hiddenLabel()
-                                ->content(fn() => view('filament.components.emitir-sancion-analisis', [
-                                    'analisis'      => $analisis,
-                                    'recomendacion' => $recomendacionFinal,
-                                ])),
+                                ->content(fn() => $esFallback
+                                    ? view('filament.components.emitir-sancion-ia-error')
+                                    : view('filament.components.emitir-sancion-analisis', [
+                                        'analisis'      => $analisis,
+                                        'recomendacion' => $recomendacionFinal,
+                                    ])),
 
                             // ── Aviso sin RIT ─────────────────────────────────────────────────
                             Forms\Components\Section::make('Empresa sin Reglamento Interno de Trabajo')

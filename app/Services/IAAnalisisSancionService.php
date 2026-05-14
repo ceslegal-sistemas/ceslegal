@@ -53,9 +53,8 @@ class IAAnalisisSancionService
                 'cantidad_procesos_previos' => count($historialProcesos),
             ]);
 
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])->timeout(90)->post($url, [
+            // Reintentos automáticos en 503/429 (alta demanda transitoria de Gemini)
+            $payload = [
                 'contents' => [
                     [
                         'parts' => [
@@ -68,10 +67,33 @@ class IAAnalisisSancionService
                     'maxOutputTokens' => max((int) ($config['max_tokens'] ?? 4096), 8192),
                     'topP' => 0.95,
                 ],
-            ]);
+            ];
+
+            $maxIntentos = 3;
+            $response    = null;
+            for ($intento = 1; $intento <= $maxIntentos; $intento++) {
+                $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                    ->timeout(90)
+                    ->post($url, $payload);
+
+                if ($response->successful()) break;
+
+                $status = $response->status();
+                if (in_array($status, [503, 429]) && $intento < $maxIntentos) {
+                    Log::warning('IAAnalisisSancion: reintentando tras error transitorio', [
+                        'proceso_id' => $proceso->id,
+                        'status'     => $status,
+                        'intento'    => $intento,
+                    ]);
+                    sleep(2 * $intento); // 2 s, 4 s
+                    continue;
+                }
+
+                throw new \Exception("Error en API de IA: " . $response->body());
+            }
 
             if (!$response->successful()) {
-                throw new \Exception("Error en API de IA: " . $response->body());
+                throw new \Exception("Error en API de IA tras {$maxIntentos} intentos: " . $response->body());
             }
 
             $responseData = $response->json();
