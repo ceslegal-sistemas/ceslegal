@@ -8,11 +8,22 @@
     - Texto con contraste explícito para modo oscuro
 --}}
 <script>
+    // Carga face-api.js una sola vez y expone una Promise global para esperarla.
+    // Evita la condición de carrera: cargarModelos() awaita _faceApiReady
+    // antes de intentar usar faceapi.nets.*, que antes causaba ReferenceError
+    // y dejaba estadoRostro = 'sin_modelo' aunque los modelos existan.
     if (!window._faceApiAutLoaded) {
         window._faceApiAutLoaded = true;
-        var s = document.createElement('script');
-        s.src = '{{ asset('vendor/face-api/face-api.js') }}';
-        document.head.appendChild(s);
+        window._faceApiReady = new Promise(function(resolve, reject) {
+            var s = document.createElement('script');
+            s.src = '{{ asset('vendor/face-api/face-api.js') }}';
+            s.onload  = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+        });
+    } else if (!window._faceApiReady) {
+        // Script ya fue inyectado en una carga previa — ya está disponible
+        window._faceApiReady = Promise.resolve();
     }
 </script>
 
@@ -94,6 +105,9 @@
 
          async cargarModelos() {
              try {
+                 // Esperar a que el script de face-api termine de cargarse
+                 // antes de intentar usar faceapi.nets (evita ReferenceError)
+                 await (window._faceApiReady || Promise.resolve());
                  await Promise.all([
                      faceapi.nets.tinyFaceDetector.loadFromUri('{{ asset('vendor/face-api/model') }}'),
                      faceapi.nets.faceLandmark68TinyNet.loadFromUri('{{ asset('vendor/face-api/model') }}'),
@@ -104,6 +118,7 @@
              } catch (e) {
                  // fail-open: modelos no disponibles — se permite la foto pero se advierte
                  // NO poner estadoRostro = 'ok' para no saltarse la validación silenciosamente
+                 console.error('face-api: error cargando modelos', e);
                  this.modelsCargados = true;
                  this.estadoRostro = 'sin_modelo';
                  this.iniciarDeteccionAccesorios();
