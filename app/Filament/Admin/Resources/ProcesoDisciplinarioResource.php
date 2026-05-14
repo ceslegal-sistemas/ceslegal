@@ -1824,15 +1824,20 @@ class ProcesoDisciplinarioResource extends Resource
                     ->icon('heroicon-o-shield-exclamation')
                     ->color('danger')
                     ->form(function (ProcesoDisciplinario $record) {
-                        // Analizar proceso con IA para obtener sanciones apropiadas
-                        $iaService = new \App\Services\IAAnalisisSancionService();
-                        $resultado = $iaService->analizarYSugerirSanciones($record);
+                        // Cachear el análisis en sesión para evitar re-llamadas a la IA
+                        // cuando ->live() en ToggleButtons dispara un re-render de Livewire.
+                        $cacheKey = 'emitir_sancion_analisis_' . $record->id;
+                        $resultado = session($cacheKey);
+                        if (!$resultado || !is_array($resultado) || !isset($resultado['analisis'])) {
+                            $iaService = new \App\Services\IAAnalisisSancionService();
+                            $resultado = $iaService->analizarYSugerirSanciones($record);
+                            session([$cacheKey => $resultado]);
+                        }
                         $analisis = $resultado['analisis'];
 
-                        // Verificar si la empresa tiene Reglamento Interno de Trabajo activo
+                        // ¿Tiene RIT activo?
                         $sinRit = !$record->empresa->reglamentoInterno()->where('activo', true)->exists();
 
-                        // Sin RIT: solo se puede terminar el contrato (Art. 62 CST).
                         $opcionesSancion = $sinRit
                             ? ['terminacion' => 'Terminación de Contrato (Art. 62 CST)']
                             : [
@@ -1841,158 +1846,106 @@ class ProcesoDisciplinarioResource extends Resource
                                 'terminacion'      => 'Terminación de Contrato',
                             ];
 
-                        // Construir opciones de días de suspensión si aplica
-                        $opcionesDiasSuspension = [];
-                        if (isset($analisis['dias_suspension_sugeridos'])) {
-                            foreach ($analisis['dias_suspension_sugeridos'] as $dias) {
-                                $opcionesDiasSuspension[$dias] = "{$dias} día" . ($dias > 1 ? 's' : '');
-                            }
-                        }
-
                         $recomendacionFinal = $analisis['recomendacion_final'] ?? null;
-                        $iaRecomendada = $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null;
-                        $autoridadRit = $analisis['autoridad_sancion'] ?? [];
+                        $iaRecomendada      = $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null;
+                        $autoridadRit       = $analisis['autoridad_sancion'] ?? [];
 
-                        // Descriptions for Radio options
-                        $descripcionesOpciones = [];
-                        foreach (array_keys($opcionesSancion) as $opcion) {
-                            $descripcionesOpciones[$opcion] = ($iaRecomendada === $opcion)
-                                ? '✅ Recomendado por la IA para este caso'
-                                : '⚠️ La IA no recomienda esta sanción para el nivel de gravedad detectado';
-                        }
+                        // Lordicon script (una sola vez)
+                        $lordScript = '<script>if(!window._liLoaded){window._liLoaded=true;var s=document.createElement("script");s.src="https://cdn.lordicon.com/lordicon.js";document.head.appendChild(s);}</script>';
 
                         return [
-                            // ── Análisis del Caso ─────────────────────────────────────────────
-                            Forms\Components\Section::make('Análisis del Caso')
-                                ->icon('heroicon-o-cpu-chip')
-                                ->schema([
-                                    Forms\Components\Placeholder::make('gravedad_info')
-                                        ->label('Gravedad de la Falta')
-                                        ->content(function () use ($analisis) {
-                                            $nivel = $analisis['nivel_gravedad'] ?? 'ninguno';
+                            // ── Tarjeta: Análisis del Caso ───────────────────────────────────
+                            Forms\Components\Placeholder::make('analisis_card')
+                                ->hiddenLabel()
+                                ->content(function () use ($analisis, $lordScript) {
+                                    $gravedad = $analisis['gravedad'] ?? 'leve';
+                                    $nivel    = $analisis['nivel_gravedad'] ?? null;
 
-                                            if ($analisis['gravedad'] === 'leve') {
-                                                $dot  = '<span class="inline-block w-2.5 h-2.5 rounded-full bg-green-500 mr-1.5 align-middle"></span>';
-                                                $text = '<strong class="text-green-700 dark:text-green-400">Leve</strong>';
-                                            } elseif ($analisis['gravedad'] === 'grave') {
-                                                if ($nivel === 'alto') {
-                                                    $dot  = '<span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 mr-1.5 align-middle"></span>';
-                                                    $text = '<strong class="text-red-700 dark:text-red-400">Grave (Nivel Alto)</strong>';
-                                                } else {
-                                                    $dot  = '<span class="inline-block w-2.5 h-2.5 rounded-full bg-yellow-500 mr-1.5 align-middle"></span>';
-                                                    $text = '<strong class="text-yellow-700 dark:text-yellow-400">Grave' . ($nivel === 'bajo' ? ' (Nivel Bajo)' : '') . '</strong>';
-                                                }
-                                            } else {
-                                                $dot  = '';
-                                                $text = '<span>' . ucfirst($analisis['gravedad']) . '</span>';
-                                            }
+                                    [$badgeLabel, $badgeBg, $badgeText] = match (true) {
+                                        $gravedad === 'leve'                       => ['Falta Leve',         'bg-green-100 dark:bg-green-900/30',   'text-green-800 dark:text-green-300 border border-green-300 dark:border-green-700'],
+                                        $gravedad === 'grave' && $nivel === 'alto' => ['Falta Grave — Alta', 'bg-red-100 dark:bg-red-900/30',       'text-red-800 dark:text-red-300 border border-red-300 dark:border-red-700'],
+                                        $gravedad === 'grave'                      => ['Falta Grave',        'bg-yellow-100 dark:bg-yellow-900/30', 'text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700'],
+                                        default                                    => [ucfirst($gravedad),   'bg-gray-100 dark:bg-gray-800',        'text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600'],
+                                    };
 
-                                            $html = '<span class="inline-flex items-center">' . $dot . $text . '</span>';
+                                    $reincBadge = ($analisis['es_reincidencia'] ?? false)
+                                        ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700">Reincidencia</span>'
+                                        : '';
 
-                                            if ($analisis['es_reincidencia']) {
-                                                $html .= ' <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 text-xs font-semibold border border-red-300 dark:border-red-700 ml-2">Reincidencia</span>';
-                                            }
+                                    $justificacion = e($analisis['justificacion'] ?? 'Análisis en proceso.');
 
-                                            return new \Illuminate\Support\HtmlString($html);
-                                        }),
+                                    $html  = $lordScript;
+                                    $html .= '<div class="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700">';
+                                    $html .= '<lord-icon src="https://cdn.lordicon.com/edcgvlnw.json" trigger="loop" delay="1000" stroke="bold" colors="primary:#6366f1,secondary:#a5b4fc" style="width:48px;height:48px;flex-shrink:0;margin-top:2px"></lord-icon>';
+                                    $html .= '<div class="flex-1 min-w-0">';
+                                    $html .= '<div class="flex items-center gap-2 flex-wrap mb-1.5">';
+                                    $html .= "<span class='text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400'>Gravedad de la falta</span>";
+                                    $html .= "<span class='px-2.5 py-0.5 rounded-full text-xs font-bold {$badgeBg} {$badgeText}'>{$badgeLabel}</span>";
+                                    $html .= $reincBadge;
+                                    $html .= '</div>';
+                                    $html .= "<p class='text-sm text-gray-700 dark:text-gray-300 leading-relaxed'>{$justificacion}</p>";
+                                    $html .= '</div></div>';
+                                    return new \Illuminate\Support\HtmlString($html);
+                                }),
 
-                                    Forms\Components\Placeholder::make('justificacion_ia')
-                                        ->label('Justificación')
-                                        ->content(fn() => $analisis['justificacion'] ?? 'Sin justificación disponible.'),
-                                ])
-                                ->description('Análisis automático basado en los hechos y el historial del trabajador.')
-                                ->collapsible(),
+                            // ── Tarjeta: Recomendación de la IA ──────────────────────────────
+                            Forms\Components\Placeholder::make('recomendacion_card')
+                                ->hiddenLabel()
+                                ->content(function () use ($recomendacionFinal, $analisis) {
+                                    $sancion = $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null;
 
-                            // ── Recomendación para la Decisión ────────────────────────────────
-                            Forms\Components\Section::make('Recomendación para su Decisión')
-                                ->icon('heroicon-o-scale')
-                                ->schema([
-                                    Forms\Components\Placeholder::make('sancion_sugerida')
-                                        ->label('Sanción Sugerida')
-                                        ->content(function () use ($recomendacionFinal, $analisis) {
-                                            $sancion = $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? 'N/A';
+                                    [$label, $colorBg, $colorText, $colorBorder, $lordSrc, $lordColors] = match ($sancion) {
+                                        'llamado_atencion' => ['Llamado de Atención',     'bg-blue-50 dark:bg-blue-900/20',   'text-blue-900 dark:text-blue-100',   'border-blue-300 dark:border-blue-700',   'jdgfsfzr.json', 'primary:#1d4ed8,secondary:#93c5fd'],
+                                        'suspension'       => ['Suspensión Laboral',      'bg-yellow-50 dark:bg-yellow-900/20','text-yellow-900 dark:text-yellow-100','border-yellow-300 dark:border-yellow-700','hmpomorl.json', 'primary:#b45309,secondary:#fcd34d'],
+                                        'terminacion'      => ['Terminación de Contrato', 'bg-red-50 dark:bg-red-900/20',     'text-red-900 dark:text-red-100',     'border-red-300 dark:border-red-700',     'hmpomorl.json', 'primary:#b91c1c,secondary:#fca5a5'],
+                                        default            => ['No determinado',           'bg-gray-50 dark:bg-gray-800',      'text-gray-900 dark:text-gray-100',   'border-gray-300 dark:border-gray-600',   'edcgvlnw.json', 'primary:#6366f1,secondary:#a5b4fc'],
+                                    };
 
-                                            [$label, $colorClass] = match ($sancion) {
-                                                'llamado_atencion' => ['Llamado de Atención', 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-300 dark:border-blue-700'],
-                                                'suspension'       => ['Suspensión Laboral', 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700'],
-                                                'terminacion'      => ['Terminación de Contrato', 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-300 dark:border-red-700'],
-                                                default            => [$sancion, 'bg-gray-100 text-gray-800'],
-                                            };
+                                    $diasTexto = '';
+                                    if ($sancion === 'suspension' && ($recomendacionFinal['dias_suspension'] ?? null)) {
+                                        $d = $recomendacionFinal['dias_suspension'];
+                                        $diasTexto = " · {$d} día" . ($d > 1 ? 's' : '');
+                                    }
 
-                                            $texto = "<span class='px-2.5 py-1 rounded-md text-sm font-semibold {$colorClass}'>{$label}</span>";
+                                    $mensaje = e($recomendacionFinal['mensaje_para_decision'] ?? $analisis['consideraciones_especiales'] ?? '');
 
-                                            if ($sancion === 'suspension' && ($recomendacionFinal['dias_suspension'] ?? null)) {
-                                                $dias   = $recomendacionFinal['dias_suspension'];
-                                                $texto .= " <span class='text-sm text-gray-600 dark:text-gray-400'>({$dias} día" . ($dias > 1 ? 's' : '') . ')</span>';
-                                            }
+                                    $html  = "<div class='p-4 rounded-xl border {$colorBg} {$colorBorder}'>";
+                                    $html .= '<div class="flex items-center gap-3 mb-2">';
+                                    $html .= "<lord-icon src=\"https://cdn.lordicon.com/{$lordSrc}\" trigger=\"loop\" delay=\"1200\" stroke=\"bold\" colors=\"{$lordColors}\" style=\"width:40px;height:40px;flex-shrink:0\"></lord-icon>";
+                                    $html .= '<div>';
+                                    $html .= "<p class='text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400'>Recomendación de la IA</p>";
+                                    $html .= "<p class='text-base font-bold {$colorText}'>{$label}{$diasTexto}</p>";
+                                    $html .= '</div></div>';
+                                    if ($mensaje) {
+                                        $html .= "<p class='text-sm {$colorText} opacity-80 leading-relaxed'>{$mensaje}</p>";
+                                    }
+                                    $html .= '</div>';
+                                    return new \Illuminate\Support\HtmlString($html);
+                                }),
 
-                                            $confianza  = $recomendacionFinal['confianza'] ?? 'media';
-                                            $badgeColor = match ($confianza) {
-                                                'alta'  => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-                                                'media' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-                                                'baja'  => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-                                                default => 'bg-gray-100 text-gray-800',
-                                            };
-
-                                            return new \Illuminate\Support\HtmlString(
-                                                $texto .
-                                                " <span class='ml-2 px-2 py-1 rounded text-xs {$badgeColor}'>Confianza: " . ucfirst($confianza) . '</span>'
-                                            );
-                                        }),
-
-                                    Forms\Components\Placeholder::make('mensaje_decision')
-                                        ->label('Mensaje para su decisión')
-                                        ->content(function () use ($recomendacionFinal, $analisis) {
-                                            $mensaje = $recomendacionFinal['mensaje_para_decision']
-                                                ?? $analisis['consideraciones_especiales']
-                                                ?? 'Revise cuidadosamente los hechos y el historial antes de tomar su decisión.';
-
-                                            return new \Illuminate\Support\HtmlString(
-                                                "<div class='p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600'>" .
-                                                "<p class='text-sm text-gray-700 dark:text-gray-200'>{$mensaje}</p>" .
-                                                '</div>'
-                                            );
-                                        }),
-                                ])
-                                ->collapsible()
-                                ->collapsed(false),
-
-                            // ── Aviso sin RIT: solo terminación disponible ────────────────────
+                            // ── Aviso sin RIT ─────────────────────────────────────────────────
                             Forms\Components\Section::make('Empresa sin Reglamento Interno de Trabajo')
                                 ->icon('heroicon-o-exclamation-triangle')
                                 ->schema([
                                     Forms\Components\Placeholder::make('aviso_sin_rit')
-                                        ->label('')
+                                        ->hiddenLabel()
                                         ->content(function () use ($sinRit) {
-                                            if (!$sinRit) {
-                                                return '';
-                                            }
-
+                                            if (!$sinRit) return '';
                                             $purchaseUrl = config('ces.rit_purchase_url');
                                             $boton       = $purchaseUrl
                                                 ? "<a href=\"{$purchaseUrl}\" target=\"_blank\" rel=\"noopener\" class=\"inline-flex items-center gap-2 px-4 py-2.5 mt-1 rounded-lg bg-primary-600 text-white font-semibold text-sm hover:bg-primary-700 transition-colors shadow-sm\">Adquirir Reglamento Interno</a>"
                                                 : '';
-
-                                            $script  = '<script>if(!window._liLoaded){window._liLoaded=true;var s=document.createElement("script");s.src="https://cdn.lordicon.com/lordicon.js";document.head.appendChild(s);}</script>';
-
-                                            $html  = $script;
-                                            $html .= '<div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-400 dark:border-amber-600 space-y-3">';
+                                            $html  = '<div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-400 dark:border-amber-600 space-y-3">';
                                             $html .= '<div class="flex items-start gap-3">';
                                             $html .= '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:36px;height:36px;flex-shrink:0;margin-top:2px"></lord-icon>';
-                                            $html .= '<div>';
-                                            $html .= '<p class="font-semibold text-amber-900 dark:text-amber-100 text-base">Esta empresa no tiene Reglamento Interno de Trabajo (RIT)</p>';
+                                            $html .= '<div><p class="font-semibold text-amber-900 dark:text-amber-100 text-base">Esta empresa no tiene Reglamento Interno de Trabajo (RIT)</p>';
                                             $html .= '<p class="text-sm text-amber-700 dark:text-amber-300 mt-1">Los artículos 111 a 115 del Código Sustantivo del Trabajo establecen que el empleador <strong>solo puede imponer las sanciones expresamente previstas en el RIT</strong> debidamente aprobado y registrado ante el Ministerio del Trabajo.</p>';
-                                            $html .= '</div>';
-                                            $html .= '</div>';
+                                            $html .= '</div></div>';
                                             $html .= '<div class="bg-amber-100 dark:bg-amber-800/30 rounded-lg p-3 border border-amber-300 dark:border-amber-700">';
                                             $html .= '<p class="text-sm font-semibold text-amber-900 dark:text-amber-100">Por esta vez, no es posible aplicar suspensión ni llamado de atención</p>';
-                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300 mt-1">El descargo a este trabajador fue iniciado cuando la empresa no contaba con un RIT vigente. Aplicar estas medidas sin RIT expone a la empresa a demandas laborales, reintegros judiciales y sanciones por el Ministerio del Trabajo. La única opción legalmente segura para este proceso es la <strong>terminación del contrato con justa causa</strong> (Art. 62 CST).</p>';
+                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300 mt-1">El descargo a este trabajador fue iniciado cuando la empresa no contaba con un RIT vigente. La única opción legalmente segura para este proceso es la <strong>terminación del contrato con justa causa</strong> (Art. 62 CST).</p>';
                                             $html .= '</div>';
-
-                                            if ($boton) {
-                                                $html .= "<div>{$boton}</div>";
-                                            }
-
+                                            if ($boton) $html .= "<div>{$boton}</div>";
                                             $html .= '</div>';
                                             return new \Illuminate\Support\HtmlString($html);
                                         }),
@@ -2000,45 +1953,69 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->visible($sinRit)
                                 ->collapsible(false),
 
-                            // Guardar análisis en sesión para uso posterior
+                            // Hidden: datos para el action handler
                             Forms\Components\Hidden::make('analisis_cache')
                                 ->default(json_encode($analisis)),
 
-                            // Hidden: guardar la recomendación IA para comparar en action handler
                             Forms\Components\Hidden::make('sancion_ia_recomendada')
                                 ->default($iaRecomendada),
 
-                            // Hidden: autoridad_rango_rit para persistir
                             Forms\Components\Hidden::make('autoridad_rango_rit_json')
                                 ->default(json_encode($autoridadRit)),
 
-                            // ── Decisión de Sanción — Radio con 3 opciones siempre visibles ───
-                            Forms\Components\Radio::make('tipo_sancion')
-                                ->label('Tipo de Sanción a Aplicar')
+                            // ── Decisión de Sanción — botones con color ───────────────────────
+                            Forms\Components\ToggleButtons::make('tipo_sancion')
+                                ->label('Decisión de Sanción')
                                 ->options($opcionesSancion)
-                                ->descriptions($descripcionesOpciones)
+                                ->colors([
+                                    'llamado_atencion' => 'info',
+                                    'suspension'       => 'warning',
+                                    'terminacion'      => 'danger',
+                                ])
+                                ->icons([
+                                    'llamado_atencion' => 'heroicon-o-chat-bubble-bottom-center-text',
+                                    'suspension'       => 'heroicon-o-clock',
+                                    'terminacion'      => 'heroicon-o-x-circle',
+                                ])
+                                ->grouped()
                                 ->default($iaRecomendada)
                                 ->live()
                                 ->required(),
 
-                            // ── Potestad Disciplinaria según el RIT (informativo) ─────────────
+                            // Indicador de recomendación IA
+                            Forms\Components\Placeholder::make('ia_hint')
+                                ->hiddenLabel()
+                                ->content(function () use ($iaRecomendada) {
+                                    if (!$iaRecomendada) return '';
+                                    $labels = [
+                                        'llamado_atencion' => 'Llamado de Atención',
+                                        'suspension'       => 'Suspensión Laboral',
+                                        'terminacion'      => 'Terminación de Contrato',
+                                    ];
+                                    $label = $labels[$iaRecomendada] ?? $iaRecomendada;
+                                    return new \Illuminate\Support\HtmlString(
+                                        "<p class='text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-0.5'>" .
+                                        "<svg class='w-3.5 h-3.5 text-indigo-500' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z' clip-rule='evenodd'/></svg>" .
+                                        "La IA recomienda: <strong class='text-gray-700 dark:text-gray-300'>{$label}</strong></p>"
+                                    );
+                                }),
+
+                            // ── Potestad Disciplinaria según el RIT ───────────────────────────
                             Forms\Components\Section::make('Potestad Disciplinaria según el RIT')
                                 ->icon('heroicon-o-building-office')
                                 ->schema([
                                     Forms\Components\Placeholder::make('autoridad_info')
-                                        ->label('')
+                                        ->hiddenLabel()
                                         ->content(function () use ($autoridadRit, $opcionesSancion) {
-                                            $filas = '';
                                             $labels = [
                                                 'llamado_atencion' => 'Llamado de Atención',
                                                 'suspension'       => 'Suspensión',
                                                 'terminacion'      => 'Terminación de Contrato',
                                             ];
+                                            $filas = '';
                                             foreach ($labels as $key => $nombre) {
-                                                if (!array_key_exists($key, $opcionesSancion)) {
-                                                    continue;
-                                                }
-                                                $autoridad = $autoridadRit[$key] ?? 'No especificado en el RIT';
+                                                if (!array_key_exists($key, $opcionesSancion)) continue;
+                                                $autoridad = e($autoridadRit[$key] ?? 'No especificado en el RIT');
                                                 $filas .= "<tr class='border-b border-gray-200 dark:border-gray-700'>";
                                                 $filas .= "<td class='py-2 pr-4 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap'>{$nombre}</td>";
                                                 $filas .= "<td class='py-2 text-sm text-gray-600 dark:text-gray-400'>{$autoridad}</td>";
@@ -2046,8 +2023,8 @@ class ProcesoDisciplinarioResource extends Resource
                                             }
                                             return new \Illuminate\Support\HtmlString(
                                                 "<table class='w-full'><thead><tr class='border-b border-gray-300 dark:border-gray-600'>" .
-                                                "<th class='pb-1 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide pr-4'>Tipo de Sanción</th>" .
-                                                "<th class='pb-1 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide'>Autoridad según RIT</th>" .
+                                                "<th class='pb-1.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide pr-4'>Tipo de Sanción</th>" .
+                                                "<th class='pb-1.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide'>Autoriza según el RIT</th>" .
                                                 "</tr></thead><tbody>{$filas}</tbody></table>"
                                             );
                                         }),
@@ -2055,20 +2032,19 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->hidden(empty($autoridadRit))
                                 ->collapsible(),
 
-                            // ── Sección de Exoneración (solo si sanción ≠ recomendada) ────────
-                            Forms\Components\Section::make('⚠️ Decisión Contraria a la Recomendación Jurídica')
+                            // ── Sección de Exoneración ─────────────────────────────────────────
+                            Forms\Components\Section::make('Decisión Contraria a la Recomendación Jurídica')
                                 ->icon('heroicon-o-exclamation-triangle')
                                 ->schema([
                                     Forms\Components\Placeholder::make('exoneracion_aviso')
-                                        ->label('')
+                                        ->hiddenLabel()
                                         ->content(fn() => new \Illuminate\Support\HtmlString(
                                             '<div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border-2 border-red-400 dark:border-red-600">' .
                                             '<p class="font-bold text-red-800 dark:text-red-200 text-base mb-2">Advertencia Legal</p>' .
                                             '<p class="text-sm text-red-700 dark:text-red-300">' .
                                             'La decisión que está tomando va en contra de la recomendación jurídica emitida por el sistema de inteligencia artificial de CES Legal. ' .
                                             'CES Legal no se responsabiliza por las consecuencias legales, laborales o judiciales derivadas de esta decisión.' .
-                                            '</p>' .
-                                            '</div>'
+                                            '</p></div>'
                                         )),
 
                                     Forms\Components\Textarea::make('razon_divergencia')
@@ -2092,66 +2068,38 @@ class ProcesoDisciplinarioResource extends Resource
                             // ── Verificación del Autorizador ──────────────────────────────────
                             Forms\Components\Section::make('Verificación del Autorizador')
                                 ->icon('heroicon-o-user-circle')
+                                ->description('Registre los datos de quien autoriza esta sanción y tome una foto de verificación.')
                                 ->schema([
-                                    Forms\Components\TextInput::make('autorizador_nombre')
-                                        ->label('Nombre de quien autoriza la sanción')
+                                    Forms\Components\Grid::make(2)->schema([
+                                        Forms\Components\TextInput::make('autorizador_nombre')
+                                            ->label('Nombre completo')
+                                            ->required()
+                                            ->maxLength(255),
+                                        Forms\Components\TextInput::make('autorizador_cargo')
+                                            ->label('Cargo')
+                                            ->required()
+                                            ->maxLength(255),
+                                    ]),
+
+                                    Forms\Components\Placeholder::make('declaracion_texto')
+                                        ->hiddenLabel()
+                                        ->content(fn() => new \Illuminate\Support\HtmlString(
+                                            '<div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300">' .
+                                            '<p class="font-semibold text-gray-900 dark:text-gray-100 mb-1.5">Declaración del Autorizador</p>' .
+                                            '<p class="leading-relaxed">Al marcar la casilla a continuación, declaro que tengo la potestad disciplinaria para emitir esta sanción, que he revisado los hechos del proceso y las evidencias aportadas, y que autorizo expresamente la emisión de esta decisión disciplinaria. Entiendo que esta acción queda registrada con fecha, hora e imagen de verificación como parte del expediente del proceso.</p>' .
+                                            '</div>'
+                                        )),
+
+                                    Forms\Components\Checkbox::make('declaracion_aceptada')
+                                        ->label('Acepto y confirmo la declaración anterior como persona autorizada para emitir esta sanción')
                                         ->required()
-                                        ->maxLength(255),
+                                        ->accepted(),
 
-                                    Forms\Components\TextInput::make('autorizador_cargo')
-                                        ->label('Cargo')
-                                        ->required()
-                                        ->maxLength(255),
+                                    Forms\Components\Placeholder::make('webcam_autorizador')
+                                        ->label('Foto de verificación del autorizador')
+                                        ->content(fn() => view('filament.components.webcam-autorizador')),
 
-                                    Forms\Components\Placeholder::make('webcam_section')
-                                        ->label('Foto de verificación')
-                                        ->content(fn() => new \Illuminate\Support\HtmlString('
-                                            <div x-data="{
-                                                stream: null,
-                                                captured: false,
-                                                async startCamera() {
-                                                    try {
-                                                        this.stream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
-                                                        this.$refs.video.srcObject = this.stream;
-                                                    } catch(e) {
-                                                        alert(\"No se pudo acceder a la cámara: \" + e.message);
-                                                    }
-                                                },
-                                                capture() {
-                                                    const c = this.$refs.canvas;
-                                                    c.getContext(\"2d\").drawImage(this.$refs.video, 0, 0, c.width, c.height);
-                                                    const data = c.toDataURL(\"image/jpeg\", 0.7);
-                                                    this.$refs.preview.src = data;
-                                                    this.captured = true;
-                                                    if(this.stream) this.stream.getTracks().forEach(t => t.stop());
-                                                    const inp = document.querySelector(\"[data-foto-autorizador]\");
-                                                    if(inp) inp.value = data;
-                                                },
-                                                retomar() {
-                                                    this.captured = false;
-                                                    this.startCamera();
-                                                }
-                                            }" x-init="startCamera()">
-                                                <video x-ref="video" autoplay playsinline x-show="!captured"
-                                                       class="w-full max-w-sm rounded-lg border border-gray-300 dark:border-gray-600"></video>
-                                                <canvas x-ref="canvas" width="640" height="480" class="hidden"></canvas>
-                                                <img x-ref="preview" x-show="captured"
-                                                     class="w-full max-w-sm rounded-lg border border-gray-300 dark:border-gray-600" />
-                                                <div class="flex gap-2 mt-2">
-                                                    <button x-show="!captured" @click.prevent="capture()" type="button"
-                                                            class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700">
-                                                        Tomar foto
-                                                    </button>
-                                                    <button x-show="captured" @click.prevent="retomar()" type="button"
-                                                            class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200">
-                                                        Volver a tomar
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ')),
-
-                                    Forms\Components\Hidden::make('foto_autorizador_base64')
-                                        ->extraAttributes(['data-foto-autorizador' => '']),
+                                    Forms\Components\Hidden::make('foto_autorizador_base64'),
                                 ]),
                         ];
                     })
@@ -2225,6 +2173,9 @@ class ProcesoDisciplinarioResource extends Resource
                             'foto_autorizador_path'   => $fotoPath,
                             'foto_autorizador_en'     => $fotoPath ? now() : null,
                         ]);
+
+                        // Limpiar cache de análisis (próxima apertura del modal recalculará)
+                        session()->forget('emitir_sancion_analisis_' . $record->id);
 
                         // 4. Continuar con el flujo existente
                         if ($data['tipo_sancion'] === 'suspension') {
