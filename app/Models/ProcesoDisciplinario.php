@@ -48,6 +48,16 @@ class ProcesoDisciplinario extends Model
         'fecha_cierre',
         'hechos_embedding',
         'hechos_md5',
+        'sancion_ia_recomendada',
+        'autoridad_rango_rit',
+        'autorizador_nombre',
+        'autorizador_cargo',
+        'exoneracion_aceptada',
+        'exoneracion_aceptada_en',
+        'exoneracion_ip',
+        'razon_divergencia',
+        'foto_autorizador_path',
+        'foto_autorizador_en',
     ];
 
     protected $casts = [
@@ -68,6 +78,10 @@ class ProcesoDisciplinario extends Model
         'articulos_legales_ids' => 'array',
         'sanciones_laborales_ids' => 'array',
         'hechos_embedding' => 'array',
+        'autoridad_rango_rit' => 'array',
+        'exoneracion_aceptada' => 'boolean',
+        'exoneracion_aceptada_en' => 'datetime',
+        'foto_autorizador_en' => 'datetime',
     ];
 
     // ── Embedding de hechos (RAG persistido) ──────────────────────────────────

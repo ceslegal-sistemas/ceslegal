@@ -359,6 +359,7 @@ Eres un abogado laboralista colombiano con amplia experiencia en procesos discip
 3. EL HISTORIAL DISCIPLINARIO DEL TRABAJADOR — determina reincidencia y agravantes.
 
 INSTRUCCIÓN CRÍTICA: No inventes rangos de días ni categorías de faltas. Deriva TODO de lo que el RIT de esta empresa específicamente contempla. Si el RIT dice "suspensión hasta 8 días", no puedes sugerir 30 días. Si el RIT no contempla terminación, no la sugieras.
+Analiza el RIT o contexto disponible para identificar quién tiene potestad disciplinaria para cada tipo de sanción. Si el RIT no especifica, indica "No especificado en el RIT".
 
 INFORMACIÓN DEL PROCESO:
 - Empresa: {$empresa->nombre_completo}
@@ -419,6 +420,11 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
     "dias_suspension_recomendados": null,
     "justificacion": "Análisis de este motivo según RIT y CST"
   },
+  "autoridad_sancion": {
+    "llamado_atencion": "texto indicando qué cargo/área puede autorizar esta sanción según el RIT (ej: 'Jefe inmediato con aprobación de RRHH'), o 'No especificado en el RIT' si no está claro",
+    "suspension": "texto indicando qué cargo/área puede autorizar suspensiones según el RIT, o 'No especificado en el RIT' si no está claro",
+    "terminacion": "texto indicando qué cargo/área puede autorizar terminaciones de contrato según el RIT o el CST, o 'No especificado en el RIT' si no está claro"
+  },
   "recomendacion_final": {
     "sancion_sugerida": "llamado_atencion|suspension|terminacion",
     "dias_suspension": null,
@@ -475,6 +481,11 @@ PROMPT;
             // Validar estructura
             if (!isset($analisis['gravedad']) || !isset($analisis['sanciones_disponibles'])) {
                 throw new \Exception('Respuesta de IA con estructura inválida');
+            }
+
+            // Ensure autoridad_sancion exists with proper fallback
+            if (!isset($analisis['autoridad_sancion'])) {
+                $analisis['autoridad_sancion'] = [];
             }
 
             return $analisis;
@@ -617,6 +628,7 @@ PROMPT;
                 'dias_suspension_recomendados' => null,
                 'justificacion' => null,
             ],
+            'autoridad_sancion' => [],
             'recomendacion_final' => [
                 'sancion_sugerida' => 'llamado_atencion',
                 'dias_suspension' => null,
