@@ -10,10 +10,7 @@ use App\Models\Trabajador;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Infolists\Components\Grid as InfoGrid;
-use Filament\Infolists\Components\IconEntry;
-use Filament\Infolists\Components\Section as InfoSection;
-use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -29,6 +26,7 @@ use Illuminate\Support\Str;
 use HusamTariq\FilamentTimePicker\Forms\Components\TimePickerField;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ProcesoDisciplinarioResource extends Resource
 {
@@ -1088,33 +1086,33 @@ class ProcesoDisciplinarioResource extends Resource
 
                 Forms\Components\Section::make('Decisión y Sanción')
                     ->schema([
-                        // Forms\Components\Toggle::make('decision_sancion')
-                        //     ->label('¿Procede Sanción?')
-                        //     ->live(),
+                        Forms\Components\Toggle::make('decision_sancion')
+                            ->label('¿Procede Sanción?')
+                            ->live(),
 
-                        // Forms\Components\Toggle::make('impugnado')
-                        //     ->label('¿Procede Impugnación?')
-                        //     ->live(),
+                        Forms\Components\Toggle::make('impugnado')
+                            ->label('¿Procede Impugnación?')
+                            ->live(),
 
-                        // Forms\Components\Select::make('tipo_sancion')
-                        //     ->label('Tipo de Sanción')
-                        //     ->options([
-                        //         'llamado_atencion' => 'Llamado de Atención',
-                        //         'suspension' => 'Suspensión',
-                        //         'terminacion' => 'Terminación de Contrato',
-                        //     ])
-                        //     ->visible(fn(Get $get) => $get('decision_sancion') === true),
+                        Forms\Components\Select::make('tipo_sancion')
+                            ->label('Tipo de Sanción')
+                            ->options([
+                                'llamado_atencion' => 'Llamado de Atención',
+                                'suspension' => 'Suspensión',
+                                'terminacion' => 'Terminación de Contrato',
+                            ])
+                            ->visible(fn(Get $get) => $get('decision_sancion') === true),
 
-                        // Forms\Components\Textarea::make('motivo_archivo')
-                        //     ->label('Motivo de Archivo')
-                        //     ->rows(3)
-                        //     ->visible(fn(Get $get) => $get('decision_sancion') === false)
-                        //     ->columnSpanFull(),
+                        Forms\Components\Textarea::make('motivo_archivo')
+                            ->label('Motivo de Archivo')
+                            ->rows(3)
+                            ->visible(fn(Get $get) => $get('decision_sancion') === false)
+                            ->columnSpanFull(),
 
-                        // Forms\Components\DateTimePicker::make('fecha_notificacion')
-                        //     ->label('Fecha de Notificación')
-                        //     ->displayFormat('d/m/Y H:i')
-                        //     ->native(false),
+                        Forms\Components\DateTimePicker::make('fecha_notificacion')
+                            ->label('Fecha de Notificación')
+                            ->displayFormat('d/m/Y H:i')
+                            ->native(false),
 
                         Forms\Components\DateTimePicker::make('fecha_limite_impugnacion')
                             ->label('Fecha Límite para Impugnación')
@@ -1124,12 +1122,6 @@ class ProcesoDisciplinarioResource extends Resource
                             ->minDate(now()->addDays(3)->startOfDay())
                             ->helperText('3 días hábiles desde la notificación')
                             ->visible(fn(Get $get) => $get('impugnado') === true),
-
-                        // Forms\Components\DateTimePicker::make('fecha_impugnacion')
-                        //     ->label('Fecha de Impugnación')
-                        //     ->displayFormat('d/m/Y H:i')
-                        //     ->native(false)
-                        //     ->visible(fn(Get $get) => $get('impugnado') === true),<
 
                         Forms\Components\DateTimePicker::make('fecha_cierre')
                             ->label('Fecha de Cierre')
@@ -1470,39 +1462,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->required()
                                     ->native(false)
                                     ->displayFormat('d/m/Y')
-                                    ->minDate(function (\App\Models\ProcesoDisciplinario $record) {
-                                        if (auth()->user()?->hasRole('super_admin')) {
-                                            return now()->startOfDay();
-                                        }
-
-                                        $empresa = $record->empresa;
-                                        $trabajaSabados = $empresa?->trabajaSabados() ?? false;
-
-                                        if ($trabajaSabados) {
-                                            $fecha = now()->copy();
-                                            $diasContados = 0;
-                                            $festivos = [];
-                                            try {
-                                                if (\Illuminate\Support\Facades\Schema::hasTable('dias_no_habiles')) {
-                                                    $festivos = \App\Models\DiaNoHabil::pluck('fecha')
-                                                        ->map(fn($f) => \Carbon\Carbon::parse($f)->format('Y-m-d'))
-                                                        ->toArray();
-                                                }
-                                            } catch (\Exception $e) {
-                                            }
-                                            while ($diasContados < 6) {
-                                                $fecha->addDay();
-                                                if (!$fecha->isSunday() && !in_array($fecha->format('Y-m-d'), $festivos)) {
-                                                    $diasContados++;
-                                                }
-                                            }
-                                            return $fecha->startOfDay();
-                                        }
-
-                                        return app(\App\Services\TerminoLegalService::class)
-                                            ->calcularFechaVencimiento(now(), 6)->startOfDay();
-                                    })
-                                    ->maxDate(now()->addMonth()->endOfDay()),
+                                    ->minDate(now()->addDay()),
 
                                 TimePickerField::make('hora_temp')
                                     ->label('Hora de la audiencia')
@@ -1525,6 +1485,7 @@ class ProcesoDisciplinarioResource extends Resource
                         $record->estado === 'apertura' && !empty($record->trabajador?->email)
                     )
                     ->action(function (ProcesoDisciplinario $record, array $data): void {
+                        // Actualizar fecha_descargos_programada con el valor del modal
                         $record->fecha_descargos_programada = \Carbon\Carbon::parse($data['fecha_temp'])
                             ->setTimeFromTimeString($data['hora_temp']);
                         $record->save();
@@ -1538,6 +1499,15 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->title('Citación enviada')
                                 ->body('La citación fue generada y enviada al correo del trabajador. El proceso pasó a estado "Citación enviada".')
                                 ->send();
+
+                            if (empty($result['preguntas_ia_generadas'])) {
+                                \Filament\Notifications\Notification::make()
+                                    ->warning()
+                                    ->title('Preguntas IA no generadas')
+                                    ->body('La IA no pudo generar preguntas en este momento. Use el botón "Regenerar preguntas IA" en el módulo de Descargos para intentarlo de nuevo.')
+                                    ->persistent()
+                                    ->send();
+                            }
                         } else {
                             \Filament\Notifications\Notification::make()
                                 ->danger()
@@ -1576,9 +1546,9 @@ class ProcesoDisciplinarioResource extends Resource
 
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
-                        !empty($record->trabajador->email) && !empty($record->fecha_descargos_programada)
+                        !empty($record->trabajador->email)
+                            && !empty($record->fecha_descargos_programada)
                             && $record->estado === 'descargos_pendientes'
-                            && \Carbon\Carbon::parse($record->fecha_descargos_programada)->isFuture()
                     )
                     ->action(function (ProcesoDisciplinario $record) {
                         $service = new \App\Services\DocumentGeneratorService();
@@ -1590,6 +1560,15 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->title('¡Citación enviada!')
                                 ->body('La citación se generó y envió exitosamente al correo del trabajador.')
                                 ->send();
+
+                            if (empty($result['preguntas_ia_generadas'])) {
+                                \Filament\Notifications\Notification::make()
+                                    ->warning()
+                                    ->title('Preguntas IA no generadas')
+                                    ->body('La IA no pudo generar preguntas en este momento. Use el botón "Regenerar preguntas IA" en el módulo de Descargos para intentarlo de nuevo.')
+                                    ->persistent()
+                                    ->send();
+                            }
                         } else {
                             \Filament\Notifications\Notification::make()
                                 ->danger()
@@ -1597,32 +1576,6 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->body($result['message'])
                                 ->send();
                         }
-                    }),
-
-                // Acción: Ver Citación (descarga el PDF de la citación enviada)
-                Tables\Actions\Action::make('ver_citacion')
-                    ->label('Ver Citación')
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('info')
-                    ->visible(
-                        fn(ProcesoDisciplinario $record) =>
-                        $record->estado === 'descargos_pendientes'
-                    )
-                    ->action(function (ProcesoDisciplinario $record) {
-                        $documento = $record->documentos()
-                            ->where('tipo_documento', 'citacion_descargos')
-                            ->orderBy('created_at', 'desc')
-                            ->first();
-
-                        if ($documento && file_exists($documento->ruta_archivo)) {
-                            return response()->download($documento->ruta_archivo, $documento->nombre_archivo);
-                        }
-
-                        \Filament\Notifications\Notification::make()
-                            ->warning()
-                            ->title('Citación no encontrada')
-                            ->body('No se encontró el documento de citación para este proceso.')
-                            ->send();
                     }),
 
                 // Botón: Reprogramar Citación (para trabajadores que no realizaron los descargos)
@@ -1698,8 +1651,9 @@ class ProcesoDisciplinarioResource extends Resource
                         $nuevaFecha = \Carbon\Carbon::parse($data['fecha_temp'])
                             ->setTimeFromTimeString($data['hora_temp']);
 
-                        // 1. Actualizar fecha en el proceso
-                        $record->fecha_descargos_programada = $nuevaFecha;
+                        // 1. Actualizar fecha y hora en el proceso
+                        $record->fecha_descargos_programada = $nuevaFecha->toDateString();
+                        $record->hora_descargos_programada  = $data['hora_temp'];
                         $record->save();
 
                         // 2. Actualizar diligencia: nueva fecha, token_expira_en, limpiar intento anterior
@@ -1835,6 +1789,31 @@ class ProcesoDisciplinarioResource extends Resource
                         }
                     }),
 
+                // Acción: Ver Citación (descarga el PDF de la citación enviada)
+                Tables\Actions\Action::make('ver_citacion')
+                    ->label('Ver Citación')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('info')
+                    ->visible(
+                        fn(ProcesoDisciplinario $record) =>
+                        $record->estado === 'descargos_pendientes'
+                    )
+                    ->action(function (ProcesoDisciplinario $record) {
+                        $documento = $record->documentos()
+                            ->where('tipo_documento', 'citacion_descargos')
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+
+                        if ($documento && file_exists($documento->ruta_archivo)) {
+                            return response()->download($documento->ruta_archivo, $documento->nombre_archivo);
+                        }
+
+                        \Filament\Notifications\Notification::make()
+                            ->warning()
+                            ->title('Citación no encontrada')
+                            ->body('No se encontró el documento de citación para este proceso.')
+                            ->send();
+                    }),
 
                 // Botón 3: Emitir Sanción (generar con IA y enviar)
                 Tables\Actions\Action::make('emitir_sancion')
@@ -1845,204 +1824,194 @@ class ProcesoDisciplinarioResource extends Resource
                     ->icon('heroicon-o-shield-exclamation')
                     ->color('danger')
                     ->form(function (ProcesoDisciplinario $record) {
-                        // Analizar proceso con IA para obtener sanciones apropiadas
-                        $iaService = new \App\Services\IAAnalisisSancionService();
-                        $resultado = $iaService->analizarYSugerirSanciones($record);
+                        // Cachear el análisis en sesión para evitar re-llamadas a la IA
+                        // cuando ->live() en ToggleButtons dispara un re-render de Livewire.
+                        // NO se cachea si la IA devolvió datos de fallback (análisis fallido).
+                        $cacheKey = 'emitir_sancion_analisis_' . $record->id;
+                        $resultado = session($cacheKey);
+                        if (!$resultado || !is_array($resultado) || !isset($resultado['analisis'])) {
+                            $iaService = new \App\Services\IAAnalisisSancionService();
+                            $resultado = $iaService->analizarYSugerirSanciones($record);
+                            $esFallback = !($resultado['success'] ?? false)
+                                || str_contains($resultado['analisis']['justificacion'] ?? '', 'Análisis manual requerido');
+                            if (!$esFallback) {
+                                session([$cacheKey => $resultado]);
+                            }
+                        } else {
+                            $esFallback = false; // viene de caché = ya fue exitoso
+                        }
                         $analisis = $resultado['analisis'];
 
-                        // Siempre mostrar las tres opciones de sanción disponibles
-                        // El usuario tiene la última palabra, independientemente del análisis de la IA
-                        $opcionesSancion = [
-                            'llamado_atencion' => 'Llamado de Atención',
-                            'suspension' => 'Suspensión Laboral',
-                            'terminacion' => 'Terminación de Contrato',
-                        ];
+                        // ¿Tiene RIT activo?
+                        $sinRit = !$record->empresa->reglamentoInterno()->where('activo', true)->exists();
 
-                        // Construir opciones de días de suspensión si aplica
-                        $opcionesDiasSuspension = [];
-                        if (isset($analisis['dias_suspension_sugeridos'])) {
-                            foreach ($analisis['dias_suspension_sugeridos'] as $dias) {
-                                $opcionesDiasSuspension[$dias] = "{$dias} día" . ($dias > 1 ? 's' : '');
-                            }
-                        }
+                        $opcionesSancion = $sinRit
+                            ? ['terminacion' => 'Terminación de Contrato (Art. 62 CST)']
+                            : [
+                                'llamado_atencion' => 'Llamado de Atención',
+                                'suspension'       => 'Suspensión Laboral',
+                                'terminacion'      => 'Terminación de Contrato',
+                            ];
 
-                        // Verificar si hay "otro motivo"
-                        $tieneOtroMotivo = !empty($record->otro_motivo_descargos);
-                        $analisisOtroMotivo = $analisis['analisis_otro_motivo'] ?? null;
-                        $motivosAnalizados = $analisis['motivos_analizados'] ?? [];
-                        $recomendacionFinal = $analisis['recomendacion_final'] ?? null;
+                        // Si la IA no estuvo disponible: no preseleccionar ni mostrar análisis engañoso
+                        $recomendacionFinal = $esFallback ? null : ($analisis['recomendacion_final'] ?? null);
+                        $iaRecomendada      = $esFallback ? null : ($recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null);
+                        $autoridadRit       = $esFallback ? [] : ($analisis['autoridad_sancion'] ?? []);
 
                         return [
-                            // Sección: Motivos de Descargos Seleccionados
-                            Forms\Components\Section::make('📋 Motivos de los Descargos')
+                            // ── Tarjetas: Análisis + Recomendación (o error IA) ──────────────
+                            Forms\Components\Placeholder::make('analisis_recomendacion_cards')
+                                ->hiddenLabel()
+                                ->content(fn() => $esFallback
+                                    ? view('filament.components.emitir-sancion-ia-error')
+                                    : view('filament.components.emitir-sancion-analisis', [
+                                        'analisis'      => $analisis,
+                                        'recomendacion' => $recomendacionFinal,
+                                    ])),
+
+                            // ── Aviso sin RIT ─────────────────────────────────────────────────
+                            Forms\Components\Section::make('Empresa sin Reglamento Interno de Trabajo')
+                                ->icon('heroicon-o-exclamation-triangle')
                                 ->schema([
-                                    Forms\Components\Placeholder::make('motivos_seleccionados')
-                                        ->label('')
-                                        ->content(function () use ($record, $motivosAnalizados) {
-                                            $sancionesLaborales = $record->sancionesLaborales;
-
-                                            if ($sancionesLaborales->isEmpty() && empty($motivosAnalizados)) {
-                                                return new \Illuminate\Support\HtmlString('<p class="text-gray-500">No se han seleccionado motivos del reglamento.</p>');
-                                            }
-
-                                            $html = '<div class="space-y-2">';
-
-                                            foreach ($sancionesLaborales as $sancion) {
-                                                $emoji = $sancion->tipo_falta === 'leve' ? '🟢' : '🔴';
-                                                $tipoFalta = strtoupper($sancion->tipo_falta);
-                                                $tipoSancionTexto = $sancion->tipo_sancion_texto;
-
-                                                $html .= "<div class='p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border-l-4 " .
-                                                    ($sancion->tipo_falta === 'leve' ? 'border-green-500' : 'border-red-500') . "'>";
-                                                $html .= "<p class='font-semibold'>{$emoji} [{$tipoFalta}] {$sancion->nombre_claro}</p>";
-                                                $html .= "<p class='text-sm text-gray-600 dark:text-gray-400'>{$sancion->descripcion}</p>";
-                                                $html .= "<p class='text-xs text-gray-500 mt-1'>Sanción según reglamento: <strong>{$tipoSancionTexto}</strong></p>";
-                                                $html .= "</div>";
-                                            }
-
+                                    Forms\Components\Placeholder::make('aviso_sin_rit')
+                                        ->hiddenLabel()
+                                        ->content(function () use ($sinRit) {
+                                            if (!$sinRit) return '';
+                                            $purchaseUrl = config('ces.rit_purchase_url');
+                                            $boton       = $purchaseUrl
+                                                ? "<a href=\"{$purchaseUrl}\" target=\"_blank\" rel=\"noopener\" class=\"inline-flex items-center gap-2 px-4 py-2.5 mt-1 rounded-lg bg-primary-600 text-white font-semibold text-sm hover:bg-primary-700 transition-colors shadow-sm\">Adquirir Reglamento Interno</a>"
+                                                : '';
+                                            $html  = '<div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-400 dark:border-amber-600 space-y-3">';
+                                            $html .= '<div class="flex items-start gap-3">';
+                                            $html .= '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:36px;height:36px;flex-shrink:0;margin-top:2px"></lord-icon>';
+                                            $html .= '<div><p class="font-semibold text-amber-900 dark:text-amber-100 text-base">Esta empresa no tiene Reglamento Interno de Trabajo (RIT)</p>';
+                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300 mt-1">Los artículos 111 a 115 del Código Sustantivo del Trabajo establecen que el empleador <strong>solo puede imponer las sanciones expresamente previstas en el RIT</strong> debidamente aprobado y registrado ante el Ministerio del Trabajo.</p>';
+                                            $html .= '</div></div>';
+                                            $html .= '<div class="bg-amber-100 dark:bg-amber-800/30 rounded-lg p-3 border border-amber-300 dark:border-amber-700">';
+                                            $html .= '<p class="text-sm font-semibold text-amber-900 dark:text-amber-100">Por esta vez, no es posible aplicar suspensión ni llamado de atención</p>';
+                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300 mt-1">El descargo a este trabajador fue iniciado cuando la empresa no contaba con un RIT vigente. La única opción legalmente segura para este proceso es la <strong>terminación del contrato con justa causa</strong> (Art. 62 CST).</p>';
+                                            $html .= '</div>';
+                                            if ($boton) $html .= "<div>{$boton}</div>";
                                             $html .= '</div>';
                                             return new \Illuminate\Support\HtmlString($html);
                                         }),
                                 ])
-                                ->collapsible()
-                                ->collapsed(false),
+                                ->visible($sinRit)
+                                ->collapsible(false),
 
-                            // Sección: Análisis de "Otro Motivo" (solo si aplica)
-                            Forms\Components\Section::make('⚠️ Análisis de Otro Motivo')
-                                ->schema([
-                                    Forms\Components\Placeholder::make('otro_motivo_descripcion')
-                                        ->label('Motivo descrito por el usuario')
-                                        ->content(fn() => $record->otro_motivo_descargos ?? 'N/A'),
-
-                                    Forms\Components\Placeholder::make('otro_motivo_analisis')
-                                        ->label('')
-                                        ->content(function () use ($analisisOtroMotivo) {
-                                            if (!$analisisOtroMotivo || !($analisisOtroMotivo['aplica'] ?? false)) {
-                                                return new \Illuminate\Support\HtmlString('<p class="text-gray-500">Sin análisis disponible.</p>');
-                                            }
-
-                                            $tipoFalta = strtoupper($analisisOtroMotivo['tipo_falta_determinado'] ?? 'N/A');
-                                            $emoji = ($analisisOtroMotivo['tipo_falta_determinado'] ?? '') === 'leve' ? '🟢' : '🔴';
-                                            $sancionRec = match ($analisisOtroMotivo['sancion_recomendada'] ?? '') {
-                                                'llamado_atencion' => '📄 Llamado de Atención',
-                                                'suspension' => '⏸️ Suspensión Laboral',
-                                                'terminacion' => '❌ Terminación de Contrato',
-                                                default => $analisisOtroMotivo['sancion_recomendada'] ?? 'N/A',
-                                            };
-
-                                            $html = "<div class='p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-300'>";
-                                            $html .= "<p class='font-semibold'>{$emoji} Tipo de falta determinado: <strong>{$tipoFalta}</strong></p>";
-                                            $html .= "<p class='mt-2'>Sanción recomendada: <strong>{$sancionRec}</strong></p>";
-
-                                            if (($analisisOtroMotivo['dias_suspension_recomendados'] ?? null) !== null) {
-                                                $dias = $analisisOtroMotivo['dias_suspension_recomendados'];
-                                                $html .= "<p class='text-sm'>Días de suspensión sugeridos: <strong>{$dias} día" . ($dias > 1 ? 's' : '') . "</strong></p>";
-                                            }
-
-                                            $html .= "<p class='mt-2 text-sm text-gray-700 dark:text-gray-300'><em>{$analisisOtroMotivo['justificacion']}</em></p>";
-                                            $html .= "</div>";
-
-                                            return new \Illuminate\Support\HtmlString($html);
-                                        }),
-                                ])
-                                ->visible($tieneOtroMotivo)
-                                ->collapsible(),
-
-                            // Sección: Análisis General de la IA
-                            Forms\Components\Section::make('🤖 Análisis del Caso')
-                                ->schema([
-                                    Forms\Components\Placeholder::make('gravedad_info')
-                                        ->label('Gravedad de la Falta')
-                                        ->content(function () use ($analisis) {
-                                            $nivel = $analisis['nivel_gravedad'] ?? 'ninguno';
-
-                                            if ($analisis['gravedad'] === 'leve') {
-                                                $gravedad = '🟢 Leve';
-                                            } elseif ($analisis['gravedad'] === 'grave') {
-                                                if ($nivel === 'bajo') {
-                                                    $gravedad = '🟡 Grave (Nivel Bajo)';
-                                                } elseif ($nivel === 'alto') {
-                                                    $gravedad = '🔴 Grave (Nivel Alto)';
-                                                } else {
-                                                    $gravedad = '🟡 Grave';
-                                                }
-                                            } else {
-                                                $gravedad = ucfirst($analisis['gravedad']);
-                                            }
-
-                                            $reincidencia = $analisis['es_reincidencia'] ? ' ⚠️ REINCIDENCIA' : '';
-                                            return $gravedad . $reincidencia;
-                                        }),
-
-                                    Forms\Components\Placeholder::make('justificacion_ia')
-                                        ->label('Justificación')
-                                        ->content(fn() => $analisis['justificacion'] ?? 'Sin justificación disponible.'),
-                                ])
-                                ->description('Análisis automático basado en los hechos, motivos seleccionados y el historial del trabajador.')
-                                ->collapsible(),
-
-                            // Sección: Recomendación Final para la Decisión
-                            Forms\Components\Section::make('✅ Recomendación para su Decisión')
-                                ->schema([
-                                    Forms\Components\Placeholder::make('sancion_sugerida')
-                                        ->label('Sanción Sugerida')
-                                        ->content(function () use ($recomendacionFinal, $analisis) {
-                                            $sancion = $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? 'N/A';
-                                            $texto = match ($sancion) {
-                                                'llamado_atencion' => '📄 Llamado de Atención',
-                                                'suspension' => '⏸️ Suspensión Laboral',
-                                                'terminacion' => '❌ Terminación de Contrato',
-                                                default => $sancion,
-                                            };
-
-                                            if ($sancion === 'suspension' && ($recomendacionFinal['dias_suspension'] ?? null)) {
-                                                $dias = $recomendacionFinal['dias_suspension'];
-                                                $texto .= " ({$dias} día" . ($dias > 1 ? 's' : '') . ")";
-                                            }
-
-                                            $confianza = $recomendacionFinal['confianza'] ?? 'media';
-                                            $badgeColor = match ($confianza) {
-                                                'alta' => 'bg-green-100 text-green-800',
-                                                'media' => 'bg-yellow-100 text-yellow-800',
-                                                'baja' => 'bg-red-100 text-red-800',
-                                                default => 'bg-gray-100 text-gray-800',
-                                            };
-
-                                            return new \Illuminate\Support\HtmlString(
-                                                "<span class='font-semibold'>{$texto}</span> " .
-                                                    "<span class='ml-2 px-2 py-1 rounded text-xs {$badgeColor}'>Confianza: " . ucfirst($confianza) . "</span>"
-                                            );
-                                        }),
-
-                                    Forms\Components\Placeholder::make('mensaje_decision')
-                                        ->label('💡 Mensaje para su decisión')
-                                        ->content(function () use ($recomendacionFinal, $analisis) {
-                                            $mensaje = $recomendacionFinal['mensaje_para_decision']
-                                                ?? $analisis['consideraciones_especiales']
-                                                ?? 'Revise cuidadosamente los hechos y el historial antes de tomar su decisión.';
-
-                                            return new \Illuminate\Support\HtmlString(
-                                                "<div class='p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200'>" .
-                                                    "<p class='text-gray-700 dark:text-gray-300'>{$mensaje}</p>" .
-                                                    "</div>"
-                                            );
-                                        }),
-                                ])
-                                ->collapsible()
-                                ->collapsed(false),
-
-                            // Guardar análisis en sesión para uso posterior
+                            // Hidden: datos para el action handler
                             Forms\Components\Hidden::make('analisis_cache')
                                 ->default(json_encode($analisis)),
 
-                            // Campo de selección de sanción (solo opciones apropiadas)
-                            Forms\Components\Select::make('tipo_sancion')
-                                ->label('Tipo de Sanción a Aplicar')
+                            Forms\Components\Hidden::make('sancion_ia_recomendada')
+                                ->default($iaRecomendada),
+
+                            Forms\Components\Hidden::make('autoridad_rango_rit_json')
+                                ->default(json_encode($autoridadRit)),
+
+                            // ── Decisión de Sanción — botones con color ───────────────────────
+                            Forms\Components\ToggleButtons::make('tipo_sancion')
+                                ->label('Decisión de Sanción')
                                 ->options($opcionesSancion)
-                                ->required()
-                                ->native(false)
-                                ->default($recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null)
-                                ->helperText('Usted tiene la última palabra. Seleccione la sanción que considere más apropiada.'),
+                                ->colors([
+                                    'llamado_atencion' => 'info',
+                                    'suspension'       => 'warning',
+                                    'terminacion'      => 'danger',
+                                ])
+                                ->icons([
+                                    'llamado_atencion' => 'heroicon-o-chat-bubble-bottom-center-text',
+                                    'suspension'       => 'heroicon-o-clock',
+                                    'terminacion'      => 'heroicon-o-x-circle',
+                                ])
+                                ->columns(['default' => 1, 'sm' => 3])
+                                ->default($iaRecomendada)
+                                ->live()
+                                ->required(),
+
+                            // ── Potestad Disciplinaria según el RIT ───────────────────────────
+                            Forms\Components\Placeholder::make('potestad_card')
+                                ->hiddenLabel()
+                                ->content(fn() => view('filament.components.emitir-sancion-potestad', [
+                                    'autoridadRit'   => $autoridadRit,
+                                    'opcionesSancion' => $opcionesSancion,
+                                ]))
+                                ->hidden(empty($autoridadRit)),
+
+                            // ── Sección de Exoneración ─────────────────────────────────────────
+                            Forms\Components\Section::make('Decisión Contraria a la Recomendación Jurídica')
+                                ->icon('heroicon-o-exclamation-triangle')
+                                ->schema([
+                                    Forms\Components\Placeholder::make('exoneracion_aviso')
+                                        ->hiddenLabel()
+                                        ->content(fn() => new \Illuminate\Support\HtmlString(
+                                            '<div style="padding:16px 18px;background:rgba(239,68,68,0.11);border-radius:14px;' .
+                                            'border:1px solid rgba(239,68,68,0.22);border-left:3px solid #f87171;">' .
+                                            '<div style="display:flex;align-items:flex-start;gap:12px;">' .
+                                            '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="800" stroke="bold" ' .
+                                            'colors="primary:#f87171,secondary:#fca5a5" style="width:36px;height:36px;flex-shrink:0;margin-top:-2px"></lord-icon>' .
+                                            '<div style="flex:1;min-width:0;">' .
+                                            '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.35);margin:0 0 4px;">Advertencia Legal</p>' .
+                                            '<p style="font-size:15px;font-weight:800;color:#f87171;margin:0 0 10px;line-height:1.2;">Decisión contraria a la recomendación jurídica</p>' .
+                                            '<p style="font-size:13px;color:rgba(255,255,255,0.70);line-height:1.6;margin:0;">' .
+                                            'La decisión que está tomando va en contra de la recomendación jurídica emitida por el sistema de inteligencia artificial de CES Legal. ' .
+                                            '<strong style="color:rgba(255,160,160,0.95);">CES Legal no se responsabiliza por las consecuencias legales, laborales o judiciales derivadas de esta decisión.</strong>' .
+                                            '</p></div></div></div>'
+                                        )),
+
+                                    Forms\Components\Textarea::make('razon_divergencia')
+                                        ->label('Razón por la cual se elige esta sanción en lugar de la recomendada')
+                                        ->rows(3)
+                                        ->required(fn(Get $get) => !empty($get('sancion_ia_recomendada')) && $get('tipo_sancion') !== $get('sancion_ia_recomendada')),
+
+                                    Forms\Components\Toggle::make('exoneracion_aceptada')
+                                        ->label('Confirmo que entiendo la recomendación jurídica emitida por la IA, que aun así decido aplicar una sanción diferente, y que asumo completamente la responsabilidad jurídica, laboral y judicial de esta decisión, exonerando a CES Legal de cualquier consecuencia derivada de la misma.')
+                                        ->required(fn(Get $get) => !empty($get('sancion_ia_recomendada')) && $get('tipo_sancion') !== $get('sancion_ia_recomendada'))
+                                        ->accepted()
+                                        ->onColor('danger'),
+                                ])
+                                ->hidden(fn(Get $get) =>
+                                    empty($get('tipo_sancion')) ||
+                                    empty($get('sancion_ia_recomendada')) ||
+                                    $get('tipo_sancion') === $get('sancion_ia_recomendada')
+                                )
+                                ->collapsible(false),
+
+                            // ── Verificación del Autorizador ──────────────────────────────────
+                            Forms\Components\Section::make('Verificación del Autorizador')
+                                ->icon('heroicon-o-user-circle')
+                                ->description('Registre los datos de quien autoriza esta sanción y tome una foto de verificación.')
+                                ->schema([
+                                    Forms\Components\Grid::make(2)->schema([
+                                        Forms\Components\TextInput::make('autorizador_nombre')
+                                            ->label('Nombre completo')
+                                            ->required()
+                                            ->maxLength(255),
+                                        Forms\Components\TextInput::make('autorizador_cargo')
+                                            ->label('Cargo')
+                                            ->required()
+                                            ->maxLength(255),
+                                    ]),
+
+                                    Forms\Components\Placeholder::make('declaracion_texto')
+                                        ->hiddenLabel()
+                                        ->content(fn() => new \Illuminate\Support\HtmlString(
+                                            '<div style="padding:14px 16px;background:rgba(255,255,255,0.04);border-radius:12px;border:1px solid rgba(255,255,255,0.10);border-left:3px solid rgba(255,255,255,0.25);">' .
+                                            '<p style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.38);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px;">Declaración del Autorizador</p>' .
+                                            '<p style="font-size:13px;color:rgba(255,255,255,0.72);line-height:1.6;margin:0;">Al marcar la casilla a continuación, declaro que tengo la potestad disciplinaria para emitir esta sanción, que he revisado los hechos del proceso y las evidencias aportadas, y que autorizo expresamente la emisión de esta decisión disciplinaria. Entiendo que esta acción queda registrada con fecha, hora e imagen de verificación como parte del expediente del proceso.</p>' .
+                                            '</div>'
+                                        )),
+
+                                    Forms\Components\Checkbox::make('declaracion_aceptada')
+                                        ->label('Acepto y confirmo la declaración anterior como persona autorizada para emitir esta sanción')
+                                        ->required()
+                                        ->accepted(),
+
+                                    Forms\Components\Placeholder::make('webcam_autorizador')
+                                        ->label('Foto de verificación del autorizador')
+                                        ->content(fn() => view('filament.components.webcam-autorizador')),
+
+                                    Forms\Components\Hidden::make('foto_autorizador_base64'),
+                                ]),
                         ];
                     })
                     ->requiresConfirmation()
@@ -2084,7 +2053,42 @@ class ProcesoDisciplinarioResource extends Resource
                             \Carbon\Carbon::parse($record->fecha_descargos_programada)->isPast()
                     )
                     ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
-                        // Si es suspensión, guardar en sesión y abrir modal de confirmar días
+                        // 1. Procesar foto si existe
+                        $fotoPath = null;
+                        if (!empty($data['foto_autorizador_base64'])) {
+                            $base64 = preg_replace('/^data:image\/\w+;base64,/', '', $data['foto_autorizador_base64']);
+                            $imageData = base64_decode($base64);
+                            if ($imageData) {
+                                $dir = "fotos-autorizacion/{$record->id}";
+                                $filename = uniqid() . '.jpg';
+                                Storage::disk('public')->makeDirectory($dir);
+                                Storage::disk('public')->put("{$dir}/{$filename}", $imageData);
+                                $fotoPath = "{$dir}/{$filename}";
+                            }
+                        }
+
+                        // 2. Determinar si la decisión es divergente
+                        $esDivergente = !empty($data['sancion_ia_recomendada']) &&
+                                        $data['tipo_sancion'] !== $data['sancion_ia_recomendada'];
+
+                        // 3. Guardar campos de trazabilidad
+                        $record->update([
+                            'sancion_ia_recomendada'  => $data['sancion_ia_recomendada'] ?? null,
+                            'autoridad_rango_rit'     => json_decode($data['autoridad_rango_rit_json'] ?? '{}', true) ?: null,
+                            'autorizador_nombre'      => $data['autorizador_nombre'] ?? null,
+                            'autorizador_cargo'       => $data['autorizador_cargo'] ?? null,
+                            'exoneracion_aceptada'    => $esDivergente ? (bool)($data['exoneracion_aceptada'] ?? false) : null,
+                            'exoneracion_aceptada_en' => $esDivergente ? now() : null,
+                            'exoneracion_ip'          => $esDivergente ? request()->ip() : null,
+                            'razon_divergencia'       => $esDivergente ? ($data['razon_divergencia'] ?? null) : null,
+                            'foto_autorizador_path'   => $fotoPath,
+                            'foto_autorizador_en'     => $fotoPath ? now() : null,
+                        ]);
+
+                        // Limpiar cache de análisis (próxima apertura del modal recalculará)
+                        session()->forget('emitir_sancion_analisis_' . $record->id);
+
+                        // 4. Continuar con el flujo existente
                         if ($data['tipo_sancion'] === 'suspension') {
                             $analisis = json_decode($data['analisis_cache'], true);
 
@@ -2095,11 +2099,9 @@ class ProcesoDisciplinarioResource extends Resource
                                 }
                             }
 
-                            // Guardar en sesión para el modal de confirmar días
                             session(['tipo_sancion_pendiente_' . $record->id => 'suspension']);
                             session(['opciones_dias_' . $record->id => $opcionesDiasSuspension]);
 
-                            // Abrir automáticamente el modal de confirmar días después de que cierre el modal actual
                             $recordKey = $record->getKey();
                             $action->getLivewire()->js(
                                 "setTimeout(() => { \$wire.mountTableAction('confirmar_dias_suspension', '{$recordKey}') }, 300)"
@@ -3021,6 +3023,30 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->send();
                             }
                         }),
+                    Tables\Actions\Action::make('ver_citacion_agrupado')
+                        ->label('Ver Citación')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('info')
+                        ->visible(
+                            fn(ProcesoDisciplinario $record) =>
+                            in_array($record->estado, ['descargos_realizados', 'sancion_emitida', 'impugnacion_realizada', 'cerrado', 'archivado'])
+                        )
+                        ->action(function (ProcesoDisciplinario $record) {
+                            $documento = $record->documentos()
+                                ->where('tipo_documento', 'citacion_descargos')
+                                ->orderBy('created_at', 'desc')
+                                ->first();
+
+                            if ($documento && file_exists($documento->ruta_archivo)) {
+                                return response()->download($documento->ruta_archivo, $documento->nombre_archivo);
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->warning()
+                                ->title('Citación no encontrada')
+                                ->body('No se encontró el documento de citación para este proceso.')
+                                ->send();
+                        }),
                     Tables\Actions\Action::make('regenerar_sancion')
                         ->label('Re-generar Sanción')
                         ->icon('heroicon-o-shield-exclamation')
@@ -3175,6 +3201,56 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->send();
                             }
                         }),
+                    Tables\Actions\Action::make('ver_evidencias')
+                        ->label('Ver Evidencias')
+                        ->icon('heroicon-o-paper-clip')
+                        ->color('info')
+                        ->visible(fn (ProcesoDisciplinario $record) =>
+                            $record->diligencias()
+                                ->whereNotNull('archivos_evidencia')
+                                ->whereRaw("archivos_evidencia NOT IN ('[]', 'null', '')")
+                                ->exists()
+                        )
+                        ->modalHeading('Evidencias del Trabajador')
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Cerrar')
+                        ->modalContent(function (ProcesoDisciplinario $record) {
+                            $archivos = [];
+                            foreach ($record->diligencias()->with('preguntas.respuesta')->get() as $d) {
+                                foreach (array_merge($d->archivos_evidencia ?? [], ...$d->preguntas->map(fn($p) => $p->respuesta?->archivos_adjuntos ?? [])->all()) as $a) {
+                                    $archivos[] = $a;
+                                }
+                            }
+                            if (empty($archivos)) {
+                                return new \Illuminate\Support\HtmlString(
+                                    '<p class="text-sm text-gray-400 dark:text-gray-500 italic p-4">Este proceso no tiene archivos de evidencia adjuntos.</p>'
+                                );
+                            }
+                            $imageExts = ['jpg','jpeg','png','gif','webp','bmp'];
+                            $items = '';
+                            foreach ($archivos as $i => $a) {
+                                $url   = e(\Illuminate\Support\Facades\Storage::disk('public')->url($a['path'] ?? ''));
+                                $name  = e($a['nombre'] ?? 'Archivo');
+                                $ext   = strtolower(pathinfo($a['nombre'] ?? '', PATHINFO_EXTENSION));
+                                $isImg = in_array($ext, $imageExts);
+                                $icon  = $isImg
+                                    ? '<svg class="w-4 h-4 shrink-0 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>'
+                                    : '<svg class="w-4 h-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>';
+                                $items .= "<div class='flex items-center justify-between gap-3 py-2 border-b border-gray-100 dark:border-white/5 last:border-0'>"
+                                        . "<span class='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 truncate'>{$icon}{$name}</span>"
+                                        . "<a href='{$url}' target='_blank' rel='noopener' class='shrink-0 inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:underline'>"
+                                        . "<svg class='w-3.5 h-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'/><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'/></svg>"
+                                        . "Ver / Descargar</a>"
+                                        . "</div>";
+                            }
+                            $count = count($archivos);
+                            return new \Illuminate\Support\HtmlString(
+                                "<div class='px-1'>"
+                                . "<p class='text-xs text-gray-400 dark:text-gray-500 mb-3'>{$count} " . ($count === 1 ? 'archivo' : 'archivos') . "</p>"
+                                . "<div>{$items}</div>"
+                                . "</div>"
+                            );
+                        }),
                     Tables\Actions\ForceDeleteAction::make()
                         ->label('Eliminar')
                         ->icon('heroicon-o-trash')
@@ -3203,214 +3279,227 @@ class ProcesoDisciplinarioResource extends Resource
         ];
     }
 
-    // ── Vista detalle ──────────────────────────────────────────────────────
+    /**
+     * Vista de solo lectura del proceso — usada por clientes desde las notificaciones.
+     */
     public static function infolist(Infolist $infolist): Infolist
     {
-        return $infolist->schema([
+        return $infolist
+            ->schema([
+                Infolists\Components\Section::make('Proceso Disciplinario')
+                    ->icon('heroicon-o-document-text')
+                    ->schema([
+                        Infolists\Components\TextEntry::make('codigo')
+                            ->label('Código')
+                            ->badge()
+                            ->color('primary'),
 
-            // ── 1. Encabezado del proceso ────────────────────────────────────
-            InfoSection::make('Información General')
-                ->icon('heroicon-o-identification')
-                ->columns(3)
-                ->schema([
-                    TextEntry::make('codigo')
-                        ->label('Código')
-                        ->badge()
-                        ->color('gray'),
+                        Infolists\Components\TextEntry::make('estado')
+                            ->label('Estado')
+                            ->badge()
+                            ->formatStateUsing(fn($state) => match ($state) {
+                                'abierto'                  => 'Abierto',
+                                'citado'                   => 'Citado',
+                                'descargos_pendientes'     => 'Descargos Pendientes',
+                                'descargos_realizados'     => 'Descargos Realizados',
+                                'descargos_no_realizados'  => 'Sin Descargos',
+                                'sancion_emitida'          => 'Sanción Emitida',
+                                'impugnado'                => 'Impugnado',
+                                'cerrado'                  => 'Cerrado',
+                                'archivado'                => 'Archivado',
+                                default                    => ucfirst($state),
+                            })
+                            ->color(fn($state) => match ($state) {
+                                'abierto'                  => 'warning',
+                                'citado'                   => 'info',
+                                'descargos_pendientes'     => 'warning',
+                                'descargos_realizados'     => 'success',
+                                'descargos_no_realizados'  => 'danger',
+                                'sancion_emitida'          => 'danger',
+                                'impugnado'                => 'warning',
+                                'cerrado'                  => 'success',
+                                'archivado'                => 'gray',
+                                default                    => 'gray',
+                            }),
 
-                    TextEntry::make('estado')
-                        ->label('Estado actual')
-                        ->badge()
-                        ->color(fn (string $state): string => match ($state) {
-                            'apertura'              => 'gray',
-                            'descargos_pendientes'  => 'warning',
-                            'descargos_realizados'  => 'info',
-                            'descargos_no_realizados' => 'danger',
-                            'sancion_emitida'       => 'primary',
-                            'impugnacion_realizada' => 'danger',
-                            'cerrado'               => 'success',
-                            'archivado'             => 'gray',
-                            default                 => 'gray',
-                        })
-                        ->formatStateUsing(fn (string $state): string => match ($state) {
-                            'apertura'              => 'Apertura',
-                            'descargos_pendientes'  => 'Citación Enviada',
-                            'descargos_realizados'  => 'Descargos Realizados',
-                            'descargos_no_realizados' => 'Descargos No Realizados',
-                            'sancion_emitida'       => 'Sanción Emitida',
-                            'impugnacion_realizada' => 'Impugnación Realizada',
-                            'cerrado'               => 'Cerrado',
-                            'archivado'             => 'Archivado',
-                            default                 => $state,
-                        }),
+                        Infolists\Components\TextEntry::make('trabajador.nombre_completo')
+                            ->label('Trabajador'),
 
-                    TextEntry::make('created_at')
-                        ->label('Fecha apertura')
-                        ->dateTime('d/m/Y H:i')
-                        ->icon('heroicon-m-calendar'),
+                        Infolists\Components\TextEntry::make('empresa.razon_social')
+                            ->label('Empresa'),
+                    ])->columns(2),
 
-                    TextEntry::make('empresa.razon_social')
-                        ->label('Empresa')
-                        ->icon('heroicon-m-building-office')
-                        ->weight('bold'),
+                Infolists\Components\Section::make('Detalles del Proceso')
+                    ->icon('heroicon-o-clipboard-document-list')
+                    ->schema([
+                        Infolists\Components\TextEntry::make('fecha_ocurrencia')
+                            ->label('Fecha de los Hechos')
+                            ->date('d/m/Y'),
 
-                    TextEntry::make('trabajador.nombre_completo')
-                        ->label('Trabajador')
-                        ->icon('heroicon-m-user'),
+                        Infolists\Components\TextEntry::make('fecha_descargos_programada')
+                            ->label('Fecha de Descargos')
+                            ->date('d/m/Y'),
 
-                    TextEntry::make('trabajador.cargo')
-                        ->label('Cargo')
-                        ->icon('heroicon-m-briefcase')
-                        ->placeholder('No especificado'),
+                        Infolists\Components\TextEntry::make('modalidad_descargos')
+                            ->label('Modalidad')
+                            ->formatStateUsing(fn($state) => match ($state) {
+                                'presencial' => 'Presencial',
+                                'virtual'    => 'Virtual',
+                                default      => $state ?? '—',
+                            }),
 
-                    TextEntry::make('abogado.name')
-                        ->label('Abogado asignado')
-                        ->icon('heroicon-m-scale')
-                        ->placeholder('Sin asignar'),
+                        Infolists\Components\TextEntry::make('tipo_sancion')
+                            ->label('Sanción Aplicada')
+                            ->formatStateUsing(fn($state) => match ($state) {
+                                'llamado_atencion' => 'Llamado de Atención',
+                                'suspension'       => 'Suspensión Laboral',
+                                'terminacion'      => 'Terminación de Contrato',
+                                default            => $state ?? '—',
+                            })
+                            ->badge()
+                            ->color(fn($state) => match ($state) {
+                                'llamado_atencion' => 'info',
+                                'suspension'       => 'warning',
+                                'terminacion'      => 'danger',
+                                default            => 'gray',
+                            })
+                            ->placeholder('Sin sanción aún'),
 
-                    TextEntry::make('fecha_ocurrencia')
-                        ->label('Fecha del hecho')
-                        ->date('d/m/Y')
-                        ->icon('heroicon-m-exclamation-triangle')
-                        ->placeholder('No registrada'),
+                        Infolists\Components\TextEntry::make('hechos')
+                            ->label('Descripción de los Hechos')
+                            ->columnSpanFull()
+                            ->prose(),
+                    ])->columns(2),
 
-                    TextEntry::make('tipo_sancion')
-                        ->label('Sanción aplicada')
-                        ->badge()
-                        ->color(fn (?string $state): string => match ($state) {
-                            'llamado_atencion' => 'warning',
-                            'suspension'       => 'danger',
-                            'terminacion'      => 'danger',
-                            default            => 'gray',
-                        })
-                        ->formatStateUsing(fn (?string $state): string => match ($state) {
-                            'llamado_atencion' => 'Llamado de Atención',
-                            'suspension'       => 'Suspensión sin Goce de Salario',
-                            'terminacion'      => 'Despido con Justa Causa',
-                            default            => 'Sin sanción',
-                        })
-                        ->placeholder('Sin sanción'),
-                ]),
+                Infolists\Components\Section::make('Evidencias del trabajador')
+                    ->icon('heroicon-o-paper-clip')
+                    ->description('Archivos adjuntados por el trabajador durante los descargos')
+                    ->schema(function ($record) {
+                        $archivos = [];
+                        foreach ($record->diligencias()->with('preguntas.respuesta')->get() as $d) {
+                            foreach (array_merge($d->archivos_evidencia ?? [], ...$d->preguntas->map(fn($p) => $p->respuesta?->archivos_adjuntos ?? [])->all()) as $a) {
+                                $archivos[] = $a;
+                            }
+                        }
+                        if (empty($archivos)) {
+                            return [Infolists\Components\TextEntry::make('_sin_archivos')->label('')->getStateUsing(fn () => 'Sin archivos adjuntos.')];
+                        }
+                        return collect($archivos)->map(function ($a, $i) {
+                            $url  = \Illuminate\Support\Facades\Storage::disk('public')->url($a['path'] ?? '');
+                            $name = $a['nombre'] ?? 'Archivo';
+                            $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                            $icon = in_array($ext, ['jpg','jpeg','png','gif','webp','bmp'])
+                                ? 'heroicon-o-photo'
+                                : ($ext === 'pdf' ? 'heroicon-o-document-text' : 'heroicon-o-paper-clip');
+                            return Infolists\Components\Actions::make([
+                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make("ver_{$i}")
+                                    ->label($name)
+                                    ->icon($icon)
+                                    ->color('gray')
+                                    ->media($url)
+                                    ->modalHeading($name)
+                                    ->extraModalFooterActions([
+                                        \Filament\Infolists\Components\Actions\Action::make("dl_{$i}")
+                                            ->label('Descargar')
+                                            ->icon('heroicon-o-arrow-down-tray')
+                                            ->color('gray')
+                                            ->url($url)
+                                            ->openUrlInNewTab(),
+                                    ]),
+                            ]);
+                        })->all();
+                    })
+                    ->collapsible()
+                    ->collapsed(false),
 
-            // ── 2. Hechos y conducta ─────────────────────────────────────────
-            InfoSection::make('Hechos y Conducta')
-                ->icon('heroicon-o-document-text')
-                ->schema([
-                    TextEntry::make('hechos')
-                        ->label('Descripción de los hechos')
-                        ->html()
-                        ->columnSpanFull(),
+                // ── Evidencia de la Decisión Disciplinaria ────────────────────────
+                Infolists\Components\Section::make('Evidencia de la Decisión Disciplinaria')
+                    ->icon('heroicon-o-shield-check')
+                    ->schema([
+                        Infolists\Components\TextEntry::make('sancion_ia_recomendada')
+                            ->label('Recomendación IA')
+                            ->badge()
+                            ->color(fn($state) => match ($state) {
+                                'llamado_atencion' => 'info',
+                                'suspension'       => 'warning',
+                                'terminacion'      => 'danger',
+                                default            => 'gray',
+                            })
+                            ->formatStateUsing(fn($state) => match ($state) {
+                                'llamado_atencion' => 'Llamado de Atención',
+                                'suspension'       => 'Suspensión',
+                                'terminacion'      => 'Terminación',
+                                default            => $state ?? '—',
+                            })
+                            ->placeholder('—'),
 
-                    TextEntry::make('normas_incumplidas')
-                        ->label('Normas incumplidas')
-                        ->placeholder('No especificadas')
-                        ->columnSpanFull(),
+                        Infolists\Components\TextEntry::make('tipo_sancion')
+                            ->label('Sanción Aplicada')
+                            ->badge()
+                            ->color(fn($state) => match ($state) {
+                                'llamado_atencion' => 'info',
+                                'suspension'       => 'warning',
+                                'terminacion'      => 'danger',
+                                default            => 'gray',
+                            })
+                            ->formatStateUsing(fn($state) => match ($state) {
+                                'llamado_atencion' => 'Llamado de Atención',
+                                'suspension'       => 'Suspensión Laboral',
+                                'terminacion'      => 'Terminación de Contrato',
+                                default            => $state ?? '—',
+                            })
+                            ->placeholder('—'),
 
-                    TextEntry::make('dias_suspension')
-                        ->label('Días de suspensión')
-                        ->suffix(' días')
-                        ->placeholder('—')
-                        ->visible(fn ($record) => $record->tipo_sancion === 'suspension'),
-                ]),
+                        Infolists\Components\TextEntry::make('_divergencia')
+                            ->label('¿Siguió la recomendación?')
+                            ->getStateUsing(fn($record) =>
+                                $record->sancion_ia_recomendada && $record->tipo_sancion !== $record->sancion_ia_recomendada
+                                    ? 'No — exoneración requerida'
+                                    : 'Sí'
+                            )
+                            ->badge()
+                            ->color(fn($state) =>
+                                str_starts_with($state, 'No') ? 'danger' : 'success'
+                            ),
 
-            // ── 3. Citación a descargos ──────────────────────────────────────
-            InfoSection::make('Citación a Descargos')
-                ->icon('heroicon-o-envelope')
-                ->columns(3)
-                ->visible(fn ($record) => !empty($record->fecha_descargos_programada))
-                ->schema([
-                    TextEntry::make('fecha_descargos_programada')
-                        ->label('Fecha y hora programada')
-                        ->dateTime('d/m/Y H:i')
-                        ->icon('heroicon-m-calendar-days'),
+                        Infolists\Components\TextEntry::make('razon_divergencia')
+                            ->label('Razón de la decisión alternativa')
+                            ->columnSpanFull()
+                            ->hidden(fn($record) => empty($record->razon_divergencia)),
 
-                    TextEntry::make('modalidad_descargos')
-                        ->label('Modalidad')
-                        ->badge()
-                        ->color('info')
-                        ->formatStateUsing(fn (?string $state): string => match ($state) {
-                            'presencial'  => 'Presencial',
-                            'virtual'     => 'Virtual',
-                            'telefonico'  => 'Telefónico',
-                            default       => 'No especificada',
-                        })
-                        ->placeholder('No especificada'),
+                        Infolists\Components\IconEntry::make('exoneracion_aceptada')
+                            ->label('Exoneración aceptada')
+                            ->boolean()
+                            ->hidden(fn($record) => $record->exoneracion_aceptada === null),
 
-                    TextEntry::make('trabajador.email')
-                        ->label('Correo notificado')
-                        ->icon('heroicon-m-at-symbol')
-                        ->placeholder('Sin correo'),
-                ]),
+                        Infolists\Components\TextEntry::make('exoneracion_aceptada_en')
+                            ->label('Fecha y hora de aceptación')
+                            ->dateTime('d/m/Y H:i:s')
+                            ->hidden(fn($record) => !$record->exoneracion_aceptada_en),
 
-            // ── 4. Diligencia de descargos ───────────────────────────────────
-            InfoSection::make('Descargos Realizados')
-                ->icon('heroicon-o-chat-bubble-left-right')
-                ->columns(2)
-                ->visible(fn ($record) => !empty($record->fecha_descargos_realizada) || $record->diligenciaDescargo !== null)
-                ->schema([
-                    TextEntry::make('fecha_descargos_realizada')
-                        ->label('Fecha en que se realizaron')
-                        ->dateTime('d/m/Y H:i')
-                        ->placeholder('No registrada'),
+                        Infolists\Components\TextEntry::make('exoneracion_ip')
+                            ->label('IP de aceptación')
+                            ->hidden(fn($record) => empty($record->exoneracion_ip)),
 
-                    TextEntry::make('diligenciaDescargo.tipo_respuesta')
-                        ->label('Tipo de respuesta del trabajador')
-                        ->badge()
-                        ->color('info')
-                        ->placeholder('Sin respuesta registrada'),
+                        Infolists\Components\TextEntry::make('autorizador_nombre')
+                            ->label('Autorizador'),
 
-                    TextEntry::make('diligenciaDescargo.descargos_trabajador')
-                        ->label('Descargos del trabajador')
-                        ->html()
-                        ->placeholder('Sin texto registrado')
-                        ->columnSpanFull(),
+                        Infolists\Components\TextEntry::make('autorizador_cargo')
+                            ->label('Cargo del autorizador'),
 
-                    TextEntry::make('diligenciaDescargo.analisis_empleador')
-                        ->label('Análisis del empleador')
-                        ->html()
-                        ->placeholder('Sin análisis registrado')
-                        ->columnSpanFull(),
-                ]),
-
-            // ── 5. Impugnación ───────────────────────────────────────────────
-            InfoSection::make('Impugnación')
-                ->icon('heroicon-o-scale')
-                ->columns(2)
-                ->visible(fn ($record) => $record->impugnado || $record->fecha_impugnacion !== null)
-                ->schema([
-                    IconEntry::make('impugnado')
-                        ->label('Fue impugnado')
-                        ->boolean(),
-
-                    TextEntry::make('fecha_impugnacion')
-                        ->label('Fecha de impugnación')
-                        ->dateTime('d/m/Y H:i')
-                        ->placeholder('No registrada'),
-
-                    TextEntry::make('fecha_limite_impugnacion')
-                        ->label('Fecha límite para impugnar')
-                        ->dateTime('d/m/Y H:i')
-                        ->placeholder('No registrada'),
-                ]),
-
-            // ── 6. Cierre del proceso ────────────────────────────────────────
-            InfoSection::make('Cierre del Proceso')
-                ->icon('heroicon-o-check-badge')
-                ->columns(2)
-                ->visible(fn ($record) => in_array($record->estado, ['cerrado', 'archivado']) || !empty($record->fecha_cierre))
-                ->schema([
-                    TextEntry::make('fecha_cierre')
-                        ->label('Fecha de cierre')
-                        ->dateTime('d/m/Y H:i')
-                        ->placeholder('No registrada'),
-
-                    TextEntry::make('motivo_archivo')
-                        ->label('Motivo de archivo')
-                        ->placeholder('—')
-                        ->visible(fn ($record) => $record->estado === 'archivado')
-                        ->columnSpanFull(),
-                ]),
-        ]);
+                        Infolists\Components\ImageEntry::make('foto_autorizador')
+                            ->label('Foto del autorizador')
+                            ->getStateUsing(fn($record) => $record->foto_autorizador_path
+                                ? Storage::disk('public')->url($record->foto_autorizador_path)
+                                : null)
+                            ->height(200)
+                            ->columnSpanFull()
+                            ->hidden(fn($record) => empty($record->foto_autorizador_path)),
+                    ])
+                    ->columns(2)
+                    ->hidden(fn($record) => empty($record->autorizador_nombre))
+                    ->collapsible(),
+            ]);
     }
 
     public static function getPages(): array

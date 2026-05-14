@@ -2,7 +2,6 @@
 
 namespace App\Livewire;
 
-use App\Jobs\GenerarPreguntaDinamicaJob;
 use App\Models\DiligenciaDescargo;
 use App\Models\Feedback;
 use App\Models\PreguntaDescargo;
@@ -11,6 +10,7 @@ use App\Services\IADescargoService;
 use App\Services\ActaDescargosService;
 use App\Services\DocumentGeneratorService;
 use App\Services\EstadoProcesoService;
+use App\Services\VerificacionFacialService;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Log;
@@ -28,17 +28,25 @@ class FormularioDescargos extends Component
     public bool $mostrarMensajeExito = false;
     public int $longitudMinimaRespuesta = 2;
     public bool $mostrarAdvertencia = true;
-    public bool $timerIniciado = false;
+
+    // Autenticación 2FA
+    public string $etapa = 'otp';
+    public string $otpCodigo = '';
+    public string $otpError = '';
+    public bool   $otpEnviado = false;
+    public bool   $disclaimerAceptado = false;
 
     protected $listeners = ['respuestaGuardada' => 'refrescarPreguntas'];
 
     public bool $tiempoExpiradoMostrarEvidencias = false;
 
-    // Estado de generación asíncrona de pregunta IA
-    public bool $pendienteIA         = false;
-    public int  $pendienteIASegundos = 0;
+    // Verificación facial — Capas 2 y 3
+    public bool   $validandoFoto        = false;
+    public string $errorValidacionFoto  = '';
+    public string $alertaAccesorios     = '';  // pre-captura: gorra, tapabocas, gafas oscuras, etc.
 
     // Feedback orgánico — paso actual (1-5 = pregunta activa, 6 = completado)
+    public int    $feedbackPaso      = 1;
     public string $fbExperiencia     = '';  // 'muy_buena'|'buena'|'mala'|'muy_mala'
     public string $fbAlgoConfuso     = '';  // 'si'|'no'
     public string $fbConfusoDetalle  = '';
@@ -52,61 +60,303 @@ class FormularioDescargos extends Component
     {
         $this->diligencia = $diligencia;
 
-        // Si el trabajador ya completó el formulario, evitar re-envío de notificaciones
+        // Si el trabajador ya completó el formulario
         if ($this->diligencia->trabajador_asistio) {
             $this->formularioCompletado = true;
-            $this->timerIniciado = true;
             $this->mostrarAdvertencia = false;
+            $this->etapa = 'completado';
             return;
         }
 
-        // Verificar si ya había iniciado previamente
-        if ($this->diligencia->primer_acceso_en) {
-            $this->timerIniciado = true;
+        // Backward compat: diligencia previa al flujo v2 (tiene primer_acceso_en pero sin OTP)
+        if ($this->diligencia->primer_acceso_en && !$this->diligencia->otp_verificado_en) {
+            $this->etapa = 'formulario';
             $this->mostrarAdvertencia = false;
 
-            // Verificar si ya expiró
             if ($this->diligencia->tiempoHaExpirado()) {
                 $this->diligencia->marcarTiempoExpirado();
 
-                // Verificar si todas las preguntas están respondidas
                 $preguntasSinResponder = $this->diligencia->preguntas()
                     ->activas()
                     ->whereDoesntHave('respuesta')
                     ->count();
 
                 if ($preguntasSinResponder === 0) {
-                    // Todas respondidas: mostrar pantalla de evidencias
                     $this->tiempoExpiradoMostrarEvidencias = true;
                 } else {
-                    // Quedan preguntas sin responder: el trabajador no completó a tiempo
-                    // No se marca asistencia ni se cambia estado hasta que todas las preguntas tengan respuesta
                     $this->formularioCompletado = true;
-                    session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
+                    session()->flash('error', 'La fecha de la diligencia ya pasó. Contacte al administrador del proceso.');
+                    return;
+                }
+            }
+
+            $this->cargarRespuestasExistentes();
+            return;
+        }
+
+        // Máquina de estados v2
+        if (!$this->diligencia->otp_verificado_en) {
+            $this->etapa = 'otp';
+        } elseif (!$this->diligencia->disclaimer_aceptado_en) {
+            $this->etapa = 'disclaimer';
+        } elseif (!$this->diligencia->foto_inicio_path) {
+            $this->etapa = 'foto_inicio';
+        } elseif ($this->diligencia->foto_fin_path) {
+            $this->etapa = 'completado';
+            $this->formularioCompletado = true;
+        } else {
+            $this->etapa = 'formulario';
+            // Mostrar advertencia si el usuario aún no confirmó "Iniciar Diligencia"
+            $this->mostrarAdvertencia = !$this->diligencia->primer_acceso_en;
+
+            if ($this->diligencia->tiempoHaExpirado()) {
+                $this->diligencia->marcarTiempoExpirado();
+
+                $preguntasSinResponder = $this->diligencia->preguntas()
+                    ->activas()
+                    ->whereDoesntHave('respuesta')
+                    ->count();
+
+                if ($preguntasSinResponder === 0) {
+                    $this->tiempoExpiradoMostrarEvidencias = true;
+                } else {
+                    $this->formularioCompletado = true;
+                    session()->flash('error', 'La fecha de la diligencia ya pasó. Contacte al administrador del proceso.');
                     return;
                 }
             }
         }
 
         $this->cargarRespuestasExistentes();
+
+        // Si la foto de cierre ya fue tomada, verificar auto-completado al cargar
+        if ($this->diligencia->foto_fin_path) {
+            $this->verificarAutoCompletado();
+        }
+    }
+
+    // ─── Métodos de autenticación v2 ──────────────────────────────────────
+
+    public function enviarOtp(): void
+    {
+        $this->otpError = '';
+
+        if (!$this->diligencia->emailTrabajador()) {
+            $this->otpError = 'sin_email';
+            return;
+        }
+
+        $enviado = $this->diligencia->enviarOtp();
+
+        if ($enviado) {
+            $this->otpEnviado = true;
+        } else {
+            $this->otpError = 'Error al enviar el código. Intente de nuevo.';
+        }
+    }
+
+    public function verificarOtp(): void
+    {
+        $this->otpError = '';
+
+        if ($this->diligencia->otpBloqueado()) {
+            Log::channel('descargos')->warning('[OTP] Acceso bloqueado por intentos', [
+                'diligencia_id' => $this->diligencia->id,
+                'otp_intentos'  => $this->diligencia->otp_intentos,
+                'ip'            => request()->ip(),
+            ]);
+            $this->otpError = 'bloqueado';
+            return;
+        }
+
+        if (!$this->diligencia->otpEsValido()) {
+            Log::channel('descargos')->warning('[OTP] Código expirado', [
+                'diligencia_id' => $this->diligencia->id,
+                'otp_expira_en' => $this->diligencia->otp_expira_en,
+            ]);
+            $this->otpError = 'expirado';
+            return;
+        }
+
+        $this->diligencia->refresh();
+
+        if ($this->diligencia->verificarOtp(trim($this->otpCodigo))) {
+            Log::channel('descargos')->info('[OTP] Verificado exitosamente', [
+                'diligencia_id' => $this->diligencia->id,
+                'ip'            => request()->ip(),
+            ]);
+            $this->etapa = 'disclaimer';
+        } else {
+            $this->diligencia->refresh();
+            if ($this->diligencia->otpBloqueado()) {
+                Log::channel('descargos')->warning('[OTP] Cuenta bloqueada tras intentos fallidos', [
+                    'diligencia_id' => $this->diligencia->id,
+                    'otp_intentos'  => $this->diligencia->otp_intentos,
+                ]);
+                $this->otpError = 'bloqueado';
+            } else {
+                Log::channel('descargos')->info('[OTP] Código incorrecto', [
+                    'diligencia_id' => $this->diligencia->id,
+                    'otp_intentos'  => $this->diligencia->otp_intentos,
+                ]);
+                $this->otpError = 'incorrecto';
+            }
+        }
+    }
+
+    public function reenviarOtp(): void
+    {
+        if (!$this->diligencia->puedeReenviar()) {
+            return;
+        }
+        $this->enviarOtp();
+    }
+
+    public function aceptarDisclaimer(): void
+    {
+        $this->diligencia->update([
+            'disclaimer_aceptado_en' => now(),
+            'disclaimer_ip'          => request()->ip(),
+        ]);
+        $this->etapa = 'foto_inicio';
+    }
+
+    public function guardarFotoInicio(string $base64): void
+    {
+        $path = $this->guardarFotoBase64($base64, 'inicio');
+
+        $this->diligencia->update([
+            'foto_inicio_path' => $path,
+            'foto_inicio_en'   => now(),
+        ]);
+
+        $this->actualizarEvidenciaMetadata();
+        $this->etapa = 'formulario';
+        $this->mostrarAdvertencia = true; // muestra la advertencia — el timer arranca solo al confirmar
+    }
+
+    public function guardarFotoFin(string $base64): void
+    {
+        $path = $this->guardarFotoBase64($base64, 'fin');
+
+        $this->diligencia->update([
+            'foto_fin_path' => $path,
+            'foto_fin_en'   => now(),
+        ]);
+
+        $this->actualizarEvidenciaMetadata();
+
+        // Regresar al formulario para adjuntar evidencias y enviar
+        // (NO finalizar aquí — el trabajador puede adjuntar archivos antes)
+        $this->etapa = 'formulario';
     }
 
     /**
-     * Inicia el timer después de que el usuario acepte la advertencia
+     * Orquesta las 3 capas de verificación facial antes de guardar la foto.
+     *
+     * Capa 1 (face-api.js): ya corrió en el navegador; aquí asumimos que pasó.
+     * Capa 2: Gemini Vision valida calidad (gafas, tapabocas, blur, etc.).
+     * Capa 3: AWS Rekognition compara contra foto de referencia del trabajador.
+     *
+     * Si alguna capa falla, asigna $errorValidacionFoto y retorna sin guardar.
+     * Si todas pasan, guarda la foto y avanza la etapa.
      */
-    public function iniciarDiligencia()
-    {
-        // Iniciar timer en primer acceso
-        $this->diligencia->iniciarTimer();
-        $this->timerIniciado = true;
-        $this->mostrarAdvertencia = false;
 
-        // Verificar si ya expiró (por si acaso)
-        if ($this->diligencia->tiempoHaExpirado()) {
-            $this->diligencia->marcarTiempoExpirado();
-            $this->formularioCompletado = true;
-            session()->flash('error', 'El tiempo para completar los descargos ha expirado (45 minutos).');
+    /**
+     * Pre-captura: detecta accesorios faciales (gorra, tapabocas, gafas oscuras, etc.)
+     * antes de mostrar el preview. Fail-open: si la API falla, no bloquea.
+     */
+    public function verificarAccesorios(string $base64): void
+    {
+        $this->alertaAccesorios = '';
+        try {
+            $resultado = app(VerificacionFacialService::class)->detectarAccesorios($base64);
+            if (!($resultado['ok'] ?? true)) {
+                $this->alertaAccesorios = $resultado['motivo']
+                    ?? 'Por favor retire cualquier accesorio que cubra su rostro antes de tomar la foto.';
+            }
+        } catch (\Throwable $e) {
+            // fail-open: si falla la detección, se permite continuar
         }
+    }
+
+    public function validarFotoConIA(string $base64, string $tipo): void
+    {
+        $this->validandoFoto       = true;
+        $this->errorValidacionFoto = '';
+
+        $servicio = app(VerificacionFacialService::class);
+
+        // Capa 2 — Gemini Vision
+        $resultadoGemini = $servicio->validarCalidadFoto($base64);
+
+        if (!$resultadoGemini['ok']) {
+            $this->validandoFoto       = false;
+            $this->errorValidacionFoto = $resultadoGemini['motivo']
+                ?? 'La foto no cumple los requisitos. Por favor intente de nuevo.';
+            return;
+        }
+
+        // Capa 3 — Rekognition (solo si el trabajador tiene foto de referencia)
+        $trabajador = $this->diligencia->proceso->trabajador;
+
+        if ($trabajador->foto_referencia_path) {
+            $referenciaBytes = Storage::get($trabajador->foto_referencia_path);
+
+            if ($referenciaBytes) {
+                $resultadoRek = $servicio->compararRostros($referenciaBytes, $base64);
+
+                if (!$resultadoRek['ok']) {
+                    $this->validandoFoto       = false;
+                    $this->errorValidacionFoto = $resultadoRek['motivo']
+                        ?? 'No se pudo verificar su identidad. Por favor intente de nuevo.';
+                    return;
+                }
+            }
+        }
+
+        // Todas las capas pasaron → guardar y avanzar
+        $this->validandoFoto = false;
+
+        if ($tipo === 'inicio') {
+            $this->guardarFotoInicio($base64);
+        } else {
+            $this->guardarFotoFin($base64);
+        }
+    }
+
+    private function guardarFotoBase64(string $base64, string $nombre): string
+    {
+        // Eliminar prefijo data URI si existe
+        $datos = preg_replace('/^data:image\/\w+;base64,/', '', $base64);
+        $imagen = base64_decode($datos);
+
+        $ruta = "private/fotos-descargos/{$this->diligencia->id}/{$nombre}.jpg";
+        Storage::put($ruta, $imagen);
+
+        return $ruta;
+    }
+
+    private function actualizarEvidenciaMetadata(): void
+    {
+        $this->diligencia->refresh();
+        $meta = $this->diligencia->evidencia_metadata ?? [];
+
+        $meta = array_merge($meta, array_filter([
+            'ip'           => request()->ip(),
+            'user_agent'   => request()->userAgent(),
+            'otp_canal'    => $this->diligencia->otp_canal,
+            'foto_inicio_en' => $this->diligencia->foto_inicio_en?->toISOString(),
+            'foto_fin_en'    => $this->diligencia->foto_fin_en?->toISOString(),
+        ]));
+
+        $this->diligencia->update(['evidencia_metadata' => $meta]);
+    }
+
+    public function iniciarDiligencia(): void
+    {
+        $this->diligencia->iniciarTimer();
+        $this->mostrarAdvertencia = false;
     }
 
     /**
@@ -199,12 +449,23 @@ class FormularioDescargos extends Component
 
         try {
             if ($this->preguntasProcesadas[$preguntaId]) {
+                Log::channel('descargos')->warning('[guardarRespuesta] Pregunta ya procesada (posible doble envío)', [
+                    'diligencia_id' => $this->diligencia->id,
+                    'pregunta_id'   => $preguntaId,
+                ]);
                 $this->addError(
                     "respuesta_{$preguntaId}",
                     'Esta pregunta ya fue respondida y procesada.'
                 );
                 return;
             }
+
+            $t0 = microtime(true);
+            Log::channel('descargos')->info('[guardarRespuesta] INICIO', [
+                'diligencia_id' => $this->diligencia->id,
+                'pregunta_id'   => $preguntaId,
+                'chars'         => strlen($respuestaTexto),
+            ]);
 
             $respuesta = RespuestaDescargo::updateOrCreate(
                 ['pregunta_descargo_id' => $preguntaId],
@@ -221,25 +482,60 @@ class FormularioDescargos extends Component
             // Si es la pregunta sobre acompañantes y respondió NO, saltar preguntas hijas automáticamente
             $this->saltarPreguntasCondicionales($pregunta, $respuestaTexto);
 
-            // Generar pregunta dinámica si la que acaba de responderse fue generada por IA.
-            // Se despacha un job asíncrono para no bloquear el request del trabajador.
-            // La UI muestra una pantalla de pausa y hace polling hasta que la pregunta esté lista.
-            if ($pregunta->es_generada_por_ia) {
-                $this->pendienteIA         = true;
-                $this->pendienteIASegundos = 0;
+            // Generar preguntas dinámicas para preguntas IA y para estándar relevantes
+            // (excluir preguntas puramente administrativas que no aportan contexto disciplinario)
+            $preguntasAdministrativas = [
+                '¿Para qué empresa trabaja usted?',
+                '¿Cuál es su cargo en la empresa?',
+                '¿Quién es su jefe directo?',
+                '¿Va a asistir acompañado(a) por alguien?',
+                '¿Qué relación tiene esa persona con usted?',
+                'Acompañante: indique su nombre completo y en qué calidad asiste a esta diligencia (apoyo moral, representante sindical, apoderado, testigo u otro).',
+                '¿Cuál es el nombre de esa empresa contratista o tercero?',
+            ];
 
-                GenerarPreguntaDinamicaJob::dispatch(
-                    $pregunta->id,
-                    $respuesta->id,
-                    $this->diligencia->id,
+            // Prefijos para preguntas administrativas cuyo texto varía (contienen nombre de empresa)
+            $prefijosAdministrativos = [
+                '¿Trabaja usted para una empresa contratista o tercero diferente a',
+            ];
+
+            $esPreguntaAdministrativa = in_array($pregunta->pregunta, $preguntasAdministrativas)
+                || collect($prefijosAdministrativos)->contains(
+                    fn($p) => str_starts_with($pregunta->pregunta, $p)
                 );
+
+            $esPreguntaRelevante = $pregunta->es_generada_por_ia || !$esPreguntaAdministrativa;
+
+            if ($esPreguntaRelevante) {
+                // Llamada sincrónica: el circuit breaker en llamarGemini() garantiza que
+                // si Gemini está caído, falla en ~0ms en lugar de bloquear 7+ segundos.
+                $iaService = new IADescargoService();
+                $nuevasPreguntas = $iaService->generarPreguntasDinamicas($pregunta, $respuesta);
+                foreach ($nuevasPreguntas as $nuevaPregunta) {
+                    $this->respuestas[$nuevaPregunta->id] = '';
+                    $this->preguntasProcesadas[$nuevaPregunta->id] = false;
+                }
             }
 
             $this->dispatch('respuestaGuardada', preguntaId: $preguntaId);
 
+            Log::channel('descargos')->info('[guardarRespuesta] OK', [
+                'diligencia_id'    => $this->diligencia->id,
+                'pregunta_id'      => $preguntaId,
+                'respuesta_id'     => $respuesta->id,
+                'nuevas_preguntas' => count($nuevasPreguntas ?? []),
+                'ms'               => round((microtime(true) - $t0) * 1000),
+            ]);
+
             $this->resetErrorBag("respuesta_{$preguntaId}");
 
         } catch (\Exception $e) {
+            Log::channel('descargos')->error('[guardarRespuesta] ERROR', [
+                'diligencia_id' => $this->diligencia->id,
+                'pregunta_id'   => $preguntaId,
+                'error'         => $e->getMessage(),
+                'trace'         => $e->getFile() . ':' . $e->getLine(),
+            ]);
             Log::error('Error al guardar respuesta', [
                 'pregunta_id' => $preguntaId,
                 'error' => $e->getMessage(),
@@ -275,82 +571,23 @@ class FormularioDescargos extends Component
     /**
      * Obtiene el tiempo restante en segundos
      */
-    public function getTimerProperty()
-    {
-        return $this->diligencia->tiempoRestante() ?? 0;
-    }
-
-    /**
-     * Verifica si el tiempo ha expirado (se llama con polling)
-     */
-    public function verificarTiempo()
-    {
-        if ($this->diligencia->tiempoHaExpirado() && !$this->tiempoExpiradoMostrarEvidencias) {
-            $this->diligencia->marcarTiempoExpirado();
-
-            // Verificar si todas las preguntas están respondidas
-            $preguntasSinResponder = $this->diligencia->preguntas()
-                ->activas()
-                ->whereDoesntHave('respuesta')
-                ->count();
-
-            if ($preguntasSinResponder === 0) {
-                // Todas respondidas: permitir subir evidencias
-                $this->tiempoExpiradoMostrarEvidencias = true;
-                session()->flash('info', 'El tiempo ha expirado, pero puede adjuntar evidencias antes de enviar.');
-            } else {
-                // Quedan preguntas sin responder: no se marca asistencia ni se cambia estado
-                $this->formularioCompletado = true;
-                session()->flash('error', 'El tiempo ha expirado.');
-            }
-        }
-    }
-
-    /**
-     * Polling que verifica si el job de generación de pregunta IA ya terminó.
-     * Se ejecuta cada 3 segundos SOLO mientras $pendienteIA = true.
-     * Si la pregunta aparece en BD → desactiva la pausa y recarga preguntas.
-     * Si pasan más de 120 s sin respuesta → desactiva la pausa (timeout de seguridad).
-     */
-    public function verificarPreguntaIA(): void
-    {
-        if (!$this->pendienteIA) {
-            return;
-        }
-
-        $this->pendienteIASegundos += 3;
-        $this->diligencia->refresh();
-
-        $pendientes = $this->diligencia->preguntas()
-            ->activas()
-            ->whereDoesntHave('respuesta')
-            ->count();
-
-        if ($pendientes > 0) {
-            // Nueva pregunta disponible
-            $this->pendienteIA         = false;
-            $this->pendienteIASegundos = 0;
-            $this->cargarRespuestasExistentes();
-            return;
-        }
-
-        // Timeout de seguridad: 120 s máximo de espera
-        if ($this->pendienteIASegundos >= 120) {
-            Log::warning('verificarPreguntaIA: timeout alcanzado sin respuesta de IA', [
-                'diligencia_id' => $this->diligencia->id,
-            ]);
-            $this->pendienteIA         = false;
-            $this->pendienteIASegundos = 0;
-        }
-    }
 
     /**
      * Finaliza el proceso de descargos
      */
     public function finalizarDescargos()
     {
+        Log::channel('descargos')->info('[finalizarDescargos] LLAMADA', [
+            'diligencia_id'         => $this->diligencia->id,
+            'formulario_ya_cerrado' => $this->formularioCompletado,
+            'trabajador_asistio_bd' => $this->diligencia->trabajador_asistio,
+        ]);
+
         // Guard: evitar doble ejecución si el formulario ya fue completado
         if ($this->formularioCompletado) {
+            Log::channel('descargos')->warning('[finalizarDescargos] Guard activado - ya estaba completado', [
+                'diligencia_id' => $this->diligencia->id,
+            ]);
             return;
         }
 
@@ -363,6 +600,8 @@ class FormularioDescargos extends Component
             $this->addError('finalizacion', 'Debe responder todas las preguntas antes de finalizar.');
             return;
         }
+
+        $t0Finalizar = microtime(true);
 
         try {
             // Guardar archivos de evidencia si existen
@@ -400,6 +639,12 @@ class FormularioDescargos extends Component
             $estadoService->alCompletarDescargos($this->diligencia->proceso);
 
         } catch (\Exception $e) {
+            Log::channel('descargos')->error('[finalizarDescargos] ERROR en bloque principal', [
+                'diligencia_id' => $this->diligencia->id,
+                'error'         => $e->getMessage(),
+                'trace'         => $e->getFile() . ':' . $e->getLine(),
+                'ms'            => round((microtime(true) - $t0Finalizar) * 1000),
+            ]);
             Log::error('Error al finalizar descargos', [
                 'diligencia_id' => $this->diligencia->id,
                 'error' => $e->getMessage(),
@@ -407,6 +652,12 @@ class FormularioDescargos extends Component
             $this->addError('finalizacion', 'Ocurrió un error al finalizar. Por favor, intente nuevamente.');
             return;
         }
+
+        Log::channel('descargos')->info('[finalizarDescargos] COMPLETADO', [
+            'diligencia_id' => $this->diligencia->id,
+            'archivos_guardados' => count($archivosGuardados),
+            'ms' => round((microtime(true) - $t0Finalizar) * 1000),
+        ]);
 
         // Operaciones exitosas: marcar como completado
         $this->formularioCompletado = true;
@@ -417,9 +668,14 @@ class FormularioDescargos extends Component
         // Guardar feedback orgánico si el trabajador respondió al menos la primera pregunta
         $this->guardarFeedbackOrganico();
 
+        // Notificaciones al trabajador y al cliente (no críticas)
+        $this->enviarNotificacionesCompletado();
+
         // Generar el acta de descargos automáticamente (no crítico)
-        // Se genera ANTES de las notificaciones para poder adjuntarla al correo del cliente
         try {
+            $t0Acta = microtime(true);
+            Log::channel('descargos')->info('[acta] INICIO generación', ['diligencia_id' => $this->diligencia->id]);
+
             $actaService = new ActaDescargosService();
             $resultado = $actaService->generarActaDescargos($this->diligencia);
 
@@ -428,23 +684,33 @@ class FormularioDescargos extends Component
                     'acta_generada' => true,
                     'ruta_acta' => $resultado['path'],
                 ]);
-                $this->diligencia->refresh();
+                Log::channel('descargos')->info('[acta] Generada OK', [
+                    'diligencia_id' => $this->diligencia->id,
+                    'path'          => $resultado['path'],
+                    'ms'            => round((microtime(true) - $t0Acta) * 1000),
+                ]);
             } else {
+                Log::channel('descargos')->warning('[acta] Falló la generación', [
+                    'diligencia_id' => $this->diligencia->id,
+                    'error'         => $resultado['error'] ?? 'Error desconocido',
+                    'ms'            => round((microtime(true) - $t0Acta) * 1000),
+                ]);
                 Log::warning('No se pudo generar el acta automáticamente', [
                     'diligencia_id' => $this->diligencia->id,
                     'error' => $resultado['error'] ?? 'Error desconocido',
                 ]);
             }
         } catch (\Exception $e) {
+            Log::channel('descargos')->error('[acta] Excepción', [
+                'diligencia_id' => $this->diligencia->id,
+                'error'         => $e->getMessage(),
+                'trace'         => $e->getFile() . ':' . $e->getLine(),
+            ]);
             Log::warning('Excepción al generar acta automáticamente', [
                 'diligencia_id' => $this->diligencia->id,
                 'error' => $e->getMessage(),
             ]);
         }
-
-        // Notificaciones al trabajador y al cliente (no críticas)
-        // Se envían DESPUÉS de generar el acta para poder adjuntarla al correo del cliente
-        $this->enviarNotificacionesCompletado();
     }
 
     /**
@@ -476,8 +742,40 @@ class FormularioDescargos extends Component
             return;
         }
 
+        // Paso 3: sugerencia de texto obligatoria
+        if ($this->feedbackPaso === 3 && trim($this->fbQueCambiaria) === '') {
+            $this->addError('fb', 'Por favor escriba su sugerencia para continuar.');
+            return;
+        }
+
         $this->resetErrorBag('fb');
         $this->feedbackPaso++;
+
+        // Al completar el feedback (paso 6+), solicitar foto de cierre antes de adjuntar
+        if ($this->feedbackPaso > 5 && $this->diligencia->otp_verificado_en && !$this->diligencia->foto_fin_path) {
+            $this->etapa = 'foto_fin';
+        }
+    }
+
+    /**
+     * Auto-completa los descargos si la foto de cierre fue tomada hace más de 10 min
+     * y el trabajador no envió manualmente. Se llama por polling y en mount().
+     */
+    public function verificarAutoCompletado(): void
+    {
+        if ($this->formularioCompletado || $this->diligencia->trabajador_asistio) {
+            return;
+        }
+
+        if (!$this->diligencia->foto_fin_en) {
+            return;
+        }
+
+        if ($this->diligencia->foto_fin_en->diffInMinutes(now()) < 10) {
+            return;
+        }
+
+        $this->finalizarDescargos();
     }
 
     /**
@@ -485,10 +783,6 @@ class FormularioDescargos extends Component
      */
     private function guardarFeedbackOrganico(): void
     {
-        if ($this->fbExperiencia === '') {
-            return; // El trabajador no respondió ninguna pregunta de feedback
-        }
-
         try {
             $calificacionMap = ['muy_buena' => 5, 'buena' => 4, 'mala' => 2, 'muy_mala' => 1];
 
@@ -557,12 +851,30 @@ class FormularioDescargos extends Component
         $totalConFeedback     = $totalPreguntas + 5;
         $respondidosConFeedback = $preguntasRespondidas + ($this->feedbackPaso - 1);
 
+        // Disclaimer con variables del trabajador/empresa resueltas (BD con fallback a config)
+        $empresa = $proceso->empresa;
+        $plantillaDisclaimer = \App\Models\ConfiguracionTexto::obtener(
+            'disclaimer_descargos',
+            config('ces.disclaimer_descargos', '')
+        );
+        $textoDisclaimer = str_replace(
+            [':nombre', ':cedula', ':empresa', ':cargo'],
+            [
+                $trabajador->nombre_completo ?? '',
+                $trabajador->numero_documento ?? '',
+                $empresa->razon_social ?? '',
+                $trabajador->cargo ?? '',
+            ],
+            $plantillaDisclaimer
+        );
+
         return view('livewire.formulario-descargos', [
             'preguntaSiguiente'     => $preguntaSiguiente,
             'totalPreguntas'        => $totalConFeedback,
             'preguntasRespondidas'  => $respondidosConFeedback,
             'proceso'               => $proceso,
             'trabajador'            => $trabajador,
+            'textoDisclaimer'       => $textoDisclaimer,
         ]);
     }
 }

@@ -10,12 +10,18 @@ use App\Services\IADescargoService;
 use App\Services\ActaDescargosService;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists\Infolist;
+use Filament\Infolists\Components\Section as InfoSection;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\Grid;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Storage;
 
 class DiligenciaDescargoResource extends Resource
 {
@@ -157,34 +163,20 @@ class DiligenciaDescargoResource extends Resource
                     ])->columns(2)->collapsible(),
 
                 Forms\Components\Section::make('Archivos de Evidencia')
-                    ->description('Archivos que el trabajador ha subido por internet')
+                    ->description('Archivos adjuntados por el trabajador durante los descargos')
                     ->schema([
                         Forms\Components\Placeholder::make('archivos_evidencia_info')
-                            ->label('Archivos Adjuntos')
+                            ->label('')
                             ->content(function ($record) {
-                                if (!$record || !$record->archivos_evidencia || empty($record->archivos_evidencia)) {
-                                    return 'El trabajador no ha subido archivos';
-                                }
-
-                                $html = '<div class="space-y-2">';
-                                foreach ($record->archivos_evidencia as $archivo) {
-                                    $nombre = $archivo['nombre'] ?? 'Archivo';
-                                    $path = $archivo['path'] ?? '';
-                                    $url = $path ? asset('storage/' . $path) : '#';
-
-                                    $html .= "<div class='p-3 bg-gray-50 rounded flex justify-between items-center border'>";
-                                    $html .= "<span class='font-medium'>{$nombre}</span>";
-                                    $html .= "<a href='{$url}' target='_blank' class='px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700'>Descargar</a>";
-                                    $html .= "</div>";
-                                }
-                                $html .= '</div>';
-
-                                return new \Illuminate\Support\HtmlString($html);
+                                if (!$record) return new \Illuminate\Support\HtmlString('');
+                                return new \Illuminate\Support\HtmlString(
+                                    self::renderArchivosHtml(self::recopilarArchivos($record))
+                                );
                             })
                             ->columnSpanFull(),
                     ])
                     ->collapsible()
-                    ->collapsed(fn($record) => !$record || !$record->archivos_evidencia || empty($record->archivos_evidencia)),
+                    ->collapsed(fn($record) => empty($record?->archivos_evidencia)),
             ]);
     }
 
@@ -199,7 +191,14 @@ class DiligenciaDescargoResource extends Resource
 
                 Tables\Columns\TextColumn::make('proceso.trabajador.nombre_completo')
                     ->label('Trabajador')
-                    ->searchable(),
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('proceso', function (Builder $query) use ($search) {
+                            $query->whereHas('trabajador', function (Builder $query) use ($search) {
+                                $query->where('nombres', 'like', "%{$search}%")
+                                      ->orWhere('apellidos', 'like', "%{$search}%");
+                            });
+                        });
+                    }),
 
                 Tables\Columns\TextColumn::make('fecha_diligencia')
                     ->label('Fecha Diligencia')
@@ -258,6 +257,23 @@ class DiligenciaDescargoResource extends Resource
                         return $query->orderByRaw('JSON_LENGTH(COALESCE(archivos_evidencia, "[]")) ' . $direction);
                     }),
 
+                Tables\Columns\TextColumn::make('otp_verificado_en')
+                    ->label('Verificación')
+                    ->badge()
+                    ->getStateUsing(function (DiligenciaDescargo $record) {
+                        if ($record->otp_verificado_en) return 'Verificado';
+                        if ($record->otpBloqueado())    return 'Bloqueado';
+                        if ($record->otp_enviado_a)     return 'OTP enviado';
+                        return 'Sin verificar';
+                    })
+                    ->color(fn (string $state) => match($state) {
+                        'Verificado'   => 'success',
+                        'Bloqueado'    => 'danger',
+                        'OTP enviado'  => 'warning',
+                        default        => 'gray',
+                    })
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('trabajador_accedio_en')
                     ->label('Accedió En')
                     ->dateTime('d/m/Y H:i')
@@ -294,12 +310,13 @@ class DiligenciaDescargoResource extends Resource
                         $iaService = new IADescargoService();
 
                         try {
-                            $preguntas = $iaService->generarPreguntasCompletas($record, 2);
+                            // Solo genera las 2 preguntas IA — las estándar ya están creadas
+                            $preguntas = $iaService->generarPreguntasIA($record, 2);
 
                             Notification::make()
                                 ->success()
                                 ->title('Preguntas generadas')
-                                ->body(count($preguntas) . ' preguntas generadas (estándar + IA + cierre).')
+                                ->body(count($preguntas) . ' preguntas de IA añadidas al proceso.')
                                 ->send();
                         } catch (\Exception $e) {
                             Notification::make()
@@ -393,6 +410,45 @@ class DiligenciaDescargoResource extends Resource
                         })
                         ->visible(fn(DiligenciaDescargo $record) => !empty($record->token_acceso)),
 
+                    Tables\Actions\Action::make('regenerar_preguntas_ia')
+                        ->label('Regenerar preguntas IA')
+                        ->icon('heroicon-o-cpu-chip')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalHeading('¿Regenerar preguntas con IA?')
+                        ->modalDescription('Se generarán nuevas preguntas de IA y se insertarán antes de las preguntas de cierre. Las preguntas existentes de IA serán eliminadas primero.')
+                        ->modalSubmitActionLabel('Regenerar')
+                        ->action(function (DiligenciaDescargo $record) {
+                            // Eliminar preguntas de IA anteriores
+                            $record->preguntas()->where('es_generada_por_ia', true)->delete();
+
+                            // Regenerar
+                            try {
+                                $iaService = new \App\Services\IADescargoService();
+                                $nuevas    = $iaService->generarPreguntasIA($record, 2);
+
+                                if (count($nuevas) > 0) {
+                                    Notification::make()
+                                        ->success()
+                                        ->title('Preguntas IA generadas')
+                                        ->body(count($nuevas) . ' pregunta(s) generadas exitosamente.')
+                                        ->send();
+                                } else {
+                                    Notification::make()
+                                        ->warning()
+                                        ->title('Sin preguntas IA')
+                                        ->body('La IA respondió NO_REQUIERE o no pudo generar preguntas. Intente de nuevo más tarde.')
+                                        ->send();
+                                }
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Error al generar preguntas IA')
+                                    ->body('Servicio de IA no disponible en este momento. Intente más tarde.')
+                                    ->send();
+                            }
+                        }),
+
                     Tables\Actions\Action::make('regenerar_acta')
                         ->label('Regenerar Acta')
                         ->icon('heroicon-o-arrow-path')
@@ -448,6 +504,197 @@ class DiligenciaDescargoResource extends Resource
         return [
             //
         ];
+    }
+
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                // ── Verificación OTP ──────────────────────────────────────
+                InfoSection::make('Verificación de Identidad (OTP)')
+                    ->icon('heroicon-o-shield-check')
+                    ->schema([
+                        TextEntry::make('otp_estado')
+                            ->label('Estado')
+                            ->badge()
+                            ->getStateUsing(function ($record) {
+                                if ($record->otp_verificado_en) return 'Verificado';
+                                if ($record->otpBloqueado())    return 'Bloqueado — máx. intentos';
+                                if ($record->otp_enviado_a)     return 'OTP enviado (pendiente)';
+                                return 'Sin verificar';
+                            })
+                            ->color(fn (string $state) => match(true) {
+                                str_starts_with($state, 'Verificado') => 'success',
+                                str_starts_with($state, 'Bloqueado')  => 'danger',
+                                str_starts_with($state, 'OTP')        => 'warning',
+                                default                                => 'gray',
+                            }),
+
+                        TextEntry::make('otp_verificado_en')
+                            ->label('Verificado el')
+                            ->dateTime('d/m/Y H:i:s')
+                            ->placeholder('—'),
+
+                        TextEntry::make('otp_canal')
+                            ->label('Canal')
+                            ->badge()
+                            ->placeholder('—'),
+
+                        TextEntry::make('otp_enviado_a')
+                            ->label('Enviado a')
+                            ->placeholder('—'),
+
+                        TextEntry::make('otp_intentos')
+                            ->label('Intentos fallidos')
+                            ->badge()
+                            ->color(fn ($state) => match(true) {
+                                $state >= 3 => 'danger',
+                                $state > 0  => 'warning',
+                                default     => 'success',
+                            })
+                            ->placeholder('0'),
+
+                        TextEntry::make('otp_expira_en')
+                            ->label('OTP expira en')
+                            ->dateTime('d/m/Y H:i:s')
+                            ->placeholder('—'),
+                    ])
+                    ->columns(3),
+
+                // ── Disclaimer ────────────────────────────────────────────
+                InfoSection::make('Disclaimer — Declaración de identidad')
+                    ->icon('heroicon-o-document-check')
+                    ->schema([
+                        TextEntry::make('disclaimer_aceptado_en')
+                            ->label('Aceptado el')
+                            ->dateTime('d/m/Y H:i:s')
+                            ->badge()
+                            ->color(fn ($record) => $record->disclaimer_aceptado_en ? 'success' : 'gray')
+                            ->placeholder('No aceptado'),
+
+                        TextEntry::make('disclaimer_ip')
+                            ->label('IP de aceptación')
+                            ->placeholder('—'),
+                    ])
+                    ->columns(2),
+
+                // ── Fotos ─────────────────────────────────────────────────
+                InfoSection::make('Evidencia Fotográfica')
+                    ->icon('heroicon-o-camera')
+                    ->schema([
+                        ImageEntry::make('foto_inicio')
+                            ->label('Foto de inicio')
+                            ->getStateUsing(fn ($record) => $record->foto_inicio_path
+                                ? route('admin.fotos-descargos', [$record->id, 'inicio'])
+                                : null)
+                            ->height(220)
+                            ->extraImgAttributes(['class' => 'rounded-xl object-cover'])
+                            ->placeholder('Sin foto'),
+
+                        ImageEntry::make('foto_fin')
+                            ->label('Foto de cierre')
+                            ->getStateUsing(fn ($record) => $record->foto_fin_path
+                                ? route('admin.fotos-descargos', [$record->id, 'fin'])
+                                : null)
+                            ->height(220)
+                            ->extraImgAttributes(['class' => 'rounded-xl object-cover'])
+                            ->placeholder('Sin foto'),
+
+                        TextEntry::make('foto_inicio_en')
+                            ->label('Tomada el (inicio)')
+                            ->dateTime('d/m/Y H:i:s')
+                            ->placeholder('—'),
+
+                        TextEntry::make('foto_fin_en')
+                            ->label('Tomada el (cierre)')
+                            ->dateTime('d/m/Y H:i:s')
+                            ->placeholder('—'),
+                    ])
+                    ->columns(2),
+
+                // ── Archivos adjuntos ─────────────────────────────────────
+                InfoSection::make('Archivos de Evidencia')
+                    ->icon('heroicon-o-paper-clip')
+                    ->description('Archivos adjuntados por el trabajador durante los descargos')
+                    ->schema(function ($record) {
+                        $archivos = self::recopilarArchivos($record);
+                        if (empty($archivos)) {
+                            return [TextEntry::make('_sin_archivos')->label('')->getStateUsing(fn () => 'Sin archivos adjuntos.')];
+                        }
+                        return collect($archivos)->map(function ($a, $i) {
+                            $url   = Storage::disk('public')->url($a['path'] ?? '');
+                            $name  = $a['nombre'] ?? 'Archivo';
+                            $ext   = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                            $icon  = in_array($ext, ['jpg','jpeg','png','gif','webp','bmp'])
+                                ? 'heroicon-o-photo'
+                                : ($ext === 'pdf' ? 'heroicon-o-document-text' : 'heroicon-o-paper-clip');
+                            return \Filament\Infolists\Components\Actions::make([
+                                \Hugomyb\FilamentMediaAction\Infolists\Components\Actions\MediaAction::make("ver_{$i}")
+                                    ->label($name)
+                                    ->icon($icon)
+                                    ->color('gray')
+                                    ->media($url)
+                                    ->modalHeading($name)
+                                    ->extraModalFooterActions([
+                                        \Filament\Infolists\Components\Actions\Action::make("dl_{$i}")
+                                            ->label('Descargar')
+                                            ->icon('heroicon-o-arrow-down-tray')
+                                            ->color('gray')
+                                            ->url($url)
+                                            ->openUrlInNewTab(),
+                                    ]),
+                            ]);
+                        })->all();
+                    })
+                    ->collapsible()
+                    ->collapsed(fn ($record) => empty($record?->archivos_evidencia)),
+
+                // ── Metadata ──────────────────────────────────────────────
+                InfoSection::make('Metadatos de Evidencia')
+                    ->icon('heroicon-o-code-bracket')
+                    ->schema([
+                        TextEntry::make('evidencia_metadata')
+                            ->label('')
+                            ->columnSpanFull()
+                            ->getStateUsing(fn ($record) => $record->evidencia_metadata
+                                ? json_encode($record->evidencia_metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+                                : 'Sin metadatos')
+                            ->fontFamily('mono')
+                            ->prose(false),
+                    ])
+                    ->collapsible()
+                    ->collapsed(),
+            ]);
+    }
+
+    /** Recopila todos los archivos de evidencia de una diligencia (nivel diligencia + respuestas). */
+    private static function recopilarArchivos($record): array
+    {
+        $archivos = array_values($record->archivos_evidencia ?? []);
+        foreach ($record->preguntas()->with('respuesta')->get() as $pregunta) {
+            foreach ($pregunta->respuesta?->archivos_adjuntos ?? [] as $adj) {
+                $archivos[] = $adj;
+            }
+        }
+        return $archivos;
+    }
+
+    /** Renderiza lista de archivos como links para el formulario (contexto de edición). */
+    private static function renderArchivosHtml(array $archivos): string
+    {
+        if (empty($archivos)) {
+            return '<p class="text-sm text-gray-400 dark:text-gray-500 italic">Sin archivos adjuntos.</p>';
+        }
+        $items = [];
+        foreach ($archivos as $a) {
+            $url  = e(Storage::disk('public')->url($a['path'] ?? ''));
+            $name = e($a['nombre'] ?? 'Archivo');
+            $items[] = "<a href='{$url}' target='_blank' rel='noopener' "
+                     . "class='inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400 hover:underline'>"
+                     . "<svg class='w-3.5 h-3.5 shrink-0' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13'/></svg>"
+                     . "{$name}</a>";
+        }
+        return '<div class="space-y-1.5">' . implode('', $items) . '</div>';
     }
 
     public static function getPages(): array

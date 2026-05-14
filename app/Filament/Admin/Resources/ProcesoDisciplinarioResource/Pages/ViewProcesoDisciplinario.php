@@ -12,8 +12,10 @@ class ViewProcesoDisciplinario extends ViewRecord
 
     protected function getHeaderActions(): array
     {
+        // Solo admins y abogados pueden editar
         return [
-            Actions\EditAction::make()->label('Editar'),
+            Actions\EditAction::make()
+                ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'abogado'])),
         ];
     }
 }

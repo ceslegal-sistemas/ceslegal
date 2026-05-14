@@ -9,18 +9,42 @@ class ArticuloLegal extends Model
     protected $table = 'articulos_legales';
 
     protected $fillable = [
+        'empresa_id',
         'codigo',
         'titulo',
         'descripcion',
+        'texto_completo',
         'categoria',
+        'fuente',
         'activo',
         'orden',
+        'embedding',
     ];
 
     protected $casts = [
-        'activo' => 'boolean',
-        'orden' => 'integer',
+        'activo'    => 'boolean',
+        'orden'     => 'integer',
+        'embedding' => 'array',
     ];
+
+    public function empresa()
+    {
+        return $this->belongsTo(Empresa::class);
+    }
+
+    /**
+     * Scope para artículos disponibles para una empresa:
+     * universales (empresa_id null) + específicos de esa empresa.
+     */
+    public function scopeParaEmpresa($query, ?int $empresaId)
+    {
+        return $query->where(function ($q) use ($empresaId) {
+            $q->whereNull('empresa_id');
+            if ($empresaId) {
+                $q->orWhere('empresa_id', $empresaId);
+            }
+        });
+    }
 
     /**
      * Scope para obtener solo artículos activos
@@ -39,9 +63,9 @@ class ArticuloLegal extends Model
     }
 
     /**
-     * Obtener el texto completo del artículo para mostrar en el selector
+     * Etiqueta corta para mostrar en selectores / dropdowns
      */
-    public function getTextoCompletoAttribute(): string
+    public function getLabelAttribute(): string
     {
         return "{$this->codigo} - {$this->titulo}";
     }

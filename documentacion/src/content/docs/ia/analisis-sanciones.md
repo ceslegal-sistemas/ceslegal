@@ -13,7 +13,7 @@ El servicio `IAAnalisisSancionService` analiza el proceso disciplinario completo
 - El **historial** de procesos disciplinarios previos del trabajador.
 - La **legislacion laboral colombiana** (Codigo Sustantivo del Trabajo).
 
-El analisis se presenta al abogado dentro del modal de **emitir sancion** en la interfaz de Filament, donde puede revisar la sugerencia de la IA y tomar la decision final.
+El analisis se presenta dentro del modal de **emitir sancion** en la interfaz de Filament, donde puede revisar la sugerencia de la IA y tomar la decision final.
 
 ---
 
@@ -22,7 +22,7 @@ El analisis se presenta al abogado dentro del modal de **emitir sancion** en la 
 ### Flujo completo
 
 ```
-1. El abogado hace clic en "Emitir Sancion" en el proceso disciplinario
+1. El cliente hace clic en "Emitir Sancion" en el proceso disciplinario
 2. Se invoca IAAnalisisSancionService::analizarYSugerirSanciones($proceso)
 3. El servicio recopila:
    a. Informacion del trabajador y empresa
@@ -32,7 +32,7 @@ El analisis se presenta al abogado dentro del modal de **emitir sancion** en la 
 5. Se envia a Google Gemini con temperature=0.3 (respuestas consistentes)
 6. Se parsea la respuesta JSON de la IA
 7. Se retorna el analisis al formulario modal de Filament
-8. El abogado revisa la sugerencia y toma la decision
+8. El cliente revisa la sugerencia y toma la decision
 ```
 
 ### Recopilacion de datos
@@ -66,7 +66,7 @@ Se formatean como texto numerado con preguntas y respuestas.
 
 ## Estructura del prompt
 
-El prompt esta disenado para que Gemini actue como un experto en derecho laboral colombiano:
+El prompt esta diseñado para que Gemini actue como un experto en derecho laboral colombiano:
 
 ```text
 Eres un experto en derecho laboral colombiano. Analiza el siguiente proceso
@@ -97,6 +97,7 @@ HISTORIAL DEL TRABAJADOR:
 El prompt define criterios claros para clasificar las faltas:
 
 **Faltas leves:**
+
 - Llegadas tarde ocasionales (primera o segunda vez).
 - Incumplimientos menores sin impacto grave.
 - Primera vez cometiendo una falta (sin antecedentes).
@@ -104,6 +105,7 @@ El prompt define criterios claros para clasificar las faltas:
 - Sancion: Solo llamado de atencion.
 
 **Faltas graves - Nivel bajo (1-8 dias de suspension):**
+
 - Reincidencia en faltas leves (2 o mas procesos previos).
 - Insubordinacion leve o falta de respeto.
 - Incumplimiento de normas de seguridad sin consecuencias graves.
@@ -111,6 +113,7 @@ El prompt define criterios claros para clasificar las faltas:
 - Ausencias injustificadas (pocas).
 
 **Faltas graves - Nivel alto (8-60 dias de suspension o terminacion):**
+
 - Hurto o fraude.
 - Agresion fisica.
 - Acoso laboral o sexual.
@@ -121,12 +124,12 @@ El prompt define criterios claros para clasificar las faltas:
 
 ### Escala de dias de suspension
 
-| Rango | Aplicacion |
-|-------|------------|
-| 1-3 dias | Faltas graves nivel bajo, sin reincidencia reciente |
-| 3-8 dias | Faltas graves nivel bajo con reincidencia o impacto moderado |
-| 8-15 dias | Faltas graves nivel alto, conductas serias |
-| 15-30 dias | Faltas graves nivel alto, conductas muy serias |
+| Rango      | Aplicacion                                                            |
+| ---------- | --------------------------------------------------------------------- |
+| 1-3 dias   | Faltas graves nivel bajo, sin reincidencia reciente                   |
+| 3-8 dias   | Faltas graves nivel bajo con reincidencia o impacto moderado          |
+| 8-15 dias  | Faltas graves nivel alto, conductas serias                            |
+| 15-30 dias | Faltas graves nivel alto, conductas muy serias                        |
 | 30-60 dias | Faltas graves nivel alto, maxima gravedad (alternativa a terminacion) |
 
 ---
@@ -137,45 +140,45 @@ La IA retorna un JSON con la siguiente estructura:
 
 ```json
 {
-  "gravedad": "leve|grave",
-  "nivel_gravedad": "ninguno|bajo|alto",
-  "es_reincidencia": true,
-  "justificacion": "Explicacion clara de por que se clasifica asi y en que nivel",
-  "sanciones_disponibles": ["llamado_atencion", "suspension", "terminacion"],
-  "sancion_recomendada": "suspension",
-  "dias_suspension_sugeridos": [1, 2, 3, 5, 8],
-  "razonamiento_legal": "Explicacion basada en el CST y las sanciones del reglamento",
-  "consideraciones_especiales": "Informacion adicional: historial, descargos, atenuantes, agravantes"
+    "gravedad": "leve|grave",
+    "nivel_gravedad": "ninguno|bajo|alto",
+    "es_reincidencia": true,
+    "justificacion": "Explicacion clara de por que se clasifica asi y en que nivel",
+    "sanciones_disponibles": ["llamado_atencion", "suspension", "terminacion"],
+    "sancion_recomendada": "suspension",
+    "dias_suspension_sugeridos": [1, 2, 3, 5, 8],
+    "razonamiento_legal": "Explicacion basada en el CST y las sanciones del reglamento",
+    "consideraciones_especiales": "Informacion adicional: historial, descargos, atenuantes, agravantes"
 }
 ```
 
 ### Descripcion de cada campo
 
-| Campo | Tipo | Descripcion |
-|-------|------|-------------|
-| `gravedad` | `string` | Clasificacion de la falta: `leve` o `grave` |
-| `nivel_gravedad` | `string` | Nivel dentro de la gravedad: `ninguno`, `bajo` o `alto` |
-| `es_reincidencia` | `boolean` | Si el trabajador tiene procesos disciplinarios previos |
-| `justificacion` | `string` | Explicacion de la clasificacion |
-| `sanciones_disponibles` | `array` | Tipos de sancion aplicables al caso |
-| `sancion_recomendada` | `string` | Sancion sugerida por la IA |
-| `dias_suspension_sugeridos` | `array` | Opciones de dias de suspension |
-| `razonamiento_legal` | `string` | Fundamentacion en el CST y reglamento interno |
-| `consideraciones_especiales` | `string` | Atenuantes, agravantes y observaciones |
+| Campo                        | Tipo      | Descripcion                                             |
+| ---------------------------- | --------- | ------------------------------------------------------- |
+| `gravedad`                   | `string`  | Clasificacion de la falta: `leve` o `grave`             |
+| `nivel_gravedad`             | `string`  | Nivel dentro de la gravedad: `ninguno`, `bajo` o `alto` |
+| `es_reincidencia`            | `boolean` | Si el trabajador tiene procesos disciplinarios previos  |
+| `justificacion`              | `string`  | Explicacion de la clasificacion                         |
+| `sanciones_disponibles`      | `array`   | Tipos de sancion aplicables al caso                     |
+| `sancion_recomendada`        | `string`  | Sancion sugerida por la IA                              |
+| `dias_suspension_sugeridos`  | `array`   | Opciones de dias de suspension                          |
+| `razonamiento_legal`         | `string`  | Fundamentacion en el CST y reglamento interno           |
+| `consideraciones_especiales` | `string`  | Atenuantes, agravantes y observaciones                  |
 
 ### Reglas de sanciones segun gravedad
 
-| Gravedad | Nivel | Sanciones disponibles | Dias sugeridos |
-|----------|-------|-----------------------|----------------|
-| Leve | Ninguno | `["llamado_atencion"]` | No aplica |
-| Grave | Bajo | `["llamado_atencion", "suspension"]` | `[1, 2, 3, 5, 8]` |
-| Grave | Alto | `["suspension", "terminacion"]` | `[8, 15, 30, 60]` |
+| Gravedad | Nivel   | Sanciones disponibles                | Dias sugeridos    |
+| -------- | ------- | ------------------------------------ | ----------------- |
+| Leve     | Ninguno | `["llamado_atencion"]`               | No aplica         |
+| Grave    | Bajo    | `["llamado_atencion", "suspension"]` | `[1, 2, 3, 5, 8]` |
+| Grave    | Alto    | `["suspension", "terminacion"]`      | `[8, 15, 30, 60]` |
 
 ---
 
 ## Uso en la interfaz de Filament
 
-El analisis de la IA se presenta dentro del modal de la accion **emitir_sancion** en `ProcesoDisciplinarioResource`. El abogado puede:
+El analisis de la IA se presenta dentro del modal de la accion **emitir_sancion** en `ProcesoDisciplinarioResource`. El cliente puede:
 
 1. Ver la sugerencia de gravedad y sancion recomendada.
 2. Revisar la justificacion y el razonamiento legal.
@@ -189,12 +192,12 @@ El analisis de la IA se presenta dentro del modal de la accion **emitir_sancion*
 
 Los documentos de sancion generados por el sistema siguen principios de **lenguaje claro** para asegurar que el trabajador comprenda el contenido:
 
-| Principio | Descripcion | Ejemplo |
-|-----------|-------------|---------|
-| **Oraciones cortas** | Maximo 25 palabras por oracion | "Usted llego tarde el dia 15 de enero." en lugar de "Se ha evidenciado que usted, en su calidad de trabajador, no cumplio con el horario establecido." |
-| **Voz activa** | Sujeto + verbo + complemento | "La empresa le impone una suspension" en lugar de "Una suspension ha sido impuesta" |
-| **Palabras sencillas** | Evitar jerga juridica innecesaria | "reglas" en lugar de "disposiciones normativas" |
-| **Dirigido al trabajador** | Usar "usted" directamente | "Usted no cumplio con..." en lugar de "El trabajador no cumplio con..." |
+| Principio                  | Descripcion                       | Ejemplo                                                                                                                                                |
+| -------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Oraciones cortas**       | Maximo 25 palabras por oracion    | "Usted llego tarde el dia 15 de enero." en lugar de "Se ha evidenciado que usted, en su calidad de trabajador, no cumplio con el horario establecido." |
+| **Voz activa**             | Sujeto + verbo + complemento      | "La empresa le impone una suspension" en lugar de "Una suspension ha sido impuesta"                                                                    |
+| **Palabras sencillas**     | Evitar jerga juridica innecesaria | "reglas" en lugar de "disposiciones normativas"                                                                                                        |
+| **Dirigido al trabajador** | Usar "usted" directamente         | "Usted no cumplio con..." en lugar de "El trabajador no cumplio con..."                                                                                |
 
 ---
 
@@ -202,13 +205,13 @@ Los documentos de sancion generados por el sistema siguen principios de **lengua
 
 Para el analisis de sanciones se utilizan parametros mas conservadores que para la generacion de preguntas:
 
-| Parametro | Valor | Razon |
-|-----------|-------|-------|
-| `temperature` | `0.3` | Respuestas mas consistentes y predecibles para decisiones legales |
-| `maxOutputTokens` | `2048` | Suficiente para el JSON de analisis |
-| `topP` | `0.95` | Sampling amplio pero controlado |
-| `topK` | `40` | Limita la diversidad de tokens |
-| `timeout` | `60 segundos` | Mayor tiempo por la complejidad del analisis |
+| Parametro         | Valor         | Razon                                                             |
+| ----------------- | ------------- | ----------------------------------------------------------------- |
+| `temperature`     | `0.3`         | Respuestas mas consistentes y predecibles para decisiones legales |
+| `maxOutputTokens` | `2048`        | Suficiente para el JSON de analisis                               |
+| `topP`            | `0.95`        | Sampling amplio pero controlado                                   |
+| `topK`            | `40`          | Limita la diversidad de tokens                                    |
+| `timeout`         | `60 segundos` | Mayor tiempo por la complejidad del analisis                      |
 
 ---
 
@@ -218,14 +221,14 @@ Para el analisis de sanciones se utilizan parametros mas conservadores que para 
 
 La respuesta de la IA puede venir con formato markdown (bloques de codigo). El servicio limpia la respuesta antes de parsear:
 
-```php
+````php
 $analisisTexto = trim($analisisTexto);
 $analisisTexto = preg_replace('/```json\s*/', '', $analisisTexto);
 $analisisTexto = preg_replace('/```\s*$/', '', $analisisTexto);
 $analisisTexto = preg_replace('/```/', '', $analisisTexto);
 
 $analisis = json_decode($analisisTexto, true);
-```
+````
 
 ### Validacion de estructura
 
@@ -239,7 +242,7 @@ if (!isset($analisis['gravedad']) || !isset($analisis['sanciones_disponibles']))
 
 ### Valores por defecto (fallback)
 
-Si la IA falla o la respuesta no es valida, el sistema retorna opciones por defecto que permiten al abogado tomar la decision manualmente:
+Si la IA falla o la respuesta no es valida, el sistema retorna opciones por defecto que permiten al cliente tomar la decision manualmente:
 
 ```php
 private function obtenerOpcionesPorDefecto(): array
@@ -307,11 +310,11 @@ Log::error('Error al analizar proceso para sugerir sanciones', [
 
 ## Archivos relacionados
 
-| Archivo | Descripcion |
-|---------|-------------|
-| `app/Services/IAAnalisisSancionService.php` | Servicio principal de analisis de sanciones |
-| `app/Models/ProcesoDisciplinario.php` | Modelo del proceso disciplinario |
-| `app/Models/Trabajador.php` | Modelo del trabajador |
+| Archivo                                                         | Descripcion                                         |
+| --------------------------------------------------------------- | --------------------------------------------------- |
+| `app/Services/IAAnalisisSancionService.php`                     | Servicio principal de analisis de sanciones         |
+| `app/Models/ProcesoDisciplinario.php`                           | Modelo del proceso disciplinario                    |
+| `app/Models/Trabajador.php`                                     | Modelo del trabajador                               |
 | `app/Filament/Admin/Resources/ProcesoDisciplinarioResource.php` | Resource de Filament con la accion `emitir_sancion` |
 
 ## Proximos pasos

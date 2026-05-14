@@ -4,140 +4,160 @@ namespace App\Services;
 
 use App\Models\DiligenciaDescargo;
 use App\Models\ProcesoDisciplinario;
-use Dompdf\Dompdf;
-use Dompdf\Options;
+use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\IOFactory;
+use PhpOffice\PhpWord\Settings;
+use PhpOffice\PhpWord\SimpleType\Jc;
+use PhpOffice\PhpWord\Style\Font;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
 class ActaDescargosService
 {
+    protected PhpWord $phpWord;
+
+    public function __construct()
+    {
+        // Habilitar escaping de XML para que & < > se escriban correctamente
+        Settings::setOutputEscapingEnabled(true);
+        $this->phpWord = new PhpWord();
+        $this->libreOfficePath = $this->detectLibreOfficePath();
+    }
+
+    private function detectLibreOfficePath(): string
+    {
+        if (PHP_OS_FAMILY === 'Linux') {
+            foreach (['/usr/bin/soffice', '/usr/local/bin/soffice', '/snap/bin/soffice'] as $path) {
+                if (file_exists($path)) {
+                    return $path;
+                }
+            }
+            return 'soffice';
+        }
+
+        foreach ([
+            'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+            'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
+        ] as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        return 'C:\\Program Files\\LibreOffice\\program\\soffice.exe';
+    }
+
     /**
-     * Genera el acta de descargos en formato PDF
+     * Genera el acta de descargos en formato DOCX
      */
     public function generarActaDescargos(DiligenciaDescargo $diligencia): array
     {
         try {
-            $proceso   = $diligencia->proceso;
+            $proceso = $diligencia->proceso;
             $trabajador = $proceso->trabajador;
-            $empresa   = $proceso->empresa;
+            $empresa = $proceso->empresa;
 
-            $html = $this->generarHTML($diligencia, $proceso, $trabajador, $empresa);
+            // Crear sección principal
+            $section = $this->phpWord->addSection([
+                'marginLeft' => 1440,   // 1 pulgada
+                'marginRight' => 1440,
+                'marginTop' => 1440,
+                'marginBottom' => 1440,
+            ]);
 
-            $filepath = $this->guardarPDF($html, $proceso);
+            // Título
+            $this->agregarTitulo($section);
+
+            // Encabezado con información de la diligencia
+            $this->agregarEncabezado($section, $diligencia, $proceso, $trabajador, $empresa);
+
+            // Hechos del proceso
+            $this->agregarHechos($section, $proceso);
+
+            // Preguntas y respuestas
+            $this->agregarPreguntasRespuestas($section, $diligencia);
+
+            // Información adicional de la diligencia
+            $this->agregarInformacionAdicional($section, $diligencia);
+
+            // Cierre
+            $this->agregarCierre($section, $diligencia);
+
+            // Firmas
+            $this->agregarFirmas($section, $trabajador);
+
+            // Guardar el documento
+            $filename = $this->guardarDocumento($proceso);
 
             return [
-                'success'  => true,
-                'filename' => basename($filepath),
-                'path'     => $filepath,
+                'success' => true,
+                'filename' => $filename,
+                'path' => storage_path('app/actas_descargos/' . $filename),
             ];
         } catch (\Exception $e) {
             Log::error('Error generando acta de descargos', [
                 'diligencia_id' => $diligencia->id,
-                'error'         => $e->getMessage(),
-                'trace'         => $e->getTraceAsString(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return [
                 'success' => false,
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ];
         }
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // Generación HTML
-    // ──────────────────────────────────────────────────────────────────────────
-
-    private function generarHTML($diligencia, $proceso, $trabajador, $empresa): string
+    /**
+     * Agrega el título del documento
+     */
+    protected function agregarTitulo($section): void
     {
-        $encabezado         = $this->htmlEncabezado($diligencia, $proceso, $trabajador, $empresa);
-        $hechos             = $this->htmlHechos($proceso);
-        $preguntasRespuestas = $this->htmlPreguntasRespuestas($diligencia);
-        $infoAdicional      = $this->htmlInformacionAdicional($diligencia);
-        $cierre             = $this->htmlCierre($diligencia);
-        $firmas             = $this->htmlFirmas($trabajador);
-
-        return <<<HTML
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Acta de Descargos</title>
-    <style>
-        @page { margin: 2.5cm 2.5cm 2.5cm 2.5cm; }
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 11pt;
-            line-height: 1.5;
-            color: #000;
-            text-align: justify;
-        }
-        h1 {
-            font-size: 14pt;
-            font-weight: bold;
-            text-align: center;
-            margin: 0 0 20px 0;
-        }
-        h2 {
-            font-size: 12pt;
-            font-weight: bold;
-            text-align: center;
-            margin: 20px 0 10px 0;
-        }
-        p { margin: 0 0 10px 0; }
-        .pregunta { font-weight: bold; margin: 12px 0 4px 0; }
-        .respuesta { margin: 0 0 14px 0; padding-left: 20px; }
-        .firmas {
-            margin-top: 50px;
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .firmas td {
-            width: 50%;
-            text-align: center;
-            padding-top: 8px;
-            font-size: 10pt;
-        }
-        .linea-firma {
-            border-top: 1px solid #000;
-            width: 200px;
-            margin: 0 auto 4px auto;
-        }
-        .archivos { font-size: 10pt; font-style: italic; padding-left: 30px; }
-    </style>
-</head>
-<body>
-    <h1>ACTA DE DESCARGOS</h1>
-    {$encabezado}
-    {$hechos}
-    {$preguntasRespuestas}
-    {$infoAdicional}
-    {$cierre}
-    {$firmas}
-</body>
-</html>
-HTML;
+        $section->addText(
+            'ACTA DE DESCARGOS',
+            [
+                'bold' => true,
+                'size' => 14,
+                'name' => 'Arial',
+            ],
+            [
+                'alignment' => Jc::CENTER,
+                'spaceAfter' => 240,
+            ]
+        );
     }
 
-    private function htmlEncabezado($diligencia, $proceso, $trabajador, $empresa): string
+    /**
+     * Agrega el encabezado con información de la diligencia
+     */
+    protected function agregarEncabezado($section, $diligencia, $proceso, $trabajador, $empresa): void
     {
-        $municipio    = $this->e($empresa->ciudad ?? '');
-        $departamento = $this->e($empresa->departamento ?? '');
-        $razonSocial  = $this->e($empresa->razon_social ?? '');
-        $nit          = $this->e($empresa->nit ?? '');
-        $nombreTrab   = $this->e($trabajador->nombre_completo ?? '');
-        $tipoDoc      = $this->e($trabajador->tipo_documento ?? '');
-        $numDoc       = $this->e($trabajador->numero_documento ?? '');
+        // 1. Configuración de ubicación (limpiar para XML)
+        $municipio    = $this->limpiarTextoParaWord($empresa->ciudad ?? 'Puerto Boyacá');
+        $departamento = $this->limpiarTextoParaWord($empresa->departamento ?? 'Boyacá');
+        $razonSocial  = $this->limpiarTextoParaWord($empresa->razon_social ?? '');
+        $nit          = $this->limpiarTextoParaWord($empresa->nit ?? '');
+        $nombreTrab   = $this->limpiarTextoParaWord($trabajador->nombre_completo ?? '');
+        $tipoDoc      = $this->limpiarTextoParaWord($trabajador->tipo_documento ?? '');
+        $numDoc       = $this->limpiarTextoParaWord($trabajador->numero_documento ?? '');
 
-        $horaInicio = $diligencia->primer_acceso_en
-            ? \Carbon\Carbon::parse($diligencia->primer_acceso_en)->timezone('America/Bogota')->format('h:i A')
-            : now()->timezone('America/Bogota')->format('h:i A');
+        // 2. Manejo de la Hora de Inicio (Ajuste a GMT-5)
+        if ($diligencia->primer_acceso_en) {
+            $horaInicio = \Carbon\Carbon::parse($diligencia->primer_acceso_en)
+                ->timezone('America/Bogota')
+                ->format('h:i A');
+        } else {
+            $horaInicio = now()->timezone('America/Bogota')->format('h:i A');
+        }
 
+        // 3. Manejo de la Fecha (Ajuste a GMT-5)
         $fechaBase = $diligencia->fecha_diligencia
             ? \Carbon\Carbon::parse($diligencia->fecha_diligencia)->timezone('America/Bogota')
             : now()->timezone('America/Bogota');
 
         $fechaTexto = $this->convertirFechaATexto($fechaBase);
 
+        // 4. Definición de Modalidad
         $modalidad = match ($proceso->modalidad_descargos) {
             'presencial' => 'desde las oficinas administrativas de ' . $razonSocial,
             'virtual'    => 'a través del software virtual de descargos',
@@ -145,178 +165,385 @@ HTML;
             default      => 'desde las oficinas administrativas de ' . $razonSocial,
         };
 
+        // 5. Construcción del párrafo de apertura
         $esFemenino = ($trabajador->genero === 'femenino');
-        $genSufijo  = $esFemenino ? 'a' : 'o';
-        $trabSufijo = $esFemenino ? 'a' : '';
 
-        return "<p>En la ciudad de {$municipio}, {$departamento}, el {$fechaTexto}, siendo las {$horaInicio}, {$modalidad}, "
-            . "se reunieron por una parte el representante legal de <strong>{$razonSocial}</strong> con NIT {$nit} "
-            . "en representación del empleador y, por la otra <strong>{$nombreTrab}</strong>, "
-            . "identificad{$genSufijo} con {$tipoDoc} N° {$numDoc}, "
-            . "en su condición de trabajador{$trabSufijo} para que rinda sus descargos "
-            . "y dé sus explicaciones acerca de los siguientes hechos:</p>";
+        $textLines = [
+            "En la ciudad de {$municipio}, {$departamento}, el {$fechaTexto}, siendo las {$horaInicio}, {$modalidad}, ",
+            "se reunieron por una parte el representante legal de {$razonSocial} con NIT {$nit} ",
+            "en representación del empleador y, por la otra {$nombreTrab}, ",
+            "identificad" . ($esFemenino ? 'a' : 'o') . " con {$tipoDoc} N° {$numDoc}, ",
+            "en su condición de trabajador" . ($esFemenino ? 'a' : '') . " para que rinda sus descargos ",
+            "y dé sus explicaciones acerca de los siguientes hechos:"
+        ];
+
+        $section->addText(
+            implode('', $textLines),
+            ['name' => 'Arial', 'size' => 11],
+            ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::BOTH, 'spaceAfter' => 120]
+        );
     }
 
-    private function htmlHechos($proceso): string
+    /**
+     * Agrega los hechos del proceso
+     */
+    protected function agregarHechos($section, $proceso): void
     {
-        $hechos = $this->e($this->limpiarTexto($proceso->hechos));
-        return "<p>{$hechos}</p>";
+        // Limpiar HTML de los hechos y convertir entidades HTML a texto plano
+        $hechos = $this->limpiarTextoParaWord($proceso->hechos);
+
+        $section->addText(
+            $hechos,
+            ['name' => 'Arial', 'size' => 11],
+            ['alignment' => Jc::BOTH, 'spaceAfter' => 240]
+        );
     }
 
-    private function htmlPreguntasRespuestas($diligencia): string
-    {
-        $preguntas = $diligencia->preguntas()->with('respuesta')->ordenadas()->get();
-
-        $html = '';
-        foreach ($preguntas as $pregunta) {
-            $textoPregunta = $this->e($this->limpiarTexto($pregunta->pregunta));
-            $html .= "<p class=\"pregunta\">PREGUNTA: {$textoPregunta}</p>";
-
-            if ($pregunta->respuesta) {
-                $textoRespuesta = $this->e($this->limpiarTexto($pregunta->respuesta->respuesta));
-                $html .= "<p class=\"respuesta\">RESPUESTA: {$textoRespuesta}</p>";
-
-                if (!empty($pregunta->respuesta->archivos_adjuntos)) {
-                    $html .= '<div class="archivos">Archivos adjuntos:<ul>';
-                    foreach ($pregunta->respuesta->archivos_adjuntos as $archivo) {
-                        $nombre = $this->e($archivo['nombre'] ?? 'Archivo adjunto');
-                        $html .= "<li>{$nombre}</li>";
-                    }
-                    $html .= '</ul></div>';
-                }
-            } else {
-                $html .= '<p class="respuesta"><em>RESPUESTA: [Sin respuesta]</em></p>';
-            }
-        }
-
-        return $html;
-    }
-
-    private function htmlInformacionAdicional($diligencia): string
-    {
-        $acompanante = $this->obtenerInfoAcompanante($diligencia);
-
-        $html = '<h2>INFORMACIÓN ADICIONAL DE LA DILIGENCIA</h2>';
-
-        if ($acompanante['tiene_acompanante']) {
-            $nombre = $this->e($acompanante['nombre']);
-            $cargo  = $this->e($acompanante['cargo']);
-            $html .= "<p><strong>ACOMPAÑANTE DEL TRABAJADOR:</strong><br>"
-                . "Nombre: {$nombre}" . (!empty($cargo) ? "<br>Cargo/Relación: {$cargo}" : '') . '</p>';
-        } else {
-            $html .= '<p><strong>ACOMPAÑANTE DEL TRABAJADOR:</strong> El trabajador no se hizo acompañar en esta diligencia.</p>';
-        }
-
-        $html .= '<p><strong>PRUEBAS APORTADAS:</strong> ';
-        if ($diligencia->pruebas_aportadas) {
-            $desc = !empty($diligencia->descripcion_pruebas)
-                ? $this->e($this->limpiarTexto($diligencia->descripcion_pruebas))
-                : 'El trabajador aportó pruebas durante la diligencia.';
-            $html .= $desc;
-        } else {
-            $html .= '<em>El trabajador no aportó pruebas durante esta diligencia.</em>';
-        }
-        $html .= '</p>';
-
-        return $html;
-    }
-
-    private function htmlCierre($diligencia): string
-    {
-        $fechaCierre = $diligencia->tiempo_limite
-            ? \Carbon\Carbon::parse($diligencia->tiempo_limite)->timezone('America/Bogota')
-            : now()->timezone('America/Bogota');
-
-        $horaFin    = $fechaCierre->format('h:i A');
-        $fechaTexto = $this->convertirFechaATexto($fechaCierre);
-
-        $texto = "Se da por terminada la presente Diligencia a las {$horaFin} del {$fechaTexto}, "
-            . "anunciando al trabajador que se estudiará el asunto y que a la menor brevedad posible "
-            . "se le informará el resultado de la investigación de los hechos, y se suscribe por quienes "
-            . "en ella intervinieron:";
-
-        return "<p>{$texto}</p>";
-    }
-
-    private function htmlFirmas($trabajador): string
-    {
-        $nombre  = $this->e($trabajador->nombre_completo ?? '');
-        $tipoDoc = $this->e($trabajador->tipo_documento ?? '');
-        $numDoc  = $this->e($trabajador->numero_documento ?? '');
-
-        return <<<HTML
-<table class="firmas">
-    <tr>
-        <td>
-            <div class="linea-firma"></div>
-            <strong>Representante del Empleador</strong><br>
-            CES Legal
-        </td>
-        <td>
-            <div class="linea-firma"></div>
-            <strong>{$nombre}</strong><br>
-            {$tipoDoc} N° {$numDoc}
-        </td>
-    </tr>
-</table>
-HTML;
-    }
-
-    // ──────────────────────────────────────────────────────────────────────────
-    // Generación PDF con Dompdf
-    // ──────────────────────────────────────────────────────────────────────────
-
-    private function guardarPDF(string $html, $proceso): string
-    {
-        $directory = storage_path('app/actas_descargos');
-
-        if (!is_dir($directory)) {
-            mkdir($directory, 0755, true);
-        }
-
-        $filename = 'acta_descargos_' . $proceso->codigo . '_' . time() . '.pdf';
-        $filepath = $directory . '/' . $filename;
-
-        $options = new Options();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isRemoteEnabled', false);
-        $options->set('defaultFont', 'Arial');
-
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('letter', 'portrait');
-        $dompdf->render();
-
-        file_put_contents($filepath, $dompdf->output());
-
-        Log::info('Acta de descargos generada en PDF', [
-            'proceso_id' => $proceso->id,
-            'path'       => $filepath,
-        ]);
-
-        return $filepath;
-    }
-
-    // ──────────────────────────────────────────────────────────────────────────
-    // Helpers de texto
-    // ──────────────────────────────────────────────────────────────────────────
-
-    /** Escapa para HTML */
-    private function e(?string $texto): string
-    {
-        return htmlspecialchars($texto ?? '', ENT_QUOTES, 'UTF-8');
-    }
-
-    /** Limpia texto HTML a texto plano */
-    private function limpiarTexto(?string $texto): string
+    /**
+     * Limpia texto HTML para que sea compatible con Word
+     * Remueve tags HTML y convierte entidades a texto plano
+     */
+    protected function limpiarTextoParaWord(?string $texto): string
     {
         if (empty($texto)) {
             return '';
         }
+
+        // Decodificar entidades HTML a caracteres
         $texto = html_entity_decode($texto, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // Remover tags HTML
         $texto = strip_tags($texto);
+
+        // Eliminar caracteres de control inválidos en XML 1.0
+        // Solo son válidos: tab (U+0009), LF (U+000A), CR (U+000D) y U+0020 en adelante
+        // sin caracteres sustitutos (U+D800-U+DFFF) ni U+FFFE/U+FFFF
+        $texto = preg_replace(
+            '/[^\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u',
+            '',
+            $texto
+        );
+
+        // Reemplazar múltiples espacios/saltos por uno solo
         $texto = preg_replace('/\s+/', ' ', $texto);
+
         return trim($texto);
+    }
+
+    /**
+     * Agrega las preguntas y respuestas
+     */
+    protected function agregarPreguntasRespuestas($section, $diligencia): void
+    {
+        $preguntas = $diligencia->preguntas()
+            ->with('respuesta')
+            ->ordenadas()
+            ->get();
+
+        foreach ($preguntas as $pregunta) {
+            // Agregar pregunta (limpiar texto)
+            $section->addText(
+                'PREGUNTA: ' . $this->limpiarTextoParaWord($pregunta->pregunta),
+                [
+                    'bold' => true,
+                    'name' => 'Arial',
+                    'size' => 11,
+                ],
+                [
+                    'alignment' => Jc::BOTH,
+                    'spaceAfter' => 60,
+                ]
+            );
+
+            // Agregar respuesta
+            if ($pregunta->respuesta) {
+                $section->addText(
+                    'RESPUESTA: ' . $this->limpiarTextoParaWord($pregunta->respuesta->respuesta),
+                    [
+                        'name' => 'Arial',
+                        'size' => 11,
+                    ],
+                    [
+                        'alignment' => Jc::BOTH,
+                        'spaceAfter' => 120,
+                    ]
+                );
+
+                // Si hay archivos adjuntos, mencionarlos
+                if ($pregunta->respuesta->archivos_adjuntos && count($pregunta->respuesta->archivos_adjuntos) > 0) {
+                    $section->addText(
+                        'Archivos adjuntos a esta respuesta:',
+                        [
+                            'italic' => true,
+                            'name' => 'Arial',
+                            'size' => 10,
+                        ],
+                        [
+                            'alignment' => Jc::BOTH,
+                            'spaceAfter' => 30,
+                        ]
+                    );
+
+                    foreach ($pregunta->respuesta->archivos_adjuntos as $archivo) {
+                        $section->addText(
+                            '  • ' . $this->limpiarTextoParaWord($archivo['nombre'] ?? 'Archivo adjunto'),
+                            [
+                                'italic' => true,
+                                'name' => 'Arial',
+                                'size' => 10,
+                            ],
+                            [
+                                'alignment' => Jc::BOTH,
+                                'spaceAfter' => 30,
+                            ]
+                        );
+                    }
+                }
+            } else {
+                $section->addText(
+                    'RESPUESTA: [Sin respuesta]',
+                    [
+                        'name' => 'Arial',
+                        'size' => 11,
+                        'italic' => true,
+                    ],
+                    [
+                        'alignment' => Jc::BOTH,
+                        'spaceAfter' => 120,
+                    ]
+                );
+            }
+        }
+    }
+
+    /**
+     * Agrega información adicional de la diligencia (acompañante y pruebas)
+     */
+    protected function agregarInformacionAdicional($section, $diligencia): void
+    {
+        // Separador visual
+        $section->addText(
+            '',
+            ['name' => 'Arial', 'size' => 11],
+            ['spaceAfter' => 120]
+        );
+
+        // Título de la sección
+        $section->addText(
+            'INFORMACIÓN ADICIONAL DE LA DILIGENCIA',
+            [
+                'bold' => true,
+                'name' => 'Arial',
+                'size' => 12,
+            ],
+            [
+                'alignment' => Jc::CENTER,
+                'spaceAfter' => 180,
+            ]
+        );
+
+        // Información del acompañante (obtenida de las respuestas)
+        $acompananteInfo = $this->obtenerInfoAcompanante($diligencia);
+
+        if ($acompananteInfo['tiene_acompanante']) {
+            $section->addText(
+                'ACOMPAÑANTE DEL TRABAJADOR:',
+                [
+                    'bold' => true,
+                    'name' => 'Arial',
+                    'size' => 11,
+                ],
+                [
+                    'alignment' => Jc::BOTH,
+                    'spaceAfter' => 60,
+                ]
+            );
+
+            $section->addText(
+                'Nombre: ' . $this->limpiarTextoParaWord($acompananteInfo['nombre']),
+                ['name' => 'Arial', 'size' => 11],
+                ['alignment' => Jc::BOTH, 'spaceAfter' => 60]
+            );
+
+            if (!empty($acompananteInfo['cargo'])) {
+                $section->addText(
+                    'Cargo/Relación: ' . $this->limpiarTextoParaWord($acompananteInfo['cargo']),
+                    ['name' => 'Arial', 'size' => 11],
+                    ['alignment' => Jc::BOTH, 'spaceAfter' => 180]
+                );
+            }
+        } else {
+            $section->addText(
+                'ACOMPAÑANTE DEL TRABAJADOR: El trabajador no se hizo acompañar en esta diligencia.',
+                [
+                    'name' => 'Arial',
+                    'size' => 11,
+                ],
+                [
+                    'alignment' => Jc::BOTH,
+                    'spaceAfter' => 180,
+                ]
+            );
+        }
+
+        // Información de pruebas aportadas
+        $section->addText(
+            'PRUEBAS APORTADAS:',
+            [
+                'bold' => true,
+                'name' => 'Arial',
+                'size' => 11,
+            ],
+            [
+                'alignment' => Jc::BOTH,
+                'spaceAfter' => 60,
+            ]
+        );
+
+        if ($diligencia->pruebas_aportadas) {
+            $textoPruebas = !empty($diligencia->descripcion_pruebas)
+                ? $this->limpiarTextoParaWord($diligencia->descripcion_pruebas)
+                : 'El trabajador aportó pruebas durante la diligencia.';
+
+            $section->addText(
+                $textoPruebas,
+                [
+                    'name' => 'Arial',
+                    'size' => 11,
+                ],
+                [
+                    'alignment' => Jc::BOTH,
+                    'spaceAfter' => 240,
+                ]
+            );
+        } else {
+            $section->addText(
+                'El trabajador no aportó pruebas durante esta diligencia.',
+                [
+                    'name' => 'Arial',
+                    'size' => 11,
+                    'italic' => true,
+                ],
+                [
+                    'alignment' => Jc::BOTH,
+                    'spaceAfter' => 240,
+                ]
+            );
+        }
+    }
+
+    /**
+     * Agrega el cierre del acta
+     */
+    protected function agregarCierre($section, $diligencia): void
+    {
+        // 1. Manejo de la Fecha y Hora de Cierre (Ajuste a GMT-5)
+        if ($diligencia->tiempo_limite) {
+            $fechaCierre = \Carbon\Carbon::parse($diligencia->tiempo_limite)
+                ->timezone('America/Bogota');
+        } else {
+            $fechaCierre = now()->timezone('America/Bogota');
+        }
+
+        $horaFin = $fechaCierre->format('h:i A');
+        $fechaTexto = $this->convertirFechaATexto($fechaCierre);
+
+        // 2. Construcción del texto de cierre
+        $textoCierre = "Se da por terminada la presente Diligencia a las {$horaFin} del {$fechaTexto}, " .
+            "anunciando al trabajador que se estudiará el asunto y que a la menor brevedad posible " .
+            "se le informará el resultado de la investigación de los hechos, y se suscribe por quienes " .
+            "en ella intervinieron:";
+
+        // 3. Adición al documento
+        $section->addText(
+            $textoCierre,
+            ['name' => 'Arial', 'size' => 11],
+            ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::BOTH, 'spaceAfter' => 480]
+        );
+    }
+
+    /**
+     * Agrega las líneas de firma
+     */
+    protected function agregarFirmas($section, $trabajador): void
+    {
+        // Crear tabla para las firmas
+        $table = $section->addTable([
+            'borderSize' => 0,
+            'width' => 100 * 50, // 100% width
+        ]);
+
+        // Fila con líneas de firma
+        $table->addRow();
+        $table->addCell(4500)->addText(
+            '_____________________________',
+            ['name' => 'Arial', 'size' => 11],
+            ['alignment' => Jc::CENTER]
+        );
+        $table->addCell(1000)->addText(''); // Espaciador
+        $table->addCell(4500)->addText(
+            '_____________________________',
+            ['name' => 'Arial', 'size' => 11],
+            ['alignment' => Jc::CENTER]
+        );
+
+        // Fila con nombres
+        $table->addRow();
+        $table->addCell(4500)->addText(
+            'Representante del Empleador',
+            ['bold' => true, 'name' => 'Arial', 'size' => 11],
+            ['alignment' => Jc::CENTER]
+        );
+        $table->addCell(1000)->addText('');
+        $table->addCell(4500)->addText(
+            $this->limpiarTextoParaWord($trabajador->nombre_completo ?? ''),
+            ['bold' => true, 'name' => 'Arial', 'size' => 11],
+            ['alignment' => Jc::CENTER]
+        );
+
+        // Fila con cargos/documentos
+        $table->addRow();
+        $table->addCell(4500)->addText(
+            'CES Legal',
+            ['name' => 'Arial', 'size' => 10],
+            ['alignment' => Jc::CENTER]
+        );
+        $table->addCell(1000)->addText('');
+        $table->addCell(4500)->addText(
+            $this->limpiarTextoParaWord($trabajador->tipo_documento ?? '') . ' N° ' . $this->limpiarTextoParaWord($trabajador->numero_documento ?? ''),
+            ['name' => 'Arial', 'size' => 10],
+            ['alignment' => Jc::CENTER]
+        );
+    }
+
+    private string $libreOfficePath;
+
+
+    /**
+     * Guarda el documento en el sistema de archivos
+     */
+    protected function guardarDocumento($proceso): string
+    {
+        $directory = storage_path('app/actas_descargos');
+
+        if (!file_exists($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+
+        Log::info('LibreOffice check', [
+            'exists' => file_exists($this->libreOfficePath),
+            'path' => $this->libreOfficePath
+        ]);
+
+
+        $filename = 'acta_descargos_' . $proceso->codigo . '_' . time() . '.docx';
+        $filepath = $directory . '/' . $filename;
+
+        $objWriter = IOFactory::createWriter($this->phpWord, 'Word2007');
+        $objWriter->save($filepath);
+
+        return $filename;
     }
 
     /**
@@ -421,6 +648,24 @@ HTML;
     }
 
     /**
+     * Determina si el trabajador es de género femenino basado en el nombre
+     */
+    protected function esGeneroFemenino($trabajador): bool
+    {
+        // Simplificado - podrías agregar un campo de género en el modelo
+        $nombre = strtolower($trabajador->nombres);
+        $terminacionesFemeninas = ['a', 'is', 'ez'];
+
+        foreach ($terminacionesFemeninas as $terminacion) {
+            if (str_ends_with($nombre, $terminacion)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Obtiene la información del acompañante desde las respuestas a las preguntas
      */
     protected function obtenerInfoAcompanante($diligencia): array
@@ -472,4 +717,22 @@ HTML;
         ];
     }
 
+    /**
+     * Convierte el DOCX a PDF (opcional)
+     */
+    public function convertirAPdf($docxPath): ?string
+    {
+        try {
+            // Requiere dompdf o similar
+            $pdfPath = str_replace('.docx', '.pdf', $docxPath);
+
+            // TODO: Implementar conversión a PDF
+            // Por ahora solo devolvemos null
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Error convirtiendo a PDF', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
 }

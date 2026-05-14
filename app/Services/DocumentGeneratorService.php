@@ -6,6 +6,7 @@ use App\Models\ProcesoDisciplinario;
 use App\Models\EmailTracking;
 use App\Services\TimelineService;
 use App\Services\EstadoProcesoService;
+use App\Services\ReglamentoInternoService;
 use PhpOffice\PhpWord\TemplateProcessor;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Settings;
@@ -69,209 +70,392 @@ class DocumentGeneratorService
     }
 
     /**
-     * Genera el HTML del documento de citación a descargos
-     * Formato idéntico al DOCX original
+     * Genera el HTML del documento de citación a descargos.
+     * Estructura: Comunicación Formal de Apertura de Investigación Disciplinaria
+     * conforme al Artículo 7 de la Ley 2466 de 2025.
      */
     private function generarHTMLCitacionDescargos(ProcesoDisciplinario $proceso): string
     {
-        $trabajador = $proceso->trabajador;
-        $empresa = $proceso->empresa;
+        $trabajador  = $proceso->trabajador;
+        $empresa     = $proceso->empresa;
         $fechaActual = Carbon::now()->locale('es');
 
-        // Formatear fecha de descargos
+        // ── Fecha de elaboración ─────────────────────────────────────────────
+        $dia = $fechaActual->format('d');
+        $mes = $fechaActual->isoFormat('MMMM');
+        $anio = $fechaActual->year;
+
+        // ── Datos de la diligencia ───────────────────────────────────────────
         $fechaDescargos = $proceso->fecha_descargos_programada
             ? Carbon::parse($proceso->fecha_descargos_programada)->locale('es')
             : null;
 
-        // Formatear hora de descargos
         $horaDescargos = null;
         if ($proceso->hora_descargos_programada) {
             try {
-                $horaDescargos = Carbon::createFromFormat('H:i:s', $proceso->hora_descargos_programada)
-                    ->locale('es')
-                    ->format('h:i A');
+                $horaDescargos = Carbon::createFromFormat('H:i:s', $proceso->hora_descargos_programada)->format('h:i A');
             } catch (\Exception $e) {
                 try {
-                    $horaDescargos = Carbon::parse($proceso->hora_descargos_programada)
-                        ->locale('es')
-                        ->format('h:i A');
+                    $horaDescargos = Carbon::parse($proceso->hora_descargos_programada)->format('h:i A');
                 } catch (\Exception $e2) {
                     $horaDescargos = $proceso->hora_descargos_programada;
                 }
             }
         }
 
-        // Formatear fecha de ocurrencia (principal)
-        $fechaOcurrencia = $proceso->fecha_ocurrencia
-            ? Carbon::parse($proceso->fecha_ocurrencia)->locale('es')
-            : null;
-
-        // Obtener todas las fechas de ocurrencia (principal + adicionales)
-        $fechasOcurrenciaTexto = $proceso->fechas_ocurrencia_texto ?? 'No especificada';
-
-        // Hechos del proceso
-        $hechosTexto = html_entity_decode(strip_tags($proceso->hechos ?? ''), ENT_QUOTES, 'UTF-8');
-        // Formatear variables igual que en el DOCX
-        $ciudad = !empty($empresa->ciudad) ? $empresa->ciudad . ', ' : '';
-        $departamento = !empty($empresa->departamento) ? $empresa->departamento . '. ' : '';
-        $dia = $fechaActual->format('d');
-        $mes = $fechaActual->isoFormat('MMMM');
-        $anio = $fechaActual->year;
-
-        // Separar nombres y apellidos
-        $nombreCompleto = $trabajador->nombre_completo ?? '';
-        $partes = explode(' ', $nombreCompleto);
-        // Asumimos: primeros 2 elementos son nombres, resto son apellidos
-        $nombres = '';
-        $apellidos = '';
-        if (count($partes) >= 4) {
-            $nombres = $partes[0] . ' ' . $partes[1];
-            $apellidos = implode(' ', array_slice($partes, 2));
-        } elseif (count($partes) >= 2) {
-            $nombres = $partes[0];
-            $apellidos = implode(' ', array_slice($partes, 1));
-        } else {
-            $nombres = $nombreCompleto;
-        }
-
-        $numeroDocumento = $trabajador->numero_documento ?? '';
-        $cargo = $trabajador->cargo ?? '';
-
-        // Fecha de descargos
-        $diaLetraDescargos = $fechaDescargos ? $fechaDescargos->isoFormat('dddd') : '';
-        $diaDescargos = $fechaDescargos ? $fechaDescargos->format('d') : '';
-        $mesDescargos = $fechaDescargos ? $fechaDescargos->isoFormat('MMMM') : '';
-        $anioDescargos = $fechaDescargos ? $fechaDescargos->year : '';
-        $horaDescargosTexto = $horaDescargos ?? '';
+        $diaDescargos  = $fechaDescargos ? $fechaDescargos->format('d') : '___';
+        $mesDescargos  = $fechaDescargos ? $fechaDescargos->isoFormat('MMMM') : '_______________';
+        $anioDescargos = $fechaDescargos ? $fechaDescargos->year : '20__';
+        $horaTexto     = $horaDescargos ?? '___:___';
 
         $modalidad = strtolower($proceso->modalidad_descargos ?? 'presencial');
 
-        // Dirección según modalidad
-        $direccionEmpresa = '';
-        $ciudadEmpresa = '';
-        $departamentoEmpresa = '';
+        // ── Lugar de la diligencia ───────────────────────────────────────────
         if ($modalidad === 'presencial') {
-            $direccionEmpresa = !empty($empresa->direccion) ? 'ubicada en la dirección ' . $empresa->direccion . ', ' : '';
-            $ciudadEmpresa = !empty($empresa->ciudad) ? $empresa->ciudad . ', ' : '';
-            $departamentoEmpresa = !empty($empresa->departamento) ? $empresa->departamento : '';
-        }
-
-        // Fecha de ocurrencia
-        $diaLetraOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->isoFormat('dddd') : '';
-        $diaOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->format('d') : '';
-        $mesOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->isoFormat('MMMM') : '';
-        $anioOcurrencia = $fechaOcurrencia ? $fechaOcurrencia->year : '';
-
-        // Determinar si hay múltiples fechas de ocurrencia
-        $tieneMultiplesFechas = !empty($proceso->fechas_ocurrencia_adicionales) && count($proceso->fechas_ocurrencia_adicionales) > 0;
-
-        // Texto de fecha(s) de ocurrencia para el documento
-        if ($tieneMultiplesFechas) {
-            $textoFechaOcurrencia = "en las fechas: <strong>{$fechasOcurrenciaTexto}</strong>";
+            $lugarDiligencia = trim(implode(', ', array_filter([
+                $empresa->direccion ?? null,
+                $empresa->ciudad ?? null,
+                $empresa->departamento ?? null,
+            ])));
+            $lugarDiligencia = $lugarDiligencia ?: 'instalaciones de la empresa';
         } else {
-            $textoFechaOcurrencia = "el día {$diaLetraOcurrencia} ({$diaOcurrencia}) de {$mesOcurrencia} de {$anioOcurrencia}";
+            $lugarDiligencia = 'diligencia virtual — se remitirá el enlace de acceso al correo registrado';
         }
 
-        $nombreEmpresa = $empresa->razon_social ?? '';
-        $nombreEmpleador = $empresa->representante_legal ?? 'Representante Legal';
-        $nit = $empresa->nit ?? '';
+        // ── Datos del trabajador ─────────────────────────────────────────────
+        $nombreTrabajador = e($trabajador->nombre_completo ?? '');
+        $numDocTrabajador = e($trabajador->numero_documento ?? '');
+        $tipoDoc          = e($trabajador->tipo_documento ?? 'C.C.');
+        $cargoTrabajador  = e($trabajador->cargo ?? 'cargo en la empresa');
+        $dirTrabajador    = e($trabajador->direccion ?? '');
+        $ciudadTrabajador = e(trim(implode(', ', array_filter([
+            $empresa->ciudad ?? null,
+            $empresa->departamento ?? null,
+        ]))));
+
+        // ── Datos de la empresa ──────────────────────────────────────────────
+        $nombreEmpresa     = e($empresa->nombre_completo ?? '');
+        $nit               = e($empresa->nit ?? '');
+        $representante     = e($empresa->representante_legal ?? 'Representante Legal');
+        $emailContacto     = e($empresa->email_contacto ?? $empresa->email ?? '');
+        $telefonoEmpresa   = e($empresa->telefono ?? '');
+
+        // ── Hechos ───────────────────────────────────────────────────────────
+        $hechosTexto = html_entity_decode(strip_tags($proceso->hechos ?? ''), ENT_QUOTES, 'UTF-8');
+        // Convertir saltos de línea en ítems numerados para la sección de conductas
+        $lineasHechos = array_values(array_filter(
+            array_map('trim', explode("\n", $hechosTexto))
+        ));
+        if (count($lineasHechos) <= 1) {
+            // Un solo bloque → usar como ítem 1
+            $conductasHTML = '<ol><li>' . nl2br(e($hechosTexto)) . '</li></ol>';
+        } else {
+            $items = array_map(fn($l) => '<li>' . e($l) . '</li>', $lineasHechos);
+            $conductasHTML = '<ol>' . implode('', $items) . '</ol>';
+        }
+
+        // ── Normas incumplidas ───────────────────────────────────────────────
+        // Fuente válida: normas_incumplidas del proceso (completado en el wizard a partir del
+        // RIT de la empresa y del CST de la biblioteca legal). Si está vacío, se referencia
+        // el RIT y el Art. 58 CST sin inventar números de artículos.
+        $normasTexto = trim($proceso->normas_incumplidas ?? '');
+        if ($normasTexto) {
+            $normasLineas = array_values(array_filter(array_map('trim', explode("\n", $normasTexto))));
+            $normasItems  = array_map(fn($l) => '<li>' . e($l) . '</li>', $normasLineas);
+            $normasHTML   = '<ul>' . implode('', $normasItems) . '</ul>';
+        } else {
+            // Referencia genérica sin inventar artículos: RIT de la empresa + Art. 58 CST
+            $tieneRIT = $empresa->reglamentoInterno !== null;
+            $referenciaRIT = $tieneRIT
+                ? 'el Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong> (depositado ante el Ministerio del Trabajo)'
+                : 'el Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong>';
+            $normasHTML = '<ul>
+                <li>' . $referenciaRIT . ', en sus disposiciones sobre obligaciones, conducta y disciplina del trabajador.</li>
+                <li>Artículo 58 del Código Sustantivo del Trabajo, que establece las obligaciones especiales del trabajador frente al empleador.</li>
+                <li>Las cláusulas del contrato de trabajo suscrito entre las partes.</li>
+            </ul>';
+        }
+
+        // ── Consecuencias según tipo de sanción considerada ──────────────────
+        $tipoSancion = $proceso->tipo_sancion ?? '';
+        $diasSuspension = $proceso->dias_suspension ?? 8;
+        if ($tipoSancion === 'llamado_atencion') {
+            $consecuenciasHTML = '<ul>
+                <li>Llamado de atención verbal y/o escrito, con anotación en la hoja de vida laboral.</li>
+                <li>En caso de reincidencia, podrá derivar en sanciones de mayor gravedad.</li>
+            </ul>';
+        } elseif ($tipoSancion === 'suspension') {
+            $consecuenciasHTML = '<ul>
+                <li>Suspensión laboral sin derecho a salario por un período de hasta <strong>' . $diasSuspension . ' días</strong>.</li>
+                <li>En caso de reincidencia o calificación más grave de la falta, terminación del contrato de trabajo con justa causa.</li>
+            </ul>';
+        } elseif ($tipoSancion === 'terminacion') {
+            $consecuenciasHTML = '<ul>
+                <li>Terminación del contrato de trabajo con justa causa, de conformidad con el artículo 62 del Código Sustantivo del Trabajo.</li>
+                <li>Las conductas probadas pueden dar lugar a acciones civiles o penales adicionales según la normativa vigente.</li>
+            </ul>';
+        } else {
+            $consecuenciasHTML = '<ul>
+                <li>Suspensión laboral sin derecho a salario.</li>
+                <li>Terminación del contrato de trabajo con justa causa, en caso de que las faltas sean calificadas como graves tras el análisis de las pruebas y su defensa.</li>
+            </ul>';
+        }
+
+        // ── Tabla de sanciones del RIT (Artículo 20) ─────────────────────────
+        $tablaSancionesHTML = '';
+        $rit = $empresa->reglamentoInterno;
+        if ($rit) {
+            try {
+                $sancionesRIT  = app(ReglamentoInternoService::class)->extraerSancionesParaEmail($rit);
+                $faltasLeves   = $sancionesRIT['faltas_leves']  ?? [];
+                $faltasGraves  = $sancionesRIT['faltas_graves'] ?? [];
+                $sancionesData = $sancionesRIT['sanciones']     ?? [];
+
+                if (!empty($faltasLeves) || !empty($faltasGraves)) {
+                    $sancionLeve = collect($sancionesData)
+                        ->filter(fn($s) => preg_match('/llamado|atenci[oó]n|advertencia|verbal|escrito/i', $s))
+                        ->join(' / ') ?: 'Llamado de Atención';
+                    $sancionGrave = collect($sancionesData)
+                        ->filter(fn($s) => preg_match('/suspensi[oó]n|terminaci[oó]n|despido/i', $s))
+                        ->join(' / ') ?: 'Suspensión / Terminación';
+
+                    $filaLeves = '';
+                    if (!empty($faltasLeves)) {
+                        $itemsLeves = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $faltasLeves));
+                        $filaLeves = '<tr>
+                            <td class="tabla-rit-tipo" style="color:#15803d;">LEVE</td>
+                            <td class="tabla-rit-conductas"><ul>' . $itemsLeves . '</ul></td>
+                            <td class="tabla-rit-sancion">' . e($sancionLeve) . '</td>
+                        </tr>';
+                    }
+                    $filaGraves = '';
+                    if (!empty($faltasGraves)) {
+                        $itemsGraves = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $faltasGraves));
+                        $filaGraves = '<tr>
+                            <td class="tabla-rit-tipo" style="color:#b91c1c;">GRAVE</td>
+                            <td class="tabla-rit-conductas"><ul>' . $itemsGraves . '</ul></td>
+                            <td class="tabla-rit-sancion">' . e($sancionGrave) . '</td>
+                        </tr>';
+                    }
+
+                    $tablaSancionesHTML = '<table class="tabla-rit">
+                        <tr>
+                            <td colspan="3" class="tabla-rit-header-empresa">
+                                <strong>TABLA DE SANCIONES LABORALES</strong><br>
+                                <span style="font-size:8.5pt;">(Todas las sanciones contenidas en esta tabla solo se aplicarán previa garantía del debido proceso establecido en el Reglamento Interno, conforme a la Ley 2466 de 2025.)</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="tabla-rit-empresa">' . e($empresa->nombre_completo) . ' &nbsp;|&nbsp; NIT: ' . e($empresa->nit) . '</td>
+                        </tr>
+                        <tr class="tabla-rit-thead">
+                            <th style="width:15%;">Tipo de Falta</th>
+                            <th style="width:57%;">Conductas reguladas por el Reglamento Interno</th>
+                            <th style="width:28%;">Sanción aplicable</th>
+                        </tr>
+                        ' . $filaLeves . $filaGraves . '
+                    </table>
+                    <p class="tabla-rit-pie">Tabla conforme al Reglamento Interno de Trabajo de ' . e($empresa->nombre_completo) . ', de conformidad con la Ley 2466 de 2025. Toda sanción se aplicará previa garantía del debido proceso.</p>';
+                }
+            } catch (\Throwable $e) {
+                // Si falla la extracción, el documento se genera sin la tabla
+            }
+        }
+
+        // ── Fecha disponibilidad pruebas (día hábil siguiente) ───────────────
+        $fechaDisponibilidadPruebas = Carbon::now()->addWeekday()->locale('es');
+        $fechaDispTexto = $fechaDisponibilidadPruebas->isoFormat('D [de] MMMM [de] YYYY');
+
+        // ── Fragmentos HTML condicionales (no se pueden usar ternarios en heredoc) ─
+        $htmlDirTrabajador   = $dirTrabajador   ? "<p>{$dirTrabajador}</p>" : '';
+        $htmlTelefonoEmpresa = $telefonoEmpresa ? "<p>Tel: {$telefonoEmpresa}</p>" : '';
+        $htmlEmailFirma      = $emailContacto   ? "<p>{$emailContacto}</p>" : '';
 
         return <<<HTML
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Citación a Diligencia de Descargos</title>
+    <title>Comunicación Formal de Apertura de Investigación Disciplinaria</title>
     <style>
-        @page {
-            margin: 2.5cm 2.5cm 2.5cm 2.5cm;
-        }
+        @page { margin: 2.5cm 2.5cm 2.5cm 3cm; }
         body {
             font-family: 'Calibri', 'Arial', sans-serif;
-            font-size: 12pt;
+            font-size: 11pt;
             line-height: 1.5;
-            color: #000000;
+            color: #000;
             text-align: justify;
         }
-        .fecha-lugar {
-            text-align: right;
-            margin-bottom: 30px;
+        .destinatario { margin-bottom: 18px; }
+        .destinatario p { margin: 0; line-height: 1.4; }
+        .asunto { margin-bottom: 18px; }
+        .asunto p { margin: 0; }
+        p { margin: 0 0 12px 0; }
+        h3 {
+            font-size: 11pt;
+            font-weight: bold;
+            margin: 18px 0 6px 0;
+            text-decoration: underline;
         }
-        .destinatario {
-            margin-bottom: 20px;
+        ul, ol { margin: 4px 0 12px 0; padding-left: 24px; }
+        li { margin-bottom: 6px; }
+        .diligencia-datos {
+            margin: 8px 0 12px 16px;
         }
-        .destinatario p {
-            margin: 0;
-            line-height: 1.4;
-        }
-        .referencia {
-            margin-bottom: 20px;
-        }
-        .referencia p {
-            margin: 0;
-        }
-        .contenido {
-            margin-bottom: 20px;
-        }
-        .contenido p {
-            margin: 0 0 15px 0;
-            text-align: justify;
-        }
-        .firma {
-            margin-top: 50px;
-        }
-        .firma p {
-            margin: 0;
-        }
+        .diligencia-datos p { margin: 0; line-height: 1.6; }
+        .firma-bloque { margin-top: 48px; }
+        .firma-bloque p { margin: 0; line-height: 1.4; }
         .linea-firma {
-            margin-top: 60px;
-            border-top: 1px solid #000000;
-            width: 250px;
+            margin-top: 56px;
+            border-top: 1px solid #000;
+            width: 260px;
             padding-top: 5px;
         }
-        strong, b {
+        .constancia {
+            margin-top: 36px;
+            border-top: 2px solid #000;
+            padding-top: 14px;
+        }
+        .constancia h3 { text-decoration: none; }
+        .firma-trabajador {
+            margin-top: 50px;
+            border-top: 1px solid #000;
+            width: 260px;
+            padding-top: 5px;
+        }
+        strong { font-weight: bold; }
+        .italic { font-style: italic; }
+        .tabla-rit {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+            margin: 8px 0 4px 0;
+        }
+        .tabla-rit td, .tabla-rit th {
+            border: 1px solid #374151;
+            padding: 5px 7px;
+            vertical-align: top;
+        }
+        .tabla-rit-header-empresa {
+            text-align: center;
+            background-color: #f3f4f6;
+        }
+        .tabla-rit-empresa {
+            text-align: center;
+            font-size: 9pt;
+        }
+        .tabla-rit-thead th {
+            background-color: #e5e7eb;
+            text-align: center;
             font-weight: bold;
+        }
+        .tabla-rit-tipo {
+            text-align: center;
+            font-weight: bold;
+        }
+        .tabla-rit-conductas ul {
+            margin: 0;
+            padding-left: 14px;
+        }
+        .tabla-rit-conductas li { margin-bottom: 2px; }
+        .tabla-rit-sancion { text-align: center; }
+        .tabla-rit-pie {
+            font-size: 8pt;
+            color: #6b7280;
+            margin: 2px 0 0 0;
         }
     </style>
 </head>
 <body>
-    <div class="fecha-lugar">
-        <p>{$ciudad}{$departamento}{$dia} de {$mes} de {$anio}.</p>
-    </div>
 
+    <!-- DESTINATARIO -->
     <div class="destinatario">
-        <p><strong>Señor(a):</strong></p>
-        <p><strong>{$nombres} {$apellidos}.</strong></p>
-        <p>C.C. No. {$numeroDocumento}.</p>
-        <p>Cargo: {$cargo}.</p>
+        <p>Señora/Señor</p>
+        <p><strong>{$nombreTrabajador}</strong></p>
+        {$htmlDirTrabajador}
+        <p>{$ciudadTrabajador}</p>
+        <p><strong>Fecha:</strong> {$dia} de {$mes} de {$anio}</p>
     </div>
 
-    <div class="referencia">
-        <p><strong>Referencia:</strong> Citación a diligencia de descargos al empleado {$nombres} {$apellidos}.</p>
+    <!-- ASUNTO -->
+    <div class="asunto">
+        <p><strong>Asunto:</strong> Citación a Diligencia Administrativa por apertura de Proceso Disciplinario Laboral</p>
     </div>
 
-    <div class="contenido">
-        <p>Respetado(a) {$nombres} {$apellidos},</p>
+    <!-- APERTURA -->
+    <p>De conformidad con lo establecido en el Artículo 7 de la Ley 2466 de 2025, la empresa <strong>{$nombreEmpresa}</strong>, en su calidad de empleador, le notifica formalmente la apertura de un proceso disciplinario laboral en su contra, derivado de las conductas que se describen a continuación.</p>
 
-        <p>Por medio de la presente comunicación en calidad de la empresa <strong>{$nombreEmpresa}</strong>, le informamos que, de conformidad con lo establecido en el Reglamento de Trabajo, Usted ha sido citado a una diligencia de descargos para el día <strong>{$diaLetraDescargos} ({$diaDescargos}) de {$mesDescargos} de {$anioDescargos}</strong> a las <strong>{$horaDescargosTexto}</strong> de forma <strong>{$modalidad}</strong>, {$direccionEmpresa}{$ciudadEmpresa}{$departamentoEmpresa} a la hora señalada.</p>
+    <!-- SECCIÓN 1: CONDUCTAS IMPUTADAS -->
+    <h3>Detalles de las Conductas Imputadas</h3>
+    <p>Se le imputan las siguientes conductas, las cuales constituyen posibles faltas disciplinarias:</p>
+    {$conductasHTML}
 
-        <p>Las razones por las cuales es citado a diligencia de descargos, se dan por el hecho de que usted presuntamente {$textoFechaOcurrencia}, razón de los descargos:</p>
+    <!-- SECCIÓN 2: INCUMPLIMIENTOS -->
+    <h3>Incumplimientos Contractuales o Legales</h3>
+    <p>Las conductas descritas contravienen:</p>
+    {$normasHTML}
 
-        <p>{$hechosTexto}</p>
+    <!-- SECCIÓN 3: CONSECUENCIAS -->
+    <h3>Consecuencias de las Faltas</h3>
+    <p>Las conductas imputadas podrían dar lugar a las siguientes sanciones, de acuerdo con el Reglamento Interno de Trabajo y la normativa aplicable:</p>
+    {$tablaSancionesHTML}
 
-        <p>De esta manera incumpliendo con sus obligaciones contractuales, reglamentarias y legales, como también los procedimientos y protocolos de la compañía.</p>
-
-        <p>Así las cosas, los anteriores hechos implican una posible violación a sus obligaciones contractuales, reglamentarias y legales, que pueden ser constitutivos de una falta disciplinaria.</p>
+    <!-- SECCIÓN 4: CITACIÓN -->
+    <h3>Citación a Diligencia de Descargos</h3>
+    <p>Con el fin de que pueda ejercer su derecho de defensa, se le cita a rendir descargos en la siguiente diligencia:</p>
+    <div class="diligencia-datos">
+        <p><strong>Fecha:</strong> {$diaDescargos} de {$mesDescargos} de {$anioDescargos}</p>
+        <p><strong>Hora:</strong> {$horaTexto}</p>
+        <p><strong>Lugar:</strong> {$lugarDiligencia}</p>
     </div>
+    <p>Durante esta diligencia, usted tendrá la oportunidad de presentar sus explicaciones, controvertir las pruebas que le están siendo trasladadas y aportar las pruebas que considere necesarias para sustentar su defensa. Las pruebas que fundamentan los cargos formulados serán puestas a su disposición en el área de Gestión Humana a partir del {$fechaDispTexto}, en el horario de atención de la empresa.</p>
+    <p>Esta citación tiene como propósito garantizar su derecho al debido proceso, permitiéndole rendir explicaciones y ejercer su defensa frente a los cargos formulados.</p>
 
-    <div class="firma">
+    <!-- SECCIÓN 5: TRASLADO DE PRUEBAS -->
+    <h3>Traslado de Pruebas</h3>
+    <p>Se le informa que la empresa ha puesto a su disposición todas las pruebas que sustentan los cargos imputados. Estas pruebas le serán trasladadas para su revisión y análisis por un término de <strong>cinco (5) días hábiles</strong>, contados a partir de la fecha de la notificación de este documento. Usted podrá acceder a ellas en el área de Gestión Humana, en el horario de atención, con el fin de que pueda preparar su defensa de manera adecuada y oportuna.</p>
+
+    <!-- SECCIÓN 6: ADVERTENCIA -->
+    <h3>Advertencia</h3>
+    <p>De no presentarse a la diligencia sin justa causa, la empresa procederá a continuar el proceso disciplinario con base en las pruebas disponibles, conforme a lo establecido en la Ley 2466 de 2025.</p>
+
+    <!-- SECCIÓN 7: SOLICITUDES PREVIAS -->
+    <h3>Solicitudes Previas</h3>
+    <p>Las solicitudes sobre acompañantes, representación sindical y ajuste razonable por discapacidad deberán ser respondidas a través del <strong>formulario digital de descargos</strong> que recibirá por correo electrónico junto con esta comunicación, de conformidad con el Artículo 7 de la Ley 2466 de 2025. Dichas solicitudes incluyen:</p>
+    <ul>
+        <li>Si asistirá acompañado(a) y en qué calidad (testigo, representante sindical, apoderado u otro).</li>
+        <li>Si desea ser asistido(a) por uno o dos representantes del sindicato al que pertenezca.</li>
+        <li>Si requiere algún ajuste razonable para la comunicación o comprensión de la diligencia debido a una condición de discapacidad (Ley 2466/2025, Art. 7).</li>
+    </ul>
+    <p>Para comunicaciones previas urgentes, puede contactar a la empresa al correo <strong>{$emailContacto}</strong>.</p>
+
+    <!-- FIRMA -->
+    <div class="firma-bloque">
         <p>Atentamente,</p>
         <div class="linea-firma">
-            <p><strong>{$nombreEmpleador}.</strong></p>
-            <p>NIT. {$nit}.</p>
+            <p><strong>{$representante}</strong></p>
+            <p>Representante Legal</p>
+            <p><strong>{$nombreEmpresa}</strong></p>
+            {$htmlTelefonoEmpresa}
+            {$htmlEmailFirma}
         </div>
     </div>
+
+    <!-- CONSTANCIA DE RECIBO -->
+    <div class="constancia">
+        <h3>CONSTANCIA DE RECIBO / NOTIFICACIÓN</h3>
+        <p><strong>Notificación electrónica (equivalencia funcional):</strong> De conformidad con los artículos 6 y 18 de la Ley 527 de 1999 y el principio de equivalencia funcional del mensaje de datos, si la presente comunicación fue entregada por correo electrónico al trabajador, el registro de envío, primera apertura, dirección IP y marca de tiempo constituyen <em>constancia idónea de notificación</em>, sin necesidad de firma física. La apertura del mensaje equivale al acuse de recibo (Art. 18 Ley 527/1999). La Ley 2466 de 2025 (Art. 7) permite expresamente el uso de tecnologías de la información en el proceso disciplinario.</p>
+
+        <p><strong>Entrega en medio físico (cuando aplique):</strong> Si la comunicación fue entregada personalmente, el trabajador firma a continuación:</p>
+
+        <p>Yo, <strong>{$nombreTrabajador}</strong>, identificado(a) con {$tipoDoc} No. <strong>{$numDocTrabajador}</strong>, declaro que recibí copia de la presente comunicación el día ___ de _______________ de _______, en la cual se me notifica la apertura del proceso de investigación disciplinario.</p>
+        <div class="firma-trabajador">
+            <p><strong>Firma del Trabajador:</strong></p>
+            <p>Nombre: {$nombreTrabajador}</p>
+            <p>{$tipoDoc}: {$numDocTrabajador}</p>
+        </div>
+    </div>
+
 </body>
 </html>
 HTML;
@@ -514,22 +698,19 @@ HTML;
                 ]
             );
 
+            // Configurar fecha de acceso ANTES de generar el token
+            // (generarTokenAcceso usa fecha_acceso_permitida para calcular la expiración)
+            $diligencia->fecha_acceso_permitida = $proceso->fecha_descargos_programada
+                ? Carbon::parse($proceso->fecha_descargos_programada)->toDateString()
+                : now()->toDateString();
+            $diligencia->acceso_habilitado = true;
+
             // Generar token de acceso si no existe
             if (!$diligencia->token_acceso) {
-                $diligencia->generarTokenAcceso();
+                $diligencia->generarTokenAcceso(); // guarda internamente
+            } else {
+                $diligencia->save();
             }
-
-            // Configurar acceso temporal
-            $fechaDescargos = $proceso->fecha_descargos_programada
-                ? Carbon::parse($proceso->fecha_descargos_programada)
-                : now();
-
-            $diligencia->fecha_acceso_permitida = $fechaDescargos->toDateString();
-            // El token debe expirar al FINAL del día de la diligencia, no a los 6
-            // días calendario fijos (que pueden ser antes si hay días hábiles de por medio).
-            $diligencia->token_expira_en = $fechaDescargos->copy()->addDay()->endOfDay();
-            $diligencia->acceso_habilitado = true;
-            $diligencia->save();
 
             // Intentar generar preguntas completas (estándar + IA + cierre) si no existen
             $preguntasGeneradasConIA = false;
@@ -696,9 +877,12 @@ HTML;
             // Configuración de la API de IA
             $provider = config('services.ia.provider', 'openai');
             $config = config("services.ia.{$provider}", []);
-            $apiKey = $config['api_key'];
-            $model = $config['model'];
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+            $apiKey  = $config['api_key'];
+            $modelos = array_unique(array_filter([
+                $config['model'] ?? 'gemini-2.5-flash',
+                'gemini-2.5-flash',
+                'gemini-2.5-flash-lite',
+            ]));
 
             // Construir el prompt con principios de lenguaje claro
             $prompt = $this->construirPromptSancionLenguajeClaro(
@@ -717,24 +901,32 @@ HTML;
                 'max_tokens' => $config['max_tokens'] ?? 8000,
             ]);
 
-            // Llamar a la API de IA con mayor límite de tokens
-            $response = \Illuminate\Support\Facades\Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])->timeout(120)->post($url, [
-                'contents' => [
-                    [
-                        'parts' => [
-                            ['text' => $prompt]
+            // Llamar a la API de IA con fallback entre modelos
+            $response = null;
+            foreach ($modelos as $modeloActual) {
+                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modeloActual}:generateContent?key={$apiKey}";
+                $response = \Illuminate\Support\Facades\Http::withHeaders([
+                    'Content-Type' => 'application/json',
+                ])->timeout(120)->post($url, [
+                    'contents' => [
+                        [
+                            'parts' => [
+                                ['text' => $prompt]
+                            ]
                         ]
-                    ]
-                ],
-                'generationConfig' => [
-                    'temperature' => 0.7,
-                    'maxOutputTokens' => 8192, // Aumentado para documentos más largos
-                    'topP' => 0.95,
-                    'topK' => 40,
-                ],
-            ]);
+                    ],
+                    'generationConfig' => [
+                        'temperature' => 0.7,
+                        'maxOutputTokens' => 8192,
+                        'topP' => 0.95,
+                    ],
+                ]);
+
+                if (in_array($response->status(), [503, 404])) {
+                    continue;
+                }
+                break;
+            }
 
             if (!$response->successful()) {
                 $errorBody = $response->body();
@@ -945,7 +1137,7 @@ HTML;
 Genera un documento oficial de {$nombreSancion} para un trabajador en Colombia usando formato profesional estilo Word.
 
 INFORMACIÓN DEL CASO:
-- Empresa: {$empresa->razon_social} (NIT: {$empresa->nit})
+- Empresa: {$empresa->nombre_completo} (NIT: {$empresa->nit})
 - Representante: {$empresa->representante_legal}
 - Trabajador: {$trabajador->nombre_completo} ({$trabajador->tipo_documento} {$trabajador->numero_documento})
 - Cargo: {$trabajador->cargo}
@@ -982,7 +1174,7 @@ Genera HTML con exactamente esta estructura:
 <div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.2; text-align: justify; color: #000000;">
 
   <div style="text-align: center; margin-bottom: 15px;">
-    <h1 style="font-family: Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; margin: 5px 0; color: #000000;">{$empresa->razon_social}</h1>
+    <h1 style="font-family: Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; margin: 5px 0; color: #000000;">{$empresa->nombre_completo}</h1>
     <p style="font-size: 11pt; margin: 2px 0;">NIT: {$empresa->nit}</p>
     <h2 style="font-family: Calibri, Arial, sans-serif; font-size: 12pt; font-weight: bold; margin: 8px 0; color: #000000; text-transform: uppercase;">{$nombreSancion}</h2>
     <p style="font-size: 11pt; margin: 2px 0;">{$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}</p>
@@ -999,7 +1191,7 @@ Genera HTML con exactamente esta estructura:
 
   <p style="margin: 6px 0;">Estimado(a) {$trabajador->nombre_completo}:</p>
 
-  <p style="margin: 6px 0;">Le escribimos para informarle sobre una decisión importante relacionada con su trabajo en {$empresa->razon_social}.</p>
+  <p style="margin: 6px 0;">Le escribimos para informarle sobre una decisión importante relacionada con su trabajo en {$empresa->nombre_completo}.</p>
 
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">1. Hechos que motivaron esta decisión</h3>
   <p style="margin: 4px 0;">[Describe los hechos claramente mencionando fechas específicas y acciones concretas. Usa 2-3 oraciones.]</p>
@@ -1034,7 +1226,7 @@ Genera HTML con exactamente esta estructura:
     <p style="margin: 2px 0;">Cordialmente,</p>
     <p style="margin-top: 25px; margin-bottom: 2px;"><strong>{$empresa->representante_legal}</strong></p>
     <p style="margin: 2px 0;">Representante Legal</p>
-    <p style="margin: 2px 0;">{$empresa->razon_social}</p>
+    <p style="margin: 2px 0;">{$empresa->nombre_completo}</p>
     <p style="margin: 2px 0;">NIT: {$empresa->nit}</p>
   </div>
 
@@ -1107,7 +1299,7 @@ HTML;
     </tr>
     <tr>
       <td colspan="3" style="border: 1px solid #000; padding: 4px 6px; text-align: center;">
-        <strong>{$empresa->razon_social}</strong><br>
+        <strong>{$empresa->nombre_completo}</strong><br>
         NIT: {$empresa->nit}
       </td>
     </tr>
@@ -1421,22 +1613,6 @@ HTML;
             default => 'Actualización del Proceso Disciplinario ' . $proceso->codigo,
         };
 
-        // Adjuntar acta y link de acceso (solo cuando descargos completados)
-        $rutaActa = null;
-        $linkDescargos = null;
-
-        if ($estado === 'descargos_realizados') {
-            $diligencia = $proceso->diligenciaDescargo;
-            if ($diligencia) {
-                if ($diligencia->acta_generada && !empty($diligencia->ruta_acta) && file_exists($diligencia->ruta_acta)) {
-                    $rutaActa = $diligencia->ruta_acta;
-                }
-                if (!empty($diligencia->token_acceso)) {
-                    $linkDescargos = route('descargos.acceso', ['token' => $diligencia->token_acceso]);
-                }
-            }
-        }
-
         Mail::send('emails.descargos-estado', [
             'proceso' => $proceso,
             'trabajador' => $trabajador,
@@ -1444,21 +1620,9 @@ HTML;
             'estado' => $estado,
             'estadoTexto' => $estadoTexto,
             'trackingToken' => $tracking->token,
-            'linkDescargos' => $linkDescargos,
-        ], function ($message) use ($trabajador, $asunto, $rutaActa, $proceso) {
+        ], function ($message) use ($trabajador, $asunto) {
             $message->to($trabajador->email, $trabajador->nombre_completo)
                 ->subject($asunto);
-
-            if ($rutaActa) {
-                $extension = pathinfo($rutaActa, PATHINFO_EXTENSION);
-                $mimeType = $extension === 'docx'
-                    ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                    : 'application/pdf';
-                $message->attach($rutaActa, [
-                    'as' => 'Acta_Descargos_' . $proceso->codigo . '.' . $extension,
-                    'mime' => $mimeType,
-                ]);
-            }
         });
 
         Log::info('Notificación de estado de descargos enviada', [
@@ -1500,22 +1664,6 @@ HTML;
             default => 'Actualización del Proceso Disciplinario ' . $proceso->codigo,
         };
 
-        // Preparar adjunto del acta y link de sanción (solo cuando descargos completados)
-        $rutaActa = null;
-        $linkEmitirSancion = null;
-
-        if ($estado === 'descargos_realizados') {
-            $diligencia = $proceso->diligenciaDescargo;
-            if ($diligencia && $diligencia->acta_generada && !empty($diligencia->ruta_acta) && file_exists($diligencia->ruta_acta)) {
-                $rutaActa = $diligencia->ruta_acta;
-            }
-            try {
-                $linkEmitirSancion = route('filament.admin.resources.proceso-disciplinarios.edit', ['record' => $proceso->id]);
-            } catch (\Exception $e) {
-                Log::warning('No se pudo generar link de sanción', ['proceso_id' => $proceso->id]);
-            }
-        }
-
         foreach ($usuariosCliente as $cliente) {
             try {
                 // Crear registro de tracking para el correo
@@ -1535,21 +1683,9 @@ HTML;
                     'cliente' => $cliente,
                     'estado' => $estado,
                     'trackingToken' => $tracking->token,
-                    'linkEmitirSancion' => $linkEmitirSancion,
-                ], function ($message) use ($cliente, $asunto, $rutaActa, $proceso) {
+                ], function ($message) use ($cliente, $asunto) {
                     $message->to($cliente->email, $cliente->name)
                         ->subject($asunto);
-
-                    if ($rutaActa) {
-                        $extension = pathinfo($rutaActa, PATHINFO_EXTENSION);
-                        $mimeType = $extension === 'docx'
-                            ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                            : 'application/pdf';
-                        $message->attach($rutaActa, [
-                            'as' => 'Acta_Descargos_' . $proceso->codigo . '.' . $extension,
-                            'mime' => $mimeType,
-                        ]);
-                    }
                 });
 
                 Log::info('Notificación de estado de descargos enviada al cliente', [
@@ -1658,7 +1794,7 @@ HTML;
 </head>
 <body>
     <div style="text-align: center; margin-bottom: 15px;">
-        <h1>{$empresa->razon_social}</h1>
+        <h1>{$empresa->nombre_completo}</h1>
         <p style="margin: 2px 0;">NIT: {$empresa->nit}</p>
         <h2>RESOLUCIÓN DE IMPUGNACIÓN</h2>
         <p style="margin: 2px 0;">{$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}</p>
@@ -1717,7 +1853,7 @@ HTML;
         <p style="margin: 2px 0;">Cordialmente,</p>
         <p style="margin-top: 25px; margin-bottom: 2px;"><strong>{$empresa->representante_legal}</strong></p>
         <p style="margin: 2px 0;">Representante Legal</p>
-        <p style="margin: 2px 0;">{$empresa->razon_social}</p>
+        <p style="margin: 2px 0;">{$empresa->nombre_completo}</p>
         <p style="margin: 2px 0;">NIT: {$empresa->nit}</p>
     </div>
 </body>
@@ -1801,5 +1937,164 @@ HTML;
             'trabajador_email' => $trabajador->email,
             'tracking_token' => substr($tracking->token, 0, 10) . '...',
         ]);
+    }
+
+    /**
+     * Envía recordatorio al trabajador un día antes de la diligencia de descargos
+     */
+    public function enviarRecordatorioDescargos(ProcesoDisciplinario $proceso): array
+    {
+        $trabajador = $proceso->trabajador;
+        $empresa = $proceso->empresa;
+
+        if (!$trabajador || !$trabajador->email) {
+            Log::warning('No se pudo enviar recordatorio: trabajador sin email', [
+                'proceso_id' => $proceso->id,
+            ]);
+            return [
+                'success' => false,
+                'error' => 'El trabajador no tiene correo electrónico registrado',
+            ];
+        }
+
+        try {
+            // Obtener el link de descargos si existe
+            $diligencia = $proceso->diligenciaDescargo;
+            $linkDescargos = null;
+
+            if ($diligencia && $diligencia->token_acceso) {
+                $linkDescargos = route('descargos.formulario', ['token' => $diligencia->token_acceso]);
+            }
+
+            // Crear tracking para el correo
+            $tracking = EmailTracking::create([
+                'proceso_id' => $proceso->id,
+                'tipo_documento' => 'recordatorio_descargos',
+                'trabajador_id' => $trabajador->id,
+                'email_destinatario' => $trabajador->email,
+                'enviado_en' => Carbon::now('America/Bogota'),
+            ]);
+
+            Mail::send('emails.recordatorio-descargos', [
+                'proceso' => $proceso,
+                'trabajador' => $trabajador,
+                'empresa' => $empresa,
+                'linkDescargos' => $linkDescargos,
+                'trackingToken' => $tracking->token,
+            ], function ($message) use ($trabajador, $proceso) {
+                $message->to($trabajador->email, $trabajador->nombre_completo)
+                    ->subject('RECORDATORIO: Su diligencia de descargos es mañana - Proceso ' . $proceso->codigo);
+            });
+
+            Log::info('Recordatorio de descargos enviado al trabajador', [
+                'proceso_id' => $proceso->id,
+                'codigo' => $proceso->codigo,
+                'trabajador_email' => $trabajador->email,
+                'fecha_descargos' => $proceso->fecha_descargos_programada,
+            ]);
+
+            return [
+                'success' => true,
+                'mensaje' => 'Recordatorio enviado exitosamente',
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error al enviar recordatorio de descargos', [
+                'proceso_id' => $proceso->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Envía notificación al empleador cuando el trabajador no se presenta a los descargos
+     */
+    public function notificarEmpleadorDescargosNoRealizados(ProcesoDisciplinario $proceso): array
+    {
+        $trabajador = $proceso->trabajador;
+        $empresa = $proceso->empresa;
+
+        // Obtener usuarios cliente de la empresa (empleador/RRHH)
+        $clientes = \App\Models\User::where('role', 'cliente')
+            ->where('empresa_id', $proceso->empresa_id)
+            ->where('active', true)
+            ->get();
+
+        if ($clientes->isEmpty()) {
+            Log::warning('No se encontraron usuarios cliente para notificar descargos no realizados', [
+                'proceso_id' => $proceso->id,
+                'empresa_id' => $proceso->empresa_id,
+            ]);
+            return [
+                'success' => false,
+                'error' => 'No se encontraron usuarios de la empresa para notificar',
+            ];
+        }
+
+        $enviados = 0;
+        $errores = [];
+
+        foreach ($clientes as $cliente) {
+            if (!$cliente->email) {
+                continue;
+            }
+
+            try {
+                // Crear tracking para cada correo
+                $tracking = EmailTracking::create([
+                    'proceso_id' => $proceso->id,
+                    'tipo_documento' => 'descargos_no_realizados_empleador',
+                    'trabajador_id' => $trabajador->id,
+                    'email_destinatario' => $cliente->email,
+                    'enviado_en' => Carbon::now('America/Bogota'),
+                ]);
+
+                Mail::send('emails.descargos-no-realizados-empleador', [
+                    'proceso' => $proceso,
+                    'trabajador' => $trabajador,
+                    'empresa' => $empresa,
+                    'cliente' => $cliente,
+                    'trackingToken' => $tracking->token,
+                ], function ($message) use ($cliente, $proceso, $trabajador) {
+                    $message->to($cliente->email, $cliente->name)
+                        ->subject('Aviso: ' . $trabajador->nombre_completo . ' no se presentó a los descargos - Proceso ' . $proceso->codigo);
+                });
+
+                $enviados++;
+
+                Log::info('Notificación de descargos no realizados enviada al empleador', [
+                    'proceso_id' => $proceso->id,
+                    'cliente_email' => $cliente->email,
+                    'trabajador' => $trabajador->nombre_completo,
+                ]);
+
+            } catch (\Exception $e) {
+                Log::error('Error al enviar notificación de descargos no realizados', [
+                    'proceso_id' => $proceso->id,
+                    'cliente_email' => $cliente->email,
+                    'error' => $e->getMessage(),
+                ]);
+                $errores[] = $cliente->email . ': ' . $e->getMessage();
+            }
+        }
+
+        if ($enviados > 0) {
+            return [
+                'success' => true,
+                'mensaje' => "Notificación enviada a {$enviados} destinatario(s)",
+                'enviados' => $enviados,
+            ];
+        }
+
+        return [
+            'success' => false,
+            'error' => 'No se pudo enviar ninguna notificación',
+            'errores' => $errores,
+        ];
     }
 }

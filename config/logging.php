@@ -127,6 +127,14 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        // Canal dedicado para monitoreo de diligencias de descargos
+        'descargos' => [
+            'driver' => 'daily',
+            'path'   => storage_path('logs/descargos.log'),
+            'level'  => 'debug',
+            'days'   => 7,
+        ],
+
     ],
 
 ];

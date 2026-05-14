@@ -64,6 +64,7 @@
 </head>
 <body class="bg-gray-100 antialiased">
     @livewire('formulario-descargos', ['diligencia' => $diligencia])
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
     @livewireScripts
 </body>
 </html>

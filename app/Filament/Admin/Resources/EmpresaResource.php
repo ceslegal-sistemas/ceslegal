@@ -14,10 +14,16 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 
 class EmpresaResource extends Resource
 {
     protected static ?string $model = Empresa::class;
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with('reglamentoInterno');
+    }
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 
@@ -43,18 +49,37 @@ class EmpresaResource extends Resource
                             ->label('Razón Social')
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('Ej: EMPRESA ABC S.A.S')
-                            ->helperText('Nombre legal completo de la empresa')
-                            ->columnSpanFull(),
+                            ->placeholder('Ej: EMPRESA ABC')
+                            ->helperText('Nombre legal sin tipo societario')
+                            ->extraInputAttributes(['style' => 'text-transform:uppercase'])
+                            ->columnSpan(2),
+
+                        Forms\Components\Select::make('tipo_societario')
+                            ->label('Tipo Societario')
+                            ->options(\App\Models\Empresa::TIPOS_SOCIETARIOS)
+                            ->searchable()
+                            ->placeholder('Seleccione...')
+                            ->helperText('Forma jurídica')
+                            ->live(),
 
                         Forms\Components\TextInput::make('nit')
                             ->label('NIT')
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(50)
-                            ->placeholder('Ej: 900123456-7')
-                            ->mask('999999999-9')
-                            ->helperText('Número de Identificación Tributaria')
+                            ->mask(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                                ? '999999999-9'
+                                : null)
+                            ->placeholder(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                                ? 'Ej: 900123456-7'
+                                : 'Ej: 1023456789')
+                            ->helperText(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                                ? 'Incluya el dígito de verificación separado por guion'
+                                : 'Número de cédula de ciudadanía')
+                            ->rules(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                                ? ['regex:/^\d{6,12}-\d$/']
+                                : [])
+                            ->validationMessages(['regex' => 'El NIT debe incluir el dígito de verificación (ej: 900123456-7).'])
                             ->suffixIcon('heroicon-o-identification'),
 
                         Forms\Components\TextInput::make('representante_legal')
@@ -181,6 +206,10 @@ class EmpresaResource extends Resource
                             ->label('Actividad Económica Principal')
                             ->relationship('actividadEconomica', 'nombre')
                             ->getOptionLabelFromRecordUsing(fn (ActividadEconomica $record) => "{$record->codigo} - {$record->nombre}")
+                            ->getOptionLabelUsing(function ($value): ?string {
+                                $a = ActividadEconomica::find($value);
+                                return $a ? "{$a->codigo} - {$a->nombre}" : null;
+                            })
                             ->searchable(['codigo', 'nombre'])
                             ->preload(false)
                             ->nullable()
@@ -192,6 +221,10 @@ class EmpresaResource extends Resource
                             ->label('Actividades Secundarias')
                             ->relationship('actividadesSecundarias', 'nombre')
                             ->getOptionLabelFromRecordUsing(fn (ActividadEconomica $record) => "{$record->codigo} - {$record->nombre}")
+                            ->getOptionLabelUsing(function ($value): ?string {
+                                $a = ActividadEconomica::find($value);
+                                return $a ? "{$a->codigo} - {$a->nombre}" : null;
+                            })
                             ->searchable(['codigo', 'nombre'])
                             ->preload(false)
                             ->multiple()
@@ -205,34 +238,69 @@ class EmpresaResource extends Resource
                     ->description('Documento normativo interno de la empresa')
                     ->icon('heroicon-o-document-text')
                     ->schema([
-                        Forms\Components\Placeholder::make('reglamento_actual')
-                            ->label('Reglamento cargado')
-                            ->content(function ($record) {
-                                if (!$record) {
-                                    return new \Illuminate\Support\HtmlString('<span class="text-gray-400 text-sm">Sin reglamento cargado aún</span>');
-                                }
-                                $reglamento = $record->reglamentoInterno;
-                                if (!$reglamento) {
-                                    return new \Illuminate\Support\HtmlString('<span class="text-gray-400 text-sm">Sin reglamento cargado</span>');
-                                }
-                                $chars = number_format(strlen($reglamento->texto_completo));
-                                $fecha = $reglamento->updated_at->format('d/m/Y H:i');
-                                return new \Illuminate\Support\HtmlString(
-                                    "<span class='text-success-600 font-medium'>✅ {$reglamento->nombre}</span>" .
-                                    "<span class='text-gray-400 text-xs ml-2'>({$chars} caracteres — actualizado {$fecha})</span>"
-                                );
-                            })
-                            ->visibleOn('edit'),
 
+                        // ── Visor / descarga cuando existe RIT ───────────────────────
+                        Forms\Components\Placeholder::make('rit_visor')
+                            ->label('Reglamento Interno actual')
+                            ->content(function ($record) {
+                                $rit = $record?->reglamentoInterno;
+                                if (!$rit) return null;
+
+                                $fuente = match ($rit->fuente) {
+                                    'construido_ia' => '✦ Construido con IA',
+                                    default         => '↑ Subido manualmente',
+                                };
+                                $fecha  = $rit->updated_at?->format('d/m/Y H:i') ?? '—';
+                                $chars  = $rit->texto_completo
+                                    ? number_format(strlen($rit->texto_completo)) . ' caracteres'
+                                    : '—';
+                                $url = route('rit.descargar.admin', $record);
+
+                                return new HtmlString(<<<HTML
+                                <div style="display:flex;flex-direction:column;gap:.5rem">
+                                  <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:.8125rem;color:#64748b">
+                                    <span><strong>Fuente:</strong> {$fuente}</span>
+                                    <span><strong>Actualizado:</strong> {$fecha}</span>
+                                    <span><strong>Tamaño:</strong> {$chars}</span>
+                                  </div>
+                                  <a href="{$url}" target="_blank"
+                                     style="display:inline-flex;align-items:center;gap:.4rem;width:fit-content;
+                                            font-size:.8125rem;font-weight:600;padding:.45rem 1rem;border-radius:.5rem;
+                                            background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);
+                                            color:#166534;text-decoration:none">
+                                    <svg style="width:14px;height:14px" fill="none" viewBox="0 0 24 24"
+                                         stroke="currentColor" stroke-width="2">
+                                      <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                                    </svg>
+                                    Descargar PDF
+                                  </a>
+                                </div>
+                                HTML);
+                            })
+                            ->visible(fn ($record) => (bool) $record?->reglamentoInterno)
+                            ->columnSpanFull(),
+
+                        // ── Sin RIT registrado ────────────────────────────────────────
+                        Forms\Components\Placeholder::make('rit_sin_docx')
+                            ->label('Reglamento Interno')
+                            ->content('Sin reglamento registrado. Suba un archivo .docx o .pdf abajo, o use el wizard "Construir RIT".')
+                            ->visible(fn ($record) => $record && !$record?->reglamentoInterno)
+                            ->columnSpanFull(),
+
+                        // ── Upload para agregar / reemplazar RIT ─────────────────────
                         Forms\Components\FileUpload::make('reglamento_docx_temp')
-                            ->label('Subir / Actualizar Reglamento Interno (.docx)')
-                            ->helperText('Si no sube un reglamento, el sistema usará el Código Sustantivo del Trabajo como referencia para la validación de hechos.')
-                            ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
+                            ->label('Subir / Reemplazar Reglamento Interno (.docx o .pdf)')
+                            ->helperText('Formatos aceptados: .docx y .pdf — máx. 10 MB.')
+                            ->acceptedFileTypes([
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                'application/pdf',
+                            ])
                             ->disk('local')
                             ->directory('reglamentos-temp')
                             ->visibility('private')
                             ->maxSize(10240)
-                            ->dehydrated(false),
+                            ->visibleOn('edit'),
                     ]),
             ]);
     }
@@ -260,7 +328,7 @@ class EmpresaResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-o-map-pin')
-                    ->description(fn(Empresa $record): string => $record->departamento),
+                    ->description(fn(Empresa $record): ?string => $record->departamento),
 
                 Tables\Columns\TextColumn::make('telefono')
                     ->label('Teléfono')
@@ -312,6 +380,26 @@ class EmpresaResource extends Resource
                     ->color('primary')
                     ->toggleable(),
 
+                Tables\Columns\TextColumn::make('rit_estado')
+                    ->label('RIT')
+                    ->badge()
+                    ->getStateUsing(fn(Empresa $record): string =>
+                        match($record->reglamentoInterno?->fuente) {
+                            'construido_ia' => 'IA generado',
+                            default         => $record->reglamentoInterno ? 'Manual' : 'Sin RIT',
+                        }
+                    )
+                    ->color(fn(string $state): string => match($state) {
+                        'IA generado' => 'success',
+                        'Manual'      => 'info',
+                        default       => 'gray',
+                    })
+                    ->icon(fn(string $state): string => match($state) {
+                        'IA generado' => 'heroicon-o-cpu-chip',
+                        'Manual'      => 'heroicon-o-document-arrow-up',
+                        default       => 'heroicon-o-document-minus',
+                    }),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creada')
                     ->dateTime('d/m/Y')
@@ -321,13 +409,7 @@ class EmpresaResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('departamento')
                     ->label('Departamento')
-                    ->options([
-                        'Antioquia' => 'Antioquia',
-                        'Atlántico' => 'Atlántico',
-                        'Bogotá D.C.' => 'Bogotá D.C.',
-                        'Cundinamarca' => 'Cundinamarca',
-                        'Valle del Cauca' => 'Valle del Cauca',
-                    ])
+                    ->options(fn () => self::getDepartamentos())
                     ->multiple(),
 
                 Tables\Filters\TernaryFilter::make('active')
@@ -349,6 +431,13 @@ class EmpresaResource extends Resource
                     ->multiple(),
             ])
             ->actions([
+                Tables\Actions\Action::make('descargar_rit')
+                    ->label('Descargar RIT')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->url(fn(Empresa $record): string => route('rit.descargar.admin', $record))
+                    ->openUrlInNewTab()
+                    ->visible(fn(Empresa $record): bool => $record->reglamentoInterno !== null),
                 Tables\Actions\ViewAction::make()
                     ->label('Ver'),
                 Tables\Actions\EditAction::make()
@@ -452,51 +541,31 @@ class EmpresaResource extends Resource
         return static::getModel()::where('active', true)->count();
     }
 
-    protected static function getCiudadesPorDepartamento(?string $departamento): array
+    public static function getDepartamentos(): array
+    {
+        return \DB::table('departamentos')
+            ->orderBy('nombre')
+            ->pluck('nombre', 'nombre')
+            ->toArray();
+    }
+
+    public static function getCiudadesPorDepartamento(?string $departamento): array
     {
         if (empty($departamento)) {
             return [];
         }
 
-        $ciudades = [
-            'Amazonas' => ['Leticia', 'Puerto Nariño', 'El Encanto', 'La Chorrera'],
-            'Antioquia' => ['Medellín', 'Bello', 'Itagüí', 'Envigado', 'Rionegro', 'Sabaneta', 'Apartadó', 'Turbo', 'Caucasia', 'Yarumal'],
-            'Arauca' => ['Arauca', 'Arauquita', 'Saravena', 'Tame', 'Fortul'],
-            'Atlántico' => ['Barranquilla', 'Soledad', 'Malambo', 'Sabanalarga', 'Puerto Colombia', 'Galapa'],
-            'Bolívar' => ['Cartagena', 'Magangué', 'Turbaco', 'El Carmen de Bolívar', 'Arjona', 'Mompós'],
-            'Boyacá' => ['Tunja', 'Duitama', 'Sogamoso', 'Chiquinquirá', 'Puerto Boyacá', 'Paipa', 'Villa de Leyva', 'Moniquirá'],
-            'Caldas' => ['Manizales', 'Villamaría', 'Chinchiná', 'La Dorada', 'Riosucio', 'Anserma'],
-            'Caquetá' => ['Florencia', 'San Vicente del Caguán', 'Puerto Rico', 'El Doncello', 'Belén de los Andaquíes'],
-            'Casanare' => ['Yopal', 'Aguazul', 'Villanueva', 'Monterrey', 'Paz de Ariporo'],
-            'Cauca' => ['Popayán', 'Santander de Quilichao', 'Puerto Tejada', 'Guapi', 'Patía'],
-            'Cesar' => ['Valledupar', 'Aguachica', 'Codazzi', 'Bosconia', 'Chiriguaná', 'La Jagua de Ibirico'],
-            'Chocó' => ['Quibdó', 'Istmina', 'Condoto', 'Tadó', 'Acandí', 'Bahía Solano'],
-            'Córdoba' => ['Montería', 'Cereté', 'Lorica', 'Sahagún', 'Planeta Rica', 'Montelíbano'],
-            'Cundinamarca' => ['Bogotá D.C.', 'Soacha', 'Facatativá', 'Chía', 'Zipaquirá', 'Fusagasugá', 'Madrid', 'Girardot', 'Cajicá', 'La Calera'],
-            'Guainía' => ['Inírida', 'Barranco Minas', 'Mapiripana', 'San Felipe'],
-            'Guaviare' => ['San José del Guaviare', 'Calamar', 'El Retorno', 'Miraflores'],
-            'Huila' => ['Neiva', 'Pitalito', 'Garzón', 'La Plata', 'Campoalegre', 'Gigante'],
-            'La Guajira' => ['Riohacha', 'Maicao', 'Uribia', 'Manaure', 'Villanueva', 'Fonseca'],
-            'Magdalena' => ['Santa Marta', 'Ciénaga', 'Fundación', 'Zona Bananera', 'Plato', 'El Banco'],
-            'Meta' => ['Villavicencio', 'Acacías', 'Granada', 'Puerto López', 'San Martín', 'Cumaral'],
-            'Nariño' => ['Pasto', 'Tumaco', 'Ipiales', 'Túquerres', 'La Unión', 'Sandoná'],
-            'Norte de Santander' => ['Cúcuta', 'Ocaña', 'Pamplona', 'Villa del Rosario', 'Los Patios', 'Tibú'],
-            'Putumayo' => ['Mocoa', 'Puerto Asís', 'Orito', 'Valle del Guamuez', 'Villagarzón'],
-            'Quindío' => ['Armenia', 'Calarcá', 'La Tebaida', 'Montenegro', 'Circasia', 'Quimbaya'],
-            'Risaralda' => ['Pereira', 'Dosquebradas', 'La Virginia', 'Santa Rosa de Cabal', 'Marsella'],
-            'San Andrés y Providencia' => ['San Andrés', 'Providencia'],
-            'Santander' => ['Bucaramanga', 'Floridablanca', 'Girón', 'Piedecuesta', 'Barrancabermeja', 'San Gil', 'Socorro'],
-            'Sucre' => ['Sincelejo', 'Corozal', 'San Marcos', 'Tolú', 'Sampués'],
-            'Tolima' => ['Ibagué', 'Espinal', 'Melgar', 'Honda', 'Chaparral', 'Líbano'],
-            'Valle del Cauca' => ['Cali', 'Palmira', 'Buenaventura', 'Tuluá', 'Cartago', 'Buga', 'Jamundí', 'Yumbo'],
-            'Vaupés' => ['Mitú', 'Carurú', 'Taraira'],
-            'Vichada' => ['Puerto Carreño', 'La Primavera', 'Cumaribo'],
-        ];
+        $municipios = \DB::table('municipios')
+            ->join('departamentos', 'municipios.departamento_id', '=', 'departamentos.id')
+            ->where('departamentos.nombre', $departamento)
+            ->orderBy('municipios.nombre')
+            ->pluck('municipios.nombre')
+            ->toArray();
 
-        $ciudadesDepartamento = $ciudades[$departamento] ?? [$departamento];
+        if (empty($municipios)) {
+            return [$departamento => $departamento];
+        }
 
-        // Convertir array a formato clave => valor para que Filament guarde el nombre de la ciudad
-        // En lugar de [0 => 'Tunja', 1 => 'Duitama'] se convierte a ['Tunja' => 'Tunja', 'Duitama' => 'Duitama']
-        return array_combine($ciudadesDepartamento, $ciudadesDepartamento);
+        return array_combine($municipios, $municipios);
     }
 }

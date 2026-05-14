@@ -4,7 +4,7 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'http://localhost:8000',
+	site: 'https://ceslegal.renbel.com.co',
 	base: '/docs',
 	outDir: '../public/docs',
 	build: {
@@ -86,7 +86,6 @@ export default defineConfig({
 					items: [
 						{ label: 'Rutas Públicas', slug: 'api/rutas-publicas' },
 						{ label: 'Rutas Protegidas', slug: 'api/rutas-protegidas' },
-						{ label: 'Webhooks', slug: 'api/webhooks' },
 					],
 				},
 				{
@@ -94,7 +93,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Manual Administrador', slug: 'manuales/administrador' },
 						{ label: 'Manual Abogado', slug: 'manuales/abogado' },
-						{ label: 'Manual Cliente (RRHH)', slug: 'manuales/cliente' },
+						{ label: 'Manual Cliente', slug: 'manuales/cliente' },
 					],
 				},
 				{

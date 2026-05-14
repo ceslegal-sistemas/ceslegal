@@ -44,25 +44,25 @@ Cuando llega una nueva notificacion, se reproduce un sonido de alerta para llama
 
 Las notificaciones tienen niveles de prioridad que determinan su apariencia visual:
 
-| Prioridad | Color | Icono | Uso |
-|-----------|-------|-------|-----|
-| `urgente` | Rojo | Alerta | Terminos vencidos, impugnaciones |
-| `alta` | Naranja | Advertencia | Procesos asignados, descargos proximos |
-| `media` | Azul | Informacion | Procesos cerrados, contratos generados |
-| `baja` | Gris | Info | Actualizaciones generales |
+| Prioridad | Color   | Icono       | Uso                                    |
+| --------- | ------- | ----------- | -------------------------------------- |
+| `urgente` | Rojo    | Alerta      | Terminos vencidos, impugnaciones       |
+| `alta`    | Naranja | Advertencia | Procesos asignados, descargos proximos |
+| `media`   | Azul    | Informacion | Procesos cerrados, contratos generados |
+| `baja`    | Gris    | Info        | Actualizaciones generales              |
 
 #### Eventos que Generan Notificaciones
 
-| Evento | Destinatarios | Prioridad | Tipo |
-|--------|--------------|-----------|------|
-| Proceso aperturado | Abogado asignado | Alta | `apertura` |
-| Descargos proximos | Abogado asignado | Alta/Urgente | `descargos_pendientes` |
-| Descargos completados | Abogado + cliente | Alta | `descargos_realizados` |
-| Sancion aplicada | Abogado + RRHH (clientes) | Alta/Urgente | `sancion_emitida` |
-| Impugnacion recibida | Abogado asignado | Urgente | `impugnacion_realizada` |
-| Proceso cerrado | Abogado + RRHH | Media/Baja | `cerrado` |
-| Termino vencido | Usuario responsable | Urgente | `termino_vencido` |
-| Contrato generado | Abogado + RRHH | Media/Alta | `contrato_generado` |
+| Evento                | Destinatarios             | Prioridad    | Tipo                    |
+| --------------------- | ------------------------- | ------------ | ----------------------- |
+| Proceso aperturado    | Abogado asignado          | Alta         | `apertura`              |
+| Descargos proximos    | Abogado asignado          | Alta/Urgente | `descargos_pendientes`  |
+| Descargos completados | Abogado + cliente         | Alta         | `descargos_realizados`  |
+| Sancion aplicada      | Abogado + RRHH (clientes) | Alta/Urgente | `sancion_emitida`       |
+| Impugnacion recibida  | Abogado asignado          | Urgente      | `impugnacion_realizada` |
+| Proceso cerrado       | Abogado + RRHH            | Media/Baja   | `cerrado`               |
+| Termino vencido       | Usuario responsable       | Urgente      | `termino_vencido`       |
+| Contrato generado     | Abogado + RRHH            | Media/Alta   | `contrato_generado`     |
 
 #### Gestion de Notificaciones
 
@@ -105,11 +105,11 @@ Cuando el cliente de correo carga esta imagen, el sistema registra la apertura e
 
 El tracking define cuatro estados basados en el numero de aperturas:
 
-| Aperturas | Estado | Color | Descripcion |
-|-----------|--------|-------|-------------|
-| 0 | `Pendiente` | Gris | No ha llegado al destinatario |
-| 1 | `Correo Entregado` | Amarillo | Precarga del servidor de correo |
-| 2+ | `Leido (N)` | Verde | El trabajador abrio el correo |
+| Aperturas | Estado             | Color    | Descripcion                     |
+| --------- | ------------------ | -------- | ------------------------------- |
+| 0         | `Pendiente`        | Gris     | No ha llegado al destinatario   |
+| 1         | `Correo Entregado` | Amarillo | Precarga del servidor de correo |
+| 2+        | `Leido (N)`        | Verde    | El trabajador abrio el correo   |
 
 :::note[Logica de Aperturas]
 La primera apertura (aperturas = 1) corresponde tipicamente a la precarga automatica del servidor de correo. Por eso se considera "entregado" pero no "leido". Solo cuando se registran 2 o mas aperturas se considera que el trabajador realmente abrio el correo.
@@ -117,10 +117,10 @@ La primera apertura (aperturas = 1) corresponde tipicamente a la precarga automa
 
 #### Tipos de Correo Rastreados
 
-| Tipo | Codigo | Descripcion |
-|------|--------|-------------|
-| Citacion a descargos | `citacion` | Correo con la citacion adjunta |
-| Notificacion de sancion | `sancion` | Correo con el documento de sancion |
+| Tipo                    | Codigo     | Descripcion                        |
+| ----------------------- | ---------- | ---------------------------------- |
+| Citacion a descargos    | `citacion` | Correo con la citacion adjunta     |
+| Notificacion de sancion | `sancion`  | Correo con el documento de sancion |
 
 #### Informacion Registrada
 
@@ -138,6 +138,7 @@ EmailTracking::create([
 ```
 
 Al detectar apertura:
+
 - `abierto_en`: Fecha/hora de la primera apertura real.
 - `veces_abierto`: Contador de aperturas totales.
 - `ip_apertura`: IP desde donde se abrio.
@@ -165,55 +166,55 @@ $proceso->ultimoTrackingSancion;
 
 ### Tabla: `notifications` (Laravel nativa)
 
-| Campo | Tipo | Descripcion |
-|-------|------|-------------|
-| `id` | uuid | Identificador unico |
-| `type` | string | Clase de la notificacion |
-| `notifiable_type` | string | Tipo de modelo (User) |
-| `notifiable_id` | bigint | ID del usuario |
-| `data` | json | Contenido (tipo, titulo, mensaje, prioridad, url) |
-| `read_at` | timestamp | Fecha de lectura (null si no leida) |
-| `created_at` | timestamp | Fecha de creacion |
-| `updated_at` | timestamp | Fecha de actualizacion |
+| Campo             | Tipo      | Descripcion                                       |
+| ----------------- | --------- | ------------------------------------------------- |
+| `id`              | uuid      | Identificador unico                               |
+| `type`            | string    | Clase de la notificacion                          |
+| `notifiable_type` | string    | Tipo de modelo (User)                             |
+| `notifiable_id`   | bigint    | ID del usuario                                    |
+| `data`            | json      | Contenido (tipo, titulo, mensaje, prioridad, url) |
+| `read_at`         | timestamp | Fecha de lectura (null si no leida)               |
+| `created_at`      | timestamp | Fecha de creacion                                 |
+| `updated_at`      | timestamp | Fecha de actualizacion                            |
 
 ### Tabla: `notificaciones` (Custom, legacy)
 
-| Campo | Tipo | Descripcion |
-|-------|------|-------------|
-| `id` | bigint | Identificador unico |
-| `user_id` | foreignId | Usuario destinatario |
-| `tipo` | string | Tipo de notificacion |
-| `titulo` | string | Titulo de la notificacion |
-| `mensaje` | text | Mensaje completo |
-| `relacionado_tipo` | string | Modelo relacionado |
-| `relacionado_id` | bigint | ID del modelo relacionado |
-| `leida` | boolean | Si fue leida |
-| `fecha_lectura` | datetime | Fecha/hora de lectura |
-| `prioridad` | string | urgente, alta, media, baja |
+| Campo              | Tipo      | Descripcion                |
+| ------------------ | --------- | -------------------------- |
+| `id`               | bigint    | Identificador unico        |
+| `user_id`          | foreignId | Usuario destinatario       |
+| `tipo`             | string    | Tipo de notificacion       |
+| `titulo`           | string    | Titulo de la notificacion  |
+| `mensaje`          | text      | Mensaje completo           |
+| `relacionado_tipo` | string    | Modelo relacionado         |
+| `relacionado_id`   | bigint    | ID del modelo relacionado  |
+| `leida`            | boolean   | Si fue leida               |
+| `fecha_lectura`    | datetime  | Fecha/hora de lectura      |
+| `prioridad`        | string    | urgente, alta, media, baja |
 
 ### Tabla: `email_trackings`
 
-| Campo | Tipo | Descripcion |
-|-------|------|-------------|
-| `id` | bigint | Identificador unico |
-| `token` | string(64) | Token unico de tracking |
-| `tipo_correo` | string | citacion, sancion |
-| `proceso_id` | foreignId | Proceso disciplinario |
-| `trabajador_id` | foreignId | Trabajador destinatario |
-| `email_destinatario` | string | Email al que se envio |
-| `enviado_en` | datetime | Fecha/hora de envio |
-| `abierto_en` | datetime | Primera apertura real |
-| `veces_abierto` | integer | Total de aperturas |
-| `ip_apertura` | string | IP de la apertura |
-| `user_agent` | string | Navegador/cliente de correo |
+| Campo                | Tipo       | Descripcion                 |
+| -------------------- | ---------- | --------------------------- |
+| `id`                 | bigint     | Identificador unico         |
+| `token`              | string(64) | Token unico de tracking     |
+| `tipo_correo`        | string     | citacion, sancion           |
+| `proceso_id`         | foreignId  | Proceso disciplinario       |
+| `trabajador_id`      | foreignId  | Trabajador destinatario     |
+| `email_destinatario` | string     | Email al que se envio       |
+| `enviado_en`         | datetime   | Fecha/hora de envio         |
+| `abierto_en`         | datetime   | Primera apertura real       |
+| `veces_abierto`      | integer    | Total de aperturas          |
+| `ip_apertura`        | string     | IP de la apertura           |
+| `user_agent`         | string     | Navegador/cliente de correo |
 
 ## Relaciones con Otros Modulos
 
 ### Notificaciones Internas
 
-| Relacion | Tipo | Modelo | Descripcion |
-|----------|------|--------|-------------|
-| `user` | BelongsTo | User | Usuario destinatario |
+| Relacion | Tipo      | Modelo | Descripcion          |
+| -------- | --------- | ------ | -------------------- |
+| `user`   | BelongsTo | User   | Usuario destinatario |
 
 El modelo `User` tiene la relacion inversa:
 
@@ -226,10 +227,10 @@ public function notificaciones()
 
 ### Email Tracking
 
-| Relacion | Tipo | Modelo | Descripcion |
-|----------|------|--------|-------------|
-| `proceso` | BelongsTo | ProcesoDisciplinario | Proceso asociado |
-| `trabajador` | BelongsTo | Trabajador | Trabajador destinatario |
+| Relacion     | Tipo      | Modelo               | Descripcion             |
+| ------------ | --------- | -------------------- | ----------------------- |
+| `proceso`    | BelongsTo | ProcesoDisciplinario | Proceso asociado        |
+| `trabajador` | BelongsTo | Trabajador           | Trabajador destinatario |
 
 El modelo `ProcesoDisciplinario` tiene la relacion inversa:
 

@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\DescargoPublicoController;
 use App\Http\Controllers\EmailTrackingController;
+use App\Http\Controllers\PayUConfirmationController;
+use App\Http\Controllers\SuscripcionController;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\File;
@@ -9,6 +12,24 @@ use Illuminate\Support\Facades\File;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// PayU — URL de confirmación server-to-server (sin CSRF, sin auth)
+Route::post('/payu/confirmacion', [PayUConfirmationController::class, 'handle'])
+    ->name('payu.confirmacion')
+    ->withoutMiddleware([VerifyCsrfToken::class]);
+
+// Retorno del cliente después del checkout PayU
+Route::get('/suscripcion/retorno', [SuscripcionController::class, 'retorno'])
+    ->name('suscripcion.retorno')
+    ->middleware('auth');
+
+Route::post('/tts', \App\Http\Controllers\TtsController::class)
+    ->middleware('auth')
+    ->name('tts');
+
+Route::post('/transcribir', \App\Http\Controllers\TranscribeController::class)
+    ->middleware('auth')
+    ->name('transcribir');
 
 Route::get('/descargos/{token}', [DescargoPublicoController::class, 'mostrarAcceso'])
     ->name('descargos.acceso');
@@ -75,6 +96,101 @@ Route::get('/descargar/sancion/{procesoId}', function ($procesoId) {
         'Content-Type' => $mimeType,
     ]);
 })->middleware(['auth'])->name('descargar.sancion');
+
+// Fotos privadas de descargos (inicio/fin) — solo usuarios autenticados
+Route::get('/admin/fotos-descargos/{diligencia}/{tipo}', function ($diligenciaId, $tipo) {
+    abort_unless(in_array($tipo, ['inicio', 'fin']), 404);
+    $diligencia = \App\Models\DiligenciaDescargo::findOrFail($diligenciaId);
+    $campo = "foto_{$tipo}_path";
+    $ruta  = $diligencia->$campo;
+    if (!$ruta || !\Illuminate\Support\Facades\Storage::exists($ruta)) {
+        abort(404);
+    }
+    return response(\Illuminate\Support\Facades\Storage::get($ruta), 200)
+        ->header('Content-Type', 'image/jpeg')
+        ->header('Cache-Control', 'private, max-age=3600');
+})->middleware(['auth'])->name('admin.fotos-descargos');
+
+// Descarga del RIT generado con IA
+Route::get('/descargar/rit', function () {
+    $user    = auth()->user();
+    $empresa = $user?->empresa;
+
+    if (!$empresa) {
+        abort(403, 'No autorizado');
+    }
+
+    $rit = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
+        ->orderByDesc('updated_at')
+        ->first();
+
+    if (!$rit || empty($rit->texto_completo)) {
+        abort(404, 'Documento no encontrado. Genere su RIT primero.');
+    }
+
+    // Generar PDF de solo lectura en temp
+    $service = app(\App\Services\RITGeneratorService::class);
+    $tmpPath = $service->generarPDFTemp($rit->texto_completo, $empresa);
+    $nombre  = 'Reglamento_Interno_' . \Str::slug($empresa->razon_social) . '.pdf';
+
+    return response()->download($tmpPath, $nombre, [
+        'Content-Type' => 'application/pdf',
+    ])->deleteFileAfterSend();
+})->middleware(['auth'])->name('rit.descargar');
+
+// Descarga del RIT para super admin (por empresa_id)
+Route::get('/descargar/rit/admin/{empresa}', function (\App\Models\Empresa $empresa) {
+    $user = auth()->user();
+    if (!$user || (!$user->hasRole('super_admin') && !$user->hasRole('abogado'))) {
+        abort(403, 'No autorizado');
+    }
+
+    $rit = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
+        ->orderByDesc('updated_at')
+        ->first();
+
+    if (!$rit) {
+        abort(404, 'Documento no encontrado para esta empresa.');
+    }
+
+    // Prioridad 1: servir el archivo original tal como fue subido
+    if ($rit->ruta_docx) {
+        $rutaAbsoluta = \Illuminate\Support\Facades\Storage::disk('local')->path($rit->ruta_docx);
+        if (file_exists($rutaAbsoluta)) {
+            $extension = strtolower(pathinfo($rutaAbsoluta, PATHINFO_EXTENSION)) ?: 'docx';
+            $mimeTypes = [
+                'pdf'  => 'application/pdf',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ];
+            // Usar el nombre original guardado en el registro
+            $nombreDescarga = $rit->nombre ?? ('RIT_' . \Str::slug($empresa->razon_social) . ".{$extension}");
+            return response()->download($rutaAbsoluta, $nombreDescarga, [
+                'Content-Type' => $mimeTypes[$extension] ?? 'application/octet-stream',
+            ]);
+        }
+    }
+
+    // Prioridad 2: generar PDF de solo lectura desde texto_completo (RIT construido en plataforma)
+    if (!empty($rit->texto_completo)) {
+        $service = app(\App\Services\RITGeneratorService::class);
+        $tmpPath = $service->generarPDFTemp($rit->texto_completo, $empresa);
+        $nombre  = 'RIT_' . \Str::slug($empresa->razon_social) . '.pdf';
+
+        return response()->download($tmpPath, $nombre, [
+            'Content-Type' => 'application/pdf',
+        ])->deleteFileAfterSend();
+    }
+
+    abort(404, 'Documento no encontrado para esta empresa.');
+})->middleware(['auth'])->name('rit.descargar.admin');
+
+// Descarga de documentos de la Biblioteca Legal
+Route::get('/biblioteca-legal/{documento}/descargar', function (\App\Models\DocumentoLegal $documento) {
+    abort_if(!auth()->user()?->hasRole('super_admin'), 403);
+    $path = \Illuminate\Support\Facades\Storage::disk('public')->path($documento->archivo_path);
+    abort_if(!file_exists($path), 404, 'Archivo no encontrado.');
+    return response()->download($path, $documento->archivo_nombre_original ?? basename($documento->archivo_path));
+})->middleware(['auth'])->name('biblioteca.descargar');
 
 // Rutas de Email Tracking
 Route::get('/email/track/{token}.gif', [EmailTrackingController::class, 'pixel'])

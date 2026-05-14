@@ -15,17 +15,18 @@ La sancion se emite desde el modulo de [Procesos Disciplinarios](/modulos/proces
 
 CES Legal soporta tres tipos de sancion conforme al Codigo Sustantivo del Trabajo colombiano:
 
-| Tipo | Codigo | Descripcion |
-|------|--------|-------------|
-| **Llamado de Atencion** | `llamado_atencion` | Amonestacion escrita por faltas leves |
-| **Suspension** | `suspension` | Suspension del contrato sin remuneracion (1-60 dias) |
-| **Terminacion** | `terminacion` | Terminacion del contrato de trabajo con justa causa |
+| Tipo                    | Codigo             | Descripcion                                          |
+| ----------------------- | ------------------ | ---------------------------------------------------- |
+| **Llamado de Atencion** | `llamado_atencion` | Amonestacion escrita por faltas leves                |
+| **Suspension**          | `suspension`       | Suspension del contrato sin remuneracion (1-60 dias) |
+| **Terminacion**         | `terminacion`      | Terminacion del contrato de trabajo con justa causa  |
 
 ### Analisis con IA (IAAnalisisSancionService)
 
-Antes de emitir la sancion, el abogado puede solicitar un analisis automatizado que evalua:
+Al emitir la sancion, la IA realiza un analisis automatizado que evalua:
 
 **Entrada del analisis:**
+
 - Hechos del caso actual
 - Sanciones del reglamento interno incumplidas
 - Descargos del trabajador (preguntas y respuestas)
@@ -35,27 +36,28 @@ Antes de emitir la sancion, el abogado puede solicitar un analisis automatizado 
 
 ```json
 {
-  "gravedad": "leve|grave",
-  "nivel_gravedad": "ninguno|bajo|alto",
-  "es_reincidencia": true,
-  "justificacion": "Explicacion de la clasificacion",
-  "sanciones_disponibles": ["llamado_atencion", "suspension"],
-  "sancion_recomendada": "suspension",
-  "dias_suspension_sugeridos": [1, 2, 3, 5, 8],
-  "razonamiento_legal": "Basado en el CST y reglamento",
-  "consideraciones_especiales": "Historial, atenuantes, agravantes"
+    "gravedad": "leve|grave",
+    "nivel_gravedad": "ninguno|bajo|alto",
+    "es_reincidencia": true,
+    "justificacion": "Explicacion de la clasificacion",
+    "sanciones_disponibles": ["llamado_atencion", "suspension"],
+    "sancion_recomendada": "suspension",
+    "dias_suspension_sugeridos": [1, 2, 3, 5, 8],
+    "razonamiento_legal": "Basado en el CST y reglamento",
+    "consideraciones_especiales": "Historial, atenuantes, agravantes"
 }
 ```
 
 **Criterios de clasificacion:**
 
-| Gravedad | Nivel | Sanciones Disponibles | Dias de Suspension |
-|----------|-------|----------------------|--------------------|
-| Leve | Ninguno | Solo llamado de atencion | N/A |
-| Grave | Bajo | Llamado de atencion o suspension | 1-8 dias |
-| Grave | Alto | Suspension o terminacion | 8-60 dias |
+| Gravedad | Nivel   | Sanciones Disponibles            | Dias de Suspension |
+| -------- | ------- | -------------------------------- | ------------------ |
+| Leve     | Ninguno | Solo llamado de atencion         | N/A                |
+| Grave    | Bajo    | Llamado de atencion o suspension | 1-8 dias           |
+| Grave    | Alto    | Suspension o terminacion         | 8-60 dias          |
 
 **Factores evaluados:**
+
 - Reincidencia (cantidad de procesos previos).
 - Gravedad de los hechos segun el CST.
 - Calidad de los descargos presentados.
@@ -115,61 +117,61 @@ Si el trabajador no respondio al formulario de descargos, el documento de sancio
 
 El sistema utiliza un catalogo de sanciones laborales (`SancionLaboral`) que representan las infracciones tipificadas en el reglamento interno de trabajo de cada empresa:
 
-| Campo | Descripcion |
-|-------|-------------|
-| `tipo_falta` | leve o grave |
-| `nombre_claro` | Nombre legible de la falta |
-| `descripcion` | Descripcion detallada |
-| `tipo_sancion` | llamado_atencion, suspension, terminacion |
-| `dias_suspension_min` | Minimo de dias de suspension |
-| `dias_suspension_max` | Maximo de dias de suspension |
-| `activa` | Si esta activa en el sistema |
-| `orden` | Orden de presentacion |
+| Campo                 | Descripcion                               |
+| --------------------- | ----------------------------------------- |
+| `tipo_falta`          | leve o grave                              |
+| `nombre_claro`        | Nombre legible de la falta                |
+| `descripcion`         | Descripcion detallada                     |
+| `tipo_sancion`        | llamado_atencion, suspension, terminacion |
+| `dias_suspension_min` | Minimo de dias de suspension              |
+| `dias_suspension_max` | Maximo de dias de suspension              |
+| `activa`              | Si esta activa en el sistema              |
+| `orden`               | Orden de presentacion                     |
 
 ## Modelo de Datos
 
 ### Tabla: `sanciones`
 
-| Campo | Tipo | Descripcion |
-|-------|------|-------------|
-| `id` | bigint | Identificador unico |
-| `proceso_id` | foreignId | Proceso disciplinario asociado |
-| `tipo_sancion` | string | llamado_atencion, suspension, terminacion |
-| `dias_suspension` | integer | Dias de suspension (si aplica) |
-| `fecha_inicio_suspension` | date | Inicio de la suspension |
-| `fecha_fin_suspension` | date | Fin de la suspension |
-| `motivo_sancion` | text | Motivo (hechos del proceso) |
-| `fundamento_legal` | text | Fundamento legal y reglamentario |
-| `observaciones` | text | Observaciones adicionales |
-| `documento_generado` | boolean | Si se genero el documento |
-| `ruta_documento` | string | Ruta del documento PDF |
-| `fecha_notificacion_rrhh` | datetime | Fecha de notificacion a RRHH |
-| `fecha_notificacion_trabajador` | datetime | Fecha de notificacion al trabajador |
-| `notificado_por` | foreignId | Usuario que notifico |
+| Campo                           | Tipo      | Descripcion                               |
+| ------------------------------- | --------- | ----------------------------------------- |
+| `id`                            | bigint    | Identificador unico                       |
+| `proceso_id`                    | foreignId | Proceso disciplinario asociado            |
+| `tipo_sancion`                  | string    | llamado_atencion, suspension, terminacion |
+| `dias_suspension`               | integer   | Dias de suspension (si aplica)            |
+| `fecha_inicio_suspension`       | date      | Inicio de la suspension                   |
+| `fecha_fin_suspension`          | date      | Fin de la suspension                      |
+| `motivo_sancion`                | text      | Motivo (hechos del proceso)               |
+| `fundamento_legal`              | text      | Fundamento legal y reglamentario          |
+| `observaciones`                 | text      | Observaciones adicionales                 |
+| `documento_generado`            | boolean   | Si se genero el documento                 |
+| `ruta_documento`                | string    | Ruta del documento PDF                    |
+| `fecha_notificacion_rrhh`       | datetime  | Fecha de notificacion a RRHH              |
+| `fecha_notificacion_trabajador` | datetime  | Fecha de notificacion al trabajador       |
+| `notificado_por`                | foreignId | Usuario que notifico                      |
 
 ### Tabla: `analisis_juridicos`
 
-| Campo | Tipo | Descripcion |
-|-------|------|-------------|
-| `id` | bigint | Identificador unico |
-| `proceso_id` | foreignId | Proceso disciplinario asociado |
-| `abogado_id` | foreignId | Abogado que solicito el analisis |
-| `fecha_analisis` | datetime | Fecha del analisis |
-| `analisis_hechos` | text | Analisis de los hechos |
-| `analisis_pruebas` | text | Analisis de las pruebas |
-| `analisis_normativo` | text | Analisis normativo |
-| `conclusion` | text | Conclusion del analisis |
-| `recomendacion` | text | Recomendacion de sancion |
-| `tipo_sancion_recomendada` | string | Tipo de sancion recomendada |
-| `fundamento_legal` | text | Fundamento legal |
-| `observaciones` | text | Observaciones adicionales |
+| Campo                      | Tipo      | Descripcion                      |
+| -------------------------- | --------- | -------------------------------- |
+| `id`                       | bigint    | Identificador unico              |
+| `proceso_id`               | foreignId | Proceso disciplinario asociado   |
+| `abogado_id`               | foreignId | Abogado que solicito el analisis |
+| `fecha_analisis`           | datetime  | Fecha del analisis               |
+| `analisis_hechos`          | text      | Analisis de los hechos           |
+| `analisis_pruebas`         | text      | Analisis de las pruebas          |
+| `analisis_normativo`       | text      | Analisis normativo               |
+| `conclusion`               | text      | Conclusion del analisis          |
+| `recomendacion`            | text      | Recomendacion de sancion         |
+| `tipo_sancion_recomendada` | string    | Tipo de sancion recomendada      |
+| `fundamento_legal`         | text      | Fundamento legal                 |
+| `observaciones`            | text      | Observaciones adicionales        |
 
 ## Relaciones con Otros Modulos
 
-| Relacion | Tipo | Modelo | Descripcion |
-|----------|------|--------|-------------|
-| `proceso` | BelongsTo | ProcesoDisciplinario | Proceso disciplinario padre |
-| `impugnacion` | HasOne | Impugnacion | Impugnacion presentada contra la sancion |
+| Relacion      | Tipo      | Modelo               | Descripcion                              |
+| ------------- | --------- | -------------------- | ---------------------------------------- |
+| `proceso`     | BelongsTo | ProcesoDisciplinario | Proceso disciplinario padre              |
+| `impugnacion` | HasOne    | Impugnacion          | Impugnacion presentada contra la sancion |
 
 ### Relaciones Indirectas
 
@@ -183,7 +185,7 @@ El sistema utiliza un catalogo de sanciones laborales (`SancionLaboral`) que rep
 
 - **super_admin**: Puede emitir sanciones en cualquier proceso.
 - **abogado**: Puede emitir sanciones en los procesos asignados. Puede solicitar analisis con IA.
-- **cliente**: No puede emitir sanciones directamente. Recibe notificacion cuando se emite una sancion en un proceso de su empresa.
+- **cliente**: Puede emitir sanciones directamente. Recibe notificacion cuando se emite una sancion en un proceso de su empresa.
 
 ### Conversion a PDF
 
@@ -197,10 +199,9 @@ El documento de sancion se genera como HTML y se convierte a PDF:
 
 Tras recibir la sancion, el trabajador tiene **3 dias habiles** para presentar una impugnacion. Si impugna:
 
+- El cliente crea el registro de impugnacion.
 - El proceso pasa a estado `impugnacion_realizada`.
-- Se crea un registro en la tabla `impugnaciones`.
-- El abogado recibe notificacion urgente.
-- El abogado puede resolver la impugnacion y cerrar el proceso.
+- El cliente puede resolver la impugnacion mediante analisis de IA y cerrar el proceso.
 
 ### Temperatura de la IA
 

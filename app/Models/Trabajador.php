@@ -26,6 +26,7 @@ class Trabajador extends Model
         'telefono',
         'direccion',
         'active',
+        'foto_referencia_path',
     ];
 
     protected $casts = [

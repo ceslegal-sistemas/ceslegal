@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Cache\RateLimiting\Limit;
 use App\Models\ProcesoDisciplinario;
 use App\Models\SolicitudContrato;
 use App\Observers\ProcesoDisciplinarioObserver;
@@ -26,6 +28,12 @@ class AppServiceProvider extends ServiceProvider
         // Registrar Observers
         ProcesoDisciplinario::observe(ProcesoDisciplinarioObserver::class);
         SolicitudContrato::observe(SolicitudContratoObserver::class);
+
+        // Rate limiter para llamadas a Gemini API desde la cola
+        // 800/min deja margen sobre el límite de 1,000 RPM con billing habilitado
+        RateLimiter::for('gemini-api', function () {
+            return Limit::perMinute(800);
+        });
 
         // Aumentar timeout de MySQL por sesión para evitar "MySQL server has gone away"
         // durante operaciones largas (generación de documentos con IA)

@@ -22,3 +22,14 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+*.txt
+*.pdf
+*.claude
+nul
+
+# Archivos temporales de desarrollo
+tmp_*.php
+tmp_*.py
+*.xml
+diagrama_*.xml
+docs/superpowers/

@@ -106,6 +106,16 @@ class ProcesoDisciplinarioObserver
         if ($proceso->abogado_id) {
             $this->notificacionService->notificarProcesoAperturado($proceso);
         }
+
+        // Notificar a super_admin (siempre, para supervisión y asignación de abogado)
+        try {
+            $this->notificacionService->notificarSuperAdminNuevoProceso($proceso);
+        } catch (\Exception $e) {
+            Log::warning('No se pudo enviar notificación de nuevo proceso a super_admin', [
+                'proceso_id' => $proceso->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -232,6 +242,16 @@ class ProcesoDisciplinarioObserver
                     );
                 }
 
+                // Notificar a los clientes de la empresa que se envió la citación
+                try {
+                    $this->notificacionService->notificarCitacionEnviada($proceso);
+                } catch (\Exception $e) {
+                    Log::warning('No se pudo enviar notificación de citación enviada', [
+                        'proceso_id' => $proceso->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
                 Log::info('Citación enviada - Descargos pendientes', [
                     'proceso_id' => $proceso->id,
                     'fecha_programada' => $proceso->fecha_descargos_programada,
@@ -348,6 +368,19 @@ class ProcesoDisciplinarioObserver
                         'proceso_id' => $proceso->id,
                         'fecha_limite' => $fechaLimite,
                         'tipo_sancion' => $proceso->tipo_sancion,
+                    ]);
+                }
+
+                // Notificar al abogado y a RRHH que se emitió la sanción
+                try {
+                    $this->notificacionService->notificarSancionAplicada(
+                        $proceso,
+                        $proceso->tipo_sancion ?? 'sanción'
+                    );
+                } catch (\Exception $e) {
+                    Log::warning('No se pudo enviar notificación de sanción aplicada', [
+                        'proceso_id' => $proceso->id,
+                        'error' => $e->getMessage(),
                     ]);
                 }
                 break;

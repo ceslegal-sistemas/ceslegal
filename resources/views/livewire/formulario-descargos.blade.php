@@ -13,27 +13,9 @@
                             <h1 class="text-base font-semibold text-gray-900">Descargos</h1>
                             <p class="text-xs text-gray-500">{{ $proceso->codigo }}</p>
                         </div>
-                        @if (!$formularioCompletado && !$mostrarAdvertencia && !$tiempoExpiradoMostrarEvidencias && $diligencia->primer_acceso_en)
-                            <div class="flex items-center gap-2 bg-warning-50 text-warning-600 px-3 py-1.5 rounded-lg"
-                                wire:poll.10s="verificarTiempo">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span class="font-mono text-sm font-semibold">{{ gmdate('i:s', $this->timer) }}</span>
-                            </div>
-                        @elseif ($tiempoExpiradoMostrarEvidencias)
-                            <div class="flex items-center gap-2 bg-danger-50 text-danger-600 px-3 py-1.5 rounded-lg">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span class="text-xs font-semibold">Expirado</span>
-                            </div>
-                        @endif
                     </div>
                 </div>
-                @if (!$formularioCompletado && !$mostrarAdvertencia && !$tiempoExpiradoMostrarEvidencias)
+                @if ($etapa === 'formulario' && !$formularioCompletado && !$mostrarAdvertencia && !$tiempoExpiradoMostrarEvidencias)
                     <div class="px-4 sm:px-6 pb-3">
                         <div class="flex items-center gap-3">
                             <div class="flex-1 bg-gray-200 rounded-full h-2">
@@ -50,6 +32,867 @@
 
             {{-- Contenido --}}
             <main class="px-4 sm:px-6 py-6">
+
+                {{-- ═══════════════════════════════════════════════════════════
+                     ETAPA: OTP
+                ════════════════════════════════════════════════════════════ --}}
+                @if ($etapa === 'otp')
+                    <div class="space-y-5">
+                        {{-- Info del trabajador --}}
+                        <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                            <div class="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="font-semibold text-gray-900">{{ $trabajador->nombre_completo }}</p>
+                                <p class="text-sm text-gray-500">{{ $trabajador->cargo }}</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h2 class="text-base font-semibold text-gray-900 mb-1">Verificación de identidad</h2>
+                            <p class="text-sm text-gray-500">Para acceder al formulario de descargos debemos verificar su identidad.</p>
+                        </div>
+
+                        @if ($otpError === 'sin_email')
+                            {{-- Sin email registrado --}}
+                            <div class="bg-danger-50 border border-danger-200 rounded-xl p-4">
+                                <div class="flex gap-3">
+                                    <svg class="w-5 h-5 text-danger-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 0116 0zm-.707-4.293a1 1 0 001.414 1.414L12 13.414l1.293 1.293a1 1 0 001.414-1.414L13.414 12l1.293-1.293a1 1 0 00-1.414-1.414L12 10.586l-1.293-1.293a1 1 0 00-1.414 1.414L10.586 12l-1.293 1.293z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <div class="text-sm">
+                                        <p class="font-semibold text-danger-800">No hay correo electrónico registrado</p>
+                                        <p class="text-danger-700 mt-1">
+                                            No es posible enviar el código de verificación porque no tiene un correo electrónico registrado en el sistema.
+                                            <br><br>
+                                            <strong>Por favor contacte al administrador del proceso</strong> para que actualice sus datos de contacto antes de continuar.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            {{-- Selectores de canal --}}
+                            <div x-data="{ canal: 'email' }">
+                                <p class="text-xs font-medium text-gray-600 mb-2">Recibir código por:</p>
+                                <div class="flex gap-2">
+                                    <button type="button"
+                                        @click="canal = 'email'"
+                                        :class="canal === 'email' ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600'"
+                                        class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-sm font-medium transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                        </svg>
+                                        Email
+                                    </button>
+                                    <button type="button" disabled
+                                        class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-400 cursor-not-allowed relative">
+                                        SMS
+                                        <span class="absolute -top-2 -right-1 text-[10px] bg-gray-200 text-gray-500 rounded px-1">Próximamente</span>
+                                    </button>
+                                    <button type="button" disabled
+                                        class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border border-gray-200 text-sm font-medium text-gray-400 cursor-not-allowed relative">
+                                        WhatsApp
+                                        <span class="absolute -top-2 -right-1 text-[10px] bg-gray-200 text-gray-500 rounded px-1">Próximamente</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            @if (!$otpEnviado)
+                                <button wire:click="enviarOtp" type="button"
+                                    class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                    </svg>
+                                    Enviar código de verificación
+                                </button>
+                            @else
+                                {{-- Formulario de verificación del código --}}
+                                <div class="space-y-4">
+                                    <div class="bg-success-50 border border-success-200 rounded-xl p-3 text-sm text-success-800">
+                                        Código enviado a <strong>{{ $diligencia->otp_enviado_a }}</strong>. Revise su bandeja de entrada.
+                                    </div>
+
+                                    <div
+                                        x-data="{
+                                            init() {
+                                                if ('OTPCredential' in window) {
+                                                    const ac = new AbortController();
+                                                    navigator.credentials.get({
+                                                        otp: { transport: ['sms'] },
+                                                        signal: ac.signal
+                                                    }).then(otp => {
+                                                        $wire.set('otpCodigo', otp.code);
+                                                        $wire.verificarOtp();
+                                                    }).catch(() => {});
+                                                }
+                                            }
+                                        }"
+                                    >
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Ingrese el código de 6 dígitos</label>
+                                        <input wire:model="otpCodigo" type="text" inputmode="numeric" maxlength="6"
+                                            pattern="[0-9]{6}"
+                                            autocomplete="one-time-code"
+                                            class="block w-full text-center text-2xl font-mono tracking-widest border-gray-300 rounded-xl focus:border-primary-500 focus:ring-primary-500 py-3"
+                                            placeholder="000000"
+                                            autofocus />
+                                    </div>
+
+                                    @if ($otpError === 'incorrecto')
+                                        <p class="text-sm text-danger-600">Código incorrecto. Verifique e intente de nuevo.</p>
+                                    @elseif ($otpError === 'expirado')
+                                        <p class="text-sm text-danger-600">El código ha expirado. Solicite uno nuevo.</p>
+                                    @elseif ($otpError === 'bloqueado')
+                                        <div class="bg-danger-50 border border-danger-200 rounded-xl p-3 text-sm text-danger-800">
+                                            <strong>Acceso bloqueado.</strong> Ha superado el número máximo de intentos.
+                                            Contacte al administrador del proceso.
+                                        </div>
+                                    @endif
+
+                                    <button wire:click="verificarOtp" type="button"
+                                        class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                        Verificar código
+                                    </button>
+
+                                    {{-- Reenvío con countdown --}}
+                                    <div x-data="{ segundos: 60, intervalo: null }"
+                                        x-init="
+                                            intervalo = setInterval(() => {
+                                                if (segundos > 0) segundos--;
+                                            }, 1000)
+                                        "
+                                        x-effect="if (segundos <= 0) clearInterval(intervalo)"
+                                        class="text-center">
+                                        <template x-if="segundos > 0">
+                                            <p class="text-sm text-gray-500">
+                                                Reenviar en <span class="font-mono font-semibold" x-text="segundos"></span>s
+                                            </p>
+                                        </template>
+                                        <template x-if="segundos <= 0">
+                                            <button wire:click="reenviarOtp" type="button"
+                                                class="text-sm text-primary-600 hover:text-primary-700 font-medium underline">
+                                                Reenviar código
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if ($otpError && $otpError !== 'incorrecto' && $otpError !== 'expirado' && $otpError !== 'bloqueado' && $otpError !== 'sin_email')
+                                <p class="text-sm text-danger-600">{{ $otpError }}</p>
+                            @endif
+                        @endif
+                    </div>
+
+                {{-- ═══════════════════════════════════════════════════════════
+                     ETAPA: DISCLAIMER
+                ════════════════════════════════════════════════════════════ --}}
+                @elseif ($etapa === 'disclaimer')
+                    <div class="space-y-5" x-data="{ aceptado: false }">
+                        <div>
+                            <h2 class="text-base font-semibold text-gray-900 mb-1">Autorización de datos personales y declaración de identidad</h2>
+                            <p class="text-sm text-gray-500">Lea con atención el siguiente texto. Es necesario aceptarlo para continuar con la diligencia.</p>
+                        </div>
+
+                        <div class="border border-gray-200 rounded-xl overflow-hidden">
+                            <div class="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                                <p class="text-xs font-medium text-gray-600 uppercase tracking-wide">Declaración jurídica</p>
+                            </div>
+                            <div class="p-4 max-h-72 overflow-y-auto text-sm text-gray-700 leading-relaxed">
+                                {!! nl2br(e($textoDisclaimer)) !!}
+                            </div>
+                        </div>
+
+                        <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                            :class="aceptado ? 'border-primary-400 bg-primary-50' : ''">
+                            <input type="checkbox" x-model="aceptado"
+                                class="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 flex-shrink-0" />
+                            <span class="text-sm text-gray-700">
+                                He leído, entiendo y acepto el contenido en su integralidad. Confirmo ser
+                                <strong>{{ $trabajador->nombre_completo }}</strong>,
+                                C.C. {{ $trabajador->numero_documento }},
+                                y que estoy participando libre y voluntariamente en esta diligencia.
+                            </span>
+                        </label>
+
+                        <button type="button"
+                            x-bind:disabled="!aceptado"
+                            x-bind:class="aceptado ? 'bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
+                            wire:click="aceptarDisclaimer"
+                            class="w-full flex items-center justify-center gap-2 px-5 py-3.5 font-semibold rounded-xl shadow-sm transition-colors">
+                            Aceptar y continuar
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </button>
+                    </div>
+
+                {{-- ═══════════════════════════════════════════════════════════
+                     ETAPA: FOTO INICIO
+                ════════════════════════════════════════════════════════════ --}}
+                @elseif ($etapa === 'foto_inicio')
+                    <div class="space-y-5"
+                        x-data="{
+                            stream: null,
+                            fotoCapturada: null,
+                            errorCamara: false,
+                            modelsCargados: false,
+                            estadoRostro: 'esperando',
+                            intervaloDeteccion: null,
+                            validando: false,
+                            errorValidacion: '',
+                            revisandoAccesorios: false,
+                            alertaAccesorios: '',
+                            intervaloAccesorios: null,
+                            verificandoAccesoriosVivo: false,
+
+                            async iniciarCamara() {
+                                try {
+                                    this.stream = await navigator.mediaDevices.getUserMedia({
+                                        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+                                    });
+                                    this.$refs.video.srcObject = this.stream;
+                                    this.errorCamara = false;
+                                    await this.cargarModelos();
+                                } catch (e) {
+                                    this.errorCamara = true;
+                                }
+                            },
+
+                            get colorEncuadre() {
+                                if (this.alertaAccesorios) return '#f97316';
+                                if (this.estadoRostro === 'ok') return '#4ade80';
+                                if (this.estadoRostro === 'muy_lejos') return '#fbbf24';
+                                if (this.estadoRostro === 'esperando') return 'rgba(255,255,255,0.45)';
+                                return '#f87171';
+                            },
+
+                            async cargarModelos() {
+                                try {
+                                    await Promise.all([
+                                        faceapi.nets.tinyFaceDetector.loadFromUri(
+                                            'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'
+                                        ),
+                                        faceapi.nets.faceLandmark68TinyNet.loadFromUri(
+                                            'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'
+                                        ),
+                                    ]);
+                                    this.modelsCargados = true;
+                                    this.iniciarDeteccion();
+                                    this.iniciarDeteccionAccesorios();
+                                } catch (e) {
+                                    this.modelsCargados = true;
+                                    this.estadoRostro = 'ok';
+                                    this.iniciarDeteccionAccesorios();
+                                }
+                            },
+
+                            iniciarDeteccion() {
+                                this.intervaloDeteccion = setInterval(async () => {
+                                    const video = this.$refs.video;
+                                    if (!video || video.readyState < 2 || !video.videoWidth) return;
+                                    try {
+                                        const detection = await faceapi
+                                            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.65 }))
+                                            .withFaceLandmarks(true);
+
+                                        if (!detection) {
+                                            this.estadoRostro = 'sin_rostro';
+                                        } else {
+                                            const ratio = (detection.detection.box.width * detection.detection.box.height) / (video.videoWidth * video.videoHeight);
+                                            if (ratio < 0.08) {
+                                                this.estadoRostro = 'muy_lejos';
+                                            } else {
+                                                // Verificar que los ojos estén visibles y separados
+                                                // (mano tapando el rostro → separación ocular anormalmente pequeña)
+                                                const leftEye  = detection.landmarks.getLeftEye();
+                                                const rightEye = detection.landmarks.getRightEye();
+                                                const eyeSep   = Math.abs(rightEye[0].x - leftEye[0].x);
+                                                const minSep   = detection.detection.box.width * 0.18;
+                                                this.estadoRostro = eyeSep < minSep ? 'sin_rostro' : 'ok';
+                                            }
+                                        }
+                                    } catch (e) { /* ignorar errores de detección */ }
+                                }, 500);
+                            },
+
+                            iniciarDeteccionAccesorios() {
+                                this.intervaloAccesorios = setInterval(async () => {
+                                    if (this.fotoCapturada || this.revisandoAccesorios || this.verificandoAccesoriosVivo) return;
+                                    if (this.estadoRostro !== 'ok') return;
+                                    const video = this.$refs.video;
+                                    if (!video || video.readyState < 2 || !video.videoWidth) return;
+                                    // Escalar a 640px para reducir payload
+                                    const escala = Math.min(1, 640 / video.videoWidth);
+                                    const tmp = document.createElement('canvas');
+                                    tmp.width  = Math.round(video.videoWidth  * escala);
+                                    tmp.height = Math.round(video.videoHeight * escala);
+                                    const ctx = tmp.getContext('2d');
+                                    ctx.translate(tmp.width, 0);
+                                    ctx.scale(-1, 1);
+                                    ctx.drawImage(video, 0, 0, tmp.width, tmp.height);
+                                    const foto = tmp.toDataURL('image/jpeg', 0.70);
+                                    this.verificandoAccesoriosVivo = true;
+                                    try {
+                                        await $wire.verificarAccesorios(foto);
+                                        this.alertaAccesorios = $wire.alertaAccesorios;
+                                    } catch (e) {}
+                                    this.verificandoAccesoriosVivo = false;
+                                }, 4000);
+                            },
+
+                            async tomarFoto() {
+                                const canvas = this.$refs.canvas;
+                                const video  = this.$refs.video;
+                                canvas.width  = video.videoWidth;
+                                canvas.height = video.videoHeight;
+                                const ctx = canvas.getContext('2d');
+                                ctx.translate(canvas.width, 0);
+                                ctx.scale(-1, 1);
+                                ctx.drawImage(video, 0, 0);
+                                const foto = canvas.toDataURL('image/jpeg', 0.80);
+                                this.revisandoAccesorios = true;
+                                this.alertaAccesorios    = '';
+                                this.detenerDeteccion();
+                                await $wire.verificarAccesorios(foto);
+                                this.revisandoAccesorios = false;
+                                if ($wire.alertaAccesorios) {
+                                    this.alertaAccesorios = $wire.alertaAccesorios;
+                                    this.iniciarDeteccion();
+                                    this.iniciarDeteccionAccesorios();
+                                } else {
+                                    this.alertaAccesorios = '';
+                                    this.fotoCapturada    = foto;
+                                    this.errorValidacion  = '';
+                                }
+                            },
+
+                            volverATomarFoto() {
+                                this.fotoCapturada       = null;
+                                this.errorValidacion     = '';
+                                this.alertaAccesorios    = '';
+                                this.estadoRostro        = 'esperando';
+                                this.iniciarDeteccion();
+                                this.iniciarDeteccionAccesorios();
+                            },
+
+                            detenerCamara() {
+                                this.detenerDeteccion();
+                                if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+                            },
+
+                            detenerDeteccion() {
+                                if (this.intervaloDeteccion) {
+                                    clearInterval(this.intervaloDeteccion);
+                                    this.intervaloDeteccion = null;
+                                }
+                                if (this.intervaloAccesorios) {
+                                    clearInterval(this.intervaloAccesorios);
+                                    this.intervaloAccesorios = null;
+                                }
+                            }
+                        }"
+                        x-init="
+                            iniciarCamara();
+                            $wire.$watch('errorValidacionFoto', value => {
+                                if (value) { validando = false; errorValidacion = value; }
+                            });
+                            $wire.$watch('alertaAccesorios', value => { alertaAccesorios = value; });
+                        "
+                        @descargosFinalizados.window="detenerCamara()">
+
+                        <div>
+                            <h2 class="text-base font-semibold text-gray-900 mb-1">Verificación fotográfica</h2>
+                            <p class="text-sm text-gray-500">Tome una foto de su rostro para registrar el inicio de la diligencia.</p>
+                        </div>
+
+                        <template x-if="errorCamara">
+                            <div class="bg-danger-50 border border-danger-200 rounded-xl p-4 text-sm text-danger-800">
+                                <p class="font-semibold mb-1">No se puede acceder a la cámara</p>
+                                <p>Para continuar debe permitir el acceso a la cámara en su navegador.</p>
+                                <ul class="mt-2 space-y-1 text-danger-700 list-disc list-inside">
+                                    <li>Busque el ícono de cámara bloqueada en la barra de direcciones</li>
+                                    <li>Haga clic y seleccione "Permitir"</li>
+                                    <li>Recargue la página</li>
+                                </ul>
+                            </div>
+                        </template>
+
+                        <template x-if="!errorCamara">
+                            <div class="space-y-4">
+                                <template x-if="!fotoCapturada">
+                                    <div class="space-y-3">
+                                        {{-- Video con encuadre guía oval --}}
+                                        <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
+                                            <video x-ref="video" autoplay playsinline muted
+                                                class="w-full h-full object-cover"
+                                                style="transform: scaleX(-1);"></video>
+
+                                            {{-- Encuadre: overlay oscuro fuera del óvalo + borde dinámico --}}
+                                            <svg class="absolute inset-0 w-full h-full pointer-events-none"
+                                                viewBox="0 0 100 75" preserveAspectRatio="none">
+                                                <defs>
+                                                    <mask id="encuadre-inicio">
+                                                        <rect width="100" height="75" fill="white"/>
+                                                        <ellipse cx="50" cy="36" rx="23" ry="29" fill="black"/>
+                                                    </mask>
+                                                </defs>
+                                                <rect width="100" height="75" fill="rgba(0,0,0,0.48)" mask="url(#encuadre-inicio)"/>
+                                                <ellipse cx="50" cy="36" rx="23" ry="29" fill="none"
+                                                    :stroke="colorEncuadre" stroke-width="0.9" stroke-dasharray="3,1.5"/>
+                                                <text x="50" y="71" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="3.8"
+                                                    x-show="modelsCargados && estadoRostro !== 'ok' && estadoRostro !== 'muy_lejos'">
+                                                    Centre su rostro aquí
+                                                </text>
+                                            </svg>
+
+                                            {{-- Mensaje de estado superpuesto --}}
+                                            <div class="absolute bottom-2 left-0 right-0 flex justify-center px-2">
+                                                <template x-if="!modelsCargados">
+                                                    <span class="bg-black/70 text-white text-xs px-3 py-1 rounded-full">
+                                                        Cargando sistema de verificación...
+                                                    </span>
+                                                </template>
+                                                <template x-if="modelsCargados && estadoRostro === 'sin_rostro'">
+                                                    <span class="bg-red-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                        Coloque su rostro frente a la cámara
+                                                    </span>
+                                                </template>
+                                                <template x-if="modelsCargados && estadoRostro === 'muy_lejos'">
+                                                    <span class="bg-yellow-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                        Acérquese más a la cámara
+                                                    </span>
+                                                </template>
+                                                <span x-show="modelsCargados && estadoRostro === 'ok' && !alertaAccesorios"
+                                                    style="display:none"
+                                                    class="bg-green-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                    ✓ Listo para tomar foto
+                                                </span>
+                                                <span x-show="modelsCargados && estadoRostro === 'ok' && alertaAccesorios"
+                                                    x-text="alertaAccesorios"
+                                                    style="display:none"
+                                                    class="bg-orange-600/90 text-white text-xs px-3 py-1.5 rounded-full text-center leading-snug max-w-xs mx-2"></span>
+                                            </div>
+                                        </div>
+
+                                        {{-- Alerta de accesorios detectados --}}
+                                        <template x-if="alertaAccesorios">
+                                            <div class="flex items-start gap-2 bg-orange-50 border border-orange-300 rounded-xl px-4 py-3 text-sm text-orange-900">
+                                                <svg class="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                </svg>
+                                                <p x-text="alertaAccesorios"></p>
+                                            </div>
+                                        </template>
+
+                                        <button type="button" @click="tomarFoto()"
+                                            :disabled="!modelsCargados || estadoRostro !== 'ok' || revisandoAccesorios || !!alertaAccesorios"
+                                            :class="(modelsCargados && estadoRostro === 'ok' && !revisandoAccesorios && !alertaAccesorios)
+                                                ? 'bg-primary-600 hover:bg-primary-700 cursor-pointer'
+                                                : 'bg-gray-300 cursor-not-allowed'"
+                                            class="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                            <template x-if="!revisandoAccesorios">
+                                                <span class="flex items-center gap-2">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    </svg>
+                                                    Tomar foto
+                                                </span>
+                                            </template>
+                                            <template x-if="revisandoAccesorios">
+                                                <span class="flex items-center gap-2">
+                                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                                    </svg>
+                                                    Verificando...
+                                                </span>
+                                            </template>
+                                        </button>
+                                    </div>
+                                </template>
+
+                                <template x-if="fotoCapturada">
+                                    <div class="space-y-3">
+                                        <div class="rounded-xl overflow-hidden border-2 border-success-400">
+                                            <img :src="fotoCapturada" class="w-full object-cover" alt="Vista previa" />
+                                        </div>
+
+                                        {{-- Error de validación IA --}}
+                                        <template x-if="errorValidacion">
+                                            <div class="bg-danger-50 border border-danger-200 rounded-xl p-3 text-sm text-danger-800">
+                                                <p class="font-semibold mb-0.5">Foto rechazada</p>
+                                                <p x-text="errorValidacion"></p>
+                                            </div>
+                                        </template>
+
+                                        <p class="text-center text-sm text-gray-600">¿La foto es clara y muestra su rostro?</p>
+                                        <div class="flex gap-3">
+                                            <button type="button" @click="volverATomarFoto()" :disabled="validando"
+                                                class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50">
+                                                Volver a tomar
+                                            </button>
+                                            <button type="button"
+                                                @click="validando = true; errorValidacion = ''; $wire.validarFotoConIA(fotoCapturada, 'inicio')"
+                                                :disabled="validando"
+                                                class="flex-1 px-4 py-2.5 bg-success-600 hover:bg-success-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-75">
+                                                <span x-show="!validando">Confirmar foto</span>
+                                                <span x-show="validando" class="flex items-center justify-center gap-2">
+                                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                                    </svg>
+                                                    Verificando...
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                {{-- Canvas oculto para captura --}}
+                                <canvas x-ref="canvas" class="hidden"></canvas>
+                            </div>
+                        </template>
+                    </div>
+
+                {{-- ═══════════════════════════════════════════════════════════
+                     ETAPA: FOTO FIN
+                ════════════════════════════════════════════════════════════ --}}
+                @elseif ($etapa === 'foto_fin')
+                    <div class="space-y-5"
+                        x-data="{
+                            stream: null,
+                            fotoCapturada: null,
+                            errorCamara: false,
+                            modelsCargados: false,
+                            estadoRostro: 'esperando',
+                            intervaloDeteccion: null,
+                            validando: false,
+                            errorValidacion: '',
+                            revisandoAccesorios: false,
+                            alertaAccesorios: '',
+                            intervaloAccesorios: null,
+                            verificandoAccesoriosVivo: false,
+
+                            async iniciarCamara() {
+                                try {
+                                    this.stream = await navigator.mediaDevices.getUserMedia({
+                                        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+                                    });
+                                    this.$refs.video.srcObject = this.stream;
+                                    this.errorCamara = false;
+                                    await this.cargarModelos();
+                                } catch (e) {
+                                    this.errorCamara = true;
+                                }
+                            },
+
+                            get colorEncuadre() {
+                                if (this.alertaAccesorios) return '#f97316';
+                                if (this.estadoRostro === 'ok') return '#4ade80';
+                                if (this.estadoRostro === 'muy_lejos') return '#fbbf24';
+                                if (this.estadoRostro === 'esperando') return 'rgba(255,255,255,0.45)';
+                                return '#f87171';
+                            },
+
+                            async cargarModelos() {
+                                try {
+                                    await Promise.all([
+                                        faceapi.nets.tinyFaceDetector.loadFromUri(
+                                            'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'
+                                        ),
+                                        faceapi.nets.faceLandmark68TinyNet.loadFromUri(
+                                            'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model'
+                                        ),
+                                    ]);
+                                    this.modelsCargados = true;
+                                    this.iniciarDeteccion();
+                                    this.iniciarDeteccionAccesorios();
+                                } catch (e) {
+                                    this.modelsCargados = true;
+                                    this.estadoRostro = 'ok';
+                                    this.iniciarDeteccionAccesorios();
+                                }
+                            },
+
+                            iniciarDeteccion() {
+                                this.intervaloDeteccion = setInterval(async () => {
+                                    const video = this.$refs.video;
+                                    if (!video || video.readyState < 2 || !video.videoWidth) return;
+                                    try {
+                                        const detection = await faceapi
+                                            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.65 }))
+                                            .withFaceLandmarks(true);
+
+                                        if (!detection) {
+                                            this.estadoRostro = 'sin_rostro';
+                                        } else {
+                                            const ratio = (detection.detection.box.width * detection.detection.box.height) / (video.videoWidth * video.videoHeight);
+                                            if (ratio < 0.08) {
+                                                this.estadoRostro = 'muy_lejos';
+                                            } else {
+                                                const leftEye  = detection.landmarks.getLeftEye();
+                                                const rightEye = detection.landmarks.getRightEye();
+                                                const eyeSep   = Math.abs(rightEye[0].x - leftEye[0].x);
+                                                const minSep   = detection.detection.box.width * 0.18;
+                                                this.estadoRostro = eyeSep < minSep ? 'sin_rostro' : 'ok';
+                                            }
+                                        }
+                                    } catch (e) { /* ignorar */ }
+                                }, 500);
+                            },
+
+                            iniciarDeteccionAccesorios() {
+                                this.intervaloAccesorios = setInterval(async () => {
+                                    if (this.fotoCapturada || this.revisandoAccesorios || this.verificandoAccesoriosVivo) return;
+                                    if (this.estadoRostro !== 'ok') return;
+                                    const video = this.$refs.video;
+                                    if (!video || video.readyState < 2 || !video.videoWidth) return;
+                                    // Escalar a 640px para reducir payload
+                                    const escala = Math.min(1, 640 / video.videoWidth);
+                                    const tmp = document.createElement('canvas');
+                                    tmp.width  = Math.round(video.videoWidth  * escala);
+                                    tmp.height = Math.round(video.videoHeight * escala);
+                                    const ctx = tmp.getContext('2d');
+                                    ctx.translate(tmp.width, 0);
+                                    ctx.scale(-1, 1);
+                                    ctx.drawImage(video, 0, 0, tmp.width, tmp.height);
+                                    const foto = tmp.toDataURL('image/jpeg', 0.70);
+                                    this.verificandoAccesoriosVivo = true;
+                                    try {
+                                        await $wire.verificarAccesorios(foto);
+                                        this.alertaAccesorios = $wire.alertaAccesorios;
+                                    } catch (e) {}
+                                    this.verificandoAccesoriosVivo = false;
+                                }, 4000);
+                            },
+
+                            async tomarFoto() {
+                                const canvas = this.$refs.canvas;
+                                const video  = this.$refs.video;
+                                canvas.width  = video.videoWidth;
+                                canvas.height = video.videoHeight;
+                                const ctx = canvas.getContext('2d');
+                                ctx.translate(canvas.width, 0);
+                                ctx.scale(-1, 1);
+                                ctx.drawImage(video, 0, 0);
+                                const foto = canvas.toDataURL('image/jpeg', 0.80);
+                                this.revisandoAccesorios = true;
+                                this.alertaAccesorios    = '';
+                                this.detenerDeteccion();
+                                await $wire.verificarAccesorios(foto);
+                                this.revisandoAccesorios = false;
+                                if ($wire.alertaAccesorios) {
+                                    this.alertaAccesorios = $wire.alertaAccesorios;
+                                    this.iniciarDeteccion();
+                                    this.iniciarDeteccionAccesorios();
+                                } else {
+                                    this.alertaAccesorios = '';
+                                    this.fotoCapturada    = foto;
+                                    this.errorValidacion  = '';
+                                }
+                            },
+
+                            volverATomarFoto() {
+                                this.fotoCapturada       = null;
+                                this.errorValidacion     = '';
+                                this.alertaAccesorios    = '';
+                                this.estadoRostro        = 'esperando';
+                                this.iniciarDeteccion();
+                                this.iniciarDeteccionAccesorios();
+                            },
+
+                            detenerCamara() {
+                                this.detenerDeteccion();
+                                if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+                            },
+
+                            detenerDeteccion() {
+                                if (this.intervaloDeteccion) {
+                                    clearInterval(this.intervaloDeteccion);
+                                    this.intervaloDeteccion = null;
+                                }
+                                if (this.intervaloAccesorios) {
+                                    clearInterval(this.intervaloAccesorios);
+                                    this.intervaloAccesorios = null;
+                                }
+                            }
+                        }"
+                        x-init="
+                            iniciarCamara();
+                            $wire.$watch('errorValidacionFoto', value => {
+                                if (value) { validando = false; errorValidacion = value; }
+                            });
+                            $wire.$watch('alertaAccesorios', value => { alertaAccesorios = value; });
+                        ">
+
+                        <div>
+                            <h2 class="text-base font-semibold text-gray-900 mb-1">Verificación fotográfica — Cierre</h2>
+                            <p class="text-sm text-gray-500">Tome una foto de su rostro para registrar el fin de la diligencia y enviar sus descargos.</p>
+                        </div>
+
+                        <template x-if="errorCamara">
+                            <div class="bg-danger-50 border border-danger-200 rounded-xl p-4 text-sm text-danger-800">
+                                <p class="font-semibold mb-1">No se puede acceder a la cámara</p>
+                                <p>Para finalizar debe permitir el acceso a la cámara en su navegador.</p>
+                                <ul class="mt-2 space-y-1 text-danger-700 list-disc list-inside">
+                                    <li>Busque el ícono de cámara bloqueada en la barra de direcciones</li>
+                                    <li>Haga clic y seleccione "Permitir"</li>
+                                    <li>Recargue la página</li>
+                                </ul>
+                            </div>
+                        </template>
+
+                        <template x-if="!errorCamara">
+                            <div class="space-y-4">
+                                <template x-if="!fotoCapturada">
+                                    <div class="space-y-3">
+                                        {{-- Video con encuadre guía oval --}}
+                                        <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
+                                            <video x-ref="video" autoplay playsinline muted
+                                                class="w-full h-full object-cover"
+                                                style="transform: scaleX(-1);"></video>
+
+                                            {{-- Encuadre: overlay oscuro fuera del óvalo + borde dinámico --}}
+                                            <svg class="absolute inset-0 w-full h-full pointer-events-none"
+                                                viewBox="0 0 100 75" preserveAspectRatio="none">
+                                                <defs>
+                                                    <mask id="encuadre-fin">
+                                                        <rect width="100" height="75" fill="white"/>
+                                                        <ellipse cx="50" cy="36" rx="23" ry="29" fill="black"/>
+                                                    </mask>
+                                                </defs>
+                                                <rect width="100" height="75" fill="rgba(0,0,0,0.48)" mask="url(#encuadre-fin)"/>
+                                                <ellipse cx="50" cy="36" rx="23" ry="29" fill="none"
+                                                    :stroke="colorEncuadre" stroke-width="0.9" stroke-dasharray="3,1.5"/>
+                                                <text x="50" y="71" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="3.8"
+                                                    x-show="modelsCargados && estadoRostro !== 'ok' && estadoRostro !== 'muy_lejos'">
+                                                    Centre su rostro aquí
+                                                </text>
+                                            </svg>
+
+                                            {{-- Mensaje de estado superpuesto --}}
+                                            <div class="absolute bottom-2 left-0 right-0 flex justify-center px-2">
+                                                <template x-if="!modelsCargados">
+                                                    <span class="bg-black/70 text-white text-xs px-3 py-1 rounded-full">
+                                                        Cargando sistema de verificación...
+                                                    </span>
+                                                </template>
+                                                <template x-if="modelsCargados && estadoRostro === 'sin_rostro'">
+                                                    <span class="bg-red-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                        Coloque su rostro frente a la cámara
+                                                    </span>
+                                                </template>
+                                                <template x-if="modelsCargados && estadoRostro === 'muy_lejos'">
+                                                    <span class="bg-yellow-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                        Acérquese más a la cámara
+                                                    </span>
+                                                </template>
+                                                <span x-show="modelsCargados && estadoRostro === 'ok' && !alertaAccesorios"
+                                                    style="display:none"
+                                                    class="bg-green-600/85 text-white text-xs px-3 py-1 rounded-full">
+                                                    ✓ Listo para tomar foto
+                                                </span>
+                                                <span x-show="modelsCargados && estadoRostro === 'ok' && alertaAccesorios"
+                                                    x-text="alertaAccesorios"
+                                                    style="display:none"
+                                                    class="bg-orange-600/90 text-white text-xs px-3 py-1.5 rounded-full text-center leading-snug max-w-xs mx-2"></span>
+                                            </div>
+                                        </div>
+
+                                        {{-- Alerta de accesorios detectados --}}
+                                        <template x-if="alertaAccesorios">
+                                            <div class="flex items-start gap-2 bg-orange-50 border border-orange-300 rounded-xl px-4 py-3 text-sm text-orange-900">
+                                                <svg class="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                </svg>
+                                                <p x-text="alertaAccesorios"></p>
+                                            </div>
+                                        </template>
+
+                                        <button type="button" @click="tomarFoto()"
+                                            :disabled="!modelsCargados || estadoRostro !== 'ok' || revisandoAccesorios || !!alertaAccesorios"
+                                            :class="(modelsCargados && estadoRostro === 'ok' && !revisandoAccesorios && !alertaAccesorios)
+                                                ? 'bg-primary-600 hover:bg-primary-700 cursor-pointer'
+                                                : 'bg-gray-300 cursor-not-allowed'"
+                                            class="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                            <template x-if="!revisandoAccesorios">
+                                                <span class="flex items-center gap-2">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    </svg>
+                                                    Tomar foto
+                                                </span>
+                                            </template>
+                                            <template x-if="revisandoAccesorios">
+                                                <span class="flex items-center gap-2">
+                                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                                    </svg>
+                                                    Verificando...
+                                                </span>
+                                            </template>
+                                        </button>
+                                    </div>
+                                </template>
+
+                                <template x-if="fotoCapturada">
+                                    <div class="space-y-3">
+                                        <div class="rounded-xl overflow-hidden border-2 border-success-400">
+                                            <img :src="fotoCapturada" class="w-full object-cover" alt="Vista previa" />
+                                        </div>
+
+                                        {{-- Error de validación IA --}}
+                                        <template x-if="errorValidacion">
+                                            <div class="bg-danger-50 border border-danger-200 rounded-xl p-3 text-sm text-danger-800">
+                                                <p class="font-semibold mb-0.5">Foto rechazada</p>
+                                                <p x-text="errorValidacion"></p>
+                                            </div>
+                                        </template>
+
+                                        <p class="text-center text-sm text-gray-600">¿La foto es clara y muestra su rostro?</p>
+                                        <div class="flex gap-3">
+                                            <button type="button" @click="volverATomarFoto()" :disabled="validando"
+                                                class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50">
+                                                Volver a tomar
+                                            </button>
+                                            <button type="button"
+                                                @click="validando = true; errorValidacion = ''; $wire.validarFotoConIA(fotoCapturada, 'fin')"
+                                                :disabled="validando"
+                                                class="flex-1 px-4 py-2.5 bg-success-600 hover:bg-success-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-75">
+                                                <span x-show="!validando">Confirmar y enviar</span>
+                                                <span x-show="validando" class="flex items-center justify-center gap-2">
+                                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                                    </svg>
+                                                    Verificando identidad...
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <canvas x-ref="canvas" class="hidden"></canvas>
+                            </div>
+                        </template>
+                    </div>
+
+                {{-- ═══════════════════════════════════════════════════════════
+                     ETAPAS: FORMULARIO + COMPLETADO (flujo original)
+                ════════════════════════════════════════════════════════════ --}}
+                @elseif ($etapa === 'formulario' || $etapa === 'completado' || $tiempoExpiradoMostrarEvidencias || $formularioCompletado)
+
                 @if ($tiempoExpiradoMostrarEvidencias)
                     {{-- Estado: Tiempo expirado pero puede subir evidencias --}}
                     <div class="space-y-6">
@@ -188,11 +1031,10 @@
                                 <div class="text-sm">
                                     <p class="font-semibold text-warning-800 mb-2">Antes de iniciar</p>
                                     <ul class="space-y-1 text-warning-700">
-                                        <li>• Tendrá <strong>45 minutos</strong> para responder</li>
-                                        <li>• El tiempo no se puede pausar</li>
+                                        <li>• Puede tomarse el tiempo que necesite para responder</li>
                                         <li>• Las respuestas se guardan una por una</li>
-                                        <li>• Al final de la diligencia podrá adjuntar documentos como evidencia de los
-                                            hechos</li>
+                                        <li>• Al final de la diligencia podrá adjuntar documentos como evidencia de los hechos</li>
+                                        <li>• La sesión es válida durante todo el día de hoy</li>
                                     </ul>
                                 </div>
                             </div>
@@ -203,7 +1045,7 @@
                             @click="
                                 Swal.fire({
                                     title: '¿Iniciar diligencia?',
-                                    text: 'El cronómetro de 45 minutos comenzará inmediatamente.',
+                                    text: 'Sus respuestas se guardarán automáticamente. Puede tomarse el tiempo que necesite.',
                                     icon: 'question',
                                     showCancelButton: true,
                                     confirmButtonColor: '#4f46e5',
@@ -262,51 +1104,8 @@
                             </div>
                         </details>
 
-                        {{-- Pantalla de pausa: generando pregunta IA en background --}}
-                        @if ($pendienteIA)
-                            <div wire:poll.3s="verificarPreguntaIA">
-                                <div class="rounded-2xl border border-violet-100 bg-gradient-to-br from-white to-violet-50 p-6 shadow-sm">
-
-                                    {{-- Ícono animado --}}
-                                    <div class="flex justify-center mb-5">
-                                        <div class="relative w-16 h-16">
-                                            <span class="absolute inset-0 rounded-full bg-violet-200 animate-ping opacity-30"></span>
-                                            <div class="relative w-16 h-16 bg-white rounded-full shadow-sm ring-1 ring-violet-200 flex items-center justify-center">
-                                                <svg class="w-7 h-7 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z"/>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {{-- Texto --}}
-                                    <div class="text-center mb-5">
-                                        <h3 class="text-base font-semibold text-gray-900 mb-1">Analizando su respuesta</h3>
-                                        <p class="text-sm text-gray-500 leading-relaxed">
-                                            Estamos preparando la siguiente pregunta<br>
-                                            basada en lo que respondió.
-                                            <span class="font-medium text-violet-600">Solo tomará unos segundos.</span>
-                                        </p>
-                                    </div>
-
-                                    {{-- Indicador de progreso: tres puntos rebotando --}}
-                                    <div class="flex justify-center gap-2 mb-4">
-                                        <span class="w-2.5 h-2.5 bg-violet-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                        <span class="w-2.5 h-2.5 bg-violet-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                        <span class="w-2.5 h-2.5 bg-violet-600 rounded-full animate-bounce"></span>
-                                    </div>
-
-                                    {{-- Mensaje adicional si tarda más de lo normal --}}
-                                    @if ($pendienteIASegundos >= 30)
-                                        <p class="text-center text-xs text-gray-400">
-                                            Tomando un poco más de lo esperado. Continuamos procesando…
-                                        </p>
-                                    @endif
-                                </div>
-                            </div>
-
                         {{-- Pregunta actual --}}
-                        @elseif ($preguntaSiguiente)
+                        @if ($preguntaSiguiente)
                             @php $pregunta = $preguntaSiguiente; @endphp
 
                             <div class="border border-gray-200 rounded-xl overflow-hidden"
@@ -361,7 +1160,7 @@
                                     @endif
                                 </div>
                             </div>
-                        @elseif ($feedbackPaso <= 5)
+                        @elseif ($feedbackPaso <= 5 && !$diligencia->foto_fin_path)
                             {{-- Preguntas de feedback: una a la vez --}}
                             <div class="border border-gray-200 rounded-xl overflow-hidden"
                                 wire:key="feedback-paso-{{ $feedbackPaso }}">
@@ -382,7 +1181,7 @@
                                             <p class="text-gray-900">
                                                 @if($feedbackPaso === 1) ¿Cómo fue su experiencia usando la aplicación?
                                                 @elseif($feedbackPaso === 2) ¿Encontró algo confuso durante el proceso?
-                                                @elseif($feedbackPaso === 3) ¿Qué cambiaría o mejoraría?
+                                                @elseif($feedbackPaso === 3) ¿Qué cambiaría o mejoraría del proceso?
                                                 @elseif($feedbackPaso === 4) ¿Las preguntas del formulario fueron claras?
                                                 @elseif($feedbackPaso === 5) ¿Pudo completar el proceso sin ayuda?
                                                 @endif
@@ -423,7 +1222,8 @@
                                     @elseif($feedbackPaso === 3)
                                         <textarea wire:model="fbQueCambiaria" rows="4"
                                             class="w-full text-base border-gray-300 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 resize-none"
-                                            placeholder="Escriba aquí sus sugerencias... (opcional)"></textarea>
+                                            placeholder="Escriba aquí sus sugerencias..."></textarea>
+                                        <p class="mt-1 text-xs text-gray-500">Este campo es obligatorio para continuar.</p>
 
                                     @elseif($feedbackPaso === 4)
                                         <div class="flex gap-3">
@@ -472,8 +1272,8 @@
                                 </div>
                             </div>
                         @else
-                            {{-- Feedback completado: Evidencias + Finalizar --}}
-                            <div class="space-y-6">
+                            {{-- Feedback completado + foto cierre tomada: Evidencias + Finalizar --}}
+                            <div class="space-y-6" wire:poll.30s="verificarAutoCompletado">
                                 <div class="text-center">
                                     <div class="mx-auto w-14 h-14 bg-success-100 rounded-full flex items-center justify-center mb-4">
                                         <svg class="w-7 h-7 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -482,6 +1282,14 @@
                                     </div>
                                     <h3 class="text-lg font-semibold text-gray-900 mb-1">¡Listo!</h3>
                                     <p class="text-sm text-gray-500">Puede adjuntar evidencias y enviar sus descargos</p>
+                                </div>
+
+                                {{-- Aviso de envío automático --}}
+                                <div class="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
+                                    <svg class="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <p>Si no envía manualmente, sus descargos se registrarán automáticamente en 10 minutos.</p>
                                 </div>
 
                                 {{-- Evidencias --}}
@@ -547,12 +1355,15 @@
                         @endif
                     </div>
                 @endif
+
+                @endif {{-- / outer @if ($etapa === ...) --}}
+
             </main>
         </div>
     </div>
 
     {{-- Loading --}}
-    <div wire:loading.delay wire:target="guardarRespuesta, finalizarDescargos, iniciarDiligencia, archivosEvidencia"
+    <div wire:loading.delay wire:target="guardarRespuesta, finalizarDescargos, iniciarDiligencia, archivosEvidencia, enviarOtp, verificarOtp, reenviarOtp, aceptarDisclaimer, guardarFotoInicio, guardarFotoFin, verificarAutoCompletado"
         class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl p-5 flex items-center gap-4 mx-4">
             <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24">

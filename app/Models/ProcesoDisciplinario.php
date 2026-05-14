@@ -46,6 +46,18 @@ class ProcesoDisciplinario extends Model
         'impugnado',
         'fecha_impugnacion',
         'fecha_cierre',
+        'hechos_embedding',
+        'hechos_md5',
+        'sancion_ia_recomendada',
+        'autoridad_rango_rit',
+        'autorizador_nombre',
+        'autorizador_cargo',
+        'exoneracion_aceptada',
+        'exoneracion_aceptada_en',
+        'exoneracion_ip',
+        'razon_divergencia',
+        'foto_autorizador_path',
+        'foto_autorizador_en',
     ];
 
     protected $casts = [
@@ -65,7 +77,41 @@ class ProcesoDisciplinario extends Model
         'fecha_cierre' => 'datetime',
         'articulos_legales_ids' => 'array',
         'sanciones_laborales_ids' => 'array',
+        'hechos_embedding' => 'array',
+        'autoridad_rango_rit' => 'array',
+        'exoneracion_aceptada' => 'boolean',
+        'exoneracion_aceptada_en' => 'datetime',
+        'foto_autorizador_en' => 'datetime',
     ];
+
+    // ── Embedding de hechos (RAG persistido) ──────────────────────────────────
+
+    /**
+     * Retorna el embedding almacenado si el hash del texto actual coincide.
+     * Retorna null si no existe o si los hechos cambiaron desde que se calculó.
+     */
+    public function getHechosEmbedding(string $textoActual): ?array
+    {
+        if (!$this->hechos_embedding) {
+            return null;
+        }
+        if ($this->hechos_md5 !== md5($textoActual)) {
+            return null; // Texto cambió → embedding obsoleto
+        }
+        return $this->hechos_embedding;
+    }
+
+    /**
+     * Persiste el embedding en BD junto con el hash del texto actual.
+     * Las próximas búsquedas RAG lo usarán sin llamar a la API.
+     */
+    public function storeHechosEmbedding(array $embedding): void
+    {
+        $this->update([
+            'hechos_embedding' => $embedding,
+            'hechos_md5'       => md5($this->hechos ?? ''),
+        ]);
+    }
 
     /**
      * Obtener todas las fechas de ocurrencia (principal + adicionales)
@@ -131,6 +177,12 @@ class ProcesoDisciplinario extends Model
     public function diligenciaDescargo(): HasOne
     {
         return $this->hasOne(DiligenciaDescargo::class, 'proceso_id');
+    }
+
+    /** Todas las diligencias de descargos (puede haber varias sesiones) */
+    public function diligencias(): HasMany
+    {
+        return $this->hasMany(DiligenciaDescargo::class, 'proceso_id');
     }
 
     public function analisisJuridicos(): HasMany

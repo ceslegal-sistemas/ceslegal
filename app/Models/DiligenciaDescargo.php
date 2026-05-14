@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Mail\OtpDescargos;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Mail;
 
 class DiligenciaDescargo extends Model
 {
@@ -38,6 +40,19 @@ class DiligenciaDescargo extends Model
         'tiempo_limite',
         'tiempo_expirado',
         'ip_acceso',
+        'otp_codigo',
+        'otp_expira_en',
+        'otp_verificado_en',
+        'otp_intentos',
+        'otp_canal',
+        'otp_enviado_a',
+        'disclaimer_aceptado_en',
+        'disclaimer_ip',
+        'foto_inicio_path',
+        'foto_inicio_en',
+        'foto_fin_path',
+        'foto_fin_en',
+        'evidencia_metadata',
     ];
 
     protected $casts = [
@@ -56,6 +71,13 @@ class DiligenciaDescargo extends Model
         'preguntas_completadas_en' => 'datetime',
         'tiempo_limite' => 'datetime',
         'tiempo_expirado' => 'boolean',
+        'otp_expira_en' => 'datetime',
+        'otp_verificado_en' => 'datetime',
+        'otp_intentos' => 'integer',
+        'disclaimer_aceptado_en' => 'datetime',
+        'foto_inicio_en' => 'datetime',
+        'foto_fin_en' => 'datetime',
+        'evidencia_metadata' => 'array',
     ];
 
     public function proceso(): BelongsTo
@@ -76,7 +98,17 @@ class DiligenciaDescargo extends Model
     public function generarTokenAcceso(): string
     {
         $this->token_acceso = bin2hex(random_bytes(32));
-        $this->token_expira_en = now()->addDays(6);
+
+        // Expiración: fin del día permitido, garantizando MÍNIMO 3 días desde ahora.
+        // Esto evita que el token expire el mismo día en que se crea el proceso.
+        if ($this->fecha_acceso_permitida) {
+            $finDiaPermitido = Carbon::parse($this->fecha_acceso_permitida)->endOfDay();
+            $minimoTresDias  = now()->addDays(3)->endOfDay();
+            $this->token_expira_en = $finDiaPermitido->max($minimoTresDias);
+        } else {
+            $this->token_expira_en = now()->addDays(30);
+        }
+
         $this->save();
 
         return $this->token_acceso;
@@ -105,42 +137,132 @@ class DiligenciaDescargo extends Model
             return false;
         }
 
-        return now()->toDateString() === $this->fecha_acceso_permitida->toDateString();
+        // Permite acceder DESDE el día de la diligencia en adelante.
+        // El límite superior lo controla token_expira_en (mínimo 3 días).
+        // La restricción "solo ese día exacto" causaba falsos rechazos cuando
+        // el enlace se abría al día siguiente o había diferencia de zona horaria.
+        return now()->toDateString() >= $this->fecha_acceso_permitida->toDateString();
     }
 
-    // Métodos para el timer de 45 minutos
+    // Métodos de acceso por día
     public function iniciarTimer()
     {
         if (!$this->primer_acceso_en) {
             $this->update([
                 'primer_acceso_en' => Carbon::now('America/Bogota'),
-                'tiempo_limite' => Carbon::now('America/Bogota')->addMinutes(45),
-                'tiempo_expirado' => false,
+                'tiempo_limite'    => Carbon::parse($this->fecha_acceso_permitida)->endOfDay(),
+                'tiempo_expirado'  => false,
             ]);
         }
     }
 
-    public function tiempoRestante(): ?int
-    {
-        if (!$this->tiempo_limite) {
-            return null;
-        }
-
-        $segundos = now()->diffInSeconds($this->tiempo_limite, false);
-        return $segundos > 0 ? $segundos : 0;
-    }
-
     public function tiempoHaExpirado(): bool
     {
-        if (!$this->tiempo_limite) {
+        if (!$this->fecha_acceso_permitida) {
             return false;
         }
 
-        return now()->greaterThan($this->tiempo_limite);
+        // Expirado si hoy (Bogotá) es un día posterior a la fecha permitida
+        return Carbon::now('America/Bogota')->startOfDay()->gt(
+            Carbon::parse($this->fecha_acceso_permitida)->startOfDay()
+        );
     }
 
     public function marcarTiempoExpirado()
     {
         $this->update(['tiempo_expirado' => true]);
+    }
+
+    // ─── OTP / Autenticación ───────────────────────────────────────────────
+
+    public function emailTrabajador(): ?string
+    {
+        return $this->proceso?->trabajador?->email ?: null;
+    }
+
+    public function enviarOtp(): bool
+    {
+        $email = $this->emailTrabajador();
+        if (!$email) {
+            return false;
+        }
+
+        $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $this->update([
+            'otp_codigo'    => $codigo,
+            'otp_expira_en' => now()->addMinutes(10),
+            'otp_intentos'  => 0,
+            'otp_canal'     => 'email',
+            'otp_enviado_a' => $this->enmascararEmail($email),
+        ]);
+
+        try {
+            Mail::to($email)->send(new OtpDescargos(
+                $codigo,
+                $this->proceso->trabajador->nombre_completo,
+                $this->proceso->codigo,
+            ));
+            return true;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error al enviar OTP descargos', [
+                'diligencia_id' => $this->id,
+                'error'         => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    public function verificarOtp(string $codigo): bool
+    {
+        if ($this->otpBloqueado() || !$this->otpEsValido()) {
+            return false;
+        }
+
+        if ($this->otp_codigo !== $codigo) {
+            $this->increment('otp_intentos');
+            return false;
+        }
+
+        $this->update(['otp_verificado_en' => now()]);
+        return true;
+    }
+
+    public function otpBloqueado(): bool
+    {
+        return $this->otp_intentos >= 3;
+    }
+
+    public function otpEsValido(): bool
+    {
+        if (!$this->otp_expira_en || !$this->otp_codigo) {
+            return false;
+        }
+        return now()->lessThan($this->otp_expira_en);
+    }
+
+    public function puedeReenviar(): bool
+    {
+        // Usuario bloqueado no puede reenviar (evita resetear intentos)
+        if ($this->otpBloqueado()) {
+            return false;
+        }
+
+        if (!$this->otp_expira_en) {
+            return true;
+        }
+
+        // Cooldown de 60 segundos: el código se envió hace más de 60s
+        // IMPORTANTE: usar copy() para no mutar el objeto Carbon del atributo
+        $enviadoEn  = $this->otp_expira_en->copy()->subMinutes(10);
+        $enviadoHace = now()->diffInSeconds($enviadoEn, false);
+        return $enviadoHace >= 60;
+    }
+
+    private function enmascararEmail(string $email): string
+    {
+        [$usuario, $dominio] = explode('@', $email, 2);
+        $visible = substr($usuario, 0, min(3, strlen($usuario)));
+        return $visible . '***@' . $dominio;
     }
 }

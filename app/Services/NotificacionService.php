@@ -81,6 +81,39 @@ class NotificacionService
     }
 
     /**
+     * Notifica a super_admin cada vez que se crea un nuevo proceso disciplinario
+     */
+    public function notificarSuperAdminNuevoProceso(ProcesoDisciplinario $proceso): void
+    {
+        $sinAbogado = !$proceso->abogado_id;
+
+        $superAdmins = User::where('role', 'super_admin')
+            ->where('active', true)
+            ->get();
+
+        // Si no hay super_admin con active=true, buscar sin filtro de active
+        if ($superAdmins->isEmpty()) {
+            $superAdmins = User::where('role', 'super_admin')->get();
+        }
+
+        foreach ($superAdmins as $admin) {
+            $this->crear(
+                userId: $admin->id,
+                tipo: 'apertura',
+                titulo: $sinAbogado
+                    ? 'Nuevo Proceso — Sin Abogado Asignado'
+                    : 'Nuevo Proceso Disciplinario Creado',
+                mensaje: $sinAbogado
+                    ? "Se creó el proceso {$proceso->codigo} para {$proceso->trabajador->nombre_completo} (empresa: {$proceso->empresa->razon_social}). No tiene abogado asignado."
+                    : "Se creó el proceso {$proceso->codigo} para {$proceso->trabajador->nombre_completo} y fue asignado al abogado.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: $sinAbogado ? 'alta' : 'baja'
+            );
+        }
+    }
+
+    /**
      * Notifica cuando se apertura un proceso disciplinario
      */
     public function notificarProcesoAperturado(ProcesoDisciplinario $proceso): void
@@ -176,6 +209,20 @@ class NotificacionService
                 prioridad: 'urgente'
             );
         }
+
+        // Notificar a super_admin
+        $superAdmins = User::where('role', 'super_admin')->get();
+        foreach ($superAdmins as $admin) {
+            $this->crear(
+                userId: $admin->id,
+                tipo: 'sancion_emitida',
+                titulo: 'Sanción Emitida',
+                mensaje: "Se emitió sanción ({$tipoSancion}) en el proceso {$proceso->codigo} — {$proceso->trabajador->nombre_completo}.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'media'
+            );
+        }
     }
 
     /**
@@ -248,19 +295,50 @@ class NotificacionService
      */
     public function notificarImpugnacionRecibida(ProcesoDisciplinario $proceso): void
     {
-        if (!$proceso->abogado_id) {
-            return;
+        // Notificar al abogado
+        if ($proceso->abogado_id) {
+            $this->crear(
+                userId: $proceso->abogado_id,
+                tipo: 'impugnacion_realizada',
+                titulo: 'Impugnación Recibida — Requiere Acción',
+                mensaje: "El trabajador {$proceso->trabajador->nombre_completo} ha impugnado la sanción del proceso {$proceso->codigo}. Debe revisar y resolver la impugnación.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'urgente'
+            );
         }
 
-        $this->crear(
-            userId: $proceso->abogado_id,
-            tipo: 'impugnacion_realizada',
-            titulo: 'Impugnación Recibida',
-            mensaje: "Se ha recibido una impugnación para el proceso {$proceso->codigo}. Requiere análisis urgente.",
-            relacionadoTipo: ProcesoDisciplinario::class,
-            relacionadoId: $proceso->id,
-            prioridad: 'urgente'
-        );
+        // Notificar al cliente de la empresa
+        $usuariosCliente = User::where('role', 'cliente')
+            ->where('empresa_id', $proceso->empresa_id)
+            ->where('active', true)
+            ->get();
+
+        foreach ($usuariosCliente as $cliente) {
+            $this->crear(
+                userId: $cliente->id,
+                tipo: 'impugnacion_realizada',
+                titulo: 'Trabajador Impugnó la Sanción',
+                mensaje: "El trabajador {$proceso->trabajador->nombre_completo} ha impugnado la sanción del proceso {$proceso->codigo}. CES Legal está revisando la impugnación.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'alta'
+            );
+        }
+
+        // Notificar a super_admin (urgente — requiere revisión)
+        $superAdmins = User::where('role', 'super_admin')->get();
+        foreach ($superAdmins as $admin) {
+            $this->crear(
+                userId: $admin->id,
+                tipo: 'impugnacion_realizada',
+                titulo: 'Impugnación Recibida — Revisión Requerida',
+                mensaje: "El trabajador {$proceso->trabajador->nombre_completo} impugnó la sanción del proceso {$proceso->codigo}.",
+                relacionadoTipo: ProcesoDisciplinario::class,
+                relacionadoId: $proceso->id,
+                prioridad: 'urgente'
+            );
+        }
     }
 
     /**

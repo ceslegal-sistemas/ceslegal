@@ -78,16 +78,16 @@ Schema::create('trazabilidad_ia_descargos', function (Blueprint $table) {
 
 ### Descripcion de campos
 
-| Campo | Tipo | Descripcion |
-|-------|------|-------------|
-| `id` | `bigint` | Identificador unico del registro |
-| `diligencia_descargo_id` | `foreignId` | Relacion con la diligencia de descargos |
-| `prompt_enviado` | `longText` | Texto completo del prompt enviado a la IA |
-| `respuesta_recibida` | `longText` | Texto completo de la respuesta de la IA |
-| `tipo` | `enum` | Tipo de operacion: `generacion_preguntas` o `analisis_respuestas` |
-| `metadata` | `json` | Datos adicionales: proveedor, modelo, timestamp |
-| `created_at` | `timestamp` | Fecha y hora del registro |
-| `updated_at` | `timestamp` | Fecha y hora de la ultima actualizacion |
+| Campo                    | Tipo        | Descripcion                                                       |
+| ------------------------ | ----------- | ----------------------------------------------------------------- |
+| `id`                     | `bigint`    | Identificador unico del registro                                  |
+| `diligencia_descargo_id` | `foreignId` | Relacion con la diligencia de descargos                           |
+| `prompt_enviado`         | `longText`  | Texto completo del prompt enviado a la IA                         |
+| `respuesta_recibida`     | `longText`  | Texto completo de la respuesta de la IA                           |
+| `tipo`                   | `enum`      | Tipo de operacion: `generacion_preguntas` o `analisis_respuestas` |
+| `metadata`               | `json`      | Datos adicionales: proveedor, modelo, timestamp                   |
+| `created_at`             | `timestamp` | Fecha y hora del registro                                         |
+| `updated_at`             | `timestamp` | Fecha y hora de la ultima actualizacion                           |
 
 ### Indices
 
@@ -129,17 +129,17 @@ El campo `metadata` (JSON) contiene informacion adicional sobre la llamada:
 
 ```json
 {
-  "provider": "gemini",
-  "model": "gemini-2.5-flash",
-  "timestamp": "2026-01-27T10:30:00-05:00"
+    "provider": "gemini",
+    "model": "gemini-2.5-flash",
+    "timestamp": "2026-01-27T10:30:00-05:00"
 }
 ```
 
-| Campo metadata | Descripcion |
-|----------------|-------------|
-| `provider` | Proveedor de IA utilizado (`gemini`, `openai`, `anthropic`) |
-| `model` | Modelo especifico utilizado (e.g., `gemini-2.5-flash`) |
-| `timestamp` | Fecha y hora exacta de la llamada en formato ISO 8601 |
+| Campo metadata | Descripcion                                                 |
+| -------------- | ----------------------------------------------------------- |
+| `provider`     | Proveedor de IA utilizado (`gemini`, `openai`, `anthropic`) |
+| `model`        | Modelo especifico utilizado (e.g., `gemini-2.5-flash`)      |
+| `timestamp`    | Fecha y hora exacta de la llamada en formato ISO 8601       |
 
 ---
 
@@ -159,6 +159,7 @@ Flujo:
 ```
 
 Este tipo se registra en dos escenarios:
+
 - **Preguntas iniciales**: Al crear la diligencia de descargos (`generarPreguntasIA`).
 - **Preguntas dinamicas**: Al responder una pregunta que genera seguimiento (`generarPreguntasDinamicas`).
 
@@ -229,12 +230,12 @@ if ($finishReason === 'MAX_TOKENS') {
 
 ### Valores de finishReason
 
-| Valor | Significado | Accion del sistema |
-|-------|-------------|-------------------|
-| `STOP` | Respuesta completa | Procesamiento normal |
+| Valor        | Significado                             | Accion del sistema                              |
+| ------------ | --------------------------------------- | ----------------------------------------------- |
+| `STOP`       | Respuesta completa                      | Procesamiento normal                            |
 | `MAX_TOKENS` | Respuesta truncada por limite de tokens | Warning en log, se procesa la respuesta parcial |
-| `SAFETY` | Bloqueada por filtros de seguridad | Excepcion por contenido invalido |
-| `UNKNOWN` | Razon desconocida | Se procesa si hay contenido |
+| `SAFETY`     | Bloqueada por filtros de seguridad      | Excepcion por contenido invalido                |
+| `UNKNOWN`    | Razon desconocida                       | Se procesa si hay contenido                     |
 
 ---
 
@@ -258,13 +259,13 @@ $timelineService->registrar(
 
 ### Diferencia entre trazabilidad IA y timeline
 
-| Aspecto | TrazabilidadIADescargo | Timeline |
-|---------|----------------------|----------|
-| **Proposito** | Registro tecnico detallado de llamadas a IA | Registro de eventos de negocio |
-| **Contenido** | Prompts completos + respuestas completas | Descripciones de acciones de alto nivel |
-| **Audiencia** | Desarrolladores, auditores tecnicos | Abogados, administradores, usuarios |
-| **Granularidad** | Cada llamada individual a la API | Cada accion significativa del proceso |
-| **Relacion** | Vinculada a `diligencia_descargo_id` | Vinculada a `proceso_id` |
+| Aspecto          | TrazabilidadIADescargo                      | Timeline                                |
+| ---------------- | ------------------------------------------- | --------------------------------------- |
+| **Proposito**    | Registro tecnico detallado de llamadas a IA | Registro de eventos de negocio          |
+| **Contenido**    | Prompts completos + respuestas completas    | Descripciones de acciones de alto nivel |
+| **Audiencia**    | Desarrolladores, auditores tecnicos         | Abogados, administradores, usuarios     |
+| **Granularidad** | Cada llamada individual a la API            | Cada accion significativa del proceso   |
+| **Relacion**     | Vinculada a `diligencia_descargo_id`        | Vinculada a `proceso_id`                |
 
 ---
 
@@ -336,13 +337,13 @@ Los registros de trazabilidad se mantienen indefinidamente, vinculados a la dili
 
 ## Archivos relacionados
 
-| Archivo | Descripcion |
-|---------|-------------|
-| `app/Models/TrazabilidadIADescargo.php` | Modelo Eloquent de trazabilidad |
-| `database/migrations/2025_12_23_145008_create_trazabilidad_ia_descargos_table.php` | Migracion de la tabla |
-| `app/Services/IADescargoService.php` | Servicio que registra la trazabilidad de preguntas |
-| `app/Services/IAAnalisisSancionService.php` | Servicio de analisis de sanciones |
-| `app/Services/TimelineService.php` | Servicio de timeline complementario |
+| Archivo                                                                            | Descripcion                                        |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `app/Models/TrazabilidadIADescargo.php`                                            | Modelo Eloquent de trazabilidad                    |
+| `database/migrations/2025_12_23_145008_create_trazabilidad_ia_descargos_table.php` | Migracion de la tabla                              |
+| `app/Services/IADescargoService.php`                                               | Servicio que registra la trazabilidad de preguntas |
+| `app/Services/IAAnalisisSancionService.php`                                        | Servicio de analisis de sanciones                  |
+| `app/Services/TimelineService.php`                                                 | Servicio de timeline complementario                |
 
 ## Proximos pasos
 

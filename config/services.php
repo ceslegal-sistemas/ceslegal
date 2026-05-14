@@ -28,11 +28,30 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'rekognition' => [
+        'key'    => env('AWS_ACCESS_KEY_ID'),
+        'secret' => env('AWS_SECRET_ACCESS_KEY'),
+        'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    'elevenlabs' => [
+        'api_key'  => env('ELEVENLABS_API_KEY'),
+        'voice_id' => env('ELEVENLABS_VOICE_ID', 'pNInz6obpgDQGcFmaJgB'),
+    ],
+
+    'whatsapp' => [
+        'phone_number_id'      => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'business_account_id'  => env('WHATSAPP_BUSINESS_ACCOUNT_ID'),
+        'access_token'         => env('WHATSAPP_ACCESS_TOKEN'),
+        'webhook_verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN', 'ces_legal_whatsapp'),
+        'api_version'          => env('WHATSAPP_API_VERSION', 'v20.0'),
     ],
 
     'ia' => [
@@ -49,7 +68,7 @@ return [
         ],
         'gemini' => [
             'api_key' => env('GEMINI_API_KEY'),
-            'model' => env('GEMINI_MODEL', 'gemini-1.5-flash'),
+            'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
             'max_tokens' => env('GEMINI_MAX_TOKENS', 2048),
         ],
     ],

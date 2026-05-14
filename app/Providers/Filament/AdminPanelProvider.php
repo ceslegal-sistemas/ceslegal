@@ -22,18 +22,20 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use MartinPetricko\FilamentSentryFeedback\Enums\ColorScheme;
-use MartinPetricko\FilamentSentryFeedback\FilamentSentryFeedbackPlugin;
-use MKWebDesign\FilamentWatchdog\FilamentWatchdogPlugin;
 use Moataz01\FilamentNotificationSound\FilamentNotificationSoundPlugin;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
-use Illuminate\Support\HtmlString;
 
 class AdminPanelProvider extends PanelProvider
 {
     public function boot(): void
     {
+        // Lordicon — iconos animados usados en modales y tarjetas
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            fn(): string => '<script src="https://cdn.lordicon.com/lordicon.js"></script>',
+        );
+
         // Incluir Driver.js para tours de onboarding
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
@@ -43,6 +45,47 @@ class AdminPanelProvider extends PanelProvider
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_END,
             fn(): string => '<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script><script src="' . asset('js/tour-descargos.js') . '"></script>',
+        );
+
+        // Fix: Mac browsers fire native HTML form validation before Livewire intercepts,
+        // throwing "An invalid form control with name='' is not focusable" for hidden
+        // inputs created by Tom Select (native:false) and conditional repeaters.
+        // Three-layer fix (global — applies to all admin pages):
+        //   1. novalidate on <form> applied IMMEDIATELY on script parse (BODY_END =
+        //      DOM already loaded, DOMContentLoaded never re-fires)
+        //   2. MutationObserver to re-apply after Livewire DOM morphing removes the attr
+        //   3. Capture-phase invalid listener as absolute final safety net
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            fn(): string => <<<'HTML'
+            <script>
+            (function () {
+                function patchForms() {
+                    document.querySelectorAll('form').forEach(function (f) {
+                        f.setAttribute('novalidate', '');
+                    });
+                }
+                // Run immediately — DOM is already parsed at BODY_END
+                patchForms();
+                // Re-apply after Livewire updates (morphing can reset attributes)
+                document.addEventListener('livewire:update', patchForms);
+                document.addEventListener('livewire:updated', patchForms);
+                // MutationObserver catches any DOM restructuring Livewire does
+                if (window.MutationObserver) {
+                    new MutationObserver(function (mutations) {
+                        for (var i = 0; i < mutations.length; i++) {
+                            if (mutations[i].addedNodes.length) { patchForms(); break; }
+                        }
+                    }).observe(document.body, { childList: true, subtree: true });
+                }
+                // Absolute safety net: suppress browser invalid events in capture phase
+                document.addEventListener('invalid', function (e) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }, true);
+            })();
+            </script>
+            HTML,
         );
     }
 
@@ -56,10 +99,12 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->registration(\App\Filament\Admin\Pages\Auth\Register::class)
             ->passwordReset()
             ->colors([
                 'primary' => Color::Blue,
             ])
+            // ->theme() removido — se usa el tema por defecto de Filament que incluye todos los estilos fi-*
             ->sidebarCollapsibleOnDesktop()
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->databaseNotifications()
@@ -101,16 +146,6 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugins([
                 FilamentShieldPlugin::make(),
-                // FilamentWatchdogPlugin::make(),
-                FilamentSentryFeedbackPlugin::make()
-                    // ->sentryUser(function (): ?SentryUser {
-                    //     return new SentryUser(auth()->user()->name, auth()->user()->email);
-                    // }),
-                    ->colorScheme(ColorScheme::Auto)
-                    ->showBranding(false)
-                    ->showName(true)
-                    ->showEmail(true)
-                    ->enableScreenshot(true),
                 LightSwitchPlugin::make(),
                 FilamentNotificationSoundPlugin::make()
                     ->volume(1.0) // Volume (0.0 to 1.0)
