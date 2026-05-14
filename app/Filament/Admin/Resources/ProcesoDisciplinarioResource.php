@@ -1925,55 +1925,14 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->live()
                                 ->required(),
 
-                            // Indicador de recomendación IA
-                            Forms\Components\Placeholder::make('ia_hint')
-                                ->hiddenLabel()
-                                ->content(function () use ($iaRecomendada) {
-                                    if (!$iaRecomendada) return '';
-                                    $labels = [
-                                        'llamado_atencion' => 'Llamado de Atención',
-                                        'suspension'       => 'Suspensión Laboral',
-                                        'terminacion'      => 'Terminación de Contrato',
-                                    ];
-                                    $label = $labels[$iaRecomendada] ?? $iaRecomendada;
-                                    return new \Illuminate\Support\HtmlString(
-                                        "<p class='text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-0.5'>" .
-                                        "<svg class='w-3.5 h-3.5 text-indigo-500' fill='currentColor' viewBox='0 0 20 20'><path fill-rule='evenodd' d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z' clip-rule='evenodd'/></svg>" .
-                                        "La IA recomienda: <strong class='text-gray-700 dark:text-gray-300'>{$label}</strong></p>"
-                                    );
-                                }),
-
                             // ── Potestad Disciplinaria según el RIT ───────────────────────────
-                            Forms\Components\Section::make('Potestad Disciplinaria según el RIT')
-                                ->icon('heroicon-o-building-office')
-                                ->schema([
-                                    Forms\Components\Placeholder::make('autoridad_info')
-                                        ->hiddenLabel()
-                                        ->content(function () use ($autoridadRit, $opcionesSancion) {
-                                            $labels = [
-                                                'llamado_atencion' => 'Llamado de Atención',
-                                                'suspension'       => 'Suspensión',
-                                                'terminacion'      => 'Terminación de Contrato',
-                                            ];
-                                            $filas = '';
-                                            foreach ($labels as $key => $nombre) {
-                                                if (!array_key_exists($key, $opcionesSancion)) continue;
-                                                $autoridad = e($autoridadRit[$key] ?? 'No especificado en el RIT');
-                                                $filas .= "<tr class='border-b border-gray-200 dark:border-gray-700'>";
-                                                $filas .= "<td class='py-2 pr-4 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap'>{$nombre}</td>";
-                                                $filas .= "<td class='py-2 text-sm text-gray-600 dark:text-gray-400'>{$autoridad}</td>";
-                                                $filas .= "</tr>";
-                                            }
-                                            return new \Illuminate\Support\HtmlString(
-                                                "<table class='w-full'><thead><tr class='border-b border-gray-300 dark:border-gray-600'>" .
-                                                "<th class='pb-1.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide pr-4'>Tipo de Sanción</th>" .
-                                                "<th class='pb-1.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide'>Autoriza según el RIT</th>" .
-                                                "</tr></thead><tbody>{$filas}</tbody></table>"
-                                            );
-                                        }),
-                                ])
-                                ->hidden(empty($autoridadRit))
-                                ->collapsible(),
+                            Forms\Components\Placeholder::make('potestad_card')
+                                ->hiddenLabel()
+                                ->content(fn() => view('filament.components.emitir-sancion-potestad', [
+                                    'autoridadRit'   => $autoridadRit,
+                                    'opcionesSancion' => $opcionesSancion,
+                                ]))
+                                ->hidden(empty($autoridadRit)),
 
                             // ── Sección de Exoneración ─────────────────────────────────────────
                             Forms\Components\Section::make('Decisión Contraria a la Recomendación Jurídica')
@@ -2027,9 +1986,9 @@ class ProcesoDisciplinarioResource extends Resource
                                     Forms\Components\Placeholder::make('declaracion_texto')
                                         ->hiddenLabel()
                                         ->content(fn() => new \Illuminate\Support\HtmlString(
-                                            '<div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300">' .
-                                            '<p class="font-semibold text-gray-900 dark:text-gray-100 mb-1.5">Declaración del Autorizador</p>' .
-                                            '<p class="leading-relaxed">Al marcar la casilla a continuación, declaro que tengo la potestad disciplinaria para emitir esta sanción, que he revisado los hechos del proceso y las evidencias aportadas, y que autorizo expresamente la emisión de esta decisión disciplinaria. Entiendo que esta acción queda registrada con fecha, hora e imagen de verificación como parte del expediente del proceso.</p>' .
+                                            '<div style="padding:14px 16px;background:rgba(129,140,248,0.08);border-radius:12px;border:1px solid rgba(129,140,248,0.25);border-left:3px solid #818cf8;">' .
+                                            '<p style="font-size:12px;font-weight:700;color:#818cf8;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 6px;">Declaración del Autorizador</p>' .
+                                            '<p style="font-size:13px;color:rgba(255,255,255,0.72);line-height:1.6;margin:0;">Al marcar la casilla a continuación, declaro que tengo la potestad disciplinaria para emitir esta sanción, que he revisado los hechos del proceso y las evidencias aportadas, y que autorizo expresamente la emisión de esta decisión disciplinaria. Entiendo que esta acción queda registrada con fecha, hora e imagen de verificación como parte del expediente del proceso.</p>' .
                                             '</div>'
                                         )),
 
