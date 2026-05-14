@@ -56,6 +56,7 @@
              sin_rostro:  'No se detecta un rostro',
              muy_lejos:   'Acérquese más a la cámara',
              recortado:   'Centre su rostro completamente en el óvalo',
+             inclinado:   'Enderece la cabeza y mire de frente',
              perfil:      'Mire directamente a la cámara (foto de frente)',
              ok:          'Listo — tome la foto ahora',
              sin_modelo:  'Verificación automática no disponible',
@@ -66,6 +67,7 @@
              sin_rostro:  '#f87171',
              muy_lejos:   '#fbbf24',
              recortado:   '#fb923c',
+             inclinado:   '#fb923c',
              perfil:      '#fb923c',
              ok:          '#4ade80',
              sin_modelo:  'rgba(255,255,255,0.45)',
@@ -154,10 +156,20 @@
                      const eyeSep = Math.abs(rEye[0].x - lEye[0].x);
                      if (eyeSep < box.width * 0.18) { this.estadoRostro = 'sin_rostro'; return; }
 
-                     // ⑤ Foto de perfil — nariz no centrada entre los ojos
+                     // ⑤ Cara inclinada — el eje entre los ojos debe ser casi horizontal
+                     // Calcula el centro promedio de cada ojo y el ángulo entre ellos
+                     const lEyeCx = lEye.reduce((s, p) => s + p.x, 0) / lEye.length;
+                     const lEyeCy = lEye.reduce((s, p) => s + p.y, 0) / lEye.length;
+                     const rEyeCx = rEye.reduce((s, p) => s + p.x, 0) / rEye.length;
+                     const rEyeCy = rEye.reduce((s, p) => s + p.y, 0) / rEye.length;
+                     // Para cara erguida: ~0°. Para cara ladeada 90°: ~90°.
+                     const rollDeg = Math.abs(Math.atan2(rEyeCy - lEyeCy, rEyeCx - lEyeCx) * 180 / Math.PI);
+                     if (rollDeg > 30) { this.estadoRostro = 'inclinado'; return; }
+
+                     // ⑥ Foto de perfil — nariz no centrada entre los ojos
                      const nose  = detection.landmarks.getNose();
-                     const lCx   = lEye.reduce((s, p) => s + p.x, 0) / lEye.length;
-                     const rCx   = rEye.reduce((s, p) => s + p.x, 0) / rEye.length;
+                     const lCx   = lEyeCx;
+                     const rCx   = rEyeCx;
                      const noseX = (nose[3] || nose[0]).x;
                      const offset = Math.abs(noseX - (lCx + rCx) / 2) / box.width;
                      if (offset > 0.22) { this.estadoRostro = 'perfil'; return; }
@@ -317,6 +329,10 @@
                         <span x-show="estadoRostro === 'recortado'"
                               class="wca-badge" style="background:rgba(194,65,12,0.85);color:white;display:none;">
                             Centre su rostro completamente en el óvalo
+                        </span>
+                        <span x-show="estadoRostro === 'inclinado'"
+                              class="wca-badge" style="background:rgba(194,65,12,0.85);color:white;display:none;">
+                            Enderece la cabeza y mire de frente
                         </span>
                         <span x-show="estadoRostro === 'perfil'"
                               class="wca-badge" style="background:rgba(194,65,12,0.85);color:white;display:none;">
