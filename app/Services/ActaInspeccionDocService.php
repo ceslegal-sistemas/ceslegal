@@ -30,7 +30,7 @@ class ActaInspeccionDocService
             'borderSize'  => 6,
             'cellMargin'  => 80,
             'width'       => 100,
-            'unit'        => \PhpOffice\PhpWord\Style\Table::WIDTH_PERCENT,
+            'unit'        => \PhpOffice\PhpWord\SimpleType\TblWidth::PERCENT,
         ];
 
         $celdaTh = ['bgColor' => '1F3864', 'valign' => 'center'];
