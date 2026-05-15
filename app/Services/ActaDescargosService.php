@@ -768,16 +768,19 @@ class ActaDescargosService
         );
 
         // ── Tabla: QR a la izquierda, datos a la derecha ─────────────────────
-        $table = $section->addTable(['borderSize' => 0, 'width' => 100 * 50]);
-        $table->addRow();
+        // Ancho disponible = 12240 (carta) − 2 × 1440 (márgenes) = 9360 twips
+        // Distribución: QR 2600 + spacer 260 + datos 6500 = 9360
+        $table = $section->addTable(['borderSize' => 0, 'width' => 9360,
+            'unit' => \PhpOffice\PhpWord\SimpleType\TblWidth::TWIP]);
+        $table->addRow(2000);   // altura mínima de fila en twips
 
-        // Columna QR
-        $celdaQr = $table->addCell(3600, ['borderSize' => 0]);
+        // Columna QR — 2600 twips ≈ 1.8 in → cabe imagen de 120 px con holgura
+        $celdaQr = $table->addCell(2600, ['borderSize' => 0, 'valign' => 'center']);
 
         $qrTempPath = null;
         try {
             // Obtener QR desde API externa (sin dependencia de paquete composer)
-            $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=5&ecc=H&data=' . rawurlencode($url);
+            $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&ecc=H&data=' . rawurlencode($url);
             $context = stream_context_create([
                 'http' => ['timeout' => 10, 'user_agent' => 'CESLegal/1.0'],
                 'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false],
@@ -791,9 +794,10 @@ class ActaDescargosService
             $qrTempPath = tempnam(sys_get_temp_dir(), 'ces_qr_') . '.png';
             file_put_contents($qrTempPath, $qrPng);
 
+            // 120 px = ~1.25 in = ~1800 twips — cabe en los 2600 twips de la celda
             $celdaQr->addImage($qrTempPath, [
-                'width'         => 180,
-                'height'        => 180,
+                'width'         => 120,
+                'height'        => 120,
                 'alignment'     => Jc::CENTER,
                 'wrappingStyle' => 'inline',
             ]);
@@ -813,10 +817,10 @@ class ActaDescargosService
         }
 
         // Spacer
-        $table->addCell(400)->addText('');
+        $table->addCell(260, ['borderSize' => 0])->addText('');
 
-        // Columna datos de verificación
-        $celdaDatos = $table->addCell(6200, ['borderSize' => 0]);
+        // Columna datos de verificación — 6500 twips (resto del ancho)
+        $celdaDatos = $table->addCell(6500, ['borderSize' => 0]);
 
         $celdaDatos->addText(
             'DATOS DE VERIFICACIÓN',
