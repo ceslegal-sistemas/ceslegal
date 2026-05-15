@@ -824,9 +824,10 @@ class ActaDescargosService
             ['bold' => true, 'name' => 'Arial', 'size' => 9],
             ['alignment' => Jc::LEFT, 'spaceAfter' => 20]
         );
-        $celdaDatos->addText(
+        $celdaDatos->addLink(
             $url,
-            ['name' => 'Courier New', 'size' => 8, 'color' => '4f46e5'],
+            $url,
+            ['name' => 'Courier New', 'size' => 8, 'color' => '4f46e5', 'underline' => true],
             ['alignment' => Jc::LEFT, 'spaceAfter' => 120]
         );
 
