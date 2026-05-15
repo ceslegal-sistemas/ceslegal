@@ -15,10 +15,10 @@
     --wca-list-color:  rgba(17,24,39,0.60);
     --wca-alert-text:  rgba(17,24,39,0.82);
     --wca-btn-sec-bg:  rgba(0,0,0,0.06);
-    --wca-btn-sec-fg:  rgba(17,24,39,0.72);
-    --wca-btn-sec-bd:  rgba(0,0,0,0.14);
-    --wca-btn-dis-bg:  rgba(0,0,0,0.06);
-    --wca-btn-dis-fg:  rgba(17,24,39,0.30);
+    --wca-btn-sec-fg:  #4b5563;
+    --wca-btn-sec-bd:  rgba(0,0,0,0.18);
+    --wca-btn-dis-bg:  rgba(0,0,0,0.05);
+    --wca-btn-dis-fg:  rgba(107,114,128,0.70);
 }
 html.dark {
     --wca-text:        rgba(255,255,255,0.80);
@@ -42,13 +42,14 @@ html.dark {
 .wca-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 .wca-btn-on  { background: #6366f1; color: white; }
 .wca-btn-off { background: var(--wca-btn-dis-bg); color: var(--wca-btn-dis-fg); }
-.wca-btn-secondary {
+button.wca-btn-secondary,
+button.wca-btn-secondary:hover {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 7px 14px; border-radius: 10px;
     font-size: 12px; font-weight: 500; cursor: pointer;
-    background: var(--wca-btn-sec-bg);
-    color: var(--wca-btn-sec-fg);
-    border: 1px solid var(--wca-btn-sec-bd);
+    background: var(--wca-btn-sec-bg) !important;
+    color: var(--wca-btn-sec-fg) !important;
+    border: 1px solid var(--wca-btn-sec-bd) !important;
 }
 .wca-badge {
     display: inline-flex; align-items: center; gap: 4px;
