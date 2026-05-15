@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DescargoPublicoController;
+use App\Http\Controllers\VerificacionDocumentoController;
 use App\Http\Controllers\EmailTrackingController;
 use App\Http\Controllers\PayUConfirmationController;
 use App\Http\Controllers\SuscripcionController;
@@ -33,6 +34,11 @@ Route::post('/transcribir', \App\Http\Controllers\TranscribeController::class)
 
 Route::get('/descargos/{token}', [DescargoPublicoController::class, 'mostrarAcceso'])
     ->name('descargos.acceso');
+
+// Verificación pública de documentos generados por CES Legal
+Route::get('/verificar/{token}', [VerificacionDocumentoController::class, 'verificar'])
+    ->name('verificacion.documento')
+    ->where('token', '[a-zA-Z0-9\-_]+');
 
 // Ruta para descargar archivos de manera segura (requiere autenticación)
 Route::get('/descargar/acta/{diligenciaId}', function ($diligenciaId) {

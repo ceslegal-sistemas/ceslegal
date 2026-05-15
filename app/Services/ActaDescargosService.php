@@ -10,6 +10,8 @@ use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\SimpleType\Jc;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class ActaDescargosService
 {
@@ -85,6 +87,26 @@ class ActaDescargosService
             $trabajador = $proceso->trabajador;
             $empresa    = $proceso->empresa;
 
+            // ── Generar token y hash de verificación ─────────────────────────
+            $token = Str::uuid()->toString();
+            $hash  = hash('sha256',
+                $diligencia->id . '|' .
+                ($proceso->codigo ?? '') . '|' .
+                ($trabajador->numero_documento ?? '') . '|' .
+                ($diligencia->otp_verificado_en?->timestamp ?? '') . '|' .
+                now()->timestamp . '|' .
+                config('app.key')
+            );
+
+            $urlVerificacion = 'https://ceslegal2.renbel.com.co/verificar/' . $token;
+
+            // Persistir antes de generar el documento
+            $diligencia->update([
+                'verificacion_token'       => $token,
+                'verificacion_hash'        => $hash,
+                'verificacion_generada_en' => now(),
+            ]);
+
             $section = $this->phpWord->addSection([
                 'marginLeft'   => 1440,
                 'marginRight'  => 1440,
@@ -100,6 +122,7 @@ class ActaDescargosService
             $this->agregarInformacionAdicional($section, $diligencia, $trabajador);
             $this->agregarCierre($section, $diligencia, $trabajador);
             $this->agregarFirmas($section, $trabajador, $diligencia);
+            $this->agregarQrVerificacion($section, $urlVerificacion, $token, $hash, $diligencia);
 
             $filename = $this->guardarDocumento($proceso);
 
@@ -107,6 +130,7 @@ class ActaDescargosService
                 'success'  => true,
                 'filename' => $filename,
                 'path'     => storage_path('app/actas_descargos/' . $filename),
+                'verificacion_url' => $urlVerificacion,
             ];
         } catch (\Exception $e) {
             Log::error('Error generando diligencia administrativa de descargos', [
@@ -703,6 +727,147 @@ class ActaDescargosService
             ['name' => 'Arial', 'size' => 8, 'italic' => true],
             ['alignment' => Jc::CENTER]
         );
+    }
+
+    /**
+     * Sección final: bloque de verificación con QR code.
+     * Va después de las firmas, en página separada si es posible.
+     */
+    protected function agregarQrVerificacion($section, string $url, string $token, string $hash, $diligencia): void
+    {
+        $section->addPageBreak();
+
+        $section->addText(
+            'VERIFICACIÓN DE AUTENTICIDAD DEL DOCUMENTO',
+            ['bold' => true, 'size' => 13, 'name' => 'Arial'],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 60]
+        );
+
+        $section->addText(
+            'Escanee el código QR o ingrese la URL en su navegador para verificar la autenticidad de este documento.',
+            ['name' => 'Arial', 'size' => 10, 'italic' => true],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 200]
+        );
+
+        // ── Tabla: QR a la izquierda, datos a la derecha ─────────────────────
+        $table = $section->addTable(['borderSize' => 0, 'width' => 100 * 50]);
+        $table->addRow();
+
+        // Columna QR
+        $celdaQr = $table->addCell(3600, ['borderSize' => 0]);
+
+        $qrTempPath = null;
+        try {
+            // Generar QR como PNG binario y guardar en archivo temporal
+            $qrPng = QrCode::format('png')
+                ->size(280)
+                ->margin(1)
+                ->errorCorrection('H')
+                ->generate($url);
+
+            $qrTempPath = tempnam(sys_get_temp_dir(), 'ces_qr_') . '.png';
+            file_put_contents($qrTempPath, $qrPng);
+
+            $celdaQr->addImage($qrTempPath, [
+                'width'         => 180,
+                'height'        => 180,
+                'alignment'     => Jc::CENTER,
+                'wrappingStyle' => 'inline',
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('ActaDescargosService: no se pudo generar QR', ['error' => $e->getMessage()]);
+            $celdaQr->addText(
+                '[QR no disponible]',
+                ['name' => 'Arial', 'size' => 9, 'italic' => true],
+                ['alignment' => Jc::CENTER]
+            );
+        }
+
+        // Spacer
+        $table->addCell(400)->addText('');
+
+        // Columna datos de verificación
+        $celdaDatos = $table->addCell(6200, ['borderSize' => 0]);
+
+        $celdaDatos->addText(
+            'DATOS DE VERIFICACIÓN',
+            ['bold' => true, 'name' => 'Arial', 'size' => 10],
+            ['alignment' => Jc::LEFT, 'spaceAfter' => 80]
+        );
+
+        $celdaDatos->addText(
+            'URL de verificación:',
+            ['bold' => true, 'name' => 'Arial', 'size' => 9],
+            ['alignment' => Jc::LEFT, 'spaceAfter' => 20]
+        );
+        $celdaDatos->addText(
+            $url,
+            ['name' => 'Courier New', 'size' => 8, 'color' => '4f46e5'],
+            ['alignment' => Jc::LEFT, 'spaceAfter' => 120]
+        );
+
+        $celdaDatos->addText(
+            'Token de verificación:',
+            ['bold' => true, 'name' => 'Arial', 'size' => 9],
+            ['alignment' => Jc::LEFT, 'spaceAfter' => 20]
+        );
+        $celdaDatos->addText(
+            $token,
+            ['name' => 'Courier New', 'size' => 7],
+            ['alignment' => Jc::LEFT, 'spaceAfter' => 120]
+        );
+
+        $celdaDatos->addText(
+            'Hash SHA-256 del documento:',
+            ['bold' => true, 'name' => 'Arial', 'size' => 9],
+            ['alignment' => Jc::LEFT, 'spaceAfter' => 20]
+        );
+        $celdaDatos->addText(
+            $hash,
+            ['name' => 'Courier New', 'size' => 7],
+            ['alignment' => Jc::LEFT, 'spaceAfter' => 120]
+        );
+
+        $fechaGen = now()->timezone('America/Bogota')->format('d/m/Y h:i:s A');
+        $celdaDatos->addText(
+            'Generado el: ' . $fechaGen,
+            ['name' => 'Arial', 'size' => 9],
+            ['alignment' => Jc::LEFT, 'spaceAfter' => 80]
+        );
+
+        $celdaDatos->addText(
+            'Proceso N.° ' . $this->limpiarTextoParaWord($diligencia->proceso->codigo ?? ''),
+            ['bold' => true, 'name' => 'Arial', 'size' => 9],
+            ['alignment' => Jc::LEFT]
+        );
+
+        // Nota legal al pie de la sección QR
+        $section->addText('', ['name' => 'Arial', 'size' => 4], ['spaceAfter' => 180]);
+
+        $section->addText(
+            '─────────────────────────────────────────────────────────────────────────────────────────',
+            ['name' => 'Arial', 'size' => 8, 'color' => 'CCCCCC'],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 60]
+        );
+
+        $section->addText(
+            'Documento con firma electrónica simple conforme a la Ley 527 de 1999 y el Decreto 2364 de 2012 de la República de Colombia. ' .
+            'La autenticidad de este documento puede ser verificada en cualquier momento mediante el código QR o la URL indicada. ' .
+            'CES Legal actúa como proveedor tecnológico del servicio de gestión disciplinaria y no como parte en el proceso disciplinario.',
+            ['name' => 'Arial', 'size' => 8, 'italic' => true, 'color' => '666666'],
+            ['alignment' => Jc::BOTH, 'spaceAfter' => 60]
+        );
+
+        $section->addText(
+            'CES Legal · www.ceslegal.co · Plataforma de Gestión Disciplinaria Laboral',
+            ['name' => 'Arial', 'size' => 8, 'color' => '888888'],
+            ['alignment' => Jc::CENTER]
+        );
+
+        // Limpiar archivo temporal del QR
+        if ($qrTempPath && file_exists($qrTempPath)) {
+            @unlink($qrTempPath);
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────────

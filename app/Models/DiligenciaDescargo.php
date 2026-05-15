@@ -53,6 +53,9 @@ class DiligenciaDescargo extends Model
         'foto_fin_path',
         'foto_fin_en',
         'evidencia_metadata',
+        'verificacion_token',
+        'verificacion_hash',
+        'verificacion_generada_en',
     ];
 
     protected $casts = [
@@ -78,6 +81,7 @@ class DiligenciaDescargo extends Model
         'foto_inicio_en' => 'datetime',
         'foto_fin_en' => 'datetime',
         'evidencia_metadata' => 'array',
+        'verificacion_generada_en' => 'datetime',
     ];
 
     public function proceso(): BelongsTo
