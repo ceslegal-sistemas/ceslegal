@@ -1,16 +1,38 @@
 {{--
     Webcam del Autorizador — detección oval + validaciones estrictas de rostro
-    Correcciones v3:
-    - Usa x-show en lugar de <template x-if> para mantener el video en el DOM
-    - Detecta cara recortada en bordes del frame
-    - Detecta foto de perfil (nariz descentrada entre ojos)
-    - volverATomarFoto ya no necesita reiniciar la cámara
-    - Texto con contraste explícito para modo oscuro
+    Correcciones v4:
+    - Compatible con modo claro y oscuro (CSS custom properties)
+    - face-api se carga dentro de cargarModelos() sin depender de <script> externo
+    - Detecta cara recortada, perfil, inclinada, muy lejos
+    - volverATomarFoto resetea todos los flags
 --}}
-{{-- face-api se carga directamente dentro de cargarModelos() para evitar
-     condiciones de carrera con la inicialización de Alpine.js en Livewire --}}
 
 <style>
+/* ── Variables modo claro (default) / oscuro (html.dark) ─────────── */
+:root {
+    --wca-text:        rgba(17,24,39,0.80);
+    --wca-text-muted:  rgba(17,24,39,0.58);
+    --wca-list-color:  rgba(17,24,39,0.60);
+    --wca-alert-text:  rgba(17,24,39,0.82);
+    --wca-btn-sec-bg:  rgba(0,0,0,0.06);
+    --wca-btn-sec-fg:  rgba(17,24,39,0.72);
+    --wca-btn-sec-bd:  rgba(0,0,0,0.14);
+    --wca-btn-dis-bg:  rgba(0,0,0,0.06);
+    --wca-btn-dis-fg:  rgba(17,24,39,0.30);
+}
+html.dark {
+    --wca-text:        rgba(255,255,255,0.80);
+    --wca-text-muted:  rgba(255,255,255,0.65);
+    --wca-list-color:  rgba(255,255,255,0.55);
+    --wca-alert-text:  rgba(255,255,255,0.80);
+    --wca-btn-sec-bg:  rgba(255,255,255,0.08);
+    --wca-btn-sec-fg:  rgba(255,255,255,0.80);
+    --wca-btn-sec-bd:  rgba(255,255,255,0.12);
+    --wca-btn-dis-bg:  rgba(255,255,255,0.08);
+    --wca-btn-dis-fg:  rgba(255,255,255,0.35);
+}
+
+/* ── Componentes ──────────────────────────────────────────────────── */
 .wca-btn-primary {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 9px 18px; border-radius: 10px;
@@ -22,14 +44,16 @@
     display: inline-flex; align-items: center; gap: 6px;
     padding: 7px 14px; border-radius: 10px;
     font-size: 12px; font-weight: 500; cursor: pointer;
-    background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.80);
-    border: 1px solid rgba(255,255,255,0.12);
+    background: var(--wca-btn-sec-bg);
+    color: var(--wca-btn-sec-fg);
+    border: 1px solid var(--wca-btn-sec-bd);
 }
 .wca-badge {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 4px 10px; border-radius: 100px;
     font-size: 11px; font-weight: 600; white-space: nowrap;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 
 <div wire:ignore
@@ -45,31 +69,19 @@
          intervaloAccesorios: null,
          verificandoAccesoriosVivo: false,
 
-         mensajeEstado: {
-             esperando:   'Posicione su rostro frente a la cámara',
-             sin_rostro:  'No se detecta un rostro',
-             muy_lejos:   'Acérquese más a la cámara',
-             recortado:   'Centre su rostro completamente en el óvalo',
-             inclinado:   'Enderece la cabeza y mire de frente',
-             perfil:      'Mire directamente a la cámara (foto de frente)',
-             ok:          'Listo — tome la foto ahora',
-             sin_modelo:  'Verificación automática no disponible',
-         },
-
-         colorEstado: {
-             esperando:   'rgba(255,255,255,0.45)',
-             sin_rostro:  '#f87171',
-             muy_lejos:   '#fbbf24',
-             recortado:   '#fb923c',
-             inclinado:   '#fb923c',
-             perfil:      '#fb923c',
-             ok:          '#4ade80',
-             sin_modelo:  'rgba(255,255,255,0.45)',
-         },
-
          get colorEncuadre() {
              if (this.alertaAccesorios) return '#f97316';
-             return this.colorEstado[this.estadoRostro] || 'rgba(255,255,255,0.45)';
+             const map = {
+                 esperando:  'rgba(255,255,255,0.45)',
+                 sin_rostro: '#f87171',
+                 muy_lejos:  '#fbbf24',
+                 recortado:  '#fb923c',
+                 inclinado:  '#fb923c',
+                 perfil:     '#fb923c',
+                 ok:         '#4ade80',
+                 sin_modelo: 'rgba(255,255,255,0.45)',
+             };
+             return map[this.estadoRostro] || 'rgba(255,255,255,0.45)';
          },
 
          async iniciarCamara() {
@@ -88,20 +100,17 @@
 
          async cargarModelos() {
              try {
-                 // Cargar face-api.js si aún no está en la página.
+                 // Cargar face-api.js si aún no está disponible.
                  // Se hace aquí (no en <script> externo) para evitar la condición
                  // de carrera entre el <script> inyectado por Livewire y x-init de Alpine.
                  if (typeof faceapi === 'undefined') {
-                     // Si otro instancia ya está cargando el script, esperar a que termine
                      if (window._faceApiScriptEl) {
                          await new Promise((resolve, reject) => {
                              window._faceApiScriptEl.addEventListener('load',  resolve, { once: true });
                              window._faceApiScriptEl.addEventListener('error', reject,  { once: true });
-                             // Si ya cargó entre el check y el listener, faceapi ya está disponible
                              if (typeof faceapi !== 'undefined') resolve();
                          });
                      } else {
-                         // Primera vez: inyectar y esperar
                          await new Promise((resolve, reject) => {
                              const s = document.createElement('script');
                              s.src = '{{ asset('vendor/face-api/face-api.js') }}';
@@ -120,8 +129,6 @@
                  this.iniciarDeteccion();
                  this.iniciarDeteccionAccesorios();
              } catch (e) {
-                 // fail-open: modelos no disponibles — se permite la foto pero se advierte
-                 // NO poner estadoRostro = 'ok' para no saltarse la validación silenciosamente
                  console.error('face-api: error cargando modelos', e);
                  this.modelsCargados = true;
                  this.estadoRostro = 'sin_modelo';
@@ -158,13 +165,11 @@
                          this.estadoRostro = 'recortado'; return;
                      }
 
-                     // ③ Cara fuera del óvalo — el centro facial debe quedar dentro del óvalo
-                     // Óvalo SVG: cx=50%, cy=36/75≈48%, rx=23%, ry=29/75≈38.7%
-                     // Tolerancias = dimensiones del óvalo × 1.15 (margen mínimo de holgura)
+                     // ③ Cara fuera del óvalo
                      const faceCx = (box.x + box.width  / 2) / vw;
                      const faceCy = (box.y + box.height / 2) / vh;
-                     const dxN = (faceCx - 0.50) / 0.265; // ±26.5% horizontal
-                     const dyN = (faceCy - 0.48) / 0.445; // ±44.5% vertical
+                     const dxN = (faceCx - 0.50) / 0.265;
+                     const dyN = (faceCy - 0.48) / 0.445;
                      if (dxN * dxN + dyN * dyN > 1.0) {
                          this.estadoRostro = 'recortado'; return;
                      }
@@ -175,22 +180,18 @@
                      const eyeSep = Math.abs(rEye[0].x - lEye[0].x);
                      if (eyeSep < box.width * 0.18) { this.estadoRostro = 'sin_rostro'; return; }
 
-                     // ⑤ Cara inclinada — el eje entre los ojos debe ser casi horizontal
-                     // Calcula el centro promedio de cada ojo y el ángulo entre ellos
+                     // ⑤ Cara inclinada
                      const lEyeCx = lEye.reduce((s, p) => s + p.x, 0) / lEye.length;
                      const lEyeCy = lEye.reduce((s, p) => s + p.y, 0) / lEye.length;
                      const rEyeCx = rEye.reduce((s, p) => s + p.x, 0) / rEye.length;
                      const rEyeCy = rEye.reduce((s, p) => s + p.y, 0) / rEye.length;
-                     // Para cara erguida: ~0°. Para cara ladeada 90°: ~90°.
                      const rollDeg = Math.abs(Math.atan2(rEyeCy - lEyeCy, rEyeCx - lEyeCx) * 180 / Math.PI);
                      if (rollDeg > 30) { this.estadoRostro = 'inclinado'; return; }
 
-                     // ⑥ Foto de perfil — nariz no centrada entre los ojos
+                     // ⑥ Foto de perfil
                      const nose  = detection.landmarks.getNose();
-                     const lCx   = lEyeCx;
-                     const rCx   = rEyeCx;
                      const noseX = (nose[3] || nose[0]).x;
-                     const offset = Math.abs(noseX - (lCx + rCx) / 2) / box.width;
+                     const offset = Math.abs(noseX - (lEyeCx + rEyeCx) / 2) / box.width;
                      if (offset > 0.22) { this.estadoRostro = 'perfil'; return; }
 
                      this.estadoRostro = 'ok';
@@ -245,22 +246,17 @@
                  this.iniciarDeteccionAccesorios();
              } else {
                  this.fotoCapturada = foto;
-                 // Persistir en el campo Filament — el video permanece en el DOM
-                 // (x-show en lugar de x-if) así el stream sobrevive al re-render
                  $wire.$set('mountedTableActionsData.0.foto_autorizador_base64', foto);
              }
          },
 
          volverATomarFoto() {
-             // Limpiar estado — resetear flags que pueden quedar bloqueados
              this.fotoCapturada           = null;
              this.alertaAccesorios        = '';
              this.estadoRostro            = 'esperando';
-             this.revisandoAccesorios     = false;   // por si tomarFoto lo dejó true
-             this.verificandoAccesoriosVivo = false; // evita que el nuevo intervalo quede bloqueado
-             // No llamar $wire.$set(null) — evita re-render innecesario
-             // No reiniciar cámara — el stream sigue activo gracias a x-show
-             this.detenerDeteccion(); // limpiar cualquier intervalo anterior
+             this.revisandoAccesorios     = false;
+             this.verificandoAccesoriosVivo = false;
+             this.detenerDeteccion();
              this.iniciarDeteccion();
              this.iniciarDeteccionAccesorios();
          },
@@ -280,12 +276,12 @@
 
     <div class="space-y-3">
 
-        {{-- Error de cámara --}}
+        {{-- ══ Error de cámara ══ --}}
         <div x-show="errorCamara" style="display:none">
             <div style="padding:14px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.30);border-radius:10px;">
                 <p style="font-weight:700;color:#f87171;margin:0 0 6px;font-size:13px;">No se puede acceder a la cámara</p>
-                <p style="color:rgba(255,255,255,0.65);font-size:12px;margin:0 0 4px;">Para continuar permita el acceso en el navegador:</p>
-                <ul style="color:rgba(255,255,255,0.55);font-size:12px;margin:0;padding-left:18px;line-height:1.8;">
+                <p style="color:var(--wca-text-muted);font-size:12px;margin:0 0 4px;">Para continuar permita el acceso en el navegador:</p>
+                <ul style="color:var(--wca-list-color);font-size:12px;margin:0;padding-left:18px;line-height:1.8;">
                     <li>Busque el ícono de cámara en la barra de direcciones</li>
                     <li>Haga clic y seleccione "Permitir"</li>
                 </ul>
@@ -297,7 +293,7 @@
             {{-- ══ VISOR DE CÁMARA — siempre en DOM (x-show, no x-if) ══ --}}
             <div x-show="!fotoCapturada" style="display:none" class="space-y-3">
 
-                {{-- Video + overlay oval --}}
+                {{-- Video + overlay oval (fondo siempre negro — badges en blanco son correctos) --}}
                 <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3;">
                     <video x-ref="video" autoplay playsinline muted
                            style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block;"></video>
@@ -321,7 +317,7 @@
                         </text>
                     </svg>
 
-                    {{-- Cargando modelos --}}
+                    {{-- Cargando modelos (sobre video — blanco correcto) --}}
                     <div x-show="!modelsCargados"
                          style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);">
                         <span class="wca-badge" style="background:rgba(0,0,0,0.70);color:white;">
@@ -333,7 +329,7 @@
                         </span>
                     </div>
 
-                    {{-- Estado del rostro --}}
+                    {{-- Estado del rostro (sobre video — fondos opacos, blanco correcto) --}}
                     <div x-show="modelsCargados"
                          style="position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;padding:0 8px;">
 
@@ -369,18 +365,21 @@
                               class="wca-badge" style="background:rgba(180,83,9,0.90);color:white;max-width:280px;text-align:center;white-space:normal;display:none;">
                         </span>
                         <span x-show="estadoRostro === 'sin_modelo'"
-                              class="wca-badge" style="background:rgba(75,85,99,0.88);color:rgba(255,255,255,0.80);display:none;">
+                              class="wca-badge" style="background:rgba(75,85,99,0.88);color:white;display:none;">
                             Verificación automática no disponible — puede tomar la foto
                         </span>
                     </div>
                 </div>
 
-                {{-- Alerta de accesorios detectados --}}
-                <div x-show="alertaAccesorios" style="display:none;padding:10px 14px;background:rgba(180,83,9,0.15);border:1px solid rgba(251,191,36,0.30);border-radius:10px;display:flex;align-items:flex-start;gap:8px;">
-                    <svg style="width:16px;height:16px;color:#fbbf24;flex-shrink:0;margin-top:1px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                    <p x-text="alertaAccesorios" style="font-size:12px;color:rgba(255,255,255,0.80);margin:0;line-height:1.5;"></p>
+                {{-- Alerta de accesorios (fuera del video — usa variables de modo) --}}
+                <div x-show="alertaAccesorios"
+                     style="display:none;padding:10px 14px;background:rgba(180,83,9,0.15);border:1px solid rgba(251,191,36,0.35);border-radius:10px;">
+                    <div style="display:flex;align-items:flex-start;gap:8px;">
+                        <svg style="width:16px;height:16px;color:#d97706;flex-shrink:0;margin-top:1px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        <p x-text="alertaAccesorios" style="font-size:12px;color:var(--wca-alert-text);margin:0;line-height:1.5;"></p>
+                    </div>
                 </div>
 
                 {{-- Canvas oculto para captura --}}
@@ -394,7 +393,7 @@
                             class="wca-btn-primary"
                             :style="((estadoRostro === 'ok' || estadoRostro === 'sin_modelo') && !alertaAccesorios && !revisandoAccesorios)
                                 ? 'background:#6366f1;color:white;'
-                                : 'background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.35);'">
+                                : 'background:var(--wca-btn-dis-bg);color:var(--wca-btn-dis-fg);'">
 
                         <svg x-show="!revisandoAccesorios" style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
@@ -434,8 +433,4 @@
 
         </div>{{-- /!errorCamara --}}
     </div>
-
-    <style>
-    @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
 </div>
