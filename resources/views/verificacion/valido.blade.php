@@ -151,7 +151,8 @@
                     <img src="{{ $fotoInicioUrl }}"
                          alt="Foto verificación inicio"
                          class="w-full rounded-xl border border-gray-200 object-cover"
-                         style="max-height: 220px; object-fit: cover;">
+                         style="max-height: 220px; object-fit: cover;"
+                         onerror="this.parentElement.innerHTML='<p class=\'text-xs text-gray-400 italic\'>Imagen no disponible</p>'">
                     @if($diligencia->foto_inicio_en)
                     <p class="text-xs text-gray-400 mt-1.5 text-center">
                         {{ $diligencia->foto_inicio_en->timezone('America/Bogota')->format('d/m/Y h:i A') }}
@@ -166,7 +167,8 @@
                     <img src="{{ $fotoFinUrl }}"
                          alt="Foto verificación cierre"
                          class="w-full rounded-xl border border-gray-200 object-cover"
-                         style="max-height: 220px; object-fit: cover;">
+                         style="max-height: 220px; object-fit: cover;"
+                         onerror="this.parentElement.innerHTML='<p class=\'text-xs text-gray-400 italic\'>Imagen no disponible</p>'">
                     @if($diligencia->foto_fin_en)
                     <p class="text-xs text-gray-400 mt-1.5 text-center">
                         {{ $diligencia->foto_fin_en->timezone('America/Bogota')->format('d/m/Y h:i A') }}

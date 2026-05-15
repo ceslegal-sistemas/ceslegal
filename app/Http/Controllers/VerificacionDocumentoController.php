@@ -77,6 +77,7 @@ class VerificacionDocumentoController extends Controller
 
     /**
      * Sirve la foto de inicio o fin via token (sin requerir autenticación admin).
+     * Usa el mismo patrón de Storage::get() que la ruta admin que ya funciona.
      */
     public function foto(string $token, string $tipo)
     {
@@ -86,14 +87,13 @@ class VerificacionDocumentoController extends Controller
 
         abort_if(!$diligencia, 404);
 
-        $campo = $tipo === 'inicio' ? 'foto_inicio_path' : 'foto_fin_path';
-        $path  = $diligencia->{$campo};
+        $campo = "foto_{$tipo}_path";
+        $ruta  = $diligencia->{$campo};
 
-        abort_if(!$path, 404);
+        abort_if(!$ruta || !Storage::exists($ruta), 404);
 
-        $absPath = Storage::path($path);
-        abort_if(!file_exists($absPath), 404);
-
-        return response()->file($absPath, ['Content-Type' => 'image/jpeg']);
+        return response(Storage::get($ruta), 200)
+            ->header('Content-Type', 'image/jpeg')
+            ->header('Cache-Control', 'private, max-age=3600');
     }
 }
