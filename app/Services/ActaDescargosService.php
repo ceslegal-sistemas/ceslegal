@@ -124,9 +124,14 @@ class ActaDescargosService
             $this->agregarInformacionAdicional($section, $diligencia, $trabajador);
             $this->agregarCierre($section, $diligencia, $trabajador);
             $this->agregarFirmas($section, $trabajador, $diligencia);
-            $this->agregarQrVerificacion($section, $urlVerificacion, $token, $hash, $diligencia);
+            $qrTempPath = $this->agregarQrVerificacion($section, $urlVerificacion, $token, $hash, $diligencia);
 
             $filename = $this->guardarDocumento($proceso);
+
+            // Limpiar temp del QR DESPUÉS de guardar el docx (PhpWord lo lee al escribir el ZIP)
+            if ($qrTempPath && file_exists($qrTempPath)) {
+                @unlink($qrTempPath);
+            }
 
             return [
                 'success'  => true,
@@ -746,7 +751,7 @@ class ActaDescargosService
      * Sección final: bloque de verificación con QR code.
      * Va después de las firmas, en página separada si es posible.
      */
-    protected function agregarQrVerificacion($section, string $url, string $token, string $hash, $diligencia): void
+    protected function agregarQrVerificacion($section, string $url, string $token, string $hash, $diligencia): ?string
     {
         $section->addPageBreak();
 
@@ -889,10 +894,8 @@ class ActaDescargosService
             ['alignment' => Jc::CENTER]
         );
 
-        // Limpiar archivo temporal del QR
-        if ($qrTempPath && file_exists($qrTempPath)) {
-            @unlink($qrTempPath);
-        }
+        // Devolver la ruta del temp para que el llamador lo elimine DESPUÉS de guardar el docx
+        return $qrTempPath;
     }
 
     // ──────────────────────────────────────────────────────────────────────────
