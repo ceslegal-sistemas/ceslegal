@@ -771,15 +771,17 @@ class ActaDescargosService
 
         $qrTempPath = null;
         try {
-            // Instanciar Generator directamente (sin Facade) para evitar
-            // dependencia del service provider en entornos de producción
-            $qrGenerator = new \SimpleSoftwareIO\QrCode\Generator;
-            $qrPng = $qrGenerator
-                ->format('png')
-                ->size(280)
-                ->margin(1)
-                ->errorCorrection('H')
-                ->generate($url);
+            // Obtener QR desde API externa (sin dependencia de paquete composer)
+            $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=5&ecc=H&data=' . rawurlencode($url);
+            $context = stream_context_create([
+                'http' => ['timeout' => 10, 'user_agent' => 'CESLegal/1.0'],
+                'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false],
+            ]);
+            $qrPng = @file_get_contents($qrApiUrl, false, $context);
+
+            if ($qrPng === false || strlen($qrPng) < 100) {
+                throw new \RuntimeException('QR API no devolvió imagen válida');
+            }
 
             $qrTempPath = tempnam(sys_get_temp_dir(), 'ces_qr_') . '.png';
             file_put_contents($qrTempPath, $qrPng);
@@ -791,8 +793,6 @@ class ActaDescargosService
                 'wrappingStyle' => 'inline',
             ]);
         } catch (\Throwable $e) {
-            // Captura tanto \Exception como \Error (ej: Class not found si el paquete
-            // aún no fue instalado en el servidor con composer install)
             Log::warning('ActaDescargosService: no se pudo generar QR', ['error' => $e->getMessage()]);
             $celdaQr->addText(
                 'Verificar en:',

@@ -42,10 +42,7 @@
     <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-                <img src="/favicon.svg" alt="" class="w-7 h-7 opacity-90">
-                <span class="text-base font-bold text-gray-900 tracking-tight">
-                    CES <span class="text-primary-600">Legal</span>
-                </span>
+                <img src="/images/ces-legal-logo.png" alt="CES Legal" class="h-8 w-auto">
             </div>
             <span class="text-xs text-gray-400">Plataforma de Gestión Disciplinaria</span>
         </div>
