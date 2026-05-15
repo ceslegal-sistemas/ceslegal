@@ -40,6 +40,11 @@ Route::get('/verificar/{token}', [VerificacionDocumentoController::class, 'verif
     ->name('verificacion.documento')
     ->where('token', '[a-zA-Z0-9\-_]+');
 
+// Fotos de verificación accesibles por token (sin auth, solo si el token es válido)
+Route::get('/verificar/{token}/foto/{tipo}', [VerificacionDocumentoController::class, 'foto'])
+    ->name('verificacion.foto')
+    ->where(['token' => '[a-zA-Z0-9\-_]+', 'tipo' => 'inicio|fin']);
+
 // Ruta para descargar archivos de manera segura (requiere autenticación)
 Route::get('/descargar/acta/{diligenciaId}', function ($diligenciaId) {
     $diligencia = \App\Models\DiligenciaDescargo::findOrFail($diligenciaId);

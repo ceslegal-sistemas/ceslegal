@@ -3,14 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\DiligenciaDescargo;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class VerificacionDocumentoController extends Controller
 {
-    /**
-     * Página pública de verificación del documento.
-     * Cualquier persona puede acceder con el token que viene en el QR del acta.
-     */
     public function verificar(string $token)
     {
         $diligencia = DiligenciaDescargo::where('verificacion_token', $token)
@@ -25,60 +21,79 @@ class VerificacionDocumentoController extends Controller
         $trabajador = $proceso->trabajador;
         $empresa    = $proceso->empresa;
 
-        // Construir cadena de verificación para mostrar
+        // Cadena de autenticación
         $autenticaciones = [];
 
         if ($diligencia->otp_verificado_en) {
             $autenticaciones[] = [
-                'tipo'      => 'Código OTP',
-                'icono'     => '🔐',
-                'estado'    => 'verificado',
-                'detalle'   => 'Verificado el ' . $diligencia->otp_verificado_en
-                                    ->timezone('America/Bogota')
-                                    ->format('d/m/Y \a \l\a\s h:i A'),
+                'tipo'    => 'Código OTP (One-Time Password)',
+                'estado'  => 'verificado',
+                'detalle' => 'Verificado el ' . $diligencia->otp_verificado_en
+                                ->timezone('America/Bogota')->format('d/m/Y \a \l\a\s h:i A'),
             ];
         }
 
         if ($diligencia->disclaimer_aceptado_en) {
             $autenticaciones[] = [
-                'tipo'    => 'Declaración voluntaria',
-                'icono'   => '📋',
+                'tipo'    => 'Declaración de participación voluntaria',
                 'estado'  => 'verificado',
                 'detalle' => 'Aceptada el ' . $diligencia->disclaimer_aceptado_en
-                                    ->timezone('America/Bogota')
-                                    ->format('d/m/Y \a \l\a\s h:i A'),
+                                ->timezone('America/Bogota')->format('d/m/Y \a \l\a\s h:i A'),
             ];
         }
 
         if ($diligencia->foto_inicio_en) {
             $autenticaciones[] = [
-                'tipo'    => 'Verificación facial — inicio',
-                'icono'   => '📸',
+                'tipo'    => 'Verificación facial — inicio de la diligencia',
                 'estado'  => 'verificado',
                 'detalle' => 'Capturada el ' . $diligencia->foto_inicio_en
-                                    ->timezone('America/Bogota')
-                                    ->format('d/m/Y \a \l\a\s h:i A'),
+                                ->timezone('America/Bogota')->format('d/m/Y \a \l\a\s h:i A'),
             ];
         }
 
         if ($diligencia->foto_fin_en) {
             $autenticaciones[] = [
-                'tipo'    => 'Verificación facial — cierre',
-                'icono'   => '📸',
+                'tipo'    => 'Verificación facial — cierre de la diligencia',
                 'estado'  => 'verificado',
                 'detalle' => 'Capturada el ' . $diligencia->foto_fin_en
-                                    ->timezone('America/Bogota')
-                                    ->format('d/m/Y \a \l\a\s h:i A'),
+                                ->timezone('America/Bogota')->format('d/m/Y \a \l\a\s h:i A'),
             ];
         }
 
+        // URLs de las fotos (a través de la ruta segura por token)
+        $fotoInicioUrl = $diligencia->foto_inicio_path
+            ? route('verificacion.foto', ['token' => $token, 'tipo' => 'inicio'])
+            : null;
+
+        $fotoFinUrl = $diligencia->foto_fin_path
+            ? route('verificacion.foto', ['token' => $token, 'tipo' => 'fin'])
+            : null;
+
         return view('verificacion.valido', compact(
-            'diligencia',
-            'proceso',
-            'trabajador',
-            'empresa',
-            'autenticaciones',
-            'token',
+            'diligencia', 'proceso', 'trabajador', 'empresa',
+            'autenticaciones', 'token', 'fotoInicioUrl', 'fotoFinUrl',
         ));
+    }
+
+    /**
+     * Sirve la foto de inicio o fin via token (sin requerir autenticación admin).
+     */
+    public function foto(string $token, string $tipo)
+    {
+        $diligencia = DiligenciaDescargo::where('verificacion_token', $token)
+            ->whereNotNull('verificacion_generada_en')
+            ->first();
+
+        abort_if(!$diligencia, 404);
+
+        $campo = $tipo === 'inicio' ? 'foto_inicio_path' : 'foto_fin_path';
+        $path  = $diligencia->{$campo};
+
+        abort_if(!$path, 404);
+
+        $absPath = Storage::path($path);
+        abort_if(!file_exists($absPath), 404);
+
+        return response()->file($absPath, ['Content-Type' => 'image/jpeg']);
     }
 }

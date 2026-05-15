@@ -3,60 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documento no encontrado — CES Legal</title>
+    <title>Documento no encontrado · CES Legal</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f0f4f8;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 32px 16px;
-            color: #1a202c;
-        }
-        .card {
-            width: 100%;
-            max-width: 480px;
-            background: #fff;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            padding: 40px 32px;
-            text-align: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-        }
-        .icon {
-            width: 64px; height: 64px;
-            background: #fee2e2;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 20px;
-        }
-        .icon svg { width: 32px; height: 32px; }
-        h1 { font-size: 20px; font-weight: 800; color: #1a202c; margin-bottom: 10px; }
-        p { font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 6px; }
-        .footer { margin-top: 28px; font-size: 12px; color: #94a3b8; }
-        .footer a { color: #6366f1; text-decoration: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', system-ui, sans-serif; }
     </style>
 </head>
-<body>
-    <div class="card">
-        <div class="icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
+<body class="bg-gray-100 min-h-screen antialiased flex flex-col">
+
+    <header class="bg-white border-b border-gray-200">
+        <div class="max-w-3xl mx-auto px-4 h-14 flex items-center gap-2.5">
+            <img src="/favicon.svg" alt="" class="w-7 h-7 opacity-90">
+            <span class="text-base font-bold text-gray-900 tracking-tight">
+                CES <span class="text-primary-600">Legal</span>
+            </span>
         </div>
-        <h1>Documento no encontrado</h1>
-        <p>El código de verificación no corresponde a ningún documento registrado en la plataforma CES Legal.</p>
-        <p>El documento puede haber sido revocado o el enlace puede estar incorrecto.</p>
-        <div class="footer">
-            <a href="https://www.ceslegal.co" target="_blank">www.ceslegal.co</a> —
-            Plataforma de Gestión Disciplinaria
+    </header>
+
+    <main class="flex-1 flex items-center justify-center p-6">
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 max-w-md w-full text-center">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
+                <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+            </div>
+            <h1 class="text-xl font-bold text-gray-900 mb-2">Documento no encontrado</h1>
+            <p class="text-sm text-gray-500 leading-relaxed mb-1">
+                El código de verificación no corresponde a ningún documento registrado en la plataforma CES Legal.
+            </p>
+            <p class="text-sm text-gray-400 leading-relaxed">
+                El documento puede haber sido revocado o el enlace puede estar incorrecto.
+            </p>
+            <div class="mt-6 pt-6 border-t border-gray-100">
+                <a href="https://www.ceslegal.co" target="_blank"
+                   class="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                    www.ceslegal.co
+                </a>
+            </div>
         </div>
-    </div>
+    </main>
+
 </body>
 </html>

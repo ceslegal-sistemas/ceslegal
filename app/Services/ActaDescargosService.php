@@ -11,7 +11,6 @@ use PhpOffice\PhpWord\SimpleType\Jc;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class ActaDescargosService
 {
@@ -772,8 +771,11 @@ class ActaDescargosService
 
         $qrTempPath = null;
         try {
-            // Generar QR como PNG binario y guardar en archivo temporal
-            $qrPng = QrCode::format('png')
+            // Instanciar Generator directamente (sin Facade) para evitar
+            // dependencia del service provider en entornos de producción
+            $qrGenerator = new \SimpleSoftwareIO\QrCode\Generator;
+            $qrPng = $qrGenerator
+                ->format('png')
                 ->size(280)
                 ->margin(1)
                 ->errorCorrection('H')
