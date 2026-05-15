@@ -211,7 +211,7 @@ class ActaDescargosService
             : 'No registrado';
 
         $section->addText(
-            "2. Declaración de participación voluntaria: {$el = 'el/la'} trabajador/a aceptó la declaración de " .
+            "2. Declaración de participación voluntaria: el/la trabajador/a aceptó la declaración de " .
             "responsabilidad y participación voluntaria en la plataforma el {$disclaimerEn}.",
             ['name' => 'Arial', 'size' => 11],
             ['alignment' => Jc::BOTH, 'spaceAfter' => 80]
