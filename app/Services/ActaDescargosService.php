@@ -87,25 +87,28 @@ class ActaDescargosService
             $trabajador = $proceso->trabajador;
             $empresa    = $proceso->empresa;
 
-            // ── Generar token y hash de verificación ─────────────────────────
-            $token = Str::uuid()->toString();
-            $hash  = hash('sha256',
-                $diligencia->id . '|' .
-                ($proceso->codigo ?? '') . '|' .
-                ($trabajador->numero_documento ?? '') . '|' .
-                ($diligencia->otp_verificado_en?->timestamp ?? '') . '|' .
-                now()->timestamp . '|' .
-                config('app.key')
-            );
+            // ── Token de verificación: uno por diligencia, permanente ────────
+            // Si ya existe (descarga múltiple) se reutiliza el mismo token.
+            if ($diligencia->verificacion_token) {
+                $token = $diligencia->verificacion_token;
+                $hash  = $diligencia->verificacion_hash;
+            } else {
+                $token = Str::uuid()->toString();
+                $hash  = hash('sha256',
+                    $diligencia->id . '|' .
+                    ($proceso->codigo ?? '') . '|' .
+                    ($trabajador->numero_documento ?? '') . '|' .
+                    ($diligencia->otp_verificado_en?->timestamp ?? '') . '|' .
+                    config('app.key')
+                );
+                $diligencia->update([
+                    'verificacion_token'       => $token,
+                    'verificacion_hash'        => $hash,
+                    'verificacion_generada_en' => now(),
+                ]);
+            }
 
             $urlVerificacion = 'https://ceslegal2.renbel.com.co/verificar/' . $token;
-
-            // Persistir antes de generar el documento
-            $diligencia->update([
-                'verificacion_token'       => $token,
-                'verificacion_hash'        => $hash,
-                'verificacion_generada_en' => now(),
-            ]);
 
             $section = $this->phpWord->addSection([
                 'marginLeft'   => 1440,
@@ -504,16 +507,27 @@ class ActaDescargosService
 
             if (!empty($archivosEvidencia)) {
                 foreach ($archivosEvidencia as $archivo) {
-                    $nombre = $this->limpiarTextoParaWord($archivo['nombre'] ?? 'Archivo');
-                    $kb     = isset($archivo['size']) ? round($archivo['size'] / 1024, 1) . ' KB' : '';
-                    $tipo   = $this->limpiarTextoParaWord($archivo['tipo'] ?? '');
-                    $meta   = array_filter([$kb, $tipo]);
+                    $nombre  = $this->limpiarTextoParaWord($archivo['nombre'] ?? 'Archivo');
+                    $kb      = isset($archivo['size']) ? round($archivo['size'] / 1024, 1) . ' KB' : '';
+                    $path    = $archivo['path'] ?? null;
+                    $label   = '  • ' . $nombre . ($kb ? '  (' . $kb . ')' : '');
 
-                    $section->addText(
-                        '  • ' . $nombre . (!empty($meta) ? '  (' . implode(', ', $meta) . ')' : ''),
-                        ['name' => 'Arial', 'size' => 11],
-                        ['alignment' => Jc::BOTH, 'spaceAfter' => 40]
-                    );
+                    if ($path) {
+                        // Enlace descargable directo desde la plataforma
+                        $url = Storage::disk('public')->url($path);
+                        $section->addLink(
+                            $url,
+                            $label,
+                            ['color' => '4f46e5', 'underline' => true, 'name' => 'Arial', 'size' => 11],
+                            ['alignment' => Jc::BOTH, 'spaceAfter' => 40]
+                        );
+                    } else {
+                        $section->addText(
+                            $label,
+                            ['name' => 'Arial', 'size' => 11],
+                            ['alignment' => Jc::BOTH, 'spaceAfter' => 40]
+                        );
+                    }
                 }
             }
 
