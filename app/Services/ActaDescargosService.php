@@ -788,11 +788,19 @@ class ActaDescargosService
                 'alignment'     => Jc::CENTER,
                 'wrappingStyle' => 'inline',
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // Captura tanto \Exception como \Error (ej: Class not found si el paquete
+            // aún no fue instalado en el servidor con composer install)
             Log::warning('ActaDescargosService: no se pudo generar QR', ['error' => $e->getMessage()]);
             $celdaQr->addText(
-                '[QR no disponible]',
+                'Verificar en:',
                 ['name' => 'Arial', 'size' => 9, 'italic' => true],
+                ['alignment' => Jc::CENTER, 'spaceAfter' => 40]
+            );
+            $celdaQr->addLink(
+                $url,
+                $url,
+                ['color' => '4f46e5', 'underline' => true, 'name' => 'Arial', 'size' => 8],
                 ['alignment' => Jc::CENTER]
             );
         }
