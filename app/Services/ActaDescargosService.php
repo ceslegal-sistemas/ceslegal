@@ -8,13 +8,13 @@ use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\SimpleType\Jc;
-use PhpOffice\PhpWord\Style\Font;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
 class ActaDescargosService
 {
     protected PhpWord $phpWord;
+    private string $libreOfficePath;
 
     public function __construct()
     {
@@ -42,10 +42,42 @@ class ActaDescargosService
         return 'C:\\Program Files\\LibreOffice\\program\\soffice.exe';
     }
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // Helper de género
+    // ──────────────────────────────────────────────────────────────────────────
+
     /**
-     * Genera la Diligencia Administrativa de Apertura de Investigación Disciplinaria
-     * (Antes denominada: Acta de Descargos)
+     * Devuelve formas genéricas resueltas según el género del trabajador,
+     * tanto en minúscula como en mayúscula.
      */
+    private function g(object $trabajador): array
+    {
+        $f = strtolower($trabajador->genero ?? '') === 'femenino';
+        return [
+            'f'            => $f,
+            // minúsculas
+            'el'           => $f ? 'la'           : 'el',
+            'del'          => $f ? 'de la'         : 'del',
+            'al'           => $f ? 'a la'          : 'al',
+            'un'           => $f ? 'una'           : 'un',
+            'trabajador'   => $f ? 'trabajadora'   : 'trabajador',
+            'investigado'  => $f ? 'investigada'   : 'investigado',
+            'identificado' => $f ? 'identificada'  : 'identificado',
+            'acompanado'   => $f ? 'acompañada'    : 'acompañado',
+            'este'         => $f ? 'esta'          : 'este',
+            'ninguno'      => $f ? 'ninguna'       : 'ninguno',
+            // mayúsculas (para encabezados de sección)
+            'EL'           => $f ? 'LA'            : 'EL',
+            'DEL'          => $f ? 'DE LA'         : 'DEL',
+            'AL'           => $f ? 'A LA'          : 'AL',
+            'TRABAJADOR'   => $f ? 'TRABAJADORA'   : 'TRABAJADOR',
+        ];
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Método principal
+    // ──────────────────────────────────────────────────────────────────────────
+
     public function generarActaDescargos(DiligenciaDescargo $diligencia): array
     {
         try {
@@ -62,10 +94,10 @@ class ActaDescargosService
 
             $this->agregarTitulo($section, $proceso);
             $this->agregarEncabezado($section, $diligencia, $proceso, $trabajador, $empresa);
-            $this->agregarConstanciaAutenticacion($section, $diligencia);
-            $this->agregarHechos($section, $proceso);
-            $this->agregarPreguntasRespuestas($section, $diligencia);
-            $this->agregarInformacionAdicional($section, $diligencia);
+            $this->agregarConstanciaAutenticacion($section, $diligencia, $trabajador);
+            $this->agregarHechos($section, $proceso, $trabajador);
+            $this->agregarPreguntasRespuestas($section, $diligencia, $trabajador);
+            $this->agregarInformacionAdicional($section, $diligencia, $trabajador);
             $this->agregarCierre($section, $diligencia, $trabajador);
             $this->agregarFirmas($section, $trabajador, $diligencia);
 
@@ -90,26 +122,24 @@ class ActaDescargosService
         }
     }
 
-    /**
-     * Agrega el encabezado institucional y título del documento
-     */
+    // ──────────────────────────────────────────────────────────────────────────
+    // Secciones del documento
+    // ──────────────────────────────────────────────────────────────────────────
+
     protected function agregarTitulo($section, $proceso): void
     {
-        // Título principal
         $section->addText(
             'DILIGENCIA ADMINISTRATIVA DE APERTURA DE INVESTIGACIÓN DISCIPLINARIA',
             ['bold' => true, 'size' => 13, 'name' => 'Arial'],
             ['alignment' => Jc::CENTER, 'spaceAfter' => 80]
         );
 
-        // Subtítulo con denominación anterior
         $section->addText(
             '(Antes denominada: Acta de Descargos)',
             ['italic' => true, 'size' => 10, 'name' => 'Arial'],
             ['alignment' => Jc::CENTER, 'spaceAfter' => 80]
         );
 
-        // Número de proceso
         $section->addText(
             'Proceso Disciplinario N.° ' . $this->limpiarTextoParaWord($proceso->codigo ?? ''),
             ['bold' => true, 'size' => 11, 'name' => 'Arial'],
@@ -117,48 +147,44 @@ class ActaDescargosService
         );
     }
 
-    /**
-     * Agrega el párrafo de apertura adaptado al contexto de la plataforma virtual CES Legal
-     */
     protected function agregarEncabezado($section, $diligencia, $proceso, $trabajador, $empresa): void
     {
-        $municipio    = $this->limpiarTextoParaWord($empresa->ciudad        ?? 'Colombia');
-        $departamento = $this->limpiarTextoParaWord($empresa->departamento  ?? '');
-        $razonSocial  = $this->limpiarTextoParaWord($empresa->razon_social  ?? '');
-        $nit          = $this->limpiarTextoParaWord($empresa->nit           ?? '');
-        $nombreTrab   = $this->limpiarTextoParaWord($trabajador->nombre_completo ?? '');
-        $tipoDoc      = $this->limpiarTextoParaWord($trabajador->tipo_documento  ?? 'C.C.');
+        $municipio    = $this->limpiarTextoParaWord($empresa->ciudad       ?? 'Colombia');
+        $departamento = $this->limpiarTextoParaWord($empresa->departamento ?? '');
+        $razonSocial  = $this->limpiarTextoParaWord($empresa->razon_social ?? '');
+        $nit          = $this->limpiarTextoParaWord($empresa->nit          ?? '');
+        $nombreTrab   = $this->limpiarTextoParaWord($trabajador->nombre_completo  ?? '');
+        $tipoDoc      = $this->limpiarTextoParaWord($trabajador->tipo_documento   ?? 'C.C.');
         $numDoc       = $this->limpiarTextoParaWord($trabajador->numero_documento ?? '');
         $cargo        = $this->limpiarTextoParaWord($trabajador->cargo ?? '');
-        $esFemenino   = ($trabajador->genero === 'femenino');
-        $art          = $esFemenino ? 'la' : 'el';
-        $trabGen      = $esFemenino ? 'trabajadora' : 'trabajador';
+        $g            = $this->g($trabajador);
 
-        // Hora de inicio
         $horaInicio = $diligencia->primer_acceso_en
             ? \Carbon\Carbon::parse($diligencia->primer_acceso_en)->timezone('America/Bogota')->format('h:i A')
             : now()->timezone('America/Bogota')->format('h:i A');
 
-        // Fecha
-        $fechaBase = $diligencia->fecha_diligencia
+        $fechaBase  = $diligencia->fecha_diligencia
             ? \Carbon\Carbon::parse($diligencia->fecha_diligencia)->timezone('America/Bogota')
             : now()->timezone('America/Bogota');
         $fechaTexto = $this->convertirFechaATexto($fechaBase);
 
-        // Párrafo de apertura — contexto virtual/web
         $ubicacion = trim($municipio . ($departamento ? ', ' . $departamento : ''));
 
         $apertura =
-            "En {$ubicacion}, el {$fechaTexto}, siendo las {$horaInicio}, ".
-            "a través de la plataforma virtual de gestión disciplinaria CES Legal (www.ceslegal.com.co), ".
-            "se dio inicio a la presente Diligencia Administrativa de Apertura de Investigación Disciplinaria ".
-            "dentro del proceso disciplinario N.° {$proceso->codigo}, adelantado por {$razonSocial} con NIT {$nit}. ".
-            "En representación del empleador interviene la empresa a través de la plataforma CES Legal ".
-            "y, por la otra parte, {$art} {$trabGen} {$nombreTrab}, ".
-            "identificad" . ($esFemenino ? 'a' : 'o') . " con {$tipoDoc} N.° {$numDoc}, ".
-            "con cargo de {$cargo}, ".
-            "quien accedió a la plataforma digital, verificó su identidad de forma electrónica y ".
-            "rindió sus descargos y explicaciones en relación con los siguientes hechos:";
+            "En {$ubicacion}, el {$fechaTexto}, siendo las {$horaInicio}, " .
+            "se dio inicio a la presente Diligencia Administrativa de Apertura de Investigación Disciplinaria " .
+            "dentro del proceso disciplinario N.° {$proceso->codigo}, adelantado por {$razonSocial} " .
+            "con NIT {$nit}, en ejercicio de su potestad disciplinaria interna conforme al Reglamento " .
+            "Interno de Trabajo y la legislación laboral vigente. " .
+            "La presente diligencia fue gestionada a través de la plataforma tecnológica CES Legal " .
+            "(www.ceslegal.co), empresa que actúa exclusivamente como proveedora del servicio tecnológico " .
+            "de gestión disciplinaria y no tiene participación, intervención ni responsabilidad alguna " .
+            "en las decisiones disciplinarias adoptadas por el empleador. " .
+            "Participó {$g['el']} {$g['trabajador']} {$nombreTrab}, " .
+            "{$g['identificado']} con {$tipoDoc} N.° {$numDoc}, " .
+            "con cargo de {$cargo}, " .
+            "quien accedió a la plataforma digital, verificó su identidad de forma electrónica " .
+            "y rindió sus descargos y explicaciones en relación con los siguientes hechos:";
 
         $section->addText(
             $apertura,
@@ -167,12 +193,10 @@ class ActaDescargosService
         );
     }
 
-    /**
-     * Agrega la constancia de autenticación digital del trabajador
-     * (cadena de custodia de la diligencia virtual)
-     */
-    protected function agregarConstanciaAutenticacion($section, $diligencia): void
+    protected function agregarConstanciaAutenticacion($section, $diligencia, $trabajador): void
     {
+        $g = $this->g($trabajador);
+
         $section->addText(
             'I. CONSTANCIA DE AUTENTICACIÓN DIGITAL',
             ['bold' => true, 'size' => 11, 'name' => 'Arial'],
@@ -180,77 +204,108 @@ class ActaDescargosService
         );
 
         $section->addText(
-            'La identidad del/la trabajador/a fue verificada mediante los siguientes mecanismos de seguridad '.
-            'de la plataforma CES Legal, conforme a lo previsto en la Ley 527 de 1999 '.
-            '(Ley de Comercio Electrónico) y los principios de equivalencia funcional del mensaje de datos:',
+            "La identidad {$g['del']} {$g['trabajador']} fue verificada mediante los siguientes " .
+            "mecanismos de seguridad de la plataforma CES Legal, conforme a lo previsto en la " .
+            "Ley 527 de 1999 (Comercio Electrónico) y el Decreto 2364 de 2012 (Firma Electrónica):",
             ['name' => 'Arial', 'size' => 11],
             ['alignment' => Jc::BOTH, 'spaceAfter' => 100]
         );
 
-        // ── OTP ──────────────────────────────────────────────────────────────
-        $otpCanal   = $this->limpiarTextoParaWord($diligencia->otp_canal   ?? 'correo electrónico');
+        // ── 1. OTP ───────────────────────────────────────────────────────────
+        $otpCanal    = $this->limpiarTextoParaWord($diligencia->otp_canal    ?? 'correo electrónico');
         $otpEnviadoA = $this->limpiarTextoParaWord($diligencia->otp_enviado_a ?? '');
-
-        $otpVerificado = $diligencia->otp_verificado_en
+        $otpVerif    = $diligencia->otp_verificado_en
             ? \Carbon\Carbon::parse($diligencia->otp_verificado_en)->timezone('America/Bogota')->format('d/m/Y h:i A')
             : 'No registrado';
 
-        $textoOtp = "1. Código de verificación OTP (One-Time Password): enviado por {$otpCanal}" .
-            ($otpEnviadoA ? " al destinatario {$otpEnviadoA}" : '') .
-            " y verificado satisfactoriamente el {$otpVerificado}.";
-
         $section->addText(
-            $textoOtp,
+            "1. Código de verificación OTP (One-Time Password): enviado por {$otpCanal}" .
+            ($otpEnviadoA ? " al destinatario {$otpEnviadoA}" : '') .
+            " y verificado satisfactoriamente el {$otpVerif}.",
             ['name' => 'Arial', 'size' => 11],
             ['alignment' => Jc::BOTH, 'spaceAfter' => 80]
         );
 
-        // ── Disclaimer ───────────────────────────────────────────────────────
+        // ── 2. Declaración ───────────────────────────────────────────────────
         $disclaimerEn = $diligencia->disclaimer_aceptado_en
             ? \Carbon\Carbon::parse($diligencia->disclaimer_aceptado_en)->timezone('America/Bogota')->format('d/m/Y h:i A')
             : 'No registrado';
 
         $section->addText(
-            "2. Declaración de participación voluntaria: el/la trabajador/a aceptó la declaración de " .
-            "responsabilidad y participación voluntaria en la plataforma el {$disclaimerEn}.",
+            "2. Declaración de participación voluntaria: {$g['el']} {$g['trabajador']} aceptó " .
+            "la declaración de responsabilidad y participación voluntaria en la plataforma el {$disclaimerEn}.",
             ['name' => 'Arial', 'size' => 11],
             ['alignment' => Jc::BOTH, 'spaceAfter' => 80]
         );
 
-        // ── Foto inicio ──────────────────────────────────────────────────────
+        // ── 3. Foto inicio ───────────────────────────────────────────────────
         $fotoInicioEn = $diligencia->foto_inicio_en
             ? \Carbon\Carbon::parse($diligencia->foto_inicio_en)->timezone('America/Bogota')->format('d/m/Y h:i A')
             : 'No registrada';
 
         $section->addText(
-            "3. Verificación facial al inicio de la diligencia: fotografía capturada el {$fotoInicioEn} ".
+            "3. Verificación facial al inicio de la diligencia: fotografía capturada el {$fotoInicioEn} " .
             "mediante reconocimiento facial con inteligencia artificial, registrada en el sistema con fines de trazabilidad.",
             ['name' => 'Arial', 'size' => 11],
-            ['alignment' => Jc::BOTH, 'spaceAfter' => 80]
+            ['alignment' => Jc::BOTH, 'spaceAfter' => 60]
         );
 
-        // ── Foto fin ─────────────────────────────────────────────────────────
+        if (!empty($diligencia->foto_inicio_path)) {
+            $absPath = Storage::path($diligencia->foto_inicio_path);
+            if (file_exists($absPath)) {
+                $section->addImage($absPath, [
+                    'width'         => 180,
+                    'height'        => 135,
+                    'alignment'     => Jc::CENTER,
+                    'wrappingStyle' => 'inline',
+                ]);
+                $section->addText(
+                    "Fotografía de verificación — inicio de la diligencia | {$fotoInicioEn}",
+                    ['name' => 'Arial', 'size' => 9, 'italic' => true],
+                    ['alignment' => Jc::CENTER, 'spaceAfter' => 100]
+                );
+            }
+        }
+
+        // ── 4. Foto fin ──────────────────────────────────────────────────────
         $fotoFinEn = $diligencia->foto_fin_en
             ? \Carbon\Carbon::parse($diligencia->foto_fin_en)->timezone('America/Bogota')->format('d/m/Y h:i A')
             : 'No registrada';
 
         $section->addText(
-            "4. Verificación facial al cierre de la diligencia: fotografía capturada el {$fotoFinEn} ".
+            "4. Verificación facial al cierre de la diligencia: fotografía capturada el {$fotoFinEn} " .
             "mediante reconocimiento facial con inteligencia artificial, registrada en el sistema con fines de trazabilidad.",
             ['name' => 'Arial', 'size' => 11],
-            ['alignment' => Jc::BOTH, 'spaceAfter' => 80]
+            ['alignment' => Jc::BOTH, 'spaceAfter' => 60]
         );
 
-        // ── IP ───────────────────────────────────────────────────────────────
+        if (!empty($diligencia->foto_fin_path)) {
+            $absPath = Storage::path($diligencia->foto_fin_path);
+            if (file_exists($absPath)) {
+                $section->addImage($absPath, [
+                    'width'         => 180,
+                    'height'        => 135,
+                    'alignment'     => Jc::CENTER,
+                    'wrappingStyle' => 'inline',
+                ]);
+                $section->addText(
+                    "Fotografía de verificación — cierre de la diligencia | {$fotoFinEn}",
+                    ['name' => 'Arial', 'size' => 9, 'italic' => true],
+                    ['alignment' => Jc::CENTER, 'spaceAfter' => 100]
+                );
+            }
+        }
+
+        // ── 5. IP ────────────────────────────────────────────────────────────
         $ip = $this->limpiarTextoParaWord($diligencia->ip_acceso ?? 'No registrada');
 
         $section->addText(
-            "5. Dirección IP de acceso del trabajador: {$ip}.",
+            "5. Dirección IP de acceso: {$ip}.",
             ['name' => 'Arial', 'size' => 11],
             ['alignment' => Jc::BOTH, 'spaceAfter' => 80]
         );
 
-        // ── Primer acceso ────────────────────────────────────────────────────
+        // ── 6. Primer acceso ─────────────────────────────────────────────────
         $primerAcceso = $diligencia->primer_acceso_en
             ? \Carbon\Carbon::parse($diligencia->primer_acceso_en)->timezone('America/Bogota')->format('d/m/Y h:i A')
             : 'No registrado';
@@ -262,11 +317,10 @@ class ActaDescargosService
         );
     }
 
-    /**
-     * Agrega los hechos del proceso con encabezado de sección
-     */
-    protected function agregarHechos($section, $proceso): void
+    protected function agregarHechos($section, $proceso, $trabajador): void
     {
+        $g = $this->g($trabajador);
+
         $section->addText(
             'II. HECHOS OBJETO DE LA INVESTIGACIÓN',
             ['bold' => true, 'size' => 11, 'name' => 'Arial'],
@@ -274,25 +328,23 @@ class ActaDescargosService
         );
 
         $section->addText(
-            'Se le informó al/la trabajador/a sobre los hechos que dieron origen al presente proceso disciplinario:',
+            "Se le informó {$g['al']} {$g['trabajador']} sobre los hechos que dieron origen " .
+            "al presente proceso disciplinario:",
             ['name' => 'Arial', 'size' => 11],
             ['alignment' => Jc::BOTH, 'spaceAfter' => 80]
         );
 
-        $hechos = $this->limpiarTextoParaWord($proceso->hechos);
-
         $section->addText(
-            $hechos,
+            $this->limpiarTextoParaWord($proceso->hechos),
             ['name' => 'Arial', 'size' => 11],
             ['alignment' => Jc::BOTH, 'spaceAfter' => 200]
         );
     }
 
-    /**
-     * Agrega las preguntas y respuestas con encabezado de sección
-     */
-    protected function agregarPreguntasRespuestas($section, $diligencia): void
+    protected function agregarPreguntasRespuestas($section, $diligencia, $trabajador): void
     {
+        $g = $this->g($trabajador);
+
         $section->addText(
             'III. DESARROLLO DE LA DILIGENCIA',
             ['bold' => true, 'size' => 11, 'name' => 'Arial'],
@@ -300,8 +352,8 @@ class ActaDescargosService
         );
 
         $section->addText(
-            'A continuación se transcriben las preguntas formuladas al/la trabajador/a y las '.
-            'respuestas que este/a suministró de manera escrita a través de la plataforma CES Legal:',
+            "A continuación se transcriben las preguntas formuladas {$g['al']} {$g['trabajador']} " .
+            "y las respuestas que {$g['este']} suministró de manera escrita a través de la plataforma CES Legal:",
             ['name' => 'Arial', 'size' => 11],
             ['alignment' => Jc::BOTH, 'spaceAfter' => 120]
         );
@@ -313,7 +365,7 @@ class ActaDescargosService
 
         if ($preguntas->isEmpty()) {
             $section->addText(
-                'El/la trabajador/a no respondió ninguna pregunta durante la diligencia.',
+                ucfirst("{$g['el']} {$g['trabajador']} no respondió {$g['ninguno']} pregunta durante la diligencia."),
                 ['name' => 'Arial', 'size' => 11, 'italic' => true],
                 ['alignment' => Jc::BOTH, 'spaceAfter' => 120]
             );
@@ -334,7 +386,7 @@ class ActaDescargosService
                     ['alignment' => Jc::BOTH, 'spaceAfter' => 120]
                 );
 
-                if ($pregunta->respuesta->archivos_adjuntos && count($pregunta->respuesta->archivos_adjuntos) > 0) {
+                if (!empty($pregunta->respuesta->archivos_adjuntos)) {
                     $section->addText(
                         'Archivos adjuntos a esta respuesta:',
                         ['italic' => true, 'name' => 'Arial', 'size' => 10],
@@ -359,11 +411,10 @@ class ActaDescargosService
         }
     }
 
-    /**
-     * Agrega información adicional de la diligencia (acompañante y pruebas)
-     */
-    protected function agregarInformacionAdicional($section, $diligencia): void
+    protected function agregarInformacionAdicional($section, $diligencia, $trabajador): void
     {
+        $g = $this->g($trabajador);
+
         $section->addText(
             'IV. INFORMACIÓN ADICIONAL',
             ['bold' => true, 'size' => 11, 'name' => 'Arial'],
@@ -375,7 +426,7 @@ class ActaDescargosService
 
         if ($acompananteInfo['tiene_acompanante']) {
             $section->addText(
-                'ACOMPAÑANTE DEL/LA TRABAJADOR/A:',
+                "ACOMPAÑANTE {$g['DEL']} {$g['TRABAJADOR']}:",
                 ['bold' => true, 'name' => 'Arial', 'size' => 11],
                 ['alignment' => Jc::BOTH, 'spaceAfter' => 60]
             );
@@ -395,7 +446,8 @@ class ActaDescargosService
             }
         } else {
             $section->addText(
-                'ACOMPAÑANTE DEL/LA TRABAJADOR/A: El/la trabajador/a no se hizo acompañar en esta diligencia.',
+                "ACOMPAÑANTE {$g['DEL']} {$g['TRABAJADOR']}: {$g['el']} {$g['trabajador']} " .
+                "no se hizo {$g['acompanado']} en esta diligencia.",
                 ['name' => 'Arial', 'size' => 11],
                 ['alignment' => Jc::BOTH, 'spaceAfter' => 160]
             );
@@ -411,7 +463,7 @@ class ActaDescargosService
         if ($diligencia->pruebas_aportadas) {
             $textoPruebas = !empty($diligencia->descripcion_pruebas)
                 ? $this->limpiarTextoParaWord($diligencia->descripcion_pruebas)
-                : 'El/la trabajador/a aportó pruebas durante la diligencia a través de la plataforma.';
+                : ucfirst("{$g['el']} {$g['trabajador']} aportó pruebas durante la diligencia a través de la plataforma.");
 
             $section->addText(
                 $textoPruebas,
@@ -420,18 +472,17 @@ class ActaDescargosService
             );
         } else {
             $section->addText(
-                'El/la trabajador/a no aportó pruebas adicionales durante esta diligencia.',
+                ucfirst("{$g['el']} {$g['trabajador']} no aportó pruebas adicionales durante esta diligencia."),
                 ['name' => 'Arial', 'size' => 11, 'italic' => true],
                 ['alignment' => Jc::BOTH, 'spaceAfter' => 200]
             );
         }
     }
 
-    /**
-     * Agrega el cierre de la diligencia
-     */
     protected function agregarCierre($section, $diligencia, $trabajador): void
     {
+        $g = $this->g($trabajador);
+
         $section->addText(
             'V. CIERRE DE LA DILIGENCIA',
             ['bold' => true, 'size' => 11, 'name' => 'Arial'],
@@ -444,16 +495,13 @@ class ActaDescargosService
 
         $horaFin    = $fechaCierre->format('h:i A');
         $fechaTexto = $this->convertirFechaATexto($fechaCierre);
-
         $nombreTrab = $this->limpiarTextoParaWord($trabajador->nombre_completo ?? '');
-        $esFemenino = ($trabajador->genero === 'femenino');
-        $art        = $esFemenino ? 'la' : 'el';
 
         $textoCierre =
             "Se da por terminada la presente Diligencia Administrativa a las {$horaFin} del {$fechaTexto}. " .
-            "{$nombreTrab} participó en calidad de {$art} investigado" . ($esFemenino ? 'a' : '') .
-            " a través de la plataforma digital CES Legal, ejerciendo su derecho de defensa y contradicción, " .
-            "respondió las preguntas formuladas y manifestó lo que tuvo a bien en su defensa. " .
+            "{$nombreTrab} participó en calidad de {$g['investigado']} a través de la plataforma digital CES Legal, " .
+            "ejerciendo su derecho de defensa y contradicción, respondió las preguntas formuladas " .
+            "y manifestó lo que tuvo a bien en su defensa. " .
             "Se le informa que la empresa procederá al análisis jurídico de los hechos, los descargos " .
             "presentados y las pruebas aportadas, y que se le notificará oportunamente la decisión que se adopte. " .
             "Así mismo, se le recuerda su derecho a impugnar dicha decisión dentro de los tres (3) días " .
@@ -468,97 +516,167 @@ class ActaDescargosService
     }
 
     /**
-     * Agrega la sección de firmas adaptada al contexto digital
+     * Firmas: empleador con línea física + trabajador con certificado de verificación digital.
      */
     protected function agregarFirmas($section, $trabajador, $diligencia): void
     {
-        // Firma del representante del empleador (física — se imprime para firmar)
+        $g          = $this->g($trabajador);
+        $nombreTrab = $this->limpiarTextoParaWord($trabajador->nombre_completo    ?? '');
+        $tipoDoc    = $this->limpiarTextoParaWord($trabajador->tipo_documento     ?? 'C.C.');
+        $numDoc     = $this->limpiarTextoParaWord($trabajador->numero_documento   ?? '');
+        $cargo      = $this->limpiarTextoParaWord($trabajador->cargo              ?? '');
+        $empresa    = $this->limpiarTextoParaWord($diligencia->proceso->empresa->razon_social ?? 'Empleador');
+
+        $otpVerif = $diligencia->otp_verificado_en
+            ? \Carbon\Carbon::parse($diligencia->otp_verificado_en)->timezone('America/Bogota')->format('d/m/Y h:i A')
+            : 'No registrado';
+        $fotoInicioEn = $diligencia->foto_inicio_en
+            ? \Carbon\Carbon::parse($diligencia->foto_inicio_en)->timezone('America/Bogota')->format('d/m/Y h:i A')
+            : 'No registrada';
+        $fotoFinEn = $diligencia->foto_fin_en
+            ? \Carbon\Carbon::parse($diligencia->foto_fin_en)->timezone('America/Bogota')->format('d/m/Y h:i A')
+            : 'No registrada';
+        $ip = $this->limpiarTextoParaWord($diligencia->ip_acceso ?? 'No registrada');
+
+        // ── Tabla de dos columnas ─────────────────────────────────────────────
         $table = $section->addTable([
             'borderSize' => 0,
             'width'      => 100 * 50,
         ]);
 
+        // Fila 1: encabezados de columna
         $table->addRow();
-        $table->addCell(4500)->addText(
-            '_____________________________',
-            ['name' => 'Arial', 'size' => 11],
-            ['alignment' => Jc::CENTER]
-        );
-        $table->addCell(1000)->addText('');
-        $table->addCell(4500)->addText(
-            '[ AUTENTICACIÓN DIGITAL ]',
-            ['name' => 'Arial', 'size' => 11],
-            ['alignment' => Jc::CENTER]
-        );
 
-        $table->addRow();
-        $table->addCell(4500)->addText(
-            'Representante del Empleador',
-            ['bold' => true, 'name' => 'Arial', 'size' => 11],
-            ['alignment' => Jc::CENTER]
-        );
-        $table->addCell(1000)->addText('');
-        $table->addCell(4500)->addText(
-            $this->limpiarTextoParaWord($trabajador->nombre_completo ?? ''),
-            ['bold' => true, 'name' => 'Arial', 'size' => 11],
-            ['alignment' => Jc::CENTER]
-        );
-
-        $table->addRow();
-        $table->addCell(4500)->addText(
-            $this->limpiarTextoParaWord($diligencia->proceso->empresa->razon_social ?? 'Empleador'),
-            ['name' => 'Arial', 'size' => 10],
-            ['alignment' => Jc::CENTER]
-        );
-        $table->addCell(1000)->addText('');
-        $table->addCell(4500)->addText(
-            $this->limpiarTextoParaWord($trabajador->tipo_documento ?? '') . ' N.° ' .
-            $this->limpiarTextoParaWord($trabajador->numero_documento ?? ''),
-            ['name' => 'Arial', 'size' => 10],
-            ['alignment' => Jc::CENTER]
-        );
-
-        // Nota sobre la autenticación digital del trabajador
-        $section->addText(
-            '',
-            ['name' => 'Arial', 'size' => 11],
-            ['spaceAfter' => 200]
-        );
-
-        $section->addText(
-            'NOTA SOBRE LA PARTICIPACIÓN DIGITAL DEL TRABAJADOR:',
+        $celdaEmp = $table->addCell(4500, ['borderSize' => 0]);
+        $celdaEmp->addText(
+            'EMPLEADOR',
             ['bold' => true, 'name' => 'Arial', 'size' => 10],
-            ['alignment' => Jc::LEFT, 'spaceAfter' => 60]
-        );
-
-        $otpVerificado = $diligencia->otp_verificado_en
-            ? \Carbon\Carbon::parse($diligencia->otp_verificado_en)->timezone('America/Bogota')->format('d/m/Y h:i A')
-            : 'registrado en el sistema';
-
-        $section->addText(
-            'La firma física del/la trabajador/a no aplica en diligencias realizadas a través de la plataforma '.
-            'virtual CES Legal. Su identidad fue verificada mediante código OTP (verificado el '.
-            $otpVerificado . ') y doble verificación facial mediante inteligencia artificial, '.
-            'lo que constituye su participación válida y consentida en la diligencia, conforme a '.
-            'lo dispuesto en la Ley 527 de 1999 y el Decreto 2364 de 2012 sobre firma electrónica. '.
-            'Los registros digitales de autenticación reposan en los servidores de CES Legal y '.
-            'están disponibles como prueba en el expediente digital del proceso.',
-            ['name' => 'Arial', 'size' => 10, 'italic' => true],
-            ['alignment' => Jc::BOTH, 'spaceAfter' => 200]
-        );
-
-        // Pie de documento
-        $section->addText(
-            'Documento generado por la plataforma CES Legal | www.ceslegal.com.co',
-            ['name' => 'Arial', 'size' => 9, 'italic' => true],
             ['alignment' => Jc::CENTER, 'spaceAfter' => 40]
         );
 
-        $fechaGeneracion = now()->timezone('America/Bogota')->format('d/m/Y h:i A');
-        $section->addText(
-            "Generado el {$fechaGeneracion} | Proceso N.° " .
-            $this->limpiarTextoParaWord($diligencia->proceso->codigo ?? ''),
+        $table->addCell(800)->addText('');
+
+        $celdaTrab = $table->addCell(4500, ['borderSize' => 0]);
+        $celdaTrab->addText(
+            strtoupper($g['trabajador']),
+            ['bold' => true, 'name' => 'Arial', 'size' => 10],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 40]
+        );
+
+        // Fila 2: línea de firma física | Certificado de verificación digital
+        $table->addRow();
+
+        // — Columna empleador —
+        $celdaFirma = $table->addCell(4500, [
+            'borderSize' => 6,
+            'borderColor' => 'AAAAAA',
+        ]);
+        $celdaFirma->addText(
+            '',
+            ['name' => 'Arial', 'size' => 11],
+            ['spaceAfter' => 800]  // espacio para firmar físicamente
+        );
+        $celdaFirma->addText(
+            '_________________________________',
+            ['name' => 'Arial', 'size' => 11],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 80]
+        );
+        $celdaFirma->addText(
+            'Firma del Representante Legal',
+            ['name' => 'Arial', 'size' => 10],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 40]
+        );
+        $celdaFirma->addText(
+            $empresa,
+            ['bold' => true, 'name' => 'Arial', 'size' => 10],
+            ['alignment' => Jc::CENTER]
+        );
+
+        $table->addCell(800)->addText('');
+
+        // — Columna trabajador: certificado de verificación digital —
+        $celdaDigital = $table->addCell(4500, [
+            'borderSize'  => 6,
+            'borderColor' => '999999',
+        ]);
+
+        $celdaDigital->addText(
+            'CERTIFICADO DE VERIFICACIÓN DIGITAL',
+            ['bold' => true, 'name' => 'Arial', 'size' => 9],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 60]
+        );
+        $celdaDigital->addText(
+            $nombreTrab,
+            ['bold' => true, 'name' => 'Arial', 'size' => 10],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 20]
+        );
+        $celdaDigital->addText(
+            "{$tipoDoc} N.° {$numDoc}",
+            ['name' => 'Arial', 'size' => 9],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 20]
+        );
+        $celdaDigital->addText(
+            "Cargo: {$cargo}",
             ['name' => 'Arial', 'size' => 9, 'italic' => true],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 80]
+        );
+
+        // Línea separadora visual
+        $celdaDigital->addText(
+            '─────────────────────────────',
+            ['name' => 'Arial', 'size' => 8],
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 60]
+        );
+
+        $celdaDigital->addText(
+            "Verificacion OTP:           {$otpVerif}",
+            ['name' => 'Courier New', 'size' => 8],
+            ['alignment' => Jc::LEFT, 'spaceAfter' => 20]
+        );
+        $celdaDigital->addText(
+            "Verificacion facial inicio: {$fotoInicioEn}",
+            ['name' => 'Courier New', 'size' => 8],
+            ['alignment' => Jc::LEFT, 'spaceAfter' => 20]
+        );
+        $celdaDigital->addText(
+            "Verificacion facial cierre: {$fotoFinEn}",
+            ['name' => 'Courier New', 'size' => 8],
+            ['alignment' => Jc::LEFT, 'spaceAfter' => 20]
+        );
+        $celdaDigital->addText(
+            "IP de acceso:               {$ip}",
+            ['name' => 'Courier New', 'size' => 8],
+            ['alignment' => Jc::LEFT, 'spaceAfter' => 60]
+        );
+
+        $celdaDigital->addText(
+            'Ley 527/1999 — Decreto 2364/2012',
+            ['name' => 'Arial', 'size' => 8, 'italic' => true],
+            ['alignment' => Jc::CENTER]
+        );
+
+        // ── Nota aclaratoria ─────────────────────────────────────────────────
+        $section->addText('', ['name' => 'Arial', 'size' => 6], ['spaceAfter' => 160]);
+
+        $section->addText(
+            'NOTA: La plataforma CES Legal actúa únicamente como proveedora del servicio tecnológico ' .
+            "de gestión disciplinaria. La identidad {$g['del']} {$g['trabajador']} fue verificada " .
+            'mediante código OTP y doble reconocimiento facial con inteligencia artificial, lo que ' .
+            'constituye su participación válida y consentida conforme a la Ley 527 de 1999 y el ' .
+            'Decreto 2364 de 2012. Los registros de autenticación reposan en el expediente digital ' .
+            'del proceso y están disponibles como prueba. CES Legal no asume responsabilidad alguna ' .
+            'sobre las decisiones disciplinarias adoptadas por el empleador.',
+            ['name' => 'Arial', 'size' => 9, 'italic' => true],
+            ['alignment' => Jc::BOTH, 'spaceAfter' => 200]
+        );
+
+        // ── Pie de página ────────────────────────────────────────────────────
+        $fechaGen = now()->timezone('America/Bogota')->format('d/m/Y h:i A');
+        $section->addText(
+            "Generado el {$fechaGen}   |   Proceso N.° " .
+            $this->limpiarTextoParaWord($diligencia->proceso->codigo ?? '') .
+            '   |   www.ceslegal.co',
+            ['name' => 'Arial', 'size' => 8, 'italic' => true],
             ['alignment' => Jc::CENTER]
         );
     }
@@ -587,9 +705,9 @@ class ActaDescargosService
     {
         $preguntas = $diligencia->preguntas()->with('respuesta')->ordenadas()->get();
 
-        $deseaAcompanante   = false;
-        $nombreAcompanante  = '';
-        $cargoAcompanante   = '';
+        $deseaAcompanante  = false;
+        $nombreAcompanante = '';
+        $cargoAcompanante  = '';
 
         foreach ($preguntas as $pregunta) {
             $preguntaTexto = strtolower($pregunta->pregunta);
@@ -618,8 +736,6 @@ class ActaDescargosService
         ];
     }
 
-    private string $libreOfficePath;
-
     protected function guardarDocumento($proceso): string
     {
         $directory = storage_path('app/actas_descargos');
@@ -639,9 +755,9 @@ class ActaDescargosService
 
     protected function convertirFechaATexto($fecha): string
     {
-        $dia  = $fecha->day;
-        $mes  = $fecha->month;
-        $año  = $fecha->year;
+        $dia = $fecha->day;
+        $mes = $fecha->month;
+        $año = $fecha->year;
 
         return $this->numeroATexto($dia) . " ({$dia}) de " .
                $this->obtenerMesTexto($mes) . " del año " .
@@ -650,12 +766,12 @@ class ActaDescargosService
 
     protected function numeroATexto($numero): string
     {
-        $unidades  = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
-        $decenas   = ['', 'diez', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
+        $unidades   = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
+        $decenas    = ['', 'diez', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
         $especiales = [
-            10 => 'diez', 11 => 'once',    12 => 'doce',      13 => 'trece',
-            14 => 'catorce', 15 => 'quince', 16 => 'dieciséis', 17 => 'diecisiete',
-            18 => 'dieciocho', 19 => 'diecinueve',
+            10 => 'diez',       11 => 'once',       12 => 'doce',        13 => 'trece',
+            14 => 'catorce',    15 => 'quince',     16 => 'dieciséis',   17 => 'diecisiete',
+            18 => 'dieciocho',  19 => 'diecinueve',
         ];
 
         if ($numero < 10)  return $unidades[$numero];
@@ -684,8 +800,8 @@ class ActaDescargosService
     protected function obtenerMesTexto($mes): string
     {
         return [
-            1 => 'enero', 2 => 'febrero',   3 => 'marzo',      4 => 'abril',
-            5 => 'mayo',  6 => 'junio',     7 => 'julio',      8 => 'agosto',
+            1 => 'enero',   2 => 'febrero',    3 => 'marzo',     4 => 'abril',
+            5 => 'mayo',    6 => 'junio',      7 => 'julio',     8 => 'agosto',
             9 => 'septiembre', 10 => 'octubre', 11 => 'noviembre', 12 => 'diciembre',
         ][$mes] ?? '';
     }
