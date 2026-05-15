@@ -7,25 +7,8 @@
     - volverATomarFoto ya no necesita reiniciar la cámara
     - Texto con contraste explícito para modo oscuro
 --}}
-<script>
-    // Carga face-api.js una sola vez y expone una Promise global para esperarla.
-    // Evita la condición de carrera: cargarModelos() awaita _faceApiReady
-    // antes de intentar usar faceapi.nets.*, que antes causaba ReferenceError
-    // y dejaba estadoRostro = 'sin_modelo' aunque los modelos existan.
-    if (!window._faceApiAutLoaded) {
-        window._faceApiAutLoaded = true;
-        window._faceApiReady = new Promise(function(resolve, reject) {
-            var s = document.createElement('script');
-            s.src = '{{ asset('vendor/face-api/face-api.js') }}';
-            s.onload  = resolve;
-            s.onerror = reject;
-            document.head.appendChild(s);
-        });
-    } else if (!window._faceApiReady) {
-        // Script ya fue inyectado en una carga previa — ya está disponible
-        window._faceApiReady = Promise.resolve();
-    }
-</script>
+{{-- face-api se carga directamente dentro de cargarModelos() para evitar
+     condiciones de carrera con la inicialización de Alpine.js en Livewire --}}
 
 <style>
 .wca-btn-primary {
@@ -105,9 +88,30 @@
 
          async cargarModelos() {
              try {
-                 // Esperar a que el script de face-api termine de cargarse
-                 // antes de intentar usar faceapi.nets (evita ReferenceError)
-                 await (window._faceApiReady || Promise.resolve());
+                 // Cargar face-api.js si aún no está en la página.
+                 // Se hace aquí (no en <script> externo) para evitar la condición
+                 // de carrera entre el <script> inyectado por Livewire y x-init de Alpine.
+                 if (typeof faceapi === 'undefined') {
+                     // Si otro instancia ya está cargando el script, esperar a que termine
+                     if (window._faceApiScriptEl) {
+                         await new Promise((resolve, reject) => {
+                             window._faceApiScriptEl.addEventListener('load',  resolve, { once: true });
+                             window._faceApiScriptEl.addEventListener('error', reject,  { once: true });
+                             // Si ya cargó entre el check y el listener, faceapi ya está disponible
+                             if (typeof faceapi !== 'undefined') resolve();
+                         });
+                     } else {
+                         // Primera vez: inyectar y esperar
+                         await new Promise((resolve, reject) => {
+                             const s = document.createElement('script');
+                             s.src = '{{ asset('vendor/face-api/face-api.js') }}';
+                             s.onload  = resolve;
+                             s.onerror = reject;
+                             window._faceApiScriptEl = s;
+                             document.head.appendChild(s);
+                         });
+                     }
+                 }
                  await Promise.all([
                      faceapi.nets.tinyFaceDetector.loadFromUri('{{ asset('vendor/face-api/model') }}'),
                      faceapi.nets.faceLandmark68TinyNet.loadFromUri('{{ asset('vendor/face-api/model') }}'),
