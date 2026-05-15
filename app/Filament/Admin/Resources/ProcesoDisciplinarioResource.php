@@ -1944,17 +1944,19 @@ class ProcesoDisciplinarioResource extends Resource
                                     Forms\Components\Placeholder::make('exoneracion_aviso')
                                         ->hiddenLabel()
                                         ->content(fn() => new \Illuminate\Support\HtmlString(
+                                            '<style>:root{--exo-label:rgba(0,0,0,0.45);--exo-text:rgba(17,24,39,0.78);--exo-strong:#b91c1c;}' .
+                                            'html.dark{--exo-label:rgba(255,255,255,0.35);--exo-text:rgba(255,255,255,0.70);--exo-strong:rgba(255,160,160,0.95);}</style>' .
                                             '<div style="padding:16px 18px;background:rgba(239,68,68,0.11);border-radius:14px;' .
                                             'border:1px solid rgba(239,68,68,0.22);border-left:3px solid #f87171;">' .
                                             '<div style="display:flex;align-items:flex-start;gap:12px;">' .
                                             '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="800" stroke="bold" ' .
                                             'colors="primary:#f87171,secondary:#fca5a5" style="width:36px;height:36px;flex-shrink:0;margin-top:-2px"></lord-icon>' .
                                             '<div style="flex:1;min-width:0;">' .
-                                            '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.35);margin:0 0 4px;">Advertencia Legal</p>' .
+                                            '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--exo-label);margin:0 0 4px;">Advertencia Legal</p>' .
                                             '<p style="font-size:15px;font-weight:800;color:#f87171;margin:0 0 10px;line-height:1.2;">Decisión contraria a la recomendación jurídica</p>' .
-                                            '<p style="font-size:13px;color:rgba(255,255,255,0.70);line-height:1.6;margin:0;">' .
+                                            '<p style="font-size:13px;color:var(--exo-text);line-height:1.6;margin:0;">' .
                                             'La decisión que está tomando va en contra de la recomendación jurídica emitida por el sistema de inteligencia artificial de CES Legal. ' .
-                                            '<strong style="color:rgba(255,160,160,0.95);">CES Legal no se responsabiliza por las consecuencias legales, laborales o judiciales derivadas de esta decisión.</strong>' .
+                                            '<strong style="color:var(--exo-strong);">CES Legal no se responsabiliza por las consecuencias legales, laborales o judiciales derivadas de esta decisión.</strong>' .
                                             '</p></div></div></div>'
                                         )),
 
@@ -1995,9 +1997,11 @@ class ProcesoDisciplinarioResource extends Resource
                                     Forms\Components\Placeholder::make('declaracion_texto')
                                         ->hiddenLabel()
                                         ->content(fn() => new \Illuminate\Support\HtmlString(
-                                            '<div style="padding:14px 16px;background:rgba(255,255,255,0.04);border-radius:12px;border:1px solid rgba(255,255,255,0.10);border-left:3px solid rgba(255,255,255,0.25);">' .
-                                            '<p style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.38);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px;">Declaración del Autorizador</p>' .
-                                            '<p style="font-size:13px;color:rgba(255,255,255,0.72);line-height:1.6;margin:0;">Al marcar la casilla a continuación, declaro que tengo la potestad disciplinaria para emitir esta sanción, que he revisado los hechos del proceso y las evidencias aportadas, y que autorizo expresamente la emisión de esta decisión disciplinaria. Entiendo que esta acción queda registrada con fecha, hora e imagen de verificación como parte del expediente del proceso.</p>' .
+                                            '<style>:root{--decl-bg:rgba(0,0,0,0.03);--decl-border:rgba(0,0,0,0.10);--decl-left:rgba(0,0,0,0.15);--decl-label:rgba(0,0,0,0.45);--decl-text:rgba(17,24,39,0.78);}' .
+                                            'html.dark{--decl-bg:rgba(255,255,255,0.04);--decl-border:rgba(255,255,255,0.10);--decl-left:rgba(255,255,255,0.25);--decl-label:rgba(255,255,255,0.38);--decl-text:rgba(255,255,255,0.72);}</style>' .
+                                            '<div style="padding:14px 16px;background:var(--decl-bg);border-radius:12px;border:1px solid var(--decl-border);border-left:3px solid var(--decl-left);">' .
+                                            '<p style="font-size:10px;font-weight:700;color:var(--decl-label);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px;">Declaración del Autorizador</p>' .
+                                            '<p style="font-size:13px;color:var(--decl-text);line-height:1.6;margin:0;">Al marcar la casilla a continuación, declaro que tengo la potestad disciplinaria para emitir esta sanción, que he revisado los hechos del proceso y las evidencias aportadas, y que autorizo expresamente la emisión de esta decisión disciplinaria. Entiendo que esta acción queda registrada con fecha, hora e imagen de verificación como parte del expediente del proceso.</p>' .
                                             '</div>'
                                         )),
 

@@ -29,9 +29,33 @@
 @endphp
 
 <style>
+:root {
+    --esp-label:      rgba(0,0,0,0.45);
+    --esp-title:      rgba(17,24,39,0.90);
+    --esp-muted:      rgba(0,0,0,0.40);
+    --esp-body:       rgba(17,24,39,0.78);
+    --esp-row-border: rgba(0,0,0,0.08);
+    --esp-card-bg:    rgba(0,0,0,0.025);
+    --esp-border:     rgba(0,0,0,0.10);
+    --esp-left:       rgba(0,0,0,0.18);
+    --esp-shimmer:    rgba(0,0,0,0.05);
+}
+html.dark {
+    --esp-label:      rgba(255,255,255,0.30);
+    --esp-title:      rgba(255,255,255,0.88);
+    --esp-muted:      rgba(255,255,255,0.38);
+    --esp-body:       rgba(255,255,255,0.75);
+    --esp-row-border: rgba(255,255,255,0.06);
+    --esp-card-bg:    rgba(255,255,255,0.035);
+    --esp-border:     rgba(255,255,255,0.08);
+    --esp-left:       rgba(255,255,255,0.20);
+    --esp-shimmer:    rgba(255,255,255,0.10);
+}
 .esp-card {
     border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid var(--esp-border);
+    border-left: 3px solid var(--esp-left);
+    background: linear-gradient(135deg, var(--esp-card-bg) 0%, transparent 100%);
     overflow: hidden;
     position: relative;
 }
@@ -40,14 +64,14 @@
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent);
+    background: linear-gradient(90deg, transparent, var(--esp-shimmer), transparent);
 }
 .esp-label-top {
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.30);
+    color: var(--esp-label);
     margin: 0 0 4px;
 }
 .esp-row {
@@ -55,7 +79,7 @@
     align-items: flex-start;
     gap: 12px;
     padding: 10px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid var(--esp-row-border);
 }
 .esp-row:last-child {
     border-bottom: none;
@@ -68,11 +92,13 @@
     flex-shrink: 0;
     margin-top: 5px;
 }
+.esp-text-title { color: var(--esp-title); font-size:15px; font-weight:800; line-height:1.2; margin:0; }
+.esp-text-muted  { color: var(--esp-muted); font-size:12px; margin:4px 0 0; line-height:1.5; font-style:italic; }
+.esp-text-body   { color: var(--esp-body);  font-size:13px; margin:0; line-height:1.5; }
+.esp-text-empty  { color: var(--esp-muted); font-size:13px; margin:0; line-height:1.5; font-style:italic; }
 </style>
 
-<div class="esp-card"
-     style="background: linear-gradient(135deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.01) 100%);
-            border-left: 3px solid rgba(255,255,255,0.20);">
+<div class="esp-card">
     <div style="padding: 16px 18px;">
 
         {{-- Header --}}
@@ -85,11 +111,9 @@
             </lord-icon>
             <div style="flex:1;min-width:0;">
                 <p class="esp-label-top">Potestad disciplinaria</p>
-                <p style="font-size:15px;font-weight:800;color:rgba(255,255,255,0.88);line-height:1.2;margin:0;">
-                    Quién puede autorizar según el RIT
-                </p>
+                <p class="esp-text-title">Quién puede autorizar según el RIT</p>
                 @if($todoVacio)
-                    <p style="font-size:12px;color:rgba(255,255,255,0.38);margin:4px 0 0;line-height:1.5;font-style:italic;">
+                    <p class="esp-text-muted">
                         El RIT no detalla potestades disciplinarias para estos tipos de sanción.
                         Verifique el reglamento interno directamente.
                     </p>
@@ -105,7 +129,7 @@
                     <p style="font-size:11px;font-weight:700;color:{{ $fila['accent'] }};margin:0 0 3px;text-transform:uppercase;letter-spacing:0.05em;">
                         {{ $fila['label'] }}
                     </p>
-                    <p style="font-size:13px;color:{{ $fila['vacio'] ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.75)' }};margin:0;line-height:1.5;font-style:{{ $fila['vacio'] ? 'italic' : 'normal' }};">
+                    <p class="{{ $fila['vacio'] ? 'esp-text-empty' : 'esp-text-body' }}">
                         {{ $fila['texto'] }}
                     </p>
                 </div>
