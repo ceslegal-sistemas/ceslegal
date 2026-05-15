@@ -453,23 +453,47 @@ class ActaDescargosService
             );
         }
 
-        // Pruebas
+        // Pruebas — revisar tanto el boolean como los archivos efectivamente adjuntados
+        $archivosEvidencia = $diligencia->archivos_evidencia ?? [];
+        $tieneEvidencias   = $diligencia->pruebas_aportadas || !empty($archivosEvidencia);
+
         $section->addText(
             'PRUEBAS APORTADAS:',
             ['bold' => true, 'name' => 'Arial', 'size' => 11],
             ['alignment' => Jc::BOTH, 'spaceAfter' => 60]
         );
 
-        if ($diligencia->pruebas_aportadas) {
-            $textoPruebas = !empty($diligencia->descripcion_pruebas)
-                ? $this->limpiarTextoParaWord($diligencia->descripcion_pruebas)
-                : ucfirst("{$g['el']} {$g['trabajador']} aportó pruebas durante la diligencia a través de la plataforma.");
+        if ($tieneEvidencias) {
+            if (!empty($diligencia->descripcion_pruebas)) {
+                $section->addText(
+                    $this->limpiarTextoParaWord($diligencia->descripcion_pruebas),
+                    ['name' => 'Arial', 'size' => 11],
+                    ['alignment' => Jc::BOTH, 'spaceAfter' => 80]
+                );
+            } else {
+                $section->addText(
+                    ucfirst("{$g['el']} {$g['trabajador']} adjuntó los siguientes archivos como prueba durante la diligencia:"),
+                    ['name' => 'Arial', 'size' => 11],
+                    ['alignment' => Jc::BOTH, 'spaceAfter' => 60]
+                );
+            }
 
-            $section->addText(
-                $textoPruebas,
-                ['name' => 'Arial', 'size' => 11],
-                ['alignment' => Jc::BOTH, 'spaceAfter' => 200]
-            );
+            if (!empty($archivosEvidencia)) {
+                foreach ($archivosEvidencia as $archivo) {
+                    $nombre = $this->limpiarTextoParaWord($archivo['nombre'] ?? 'Archivo');
+                    $kb     = isset($archivo['size']) ? round($archivo['size'] / 1024, 1) . ' KB' : '';
+                    $tipo   = $this->limpiarTextoParaWord($archivo['tipo'] ?? '');
+                    $meta   = array_filter([$kb, $tipo]);
+
+                    $section->addText(
+                        '  • ' . $nombre . (!empty($meta) ? '  (' . implode(', ', $meta) . ')' : ''),
+                        ['name' => 'Arial', 'size' => 11],
+                        ['alignment' => Jc::BOTH, 'spaceAfter' => 40]
+                    );
+                }
+            }
+
+            $section->addText('', ['name' => 'Arial', 'size' => 6], ['spaceAfter' => 160]);
         } else {
             $section->addText(
                 ucfirst("{$g['el']} {$g['trabajador']} no aportó pruebas adicionales durante esta diligencia."),
