@@ -239,7 +239,7 @@
                     <lord-icon
                         src="https://cdn.lordicon.com/wloilxuq.json"
                         trigger="loop" delay="800" stroke="bold"
-                        colors="primary:#c9a84c,secondary:#f0d07a,tertiary:#8a6a1e"
+                        colors="primary:#ffffff,secondary:#ffffff,tertiary:#ffffff"
                         style="width:48px;height:48px;">
                     </lord-icon>
                 </div>
