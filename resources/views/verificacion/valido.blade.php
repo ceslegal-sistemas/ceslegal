@@ -63,7 +63,7 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 
-        /* ── Hero keyframes ── */
+        /* ══ Hero keyframes ══════════════════════════════════════════════ */
         @keyframes bv-up  { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
         @keyframes bv-pop { from { opacity:0; transform:scale(.55) }        to { opacity:1; transform:scale(1) } }
         @keyframes bv-glow {
@@ -88,7 +88,7 @@
             0%   { transform:translateY(0) translateX(0) scale(1); opacity:0; }
             8%   { opacity:.92; }
             80%  { opacity:.45; }
-            100% { transform:translateY(-320px) translateX(var(--drift, 20px)) scale(.2); opacity:0; }
+            100% { transform:translateY(-320px) translateX(var(--drift,20px)) scale(.2); opacity:0; }
         }
 
         .bv-a1 { animation:bv-up .6s cubic-bezier(.16,1,.3,1) both }
@@ -99,7 +99,7 @@
                        bv-glow 3s 1.2s ease-in-out infinite;
         }
 
-        /* ── Hero container — light mode ── */
+        /* ══ Hero container — light mode ════════════════════════════════ */
         .bv-hero {
             position: relative;
             overflow: hidden;
@@ -114,62 +114,118 @@
             .bv-hero { border-radius:1.375rem; padding:2.5rem 2rem 2.25rem; }
         }
 
-        /* ── Overlay blanco suave (luz) ── */
         .bv-hero-overlay {
             position: absolute; inset: 0; pointer-events: none; z-index: 1;
             background: radial-gradient(ellipse 72% 80% at 50% 45%,
                 rgba(255,255,255,.68) 0%, rgba(255,255,255,.35) 55%, transparent 100%);
         }
-
-        /* ── Fire base glow ── */
         .bv-fire-base {
             position: absolute; inset: 0; pointer-events: none; z-index: 0;
             background: radial-gradient(ellipse 85% 55% at 50% 100%,
                 rgba(255,110,20,.22) 0%, rgba(255,160,40,.10) 50%, transparent 100%);
         }
-
-        /* ── Orbs animados ── */
         .bv-hero-orb-blue { animation: bv-float-blue 11s ease-in-out infinite; }
         .bv-hero-orb-gold { animation: bv-float-gold 14s ease-in-out infinite; }
-
-        /* ── Embers ── */
         .bv-ember {
-            position: absolute;
-            border-radius: 50%;
-            pointer-events: none;
-            bottom: -4px;
-            will-change: transform, opacity;
-            animation: bv-ember-rise var(--dur, 5s) var(--del, 0s) ease-in infinite;
+            position: absolute; border-radius: 50%; pointer-events: none;
+            bottom: -4px; will-change: transform, opacity;
+            animation: bv-ember-rise var(--dur,5s) var(--del,0s) ease-in infinite;
         }
 
-        /* ── Cards / sections ── */
-        .section-card {
-            background: white;
-            border-radius: 1rem;
-            border: 1px solid #e5e7eb;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+        /* ══ Rule divider ════════════════════════════════════════════════ */
+        .bv-rule {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
         }
+        .bv-rule-line {
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
+        }
+        .bv-rule-label {
+            font-size: .625rem;
+            font-weight: 700;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            color: #94a3b8;
+        }
+
+        /* ══ Hint box (aviso legal) ══════════════════════════════════════ */
+        .bv-hint {
+            display: flex;
+            align-items: flex-start;
+            gap: .75rem;
+            padding: .875rem 1.125rem;
+            border-radius: 1rem;
+            background: rgba(146,113,13,.06);
+            border: 1px solid rgba(146,113,13,.18);
+            font-size: .8125rem;
+            color: #475569;
+            line-height: 1.6;
+        }
+        .bv-hint strong { color: #92710d; font-weight: 600; }
+
+        /* ══ Section cards ═══════════════════════════════════════════════ */
+        .section-card {
+            background: rgba(255,255,255,.85);
+            border-radius: 1rem;
+            border: 1px solid rgba(0,0,0,.08);
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+            position: relative;
+            transition: transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s ease;
+        }
+        /* Top accent bar — slides in on hover */
+        .section-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2.5px;
+            background: var(--card-accent, #4f46e5);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform .28s ease;
+            z-index: 1;
+        }
+        .section-card:hover::before { transform: scaleX(1); }
+        /* Shimmer / glare on hover */
+        .section-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(circle at var(--mx,50%) var(--my,50%),
+                rgba(201,168,76,.10) 0%, transparent 62%);
+            opacity: 0;
+            transition: opacity .3s;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .section-card:hover::after { opacity: 1; }
+
         .section-head {
-            border-left: 3px solid #6366f1;
-            background: #f9fafb;
-            border-bottom: 1px solid #f3f4f6;
+            border-bottom: 1px solid rgba(0,0,0,.06);
             padding: 0.625rem 1.25rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
         .section-head-label {
-            font-size: 0.6875rem;
+            font-size: .575rem;
             font-weight: 700;
-            color: #6b7280;
+            color: #4f46e5;
             text-transform: uppercase;
-            letter-spacing: 0.07em;
+            letter-spacing: .12em;
+            opacity: .85;
         }
+
+        /* ══ Field tokens ════════════════════════════════════════════════ */
         .field-label {
             font-size: 0.6875rem;
             font-weight: 500;
-            color: #9ca3af;
+            color: #64748b;
             text-transform: uppercase;
             letter-spacing: 0.06em;
             margin-bottom: 0.2rem;
@@ -177,14 +233,14 @@
         .field-value {
             font-size: 0.875rem;
             font-weight: 600;
-            color: #111827;
+            color: #0f172a;
         }
         .mono { font-family: 'SF Mono','Fira Code','Courier New',monospace; }
         .auth-line { width:2px; background:#bbf7d0; flex:1; margin:3px 0; }
 
         @media(prefers-reduced-motion:reduce) {
-            .bv-a1,.bv-a2,.bv-icon-ring,.bv-hero-orb-blue,.bv-hero-orb-gold,.bv-ember
-            { animation:none; opacity:.6; transform:none; }
+            .bv-a1,.bv-a2,.bv-icon-ring,.bv-hero-orb-blue,.bv-hero-orb-gold,.bv-ember,
+            .section-card { animation:none; transition:none; opacity:.9; transform:none; }
         }
     </style>
 </head>
@@ -208,12 +264,11 @@
 
     <main class="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-4">
 
-        {{-- ── Hero: Documento Verificado ── --}}
+        {{-- ── Hero ── --}}
         <div class="bv-hero bv-a1" id="{{ $heroId }}">
             <canvas id="{{ $heroId }}_canvas"
                 style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.45;"></canvas>
 
-            {{-- Orbs flotantes (colores fuego en modo claro) --}}
             <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
                 <div class="bv-hero-orb-blue"
                     style="position:absolute;width:280px;height:280px;top:-70px;right:-50px;border-radius:50%;
@@ -223,8 +278,6 @@
                     style="position:absolute;width:200px;height:200px;bottom:-50px;left:-40px;border-radius:50%;
                            background:radial-gradient(circle,rgba(201,140,20,.32),transparent 70%);filter:blur(26px);">
                 </div>
-
-                {{-- Embers (fuego ascendente) --}}
                 @foreach($embers as $e)
                 <div class="bv-ember" style="
                     left:{{ $e['x'] }}%;
@@ -237,14 +290,10 @@
                 @endforeach
             </div>
 
-            {{-- Fire base glow --}}
             <div class="bv-fire-base"></div>
             <div class="bv-hero-overlay"></div>
 
-            {{-- Contenido --}}
             <div style="position:relative;z-index:2;">
-
-                {{-- Ícono balanza en anillo dorado --}}
                 <div class="bv-icon-ring" style="
                     display:inline-flex;align-items:center;justify-content:center;
                     width:64px;height:64px;border-radius:50%;margin-bottom:1.125rem;
@@ -257,21 +306,18 @@
                     </lord-icon>
                 </div>
 
-                {{-- Supratítulo dorado --}}
                 <p style="color:#92710d;font-size:.7rem;font-weight:700;letter-spacing:.18em;
                            text-transform:uppercase;margin:0 0 .4rem;
                            text-shadow:0 1px 12px rgba(180,80,10,.2),0 2px 4px rgba(0,0,0,.08);">
                     Verificador de Identidad
                 </p>
 
-                {{-- Título principal --}}
                 <h1 style="color:#0f172a;font-size:1.5rem;font-weight:700;letter-spacing:-.02em;
                             line-height:1.25;margin:0 0 .875rem;
                             text-shadow:0 1px 12px rgba(180,80,10,.2),0 2px 4px rgba(0,0,0,.08);">
                     Documento Verificado
                 </h1>
 
-                {{-- Descripción --}}
                 <p style="color:#334155;font-size:.875rem;font-weight:500;line-height:1.65;
                            margin:0 auto;max-width:420px;">
                     Este documento fue generado por la plataforma CES Legal y su autenticidad ha sido confirmada.
@@ -280,30 +326,36 @@
                     y verificación
                     <span style="color:#92710d;font-weight:600;">facial biométrica</span>.
                 </p>
-
             </div>
         </div>
 
         {{-- ── Aviso legal ── --}}
-        <div class="bg-warning-50 border border-warning-200 rounded-xl px-4 py-3 flex gap-3 items-start">
+        <div class="bv-hint">
             <lord-icon
                 src="https://cdn.lordicon.com/msoeawqm.json"
                 trigger="loop" delay="4000" stroke="bold"
                 colors="primary:#92400e,secondary:#b45309"
                 style="width:17px;height:17px;flex-shrink:0;margin-top:1px;">
             </lord-icon>
-            <p class="text-xs text-warning-800 leading-relaxed">
-                <span class="font-semibold">Nota:</span>
+            <p style="margin:0;">
+                <strong>Nota:</strong>
                 CES Legal actúa exclusivamente como proveedora del servicio tecnológico de gestión disciplinaria.
                 La decisión disciplinaria es responsabilidad exclusiva de
-                <span class="font-semibold">{{ $empresa->razon_social ?? 'el empleador' }}</span>.
-                Válido conforme a la <span class="font-semibold">Ley 527/1999</span>
-                y el <span class="font-semibold">Decreto 2364/2012</span>.
+                <strong>{{ $empresa->razon_social ?? 'el empleador' }}</strong>.
+                Válido conforme a la <strong>Ley 527/1999</strong>
+                y el <strong>Decreto 2364/2012</strong>.
             </p>
         </div>
 
+        {{-- ── Divider ── --}}
+        <div class="bv-rule">
+            <div class="bv-rule-line"></div>
+            <span class="bv-rule-label">Información del documento</span>
+            <div class="bv-rule-line"></div>
+        </div>
+
         {{-- ── Proceso Disciplinario ── --}}
-        <div class="section-card">
+        <div class="section-card" style="--card-accent:#4f46e5;">
             <div class="section-head">
                 <lord-icon
                     src="https://cdn.lordicon.com/hmpomorl.json"
@@ -340,7 +392,7 @@
         </div>
 
         {{-- ── Participante ── --}}
-        <div class="section-card">
+        <div class="section-card" style="--card-accent:#6366f1;">
             <div class="section-head">
                 <lord-icon
                     src="https://cdn.lordicon.com/bushiqea.json"
@@ -374,7 +426,7 @@
 
         {{-- ── Fotos de verificación biométrica ── --}}
         @if($fotoInicioUrl || $fotoFinUrl)
-        <div class="section-card">
+        <div class="section-card" style="--card-accent:#a78bfa;">
             <div class="section-head">
                 <lord-icon
                     src="https://cdn.lordicon.com/ocylgmkg.json"
@@ -422,7 +474,7 @@
 
         {{-- ── Cadena de autenticación ── --}}
         @if(!empty($autenticaciones))
-        <div class="section-card">
+        <div class="section-card" style="--card-accent:#34d399;">
             <div class="section-head">
                 <lord-icon
                     src="https://cdn.lordicon.com/kfzfxczd.json"
@@ -451,8 +503,8 @@
                         @endif
                     </div>
                     <div class="flex-1 min-w-0 {{ !$loop->last ? 'pb-4' : 'pb-1' }}">
-                        <p class="text-sm font-semibold text-gray-900">{{ $auth['tipo'] }}</p>
-                        <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ $auth['detalle'] }}</p>
+                        <p class="text-sm font-semibold" style="color:#0f172a;">{{ $auth['tipo'] }}</p>
+                        <p class="text-xs mt-0.5 leading-relaxed" style="color:#64748b;">{{ $auth['detalle'] }}</p>
                     </div>
                 </div>
                 @endforeach
@@ -461,7 +513,7 @@
         @endif
 
         {{-- ── Integridad del documento ── --}}
-        <div class="section-card">
+        <div class="section-card" style="--card-accent:#c9a84c;">
             <div class="section-head">
                 <lord-icon
                     src="https://cdn.lordicon.com/fihkmkwt.json"
@@ -472,17 +524,17 @@
                 <span class="section-head-label">Integridad del Documento</span>
             </div>
             <div class="p-5 space-y-3">
-                <div class="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                <div class="rounded-xl p-3" style="background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.06);">
                     <p class="field-label">Token de verificación</p>
-                    <p class="text-xs text-gray-700 mono break-all leading-relaxed mt-1">{{ $token }}</p>
+                    <p class="text-xs mono break-all leading-relaxed mt-1" style="color:#334155;">{{ $token }}</p>
                 </div>
                 @if($diligencia->verificacion_hash)
-                <div class="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                <div class="rounded-xl p-3" style="background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.06);">
                     <p class="field-label">Hash SHA-256 del documento</p>
-                    <p class="text-xs text-gray-700 mono break-all leading-relaxed mt-1">{{ $diligencia->verificacion_hash }}</p>
+                    <p class="text-xs mono break-all leading-relaxed mt-1" style="color:#334155;">{{ $diligencia->verificacion_hash }}</p>
                 </div>
                 @endif
-                <div class="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                <div class="rounded-xl p-3" style="background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.06);">
                     <p class="field-label">Documento generado el</p>
                     <p class="field-value mt-1">
                         {{ $diligencia->verificacion_generada_en
@@ -497,7 +549,7 @@
 
     {{-- ── Footer ── --}}
     <footer class="max-w-2xl mx-auto px-4 sm:px-6 pb-10 pt-4 text-center">
-        <p class="text-xs text-gray-400 leading-relaxed">
+        <p class="text-xs leading-relaxed" style="color:#94a3b8;">
             Verificación provista por
             <a href="https://www.ceslegal.co" target="_blank" rel="noopener"
                class="text-primary-600 hover:underline font-medium">CES Legal</a>
@@ -575,6 +627,15 @@
                 if (!e[0].isIntersecting) cancelAnimationFrame(raf); else draw();
             }).observe(hero);
     })();
+
+    /* ── Section card shimmer (mouse tracking) ── */
+    document.querySelectorAll('.section-card').forEach(function(card) {
+        card.addEventListener('mousemove', function(e) {
+            var r = card.getBoundingClientRect();
+            card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+            card.style.setProperty('--my', ((e.clientY - r.top)  / r.height * 100) + '%');
+        });
+    });
     </script>
 
 </body>
