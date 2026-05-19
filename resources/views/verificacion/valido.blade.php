@@ -477,7 +477,7 @@
         <div class="section-card" style="--card-accent:#34d399;">
             <div class="section-head">
                 <lord-icon
-                    src="https://cdn.lordicon.com/kfzfxczd.json"
+                    src="https://cdn.lordicon.com/dxjqoygy.json"
                     trigger="loop" delay="2000" stroke="bold"
                     colors="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
                     style="width:20px;height:20px;flex-shrink:0;">
