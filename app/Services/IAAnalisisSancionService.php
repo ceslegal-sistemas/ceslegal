@@ -448,7 +448,7 @@ PROMPT;
             ],
             'generationConfig' => [
                 'temperature' => 0.3,
-                'maxOutputTokens' => max((int) ($config['max_tokens'] ?? 4096), 8192),
+                'maxOutputTokens' => max((int) ($config['max_tokens'] ?? 4096), 16384),
                 'topP' => 0.95,
             ],
         ];
@@ -495,6 +495,15 @@ PROMPT;
             throw new \Exception('Respuesta de Gemini sin contenido válido');
         }
 
+        // Advertir si Gemini truncó la respuesta por límite de tokens
+        $finishReason = $responseData['candidates'][0]['finishReason'] ?? null;
+        if ($finishReason === 'MAX_TOKENS') {
+            Log::warning('IAAnalisisSancion: respuesta truncada por MAX_TOKENS — considera aumentar maxOutputTokens o reducir el prompt', [
+                'modelo' => $modelo,
+                'finish_reason' => $finishReason,
+            ]);
+        }
+
         GeminiCircuitBreaker::recordSuccess();
 
         return $responseData['candidates'][0]['content']['parts'][0]['text'];
@@ -530,25 +539,29 @@ PROMPT;
                 Log::info('JSON de IA reparado exitosamente (respuesta truncada)');
             }
 
-            // Validar estructura
+            // Validar campos mínimos requeridos
             if (!isset($analisis['gravedad']) || !isset($analisis['sanciones_disponibles'])) {
-                throw new \Exception('Respuesta de IA con estructura inválida');
+                throw new \Exception('Respuesta de IA con estructura inválida (faltan campos gravedad/sanciones_disponibles)');
             }
 
-            // Ensure autoridad_sancion exists with proper fallback
-            if (!isset($analisis['autoridad_sancion'])) {
-                $analisis['autoridad_sancion'] = [];
+            // Rellenar campos opcionales que pueden haberse truncado
+            $defaults = $this->obtenerOpcionesPorDefecto();
+            foreach (['sancion_recomendada', 'justificacion', 'razonamiento_legal', 'consideraciones_especiales', 'motivos_analizados', 'analisis_otro_motivo', 'recomendacion_final', 'autoridad_sancion', 'dias_suspension_sugeridos', 'nivel_gravedad', 'es_reincidencia'] as $campo) {
+                if (!isset($analisis[$campo])) {
+                    $analisis[$campo] = $defaults[$campo] ?? null;
+                }
             }
 
             return $analisis;
 
         } catch (\Exception $e) {
-            Log::warning('Error al parsear análisis de IA, usando valores por defecto', [
+            Log::warning('Error al parsear análisis de IA', [
                 'error' => $e->getMessage(),
                 'respuesta_ia' => mb_substr($analisisTexto, 0, 500),
             ]);
 
-            return $this->obtenerOpcionesPorDefecto();
+            // Re-propagar para que analizarYSugerirSanciones retorne success:false
+            throw $e;
         }
     }
 
