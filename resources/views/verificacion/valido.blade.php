@@ -187,7 +187,7 @@
                 <lord-icon
                     src="https://cdn.lordicon.com/fihkmkwt.json"
                     trigger="loop" delay="3000" stroke="bold"
-                    colors="primary:#9ca3af,secondary:#d1d5db"
+                    colors="primary:#6b7280,secondary:#9ca3af"
                     style="width:15px;height:15px;">
                 </lord-icon>
                 Portal de Verificación
@@ -239,7 +239,7 @@
                     <lord-icon
                         src="https://cdn.lordicon.com/wloilxuq.json"
                         trigger="loop" delay="800" stroke="bold"
-                        colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                        colors="primary:#ffffff,secondary:#c9a84c,tertiary:#f1f5f9"
                         style="width:48px;height:48px;">
                     </lord-icon>
                 </div>
@@ -277,7 +277,7 @@
             <lord-icon
                 src="https://cdn.lordicon.com/msoeawqm.json"
                 trigger="loop" delay="4000" stroke="bold"
-                colors="primary:#d97706,secondary:#f59e0b"
+                colors="primary:#92400e,secondary:#b45309"
                 style="width:17px;height:17px;flex-shrink:0;margin-top:1px;">
             </lord-icon>
             <p class="text-xs text-warning-800 leading-relaxed">
