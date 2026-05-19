@@ -1,22 +1,20 @@
 @php
     $heroId = 'hv_' . substr(md5('verificacion'), 0, 8);
 
-    /* Fireflies — generated server-side for deterministic layout */
-    $ffColors = ['201,168,76', '255,235,120', '255,255,200', '190,215,255', '245,195,255'];
-    $fireflies = [];
-    for ($i = 0; $i < 24; $i++) {
-        $c  = $ffColors[array_rand($ffColors)];
-        $sz = round(mt_rand(20, 55) / 10, 1);
-        $g  = (int)(($sz * mt_rand(35, 60)) / 10);
-        $fireflies[] = [
-            'x'   => mt_rand(2, 97),
-            'y'   => mt_rand(5, 95),
-            'sz'  => $sz,
-            'g'   => $g,
-            'c'   => $c,
-            'tw'  => round(mt_rand(20, 55) / 10, 1),
-            'del' => round(mt_rand(0,  55) / 10, 1),
-            'dr'  => round(mt_rand(70, 150) / 10, 1),
+    /* Embers — golden-orange sparks rising from bottom (light mode) */
+    $emberColors = ['200,60,5', '230,90,10', '255,130,20', '180,45,0', '240,110,15', '210,70,5'];
+    $embers = [];
+    for ($i = 0; $i < 28; $i++) {
+        $c  = $emberColors[array_rand($emberColors)];
+        $sz = round(mt_rand(15, 45) / 10, 1);
+        $embers[] = [
+            'x'     => mt_rand(2, 98),
+            'sz'    => $sz,
+            'c'     => $c,
+            'g'     => (int)(($sz * mt_rand(25, 50)) / 10),
+            'dur'   => round(mt_rand(35, 75) / 10, 1),
+            'del'   => round(mt_rand(0, 90) / 10, 1),
+            'drift' => mt_rand(-40, 40),
         ];
     }
 @endphp
@@ -69,17 +67,8 @@
         @keyframes bv-up  { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
         @keyframes bv-pop { from { opacity:0; transform:scale(.55) }        to { opacity:1; transform:scale(1) } }
         @keyframes bv-glow {
-            0%,100% { box-shadow:0 0 0  0   rgba(201,168,76,.5) }
+            0%,100% { box-shadow:0 0 0  0   rgba(201,168,76,.4) }
             65%     { box-shadow:0 0 0 14px  rgba(201,168,76,0) }
-        }
-        @keyframes bv-twinkle {
-            0%,100% { opacity:.04; transform:scale(.3)  }
-            45%,55% { opacity:1;   transform:scale(1.3) }
-        }
-        @keyframes bv-drift {
-            0%,100% { transform:translate(0,0) }
-            30%     { transform:translate(10px,-16px) }
-            65%     { transform:translate(-8px,-10px) }
         }
         @keyframes bv-float-blue {
             0%   { transform:translate(0,0) scale(1) }
@@ -95,6 +84,12 @@
             85%  { transform:translate(8px,-14px) scale(1.06) }
             100% { transform:translate(0,0) scale(1) }
         }
+        @keyframes bv-ember-rise {
+            0%   { transform:translateY(0) translateX(0) scale(1); opacity:0; }
+            8%   { opacity:.92; }
+            80%  { opacity:.45; }
+            100% { transform:translateY(-320px) translateX(var(--drift, 20px)) scale(.2); opacity:0; }
+        }
 
         .bv-a1 { animation:bv-up .6s cubic-bezier(.16,1,.3,1) both }
         .bv-a2 { animation:bv-up .6s .12s cubic-bezier(.16,1,.3,1) both }
@@ -104,31 +99,47 @@
                        bv-glow 3s 1.2s ease-in-out infinite;
         }
 
-        /* ── Hero container ── */
+        /* ── Hero container — light mode ── */
         .bv-hero {
             position: relative;
             overflow: hidden;
             border-radius: 1.125rem;
             padding: 2rem 1.25rem 1.75rem;
             text-align: center;
-            background: linear-gradient(155deg, #060f22 0%, #091830 50%, #060e20 100%);
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,.06);
+            box-shadow: 0 4px 24px rgba(0,0,0,.06);
         }
         @media(min-width:540px) {
             .bv-hero { border-radius:1.375rem; padding:2.5rem 2rem 2.25rem; }
         }
 
+        /* ── Overlay blanco suave (luz) ── */
         .bv-hero-overlay {
             position: absolute; inset: 0; pointer-events: none; z-index: 1;
-            background: radial-gradient(ellipse 75% 85% at 50% 50%,
-                rgba(3,8,20,.84) 0%, rgba(3,8,20,.52) 50%, transparent 100%);
+            background: radial-gradient(ellipse 72% 80% at 50% 45%,
+                rgba(255,255,255,.68) 0%, rgba(255,255,255,.35) 55%, transparent 100%);
         }
+
+        /* ── Fire base glow ── */
+        .bv-fire-base {
+            position: absolute; inset: 0; pointer-events: none; z-index: 0;
+            background: radial-gradient(ellipse 85% 55% at 50% 100%,
+                rgba(255,110,20,.22) 0%, rgba(255,160,40,.10) 50%, transparent 100%);
+        }
+
+        /* ── Orbs animados ── */
         .bv-hero-orb-blue { animation: bv-float-blue 11s ease-in-out infinite; }
         .bv-hero-orb-gold { animation: bv-float-gold 14s ease-in-out infinite; }
 
-        .bv-firefly {
-            position: absolute; border-radius: 50%; pointer-events: none; will-change: transform, opacity;
-            animation: bv-twinkle var(--tw) var(--del) ease-in-out infinite,
-                       bv-drift   var(--dr) var(--del) ease-in-out infinite;
+        /* ── Embers ── */
+        .bv-ember {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            bottom: -4px;
+            will-change: transform, opacity;
+            animation: bv-ember-rise var(--dur, 5s) var(--del, 0s) ease-in infinite;
         }
 
         /* ── Cards / sections ── */
@@ -172,7 +183,7 @@
         .auth-line { width:2px; background:#bbf7d0; flex:1; margin:3px 0; }
 
         @media(prefers-reduced-motion:reduce) {
-            .bv-a1,.bv-a2,.bv-icon-ring,.bv-hero-orb-blue,.bv-hero-orb-gold,.bv-firefly
+            .bv-a1,.bv-a2,.bv-icon-ring,.bv-hero-orb-blue,.bv-hero-orb-gold,.bv-ember
             { animation:none; opacity:.6; transform:none; }
         }
     </style>
@@ -197,76 +208,77 @@
 
     <main class="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-4">
 
-        {{-- ── Hero: Documento Verificado (estilo bienvenida-proceso) ── --}}
+        {{-- ── Hero: Documento Verificado ── --}}
         <div class="bv-hero bv-a1" id="{{ $heroId }}">
             <canvas id="{{ $heroId }}_canvas"
-                style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.5;"></canvas>
+                style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.45;"></canvas>
 
-            {{-- Orbs flotantes --}}
+            {{-- Orbs flotantes (colores fuego en modo claro) --}}
             <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
                 <div class="bv-hero-orb-blue"
                     style="position:absolute;width:280px;height:280px;top:-70px;right:-50px;border-radius:50%;
-                           background:radial-gradient(circle,rgba(30,58,138,.55),transparent 70%);filter:blur(28px);">
+                           background:radial-gradient(circle,rgba(220,80,10,.28),transparent 70%);filter:blur(28px);">
                 </div>
                 <div class="bv-hero-orb-gold"
                     style="position:absolute;width:200px;height:200px;bottom:-50px;left:-40px;border-radius:50%;
-                           background:radial-gradient(circle,rgba(201,168,76,.25),transparent 70%);filter:blur(26px);">
+                           background:radial-gradient(circle,rgba(201,140,20,.32),transparent 70%);filter:blur(26px);">
                 </div>
 
-                {{-- Fireflies --}}
-                @foreach($fireflies as $f)
-                <div class="bv-firefly" style="
-                    left:{{ $f['x'] }}%; top:{{ $f['y'] }}%;
-                    width:{{ $f['sz'] }}px; height:{{ $f['sz'] }}px;
-                    background:rgb({{ $f['c'] }});
-                    box-shadow:0 0 {{ $f['g'] }}px {{ $f['g']*2 }}px rgba({{ $f['c'] }},.55),
-                               0 0 {{ $f['g']*4 }}px {{ $f['g']*3 }}px rgba({{ $f['c'] }},.18);
-                    --tw:{{ $f['tw'] }}s; --del:{{ $f['del'] }}s; --dr:{{ $f['dr'] }}s;">
+                {{-- Embers (fuego ascendente) --}}
+                @foreach($embers as $e)
+                <div class="bv-ember" style="
+                    left:{{ $e['x'] }}%;
+                    width:{{ $e['sz'] }}px; height:{{ $e['sz'] }}px;
+                    background:rgb({{ $e['c'] }});
+                    box-shadow:0 0 {{ $e['g'] }}px {{ $e['g'] }}px rgba({{ $e['c'] }},.6),
+                               0 0 {{ $e['g']*2 }}px {{ $e['g']*3 }}px rgba(255,160,30,.22);
+                    --drift:{{ $e['drift'] }}px; --dur:{{ $e['dur'] }}s; --del:{{ $e['del'] }}s;">
                 </div>
                 @endforeach
             </div>
 
+            {{-- Fire base glow --}}
+            <div class="bv-fire-base"></div>
             <div class="bv-hero-overlay"></div>
 
             {{-- Contenido --}}
             <div style="position:relative;z-index:2;">
 
-                {{-- Ícono en anillo dorado --}}
+                {{-- Ícono balanza en anillo dorado --}}
                 <div class="bv-icon-ring" style="
                     display:inline-flex;align-items:center;justify-content:center;
                     width:64px;height:64px;border-radius:50%;margin-bottom:1.125rem;
-                    background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.35);">
+                    background:rgba(201,168,76,.12);border:1.5px solid rgba(146,113,13,.35);">
                     <lord-icon
-                        src="https://cdn.lordicon.com/wloilxuq.json"
-                        trigger="loop" delay="800" stroke="bold"
-                        colors="primary:#ffffff,secondary:#ffffff,tertiary:#ffffff"
-                        style="width:48px;height:48px;">
+                        src="https://cdn.lordicon.com/xjsqfzte.json"
+                        trigger="loop" delay="500" stroke="bold"
+                        colors="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                        style="width:50px;height:50px;">
                     </lord-icon>
                 </div>
 
                 {{-- Supratítulo dorado --}}
-                <p style="color:#c9a84c;font-size:.7rem;font-weight:700;letter-spacing:.18em;
+                <p style="color:#92710d;font-size:.7rem;font-weight:700;letter-spacing:.18em;
                            text-transform:uppercase;margin:0 0 .4rem;
-                           text-shadow:0 0 18px rgba(201,168,76,.65),0 2px 8px rgba(0,0,0,.7);">
+                           text-shadow:0 1px 12px rgba(180,80,10,.2),0 2px 4px rgba(0,0,0,.08);">
                     Verificador de Identidad
                 </p>
 
                 {{-- Título principal --}}
-                <h1 style="color:#f1f5f9;font-size:1.5rem;font-weight:700;letter-spacing:-.02em;
+                <h1 style="color:#0f172a;font-size:1.5rem;font-weight:700;letter-spacing:-.02em;
                             line-height:1.25;margin:0 0 .875rem;
-                            text-shadow:0 2px 24px rgba(0,0,0,.88),0 1px 4px rgba(0,0,0,.65);">
+                            text-shadow:0 1px 12px rgba(180,80,10,.2),0 2px 4px rgba(0,0,0,.08);">
                     Documento Verificado
                 </h1>
 
                 {{-- Descripción --}}
-                <p style="color:#cbd5e1;font-size:.875rem;font-weight:500;line-height:1.65;
-                           margin:0 auto;max-width:420px;
-                           text-shadow:0 1px 8px rgba(0,0,0,.5);">
+                <p style="color:#334155;font-size:.875rem;font-weight:500;line-height:1.65;
+                           margin:0 auto;max-width:420px;">
                     Este documento fue generado por la plataforma CES Legal y su autenticidad ha sido confirmada.
                     La identidad del participante fue validada mediante
-                    <span style="color:#c9a84c;font-weight:600;">OTP</span>
+                    <span style="color:#92710d;font-weight:600;">OTP</span>
                     y verificación
-                    <span style="color:#c9a84c;font-weight:600;">facial biométrica</span>.
+                    <span style="color:#92710d;font-weight:600;">facial biométrica</span>.
                 </p>
 
             </div>
@@ -494,7 +506,7 @@
         </p>
     </footer>
 
-    {{-- ── Canvas particle network (mismo del bienvenida-proceso) ── --}}
+    {{-- ── Canvas particle network ── --}}
     <script>
     (function() {
         var ID     = '{{ $heroId }}';
@@ -529,7 +541,7 @@
         function draw() {
             tick += .016;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            var dc = 'rgba(201,168,76,';
+            var dc = 'rgba(180,80,10,';
             pts.forEach(function(p) {
                 var mx = mouse.x - p.x, my = mouse.y - p.y,
                     md = Math.sqrt(mx*mx + my*my);
@@ -540,7 +552,7 @@
                 p.x += p.vx; p.y += p.vy;
                 if (p.x < 0 || p.x > canvas.width)  p.vx *= -1;
                 if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-                var pa = .45 + .3 * Math.sin(tick * 1.2 + p.phase);
+                var pa = .25 + .2 * Math.sin(tick * 1.2 + p.phase);
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
                 ctx.fillStyle = dc + pa + ')'; ctx.fill();
             });
@@ -550,7 +562,7 @@
                         d = Math.sqrt(dx*dx + dy*dy);
                     if (d < 80) {
                         ctx.beginPath(); ctx.moveTo(pts[a].x, pts[a].y); ctx.lineTo(pts[b].x, pts[b].y);
-                        ctx.strokeStyle = dc + (.3*(1 - d/110)) + ')';
+                        ctx.strokeStyle = dc + (.18*(1 - d/110)) + ')';
                         ctx.lineWidth = .55; ctx.stroke();
                     }
                 }
