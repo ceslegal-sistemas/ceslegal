@@ -15,6 +15,7 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Poll;
 
@@ -28,11 +29,12 @@ class AuditarRIT extends Page implements HasForms
     protected static ?int    $navigationSort  = 11;
     protected static string  $view            = 'filament.pages.auditar-rit';
 
-    public ?Empresa           $empresa    = null;
-    public ?AuditoriaRIT      $auditoria  = null;
-    public ?ReglamentoInterno $rit        = null;
-    public bool               $procesando = false;
-    public array              $data       = [];
+    public ?Empresa           $empresa     = null;
+    public ?AuditoriaRIT      $auditoria   = null;
+    public ?ReglamentoInterno $rit         = null;
+    public ?ReglamentoInterno $ritMejorado = null;
+    public bool               $procesando  = false;
+    public array              $data        = [];
 
     public function mount(): void
     {
@@ -51,6 +53,10 @@ class AuditarRIT extends Page implements HasForms
             $this->auditoria = AuditoriaRIT::where('empresa_id', $this->empresa->id)
                 ->latest()
                 ->first();
+
+            if ($this->auditoria?->reglamento_mejorado_id) {
+                $this->ritMejorado = $this->auditoria->reglamentoMejorado;
+            }
         }
 
         $this->form->fill();
@@ -152,21 +158,50 @@ class AuditarRIT extends Page implements HasForms
         }
     }
 
-    #[Poll(5000)] // Pollar cada 5 segundos mientras procesa
+    #[Poll(5000)] // Pollar cada 5 segundos mientras procesa o genera mejora
     public function refrescarEstado(): void
     {
         if ($this->auditoria) {
             $this->auditoria = $this->auditoria->fresh();
             $this->procesando = $this->auditoria?->estaEnProceso() ?? false;
+
+            // Cargar RIT mejorado cuando la mejora se complete
+            if ($this->auditoria?->reglamento_mejorado_id) {
+                $this->ritMejorado = $this->auditoria->reglamentoMejorado()->first();
+            }
         }
     }
 
     public function nuevaAuditoria(): void
     {
-        $this->auditoria  = null;
-        $this->procesando = false;
-        $this->data       = [];
+        $this->auditoria   = null;
+        $this->ritMejorado = null;
+        $this->procesando  = false;
+        $this->data        = [];
         $this->form->fill();
+    }
+
+    public function downloadPDFMejorado(): mixed
+    {
+        if (!$this->ritMejorado?->ruta_pdf) {
+            Notification::make()->warning()->title('PDF no disponible aún')->send();
+            return null;
+        }
+
+        $rutaAbsoluta = Storage::path($this->ritMejorado->ruta_pdf);
+
+        if (!file_exists($rutaAbsoluta)) {
+            Notification::make()->danger()->title('Archivo no encontrado en el servidor')->send();
+            return null;
+        }
+
+        $nombreEmpresa = $this->empresa?->razon_social ?? 'empresa';
+        $nombreEmpresaSeguro = preg_replace('/[^A-Za-z0-9\-_]/', '_', $nombreEmpresa);
+        $nombreArchivo = "RIT_v{$this->ritMejorado->version}_{$nombreEmpresaSeguro}.pdf";
+
+        return response()->download($rutaAbsoluta, $nombreArchivo, [
+            'Content-Type' => 'application/pdf',
+        ]);
     }
 
     public function getTitle(): string

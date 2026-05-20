@@ -18,6 +18,9 @@ class AuditoriaRIT extends Model
         'score',
         'mensaje_error',
         'fuente',
+        'estado_mejora',
+        'reglamento_mejorado_id',
+        'texto_auditado',
     ];
 
     protected $casts = [
@@ -33,6 +36,11 @@ class AuditoriaRIT extends Model
     public function reglamento(): BelongsTo
     {
         return $this->belongsTo(ReglamentoInterno::class, 'reglamento_interno_id');
+    }
+
+    public function reglamentoMejorado(): BelongsTo
+    {
+        return $this->belongsTo(ReglamentoInterno::class, 'reglamento_mejorado_id');
     }
 
     public function getSeccionesCompletadasAttribute(): int
@@ -52,5 +60,20 @@ class AuditoriaRIT extends Model
     public function estaEnProceso(): bool
     {
         return in_array($this->estado, ['pendiente', 'procesando']);
+    }
+
+    public function mejorando(): bool
+    {
+        return $this->estado_mejora === 'procesando';
+    }
+
+    public function mejoraCompletada(): bool
+    {
+        return $this->estado_mejora === 'completado';
+    }
+
+    public function mejoraFallo(): bool
+    {
+        return $this->estado_mejora === 'fallido';
     }
 }

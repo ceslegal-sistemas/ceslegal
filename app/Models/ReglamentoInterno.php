@@ -19,6 +19,10 @@ class ReglamentoInterno extends Model
         'respuestas_cuestionario',
         'fuente',
         'sanciones_extraidas',
+        'version',
+        'auditoria_origen_id',
+        'reglamento_origen_id',
+        'ruta_pdf',
     ];
 
     protected $casts = [
@@ -35,5 +39,20 @@ class ReglamentoInterno extends Model
     public function fragmentos(): HasMany
     {
         return $this->hasMany(FragmentoReglamento::class, 'reglamento_interno_id')->orderBy('orden');
+    }
+
+    public function auditoriaOrigen(): BelongsTo
+    {
+        return $this->belongsTo(AuditoriaRIT::class, 'auditoria_origen_id');
+    }
+
+    public function reglamentoOrigen(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'reglamento_origen_id');
+    }
+
+    public function esMejorado(): bool
+    {
+        return $this->version > 1;
     }
 }

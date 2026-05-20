@@ -1,18 +1,23 @@
 <x-filament-panels::page>
 @php
-    $tieneAuditoria = $auditoria && $auditoria->estado !== 'pendiente';
-    $secciones      = $auditoria?->secciones ?? [];
-    $numCompletadas = count($secciones);
-    $numTotal       = $this->getNumSecciones();
-    $progreso       = $numTotal > 0 ? round($numCompletadas / $numTotal * 100) : 0;
-    $titulos        = \App\Services\AuditoriaRITService::getTitulosSecciones();
-    $score          = $auditoria?->score;
-    $colorScore     = $auditoria?->color_score ?? 'danger';
-    $scoreColor     = match($colorScore) {
+    $tieneAuditoria  = $auditoria && $auditoria->estado !== 'pendiente';
+    $secciones       = $auditoria?->secciones ?? [];
+    $numCompletadas  = count($secciones);
+    $numTotal        = $this->getNumSecciones();
+    $progreso        = $numTotal > 0 ? round($numCompletadas / $numTotal * 100) : 0;
+    $titulos         = \App\Services\AuditoriaRITService::getTitulosSecciones();
+    $score           = $auditoria?->score;
+    $colorScore      = $auditoria?->color_score ?? 'danger';
+    $scoreColor      = match($colorScore) {
         'success' => '#22c55e',
         'warning' => '#f59e0b',
         default   => '#ef4444',
     };
+    $estadoMejora    = $auditoria?->estado_mejora ?? 'no_aplica';
+    $mejorando       = $estadoMejora === 'procesando';
+    $mejoraLista     = $estadoMejora === 'completado' && $ritMejorado;
+    $mejoraFallo     = $estadoMejora === 'fallido';
+    $numCorregidas   = $mejoraLista ? collect($secciones)->filter(fn($s) => ($s['score'] ?? 100) < 100)->count() : 0;
 @endphp
 
 <style>
@@ -95,6 +100,22 @@ html:not(.dark) .audit-art{background:rgba(79,70,229,.08);color:#4338ca}
 .audit-sub-label{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#64748b;margin-bottom:.375rem}
 .audit-result-title{font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 .25rem}
 html:not(.dark) .audit-result-title{color:#0f172a}
+
+/* ── RIT Mejorado ── */
+.mejora-shimmer{border-radius:1rem;overflow:hidden;border:1px solid rgba(99,102,241,.25);background:linear-gradient(135deg,rgba(99,102,241,.06) 0%,rgba(129,140,248,.04) 50%,rgba(99,102,241,.06) 100%);background-size:200% 200%;animation:mejora-shine 2.4s ease-in-out infinite}
+html:not(.dark) .mejora-shimmer{border-color:rgba(79,70,229,.18);background:linear-gradient(135deg,rgba(79,70,229,.06) 0%,rgba(99,102,241,.03) 50%,rgba(79,70,229,.06) 100%);background-size:200% 200%}
+@keyframes mejora-shine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.mejora-card{border-radius:1rem;overflow:hidden;border:1.5px solid rgba(99,102,241,.3);background:rgba(255,255,255,.03)}
+html:not(.dark) .mejora-card{background:#fff;border-color:rgba(79,70,229,.2);box-shadow:0 2px 16px rgba(79,70,229,.08)}
+.mejora-header{padding:1rem 1.25rem;background:linear-gradient(135deg,rgba(99,102,241,.12) 0%,rgba(79,70,229,.06) 100%);border-bottom:1px solid rgba(99,102,241,.15);display:flex;align-items:center;gap:.75rem}
+html:not(.dark) .mejora-header{background:linear-gradient(135deg,rgba(79,70,229,.07) 0%,rgba(99,102,241,.03) 100%);border-bottom-color:rgba(79,70,229,.12)}
+.mejora-badge{display:inline-flex;align-items:center;gap:.35rem;font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:.3rem .75rem;border-radius:2rem}
+.mejora-badge-version{background:rgba(99,102,241,.18);border:1px solid rgba(99,102,241,.35);color:#a5b4fc}
+html:not(.dark) .mejora-badge-version{background:rgba(79,70,229,.1);border-color:rgba(79,70,229,.25);color:#4338ca}
+.mejora-badge-ok{background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.28);color:#86efac}
+html:not(.dark) .mejora-badge-ok{background:rgba(22,163,74,.09);border-color:rgba(22,163,74,.22);color:#166534}
+.mejora-download-btn{display:inline-flex;align-items:center;gap:.5rem;font-size:.8125rem;font-weight:600;padding:.6rem 1.25rem;border-radius:.625rem;border:none;cursor:pointer;text-decoration:none;transition:all .2s;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;box-shadow:0 2px 8px rgba(99,102,241,.35)}
+.mejora-download-btn:hover{opacity:.9;box-shadow:0 4px 12px rgba(99,102,241,.45);transform:translateY(-1px)}
 </style>
 
 <div style="display:flex;flex-direction:column;gap:1.25rem;max-width:900px;margin:0 auto">
@@ -291,6 +312,82 @@ html:not(.dark) .audit-result-title{color:#0f172a}
         @endforeach
       </div>
     </div>
+
+    {{-- ── RIT MEJORADO: EN PROCESO ── --}}
+    @if($mejorando)
+    <div class="mejora-shimmer" style="padding:1.5rem 1.75rem">
+      <div style="display:flex;align-items:center;gap:1rem">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(99,102,241,.15);border:1.5px solid rgba(99,102,241,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:adot 1.4s ease-in-out infinite">
+          <svg style="width:20px;height:20px;color:#a5b4fc" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+        </div>
+        <div>
+          <p style="font-size:.875rem;font-weight:700;color:#a5b4fc;margin:0 0 .2rem">
+            Generando RIT Mejorado con IA...
+          </p>
+          <p style="font-size:.775rem;color:#64748b;margin:0;line-height:1.5">
+            La IA está aplicando las correcciones de la auditoría y consultando la biblioteca jurídica para generar la versión mejorada del Reglamento Interno.
+          </p>
+        </div>
+      </div>
+    </div>
+    @endif
+
+    {{-- ── RIT MEJORADO: COMPLETADO ── --}}
+    @if($mejoraLista)
+    <div class="mejora-card">
+      <div class="mejora-header">
+        <div style="width:36px;height:36px;border-radius:.5rem;background:rgba(99,102,241,.18);border:1px solid rgba(99,102,241,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg style="width:18px;height:18px;color:#a5b4fc" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <p style="font-size:.875rem;font-weight:700;color:#f1f5f9;margin:0 0 .2rem">RIT Mejorado Generado</p>
+          <p style="font-size:.75rem;color:#64748b;margin:0">Versión {{ $ritMejorado->version }} · {{ $ritMejorado->created_at->format('d/m/Y g:i A') }}</p>
+        </div>
+        <span class="mejora-badge mejora-badge-version">v{{ $ritMejorado->version }}</span>
+      </div>
+      <div style="padding:1.25rem 1.5rem">
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+          @if($numCorregidas > 0)
+            <span class="mejora-badge mejora-badge-ok">
+              <svg style="width:10px;height:10px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              {{ $numCorregidas }} sección{{ $numCorregidas === 1 ? '' : 'es' }} corregida{{ $numCorregidas === 1 ? '' : 's' }}
+            </span>
+          @endif
+          <span class="mejora-badge mejora-badge-ok">
+            <svg style="width:10px;height:10px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            Correcciones aplicadas
+          </span>
+          <span class="mejora-badge mejora-badge-ok">
+            <svg style="width:10px;height:10px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            Biblioteca jurídica consultada
+          </span>
+        </div>
+        <p style="font-size:.8125rem;color:#64748b;line-height:1.6;margin-bottom:1.125rem">
+          La IA aplicó las correcciones de la auditoría y consultó la biblioteca jurídica para generar
+          esta versión mejorada del Reglamento Interno. Revise el documento antes de activarlo
+          como versión vigente en el sistema.
+        </p>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+          @if($ritMejorado->ruta_pdf)
+            <button wire:click="downloadPDFMejorado" class="mejora-download-btn">
+              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+              Descargar PDF v{{ $ritMejorado->version }}
+            </button>
+          @else
+            <span style="font-size:.8rem;color:#94a3b8;font-style:italic">PDF en generación...</span>
+          @endif
+        </div>
+      </div>
+    </div>
+    @endif
+
+    {{-- ── RIT MEJORADO: FALLÓ ── --}}
+    @if($mejoraFallo)
+    <div style="padding:1rem 1.25rem;border-radius:.875rem;border:1px solid rgba(239,68,68,.25);background:rgba(239,68,68,.06)">
+      <p style="font-size:.8125rem;font-weight:600;color:#f87171;margin:0 0 .25rem">No se pudo generar el RIT Mejorado</p>
+      <p style="font-size:.775rem;color:#94a3b8;margin:0">Ocurrió un error durante la generación automática. Puede intentar una nueva auditoría para reintentar el proceso.</p>
+    </div>
+    @endif
 
   {{-- ── ERROR ── --}}
   @elseif($auditoria && $auditoria->estado === 'error')

@@ -102,9 +102,11 @@ class AuditoriaRITService
             'reglamento_interno_id' => $rit?->id,
             'estado'               => 'pendiente',
             'fuente'               => $fuente,
+            // Persistir texto en BD para que el job de mejora lo encuentre aunque expire la caché
+            'texto_auditado'       => $textoExternoRIT ?: ($rit?->texto_completo),
         ]);
 
-        // Guardar texto externo en caché temporal para que el Job lo recupere
+        // Mantener caché como capa adicional de disponibilidad (bajo coste)
         if ($textoExternoRIT) {
             cache()->put("auditoria_rit_texto_{$auditoria->id}", $textoExternoRIT, now()->addHours(2));
         }

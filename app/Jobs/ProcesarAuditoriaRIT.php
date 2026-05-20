@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Jobs\GenerarRITMejoradoJob;
 use App\Models\AuditoriaRIT;
 use App\Services\AuditoriaRITService;
 use Illuminate\Bus\Queueable;
@@ -45,15 +46,23 @@ class ProcesarAuditoriaRIT implements ShouldQueue
     {
         $service->procesarAuditoria($this->auditoria);
 
+        $auditoria = $this->auditoria->fresh();
+        $score     = $auditoria?->score ?? 0;
+
         // Notificar al usuario cuando termina
         $user = \App\Models\User::find($this->userId);
         if ($user) {
-            $score = $this->auditoria->fresh()->score;
             Notification::make()
                 ->title('Auditoría de RIT completada')
                 ->body("La revisión finalizó con un score de {$score}/100. Revise los resultados.")
                 ->success()
                 ->sendToDatabase($user);
+        }
+
+        // Si hay hallazgos (score < 100), generar automáticamente el RIT mejorado
+        if ($auditoria && $score < 100 && $auditoria->estado === 'completado') {
+            $auditoria->update(['estado_mejora' => 'procesando']);
+            GenerarRITMejoradoJob::dispatch($auditoria, $this->userId);
         }
     }
 
