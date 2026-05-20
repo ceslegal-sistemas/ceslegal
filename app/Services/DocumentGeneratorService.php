@@ -1576,7 +1576,7 @@ HTML;
     /**
      * Enviar notificación de cambio de estado de descargos al trabajador
      */
-    public function enviarNotificacionEstadoDescargos(ProcesoDisciplinario $proceso, string $estado): void
+    public function enviarNotificacionEstadoDescargos(ProcesoDisciplinario $proceso, string $estado, ?string $actaPath = null): void
     {
         $trabajador = $proceso->trabajador;
         $empresa = $proceso->empresa;
@@ -1620,9 +1620,16 @@ HTML;
             'estado' => $estado,
             'estadoTexto' => $estadoTexto,
             'trackingToken' => $tracking->token,
-        ], function ($message) use ($trabajador, $asunto) {
+        ], function ($message) use ($trabajador, $asunto, $actaPath) {
             $message->to($trabajador->email, $trabajador->nombre_completo)
                 ->subject($asunto);
+
+            if ($actaPath && file_exists($actaPath)) {
+                $message->attach($actaPath, [
+                    'as'   => 'Acta_de_Descargos.docx',
+                    'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                ]);
+            }
         });
 
         Log::info('Notificación de estado de descargos enviada', [

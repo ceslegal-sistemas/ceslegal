@@ -668,10 +668,8 @@ class FormularioDescargos extends Component
         // Guardar feedback orgánico si el trabajador respondió al menos la primera pregunta
         $this->guardarFeedbackOrganico();
 
-        // Notificaciones al trabajador y al cliente (no críticas)
-        $this->enviarNotificacionesCompletado();
-
-        // Generar el acta de descargos automáticamente (no crítico)
+        // Generar el acta primero para poder adjuntarla en la notificación
+        $actaPath = null;
         try {
             $t0Acta = microtime(true);
             Log::channel('descargos')->info('[acta] INICIO generación', ['diligencia_id' => $this->diligencia->id]);
@@ -680,13 +678,14 @@ class FormularioDescargos extends Component
             $resultado = $actaService->generarActaDescargos($this->diligencia);
 
             if ($resultado['success']) {
+                $actaPath = $resultado['path'];
                 $this->diligencia->update([
                     'acta_generada' => true,
-                    'ruta_acta' => $resultado['path'],
+                    'ruta_acta' => $actaPath,
                 ]);
                 Log::channel('descargos')->info('[acta] Generada OK', [
                     'diligencia_id' => $this->diligencia->id,
-                    'path'          => $resultado['path'],
+                    'path'          => $actaPath,
                     'ms'            => round((microtime(true) - $t0Acta) * 1000),
                 ]);
             } else {
@@ -695,10 +694,6 @@ class FormularioDescargos extends Component
                     'error'         => $resultado['error'] ?? 'Error desconocido',
                     'ms'            => round((microtime(true) - $t0Acta) * 1000),
                 ]);
-                Log::warning('No se pudo generar el acta automáticamente', [
-                    'diligencia_id' => $this->diligencia->id,
-                    'error' => $resultado['error'] ?? 'Error desconocido',
-                ]);
             }
         } catch (\Exception $e) {
             Log::channel('descargos')->error('[acta] Excepción', [
@@ -706,11 +701,10 @@ class FormularioDescargos extends Component
                 'error'         => $e->getMessage(),
                 'trace'         => $e->getFile() . ':' . $e->getLine(),
             ]);
-            Log::warning('Excepción al generar acta automáticamente', [
-                'diligencia_id' => $this->diligencia->id,
-                'error' => $e->getMessage(),
-            ]);
         }
+
+        // Notificaciones al trabajador (con acta adjunta si se generó) y al cliente
+        $this->enviarNotificacionesCompletado($actaPath);
     }
 
     /**
@@ -817,11 +811,11 @@ class FormularioDescargos extends Component
      * Envía notificaciones por correo al trabajador y al cliente (empresa)
      * informando que los descargos fueron completados o que el tiempo expiró.
      */
-    private function enviarNotificacionesCompletado(): void
+    private function enviarNotificacionesCompletado(?string $actaPath = null): void
     {
         try {
             $docService = app(DocumentGeneratorService::class);
-            $docService->enviarNotificacionEstadoDescargos($this->diligencia->proceso, 'descargos_realizados');
+            $docService->enviarNotificacionEstadoDescargos($this->diligencia->proceso, 'descargos_realizados', $actaPath);
             $docService->enviarNotificacionDescargosAlCliente($this->diligencia->proceso, 'descargos_realizados');
         } catch (\Exception $e) {
             Log::warning('Error al enviar notificaciones de descargos completados', [
