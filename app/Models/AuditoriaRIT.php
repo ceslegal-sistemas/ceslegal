@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class AuditoriaRIT extends Model
 {
@@ -41,6 +42,11 @@ class AuditoriaRIT extends Model
     public function reglamentoMejorado(): BelongsTo
     {
         return $this->belongsTo(ReglamentoInterno::class, 'reglamento_mejorado_id');
+    }
+
+    public function gapReporte(): HasOne
+    {
+        return $this->hasOne(GapReporte::class, 'auditoria_rit_id');
     }
 
     public function getSeccionesCompletadasAttribute(): int

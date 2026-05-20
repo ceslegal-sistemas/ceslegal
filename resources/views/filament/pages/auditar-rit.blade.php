@@ -18,6 +18,13 @@
     $mejoraLista     = $estadoMejora === 'completado' && $ritMejorado;
     $mejoraFallo     = $estadoMejora === 'fallido';
     $numCorregidas   = $mejoraLista ? collect($secciones)->filter(fn($s) => ($s['score'] ?? 100) < 100)->count() : 0;
+
+    // GAP
+    $gapGenerando    = $gapReporte?->estaGenerando() ?? false;
+    $gapListo        = $gapReporte?->estaListo() ?? false;
+    $gapFallo        = $gapReporte?->falloGeneracion() ?? false;
+    $mostrarBtnGap   = ($auditoria?->estado === 'completado')
+                       && !$gapGenerando && !$gapListo;
 @endphp
 
 <style>
@@ -116,6 +123,22 @@ html:not(.dark) .mejora-badge-version{background:rgba(79,70,229,.1);border-color
 html:not(.dark) .mejora-badge-ok{background:rgba(22,163,74,.09);border-color:rgba(22,163,74,.22);color:#166534}
 .mejora-download-btn{display:inline-flex;align-items:center;gap:.5rem;font-size:.8125rem;font-weight:600;padding:.6rem 1.25rem;border-radius:.625rem;border:none;cursor:pointer;text-decoration:none;transition:all .2s;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;box-shadow:0 2px 8px rgba(99,102,241,.35)}
 .mejora-download-btn:hover{opacity:.9;box-shadow:0 4px 12px rgba(99,102,241,.45);transform:translateY(-1px)}
+
+/* ── Reporte GAP ── */
+.gap-shimmer{border-radius:1rem;overflow:hidden;border:1px solid rgba(185,28,28,.22);background:linear-gradient(135deg,rgba(185,28,28,.06) 0%,rgba(239,68,68,.04) 50%,rgba(185,28,28,.06) 100%);background-size:200% 200%;animation:mejora-shine 2.4s ease-in-out infinite}
+html:not(.dark) .gap-shimmer{border-color:rgba(185,28,28,.18);background:linear-gradient(135deg,rgba(185,28,28,.06) 0%,rgba(239,68,68,.03) 50%,rgba(185,28,28,.06) 100%);background-size:200% 200%}
+.gap-card{border-radius:1rem;overflow:hidden;border:1.5px solid rgba(185,28,28,.28);background:rgba(255,255,255,.03)}
+html:not(.dark) .gap-card{background:#fff;border-color:rgba(185,28,28,.2);box-shadow:0 2px 16px rgba(185,28,28,.07)}
+.gap-header{padding:1rem 1.25rem;background:linear-gradient(135deg,rgba(185,28,28,.1) 0%,rgba(127,29,29,.06) 100%);border-bottom:1px solid rgba(185,28,28,.15);display:flex;align-items:center;gap:.75rem}
+html:not(.dark) .gap-header{background:linear-gradient(135deg,rgba(185,28,28,.06) 0%,rgba(185,28,28,.03) 100%);border-bottom-color:rgba(185,28,28,.12)}
+.gap-btn-gen{display:inline-flex;align-items:center;gap:.5rem;font-size:.8125rem;font-weight:600;padding:.6rem 1.25rem;border-radius:.625rem;border:1px solid rgba(185,28,28,.3);cursor:pointer;text-decoration:none;transition:all .2s;background:rgba(185,28,28,.1);color:#fca5a5}
+html:not(.dark) .gap-btn-gen{background:rgba(185,28,28,.07);border-color:rgba(185,28,28,.22);color:#b91c1c}
+.gap-btn-gen:hover{opacity:.85}
+.gap-btn-exec{display:inline-flex;align-items:center;gap:.5rem;font-size:.8125rem;font-weight:600;padding:.6rem 1.25rem;border-radius:.625rem;border:none;cursor:pointer;text-decoration:none;transition:all .2s;background:linear-gradient(135deg,#b91c1c,#dc2626);color:#fff;box-shadow:0 2px 8px rgba(185,28,28,.3)}
+.gap-btn-exec:hover{opacity:.9;box-shadow:0 4px 12px rgba(185,28,28,.4);transform:translateY(-1px)}
+.gap-btn-tech{display:inline-flex;align-items:center;gap:.5rem;font-size:.8125rem;font-weight:600;padding:.6rem 1.25rem;border-radius:.625rem;border:1px solid rgba(185,28,28,.3);cursor:pointer;text-decoration:none;transition:all .2s;background:rgba(185,28,28,.08);color:#fca5a5}
+html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(185,28,28,.2);color:#b91c1c}
+.gap-btn-tech:hover{opacity:.85}
 </style>
 
 <div style="display:flex;flex-direction:column;gap:1.25rem;max-width:900px;margin:0 auto">
@@ -386,6 +409,76 @@ html:not(.dark) .mejora-badge-ok{background:rgba(22,163,74,.09);border-color:rgb
     <div style="padding:1rem 1.25rem;border-radius:.875rem;border:1px solid rgba(239,68,68,.25);background:rgba(239,68,68,.06)">
       <p style="font-size:.8125rem;font-weight:600;color:#f87171;margin:0 0 .25rem">No se pudo generar el RIT Mejorado</p>
       <p style="font-size:.775rem;color:#94a3b8;margin:0">Ocurrió un error durante la generación automática. Puede intentar una nueva auditoría para reintentar el proceso.</p>
+    </div>
+    @endif
+
+    {{-- ── REPORTE GAP: BOTÓN GENERAR ── --}}
+    @if($mostrarBtnGap)
+    <div style="padding:1rem 1.25rem;border-radius:.875rem;border:1px solid rgba(185,28,28,.18);background:rgba(185,28,28,.05);display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+      <div style="flex:1;min-width:0">
+        <p style="font-size:.875rem;font-weight:600;color:#fca5a5;margin:0 0 .2rem">
+          @if($gapFallo) Reintentar generación de Reportes GAP @else Generar Reportes de Análisis GAP @endif
+        </p>
+        <p style="font-size:.775rem;color:#94a3b8;margin:0;line-height:1.5">
+          @if($gapFallo)
+            Ocurrió un error al generar los reportes. {{ $gapReporte?->mensaje_error ? 'Error: '.$gapReporte->mensaje_error : '' }}
+          @else
+            Genere los reportes ejecutivo y técnico de cumplimiento normativo en PDF, basados en los hallazgos de esta auditoría.
+          @endif
+        </p>
+      </div>
+      <button wire:click="generarReporteGAP" class="gap-btn-gen">
+        <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+        {{ $gapFallo ? 'Reintentar' : 'Generar Reportes GAP' }}
+      </button>
+    </div>
+    @endif
+
+    {{-- ── REPORTE GAP: EN PROCESO ── --}}
+    @if($gapGenerando)
+    <div class="gap-shimmer" style="padding:1.5rem 1.75rem">
+      <div style="display:flex;align-items:center;gap:1rem">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(185,28,28,.12);border:1.5px solid rgba(185,28,28,.28);display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:adot 1.4s ease-in-out infinite">
+          <svg style="width:20px;height:20px;color:#fca5a5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+        </div>
+        <div>
+          <p style="font-size:.875rem;font-weight:700;color:#fca5a5;margin:0 0 .2rem">Generando Reportes GAP...</p>
+          <p style="font-size:.775rem;color:#64748b;margin:0;line-height:1.5">
+            Los reportes ejecutivo y técnico de cumplimiento normativo están siendo generados.
+          </p>
+        </div>
+      </div>
+    </div>
+    @endif
+
+    {{-- ── REPORTE GAP: LISTO ── --}}
+    @if($gapListo)
+    <div class="gap-card">
+      <div class="gap-header">
+        <div style="width:36px;height:36px;border-radius:.5rem;background:rgba(185,28,28,.15);border:1px solid rgba(185,28,28,.28);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg style="width:18px;height:18px;color:#fca5a5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <p style="font-size:.875rem;font-weight:700;color:#f1f5f9;margin:0 0 .2rem">Reportes GAP Generados</p>
+          <p style="font-size:.75rem;color:#64748b;margin:0">Score {{ $gapReporte->score_snapshot }}/100 · {{ $gapReporte->updated_at?->format('d/m/Y g:i A') }}</p>
+        </div>
+      </div>
+      <div style="padding:1.25rem 1.5rem">
+        <p style="font-size:.8125rem;color:#64748b;line-height:1.6;margin-bottom:1.125rem">
+          Los reportes de análisis GAP están listos. El reporte ejecutivo resume las brechas y el plan de acciones.
+          El técnico incluye además los hallazgos detallados con trazabilidad normativa para el equipo legal.
+        </p>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+          <button wire:click="downloadGapEjecutivo" class="gap-btn-exec">
+            <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            PDF Ejecutivo
+          </button>
+          <button wire:click="downloadGapTecnico" class="gap-btn-tech">
+            <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            PDF Técnico
+          </button>
+        </div>
+      </div>
     </div>
     @endif
 

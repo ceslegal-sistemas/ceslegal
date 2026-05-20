@@ -126,9 +126,11 @@ class AuditoriaRITService
             $empresa = $auditoria->empresa;
 
             // Obtener texto del RIT
+            // Nota: texto_auditado persiste el texto en BD como fuente primaria/fallback.
+            // Para fuente 'externo' la caché puede no existir si el worker arrancó tarde.
             $textoRIT = $auditoria->fuente === 'externo'
-                ? cache()->pull("auditoria_rit_texto_{$auditoria->id}", '')
-                : ($auditoria->reglamento?->texto_completo ?? '');
+                ? (cache()->pull("auditoria_rit_texto_{$auditoria->id}", '') ?: ($auditoria->texto_auditado ?? ''))
+                : ($auditoria->texto_auditado ?: ($auditoria->reglamento?->texto_completo ?? ''));
 
             if (empty(trim($textoRIT))) {
                 throw new \RuntimeException('No se encontró texto del RIT para auditar.');

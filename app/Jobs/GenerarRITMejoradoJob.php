@@ -58,8 +58,14 @@ class GenerarRITMejoradoJob implements ShouldQueue
 
     public function failed(\Throwable $e): void
     {
+        \Illuminate\Support\Facades\Log::error('GenerarRITMejoradoJob: falló', [
+            'auditoria_id' => $this->auditoria->id,
+            'error'        => $e->getMessage(),
+        ]);
+
         $this->auditoria->update([
             'estado_mejora' => 'fallido',
+            'mensaje_error' => $e->getMessage(),
         ]);
 
         $user = \App\Models\User::find($this->userId);

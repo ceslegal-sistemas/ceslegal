@@ -5,8 +5,10 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Cache\RateLimiting\Limit;
+use App\Models\DocumentoLegal;
 use App\Models\ProcesoDisciplinario;
 use App\Models\SolicitudContrato;
+use App\Observers\DocumentoLegalObserver;
 use App\Observers\ProcesoDisciplinarioObserver;
 use App\Observers\SolicitudContratoObserver;
 
@@ -26,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Registrar Observers
+        DocumentoLegal::observe(DocumentoLegalObserver::class);
         ProcesoDisciplinario::observe(ProcesoDisciplinarioObserver::class);
         SolicitudContrato::observe(SolicitudContratoObserver::class);
 

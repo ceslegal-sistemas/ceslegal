@@ -2,9 +2,11 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Jobs\GenerarGAPReporteJob;
 use App\Jobs\ProcesarAuditoriaRIT;
 use App\Models\AuditoriaRIT;
 use App\Models\Empresa;
+use App\Models\GapReporte;
 use App\Models\ReglamentoInterno;
 use App\Services\AuditoriaRITService;
 use App\Services\BibliotecaLegalService;
@@ -33,6 +35,7 @@ class AuditarRIT extends Page implements HasForms
     public ?AuditoriaRIT      $auditoria   = null;
     public ?ReglamentoInterno $rit         = null;
     public ?ReglamentoInterno $ritMejorado = null;
+    public ?GapReporte        $gapReporte  = null;
     public bool               $procesando  = false;
     public array              $data        = [];
 
@@ -57,6 +60,8 @@ class AuditarRIT extends Page implements HasForms
             if ($this->auditoria?->reglamento_mejorado_id) {
                 $this->ritMejorado = $this->auditoria->reglamentoMejorado;
             }
+
+            $this->gapReporte = GapReporte::where('auditoria_rit_id', $this->auditoria?->id)->first();
         }
 
         $this->form->fill();
@@ -169,6 +174,14 @@ class AuditarRIT extends Page implements HasForms
             if ($this->auditoria?->reglamento_mejorado_id) {
                 $this->ritMejorado = $this->auditoria->reglamentoMejorado()->first();
             }
+
+            // Refrescar reporte GAP si está en proceso
+            if ($this->gapReporte?->estaGenerando()) {
+                $this->gapReporte = $this->gapReporte->fresh();
+            } elseif ($this->auditoria && !$this->gapReporte) {
+                // Por si el reporte fue creado después del último refresh
+                $this->gapReporte = GapReporte::where('auditoria_rit_id', $this->auditoria->id)->first();
+            }
         }
     }
 
@@ -176,6 +189,7 @@ class AuditarRIT extends Page implements HasForms
     {
         $this->auditoria   = null;
         $this->ritMejorado = null;
+        $this->gapReporte  = null;
         $this->procesando  = false;
         $this->data        = [];
         $this->form->fill();
@@ -200,6 +214,71 @@ class AuditarRIT extends Page implements HasForms
         $nombreArchivo = "RIT_v{$this->ritMejorado->version}_{$nombreEmpresaSeguro}.pdf";
 
         return response()->download($rutaAbsoluta, $nombreArchivo, [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }
+
+    public function generarReporteGAP(): void
+    {
+        if (!$this->auditoria || $this->auditoria->estado !== 'completado') {
+            Notification::make()->warning()->title('Auditoría no completada')->send();
+            return;
+        }
+
+        // Crear registro en estado 'generando' de forma optimista
+        $this->gapReporte = GapReporte::updateOrCreate(
+            ['auditoria_rit_id' => $this->auditoria->id],
+            [
+                'empresa_id'     => $this->empresa->id,
+                'estado'         => 'generando',
+                'score_snapshot' => $this->auditoria->score,
+                'mensaje_error'  => null,
+            ]
+        );
+
+        GenerarGAPReporteJob::dispatch($this->auditoria, Auth::id());
+
+        Notification::make()
+            ->info()
+            ->title('Generando Reporte GAP')
+            ->body('Los reportes ejecutivo y técnico están siendo generados. Recibirá una notificación al terminar.')
+            ->send();
+    }
+
+    public function downloadGapEjecutivo(): mixed
+    {
+        if (!$this->gapReporte?->ruta_ejecutivo) {
+            Notification::make()->warning()->title('PDF ejecutivo no disponible aún')->send();
+            return null;
+        }
+
+        $rutaAbsoluta = Storage::path($this->gapReporte->ruta_ejecutivo);
+        if (!file_exists($rutaAbsoluta)) {
+            Notification::make()->danger()->title('Archivo no encontrado en el servidor')->send();
+            return null;
+        }
+
+        $nombreEmpresa = preg_replace('/[^A-Za-z0-9\-_]/', '_', $this->empresa?->razon_social ?? 'empresa');
+        return response()->download($rutaAbsoluta, "GAP_Ejecutivo_{$nombreEmpresa}.pdf", [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }
+
+    public function downloadGapTecnico(): mixed
+    {
+        if (!$this->gapReporte?->ruta_tecnico) {
+            Notification::make()->warning()->title('PDF técnico no disponible aún')->send();
+            return null;
+        }
+
+        $rutaAbsoluta = Storage::path($this->gapReporte->ruta_tecnico);
+        if (!file_exists($rutaAbsoluta)) {
+            Notification::make()->danger()->title('Archivo no encontrado en el servidor')->send();
+            return null;
+        }
+
+        $nombreEmpresa = preg_replace('/[^A-Za-z0-9\-_]/', '_', $this->empresa?->razon_social ?? 'empresa');
+        return response()->download($rutaAbsoluta, "GAP_Tecnico_{$nombreEmpresa}.pdf", [
             'Content-Type' => 'application/pdf',
         ]);
     }

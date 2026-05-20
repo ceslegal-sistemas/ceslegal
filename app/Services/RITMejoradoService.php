@@ -57,6 +57,12 @@ class RITMejoradoService
             $textoOriginal = $auditoria->reglamento?->texto_completo ?? '';
         }
         if (empty(trim($textoOriginal))) {
+            Log::error('RITMejoradoService: texto vacío, no se puede generar RIT mejorado', [
+                'auditoria_id'         => $auditoria->id,
+                'fuente'               => $auditoria->fuente,
+                'tiene_texto_auditado' => !empty($auditoria->texto_auditado),
+                'tiene_reglamento'     => $auditoria->reglamento_interno_id !== null,
+            ]);
             throw new \RuntimeException('No hay texto del RIT disponible para generar la versión mejorada.');
         }
 
