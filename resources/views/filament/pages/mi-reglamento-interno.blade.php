@@ -1,7 +1,7 @@
 <x-filament-panels::page>
 @php
     $tiene = $reglamento && !empty($reglamento->texto_completo);
-    $eIA   = $reglamento?->fuente === 'construido_ia';
+    $eIA   = in_array($reglamento?->fuente, ['construido_ia', 'mejora_ia']);
     $fecha = $reglamento?->updated_at?->format('d/m/Y \a \l\a\s g:i A');
     $wizardUrl  = route('filament.admin.resources.reglamento-internos.create');
     $esAdmin = auth()->user()?->hasRole('super_admin') || auth()->user()?->hasRole('abogado');

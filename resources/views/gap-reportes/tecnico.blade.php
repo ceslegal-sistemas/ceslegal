@@ -19,7 +19,7 @@
         .hdr {
             position: fixed;
             top: -2.2cm;
-            left: 0; right: 0;
+            left: 2.5cm; right: 2cm;
             height: 1.5cm;
             border-bottom: 0.5pt solid #c9a84c;
         }
@@ -39,7 +39,7 @@
         .ftr {
             position: fixed;
             bottom: -2.1cm;
-            left: 0; right: 0;
+            left: 2.5cm; right: 2cm;
             height: 1.4cm;
             border-top: 0.5pt solid #e2e5ea;
         }

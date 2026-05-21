@@ -31,7 +31,10 @@ class MiReglamentoInterno extends Page
             : ($user->empresa ?? null);
 
         if ($this->empresa) {
+            // Mostrar solo el RIT activo. El RIT Mejorado (activo=false) se
+            // descarga desde la página de Auditoría, no aquí.
             $this->reglamento = ReglamentoInterno::where('empresa_id', $this->empresa->id)
+                ->where('activo', true)
                 ->orderByDesc('updated_at')
                 ->first();
         }

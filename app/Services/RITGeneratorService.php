@@ -363,8 +363,8 @@ class RITGeneratorService
 .hdr {
     position: fixed;
     top: -2.1cm;
-    left: 0;
-    right: 0;
+    left: 3.2cm;
+    right: 2.5cm;
     height: 1.5cm;
     border-bottom: 0.5pt solid #c9a84c;
 }
@@ -396,8 +396,8 @@ class RITGeneratorService
 .ftr {
     position: fixed;
     bottom: -2cm;
-    left: 0;
-    right: 0;
+    left: 3.2cm;
+    right: 2.5cm;
     height: 1.4cm;
     border-top: 0.5pt solid #e2e5ea;
     text-align: center;
