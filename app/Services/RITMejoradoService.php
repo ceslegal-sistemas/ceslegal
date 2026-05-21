@@ -237,8 +237,9 @@ class RITMejoradoService
             'contents'         => [['parts' => [['text' => $prompt]]]],
             'generationConfig' => [
                 'temperature'     => 0.25,
-                'maxOutputTokens' => 32768,
+                'maxOutputTokens' => 16384,   // 32k era demasiado lento; 16k sobra para un RIT completo
                 'topP'            => 0.95,
+                'thinkingConfig'  => ['thinkingBudget' => 0], // sin thinking → respuesta inmediata
             ],
         ];
 
@@ -257,9 +258,20 @@ class RITMejoradoService
             $sobrecarga = false;
 
             for ($intento = 1; $intento <= 2; $intento++) {
-                $response = Http::withHeaders(['Content-Type' => 'application/json'])
-                    ->timeout(120)
-                    ->post($url, $payload);
+                try {
+                    $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                        ->timeout(200)  // 200s: suficiente para 16k tokens, dentro del job de 280s
+                        ->post($url, $payload);
+                } catch (\Illuminate\Http\Client\ConnectionException $ce) {
+                    // Timeout de red → tratar como sobrecarga y cascade al siguiente modelo
+                    Log::warning('RITMejoradoService: timeout de conexión, cascade al siguiente modelo', [
+                        'model'   => $model,
+                        'intento' => $intento,
+                        'error'   => $ce->getMessage(),
+                    ]);
+                    $sobrecarga = true;
+                    break;
+                }
 
                 if ($response->successful()) {
                     $parts = $response->json('candidates.0.content.parts', []);
@@ -332,11 +344,11 @@ class RITMejoradoService
               . $contextoBiblioteca . "\n"
             : "ADVERTENCIA: La biblioteca legal no devolvió fragmentos. Usa el conocimiento del prompt para mejorar el RIT.\n";
 
-        // Limitar el texto original si es muy largo (>40.000 chars ~10.000 palabras)
+        // Limitar el texto original para reducir tokens de entrada y tiempo de procesamiento
         $textoOriginalAEnviar = $textoOriginal;
-        if (strlen($textoOriginal) > 40000) {
-            $textoOriginalAEnviar = mb_substr($textoOriginal, 0, 40000)
-                . "\n[...resto del documento omitido por límite de longitud. Mantén la estructura y continúa hasta las DISPOSICIONES FINALES.]";
+        if (strlen($textoOriginal) > 30000) {
+            $textoOriginalAEnviar = mb_substr($textoOriginal, 0, 30000)
+                . "\n[...resto omitido. Mantén la estructura y continúa hasta las DISPOSICIONES FINALES.]";
         }
 
         return <<<PROMPT
