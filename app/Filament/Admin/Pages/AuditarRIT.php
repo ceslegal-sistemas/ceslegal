@@ -31,26 +31,39 @@ class AuditarRIT extends Page implements HasForms
     protected static ?int    $navigationSort  = 11;
     protected static string  $view            = 'filament.pages.auditar-rit';
 
-    public ?Empresa           $empresa     = null;
-    public ?AuditoriaRIT      $auditoria   = null;
-    public ?ReglamentoInterno $rit         = null;
-    public ?ReglamentoInterno $ritMejorado = null;
-    public ?GapReporte        $gapReporte  = null;
-    public bool               $procesando  = false;
-    public array              $data        = [];
+    public ?Empresa           $empresa              = null;
+    public ?AuditoriaRIT      $auditoria            = null;
+    public ?ReglamentoInterno $rit                  = null;
+    public ?ReglamentoInterno $ritMejorado          = null;
+    public ?GapReporte        $gapReporte           = null;
+    public bool               $procesando           = false;
+    public bool               $soloExternoPermitido = false;
+    public array              $data                 = [];
 
     public function mount(): void
     {
-        $user = Auth::user();
+        $user    = Auth::user();
+        $esAdmin = $this->esAdmin();
 
-        $this->empresa = ($user->hasRole('super_admin') || $user->hasRole('abogado'))
+        $this->empresa = $esAdmin
             ? Empresa::first()
             : $user->empresa ?? null;
+
+        // Seguridad: cliente solo puede ver su propia empresa
+        if (!$esAdmin && $this->empresa && $this->empresa->id !== ($user->empresa_id ?? null)) {
+            abort(403);
+        }
 
         if ($this->empresa) {
             $this->rit = ReglamentoInterno::where('empresa_id', $this->empresa->id)
                 ->orderByDesc('updated_at')
                 ->first();
+
+            // Lógica de negocio: clientes con RIT construido/mejorado por el sistema
+            // no pueden auditarlo directamente — el módulo es para RITs externos.
+            if (!$esAdmin && $this->rit && in_array($this->rit->fuente, ['construido_ia', 'mejora_ia'])) {
+                $this->soloExternoPermitido = true;
+            }
 
             // Cargar auditoría más reciente
             $this->auditoria = AuditoriaRIT::where('empresa_id', $this->empresa->id)
@@ -92,14 +105,27 @@ class AuditarRIT extends Page implements HasForms
             return;
         }
 
+        // Seguridad: verificar que la empresa pertenece al usuario autenticado
+        $this->verificarPropiedadEmpresa();
+
         $this->form->validate();
 
-        // Verificar que hay algo que auditar
         // FileUpload guarda siempre como array aunque sea un solo archivo
         $archivoExterno = $this->data['rit_externo'] ?? null;
         if (is_array($archivoExterno)) {
             $archivoExterno = $archivoExterno[0] ?? null;
         }
+
+        // Lógica de negocio: clientes con RIT generado por el sistema deben subir un archivo externo
+        if ($this->soloExternoPermitido && !$archivoExterno) {
+            Notification::make()
+                ->warning()
+                ->title('Se requiere documento externo')
+                ->body('El módulo de auditoría verifica su propio RIT contra la normativa vigente. Adjunte el documento para continuar.')
+                ->send();
+            return;
+        }
+
         if (!$archivoExterno && (!$this->rit || empty($this->rit->texto_completo))) {
             Notification::make()
                 ->warning()
@@ -197,6 +223,7 @@ class AuditarRIT extends Page implements HasForms
 
     public function reintentarMejora(): void
     {
+        $this->verificarPropiedadEmpresa();
         if (!$this->auditoria || $this->auditoria->estado !== 'completado') {
             Notification::make()->warning()->title('No hay auditoría completada')->send();
             return;
@@ -241,6 +268,7 @@ class AuditarRIT extends Page implements HasForms
 
     public function generarReporteGAP(): void
     {
+        $this->verificarPropiedadEmpresa();
         if (!$this->auditoria || $this->auditoria->estado !== 'completado') {
             Notification::make()->warning()->title('Auditoría no completada')->send();
             return;
@@ -317,5 +345,29 @@ class AuditarRIT extends Page implements HasForms
     public function getNumSecciones(): int
     {
         return AuditoriaRITService::getNumSecciones();
+    }
+
+    // ── Helpers de seguridad ──────────────────────────────────────────────────
+
+    private function esAdmin(): bool
+    {
+        $user = Auth::user();
+        return $user->hasRole('super_admin') || $user->hasRole('abogado');
+    }
+
+    /**
+     * Aborta con 403 si el usuario autenticado no pertenece a la empresa cargada.
+     * Los roles admin/abogado tienen acceso irrestricto.
+     */
+    private function verificarPropiedadEmpresa(): void
+    {
+        if ($this->esAdmin()) {
+            return;
+        }
+
+        $user = Auth::user();
+        if (!$this->empresa || $this->empresa->id !== ($user->empresa_id ?? null)) {
+            abort(403, 'No tiene acceso a los datos de esta empresa.');
+        }
     }
 }
