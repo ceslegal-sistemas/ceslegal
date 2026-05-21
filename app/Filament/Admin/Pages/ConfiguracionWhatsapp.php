@@ -30,7 +30,7 @@ class ConfiguracionWhatsapp extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->role === 'super_admin';
+        return auth()->user()?->can('page_ConfiguracionWhatsapp') ?? false;
     }
 
     public function mount(): void

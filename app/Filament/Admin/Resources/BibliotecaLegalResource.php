@@ -31,7 +31,7 @@ class BibliotecaLegalResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('super_admin') ?? false;
+        return auth()->user()?->can('view_any_biblioteca::legal') ?? false;
     }
 
     public static function form(Form $form): Form

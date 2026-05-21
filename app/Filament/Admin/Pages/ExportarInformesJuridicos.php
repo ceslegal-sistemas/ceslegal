@@ -164,7 +164,6 @@ class ExportarInformesJuridicos extends Page
 
     public static function canAccess(): bool
     {
-        $user = Auth::user();
-        return in_array($user->role, ['abogado', 'super_admin', 'admin_empresa']);
+        return auth()->user()?->can('page_ExportarInformesJuridicos') ?? false;
     }
 }

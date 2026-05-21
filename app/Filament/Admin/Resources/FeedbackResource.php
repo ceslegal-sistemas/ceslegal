@@ -29,7 +29,7 @@ class FeedbackResource extends Resource
 
     public static function canAccess(): bool
     {
-        return in_array(auth()->user()?->role, ['super_admin', 'admin', 'abogado']);
+        return auth()->user()?->can('view_any_feedback') ?? false;
     }
 
     public static function form(Form $form): Form

@@ -154,6 +154,6 @@ class ConfiguracionTextoResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('super_admin') ?? false;
+        return auth()->user()?->can('view_any_configuracion::texto') ?? false;
     }
 }
