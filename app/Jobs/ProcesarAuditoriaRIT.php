@@ -18,9 +18,9 @@ class ProcesarAuditoriaRIT implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /** Segundos máximos por job.
-     *  9 secciones × ~20s c/u con cascade rápido = ~180s real.
-     *  280 deja margen bajo el límite CLI de 300s de shared hosting. */
-    public int $timeout = 280;
+     *  8 secciones × ~15s (flash normal) + segunda pasada de reintentos ~60s = ~180s nominal.
+     *  600 permite cascade completo hasta gemini-2.5-pro + retry de secciones fallidas. */
+    public int $timeout = 600;
 
     /** Sin reintentos automáticos: las secciones tienen su propio cascade de modelos */
     public int $tries = 1;

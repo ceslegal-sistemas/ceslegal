@@ -233,37 +233,49 @@ class RITMejoradoService
             $prompt
         ) ?? iconv('UTF-8', 'UTF-8//IGNORE', $prompt);
 
-        $payload = [
-            'contents'         => [['parts' => [['text' => $prompt]]]],
-            'generationConfig' => [
-                'temperature'     => 0.25,
-                'maxOutputTokens' => 16384,   // 32k era demasiado lento; 16k sobra para un RIT completo
-                'topP'            => 0.95,
-                'thinkingConfig'  => ['thinkingBudget' => 0], // sin thinking → respuesta inmediata
-            ],
+        // Cascade con configuración específica por modelo:
+        // - gemini-2.5-pro requiere thinking mode (budget >= 1); usamos 2048 como mínimo razonable
+        // - gemini-2.5-flash soporta thinkingBudget:0 → respuesta inmediata, más veloz
+        $modelosConfig = [
+            'gemini-2.5-pro'   => ['budget' => 2048, 'timeout' => 250],
+            'gemini-2.5-flash' => ['budget' => 0,    'timeout' => 200],
         ];
+        $modelosCascada = array_keys($modelosConfig);
+        $lastError      = '';
 
-        $modelosCascada = ['gemini-2.5-pro', 'gemini-2.5-flash'];
-        $lastError = '';
+        $genConfigBase = [
+            'temperature'     => 0.25,
+            'maxOutputTokens' => 16384,
+            'topP'            => 0.95,
+        ];
 
         foreach (array_values($modelosCascada) as $idx => $model) {
             $url      = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
             $esUltimo = ($idx === count($modelosCascada) - 1);
+            $cfg      = $modelosConfig[$model];
 
             Log::info('RITMejoradoService: generando texto con Gemini', [
-                'model' => $model,
+                'model'          => $model,
                 'intento_modelo' => $idx + 1,
             ]);
+
+            $genConfig = array_merge($genConfigBase, [
+                'thinkingConfig' => ['thinkingBudget' => $cfg['budget']],
+            ]);
+
+            $payload = [
+                'contents'         => [['parts' => [['text' => $prompt]]]],
+                'generationConfig' => $genConfig,
+            ];
 
             $sobrecarga = false;
 
             for ($intento = 1; $intento <= 2; $intento++) {
                 try {
                     $response = Http::withHeaders(['Content-Type' => 'application/json'])
-                        ->timeout(200)  // 200s: suficiente para 16k tokens, dentro del job de 280s
+                        ->timeout($cfg['timeout'])
                         ->post($url, $payload);
                 } catch (\Illuminate\Http\Client\ConnectionException $ce) {
-                    // Timeout de red → tratar como sobrecarga y cascade al siguiente modelo
                     Log::warning('RITMejoradoService: timeout de conexión, cascade al siguiente modelo', [
                         'model'   => $model,
                         'intento' => $intento,
@@ -301,6 +313,13 @@ class RITMejoradoService
                     'status'  => $status,
                 ]);
 
+                // Error de thinkingBudget incompatible → cascade al siguiente modelo
+                if ($status === 400 && str_contains($lastError, 'thinking')) {
+                    Log::warning("RITMejoradoService: {$model} rechazó thinkingBudget, cascadeando");
+                    $sobrecarga = true;
+                    break;
+                }
+
                 if (in_array($status, [429, 503])) {
                     if ($intento < 2) {
                         sleep(15);
@@ -316,7 +335,7 @@ class RITMejoradoService
             }
 
             if ($sobrecarga && !$esUltimo) {
-                Log::warning('RITMejoradoService: modelo saturado, cambiando al siguiente', [
+                Log::warning('RITMejoradoService: modelo saturado/incompatible, cambiando al siguiente', [
                     'model_fallido' => $model,
                     'model_next'    => $modelosCascada[$idx + 1] ?? 'ninguno',
                 ]);

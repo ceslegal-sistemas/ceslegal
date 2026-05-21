@@ -77,14 +77,20 @@ html:not(.dark) .rit-empty-title{color:#0f172a}
 /* ── Específicos de auditoría ── */
 .audit-progress-track{width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin:.75rem 0}
 html:not(.dark) .audit-progress-track{background:rgba(0,0,0,.08)}
-.audit-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#6366f1,#818cf8);transition:width .5s ease}
-.audit-step{display:flex;align-items:center;gap:.625rem;padding:.3rem 0}
+.audit-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#6366f1,#818cf8);transition:width .6s cubic-bezier(.4,0,.2,1)}
+.audit-step{display:flex;align-items:center;gap:.625rem;padding:.3rem 0;border-radius:.5rem;transition:background .2s}
+.audit-step-active{background:rgba(99,102,241,.08);padding-left:.5rem;padding-right:.5rem;margin-left:-.5rem;margin-right:-.5rem}
+html:not(.dark) .audit-step-active{background:rgba(79,70,229,.06)}
 .audit-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .audit-dot-done{background:#22c55e}
-.audit-dot-active{background:#6366f1;animation:adot 1s ease-in-out infinite}
 .audit-dot-pending{background:rgba(255,255,255,.18)}
 html:not(.dark) .audit-dot-pending{background:rgba(0,0,0,.12)}
-@keyframes adot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+/* Spinner SVG para la sección activa */
+.audit-spinner{width:14px;height:14px;flex-shrink:0;animation:aspin .8s linear infinite;color:#818cf8}
+html:not(.dark) .audit-spinner{color:#4f46e5}
+@keyframes aspin{to{transform:rotate(360deg)}}
+.audit-step-active-label{color:#a5b4fc;font-weight:600}
+html:not(.dark) .audit-step-active-label{color:#4338ca}
 .audit-sec{border-radius:.875rem;padding:1.125rem 1.25rem;border-left:3px solid;margin-bottom:.625rem;background:rgba(255,255,255,.03)}
 html:not(.dark) .audit-sec{background:#fff}
 .audit-sec-ok{border-color:#22c55e}
@@ -215,10 +221,20 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
 
   {{-- ── EN PROCESO ── --}}
   @if($procesando && $auditoria)
-  <div class="rit-viewer">
+  <div wire:poll.2000ms="refrescarEstado" class="rit-viewer"
+       x-data="{ elapsed: 0, _t: null }"
+       x-init="_t = setInterval(() => elapsed++, 1000)"
+       x-destroy="clearInterval(_t)">
     <div class="rit-viewer-header">
       <span class="rit-viewer-label">Progreso del análisis</span>
-      <span style="font-size:.75rem;color:#64748b">{{ $numCompletadas }} / {{ $numTotal }} secciones</span>
+      <span style="display:flex;align-items:center;gap:.75rem">
+        <span style="font-size:.75rem;color:#64748b">{{ $numCompletadas }} / {{ $numTotal }} secciones</span>
+        {{-- Tiempo transcurrido (Alpine) --}}
+        <span style="font-size:.7rem;color:#475569;font-variant-numeric:tabular-nums"
+              x-text="Math.floor(elapsed/60).toString().padStart(2,'0') + ':' + (elapsed%60).toString().padStart(2,'0')">
+          00:00
+        </span>
+      </span>
     </div>
     <div class="rit-viewer-body">
 
@@ -229,24 +245,38 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 mt-3">
         @foreach($titulos as $clave => $titulo)
           @php
-            $done   = isset($secciones[$clave]);
+            $done   = isset($secciones[$clave]) && ($secciones[$clave]['calificacion'] ?? '') !== 'Error';
+            $error  = isset($secciones[$clave]) && ($secciones[$clave]['calificacion'] ?? '') === 'Error';
             $keys   = array_keys($titulos);
             $idx    = array_search($clave, $keys);
-            $active = !$done && $idx === $numCompletadas;
-            $dotCls = $done ? 'audit-dot-done' : ($active ? 'audit-dot-active' : 'audit-dot-pending');
+            $active = !isset($secciones[$clave]) && $idx === $numCompletadas;
           @endphp
-          <div class="audit-step">
-            <div class="audit-dot {{ $dotCls }}"></div>
-            <span style="font-size:.8125rem;color:{{ $done ? '#94a3b8' : ($active ? '#a5b4fc' : '#475569') }}">
+          <div class="audit-step {{ $active ? 'audit-step-active' : '' }}">
+            @if($active)
+              {{-- Spinner SVG para la sección que se está procesando ahora --}}
+              <svg class="audit-spinner" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="31.4" stroke-dashoffset="10" stroke-linecap="round"/>
+              </svg>
+            @elseif($done)
+              <div class="audit-dot audit-dot-done"></div>
+            @elseif($error)
+              <div class="audit-dot" style="background:#f87171"></div>
+            @else
+              <div class="audit-dot audit-dot-pending"></div>
+            @endif
+            <span style="font-size:.8125rem;{{ $active ? '' : ($done ? 'color:#94a3b8' : 'color:#475569') }}"
+                  class="{{ $active ? 'audit-step-active-label' : '' }}">
               {{ $titulo }}
-              @if($done) <span style="color:#22c55e;font-size:.7rem">✓</span> @endif
+              @if($done)   <span style="color:#22c55e;font-size:.7rem;margin-left:.25rem">✓</span>  @endif
+              @if($error)  <span style="color:#f87171;font-size:.7rem;margin-left:.25rem">✗ reintentando</span> @endif
+              @if($active) <span style="font-size:.7rem;color:#818cf8;margin-left:.35rem">analizando…</span> @endif
             </span>
           </div>
         @endforeach
       </div>
 
       <p style="font-size:.75rem;color:#64748b;margin-top:1rem;text-align:center">
-        Revisando su reglamento contra la normativa vigente colombiana. Por favor espere...
+        Revisando su reglamento contra la normativa vigente colombiana. Por favor espere…
       </p>
     </div>
   </div>
@@ -338,7 +368,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
 
     {{-- ── RIT MEJORADO: EN PROCESO ── --}}
     @if($mejorando)
-    <div class="mejora-shimmer" style="padding:1.5rem 1.75rem">
+    <div wire:poll.2000ms="refrescarEstado" class="mejora-shimmer" style="padding:1.5rem 1.75rem">
       <div style="display:flex;align-items:center;gap:1rem">
         <div style="width:40px;height:40px;border-radius:50%;background:rgba(99,102,241,.15);border:1.5px solid rgba(99,102,241,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:adot 1.4s ease-in-out infinite">
           <svg style="width:20px;height:20px;color:#a5b4fc" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
@@ -448,7 +478,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
 
     {{-- ── REPORTE GAP: EN PROCESO ── --}}
     @if($gapGenerando)
-    <div class="gap-shimmer" style="padding:1.5rem 1.75rem">
+    <div wire:poll.2000ms="refrescarEstado" class="gap-shimmer" style="padding:1.5rem 1.75rem">
       <div style="display:flex;align-items:center;gap:1rem">
         <div style="width:40px;height:40px;border-radius:50%;background:rgba(185,28,28,.12);border:1.5px solid rgba(185,28,28,.28);display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:adot 1.4s ease-in-out infinite">
           <svg style="width:20px;height:20px;color:#fca5a5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>

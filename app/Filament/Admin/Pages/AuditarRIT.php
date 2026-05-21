@@ -20,7 +20,6 @@ use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Livewire\Attributes\Poll;
 
 class AuditarRIT extends Page implements HasForms
 {
@@ -164,7 +163,7 @@ class AuditarRIT extends Page implements HasForms
         }
     }
 
-    #[Poll(5000)] // Pollar cada 5 segundos mientras procesa o genera mejora
+    // Polling gestionado desde la vista: wire:poll.2000ms solo cuando hay proceso activo
     public function refrescarEstado(): void
     {
         if ($this->auditoria) {

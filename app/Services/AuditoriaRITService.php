@@ -174,6 +174,35 @@ class AuditoriaRITService
                 $auditoria->update(['secciones' => $secciones]);
             }
 
+            // ── Segunda pasada: reintentar secciones fallidas ─────────────────────
+            $fallidas = array_keys(array_filter($secciones, fn($s) => ($s['calificacion'] ?? '') === 'Error'));
+            if (!empty($fallidas)) {
+                Log::warning('AuditoriaRIT: reintentando ' . count($fallidas) . ' sección(es) fallida(s)', [
+                    'auditoria_id' => $auditoria->id,
+                    'secciones'    => $fallidas,
+                ]);
+
+                foreach ($fallidas as $clave) {
+                    sleep(5); // Pausa antes de reintentar para dejar que la API se recupere
+                    try {
+                        $secciones[$clave] = $this->auditarSeccion(
+                            textoRIT:    $textoRIT,
+                            config:      self::SECCIONES[$clave],
+                            razonSocial: $empresa->nombre_completo,
+                        );
+                        Log::info("AuditoriaRIT: sección '{$clave}' recuperada en segunda pasada");
+                    } catch (\Throwable $e) {
+                        Log::error("AuditoriaRIT: sección '{$clave}' falló también en segunda pasada", [
+                            'error' => substr($e->getMessage(), 0, 300),
+                        ]);
+                    }
+                    $auditoria->update(['secciones' => $secciones]);
+                }
+
+                // Recalcular score total con los resultados finales
+                $scoreTotal = collect($secciones)->sum(fn($s) => $s['score'] ?? 0);
+            }
+
             $numSecciones = count(self::SECCIONES);
             $scoreGeneral = (int) round($scoreTotal / $numSecciones);
             $resumen      = $this->generarResumen($secciones, $empresa->nombre_completo, $scoreGeneral);
@@ -398,43 +427,60 @@ PROMPT;
         $config = config('services.ia.gemini', []);
         $apiKey = $config['api_key'] ?? '';
 
-        // Cascade: flash → flash-lite → pro
-        // Sin sleep() entre modelos porque llamarIA() se invoca 8+ veces por auditoría;
-        // sleeps acumulados desbordarían el timeout del servidor en cola sync.
-        $modelos = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
+        // Cascade con configuración específica por modelo:
+        // - flash/flash-lite soportan thinkingBudget:0 (respuesta inmediata, sin razonamiento)
+        // - gemini-2.5-pro REQUIERE thinking mode (budget >= 1); usar 2048 como mínimo seguro
+        $modelosConfig = [
+            'gemini-2.5-flash'      => ['budget' => 0,    'timeout' => 60],
+            'gemini-2.5-flash-lite' => ['budget' => 0,    'timeout' => 60],
+            'gemini-2.5-pro'        => ['budget' => 2048, 'timeout' => 120],
+        ];
+        $modelos      = array_keys($modelosConfig);
+        $totalModelos = count($modelos);
 
-        $genConfig = [
+        $genConfigBase = [
             'temperature'     => 0.2,
             'maxOutputTokens' => $forzarJSON ? 2048 : 768,
         ];
         if ($forzarJSON) {
-            $genConfig['responseMimeType'] = 'application/json';
-            // thinkingBudget:0 → los tokens van íntegros al JSON de respuesta
-            $genConfig['thinkingConfig'] = ['thinkingBudget' => 0];
+            $genConfigBase['responseMimeType'] = 'application/json';
         }
 
-        $payload = [
-            'contents'         => [['parts' => [['text' => $prompt]]]],
-            'generationConfig' => $genConfig,
-        ];
-
-        $lastError    = '';
-        $totalModelos = count($modelos);
+        $lastError = '';
 
         foreach (array_values($modelos) as $idx => $model) {
-            $url      = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
-            $esUltimo = ($idx === $totalModelos - 1);
+            $url        = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+            $esUltimo   = ($idx === $totalModelos - 1);
+            $cfg        = $modelosConfig[$model];
             $sobrecarga = false;
 
-            // Dos intentos por modelo para errores transitorios (sin sleep)
+            // Config de generación específica: thinkingBudget según soporte del modelo
+            $genConfig = $genConfigBase;
+            if ($forzarJSON) {
+                $genConfig['thinkingConfig'] = ['thinkingBudget' => $cfg['budget']];
+            }
+
+            $payload = [
+                'contents'         => [['parts' => [['text' => $prompt]]]],
+                'generationConfig' => $genConfig,
+            ];
+
             for ($intento = 1; $intento <= 2; $intento++) {
-                $response = Http::withHeaders(['Content-Type' => 'application/json'])
-                    ->timeout(60)
-                    ->post($url, $payload);
+                try {
+                    $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                        ->timeout($cfg['timeout'])
+                        ->post($url, $payload);
+                } catch (\Illuminate\Http\Client\ConnectionException $ce) {
+                    Log::warning("AuditoriaRIT: timeout de red en {$model} (intento {$intento}), cascadeando", [
+                        'error' => $ce->getMessage(),
+                    ]);
+                    $sobrecarga = true;
+                    break;
+                }
 
                 if ($response->successful()) {
-                    // El thinking model incluye el razonamiento en parts anteriores;
-                    // la respuesta real es el último part que no sea "thought"
+                    // El modelo thinking incluye razonamiento en parts anteriores;
+                    // la respuesta real es el último part sin flag 'thought'
                     $parts = $response->json('candidates.0.content.parts', []);
                     foreach (array_reverse($parts) as $part) {
                         if (empty($part['thought']) && isset($part['text']) && $part['text'] !== '') {
@@ -447,31 +493,33 @@ PROMPT;
                 $status    = $response->status();
                 $lastError = $response->body();
 
-                Log::warning("AuditoriaRIT: Gemini {$status} en modelo {$model}, intento {$intento}", [
-                    'cascade' => in_array($status, [429, 503]) && !$esUltimo,
-                ]);
+                Log::warning("AuditoriaRIT: Gemini {$status} en modelo {$model}, intento {$intento}");
 
                 if (in_array($status, [429, 503])) {
-                    // Sobrecarga → saltar al siguiente modelo sin esperar
                     $sobrecarga = true;
                     break;
                 }
 
-                // Error permanente (autenticación, modelo inválido, etc.) → no reintentar
-                if (!in_array($status, [500, 502, 504])) {
-                    throw new \RuntimeException('Error Gemini (' . $status . '): ' . $lastError);
+                // Error 400 por incompatibilidad de thinkingBudget → cascade al siguiente
+                if ($status === 400 && str_contains($lastError, 'thinking')) {
+                    Log::warning("AuditoriaRIT: {$model} rechazó thinkingBudget, cascadeando");
+                    $sobrecarga = true;
+                    break;
                 }
-                // 500/502/504 transitorio → segundo intento inmediato
+
+                // Error permanente real → lanzar excepción
+                if (!in_array($status, [500, 502, 504])) {
+                    throw new \RuntimeException('Error en API Gemini: ' . $lastError);
+                }
+                // 500/502/504 transitorio → segundo intento
             }
 
             if ($sobrecarga && !$esUltimo) {
-                Log::warning("AuditoriaRIT: {$model} saturado, cambiando al siguiente modelo", [
-                    'model_next' => $modelos[$idx + 1] ?? 'ninguno',
-                ]);
+                Log::warning("AuditoriaRIT: {$model} → {$modelos[$idx + 1]}");
+                sleep(2); // Pausa corta para evitar rate-limit encadenado (OK en cola async)
                 continue;
             }
 
-            // Si no fue sobrecarga (error transitorio persistente) o es el último modelo, salir
             break;
         }
 
