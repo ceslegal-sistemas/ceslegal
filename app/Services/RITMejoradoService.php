@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
  * 1. Extrae texto del RIT auditado (campo texto_auditado de la auditoría).
  * 2. Recopila todos los hallazgos y recomendaciones por sección.
  * 3. Consulta la biblioteca legal (RAG) para las secciones deficientes.
- * 4. Llama a Gemini (cascade flash → flash-lite) con el RIT original + correcciones + normativa.
+ * 4. Llama a Gemini (cascade 2.5-pro → 2.5-flash) con el RIT original + correcciones + normativa.
  * 5. Crea un nuevo registro ReglamentoInterno con version+1.
  * 6. Genera PDF permanente con DomPDF y lo guarda en storage/app/private/.
  * 7. Actualiza la auditoría con reglamento_mejorado_id y estado_mejora = 'completado'.
@@ -243,7 +243,7 @@ class RITMejoradoService
             ],
         ];
 
-        $modelosCascada = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+        $modelosCascada = ['gemini-2.5-pro', 'gemini-2.5-flash'];
         $lastError = '';
 
         foreach (array_values($modelosCascada) as $idx => $model) {
