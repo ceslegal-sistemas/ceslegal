@@ -5,71 +5,212 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Reporte GAP Ejecutivo</title>
     <style>
-        @page { size: A4; margin: 0 14mm 14mm 14mm; }
+        /* ══ Página ═══════════════════════════════════════════════════════════════ */
+        @page {
+            size: letter portrait;
+            margin-top: 3cm;
+            margin-bottom: 2.8cm;
+            margin-left: 2.5cm;
+            margin-right: 2cm;
+        }
+        @page cover { margin: 0; }
+
+        /* ══ Running header ══════════════════════════════════════════════════════ */
+        .hdr {
+            position: fixed;
+            top: -2.2cm;
+            left: 0; right: 0;
+            height: 1.5cm;
+            border-bottom: 0.5pt solid #c9a84c;
+        }
+        .hdr table { width: 100%; height: 100%; border-collapse: collapse; }
+        .hdr td { vertical-align: bottom; padding-bottom: 4pt; }
+        .hdr .hl {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-size: 7pt; color: #5a6a7a;
+            text-transform: uppercase; letter-spacing: 0.06em;
+        }
+        .hdr .hr {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-size: 7pt; color: #5a6a7a;
+            text-align: right;
+        }
+
+        /* ══ Running footer ══════════════════════════════════════════════════════ */
+        .ftr {
+            position: fixed;
+            bottom: -2.1cm;
+            left: 0; right: 0;
+            height: 1.4cm;
+            border-top: 0.5pt solid #e2e5ea;
+        }
+        .ftr table { width: 100%; border-collapse: collapse; }
+        .ftr td {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-size: 7pt; color: #9ca3af;
+            padding-top: 5pt; vertical-align: top;
+        }
+
+        /* ══ Base ═════════════════════════════════════════════════════════════════ */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
-            font-size: 9pt;
-            line-height: 1.55;
+            font-size: 9pt; line-height: 1.6;
             color: #111827;
-            margin: 0; padding: 0;
         }
-        a { color: inherit; text-decoration: none; }
 
-        /* Sección heading */
+        /* ══ Portada ══════════════════════════════════════════════════════════════ */
+        .cover { page: cover; page-break-after: always; }
+        .cv-top {
+            background: #0d1f3c;
+            padding: 4cm 2.5cm 2.8cm 2.5cm;
+            text-align: center;
+        }
+        .cv-eyebrow {
+            font-size: 7pt; letter-spacing: 0.22em; text-transform: uppercase;
+            color: #6b8cad; margin-bottom: 1.8cm;
+        }
+        .cv-pretitle {
+            font-size: 8pt; font-weight: 700; letter-spacing: 0.18em;
+            text-transform: uppercase; color: #c9a84c; margin-bottom: 0.5cm;
+        }
+        .cv-title {
+            font-size: 24pt; font-weight: 700;
+            color: #ffffff; line-height: 1.18; letter-spacing: 0.01em;
+            margin-bottom: 0.4cm;
+        }
+        .cv-rule { display: block; width: 3cm; height: 2.5pt; background: #c9a84c; margin: 1cm auto; }
+        .cv-empresa {
+            font-size: 15pt; font-weight: 700;
+            color: #c9a84c; letter-spacing: 0.02em; margin-bottom: 0.3cm;
+        }
+        .cv-nit { font-size: 9pt; color: #7e9bb5; letter-spacing: 0.04em; }
+        .cv-score-wrap {
+            margin: 1cm auto 0;
+            border: 2.5pt solid #c9a84c;
+            display: inline-block;
+            padding: 0.5cm 1.2cm;
+            background: rgba(12,31,60,0.6);
+        }
+        .cv-score-num { font-size: 36pt; font-weight: 700; line-height: 1; }
+        .cv-score-lbl { font-size: 7pt; color: #94a3b8; margin-top: 3pt; letter-spacing: 0.1em; }
+        .cv-score-txt { font-size: 8pt; font-weight: 700; margin-top: 4pt; }
+        .cv-badge {
+            display: inline-block;
+            font-size: 6.5pt; font-weight: 700;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            background: #991b1b; color: #fef2f2;
+            padding: 3pt 8pt; margin-top: 1.2cm;
+        }
+        .cv-bottom {
+            background: #ffffff;
+            border-top: 3.5pt solid #c9a84c;
+            padding: 1.2cm 2.5cm;
+        }
+        .cv-meta table { width: 100%; border-collapse: collapse; }
+        .cv-meta td {
+            text-align: center; vertical-align: middle;
+            padding: 0 0.8cm;
+        }
+        .cv-meta .sep {
+            width: 1pt; background: #e5e7eb;
+            padding: 0;
+        }
+        .cv-meta .lbl {
+            display: block; font-size: 6pt;
+            letter-spacing: 0.16em; text-transform: uppercase;
+            color: #9ca3af; margin-bottom: 3pt;
+        }
+        .cv-meta .val {
+            display: block; font-size: 9.5pt;
+            font-weight: 700; color: #0d1f3c;
+        }
+
+        /* ══ Sección heading ══════════════════════════════════════════════════════ */
         .sh {
-            background: #f3f4f6;
-            border-left: 4px solid #b91c1c;
-            padding: 5px 10px;
-            margin: 14px 0 8px;
-            font-size: 10pt;
-            font-weight: 700;
-            color: #111827;
+            background: #0d1f3c;
+            padding: 7pt 12pt 8pt 12pt;
+            margin-top: 18pt; margin-bottom: 10pt;
+            page-break-inside: avoid; page-break-after: avoid;
         }
-        .sh-n { color: #b91c1c; margin-right: 3px; }
+        .sh-num {
+            display: block; font-size: 6.5pt; font-weight: 700;
+            letter-spacing: 0.18em; text-transform: uppercase;
+            color: #c9a84c; margin-bottom: 2pt;
+        }
+        .sh-tit {
+            display: block; font-size: 10.5pt; font-weight: 700;
+            color: #ffffff; letter-spacing: 0.01em;
+        }
 
-        /* Resumen box */
+        /* ══ Resumen box ══════════════════════════════════════════════════════════ */
         .rb {
             background: #f9fafb;
-            border-top: 1px solid #e5e7eb;
-            border-right: 1px solid #e5e7eb;
-            border-bottom: 1px solid #e5e7eb;
-            border-left: 3px solid #b91c1c;
-            padding: 9px 11px;
-            font-size: 8.5pt;
-            line-height: 1.65;
-            color: #374151;
-            margin-bottom: 12px;
+            border-top: 1pt solid #e5e7eb;
+            border-right: 1pt solid #e5e7eb;
+            border-bottom: 1pt solid #e5e7eb;
+            border-left: 3pt solid #c9a84c;
+            padding: 9pt 11pt; font-size: 8.5pt;
+            line-height: 1.65; color: #374151;
+            margin-bottom: 10pt;
         }
 
-        /* Badge de riesgo */
-        .badge {
-            padding: 2px 7px;
-            font-size: 7pt;
-            font-weight: 700;
-            border-radius: 3px;
-        }
-        .ba { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-        .bm { background: #fef9c3; color: #92400e; border: 1px solid #fde047; }
-        .bb { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
-        .bo { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        /* ══ KPI cards ════════════════════════════════════════════════════════════ */
+        .kpi-table { width: 100%; border-collapse: collapse; margin-bottom: 8pt; }
+        .kpi-table td { padding: 4pt; vertical-align: top; width: 25%; }
 
-        /* Sello confidencial */
+        /* ══ Barra de cumplimiento ════════════════════════════════════════════════ */
+        .bar-wrap { margin-bottom: 12pt; }
+        .bar-track { width: 100%; background: #e5e7eb; height: 5pt; border-collapse: collapse; }
+        .bar-track td { height: 5pt; font-size: 0; line-height: 0; }
+        .bar-lbl { font-size: 7pt; color: #6b7280; margin-top: 3pt; }
+
+        /* ══ Tabla de brechas ════════════════════════════════════════════════════ */
+        .gap-table {
+            width: 100%; border-collapse: collapse;
+            font-size: 8pt; margin-bottom: 12pt;
+        }
+        .gap-table th {
+            background: #0d1f3c; color: #f1f5f9;
+            padding: 5pt 7pt; text-align: left; font-size: 7.5pt;
+        }
+        .gap-table td {
+            padding: 5pt 7pt;
+            border-bottom: 1pt solid #e5e7eb;
+        }
+
+        /* ══ Badge riesgo ═════════════════════════════════════════════════════════ */
+        .ba { background: #fee2e2; color: #991b1b; border: 1pt solid #fca5a5; padding: 2pt 6pt; font-size: 6.5pt; font-weight: 700; }
+        .bm { background: #fef9c3; color: #92400e; border: 1pt solid #fde047; padding: 2pt 6pt; font-size: 6.5pt; font-weight: 700; }
+        .bb { background: #dbeafe; color: #1e40af; border: 1pt solid #93c5fd; padding: 2pt 6pt; font-size: 6.5pt; font-weight: 700; }
+        .bo { background: #dcfce7; color: #166534; border: 1pt solid #86efac; padding: 2pt 6pt; font-size: 6.5pt; font-weight: 700; }
+
+        /* ══ Acciones ═════════════════════════════════════════════════════════════ */
+        .accion-table { width: 100%; border-collapse: collapse; margin-bottom: 5pt; }
+        .accion-num {
+            width: 20pt; vertical-align: top; padding-top: 1pt;
+        }
+        .accion-num-inner {
+            background: #0d1f3c; color: #c9a84c;
+            width: 16pt; height: 16pt;
+            text-align: center; font-size: 7pt; font-weight: 700;
+            padding-top: 3pt;
+        }
+        .accion-txt { font-size: 8pt; color: #374151; line-height: 1.55; }
+
+        /* ══ Footer sello ════════════════════════════════════════════════════════ */
         .sello {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            text-align: center;
-            padding: 5px 10px;
-            margin: 16px 0 8px;
-            font-size: 7pt;
-            font-weight: 700;
-            color: #991b1b;
-            letter-spacing: 0.5px;
+            background: #fef2f2; border: 1pt solid #fecaca;
+            text-align: center; padding: 5pt 10pt; margin: 14pt 0 8pt;
+            font-size: 7pt; font-weight: 700; color: #991b1b;
+            letter-spacing: 0.04em;
         }
     </style>
 </head>
 <body>
 @php
     $fechaCorta = $auditoria->updated_at?->format('d/m/Y') ?? now()->format('d/m/Y');
+    $fechaHora  = $auditoria->updated_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i');
     $score      = $auditoria->score ?? 0;
     $resumen    = $auditoria->resumen_general ?? '';
     $ref        = 'GAP-' . str_pad($auditoria->id, 5, '0', STR_PAD_LEFT);
@@ -95,116 +236,111 @@
     $scoreText  = $score >= 70 ? 'Cumplimiento Satisfactorio' : ($score >= 40 ? 'Requiere Mejoras' : 'Riesgo Jurídico Alto');
 @endphp
 
-{{-- ══════════════════════════════════════════════════════════
-     HEADER
-══════════════════════════════════════════════════════════ --}}
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a; margin-bottom:0">
-    <tr>
-        <td style="padding:16px 16px 14px; vertical-align:middle; color:#ffffff; width:66%">
-            <p style="font-size:6.5pt; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:#fca5a5; margin-bottom:5px">
-                CES Legal &nbsp;·&nbsp; Derecho Laboral Colombiano
-            </p>
-            <p style="font-size:14pt; font-weight:700; color:#f8fafc; line-height:1.2">
-                Análisis GAP de Cumplimiento Normativo
-            </p>
-            <p style="font-size:7.5pt; color:#94a3b8; margin-top:4px">
-                Reglamento Interno de Trabajo &nbsp;·&nbsp; CST · Ley 1010/2006 · Ley 2365/2024
-            </p>
-            <p style="margin-top:8px">
-                <span style="background:#991b1b; color:#fef2f2; font-size:6.5pt; font-weight:700; letter-spacing:1.5px; padding:2px 8px">
-                    VERSIÓN EJECUTIVA
-                </span>
-            </p>
-        </td>
-        <td style="padding:14px 16px; vertical-align:middle; text-align:center; width:34%">
-            <table cellpadding="0" cellspacing="0" align="center"
-                   style="border:2px solid #334155; background:#1e293b; min-width:100px">
-                <tr>
-                    <td style="padding:10px 16px; text-align:center">
-                        <p style="font-size:28pt; font-weight:700; color:{{ $scoreColor }}; line-height:1">
-                            {{ $score }}
-                        </p>
-                        <p style="font-size:7pt; color:#64748b; margin-top:1px">PUNTUACIÓN / 100</p>
-                        <p style="font-size:7.5pt; font-weight:700; color:{{ $scoreColor }}; margin-top:5px">
-                            {{ $scoreText }}
-                        </p>
-                    </td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-    <tr>
-        <td colspan="2" height="3" style="background:#b91c1c; font-size:0; line-height:0">&nbsp;</td>
-    </tr>
-</table>
+{{-- Encabezado corrido --}}
+<div class="hdr">
+    <table><tr>
+        <td class="hl">{{ $empresa->razon_social }}</td>
+        <td class="hr">Análisis GAP · Versión Ejecutiva</td>
+    </tr></table>
+</div>
 
-{{-- ══════════════════════════════════════════════════════════
-     METADATA STRIP
-══════════════════════════════════════════════════════════ --}}
-<table width="100%" cellpadding="0" cellspacing="0"
-       style="border-top:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; margin-bottom:14px; background:#fff">
-    <tr>
-        <td style="padding:8px 10px; border-right:1px solid #e5e7eb; width:40%; vertical-align:top">
-            <p style="font-size:6.5pt; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#9ca3af; margin-bottom:2px">Empresa Auditada</p>
-            <p style="font-size:9pt; font-weight:700; color:#111827">{{ $empresa->razon_social }}</p>
-            @if($empresa->nit)<p style="font-size:7.5pt; color:#6b7280; margin-top:1px">NIT: {{ $empresa->nit }}</p>@endif
-        </td>
-        <td style="padding:8px 10px; border-right:1px solid #e5e7eb; width:20%; vertical-align:top">
-            <p style="font-size:6.5pt; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#9ca3af; margin-bottom:2px">Fecha de Auditoría</p>
-            <p style="font-size:9pt; font-weight:700; color:#111827">{{ $fechaCorta }}</p>
-        </td>
-        <td style="padding:8px 10px; border-right:1px solid #e5e7eb; width:22%; vertical-align:top">
-            <p style="font-size:6.5pt; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#9ca3af; margin-bottom:2px">Referencia</p>
-            <p style="font-size:9pt; font-weight:700; color:#111827">{{ $ref }}</p>
-        </td>
-        <td style="padding:8px 10px; width:18%; vertical-align:top">
-            <p style="font-size:6.5pt; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:#9ca3af; margin-bottom:2px">Tipo</p>
-            <p style="font-size:9pt; font-weight:700; color:#111827">Ejecutivo</p>
-            <p style="font-size:7.5pt; color:#6b7280; margin-top:1px">Confidencial</p>
-        </td>
-    </tr>
-</table>
+{{-- Pie corrido --}}
+<div class="ftr">
+    <table><tr>
+        <td>CES Legal · Derecho Laboral Colombiano</td>
+        <td style="text-align:center">{{ $ref }}</td>
+        <td style="text-align:right">{{ $fechaCorta }}</td>
+    </tr></table>
+</div>
 
-{{-- ══════════════════════════════════════════════════════════
-     I. RESUMEN DE BRECHAS
-══════════════════════════════════════════════════════════ --}}
-<div class="sh"><span class="sh-n">I.</span> Resumen de Brechas Identificadas</div>
+{{-- ══ PORTADA ══ --}}
+<div class="cover">
+    <div class="cv-top">
+        <div class="cv-eyebrow">República de Colombia · CES Legal · Derecho Laboral</div>
+        <div class="cv-pretitle">Informe de Cumplimiento Normativo</div>
+        <div class="cv-title">ANÁLISIS GAP<br>DE CUMPLIMIENTO<br>NORMATIVO</div>
+        <span class="cv-rule"></span>
+        <div class="cv-empresa">{{ $empresa->razon_social }}</div>
+        <div class="cv-nit">NIT {{ $empresa->nit }}</div>
+        <table cellpadding="0" cellspacing="0" align="center" style="margin-top:0.9cm">
+            <tr><td>
+                <div class="cv-score-wrap">
+                    <div class="cv-score-num" style="color:{{ $scoreColor }}">{{ $score }}</div>
+                    <div class="cv-score-lbl">PUNTUACIÓN / 100</div>
+                    <div class="cv-score-txt" style="color:{{ $scoreColor }}">{{ $scoreText }}</div>
+                </div>
+            </td></tr>
+        </table>
+        <div style="margin-top:1cm"><span class="cv-badge">VERSIÓN EJECUTIVA</span></div>
+    </div>
+    <div class="cv-bottom">
+        <div class="cv-meta">
+            <table><tr>
+                <td>
+                    <span class="lbl">Empresa Auditada</span>
+                    <span class="val">{{ $empresa->razon_social }}</span>
+                </td>
+                <td class="sep"></td>
+                <td>
+                    <span class="lbl">Fecha de Auditoría</span>
+                    <span class="val">{{ $fechaCorta }}</span>
+                </td>
+                <td class="sep"></td>
+                <td>
+                    <span class="lbl">Referencia</span>
+                    <span class="val">{{ $ref }}</span>
+                </td>
+                <td class="sep"></td>
+                <td>
+                    <span class="lbl">Secciones Evaluadas</span>
+                    <span class="val">{{ array_sum($conteos) }}</span>
+                </td>
+            </tr></table>
+        </div>
+    </div>
+</div>
 
-<table width="100%" cellpadding="0" cellspacing="5" style="margin-bottom:8px">
+{{-- ══ I. RESUMEN DE BRECHAS ══ --}}
+<div class="sh">
+    <span class="sh-num">Sección I</span>
+    <span class="sh-tit">Resumen de Brechas Identificadas</span>
+</div>
+
+<table class="kpi-table">
     <tr>
-        <td style="width:25%; vertical-align:top">
+        <td>
             <table width="100%" cellpadding="9" cellspacing="0"
-                   style="background:#fee2e2; border-top:3px solid #dc2626; border-right:1px solid #fca5a5; border-bottom:1px solid #fca5a5; border-left:1px solid #fca5a5; text-align:center">
+                   style="background:#fee2e2; border-top:3pt solid #dc2626; border:1pt solid #fca5a5; border-top-width:3pt; text-align:center">
                 <tr><td>
-                    <p style="font-size:22pt; font-weight:700; color:#dc2626; line-height:1">{{ $conteos['alto'] }}</p>
-                    <p style="font-size:7pt; font-weight:700; color:#374151; margin-top:3px">Riesgo Alto</p>
+                    <p style="font-size:24pt; font-weight:700; color:#dc2626; line-height:1">{{ $conteos['alto'] }}</p>
+                    <p style="font-size:6.5pt; font-weight:700; color:#374151; margin-top:3pt; text-transform:uppercase; letter-spacing:0.06em">Riesgo Alto</p>
                 </td></tr>
             </table>
         </td>
-        <td style="width:25%; vertical-align:top">
+        <td>
             <table width="100%" cellpadding="9" cellspacing="0"
-                   style="background:#fef9c3; border-top:3px solid #d97706; border-right:1px solid #fde047; border-bottom:1px solid #fde047; border-left:1px solid #fde047; text-align:center">
+                   style="background:#fef9c3; border-top:3pt solid #d97706; border:1pt solid #fde047; border-top-width:3pt; text-align:center">
                 <tr><td>
-                    <p style="font-size:22pt; font-weight:700; color:#d97706; line-height:1">{{ $conteos['medio'] }}</p>
-                    <p style="font-size:7pt; font-weight:700; color:#374151; margin-top:3px">Riesgo Medio</p>
+                    <p style="font-size:24pt; font-weight:700; color:#d97706; line-height:1">{{ $conteos['medio'] }}</p>
+                    <p style="font-size:6.5pt; font-weight:700; color:#374151; margin-top:3pt; text-transform:uppercase; letter-spacing:0.06em">Riesgo Medio</p>
                 </td></tr>
             </table>
         </td>
-        <td style="width:25%; vertical-align:top">
+        <td>
             <table width="100%" cellpadding="9" cellspacing="0"
-                   style="background:#dbeafe; border-top:3px solid #2563eb; border-right:1px solid #93c5fd; border-bottom:1px solid #93c5fd; border-left:1px solid #93c5fd; text-align:center">
+                   style="background:#dbeafe; border-top:3pt solid #2563eb; border:1pt solid #93c5fd; border-top-width:3pt; text-align:center">
                 <tr><td>
-                    <p style="font-size:22pt; font-weight:700; color:#2563eb; line-height:1">{{ $conteos['bajo'] }}</p>
-                    <p style="font-size:7pt; font-weight:700; color:#374151; margin-top:3px">Riesgo Bajo</p>
+                    <p style="font-size:24pt; font-weight:700; color:#2563eb; line-height:1">{{ $conteos['bajo'] }}</p>
+                    <p style="font-size:6.5pt; font-weight:700; color:#374151; margin-top:3pt; text-transform:uppercase; letter-spacing:0.06em">Riesgo Bajo</p>
                 </td></tr>
             </table>
         </td>
-        <td style="width:25%; vertical-align:top">
+        <td>
             <table width="100%" cellpadding="9" cellspacing="0"
-                   style="background:#dcfce7; border-top:3px solid #16a34a; border-right:1px solid #86efac; border-bottom:1px solid #86efac; border-left:1px solid #86efac; text-align:center">
+                   style="background:#dcfce7; border-top:3pt solid #16a34a; border:1pt solid #86efac; border-top-width:3pt; text-align:center">
                 <tr><td>
-                    <p style="font-size:22pt; font-weight:700; color:#16a34a; line-height:1">{{ $conteos['sin_gap'] }}</p>
-                    <p style="font-size:7pt; font-weight:700; color:#374151; margin-top:3px">Sin Brecha</p>
+                    <p style="font-size:24pt; font-weight:700; color:#16a34a; line-height:1">{{ $conteos['sin_gap'] }}</p>
+                    <p style="font-size:6.5pt; font-weight:700; color:#374151; margin-top:3pt; text-transform:uppercase; letter-spacing:0.06em">Sin Brecha</p>
                 </td></tr>
             </table>
         </td>
@@ -212,115 +348,91 @@
 </table>
 
 {{-- Barra de cumplimiento --}}
-<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px">
-    <tr>
-        <td style="padding-bottom:3px">
-            <table width="100%" cellpadding="0" cellspacing="0"
-                   style="background:#e5e7eb; height:5px; border-radius:3px; overflow:hidden">
-                <tr>
-                    <td width="{{ $score }}%" height="5"
-                        style="background:{{ $scoreColor }}; font-size:0; line-height:0">&nbsp;</td>
-                    @if($score < 100)
-                    <td width="{{ 100 - $score }}%" height="5" style="font-size:0; line-height:0">&nbsp;</td>
-                    @endif
-                </tr>
-            </table>
-        </td>
-    </tr>
-    <tr>
-        <td style="font-size:7pt; color:#6b7280">
-            Índice de Cumplimiento: {{ $score }}/100 &nbsp;·&nbsp; {{ $scoreText }}
-        </td>
-    </tr>
-</table>
+<div class="bar-wrap">
+    <table class="bar-track"><tr>
+        <td width="{{ $score }}%" style="background:{{ $scoreColor }}">&nbsp;</td>
+        @if($score < 100)<td width="{{ 100 - $score }}%">&nbsp;</td>@endif
+    </tr></table>
+    <p class="bar-lbl">Índice de Cumplimiento: <strong>{{ $score }}/100</strong> &nbsp;·&nbsp; {{ $scoreText }}</p>
+</div>
 
-{{-- ══════════════════════════════════════════════════════════
-     II. RESUMEN EJECUTIVO
-══════════════════════════════════════════════════════════ --}}
+{{-- ══ II. RESUMEN EJECUTIVO ══ --}}
 @if($resumen)
-<div class="sh"><span class="sh-n">II.</span> Resumen Ejecutivo</div>
+<div class="sh">
+    <span class="sh-num">Sección II</span>
+    <span class="sh-tit">Resumen Ejecutivo</span>
+</div>
 <div class="rb">{{ $resumen }}</div>
 @endif
 
-{{-- ══════════════════════════════════════════════════════════
-     III. TABLA DE BRECHAS
-══════════════════════════════════════════════════════════ --}}
+{{-- ══ III. TABLA DE BRECHAS ══ --}}
 @php $hayGaps = !empty($todosLosGaps); @endphp
 @if($hayGaps)
-<div class="sh"><span class="sh-n">III.</span> Tabla de Brechas por Sección</div>
-<table width="100%" cellpadding="0" cellspacing="0"
-       style="border-collapse:collapse; margin-bottom:14px; font-size:8pt">
+<div class="sh">
+    <span class="sh-num">Sección III</span>
+    <span class="sh-tit">Tabla de Brechas por Sección</span>
+</div>
+<table class="gap-table">
     <thead>
-        <tr style="background:#1e293b">
-            <th style="color:#f1f5f9; padding:5px 8px; text-align:left; font-size:7.5pt; width:27%">Sección del RIT</th>
-            <th style="color:#f1f5f9; padding:5px 8px; text-align:center; font-size:7.5pt; width:9%">Score</th>
-            <th style="color:#f1f5f9; padding:5px 8px; text-align:left; font-size:7.5pt; width:11%">Riesgo</th>
-            <th style="color:#f1f5f9; padding:5px 8px; text-align:left; font-size:7.5pt">Recomendación Principal</th>
+        <tr>
+            <th style="width:30%">Sección del RIT</th>
+            <th style="width:9%; text-align:center">Score</th>
+            <th style="width:11%">Riesgo</th>
+            <th>Recomendación Principal</th>
         </tr>
     </thead>
     <tbody>
         @php $rowIdx = 0; @endphp
         @foreach(['alto' => ['Alto','#dc2626'], 'medio' => ['Medio','#d97706'], 'bajo' => ['Bajo','#2563eb']] as $nivel => [$etiqueta, $color])
             @foreach($gapsAgrupados[$nivel] as $sec)
-            @php $bg = $rowIdx % 2 === 0 ? '#ffffff' : '#f9fafb'; $rowIdx++; @endphp
+            @php $bg = $rowIdx % 2 === 0 ? '#ffffff' : '#f8fafc'; $rowIdx++; @endphp
             <tr style="background:{{ $bg }}">
-                <td style="padding:5px 8px; border-bottom:1px solid #e5e7eb; border-left:3px solid {{ $color }}; font-weight:600">
-                    {{ $sec['titulo'] }}
-                </td>
-                <td style="padding:5px 8px; border-bottom:1px solid #e5e7eb; text-align:center; font-weight:700">
-                    {{ $sec['score'] }}/100
-                </td>
-                <td style="padding:5px 8px; border-bottom:1px solid #e5e7eb">
-                    <span class="badge b{{ substr($nivel,0,1) }}">{{ $etiqueta }}</span>
-                </td>
-                <td style="padding:5px 8px; border-bottom:1px solid #e5e7eb">
-                    {{ $sec['recomendaciones'][0] ?? '—' }}
-                </td>
+                <td style="border-left:3pt solid {{ $color }}; font-weight:600">{{ $sec['titulo'] }}</td>
+                <td style="text-align:center; font-weight:700; color:{{ $color }}">{{ $sec['score'] }}/100</td>
+                <td><span class="b{{ substr($nivel,0,1) }}">{{ $etiqueta }}</span></td>
+                <td style="color:#374151">{{ $sec['recomendaciones'][0] ?? '—' }}</td>
             </tr>
             @endforeach
         @endforeach
     </tbody>
 </table>
 @else
-<div class="rb" style="border-left-color:#16a34a; background:#f0fdf4; border-color:#86efac; color:#166534">
+<div class="rb" style="border-left-color:#16a34a; background:#f0fdf4; color:#166534">
     No se identificaron brechas de cumplimiento. El RIT cumple con todos los requisitos normativos evaluados.
 </div>
 @endif
 
-{{-- ══════════════════════════════════════════════════════════
-     IV. PLAN DE ACCIONES
-══════════════════════════════════════════════════════════ --}}
+{{-- ══ IV. PLAN DE ACCIONES ══ --}}
 @if(!empty($acciones))
-<div class="sh"><span class="sh-n">IV.</span> Plan de Acciones Prioritarias</div>
+<div class="sh">
+    <span class="sh-num">Sección IV</span>
+    <span class="sh-tit">Plan de Acciones Prioritarias</span>
+</div>
 @foreach($acciones as $i => $item)
-<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:6px">
+<table class="accion-table">
     <tr>
-        <td width="22" style="vertical-align:top; padding-top:1px">
-            <div style="background:#1e293b; color:#ffffff; width:17px; height:17px; text-align:center; font-size:7.5pt; font-weight:700; border-radius:9px; padding-top:2px">
-                {{ $i + 1 }}
-            </div>
+        <td class="accion-num">
+            <div class="accion-num-inner">{{ $i + 1 }}</div>
         </td>
-        <td style="vertical-align:top; font-size:8pt; color:#374151; line-height:1.55">
-            <strong style="color:#111827">{{ $item['seccion'] }}:</strong> {{ $item['accion'] }}
+        <td class="accion-txt">
+            <strong style="color:#0d1f3c">{{ $item['seccion'] }}:</strong> {{ $item['accion'] }}
         </td>
     </tr>
 </table>
 @endforeach
 @endif
 
-{{-- ══════════════════════════════════════════════════════════
-     SELLO + FOOTER
-══════════════════════════════════════════════════════════ --}}
+{{-- Sello confidencial --}}
 <div class="sello">
     DOCUMENTO CONFIDENCIAL — Uso exclusivo de {{ $empresa->razon_social }} y CES Legal
 </div>
 
 <table width="100%" cellpadding="0" cellspacing="0"
-       style="border-top:1px solid #e5e7eb; padding-top:5px; margin-top:4px">
+       style="border-top:1pt solid #e5e7eb; margin-top:4pt">
     <tr>
-        <td style="font-size:7pt; color:#9ca3af">CES Legal &nbsp;·&nbsp; {{ now()->format('d/m/Y H:i') }}</td>
-        <td style="font-size:7pt; color:#9ca3af; text-align:center">{{ $ref }}</td>
-        <td style="font-size:7pt; color:#9ca3af; text-align:right">Análisis GAP de Cumplimiento Normativo</td>
+        <td style="font-size:7pt; color:#9ca3af; padding-top:4pt">CES Legal &nbsp;·&nbsp; {{ $fechaHora }}</td>
+        <td style="font-size:7pt; color:#9ca3af; padding-top:4pt; text-align:center">{{ $ref }}</td>
+        <td style="font-size:7pt; color:#9ca3af; padding-top:4pt; text-align:right">Análisis GAP de Cumplimiento Normativo</td>
     </tr>
 </table>
 
