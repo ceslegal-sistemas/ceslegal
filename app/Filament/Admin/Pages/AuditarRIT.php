@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Pages;
 
 use App\Jobs\GenerarGAPReporteJob;
+use App\Jobs\GenerarRITMejoradoJob;
 use App\Jobs\ProcesarAuditoriaRIT;
 use App\Models\AuditoriaRIT;
 use App\Models\Empresa;
@@ -193,6 +194,27 @@ class AuditarRIT extends Page implements HasForms
         $this->procesando  = false;
         $this->data        = [];
         $this->form->fill();
+    }
+
+    public function reintentarMejora(): void
+    {
+        if (!$this->auditoria || $this->auditoria->estado !== 'completado') {
+            Notification::make()->warning()->title('No hay auditoría completada')->send();
+            return;
+        }
+
+        $this->auditoria->update([
+            'estado_mejora' => 'procesando',
+            'mensaje_error' => null,
+        ]);
+
+        GenerarRITMejoradoJob::dispatch($this->auditoria->fresh(), Auth::id());
+
+        Notification::make()
+            ->info()
+            ->title('Regenerando RIT Mejorado')
+            ->body('El proceso ha sido reiniciado. Recibirá una notificación al terminar.')
+            ->send();
     }
 
     public function downloadPDFMejorado(): mixed
