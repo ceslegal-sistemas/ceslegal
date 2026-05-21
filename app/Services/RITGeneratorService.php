@@ -207,9 +207,24 @@ class RITGeneratorService
         $dompdf->setPaper('letter', 'portrait');
         $dompdf->render();
 
+        // Número de página centrado en el pie — DomPDF canvas API (más fiable que CSS counter)
+        $canvas   = $dompdf->getCanvas();
+        $w        = $canvas->get_width();
+        $h        = $canvas->get_height();
+        $font     = $dompdf->getFontMetrics()->getFont('Helvetica');
+        // Omitir portada (página 1) — solo aplica a partir de la página 2
+        $canvas->page_script(function (int $pageNum, int $pageCount, $canvas, $fontMetrics) use ($w, $h) {
+            if ($pageNum <= 1) {
+                return; // portada sin número
+            }
+            $font  = $fontMetrics->getFont('Helvetica');
+            $texto = "— {$pageNum} —";
+            $tw    = $fontMetrics->getTextWidth($texto, $font, 7.5);
+            $canvas->text(($w - $tw) / 2, $h - 40, $texto, $font, 7.5, [0.60, 0.64, 0.68]);
+        });
+
         // Encriptar: solo lectura + impresión permitida — sin contraseña para abrir
         // La clave del propietario es derivada del app key + empresa → nadie la conoce
-        $canvas = $dompdf->getCanvas();
         if ($canvas instanceof CpdfAdapter) {
             $ownerPass = substr(hash('sha256', config('app.key') . $empresa->id . 'rit'), 0, 32);
             $canvas->get_cpdf()->setEncryption('', $ownerPass, ['print']);
@@ -222,40 +237,108 @@ class RITGeneratorService
     }
 
     /**
-     * Convierte el texto plano del RIT (con markdown básico) a HTML para DOMPDF.
+     * Convierte el texto plano del RIT a HTML profesional para DOMPDF.
+     * Genera portada, encabezados de capítulo, artículos, parágrafos y listas con diseño formal.
      */
     private function textoAHtml(string $textoRIT, Empresa $empresa): string
     {
+        $eNombre       = htmlspecialchars($empresa->nombre_completo ?? $empresa->razon_social ?? '', ENT_QUOTES, 'UTF-8');
+        $eNit          = htmlspecialchars($empresa->nit ?? '', ENT_QUOTES, 'UTF-8');
+        $eRepresentante= htmlspecialchars($empresa->representante_legal ?? '', ENT_QUOTES, 'UTF-8');
+        $eCiudad       = htmlspecialchars($empresa->ciudad ?? '', ENT_QUOTES, 'UTF-8');
+        $eDpto         = htmlspecialchars($empresa->departamento ?? '', ENT_QUOTES, 'UTF-8');
+        $eAnio         = now()->year;
+        $eLugar        = trim($eCiudad . ($eDpto ? ', ' . $eDpto : ''));
+
+        $cuerpo      = '';
+        $enLista     = false;  // dentro de un <div class="lista">
+
         $lineas = explode("\n", $textoRIT);
-        $cuerpo = '';
 
         foreach ($lineas as $linea) {
             $linea = rtrim($linea);
 
-            if ($linea === '') {
-                $cuerpo .= '<br>';
+            // Línea vacía
+            if (trim($linea) === '') {
+                if ($enLista) { $cuerpo .= '</div>'; $enLista = false; }
                 continue;
             }
 
-            $esNegritaMarkdown = preg_match('/^\*{1,2}(.+?)\*{1,2}$/', $linea, $m);
-            $textoLimpio = $esNegritaMarkdown
-                ? trim($m[1])
-                : preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '$1', $linea);
-            $textoLimpio = ltrim($textoLimpio, '-*# ');
-            $textoLimpio = trim($textoLimpio);
+            // Limpiar markdown residual (no debería haber, pero por si acaso)
+            $linea = preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '$1', $linea);
+            $linea = ltrim($linea, '-*# ');
+            $linea = rtrim($linea);
 
-            $esTitulo = $esNegritaMarkdown
-                || preg_match('/^(CAPÍTULO|ARTÍCULO|ART\.)\s*/ui', $textoLimpio);
-
-            if ($esTitulo) {
-                $cuerpo .= '<p class="titulo">' . htmlspecialchars($textoLimpio, ENT_QUOTES, 'UTF-8') . '</p>';
-            } else {
-                $cuerpo .= '<p class="cuerpo">' . htmlspecialchars($textoLimpio, ENT_QUOTES, 'UTF-8') . '</p>';
+            // ── CAPÍTULO ──────────────────────────────────────────────────────
+            if (preg_match('/^(CAPÍTULO\s+[IVXLCDM]+)\s*[—–\-]+\s*(.+)$/iu', $linea, $m)) {
+                if ($enLista) { $cuerpo .= '</div>'; $enLista = false; }
+                $capNum   = htmlspecialchars(strtoupper($m[1]), ENT_QUOTES, 'UTF-8');
+                $capTit   = htmlspecialchars(strtoupper(trim($m[2])), ENT_QUOTES, 'UTF-8');
+                $cuerpo .= '<div class="cap-wrap">'
+                          . '<div class="cap-header">'
+                          . '<span class="cap-num">' . $capNum . '</span>'
+                          . '<span class="cap-tit">' . $capTit . '</span>'
+                          . '</div></div>';
+                continue;
             }
+
+            // ── ARTÍCULO ──────────────────────────────────────────────────────
+            if (preg_match('/^(ARTÍCULO\s+\d+\.)\s*([A-ZÁÉÍÓÚÑÜ][A-ZÁÉÍÓÚÑÜ ]+\.)?\s*(.*)/iu', $linea, $m)) {
+                if ($enLista) { $cuerpo .= '</div>'; $enLista = false; }
+                $artNum   = htmlspecialchars($m[1], ENT_QUOTES, 'UTF-8');
+                $artNom   = isset($m[2]) && $m[2] !== ''
+                              ? htmlspecialchars(rtrim($m[2], '.'), ENT_QUOTES, 'UTF-8')
+                              : null;
+                $artBody  = htmlspecialchars(trim($m[3] ?? ''), ENT_QUOTES, 'UTF-8');
+                $cuerpo .= '<p class="art">'
+                          . '<span class="art-num">' . $artNum . '</span>'
+                          . ($artNom ? ' <span class="art-nom">' . $artNom . '.</span>' : '')
+                          . ($artBody !== '' ? ' <span class="art-body">' . $artBody . '</span>' : '')
+                          . '</p>';
+                continue;
+            }
+
+            // ── PARÁGRAFO ─────────────────────────────────────────────────────
+            if (preg_match('/^(PARÁGRAFO(?:\s+(?:ÚNICO|PRIMERO|SEGUNDO|TERCERO|CUARTO|\d+))?)\s*[:.]\s*(.*)/iu', $linea, $m)) {
+                if ($enLista) { $cuerpo .= '</div>'; $enLista = false; }
+                $pLbl  = htmlspecialchars(strtoupper($m[1]), ENT_QUOTES, 'UTF-8');
+                $pBody = htmlspecialchars(trim($m[2] ?? ''), ENT_QUOTES, 'UTF-8');
+                $cuerpo .= '<p class="paragrafo">'
+                          . '<span class="para-lbl">' . $pLbl . ':</span>'
+                          . ($pBody !== '' ? ' ' . $pBody : '')
+                          . '</p>';
+                continue;
+            }
+
+            // ── Sub-ítems numerados: 1) o a) ─────────────────────────────────
+            if (preg_match('/^\s*(\d+|[a-zA-Z])\)\s+(.+)$/', $linea, $m)) {
+                if (!$enLista) { $cuerpo .= '<div class="lista">'; $enLista = true; }
+                $marc = htmlspecialchars($m[1], ENT_QUOTES, 'UTF-8');
+                $txt  = htmlspecialchars(trim($m[2]), ENT_QUOTES, 'UTF-8');
+                $cuerpo .= '<div class="lista-item">'
+                          . '<span class="lista-marc">' . $marc . ')</span>'
+                          . '<span class="lista-txt">' . $txt . '</span>'
+                          . '</div>';
+                continue;
+            }
+
+            // ── Viñetas: • ────────────────────────────────────────────────────
+            if (preg_match('/^\s*[•·▪▸]\s+(.+)$/', $linea, $m)) {
+                if (!$enLista) { $cuerpo .= '<div class="lista">'; $enLista = true; }
+                $txt = htmlspecialchars(trim($m[1]), ENT_QUOTES, 'UTF-8');
+                $cuerpo .= '<div class="lista-item">'
+                          . '<span class="lista-marc">•</span>'
+                          . '<span class="lista-txt">' . $txt . '</span>'
+                          . '</div>';
+                continue;
+            }
+
+            // ── Texto genérico ────────────────────────────────────────────────
+            if ($enLista) { $cuerpo .= '</div>'; $enLista = false; }
+            $cuerpo .= '<p class="body">' . htmlspecialchars($linea, ENT_QUOTES, 'UTF-8') . '</p>';
         }
 
-        $empresaNombre = htmlspecialchars($empresa->nombre_completo, ENT_QUOTES, 'UTF-8');
-        $nit           = htmlspecialchars($empresa->nit ?? '', ENT_QUOTES, 'UTF-8');
+        if ($enLista) { $cuerpo .= '</div>'; }
 
         return <<<HTML
 <!DOCTYPE html>
@@ -263,23 +346,381 @@ class RITGeneratorService
 <head>
 <meta charset="UTF-8">
 <style>
-@page { margin: 2.5cm 2.5cm 2.5cm 3cm; }
-body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; color: #000; }
-.encabezado { text-align: center; margin-bottom: 24pt; }
-.encabezado h1 { font-size: 14pt; font-weight: bold; margin: 0 0 6pt 0; }
-.encabezado h2 { font-size: 12pt; font-weight: bold; margin: 0 0 4pt 0; }
-.encabezado p  { font-size: 10pt; margin: 2pt 0; }
-.titulo { font-weight: bold; font-size: 12pt; margin: 14pt 0 4pt 0; }
-.cuerpo { font-size: 12pt; margin: 0 0 6pt 0; text-align: justify; }
+
+/* ══ Página ═══════════════════════════════════════════════════════════════ */
+@page {
+    size: letter portrait;
+    margin-top: 3cm;
+    margin-bottom: 2.8cm;
+    margin-left: 3.2cm;
+    margin-right: 2.5cm;
+}
+@page cover {
+    margin: 0;
+}
+
+/* ══ Encabezado y pie de página corridos ══════════════════════════════════ */
+.hdr {
+    position: fixed;
+    top: -2.1cm;
+    left: 0;
+    right: 0;
+    height: 1.5cm;
+    border-bottom: 0.5pt solid #c9a84c;
+}
+.hdr-table {
+    display: table;
+    width: 100%;
+    height: 100%;
+}
+.hdr-left {
+    display: table-cell;
+    vertical-align: bottom;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 7.5pt;
+    color: #5a6a7a;
+    padding-bottom: 4pt;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.hdr-right {
+    display: table-cell;
+    vertical-align: bottom;
+    text-align: right;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 7.5pt;
+    color: #5a6a7a;
+    padding-bottom: 4pt;
+    letter-spacing: 0.04em;
+}
+.ftr {
+    position: fixed;
+    bottom: -2cm;
+    left: 0;
+    right: 0;
+    height: 1.4cm;
+    border-top: 0.5pt solid #e2e5ea;
+    text-align: center;
+}
+.ftr-inner {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8pt;
+    color: #9ca3af;
+    padding-top: 5pt;
+}
+
+/* ══ Base ═════════════════════════════════════════════════════════════════ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 11pt;
+    line-height: 1.65;
+    color: #111827;
+}
+
+/* ══ Portada ══════════════════════════════════════════════════════════════ */
+.cover {
+    page: cover;
+    page-break-after: always;
+}
+.cover-top {
+    background: #0d1f3c;
+    padding: 4.8cm 3cm 3.2cm 3cm;
+    text-align: center;
+}
+.cover-pais {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8pt;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #6b8cad;
+    margin-bottom: 2.2cm;
+}
+.cover-titulo {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 28pt;
+    font-weight: bold;
+    color: #ffffff;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.5cm;
+}
+.cover-linea {
+    display: block;
+    width: 3.5cm;
+    height: 3pt;
+    background: #c9a84c;
+    margin: 1cm auto;
+}
+.cover-empresa {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 17pt;
+    font-weight: bold;
+    color: #c9a84c;
+    letter-spacing: 0.025em;
+    margin-bottom: 0.3cm;
+}
+.cover-nit {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    color: #7e9bb5;
+    letter-spacing: 0.04em;
+}
+.cover-bottom {
+    background: #ffffff;
+    border-top: 4pt solid #c9a84c;
+    padding: 1.4cm 3cm;
+}
+.meta-tbl {
+    display: table;
+    width: 100%;
+}
+.meta-row {
+    display: table-row;
+}
+.meta-cell {
+    display: table-cell;
+    text-align: center;
+    vertical-align: middle;
+    padding: 0.2cm 0.8cm;
+}
+.meta-sep {
+    display: table-cell;
+    width: 1pt;
+    background: #e5e7eb;
+    vertical-align: middle;
+    padding: 0 0;
+}
+.meta-lbl {
+    display: block;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 6.5pt;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #9ca3af;
+    margin-bottom: 3pt;
+}
+.meta-val {
+    display: block;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10.5pt;
+    font-weight: bold;
+    color: #0d1f3c;
+}
+
+/* ══ Capítulo ════════════════════════════════════════════════════════════ */
+.cap-wrap {
+    margin-top: 20pt;
+    margin-bottom: 11pt;
+    page-break-inside: avoid;
+}
+.cap-header {
+    background: #0d1f3c;
+    padding: 9pt 14pt 10pt 14pt;
+}
+.cap-num {
+    display: block;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 7pt;
+    font-weight: bold;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #c9a84c;
+    margin-bottom: 3pt;
+}
+.cap-tit {
+    display: block;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12.5pt;
+    font-weight: bold;
+    color: #ffffff;
+    letter-spacing: 0.015em;
+}
+
+/* ══ Artículo ════════════════════════════════════════════════════════════ */
+.art {
+    margin-top: 9pt;
+    margin-bottom: 5pt;
+    text-align: justify;
+    page-break-inside: avoid;
+    line-height: 1.65;
+}
+.art-num {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    font-size: 11pt;
+    color: #0d1f3c;
+}
+.art-nom {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    font-size: 11pt;
+    color: #0d1f3c;
+}
+.art-body {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 11pt;
+    color: #111827;
+}
+
+/* ══ Parágrafo ═══════════════════════════════════════════════════════════ */
+.paragrafo {
+    margin-top: 5pt;
+    margin-bottom: 4pt;
+    margin-left: 20pt;
+    padding-left: 10pt;
+    border-left: 2.5pt solid #c9a84c;
+    font-size: 10.5pt;
+    text-align: justify;
+    line-height: 1.6;
+}
+.para-lbl {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    font-size: 10.5pt;
+    color: #0d1f3c;
+}
+
+/* ══ Listas ══════════════════════════════════════════════════════════════ */
+.lista {
+    margin-left: 20pt;
+    margin-top: 4pt;
+    margin-bottom: 5pt;
+}
+.lista-item {
+    display: table;
+    width: 100%;
+    margin-bottom: 3pt;
+}
+.lista-marc {
+    display: table-cell;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    font-size: 10.5pt;
+    color: #0d1f3c;
+    width: 16pt;
+    vertical-align: top;
+    padding-top: 1pt;
+}
+.lista-txt {
+    display: table-cell;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 10.5pt;
+    text-align: justify;
+    line-height: 1.55;
+    vertical-align: top;
+}
+
+/* ══ Cuerpo genérico ══════════════════════════════════════════════════════ */
+.body {
+    margin-top: 4pt;
+    margin-bottom: 5pt;
+    text-align: justify;
+    font-size: 11pt;
+    line-height: 1.65;
+}
+
+/* ══ Bloque de firma ══════════════════════════════════════════════════════ */
+.firma-wrap {
+    margin-top: 52pt;
+    page-break-inside: avoid;
+}
+.firma-tbl {
+    display: table;
+    width: 100%;
+}
+.firma-col {
+    display: table-cell;
+    width: 50%;
+    text-align: center;
+    padding: 0 2cm;
+    vertical-align: bottom;
+}
+.firma-linea {
+    border-top: 1pt solid #0d1f3c;
+    margin-bottom: 5pt;
+}
+.firma-nombre {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    font-size: 10pt;
+    color: #0d1f3c;
+}
+.firma-cargo {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8.5pt;
+    color: #6b7280;
+    margin-top: 2pt;
+}
+
 </style>
 </head>
 <body>
-<div class="encabezado">
-    <h1>REGLAMENTO INTERNO DE TRABAJO</h1>
-    <h2>{$empresaNombre}</h2>
-    <p>NIT: {$nit}</p>
+
+<!-- Encabezado corrido (se repite en cada página, excepto portada) -->
+<div class="hdr">
+  <div class="hdr-table">
+    <span class="hdr-left">{$eNombre}</span>
+    <span class="hdr-right">Reglamento Interno de Trabajo</span>
+  </div>
 </div>
+
+<!-- Pie corrido -->
+<div class="ftr">
+  <div class="ftr-inner">&#8212;</div>
+</div>
+
+<!-- ══ PORTADA ════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-top">
+    <div class="cover-pais">República de Colombia · Ministerio del Trabajo</div>
+    <div class="cover-titulo">REGLAMENTO<br>INTERNO<br>DE TRABAJO</div>
+    <span class="cover-linea"></span>
+    <div class="cover-empresa">{$eNombre}</div>
+    <div class="cover-nit">NIT {$eNit}</div>
+  </div>
+  <div class="cover-bottom">
+    <div class="meta-tbl">
+      <div class="meta-row">
+        <div class="meta-cell">
+          <span class="meta-lbl">Ciudad</span>
+          <span class="meta-val">{$eLugar}</span>
+        </div>
+        <div class="meta-sep"></div>
+        <div class="meta-cell">
+          <span class="meta-lbl">Año</span>
+          <span class="meta-val">{$eAnio}</span>
+        </div>
+        <div class="meta-sep"></div>
+        <div class="meta-cell">
+          <span class="meta-lbl">Representante Legal</span>
+          <span class="meta-val">{$eRepresentante}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONTENIDO ══════════════════════════════════════════════════════════ -->
 {$cuerpo}
+
+<!-- ══ FIRMA ══════════════════════════════════════════════════════════════ -->
+<div class="firma-wrap">
+  <div class="firma-tbl">
+    <div class="firma-col">
+      <div class="firma-linea"></div>
+      <div class="firma-nombre">{$eRepresentante}</div>
+      <div class="firma-cargo">Representante Legal</div>
+      <div class="firma-cargo">{$eNombre}</div>
+    </div>
+    <div class="firma-col">
+      <div class="firma-linea"></div>
+      <div class="firma-nombre">Firma del Trabajador</div>
+      <div class="firma-cargo">Fecha de recibido: ___________________________</div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
 HTML;
