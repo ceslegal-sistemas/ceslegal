@@ -3125,15 +3125,12 @@ class ProcesoDisciplinarioResource extends Resource
                                         Forms\Components\Placeholder::make('gravedad_info')
                                             ->label('Gravedad de la Falta')
                                             ->content(function () use ($analisis) {
-                                                $nivel = $analisis['nivel_gravedad'] ?? 'ninguno';
-                                                if ($analisis['gravedad'] === 'leve') {
-                                                    $gravedad = '🟢 Leve';
-                                                } elseif ($analisis['gravedad'] === 'grave') {
-                                                    $gravedad = $nivel === 'alto' ? '🔴 Grave (Nivel Alto)' : '🟡 Grave';
-                                                } else {
-                                                    $gravedad = ucfirst($analisis['gravedad']);
-                                                }
-                                                $reincidencia = $analisis['es_reincidencia'] ? ' ⚠️ REINCIDENCIA' : '';
+                                                $gravedad = match ($analisis['gravedad'] ?? '') {
+                                                    'leve'  => '🟢 Leve',
+                                                    'grave' => '🔴 Grave',
+                                                    default => ucfirst($analisis['gravedad'] ?? 'desconocida'),
+                                                };
+                                                $reincidencia = ($analisis['es_reincidencia'] ?? false) ? ' ⚠️ REINCIDENCIA' : '';
                                                 return $gravedad . $reincidencia;
                                             }),
                                         Forms\Components\Placeholder::make('justificacion_ia')

@@ -273,7 +273,7 @@ class IAAnalisisSancionService
             $seccionOtroMotivo .= "IMPORTANTE: Debes analizar este motivo adicional y:\n";
             $seccionOtroMotivo .= "1. Determinar si es una falta LEVE o GRAVE\n";
             $seccionOtroMotivo .= "2. Recomendar qué tipo de sanción aplicaría para este motivo específico\n";
-            $seccionOtroMotivo .= "3. Si es grave, indicar el nivel (bajo o alto) y los días de suspensión recomendados\n";
+            $seccionOtroMotivo .= "3. Si es grave y aplica suspensión, indicar los días MÁXIMOS de suspensión que el RIT permite explícitamente\n";
             $seccionOtroMotivo .= "4. Proporcionar una justificación clara para ayudar al cliente a tomar la mejor decisión\n";
         }
 
@@ -362,12 +362,11 @@ PROCESO DE ANÁLISIS:
 Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adicional):
 {
   "gravedad": "leve|grave",
-  "nivel_gravedad": "ninguno|bajo|alto",
   "es_reincidencia": true/false,
   "justificacion": "Por qué la conducta es leve o grave, citando el RIT o CST aplicable",
   "sanciones_disponibles": ["llamado_atencion", "suspension", "terminacion"],
   "sancion_recomendada": "llamado_atencion|suspension|terminacion",
-  "dias_suspension_sugeridos": [],
+  "dias_suspension_max_rit": null,
   "razonamiento_legal": "Fundamento en el RIT de la empresa y el CST. Citar artículo o capítulo del RIT si aplica",
   "consideraciones_especiales": "Historial, descargos del trabajador, atenuantes o agravantes relevantes",
   "motivos_analizados": [
@@ -382,9 +381,8 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
     "aplica": true/false,
     "descripcion_analizada": "Descripción del otro motivo",
     "tipo_falta_determinado": "leve|grave",
-    "nivel_gravedad": "ninguno|bajo|alto",
     "sancion_recomendada": "llamado_atencion|suspension|terminacion",
-    "dias_suspension_recomendados": null,
+    "dias_suspension_max_rit": null,
     "justificacion": "Análisis de este motivo según RIT y CST"
   },
   "autoridad_sancion": {
@@ -402,13 +400,12 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
 }
 
 REGLAS ESTRICTAS:
-- sanciones_sugeridas: array con TODOS los tipos de sanción que serían jurídicamente válidos y proporcionales para este caso. Puede ser uno, dos o tres tipos. No incluir "no_sancion". Ejemplo: si tanto llamado_atencion como suspension son proporcionales, incluir ambos.
+- sanciones_sugeridas: array con TODOS los tipos de sanción jurídicamente válidos y proporcionales para este caso. Puede ser uno, dos o tres. No incluir "no_sancion". Ejemplo: si tanto llamado_atencion como suspension son proporcionales, incluir ambos.
 - sancion_principal: el tipo que más se ajusta al caso, debe estar dentro de sanciones_sugeridas.
-- sanciones_disponibles: incluye SOLO las sanciones que el RIT de esta empresa contempla. Si no hay datos del RIT, aplica las que permite el CST según la gravedad.
-- dias_suspension_sugeridos: array con los días posibles DENTRO del rango que especifica el RIT (ej: si RIT dice "1 a 8 días", pon [1,2,3,5,8]). Array vacío si no aplica suspensión.
-- dias_suspension (recomendacion_final): un número concreto dentro del rango del RIT, o null si no hay suspensión.
-- Si es FALTA LEVE: nivel_gravedad="ninguno", sanciones solo incluye lo que el RIT contemple para faltas leves.
-- Si es FALTA GRAVE: nivel_gravedad="bajo" o "alto" según el impacto real de la conducta y el RIT.
+- sanciones_disponibles: incluye SOLO las sanciones que el RIT contempla. Sin RIT, aplica lo que permite el CST según la gravedad.
+- dias_suspension_max_rit: número entero con el MÁXIMO de días que el RIT contempla EXPLÍCITAMENTE para la suspensión aplicable. Si el RIT no especifica días concretos, usa el límite del Art. 112 CST: 8 días primera vez, hasta 60 días en reincidencia. Si no aplica suspensión, pon null. NUNCA inventes un valor que no esté en el RIT ni en el CST.
+- dias_suspension (recomendacion_final): número concreto dentro del rango 1..dias_suspension_max_rit que mejor se ajuste al caso, o null si no hay suspensión.
+- La gravedad es SOLO "leve" o "grave" — no hay subcategorías ni niveles. La clasificación la define el RIT.
 - Confianza "alta": el RIT clasifica explícitamente esta conducta. "media": se infiere del RIT. "baja": no hay datos del RIT, se aplica solo el CST.
 - En "motivos_analizados": incluye CADA motivo seleccionado con su análisis individual.
 - Si hay "otro motivo": analisis_otro_motivo.aplica=true y completa TODOS sus campos.
@@ -549,11 +546,17 @@ PROMPT;
 
             // Rellenar campos opcionales que pueden haberse truncado
             $defaults = $this->obtenerOpcionesPorDefecto();
-            foreach (['sancion_recomendada', 'justificacion', 'razonamiento_legal', 'consideraciones_especiales', 'motivos_analizados', 'analisis_otro_motivo', 'recomendacion_final', 'autoridad_sancion', 'dias_suspension_sugeridos', 'nivel_gravedad', 'es_reincidencia'] as $campo) {
+            foreach (['sancion_recomendada', 'justificacion', 'razonamiento_legal', 'consideraciones_especiales', 'motivos_analizados', 'analisis_otro_motivo', 'recomendacion_final', 'autoridad_sancion', 'dias_suspension_max_rit', 'es_reincidencia'] as $campo) {
                 if (!isset($analisis[$campo])) {
                     $analisis[$campo] = $defaults[$campo] ?? null;
                 }
             }
+
+            // Construir rango de días 1..N a partir del máximo que indica el RIT
+            $maxDias = is_int($analisis['dias_suspension_max_rit']) && $analisis['dias_suspension_max_rit'] > 0
+                ? $analisis['dias_suspension_max_rit']
+                : null;
+            $analisis['dias_suspension_sugeridos'] = $maxDias ? range(1, $maxDias) : [];
 
             return $analisis;
 
@@ -678,22 +681,21 @@ PROMPT;
     {
         return [
             'gravedad' => 'grave',
-            'nivel_gravedad' => 'bajo',
             'es_reincidencia' => false,
             'justificacion' => 'Análisis manual requerido - el sistema no pudo determinar automáticamente la gravedad.',
             'sanciones_disponibles' => ['llamado_atencion', 'suspension', 'terminacion'],
             'sancion_recomendada' => 'llamado_atencion',
-            'dias_suspension_sugeridos' => [1, 2, 3, 5, 8],
+            'dias_suspension_max_rit' => null,
+            'dias_suspension_sugeridos' => [],
             'razonamiento_legal' => 'Se requiere revisión manual del caso para determinar la sanción apropiada.',
-            'consideraciones_especiales' => 'El análisis automático no estuvo disponible. Se recomienda revisar manualmente los hechos, artículos incumplidos y el historial del trabajador.',
+            'consideraciones_especiales' => 'El análisis automático no estuvo disponible. Se recomienda revisar manualmente los hechos, motivos seleccionados y el historial del trabajador.',
             'motivos_analizados' => [],
             'analisis_otro_motivo' => [
                 'aplica' => false,
                 'descripcion_analizada' => null,
                 'tipo_falta_determinado' => null,
-                'nivel_gravedad' => null,
                 'sancion_recomendada' => null,
-                'dias_suspension_recomendados' => null,
+                'dias_suspension_max_rit' => null,
                 'justificacion' => null,
             ],
             'autoridad_sancion' => [],
