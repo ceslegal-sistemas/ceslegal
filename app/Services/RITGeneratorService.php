@@ -343,79 +343,129 @@ class RITGeneratorService
 <style>
 
 /* ══ Página ═══════════════════════════════════════════════════════════════ */
-@page {
-    size: letter portrait;
-    margin-top: 2.5cm;
-    margin-bottom: 2.5cm;
-    margin-left: 3cm;
-    margin-right: 2.5cm;
-}
+/* Shorthand idéntico al que usa la citación — funciona en DomPDF */
+@page { margin: 2.5cm 2.5cm 2.5cm 3cm; }
 
 /* ══ Base ═════════════════════════════════════════════════════════════════ */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
     font-family: 'Times New Roman', Times, serif;
-    font-size: 12pt;
-    line-height: 1.6;
-    color: #000000;
+    font-size: 11pt;
+    line-height: 1.65;
+    color: #111827;
 }
 
-/* ══ Encabezado del documento ════════════════════════════════════════════ */
-.doc-header {
+/* ══ Portada (dentro de márgenes — sin @page cover) ═════════════════════ */
+.cover {
+    page-break-after: always;
+}
+.cover-top {
+    background: #0d1f3c;
+    padding: 3cm 2.5cm 2.5cm 2.5cm;
     text-align: center;
-    border-bottom: 2pt solid #000000;
-    padding-bottom: 10pt;
-    margin-bottom: 16pt;
 }
-.doc-empresa {
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 13pt;
-    font-weight: bold;
-}
-.doc-nit {
-    font-size: 11pt;
-    margin-top: 2pt;
-}
-.doc-titulo {
-    font-size: 14pt;
-    font-weight: bold;
-    margin-top: 8pt;
+.cover-pais {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8pt;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    color: #6b8cad;
+    margin-bottom: 1.8cm;
 }
-.doc-meta {
+.cover-titulo {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 26pt;
+    font-weight: bold;
+    color: #ffffff;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.5cm;
+}
+.cover-linea {
+    display: block;
+    width: 3.5cm;
+    height: 3pt;
+    background: #c9a84c;
+    margin: 0.8cm auto;
+}
+.cover-empresa {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16pt;
+    font-weight: bold;
+    color: #c9a84c;
+    letter-spacing: 0.025em;
+    margin-bottom: 0.3cm;
+}
+.cover-nit {
+    font-family: Arial, Helvetica, sans-serif;
     font-size: 10pt;
-    margin-top: 3pt;
-    color: #444444;
+    color: #7e9bb5;
+    letter-spacing: 0.04em;
+}
+.cover-bottom {
+    background: #ffffff;
+    border-top: 4pt solid #c9a84c;
+    padding: 1.2cm 2.5cm;
+}
+.meta-tbl { display: table; width: 100%; }
+.meta-row { display: table-row; }
+.meta-cell {
+    display: table-cell;
+    text-align: center;
+    vertical-align: middle;
+    padding: 0.2cm 0.6cm;
+}
+.meta-sep {
+    display: table-cell;
+    width: 1pt;
+    background: #e5e7eb;
+    vertical-align: middle;
+    padding: 0;
+}
+.meta-lbl {
+    display: block;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 6.5pt;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #9ca3af;
+    margin-bottom: 3pt;
+}
+.meta-val {
+    display: block;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    font-weight: bold;
+    color: #0d1f3c;
 }
 
 /* ══ Capítulo ════════════════════════════════════════════════════════════ */
 .cap-wrap {
-    margin-top: 18pt;
-    margin-bottom: 10pt;
+    margin-top: 20pt;
+    margin-bottom: 11pt;
     page-break-inside: avoid;
-    page-break-after: avoid;
 }
 .cap-header {
-    border-top: 2pt solid #000000;
-    border-bottom: 1pt solid #000000;
-    padding: 5pt 0 5pt 0;
-    text-align: center;
+    background: #0d1f3c;
+    padding: 9pt 14pt 10pt 14pt;
 }
 .cap-num {
     display: block;
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 11pt;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 7pt;
     font-weight: bold;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    color: #c9a84c;
+    margin-bottom: 3pt;
 }
 .cap-tit {
     display: block;
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 12pt;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12.5pt;
     font-weight: bold;
-    text-transform: uppercase;
+    color: #ffffff;
+    letter-spacing: 0.015em;
 }
 
 /* ══ Artículo ════════════════════════════════════════════════════════════ */
@@ -424,38 +474,47 @@ body {
     margin-bottom: 5pt;
     text-align: justify;
     page-break-inside: avoid;
-    line-height: 1.6;
+    line-height: 1.65;
 }
 .art-num {
+    font-family: Arial, Helvetica, sans-serif;
     font-weight: bold;
-    font-size: 12pt;
+    font-size: 11pt;
+    color: #0d1f3c;
 }
 .art-nom {
+    font-family: Arial, Helvetica, sans-serif;
     font-weight: bold;
-    font-size: 12pt;
+    font-size: 11pt;
+    color: #0d1f3c;
 }
 .art-body {
-    font-size: 12pt;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 11pt;
+    color: #111827;
 }
 
 /* ══ Parágrafo ═══════════════════════════════════════════════════════════ */
 .paragrafo {
     margin-top: 5pt;
     margin-bottom: 4pt;
-    margin-left: 24pt;
-    font-size: 11.5pt;
+    margin-left: 20pt;
+    padding-left: 10pt;
+    border-left: 2.5pt solid #c9a84c;
+    font-size: 10.5pt;
     text-align: justify;
-    line-height: 1.55;
-    font-style: italic;
+    line-height: 1.6;
 }
 .para-lbl {
+    font-family: Arial, Helvetica, sans-serif;
     font-weight: bold;
-    font-style: normal;
+    font-size: 10.5pt;
+    color: #0d1f3c;
 }
 
 /* ══ Listas ══════════════════════════════════════════════════════════════ */
 .lista {
-    margin-left: 24pt;
+    margin-left: 20pt;
     margin-top: 4pt;
     margin-bottom: 5pt;
 }
@@ -466,15 +525,18 @@ body {
 }
 .lista-marc {
     display: table-cell;
+    font-family: Arial, Helvetica, sans-serif;
     font-weight: bold;
-    font-size: 11.5pt;
-    width: 18pt;
+    font-size: 10.5pt;
+    color: #0d1f3c;
+    width: 16pt;
     vertical-align: top;
     padding-top: 1pt;
 }
 .lista-txt {
     display: table-cell;
-    font-size: 11.5pt;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 10.5pt;
     text-align: justify;
     line-height: 1.55;
     vertical-align: top;
@@ -485,8 +547,8 @@ body {
     margin-top: 4pt;
     margin-bottom: 5pt;
     text-align: justify;
-    font-size: 12pt;
-    line-height: 1.6;
+    font-size: 11pt;
+    line-height: 1.65;
 }
 
 /* ══ Bloque de firma ══════════════════════════════════════════════════════ */
@@ -502,19 +564,23 @@ body {
     display: table-cell;
     width: 50%;
     text-align: center;
-    padding: 0 1.5cm;
+    padding: 0 2cm;
     vertical-align: bottom;
 }
 .firma-linea {
-    border-top: 1pt solid #000000;
+    border-top: 1pt solid #0d1f3c;
     margin-bottom: 5pt;
 }
 .firma-nombre {
+    font-family: Arial, Helvetica, sans-serif;
     font-weight: bold;
-    font-size: 11pt;
+    font-size: 10pt;
+    color: #0d1f3c;
 }
 .firma-cargo {
-    font-size: 10pt;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8.5pt;
+    color: #6b7280;
     margin-top: 2pt;
 }
 
@@ -522,12 +588,35 @@ body {
 </head>
 <body>
 
-<!-- ══ ENCABEZADO DEL DOCUMENTO ══════════════════════════════════════════ -->
-<div class="doc-header">
-  <div class="doc-empresa">{$eNombre}</div>
-  <div class="doc-nit">NIT {$eNit}</div>
-  <div class="doc-titulo">Reglamento Interno de Trabajo</div>
-  <div class="doc-meta">{$eLugar} &nbsp;&middot;&nbsp; {$eAnio}</div>
+<!-- ══ PORTADA (dentro de márgenes) ══════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-top">
+    <div class="cover-pais">República de Colombia · Ministerio del Trabajo</div>
+    <div class="cover-titulo">REGLAMENTO<br>INTERNO<br>DE TRABAJO</div>
+    <span class="cover-linea"></span>
+    <div class="cover-empresa">{$eNombre}</div>
+    <div class="cover-nit">NIT {$eNit}</div>
+  </div>
+  <div class="cover-bottom">
+    <div class="meta-tbl">
+      <div class="meta-row">
+        <div class="meta-cell">
+          <span class="meta-lbl">Ciudad</span>
+          <span class="meta-val">{$eLugar}</span>
+        </div>
+        <div class="meta-sep"></div>
+        <div class="meta-cell">
+          <span class="meta-lbl">Año</span>
+          <span class="meta-val">{$eAnio}</span>
+        </div>
+        <div class="meta-sep"></div>
+        <div class="meta-cell">
+          <span class="meta-lbl">Representante Legal</span>
+          <span class="meta-val">{$eRepresentante}</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ══ CONTENIDO ══════════════════════════════════════════════════════════ -->
