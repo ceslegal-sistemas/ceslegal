@@ -67,6 +67,7 @@ class SancionLaboralResource extends Resource
                                 'llamado_atencion' => '📄 Llamado de Atención',
                                 'suspension' => '⏸️ Suspensión Laboral',
                                 'terminacion' => '❌ Terminación de Contrato',
+                                'no_sancion' => '✅ No Aplicar Sanción',
                             ])
                             ->required()
                             ->native(false)
@@ -200,12 +201,14 @@ class SancionLaboralResource extends Resource
                         'llamado_atencion' => 'Llamado Atención',
                         'suspension' => 'Suspensión',
                         'terminacion' => 'Terminación',
+                        'no_sancion' => 'Sin Sanción',
                         default => $state,
                     })
                     ->color(fn(string $state): string => match ($state) {
                         'llamado_atencion' => 'warning',
                         'suspension' => 'info',
                         'terminacion' => 'danger',
+                        'no_sancion' => 'success',
                         default => 'gray',
                     })
                     ->sortable(),
@@ -236,6 +239,7 @@ class SancionLaboralResource extends Resource
                         'llamado_atencion' => 'Llamado de Atención',
                         'suspension' => 'Suspensión',
                         'terminacion' => 'Terminación',
+                        'no_sancion' => 'No Aplicar Sanción',
                     ])
                     ->native(false),
 

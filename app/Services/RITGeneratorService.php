@@ -350,10 +350,7 @@ class RITGeneratorService
 /* ══ Página ═══════════════════════════════════════════════════════════════ */
 @page {
     size: letter portrait;
-    margin-top: 3cm;
-    margin-bottom: 2.8cm;
-    margin-left: 3.2cm;
-    margin-right: 2.5cm;
+    margin: 2.5cm;
 }
 @page cover {
     margin: 0;
@@ -363,7 +360,7 @@ class RITGeneratorService
 .hdr {
     position: fixed;
     top: -2.1cm;
-    left: 3.2cm;
+    left: 2.5cm;
     right: 2.5cm;
     height: 1.5cm;
     border-bottom: 0.5pt solid #c9a84c;
@@ -396,7 +393,7 @@ class RITGeneratorService
 .ftr {
     position: fixed;
     bottom: -2cm;
-    left: 3.2cm;
+    left: 2.5cm;
     right: 2.5cm;
     height: 1.4cm;
     border-top: 0.5pt solid #e2e5ea;

@@ -153,6 +153,7 @@ class SancionLaboral extends Model
             'llamado_atencion' => 'Llamado de Atención',
             'suspension' => 'Suspensión',
             'terminacion' => 'Terminación del Contrato',
+            'no_sancion' => 'No Aplicar Sanción',
             default => ucfirst($this->tipo_sancion),
         };
 

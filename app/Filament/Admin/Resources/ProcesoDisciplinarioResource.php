@@ -1100,6 +1100,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 'llamado_atencion' => 'Llamado de Atención',
                                 'suspension' => 'Suspensión',
                                 'terminacion' => 'Terminación de Contrato',
+                                'no_sancion' => 'No Aplicar Sanción',
                             ])
                             ->visible(fn(Get $get) => $get('decision_sancion') === true),
 
@@ -1846,11 +1847,15 @@ class ProcesoDisciplinarioResource extends Resource
                         $sinRit = !$record->empresa->reglamentoInterno()->where('activo', true)->exists();
 
                         $opcionesSancion = $sinRit
-                            ? ['terminacion' => 'Terminación de Contrato (Art. 62 CST)']
+                            ? [
+                                'terminacion' => 'Terminación de Contrato (Art. 62 CST)',
+                                'no_sancion'  => 'No Aplicar Sanción',
+                            ]
                             : [
                                 'llamado_atencion' => 'Llamado de Atención',
                                 'suspension'       => 'Suspensión Laboral',
                                 'terminacion'      => 'Terminación de Contrato',
+                                'no_sancion'       => 'No Aplicar Sanción',
                             ];
 
                         // Si la IA no estuvo disponible: no preseleccionar ni mostrar análisis engañoso
@@ -1917,11 +1922,13 @@ class ProcesoDisciplinarioResource extends Resource
                                     'llamado_atencion' => 'info',
                                     'suspension'       => 'warning',
                                     'terminacion'      => 'danger',
+                                    'no_sancion'       => 'success',
                                 ])
                                 ->icons([
                                     'llamado_atencion' => 'heroicon-o-chat-bubble-bottom-center-text',
                                     'suspension'       => 'heroicon-o-clock',
                                     'terminacion'      => 'heroicon-o-x-circle',
+                                    'no_sancion'       => 'heroicon-o-check-circle',
                                 ])
                                 ->columns(['default' => 1, 'sm' => 3])
                                 ->default($iaRecomendada)
@@ -2111,6 +2118,24 @@ class ProcesoDisciplinarioResource extends Resource
                                 "setTimeout(() => { \$wire.mountTableAction('confirmar_dias_suspension', '{$recordKey}') }, 300)"
                             );
 
+                            return;
+                        }
+
+                        // Sin sanción: cerrar proceso sin generar documento
+                        if ($data['tipo_sancion'] === 'no_sancion') {
+                            $record->update([
+                                'tipo_sancion' => 'no_sancion',
+                                'estado'       => 'cerrado',
+                            ]);
+
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Proceso cerrado — Sin sanción')
+                                ->body('Se decidió no aplicar sanción al trabajador. El proceso quedó registrado y cerrado.')
+                                ->duration(6000)
+                                ->send();
+
+                            redirect()->route('filament.admin.resources.proceso-disciplinarios.index');
                             return;
                         }
 
@@ -2560,6 +2585,7 @@ class ProcesoDisciplinarioResource extends Resource
                             'llamado_atencion' => 'Llamado de Atención',
                             'suspension' => 'Suspensión Laboral' . ($record->dias_suspension ? " de {$record->dias_suspension} día(s)" : ''),
                             'terminacion' => 'Terminación de Contrato',
+                            'no_sancion' => 'Sin Sanción',
                             default => ucfirst(str_replace('_', ' ', $record->tipo_sancion ?? 'N/A')),
                         };
 
@@ -2691,6 +2717,7 @@ class ProcesoDisciplinarioResource extends Resource
                                             'llamado_atencion' => 'Llamado de Atención',
                                             'suspension' => 'Suspensión Laboral',
                                             'terminacion' => 'Terminación de Contrato',
+                                            'no_sancion' => 'Sin Sanción',
                                         ])
                                         ->required()
                                         ->visible(fn(Forms\Get $get) => $get('decision_final') === 'modifica_sancion')
@@ -3064,6 +3091,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 'llamado_atencion' => 'Llamado de Atención',
                                 'suspension' => 'Suspensión Laboral',
                                 'terminacion' => 'Terminación de Contrato',
+                                'no_sancion' => 'No Aplicar Sanción',
                             ];
 
                             $recomendacionFinal = $analisis['recomendacion_final'] ?? null;
@@ -3358,6 +3386,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 'llamado_atencion' => 'Llamado de Atención',
                                 'suspension'       => 'Suspensión Laboral',
                                 'terminacion'      => 'Terminación de Contrato',
+                                'no_sancion'       => 'Sin Sanción',
                                 default            => $state ?? '—',
                             })
                             ->badge()
@@ -3365,6 +3394,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 'llamado_atencion' => 'info',
                                 'suspension'       => 'warning',
                                 'terminacion'      => 'danger',
+                                'no_sancion'       => 'success',
                                 default            => 'gray',
                             })
                             ->placeholder('Sin sanción aún'),
