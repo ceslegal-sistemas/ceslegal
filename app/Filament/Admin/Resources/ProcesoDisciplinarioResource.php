@@ -3457,12 +3457,14 @@ class ProcesoDisciplinarioResource extends Resource
                                 'llamado_atencion' => 'info',
                                 'suspension'       => 'warning',
                                 'terminacion'      => 'danger',
+                                'no_sancion'       => 'success',
                                 default            => 'gray',
                             })
                             ->formatStateUsing(fn($state) => match ($state) {
                                 'llamado_atencion' => 'Llamado de Atención',
                                 'suspension'       => 'Suspensión',
                                 'terminacion'      => 'Terminación',
+                                'no_sancion'       => 'Sin Sanción',
                                 default            => $state ?? '—',
                             })
                             ->placeholder('—'),
@@ -3474,12 +3476,14 @@ class ProcesoDisciplinarioResource extends Resource
                                 'llamado_atencion' => 'info',
                                 'suspension'       => 'warning',
                                 'terminacion'      => 'danger',
+                                'no_sancion'       => 'success',
                                 default            => 'gray',
                             })
                             ->formatStateUsing(fn($state) => match ($state) {
                                 'llamado_atencion' => 'Llamado de Atención',
                                 'suspension'       => 'Suspensión Laboral',
                                 'terminacion'      => 'Terminación de Contrato',
+                                'no_sancion'       => 'Sin Sanción',
                                 default            => $state ?? '—',
                             })
                             ->placeholder('—'),

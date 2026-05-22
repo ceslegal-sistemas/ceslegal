@@ -1116,6 +1116,7 @@ HTML;
             'llamado_atencion' => 'Llamado de Atención',
             'suspension' => 'Suspensión Laboral' . ($diasSuspension ? " de {$diasSuspension} día" . ($diasSuspension > 1 ? 's' : '') : ''),
             'terminacion' => 'Terminación de Contrato',
+            'no_sancion' => 'Sin Sanción',
             default => 'Sanción',
         };
 
@@ -1452,6 +1453,7 @@ HTML;
             'llamado_atencion' => 'Llamado de Atención',
             'suspension' => 'Suspensión',
             'terminacion' => 'Terminación de Contrato',
+            'no_sancion' => 'Sin Sanción',
             default => 'Sanción',
         };
         $nombreArchivo = 'Sancion_' . $nombreSancion . '_' . $proceso->codigo . '.' . $extension;
@@ -1745,6 +1747,7 @@ HTML;
             'llamado_atencion' => 'Llamado de Atención',
             'suspension' => 'Suspensión Laboral' . ($proceso->dias_suspension ? " de {$proceso->dias_suspension} día(s)" : ''),
             'terminacion' => 'Terminación de Contrato',
+            'no_sancion' => 'Sin Sanción',
             default => ucfirst(str_replace('_', ' ', $proceso->tipo_sancion ?? 'N/A')),
         };
 
@@ -1912,6 +1915,7 @@ HTML;
                 'llamado_atencion' => 'Llamado de Atención',
                 'suspension' => 'Suspensión Laboral',
                 'terminacion' => 'Terminación de Contrato',
+                'no_sancion' => 'Sin Sanción',
                 default => ucfirst(str_replace('_', ' ', $impugnacion->nueva_sancion_tipo)),
             };
         }
