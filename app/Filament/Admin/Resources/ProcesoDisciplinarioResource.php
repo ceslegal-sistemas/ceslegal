@@ -1859,9 +1859,13 @@ class ProcesoDisciplinarioResource extends Resource
                             ];
 
                         // Si la IA no estuvo disponible: no preseleccionar ni mostrar análisis engañoso
-                        $recomendacionFinal = $esFallback ? null : ($analisis['recomendacion_final'] ?? null);
-                        $iaRecomendada      = $esFallback ? null : ($recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null);
-                        $autoridadRit       = $esFallback ? [] : ($analisis['autoridad_sancion'] ?? []);
+                        $recomendacionFinal      = $esFallback ? null : ($analisis['recomendacion_final'] ?? null);
+                        $iaRecomendada           = $esFallback ? null : ($recomendacionFinal['sancion_principal'] ?? $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null);
+                        $iaSancionesRecomendadas = $esFallback ? [] : ($recomendacionFinal['sanciones_sugeridas'] ?? ($iaRecomendada ? [$iaRecomendada] : []));
+                        $autoridadRit            = $esFallback ? [] : ($analisis['autoridad_sancion'] ?? []);
+
+                        $labelsMap = ['llamado_atencion' => 'Llamado de Atención', 'suspension' => 'Suspensión Laboral', 'terminacion' => 'Terminación de Contrato', 'no_sancion' => 'Sin Sanción'];
+                        $sancionesRecomTexto = implode(' / ', array_map(fn($s) => $labelsMap[$s] ?? $s, $iaSancionesRecomendadas));
 
                         return [
                             // ── Tarjetas: Análisis + Recomendación (o error IA) ──────────────
@@ -1911,8 +1915,26 @@ class ProcesoDisciplinarioResource extends Resource
                             Forms\Components\Hidden::make('sancion_ia_recomendada')
                                 ->default($iaRecomendada),
 
+                            Forms\Components\Hidden::make('sanciones_ia_recomendadas')
+                                ->default(json_encode($iaSancionesRecomendadas)),
+
                             Forms\Components\Hidden::make('autoridad_rango_rit_json')
                                 ->default(json_encode($autoridadRit)),
+
+                            // ── Sanciones recomendadas por la IA ─────────────────────────────
+                            Forms\Components\Placeholder::make('_recomendaciones_ia')
+                                ->hiddenLabel()
+                                ->content(fn() => !empty($iaSancionesRecomendadas)
+                                    ? new \Illuminate\Support\HtmlString(
+                                        '<div style="padding:10px 14px;border-radius:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.22);margin-bottom:4px">'
+                                        . '<span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#818cf8">Opciones recomendadas por la IA</span>'
+                                        . '<span style="display:block;font-size:13px;font-weight:600;color:#c7d2fe;margin-top:3px">' . e($sancionesRecomTexto) . '</span>'
+                                        . '<span style="display:block;font-size:11px;color:#94a3b8;margin-top:2px">Seleccionar una opción diferente requerirá justificación.</span>'
+                                        . '</div>'
+                                    )
+                                    : new \Illuminate\Support\HtmlString('')
+                                )
+                                ->visible(!$esFallback && !empty($iaSancionesRecomendadas)),
 
                             // ── Decisión de Sanción — botones con color ───────────────────────
                             Forms\Components\ToggleButtons::make('tipo_sancion')
@@ -1968,20 +1990,20 @@ class ProcesoDisciplinarioResource extends Resource
                                         )),
 
                                     Forms\Components\Textarea::make('razon_divergencia')
-                                        ->label('Razón por la cual se elige esta sanción en lugar de la recomendada')
+                                        ->label('Razón por la cual se elige esta sanción en lugar de las recomendadas por la IA')
                                         ->rows(3)
-                                        ->required(fn(Get $get) => !empty($get('sancion_ia_recomendada')) && $get('tipo_sancion') !== $get('sancion_ia_recomendada')),
+                                        ->required(fn(Get $get) => !empty($get('sanciones_ia_recomendadas')) && !in_array($get('tipo_sancion'), json_decode($get('sanciones_ia_recomendadas') ?? '[]', true) ?: [])),
 
                                     Forms\Components\Toggle::make('exoneracion_aceptada')
-                                        ->label('Confirmo que entiendo la recomendación jurídica emitida por la IA, que aun así decido aplicar una sanción diferente, y que asumo completamente la responsabilidad jurídica, laboral y judicial de esta decisión, exonerando a CES Legal de cualquier consecuencia derivada de la misma.')
-                                        ->required(fn(Get $get) => !empty($get('sancion_ia_recomendada')) && $get('tipo_sancion') !== $get('sancion_ia_recomendada'))
+                                        ->label('Confirmo que entiendo las recomendaciones jurídicas emitidas por la IA, que aun así decido aplicar una sanción diferente, y que asumo completamente la responsabilidad jurídica, laboral y judicial de esta decisión, exonerando a CES Legal de cualquier consecuencia derivada de la misma.')
+                                        ->required(fn(Get $get) => !empty($get('sanciones_ia_recomendadas')) && !in_array($get('tipo_sancion'), json_decode($get('sanciones_ia_recomendadas') ?? '[]', true) ?: []))
                                         ->accepted()
                                         ->onColor('danger'),
                                 ])
                                 ->hidden(fn(Get $get) =>
                                     empty($get('tipo_sancion')) ||
-                                    empty($get('sancion_ia_recomendada')) ||
-                                    $get('tipo_sancion') === $get('sancion_ia_recomendada')
+                                    empty($get('sanciones_ia_recomendadas')) ||
+                                    in_array($get('tipo_sancion'), json_decode($get('sanciones_ia_recomendadas') ?? '[]', true) ?: [])
                                 )
                                 ->collapsible(false),
 
@@ -2079,8 +2101,9 @@ class ProcesoDisciplinarioResource extends Resource
                         }
 
                         // 2. Determinar si la decisión es divergente
-                        $esDivergente = !empty($data['sancion_ia_recomendada']) &&
-                                        $data['tipo_sancion'] !== $data['sancion_ia_recomendada'];
+                        $sancionesRecomendadasArr = json_decode($data['sanciones_ia_recomendadas'] ?? '[]', true) ?: [];
+                        $esDivergente = !empty($sancionesRecomendadasArr) &&
+                                        !in_array($data['tipo_sancion'], $sancionesRecomendadasArr);
 
                         // 3. Guardar campos de trazabilidad
                         $record->update([

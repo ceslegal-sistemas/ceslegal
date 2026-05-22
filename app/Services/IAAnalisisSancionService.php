@@ -393,7 +393,8 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
     "terminacion": "texto indicando qué cargo/área puede autorizar terminaciones de contrato según el RIT o el CST, o 'No especificado en el RIT' si no está claro"
   },
   "recomendacion_final": {
-    "sancion_sugerida": "llamado_atencion|suspension|terminacion",
+    "sanciones_sugeridas": ["llamado_atencion", "suspension"],
+    "sancion_principal": "llamado_atencion|suspension|terminacion",
     "dias_suspension": null,
     "confianza": "alta|media|baja",
     "mensaje_para_decision": "Mensaje para el empleador explicando la recomendación, sus fundamentos y las opciones disponibles"
@@ -401,6 +402,8 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
 }
 
 REGLAS ESTRICTAS:
+- sanciones_sugeridas: array con TODOS los tipos de sanción que serían jurídicamente válidos y proporcionales para este caso. Puede ser uno, dos o tres tipos. No incluir "no_sancion". Ejemplo: si tanto llamado_atencion como suspension son proporcionales, incluir ambos.
+- sancion_principal: el tipo que más se ajusta al caso, debe estar dentro de sanciones_sugeridas.
 - sanciones_disponibles: incluye SOLO las sanciones que el RIT de esta empresa contempla. Si no hay datos del RIT, aplica las que permite el CST según la gravedad.
 - dias_suspension_sugeridos: array con los días posibles DENTRO del rango que especifica el RIT (ej: si RIT dice "1 a 8 días", pon [1,2,3,5,8]). Array vacío si no aplica suspensión.
 - dias_suspension (recomendacion_final): un número concreto dentro del rango del RIT, o null si no hay suspensión.
@@ -695,7 +698,8 @@ PROMPT;
             ],
             'autoridad_sancion' => [],
             'recomendacion_final' => [
-                'sancion_sugerida' => 'llamado_atencion',
+                'sanciones_sugeridas' => ['llamado_atencion'],
+                'sancion_principal' => 'llamado_atencion',
                 'dias_suspension' => null,
                 'confianza' => 'baja',
                 'mensaje_para_decision' => 'El análisis automático no estuvo disponible. Se recomienda revisar manualmente el caso antes de tomar una decisión. Considere los hechos, los motivos seleccionados, el historial del trabajador y los descargos presentados.',
