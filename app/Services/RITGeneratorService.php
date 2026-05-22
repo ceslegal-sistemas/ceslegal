@@ -207,20 +207,15 @@ class RITGeneratorService
         $dompdf->setPaper('letter', 'portrait');
         $dompdf->render();
 
-        // Número de página centrado en el pie — DomPDF canvas API (más fiable que CSS counter)
-        $canvas   = $dompdf->getCanvas();
-        $w        = $canvas->get_width();
-        $h        = $canvas->get_height();
-        $font     = $dompdf->getFontMetrics()->getFont('Helvetica');
-        // Omitir portada (página 1) — solo aplica a partir de la página 2
+        // Número de página centrado en el pie de cada página
+        $canvas = $dompdf->getCanvas();
+        $w      = $canvas->get_width();
+        $h      = $canvas->get_height();
         $canvas->page_script(function (int $pageNum, int $pageCount, $canvas, $fontMetrics) use ($w, $h) {
-            if ($pageNum <= 1) {
-                return; // portada sin número
-            }
-            $font  = $fontMetrics->getFont('Helvetica');
+            $font  = $fontMetrics->getFont('Times New Roman');
             $texto = "— {$pageNum} —";
-            $tw    = $fontMetrics->getTextWidth($texto, $font, 7.5);
-            $canvas->text(($w - $tw) / 2, $h - 40, $texto, $font, 7.5, [0.60, 0.64, 0.68]);
+            $tw    = $fontMetrics->getTextWidth($texto, $font, 9);
+            $canvas->text(($w - $tw) / 2, $h - 38, $texto, $font, 9, [0.40, 0.40, 0.40]);
         });
 
         // Encriptar: solo lectura + impresión permitida — sin contraseña para abrir
@@ -352,189 +347,75 @@ class RITGeneratorService
     size: letter portrait;
     margin-top: 2.5cm;
     margin-bottom: 2.5cm;
-    margin-left: 2.5cm;
+    margin-left: 3cm;
     margin-right: 2.5cm;
-}
-@page cover {
-    margin: 0;
-}
-
-/* ══ Encabezado y pie de página corridos ══════════════════════════════════ */
-.hdr {
-    position: fixed;
-    top: -2.1cm;
-    left: 2.5cm;
-    right: 2.5cm;
-    height: 1.5cm;
-    border-bottom: 0.5pt solid #c9a84c;
-}
-.hdr-table {
-    display: table;
-    width: 100%;
-    height: 100%;
-}
-.hdr-left {
-    display: table-cell;
-    vertical-align: bottom;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 7.5pt;
-    color: #5a6a7a;
-    padding-bottom: 4pt;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}
-.hdr-right {
-    display: table-cell;
-    vertical-align: bottom;
-    text-align: right;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 7.5pt;
-    color: #5a6a7a;
-    padding-bottom: 4pt;
-    letter-spacing: 0.04em;
-}
-.ftr {
-    position: fixed;
-    bottom: -2cm;
-    left: 2.5cm;
-    right: 2.5cm;
-    height: 1.4cm;
-    border-top: 0.5pt solid #e2e5ea;
-    text-align: center;
-}
-.ftr-inner {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 8pt;
-    color: #9ca3af;
-    padding-top: 5pt;
 }
 
 /* ══ Base ═════════════════════════════════════════════════════════════════ */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
     font-family: 'Times New Roman', Times, serif;
-    font-size: 11pt;
-    line-height: 1.65;
-    color: #111827;
+    font-size: 12pt;
+    line-height: 1.6;
+    color: #000000;
 }
 
-/* ══ Portada ══════════════════════════════════════════════════════════════ */
-.cover {
-    page: cover;
-    page-break-after: always;
-}
-.cover-top {
-    background: #0d1f3c;
-    padding: 4.8cm 3cm 3.2cm 3cm;
+/* ══ Encabezado del documento ════════════════════════════════════════════ */
+.doc-header {
     text-align: center;
+    border-bottom: 2pt solid #000000;
+    padding-bottom: 10pt;
+    margin-bottom: 16pt;
 }
-.cover-pais {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 8pt;
-    letter-spacing: 0.22em;
+.doc-empresa {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 13pt;
+    font-weight: bold;
+}
+.doc-nit {
+    font-size: 11pt;
+    margin-top: 2pt;
+}
+.doc-titulo {
+    font-size: 14pt;
+    font-weight: bold;
+    margin-top: 8pt;
     text-transform: uppercase;
-    color: #6b8cad;
-    margin-bottom: 2.2cm;
+    letter-spacing: 0.02em;
 }
-.cover-titulo {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 28pt;
-    font-weight: bold;
-    color: #ffffff;
-    line-height: 1.15;
-    letter-spacing: 0.01em;
-    margin-bottom: 0.5cm;
-}
-.cover-linea {
-    display: block;
-    width: 3.5cm;
-    height: 3pt;
-    background: #c9a84c;
-    margin: 1cm auto;
-}
-.cover-empresa {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 17pt;
-    font-weight: bold;
-    color: #c9a84c;
-    letter-spacing: 0.025em;
-    margin-bottom: 0.3cm;
-}
-.cover-nit {
-    font-family: Arial, Helvetica, sans-serif;
+.doc-meta {
     font-size: 10pt;
-    color: #7e9bb5;
-    letter-spacing: 0.04em;
-}
-.cover-bottom {
-    background: #ffffff;
-    border-top: 4pt solid #c9a84c;
-    padding: 1.4cm 3cm;
-}
-.meta-tbl {
-    display: table;
-    width: 100%;
-}
-.meta-row {
-    display: table-row;
-}
-.meta-cell {
-    display: table-cell;
-    text-align: center;
-    vertical-align: middle;
-    padding: 0.2cm 0.8cm;
-}
-.meta-sep {
-    display: table-cell;
-    width: 1pt;
-    background: #e5e7eb;
-    vertical-align: middle;
-    padding: 0 0;
-}
-.meta-lbl {
-    display: block;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 6.5pt;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: #9ca3af;
-    margin-bottom: 3pt;
-}
-.meta-val {
-    display: block;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 10.5pt;
-    font-weight: bold;
-    color: #0d1f3c;
+    margin-top: 3pt;
+    color: #444444;
 }
 
 /* ══ Capítulo ════════════════════════════════════════════════════════════ */
 .cap-wrap {
-    margin-top: 20pt;
-    margin-bottom: 11pt;
+    margin-top: 18pt;
+    margin-bottom: 10pt;
     page-break-inside: avoid;
+    page-break-after: avoid;
 }
 .cap-header {
-    background: #0d1f3c;
-    padding: 9pt 14pt 10pt 14pt;
+    border-top: 2pt solid #000000;
+    border-bottom: 1pt solid #000000;
+    padding: 5pt 0 5pt 0;
+    text-align: center;
 }
 .cap-num {
     display: block;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 7pt;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 11pt;
     font-weight: bold;
-    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: #c9a84c;
-    margin-bottom: 3pt;
+    letter-spacing: 0.05em;
 }
 .cap-tit {
     display: block;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 12.5pt;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 12pt;
     font-weight: bold;
-    color: #ffffff;
-    letter-spacing: 0.015em;
+    text-transform: uppercase;
 }
 
 /* ══ Artículo ════════════════════════════════════════════════════════════ */
@@ -543,47 +424,38 @@ body {
     margin-bottom: 5pt;
     text-align: justify;
     page-break-inside: avoid;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 .art-num {
-    font-family: Arial, Helvetica, sans-serif;
     font-weight: bold;
-    font-size: 11pt;
-    color: #0d1f3c;
+    font-size: 12pt;
 }
 .art-nom {
-    font-family: Arial, Helvetica, sans-serif;
     font-weight: bold;
-    font-size: 11pt;
-    color: #0d1f3c;
+    font-size: 12pt;
 }
 .art-body {
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 11pt;
-    color: #111827;
+    font-size: 12pt;
 }
 
 /* ══ Parágrafo ═══════════════════════════════════════════════════════════ */
 .paragrafo {
     margin-top: 5pt;
     margin-bottom: 4pt;
-    margin-left: 20pt;
-    padding-left: 10pt;
-    border-left: 2.5pt solid #c9a84c;
-    font-size: 10.5pt;
+    margin-left: 24pt;
+    font-size: 11.5pt;
     text-align: justify;
-    line-height: 1.6;
+    line-height: 1.55;
+    font-style: italic;
 }
 .para-lbl {
-    font-family: Arial, Helvetica, sans-serif;
     font-weight: bold;
-    font-size: 10.5pt;
-    color: #0d1f3c;
+    font-style: normal;
 }
 
 /* ══ Listas ══════════════════════════════════════════════════════════════ */
 .lista {
-    margin-left: 20pt;
+    margin-left: 24pt;
     margin-top: 4pt;
     margin-bottom: 5pt;
 }
@@ -594,18 +466,15 @@ body {
 }
 .lista-marc {
     display: table-cell;
-    font-family: Arial, Helvetica, sans-serif;
     font-weight: bold;
-    font-size: 10.5pt;
-    color: #0d1f3c;
-    width: 16pt;
+    font-size: 11.5pt;
+    width: 18pt;
     vertical-align: top;
     padding-top: 1pt;
 }
 .lista-txt {
     display: table-cell;
-    font-family: 'Times New Roman', Times, serif;
-    font-size: 10.5pt;
+    font-size: 11.5pt;
     text-align: justify;
     line-height: 1.55;
     vertical-align: top;
@@ -616,8 +485,8 @@ body {
     margin-top: 4pt;
     margin-bottom: 5pt;
     text-align: justify;
-    font-size: 11pt;
-    line-height: 1.65;
+    font-size: 12pt;
+    line-height: 1.6;
 }
 
 /* ══ Bloque de firma ══════════════════════════════════════════════════════ */
@@ -633,23 +502,19 @@ body {
     display: table-cell;
     width: 50%;
     text-align: center;
-    padding: 0 2cm;
+    padding: 0 1.5cm;
     vertical-align: bottom;
 }
 .firma-linea {
-    border-top: 1pt solid #0d1f3c;
+    border-top: 1pt solid #000000;
     margin-bottom: 5pt;
 }
 .firma-nombre {
-    font-family: Arial, Helvetica, sans-serif;
     font-weight: bold;
-    font-size: 10pt;
-    color: #0d1f3c;
+    font-size: 11pt;
 }
 .firma-cargo {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 8.5pt;
-    color: #6b7280;
+    font-size: 10pt;
     margin-top: 2pt;
 }
 
@@ -657,48 +522,12 @@ body {
 </head>
 <body>
 
-<!-- Encabezado corrido (se repite en cada página, excepto portada) -->
-<div class="hdr">
-  <div class="hdr-table">
-    <span class="hdr-left">{$eNombre}</span>
-    <span class="hdr-right">Reglamento Interno de Trabajo</span>
-  </div>
-</div>
-
-<!-- Pie corrido -->
-<div class="ftr">
-  <div class="ftr-inner">&#8212;</div>
-</div>
-
-<!-- ══ PORTADA ════════════════════════════════════════════════════════════ -->
-<div class="cover">
-  <div class="cover-top">
-    <div class="cover-pais">República de Colombia · Ministerio del Trabajo</div>
-    <div class="cover-titulo">REGLAMENTO<br>INTERNO<br>DE TRABAJO</div>
-    <span class="cover-linea"></span>
-    <div class="cover-empresa">{$eNombre}</div>
-    <div class="cover-nit">NIT {$eNit}</div>
-  </div>
-  <div class="cover-bottom">
-    <div class="meta-tbl">
-      <div class="meta-row">
-        <div class="meta-cell">
-          <span class="meta-lbl">Ciudad</span>
-          <span class="meta-val">{$eLugar}</span>
-        </div>
-        <div class="meta-sep"></div>
-        <div class="meta-cell">
-          <span class="meta-lbl">Año</span>
-          <span class="meta-val">{$eAnio}</span>
-        </div>
-        <div class="meta-sep"></div>
-        <div class="meta-cell">
-          <span class="meta-lbl">Representante Legal</span>
-          <span class="meta-val">{$eRepresentante}</span>
-        </div>
-      </div>
-    </div>
-  </div>
+<!-- ══ ENCABEZADO DEL DOCUMENTO ══════════════════════════════════════════ -->
+<div class="doc-header">
+  <div class="doc-empresa">{$eNombre}</div>
+  <div class="doc-nit">NIT {$eNit}</div>
+  <div class="doc-titulo">Reglamento Interno de Trabajo</div>
+  <div class="doc-meta">{$eLugar} &nbsp;&middot;&nbsp; {$eAnio}</div>
 </div>
 
 <!-- ══ CONTENIDO ══════════════════════════════════════════════════════════ -->
