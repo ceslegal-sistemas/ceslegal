@@ -350,7 +350,10 @@ class RITGeneratorService
 /* ══ Página ═══════════════════════════════════════════════════════════════ */
 @page {
     size: letter portrait;
-    margin: 2.5cm;
+    margin-top: 2.5cm;
+    margin-bottom: 2.5cm;
+    margin-left: 2.5cm;
+    margin-right: 2.5cm;
 }
 @page cover {
     margin: 0;
