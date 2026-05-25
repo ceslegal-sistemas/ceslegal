@@ -3558,9 +3558,10 @@ class ProcesoDisciplinarioResource extends Resource
                     ->icon('heroicon-o-eye')
                     ->description('Indicios técnicos captados automáticamente durante el formulario del trabajador. Son señales de apoyo, no prueba definitiva.')
                     ->schema([
-                        Infolists\Components\Placeholder::make('comportamiento_card')
+                        Infolists\Components\TextEntry::make('comportamiento_card')
                             ->hiddenLabel()
-                            ->content(function ($record) {
+                            ->html()
+                            ->getStateUsing(function ($record) {
                                 $diligencia = $record->diligenciaDescargo;
                                 if (!$diligencia) {
                                     return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-400">No hay diligencia registrada.</p>');
