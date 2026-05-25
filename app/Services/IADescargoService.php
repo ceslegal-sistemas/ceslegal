@@ -270,6 +270,28 @@ CONTEXTO DEL PROCESO
 Trabajador: {$contexto['trabajador']}
 Cargo: {$contexto['cargo']}
 
+════════════════════════════════════════════════════════
+ANÁLISIS EXPERTO DEL CARGO — LEE ESTO ANTES DE CONTINUAR
+════════════════════════════════════════════════════════
+Eres también un AUDITOR EXPERTO en el cargo "{$contexto['cargo']}".
+Conoces con detalle qué hace alguien en este rol: sus funciones propias, los procedimientos
+que debe seguir, los estándares de conducta esperados, a quién reporta, qué decisiones puede
+tomar y cuáles requieren autorización, y qué consecuencias tienen sus acciones u omisiones.
+
+ANTES de formular cualquier pregunta, resuelve mentalmente estas tres preguntas:
+  A) ¿Qué funciones o responsabilidades concretas del cargo "{$contexto['cargo']}" son
+     DIRECTAMENTE relevantes para los hechos descritos?
+  B) ¿Qué debería haber hecho correctamente alguien en ese cargo para prevenir,
+     manejar o reportar adecuadamente la situación?
+  C) ¿Qué parte de esas obligaciones profesionales pudo haber incumplido el trabajador
+     según los hechos presuntos?
+
+REGLA DE ORO: Cada pregunta que generes debe partir de este análisis profesional del cargo.
+No hagas preguntas genéricas ni preguntas sobre responsabilidades del cargo que no tengan
+relación directa con los hechos. Si los hechos no tocan una función del cargo, no preguntes
+sobre ella. El objetivo es determinar si el trabajador cumplió o no con sus obligaciones
+profesionales específicas, no hacer un cuestionario general de sus tareas.
+
 Hechos presuntos (versión del empleador):
 {$contexto['hechos']}
 
@@ -327,15 +349,20 @@ ya fue abordado. Si fue respondido (aunque sea brevemente), está CUBIERTO → n
 3. INTENCIONALIDAD — ¿Fue deliberado, accidental, por descuido, por instrucción de otro?
 4. AUTORIZACIÓN O JUSTIFICACIÓN — ¿Tenía permiso, orden o causa justificada?
 5. EVIDENCIA A FAVOR — ¿Tiene pruebas, testigos o documentos? (solo preguntar una vez)
-6. IMPACTO Y CONSECUENCIAS — ¿Es consciente del efecto de sus actos en la compañera/empresa?
+6. IMPACTO Y CONSECUENCIAS — ¿Es consciente del efecto de sus actos en la empresa?
 7. FACTORES ATENUANTES — ¿Hay circunstancias que expliquen (no justifiquen) lo ocurrido?
 8. CONTRADICCIONES — ¿Hay puntos vagos o contradictorios que requieran aclaración ESPECÍFICA?
    (una contradicción específica, no pedir que repita todo de nuevo)
+9. OBLIGACIONES DEL CARGO — Usando tu análisis experto del cargo "{$contexto['cargo']}":
+   ¿Queda claro si el trabajador siguió el procedimiento correcto para su rol?
+   ¿Se sabe si actuó dentro de sus atribuciones o tomó decisiones que no le correspondían?
+   ¿Se conoce si reportó o escaló la situación como debía hacerlo según su cargo?
+   (Solo aplica a los hechos. No preguntes sobre funciones del cargo no relacionadas con ellos.)
 
 ════════════════════════════════════════════════════════
 TU TAREA
 ════════════════════════════════════════════════════════
-PASO 1 — Lee el historial completo y marca cuáles de los 8 aspectos ya están cubiertos.
+PASO 1 — Lee el historial completo y marca cuáles de los 9 aspectos ya están cubiertos.
 PASO 2 — De los aspectos NO cubiertos, formula máximo 2 preguntas NUEVAS que:
 ✓ Ofrezcan información genuinamente nueva, no repetida en ninguna forma anterior.
 ✓ Sean específicas (un punto concreto), no generales ("cuénteme todo").
@@ -354,7 +381,9 @@ PREGUNTAS ABSOLUTAMENTE PROHIBIDAS
 ✗ Sugestivas: "¿Verdad que actuó negligentemente?" → ✓ "¿Qué ocurrió desde su punto de vista?"
 ✗ Acusatorias: "¿Por qué cometió esa falta?" → ✓ "¿Qué puede contarnos sobre lo que ocurrió?"
 ✗ Sobre vida privada sin relación con el hecho investigado.
-✗ Sobre autoevaluación: "¿Cumple con sus funciones?" — no tienen valor probatorio.
+✗ Autoevaluación genérica: "¿Cumple usted con sus funciones?" — no tienen valor probatorio.
+   DIFERENCIA CLAVE: Preguntar "¿Siguió el procedimiento X que corresponde a su cargo en esta situación?"
+   SÍ es válido porque es específico al hecho. "¿Es usted buen empleado?" NO es válido.
 ✗ Que intimiden, presionen o humillen al trabajador.
 
 ════════════════════════════════════════════════════════
