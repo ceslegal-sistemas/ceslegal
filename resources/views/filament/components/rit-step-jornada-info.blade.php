@@ -3,10 +3,12 @@
 <div class="pt-card">
 
     <div style="display:flex;align-items:center;gap:.625rem;margin-bottom:.625rem;">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
-            style="width:28px;height:28px;color:#6366f1;flex-shrink:0">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
+        <lord-icon src="https://cdn.lordicon.com/uphbloed.json" trigger="loop" delay="500" stroke="bold"
+            colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
+            data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+            data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+            style="width:32px;height:32px;flex-shrink:0">
+        </lord-icon>
         <p class="pt-title">¿Cuándo trabajan sus empleados?</p>
     </div>
 
@@ -18,14 +20,16 @@
     <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem;">
 
         <div class="pt-bullet">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
-                style="width:16px;height:16px;color:#6366f1;flex-shrink:0;margin-top:2px">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75" />
-                <circle cx="12" cy="12" r="9" stroke-width="1.5" />
-            </svg>
+            <lord-icon src="https://cdn.lordicon.com/jqqjtvlf.json" trigger="loop" delay="500" stroke="bold"
+                colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
+                data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                style="width:20px;height:20px;flex-shrink:0">
+            </lord-icon>
             <span>Si tiene personal de oficina <strong>y</strong> personal operativo con turnos, puede describir
                 ambos horarios en los campos de abajo.</span>
         </div>
+
     </div>
 
     <p class="pt-footer">

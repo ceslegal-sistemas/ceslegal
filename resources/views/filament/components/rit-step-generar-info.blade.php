@@ -14,11 +14,12 @@ html:not(.dark) .rit-bar-hint strong { color: #111827 }
     <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
 
         <div style="display:flex;align-items:center;gap:.625rem;">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
-                style="width:22px;height:22px;color:#22c55e;flex-shrink:0">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <lord-icon src="https://cdn.lordicon.com/wpsdctqb.json" trigger="loop" delay="500" stroke="bold"
+                colors="primary:#4ade80,secondary:#86efac" data-pt-icon
+                data-pt-dark="primary:#4ade80,secondary:#86efac"
+                data-pt-light="primary:#16a34a,secondary:#22c55e"
+                style="width:22px;height:22px;flex-shrink:0">
+            </lord-icon>
             <p class="rit-bar-title" style="margin:0;font-size:.8rem;font-weight:600;">
                 Revise el resumen y confirme — la IA generará <strong>16 capítulos</strong> artículo por artículo
             </p>
