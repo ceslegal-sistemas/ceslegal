@@ -247,10 +247,52 @@ class RITGeneratorService
 
         $cuerpo     = '';
         $enLista    = false;
+        $enTabla    = false;
+        $tablaHdr   = null;
+        $tablaRows  = [];
         $lastCapNum = false;
 
         foreach (explode("\n", $textoRIT) as $linea) {
             $linea = rtrim($linea);
+
+            // ── INICIO DE TABLA ───────────────────────────────────────────────
+            if (preg_match('/^TABLA:\s*$/iu', $linea)) {
+                if ($enLista) { $cuerpo .= '</div>'; $enLista = false; }
+                $enTabla   = true;
+                $tablaHdr  = null;
+                $tablaRows = [];
+                $lastCapNum = false;
+                continue;
+            }
+
+            // ── DENTRO DE TABLA ───────────────────────────────────────────────
+            if ($enTabla) {
+                if (preg_match('/^ENCABEZADO:\s*(.+)$/iu', $linea, $m)) {
+                    $tablaHdr = array_map('trim', explode('|', $m[1]));
+                } elseif (preg_match('/^FILA:\s*(.+)$/iu', $linea, $m)) {
+                    $tablaRows[] = array_map('trim', explode('|', $m[1]));
+                } elseif (preg_match('/^FIN_TABLA\s*$/iu', $linea)) {
+                    $enTabla = false;
+                    $cuerpo .= '<table class="rit-tbl">';
+                    if ($tablaHdr) {
+                        $cuerpo .= '<tr>';
+                        foreach ($tablaHdr as $th) {
+                            $cuerpo .= '<th>' . htmlspecialchars($th, ENT_QUOTES, 'UTF-8') . '</th>';
+                        }
+                        $cuerpo .= '</tr>';
+                    }
+                    foreach ($tablaRows as $fila) {
+                        $cuerpo .= '<tr>';
+                        foreach ($fila as $td) {
+                            $cuerpo .= '<td>' . htmlspecialchars($td, ENT_QUOTES, 'UTF-8') . '</td>';
+                        }
+                        $cuerpo .= '</tr>';
+                    }
+                    $cuerpo .= '</table>';
+                }
+                // ignorar cualquier otra línea dentro de la tabla
+                continue;
+            }
 
             if (trim($linea) === '') {
                 if ($enLista) { $cuerpo .= '</div>'; $enLista = false; }
@@ -398,6 +440,26 @@ body {
 .lista-item { display: table; width: 100%; font-size: 9pt; margin-bottom: 2pt; }
 .lista-marc { display: table-cell; width: 14pt; vertical-align: top; }
 .lista-txt  { display: table-cell; text-align: justify; vertical-align: top; }
+.rit-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4pt;
+    margin-bottom: 6pt;
+    font-size: 9pt;
+}
+.rit-tbl th {
+    border: 0.5pt solid #000000;
+    padding: 3pt 5pt;
+    font-weight: bold;
+    text-align: center;
+    vertical-align: middle;
+}
+.rit-tbl td {
+    border: 0.5pt solid #000000;
+    padding: 3pt 5pt;
+    text-align: left;
+    vertical-align: top;
+}
 .firma-wrap { margin-top: 40pt; page-break-inside: avoid; }
 .firma-tbl  { display: table; width: 100%; }
 .firma-col  { display: table-cell; width: 50%; text-align: center; padding: 0 1.5cm; vertical-align: bottom; }
@@ -698,45 +760,98 @@ INSTRUCCIONES DE FORMATO — CRÍTICAS, INCUMPLIRLAS INVALIDA EL DOCUMENTO:
 1. CADA artículo es un párrafo independiente de mínimo 60 palabras. NUNCA un resumen de una línea.
 2. NUNCA colapses varios artículos en una sola línea. Ejemplo PROHIBIDO: "Artículo 5-8: SST..."
 3. NUNCA uses guiones (-), asteriscos (*), almohadillas (#) ni viñetas al inicio de línea.
-4. El título del capítulo va en línea propia en MAYÚSCULAS: CAPÍTULO I — DENOMINACIÓN, DOMICILIO Y OBJETO
-5. Cada artículo comienza en línea propia así: ARTÍCULO 1. NOMBRE DEL ARTÍCULO. Seguido del texto completo en el mismo párrafo.
-6. Para listas dentro de un artículo usa numeración interna: "1) ... 2) ... 3) ..." integrada en el párrafo.
-7. Sin Markdown: sin asteriscos, sin # ni **.
+4. El título del capítulo va en DOS líneas propias en MAYÚSCULAS:
+   Primera línea: CAPÍTULO I
+   Segunda línea: DENOMINACIÓN, DOMICILIO Y OBJETO
+5. Cada artículo ocupa su propia línea con el texto COMPLETO en esa misma línea: ARTÍCULO 1. NOMBRE. Texto completo aquí sin cortar. Si el desarrollo es extenso, los párrafos adicionales de desarrollo van en líneas separadas a continuación (sin prefijo ARTÍCULO).
+6. PARÁGRAFO va en su propia línea: PARÁGRAFO PRIMERO. Texto del parágrafo.
+7. Para listas dentro de un artículo usa numeración interna en líneas separadas: "1) texto" "2) texto" etc.
+8. Sin Markdown: sin asteriscos, sin # ni **.
+9. TABLAS — usa este formato exacto para datos estructurados (horarios, escalas, etapas):
+   TABLA:
+   ENCABEZADO: Columna 1 | Columna 2 | Columna 3
+   FILA: dato1 | dato2 | dato3
+   FIN_TABLA
+   Las tablas van inmediatamente después del párrafo de ARTÍCULO al que pertenecen.
+   USA TABLAS OBLIGATORIAMENTE en: horario de trabajo, escala de sanciones disciplinarias, etapas del proceso disciplinario.
 
 EJEMPLO DE FORMATO CORRECTO (sigue este modelo exactamente):
-CAPÍTULO II — ADMISIÓN Y PERÍODO DE PRUEBA
+
+CAPÍTULO II
+ADMISIÓN Y PERÍODO DE PRUEBA
 
 ARTÍCULO 4. REQUISITOS DE INGRESO. Para ingresar como trabajador de {$razonSocial} se requerirá la presentación de hoja de vida con soportes, fotocopia del documento de identidad, certificados de estudios y experiencia laboral, certificado de antecedentes judiciales y disciplinarios, y los demás documentos que la empresa estime pertinentes conforme a la naturaleza del cargo. Queda expresamente prohibido solicitar prueba de embarazo o estado de gravidez como requisito de ingreso, así como cualquier otra condición que configure discriminación en el proceso de selección.
 
 ARTÍCULO 5. PERÍODO DE PRUEBA. El período de prueba deberá pactarse siempre por escrito como cláusula expresa del contrato de trabajo. En contratos a término indefinido, el período de prueba no podrá exceder de dos (2) meses. En contratos a término fijo, el período de prueba no podrá exceder de la quinta parte del término pactado, sin que pueda exceder de dos (2) meses. Durante el período de prueba cualquiera de las partes podrá dar por terminado el contrato en cualquier momento, sin previo aviso y sin indemnización, pero la terminación debe ser fundamentada y comunicada por escrito.
 
-CAPÍTULOS OBLIGATORIOS — redacta CADA artículo como párrafo completo, no como resumen:
+EJEMPLO DE TABLA — HORARIO (úsalo exactamente así):
+ARTÍCULO 12. HORARIO DE TRABAJO. La jornada ordinaria de trabajo se distribuye de la siguiente manera:
+TABLA:
+ENCABEZADO: Días | Horario mañana | Descanso almuerzo | Horario tarde
+FILA: Lunes a jueves | 07:00 am a 12:00 pm | 12:00 pm a 01:00 pm | 01:00 pm a 05:00 pm
+FILA: Viernes | 07:00 am a 12:00 pm | 12:00 pm a 01:00 pm | 01:00 pm a 04:00 pm
+FIN_TABLA
 
-CAPÍTULO I — DENOMINACIÓN, DOMICILIO Y OBJETO
+EJEMPLO DE TABLA — SANCIONES (úsalo exactamente así):
+ARTÍCULO X. ESCALA DE SANCIONES. Las sanciones disciplinarias aplicables son las siguientes:
+TABLA:
+ENCABEZADO: Sanción | Descripción | Aplica para
+FILA: Llamado de atención verbal | Amonestación oral privada con registro en hoja de vida. | Faltas leves (primera vez)
+FILA: Llamado de atención escrito | Notificación formal al trabajador con copia a hoja de vida. | Faltas leves (reincidencia)
+FILA: Suspensión sin remuneración | Interrupción temporal del contrato de 1 a 8 días calendario. | Faltas graves
+FILA: Terminación con justa causa | Desvinculación por comisión de falta muy grave o reincidencia. | Faltas muy graves
+FIN_TABLA
+
+EJEMPLO DE TABLA — PROCESO DISCIPLINARIO (úsalo exactamente así):
+ARTÍCULO X. PROCEDIMIENTO DISCIPLINARIO. El proceso disciplinario se desarrollará en las siguientes etapas:
+TABLA:
+ENCABEZADO: Etapa | Descripción
+FILA: Citación a descargos | El empleador comunica por escrito los cargos al trabajador con traslado de pruebas.
+FILA: Término de preparación | El trabajador dispone de cinco (5) días hábiles para preparar su defensa.
+FILA: Audiencia de descargos | El trabajador presenta sus descargos; puede estar acompañado de un representante sindical o persona de confianza.
+FILA: Decisión motivada | El empleador emite fallo escrito fundamentado.
+FILA: Notificación e impugnación | Se notifica al trabajador quien tiene 5 días hábiles para apelar ante el superior jerárquico.
+FIN_TABLA
+
+CAPÍTULOS OBLIGATORIOS — redacta CADA artículo como párrafo completo, no como resumen.
+RECUERDA: cada capítulo va en DOS líneas (CAPÍTULO X en la primera, TÍTULO en la segunda):
+
+CAPÍTULO I
+DENOMINACIÓN, DOMICILIO Y OBJETO
 Artículos requeridos: ámbito de aplicación del reglamento, denominación y NIT de la empresa, domicilio principal y sucursales, actividad económica, representante legal y su facultad para sancionar.
 
-CAPÍTULO II — ADMISIÓN Y PERÍODO DE PRUEBA
+CAPÍTULO II
+ADMISIÓN Y PERÍODO DE PRUEBA
 Artículos requeridos: documentos exigidos para ingreso (hoja de vida, fotocopia del documento de identidad, certificados de estudio y experiencia; el certificado de antecedentes judiciales solo es exigible cuando el cargo lo requiera por razones de seguridad, y NO podrá usarse como criterio automático de exclusión); período de prueba estipulado siempre por escrito — máximo 2 meses en indefinidos y proporcional al plazo en fijos; prórroga del período de prueba solo por acuerdo escrito dentro del plazo original; prohibición expresa de discriminación en selección.
 ARTÍCULO OBLIGATORIO VERBATIM — incluir esta regla exacta: "El período de prueba deberá pactarse siempre por escrito como cláusula expresa del contrato de trabajo. La terminación durante el período de prueba debe comunicarse con fundamentación y por escrito."
 ARTÍCULO OBLIGATORIO VERBATIM sobre prohibiciones de ingreso — incluir con esta redacción exacta: "Queda expresamente prohibido exigir como requisito de ingreso la presentación de la libreta militar, certificados o pruebas de gravidez o estado de embarazo, prueba de VIH/SIDA, ni ningún otro examen o documento que pueda constituir discriminación en el proceso de selección, de conformidad con el artículo 77 del Decreto 2663 de 1950, la Ley 972 de 2005 y la Ley 1010 de 2006."
 
-CAPÍTULO III — JORNADA ORDINARIA DE TRABAJO
+CAPÍTULO III
+JORNADA ORDINARIA DE TRABAJO
 Artículos requeridos:
-A) Jornada máxima semanal: 47h con reducción progresiva a 42h (Ley 2101/2021); definición de trabajo diurno (06:00-21:00) y nocturno (21:00-06:00); distribución de la jornada diaria (cómo se dividen las horas a lo largo del día, incluido el descanso para almuerzo).
-B) Horario específico de la empresa: indicar el horario exacto de entrada y salida según los datos del cuestionario.
-C) DESCANSO DOMINICAL OBLIGATORIO — artículo independiente con este contenido mínimo: "Todo trabajador tiene derecho a un descanso remunerado que comprende el domingo de cada semana, de conformidad con el artículo 181 del Código Sustantivo del Trabajo. Este descanso será remunerado con el salario ordinario de un día de trabajo." (Art. 181 CST)
+A) Jornada máxima semanal: 47h con reducción progresiva a 42h (Ley 2101/2021); definición de trabajo diurno (06:00-21:00) y nocturno (21:00-06:00); distribución de la jornada diaria con el descanso para almuerzo.
+B) Horario específico de la empresa — OBLIGATORIO usar tabla con el horario exacto del cuestionario:
+   Texto del artículo en una línea, seguido INMEDIATAMENTE de:
+   TABLA:
+   ENCABEZADO: Días | Horario mañana | Descanso almuerzo | Horario tarde
+   FILA: [días] | [hora entrada] | [hora inicio almuerzo] a [hora fin almuerzo] | [hora regreso] a [hora salida]
+   FIN_TABLA
+   Si la empresa trabaja sábado, agregar FILA: Sábado | [horario] | [almuerzo] | [salida]
+C) DESCANSO DOMINICAL OBLIGATORIO — artículo independiente: "Todo trabajador tiene derecho a un descanso remunerado que comprende el domingo de cada semana, de conformidad con el artículo 181 del Código Sustantivo del Trabajo. Este descanso será remunerado con el salario ordinario de un día de trabajo." (Art. 181 CST)
 D) DESCANSO COMPENSATORIO — artículo independiente: cuando por razón del trabajo se labore el día de descanso obligatorio, el trabajador tendrá derecho a un descanso compensatorio remunerado en la semana siguiente, sin perjuicio del recargo del 75% sobre el valor del trabajo en domingo o festivo (Art. 182 CST).
-Si la empresa opera en múltiples turnos: artículo específico para cada turno con nombre, horario exacto y cargos. Si opera 24/7, artículo de operación continua con designación de turnos.
+Si la empresa opera en múltiples turnos: artículo específico para cada turno con nombre, horario exacto y cargos, usando tabla.
 Si existen cargos de dirección, manejo o confianza (Art. 162 CST): artículo expreso indicando que dichos cargos quedan excluidos del límite de jornada máxima, sin que esto les prive del descanso dominical remunerado.
 
-CAPÍTULO IV — TRABAJO SUPLEMENTARIO, DOMINICALES Y FESTIVOS
+CAPÍTULO IV
+TRABAJO SUPLEMENTARIO, DOMINICALES Y FESTIVOS
 Artículos requeridos:
 A) Límite horas extras — VERBATIM OBLIGATORIO: "El trabajo suplementario o de horas extras no podrá exceder de dos (2) horas diarias ni de doce (12) horas semanales, de conformidad con el artículo 167A del Decreto 2663 de 1950 (Código Sustantivo del Trabajo)." Autorización previa y escrita del empleador; horas extras no autorizadas no generan pago.
 B) Recargos exactos: hora extra diurna 25% sobre el ordinario; hora extra nocturna 75%; trabajo en dominical o festivo 75%; recargo nocturno ordinario 35% (trabajo entre 21:00-06:00 no en jornada ordinaria).
 C) Si la empresa opera en turnos nocturnos regulares: artículo expreso sobre recargo nocturno del 35% para quienes tienen jornada ordinaria nocturna.
 D) Registro individual del trabajo suplementario por trabajador, firmado por ambas partes.
 
-CAPÍTULO V — REMUNERACIÓN Y FORMA DE PAGO
+CAPÍTULO V
+REMUNERACIÓN Y FORMA DE PAGO
 Artículos requeridos:
 A) Modalidades de salario: por unidad de tiempo, por obra o tarea, variable; el salario integral (cuando supere 10 SMMLV incluye prestaciones) si aplica a algún cargo de la empresa.
 B) Período de pago: jornales (trabajo diario u obra) se pagan semanal o quincenalmente; sueldos (contrato a tiempo) se pagan mensualmente; periodicidad específica de la empresa según los datos del cuestionario.
@@ -746,32 +861,55 @@ E) Salario en especie: máximo el 50% del salario total (Art. 129 CST); para tra
 F) Propinas — VERBATIM OBLIGATORIO: "Las propinas que reciban los trabajadores no constituyen salario y no se pueden pactar como tal. En consecuencia, no se computarán en el salario para ningún efecto legal." (Art. 131 CST)
 G) Comprobante de pago discriminado que detalle devengados y descuentos.
 
-CAPÍTULO VI — VACACIONES Y PERMISOS
+CAPÍTULO VI
+VACACIONES Y PERMISOS
 Artículos requeridos:
 ARTÍCULO OBLIGATORIO VERBATIM — incluir esta frase exacta: "Todo trabajador tiene derecho a quince (15) días hábiles consecutivos de vacaciones remuneradas por cada año de servicio, de conformidad con el artículo 186 del Código Sustantivo del Trabajo."
 Adicionalmente: período de disfrute acordado entre partes con aviso previo de 15 días; la empresa llevará un registro especial de vacaciones con nombre del trabajador, fecha de salida, fecha de retorno y saldo acumulado (Art. 187 CST); acumulación hasta 4 años por acuerdo escrito entre las partes; interrupción justificada — cuando durante el disfrute de las vacaciones sobrevenga una causa justificada (incapacidad médica, calamidad doméstica), el trabajador tendrá derecho a reanudarlas tan pronto desaparezca la causa de interrupción; compensación en dinero — la empresa podrá, por acuerdo escrito con el trabajador, compensar en dinero hasta la mitad de las vacaciones, siempre que el trabajador devenga más de un (1) salario mínimo mensual legal vigente (Art. 189 CST); permisos remunerados (calamidad doméstica, sufragio, diligencias personales con aviso previo).
 
-CAPÍTULO VII — LICENCIAS ESPECIALES
+CAPÍTULO VII
+LICENCIAS ESPECIALES
 Artículos requeridos: licencia de maternidad 18 semanas remuneradas (Ley 2114/2021); licencia de paternidad 2 semanas remuneradas (Ley 2114/2021); licencia de luto 5 días hábiles por cónyuge, compañero permanente o familiar hasta segundo grado de consanguinidad (Ley 1280/2009); licencia por calamidad doméstica grave; licencias no remuneradas.
 
-CAPÍTULO VIII — RÉGIMEN DISCIPLINARIO: CLASIFICACIÓN DE FALTAS
-Artículos requeridos: definición de falta disciplinaria; catálogo completo de faltas LEVES con ejemplos concretos de la empresa; catálogo completo de faltas GRAVES con ejemplos concretos; catálogo de faltas MUY GRAVES con ejemplos concretos.
-Procedimiento garantista — artículo obligatorio con todos estos pasos: 1) comunicación escrita de los cargos al trabajador; 2) traslado de las pruebas que obran en su contra; 3) plazo mínimo de 5 días hábiles para que el trabajador presente sus descargos por escrito; 4) audiencia de descargos en la que el trabajador puede estar acompañado de un representante sindical o de la persona de su confianza; 5) fallo motivado por escrito comunicado al trabajador; 6) notificación al trabajador de los recursos que proceden contra el fallo, incluyendo el recurso de apelación ante el superior jerárquico o el cargo designado para resolver en segunda instancia, con término de 5 días hábiles para interponerlo. (Art. 115 CST)
+CAPÍTULO VIII
+RÉGIMEN DISCIPLINARIO: CLASIFICACIÓN DE FALTAS
+Artículos requeridos: definición de falta disciplinaria; catálogo completo de faltas LEVES con ejemplos concretos de la empresa (mínimo 8 ejemplos como lista 1) 2) 3)...); catálogo completo de faltas GRAVES con ejemplos concretos (mínimo 8); catálogo de faltas MUY GRAVES (mínimo 5).
+Procedimiento disciplinario — OBLIGATORIO usar tabla con las etapas exactas:
+Párrafo del artículo describiendo el proceso garantista (Art. 115 CST), seguido INMEDIATAMENTE de:
+TABLA:
+ENCABEZADO: Etapa | Descripción
+FILA: Citación a descargos | El empleador comunica por escrito los cargos al trabajador y le traslada las pruebas que obran en su contra.
+FILA: Término de preparación | El trabajador dispone de un plazo mínimo de cinco (5) días hábiles para preparar y presentar sus descargos por escrito.
+FILA: Audiencia de descargos | Diligencia en la que el trabajador expone sus argumentos; puede estar acompañado de un representante sindical o la persona de su confianza.
+FILA: Decisión motivada | El empleador emite fallo escrito debidamente fundamentado con las razones de hecho y de derecho que sustentan la decisión.
+FILA: Notificación e impugnación | La decisión se notifica por escrito al trabajador, quien cuenta con cinco (5) días hábiles para apelar ante el superior jerárquico.
+FILA: Segunda instancia | El superior jerárquico o cargo designado estudia la apelación y emite decisión definitiva dentro de los diez (10) días hábiles siguientes.
+FIN_TABLA
 
-CAPÍTULO IX — ESCALA DE SANCIONES
-Artículos requeridos — la escala debe ser estrictamente proporcional a la gravedad:
-A) Faltas LEVES: amonestación verbal primera vez; amonestación escrita en reincidencia; multa máximo 1/5 del salario diario (destinada a premios para trabajadores, no a la empresa). PROHIBIDO aplicar suspensión como sanción por falta leve.
-B) Faltas GRAVES: suspensión sin remuneración de 1 a 8 días calendario la primera vez (Art. 112 CST).
-C) Faltas MUY GRAVES / reincidencia en graves: suspensión hasta 2 meses o terminación con justa causa (Art. 62 CST numerales aplicables).
-D) Garantía del debido proceso y proporcionalidad en toda sanción; derecho del trabajador a impugnar la sanción impuesta ante el Ministerio del Trabajo.
+CAPÍTULO IX
+ESCALA DE SANCIONES
+Artículos requeridos — OBLIGATORIO usar tabla para la escala de sanciones:
+Párrafo del artículo introduciendo la escala proporcional (Art. 112-115 CST), seguido INMEDIATAMENTE de:
+TABLA:
+ENCABEZADO: Sanción disciplinaria | Concepto | Faltas que la generan
+FILA: Llamado de atención verbal | Amonestación oral de carácter privado con registro en la hoja de vida del trabajador. | Faltas leves cometidas por primera vez.
+FILA: Llamado de atención escrito | Notificación formal al trabajador mediante documento escrito con copia para la hoja de vida. | Faltas leves reiteradas.
+FILA: Multa | Descuento sobre el salario equivalente a máximo 1/5 del salario diario, destinado al fondo de premios de los trabajadores, nunca a la empresa. | Faltas leves graves según gravedad.
+FILA: Suspensión sin remuneración | Interrupción temporal de la prestación del servicio de 1 a 8 días calendario sin derecho a salario. | Faltas graves.
+FILA: Terminación del contrato con justa causa | Desvinculación del trabajador como consecuencia de la comisión de una falta muy grave o de reincidencia en falta grave. | Faltas muy graves o reincidencia en graves.
+FIN_TABLA
+Garantía del debido proceso y proporcionalidad en toda sanción; derecho del trabajador a impugnar la sanción impuesta ante el Ministerio del Trabajo.
 
-CAPÍTULO X — RECLAMOS Y PROCEDIMIENTOS
+CAPÍTULO X
+RECLAMOS Y PROCEDIMIENTOS
 Artículos requeridos: instancias internas para presentar reclamos; plazos de respuesta máximo 15 días hábiles; procedimiento cuando el reclamo involucra al superior jerárquico; acceso a Ministerio del Trabajo o jurisdicción laboral cuando no hay acuerdo.
 
-CAPÍTULO XI — NORMAS DE CONDUCTA Y COMPORTAMIENTO
+CAPÍTULO XI
+NORMAS DE CONDUCTA Y COMPORTAMIENTO
 Artículos requeridos: obligaciones especiales del trabajador (puntualidad, cuidado de bienes, respeto, confidencialidad, obediencia razonable); obligaciones del empleador (instrumentos, seguridad, pago oportuno, respeto a la dignidad); prohibiciones del trabajador (sustracción de bienes, actividades personales en jornada, consumo de alcohol/sustancias, proselitismo, uso ilícito de recursos); política de uso de celulares/dispositivos personales en jornada; política de confidencialidad de información empresarial.
 
-CAPÍTULO XII — SEGURIDAD Y SALUD EN EL TRABAJO (SG-SST)
+CAPÍTULO XII
+SEGURIDAD Y SALUD EN EL TRABAJO (SG-SST)
 ARTÍCULOS OBLIGATORIOS — cada uno como párrafo completo de mínimo 60 palabras:
 A) Política de SST: compromiso de la alta dirección, recursos asignados, ámbito de aplicación
 B) Obligaciones del empleador en SST: afiliar a ARL, proveer EPP, garantizar condiciones seguras, realizar exámenes médicos ocupacionales de ingreso/periódicos/egreso, investigar accidentes y enfermedades laborales
@@ -782,10 +920,12 @@ F) Reporte de accidentes: el trabajador notifica al empleador el mismo día; la 
 G) EPP: uso obligatorio según matriz de riesgos del cargo; incumplimiento = falta disciplinaria grave.
 H) Prohibición para trabajadores en cargos de riesgo: artículo expreso que prohíbe a los trabajadores que ocupen cargos que impliquen riesgo para terceros (conductores, operadores de maquinaria, trabajo en alturas, vigilantes) presentarse al trabajo o permanecer en él bajo efectos de alcohol, sustancias psicoactivas, estupefacientes o medicamentos que alteren el estado de alerta; violación = falta muy grave con terminación justificada. (Decreto 1069/2015 Art. 2.2.2.2.8.1)
 
-CAPÍTULO XIII — USO DE EQUIPOS, UNIFORMES Y BIENES DE LA EMPRESA
+CAPÍTULO XIII
+USO DE EQUIPOS, UNIFORMES Y BIENES DE LA EMPRESA
 Artículos requeridos: asignación formal de equipos con acta; responsabilidad del trabajador por daño causado por negligencia o mal uso; política de uniformes (si aplica) o presentación personal; devolución formal de todos los bienes al terminar el contrato.
 
-CAPÍTULO XIV — COMITÉ DE CONVIVENCIA LABORAL Y PREVENCIÓN DE ACOSO
+CAPÍTULO XIV
+COMITÉ DE CONVIVENCIA LABORAL Y PREVENCIÓN DE ACOSO
 ARTÍCULOS OBLIGATORIOS — cada uno como párrafo completo de mínimo 60 palabras:
 A) Definición y modalidades de acoso laboral: persecución, discriminación, entorpecimiento, inequidad y desprotección (Ley 1010/2006, Art. 2). Definir cada modalidad con ejemplo.
 B) Comité de Convivencia Laboral — VERBATIM OBLIGATORIO incluir estas dos frases exactas:
@@ -797,7 +937,8 @@ D) Procedimiento interno de queja por acoso laboral — artículo con pasos nume
 E) POLÍTICA DE PREVENCIÓN DEL ACOSO SEXUAL — LEY 2365 DE 2024 — ARTÍCULO AUTÓNOMO CON ESTE TÍTULO EXACTO. Contenido mínimo: definición legal de acoso sexual en el trabajo; conductas que lo constituyen (solicitudes de favores sexuales, comentarios, contacto físico no deseado, exhibicionismo, acoso digital); canal confidencial exclusivo para denuncias de acoso sexual; protocolo de atención con plazos máximos; garantía de confidencialidad de la víctima; prohibición expresa de represalias contra quien denuncie; obligación del empleador de investigar dentro de los 5 días hábiles siguientes a la denuncia.
 F) Sanciones por acoso laboral o sexual: falta muy grave con terminación con justa causa, denuncia ante Inspector del Trabajo, acciones penales según gravedad (Art. 210A Código Penal para acoso sexual).
 
-CAPÍTULO XV — PROTECCIÓN DE SUJETOS DE ESPECIAL PROTECCIÓN
+CAPÍTULO XV
+PROTECCIÓN DE SUJETOS DE ESPECIAL PROTECCIÓN
 Artículos requeridos:
 A) Mujer embarazada y en período de lactancia: prohibición de despido sin autorización previa del Inspector del Trabajo (Art. 241A CST); licencia de maternidad de 18 semanas remuneradas (Ley 2114/2021); prohibición expresa de solicitar prueba de embarazo, examen de VIH/SIDA o hacer preguntas sobre estado de gravidez en entrevistas de trabajo o durante la relación laboral (Ley 972/2005, Art. 236 CST).
 B) Licencia de paternidad: dos (2) semanas remuneradas pagadas por el empleador al padre trabajador, de conformidad con la Ley 2114 de 2021, prorrogables según el número de hijos.
@@ -805,7 +946,8 @@ C) Personas en situación de discapacidad: estabilidad laboral reforzada — pro
 D) Trabajadores con fuero sindical (fundadores, adherentes, directivos): prohibición de despido, traslado o desmejora sin autorización judicial previa (Art. 405-411 CST); el desconocimiento del fuero genera la obligación de reintegro y pago de salarios dejados de percibir.
 E) No discriminación: prohibición absoluta de discriminación por raza, color, sexo, edad, idioma, religión, opinión política, orientación sexual o identidad de género, origen nacional o social, posición económica o cualquier otra condición. (Art. 143 CST, Ley 1482/2011)
 
-CAPÍTULO XVI — DISPOSICIONES FINALES
+CAPÍTULO XVI
+DISPOSICIONES FINALES
 Artículos requeridos: vigencia desde la publicación a los trabajadores; procedimiento para modificaciones (comunicación a trabajadores y depósito ante Ministerio del Trabajo); obligación de publicar en lugar visible y entregar copia a cada trabajador; depósito ante la Dirección Territorial del Ministerio del Trabajo competente; incorporación del RIT a todos los contratos individuales de trabajo.
 {$seccionBiblioteca}
 INFORMACIÓN DE LA EMPRESA PROPORCIONADA POR EL ADMINISTRADOR:
