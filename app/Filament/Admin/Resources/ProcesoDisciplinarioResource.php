@@ -3637,9 +3637,71 @@ class ProcesoDisciplinarioResource extends Resource
                                 }
 
                                 $html .= '<p style="font-size:11px;color:rgba(0,0,0,.40);margin:0;">'
-                                    . 'Criterios: nivel <strong>Alto</strong> si ≥3 respuestas pegadas o ≥6 cambios de pestaña; '
+                                    . 'Criterios comportamiento: nivel <strong>Alto</strong> si ≥3 respuestas pegadas o ≥6 cambios de pestaña; '
                                     . '<strong>Medio</strong> si ≥2 pegadas o ≥3 cambios; <strong>Bajo</strong> en caso contrario.'
                                     . '</p>';
+
+                                // ── Análisis de Autenticidad IA (Capa 3) ────────────────────
+                                $autenticidad = $resumen['analisis_autenticidad'] ?? null;
+                                if ($autenticidad) {
+                                    $nivelAuth  = $autenticidad['nivel_sospecha'] ?? 'bajo';
+                                    $porcentaje = $autenticidad['porcentaje_sospecha'] ?? 0;
+                                    $conclusion = $autenticidad['conclusion'] ?? '';
+                                    $indicadores = $autenticidad['indicadores_detectados'] ?? [];
+                                    $sospechosas = $autenticidad['respuestas_sospechosas'] ?? [];
+                                    $analizadoEn = isset($autenticidad['analizado_en'])
+                                        ? \Carbon\Carbon::parse($autenticidad['analizado_en'])->format('d/m/Y H:i')
+                                        : '';
+
+                                    [$authLabel, $authColor, $authBg, $authBorder] = match($nivelAuth) {
+                                        'alto'  => ['Alto',  '#dc2626', 'rgba(239,68,68,0.09)',  'rgba(239,68,68,0.30)'],
+                                        'medio' => ['Medio', '#d97706', 'rgba(251,191,36,0.09)', 'rgba(251,191,36,0.30)'],
+                                        default => ['Bajo',  '#16a34a', 'rgba(74,222,128,0.09)', 'rgba(74,222,128,0.28)'],
+                                    };
+
+                                    $html .= '<div style="margin-top:4px;padding:16px;border-radius:12px;'
+                                        . "background:{$authBg};border:1px solid {$authBorder}\">";
+
+                                    $html .= '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">'
+                                        . '<div>'
+                                        . '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(0,0,0,.45);margin:0 0 2px;">Análisis de autenticidad — Capa 3 (IA vs. persona real)</p>'
+                                        . '<p style="font-size:15px;font-weight:800;color:' . $authColor . ';margin:0;">Sospecha de uso de IA: <strong>' . $authLabel . '</strong> (' . $porcentaje . '%)</p>'
+                                        . '</div>'
+                                        . ($analizadoEn ? '<span style="font-size:10px;color:rgba(0,0,0,.35);">Analizado ' . $analizadoEn . '</span>' : '')
+                                        . '</div>';
+
+                                    if ($conclusion) {
+                                        $html .= '<p style="font-size:12px;color:rgba(17,24,39,.70);line-height:1.6;margin:0 0 10px;">'
+                                            . e($conclusion) . '</p>';
+                                    }
+
+                                    if (!empty($indicadores)) {
+                                        $html .= '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(0,0,0,.40);margin:0 0 4px;">Indicadores detectados</p>'
+                                            . '<ul style="margin:0 0 10px;padding-left:16px;font-size:12px;color:rgba(0,0,0,.60);">';
+                                        foreach ($indicadores as $ind) {
+                                            $html .= '<li>' . e($ind) . '</li>';
+                                        }
+                                        $html .= '</ul>';
+                                    }
+
+                                    if (!empty($sospechosas)) {
+                                        $html .= '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(0,0,0,.40);margin:0 0 4px;">Respuestas que generan sospecha</p>';
+                                        foreach ($sospechosas as $s) {
+                                            $html .= '<div style="padding:7px 10px;background:rgba(0,0,0,.04);border-radius:8px;margin-bottom:5px;">'
+                                                . '<span style="font-size:11px;font-weight:700;color:' . $authColor . ';">' . e($s['pregunta_numero'] ?? '') . '</span>'
+                                                . '<span style="font-size:11px;color:rgba(0,0,0,.55);"> — ' . e($s['razon'] ?? '') . '</span>'
+                                                . '</div>';
+                                        }
+                                    }
+
+                                    $html .= '<p style="font-size:10px;color:rgba(0,0,0,.35);margin:8px 0 0;">'
+                                        . 'Este análisis es orientativo y no constituye prueba definitiva. Debe complementarse con el criterio del abogado.'
+                                        . '</p></div>';
+                                } else {
+                                    $html .= '<p style="font-size:11px;color:rgba(0,0,0,.35);margin:4px 0 0;font-style:italic;">'
+                                        . 'El análisis de autenticidad (Capa 3) se ejecuta al finalizar el formulario. Aún no disponible.'
+                                        . '</p>';
+                                }
 
                                 $html .= '</div>';
                                 return new \Illuminate\Support\HtmlString($html);

@@ -360,10 +360,32 @@ ya fue abordado. Si fue respondido (aunque sea brevemente), está CUBIERTO → n
    (Solo aplica a los hechos. No preguntes sobre funciones del cargo no relacionadas con ellos.)
 
 ════════════════════════════════════════════════════════
+ANCLAS DE MEMORIA EPISÓDICA — CAPA ANTI-IA
+════════════════════════════════════════════════════════
+Una herramienta de inteligencia artificial (ChatGPT, Gemini, etc.) puede generar respuestas
+plausibles sobre hechos generales, pero NO puede saber detalles específicos que solo conoce
+quien estuvo físicamente presente. Por eso, si aún no se ha hecho, incluye al menos UNA
+pregunta "ancla" que exija memoria episódica concreta. Ejemplos adaptables a los hechos:
+
+• "¿A qué hora exacta ocurrió esto?"
+• "¿Quién más estaba físicamente presente en ese momento y dónde estaba cada uno?"
+• "¿Qué palabras exactas usó [persona mencionada] cuando le dijo/preguntó eso?"
+• "¿En qué lugar específico dentro de la empresa ocurrió? (área, piso, sala, etc.)"
+• "¿Qué estaba haciendo usted justo antes de que sucediera?"
+• "¿Cómo se enteró de que [evento concreto] había ocurrido? ¿Quién se lo dijo o cómo lo vio?"
+• "¿Había algún documento, sistema o herramienta que usted estuviera usando en ese momento?
+   Descríbalo."
+
+IMPORTANTE: Solo incluye este tipo de ancla si AÚN NO se ha preguntado algo similar en el
+historial. Si ya hay una pregunta sobre hora, lugar o personas presentes, no la dupliques.
+Las anclas son preguntas más, no reemplazan los 9 aspectos del expediente.
+
+════════════════════════════════════════════════════════
 TU TAREA
 ════════════════════════════════════════════════════════
 PASO 1 — Lee el historial completo y marca cuáles de los 9 aspectos ya están cubiertos.
-PASO 2 — De los aspectos NO cubiertos, formula máximo 2 preguntas NUEVAS que:
+PASO 2 — Verifica si ya existe al menos una ancla episódica respondida o pendiente.
+PASO 3 — De los aspectos NO cubiertos (y la ancla si falta), formula máximo 2 preguntas NUEVAS que:
 ✓ Ofrezcan información genuinamente nueva, no repetida en ninguna forma anterior.
 ✓ Sean específicas (un punto concreto), no generales ("cuénteme todo").
 ✓ Aporten valor real para la decisión disciplinaria.
@@ -1184,6 +1206,153 @@ PROMPT;
                 return null;
             }
         });
+    }
+
+    /**
+     * Analiza la autenticidad de las respuestas del trabajador al finalizar la diligencia.
+     * Detecta patrones típicos de texto generado por IA: lenguaje excesivamente formal,
+     * ausencia de detalles episódicos concretos, coherencia artificial, falta de vacilaciones.
+     *
+     * Retorna un array con: nivel_sospecha, porcentaje_sospecha, indicadores_detectados,
+     * respuestas_sospechosas (lista de {pregunta, razon}), conclusion.
+     * En caso de error o sin respuestas, retorna null.
+     */
+    public function analizarAutenticidadRespuestas(DiligenciaDescargo $diligencia): ?array
+    {
+        try {
+            $preguntas = $diligencia->preguntas()
+                ->with('respuesta')
+                ->activas()
+                ->whereHas('respuesta')
+                ->ordenadas()
+                ->get();
+
+            if ($preguntas->count() < 3) {
+                return null; // muy pocas respuestas para un análisis significativo
+            }
+
+            // Construir el bloque de Q&A para el prompt
+            $qaTexto = '';
+            foreach ($preguntas as $i => $p) {
+                $resp = trim($p->respuesta->respuesta ?? '');
+                if (empty($resp) || in_array(strtolower($resp), ['no aplica', 'no', 'sí', 'si'])) {
+                    continue;
+                }
+                $qaTexto .= 'P' . ($i + 1) . ': ' . $p->pregunta . "\n";
+                $qaTexto .= 'R' . ($i + 1) . ': ' . mb_substr($resp, 0, 600) . "\n\n";
+            }
+
+            if (empty(trim($qaTexto))) {
+                return null;
+            }
+
+            $proceso    = $diligencia->proceso;
+            $cargo      = $proceso->trabajador->cargo ?? 'trabajador';
+            $hechosResumen = mb_substr(strip_tags($proceso->hechos ?? ''), 0, 400);
+
+            $prompt = <<<PROMPT
+Eres un perito experto en análisis forense de texto aplicado a procesos disciplinarios laborales.
+Tu tarea es evaluar si las respuestas de un trabajador parecen ser auténticas (propias, basadas
+en memoria personal) o si presentan indicios de haber sido generadas o redactadas con herramientas
+de inteligencia artificial (ChatGPT, Gemini, Copilot u otras).
+
+CONTEXTO DEL CASO:
+Cargo del trabajador: {$cargo}
+Resumen de los hechos investigados: {$hechosResumen}
+
+PREGUNTAS Y RESPUESTAS DEL TRABAJADOR:
+{$qaTexto}
+
+CRITERIOS DE ANÁLISIS — indicios de texto generado por IA:
+1. FORMALIDAD EXCESIVA: lenguaje jurídico o corporativo poco natural en una persona sin formación legal
+2. AUSENCIA DE DETALLES EPISÓDICOS: no menciona horas, nombres concretos, lugares específicos,
+   objetos o herramientas que solo conocería alguien que estuvo presente
+3. COHERENCIA ARTIFICIAL: respuestas perfectamente estructuradas, sin imprecisiones, dudas ni
+   autocorrecciones propias del recuerdo humano
+4. RESPUESTAS EXCESIVAMENTE COMPLETAS: cubre todos los ángulos del tema sin que se le pregunte,
+   como si "anticipara" el expediente
+5. PATRONES REPETITIVOS: frases o conectores idénticos entre varias respuestas
+6. LONGITUD DESPROPORCIONADA: respuestas muy largas y redondas para preguntas simples
+7. AUSENCIA DE AFECTIVIDAD: sin marcadores emocionales, nerviosismo o expresiones coloquiales
+   que son naturales en una situación de descargos
+
+INDICIOS QUE SUGIEREN AUTENTICIDAD (reducen sospecha):
+- Menciona personas por nombre, horas o lugares concretos
+- Comete errores ortográficos menores o usa expresiones coloquiales
+- Muestra incertidumbre natural ("creo que", "no recuerdo bien si fue")
+- Las respuestas varían en longitud y estilo según la complejidad de la pregunta
+- Expresa emociones o reacciones personales
+
+Responde SOLO con el siguiente JSON (sin markdown, sin texto fuera del objeto):
+{
+  "nivel_sospecha": "alto|medio|bajo",
+  "porcentaje_sospecha": 0,
+  "indicadores_detectados": ["lista de indicios encontrados, máximo 5"],
+  "respuestas_sospechosas": [
+    {"pregunta_numero": "P1", "razon": "breve explicación del indicio específico"}
+  ],
+  "conclusion": "Análisis en máximo 120 palabras. Explica qué hace sospechar o qué da confianza."
+}
+PROMPT;
+
+            // Usar Gemini directamente (misma infraestructura que el resto del servicio)
+            $apiKey = config('services.ia.gemini.api_key')
+                ?? config('services.gemini.api_key')
+                ?? ($this->provider === 'gemini' ? ($this->config['api_key'] ?? null) : null);
+
+            if (!$apiKey) {
+                return null;
+            }
+
+            $modelos = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+            $respuestaTexto = null;
+
+            foreach ($modelos as $modelo) {
+                try {
+                    $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent?key={$apiKey}";
+                    $res = Http::withHeaders(['Content-Type' => 'application/json'])
+                        ->timeout(45)
+                        ->post($url, [
+                            'contents' => [['parts' => [['text' => $prompt]]]],
+                            'generationConfig' => ['temperature' => 0.2, 'maxOutputTokens' => 2048],
+                        ]);
+
+                    if ($res->successful() && isset($res->json()['candidates'][0]['content']['parts'][0]['text'])) {
+                        $respuestaTexto = $res->json()['candidates'][0]['content']['parts'][0]['text'];
+                        break;
+                    }
+                } catch (\Exception) {
+                    continue;
+                }
+            }
+
+            if (!$respuestaTexto) {
+                return null;
+            }
+
+            // Parsear JSON de la respuesta
+            $limpio = trim(preg_replace('/```(?:json)?\s*|\s*```/', '', $respuestaTexto));
+            $resultado = json_decode($limpio, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE || !isset($resultado['nivel_sospecha'])) {
+                return null;
+            }
+
+            Log::info('IADescargoService: análisis de autenticidad completado', [
+                'diligencia_id'  => $diligencia->id,
+                'nivel_sospecha' => $resultado['nivel_sospecha'],
+                'porcentaje'     => $resultado['porcentaje_sospecha'] ?? null,
+            ]);
+
+            return $resultado;
+
+        } catch (\Exception $e) {
+            Log::warning('IADescargoService::analizarAutenticidadRespuestas', [
+                'diligencia_id' => $diligencia->id,
+                'error'         => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     /**

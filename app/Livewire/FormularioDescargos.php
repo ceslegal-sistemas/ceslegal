@@ -713,6 +713,30 @@ class FormularioDescargos extends Component
             ]);
         }
 
+        // Capa 3 — Análisis de autenticidad de respuestas (detección de uso de IA)
+        // Se ejecuta en segundo plano: si falla no interrumpe el flujo principal.
+        try {
+            $iaDescargo = new IADescargoService();
+            $analisisAutenticidad = $iaDescargo->analizarAutenticidadRespuestas($this->diligencia);
+
+            if ($analisisAutenticidad) {
+                $resumenActual = $this->diligencia->resumen_comportamiento ?? [];
+                $resumenActual['analisis_autenticidad'] = $analisisAutenticidad;
+                $resumenActual['analisis_autenticidad']['analizado_en'] = now()->toIso8601String();
+                $this->diligencia->update(['resumen_comportamiento' => $resumenActual]);
+
+                Log::channel('descargos')->info('[capa3] Análisis de autenticidad guardado', [
+                    'diligencia_id'  => $this->diligencia->id,
+                    'nivel_sospecha' => $analisisAutenticidad['nivel_sospecha'],
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::channel('descargos')->warning('[capa3] Error en análisis de autenticidad', [
+                'diligencia_id' => $this->diligencia->id,
+                'error'         => $e->getMessage(),
+            ]);
+        }
+
         // Notificaciones al trabajador (con acta adjunta si se generó) y al cliente
         $this->enviarNotificacionesCompletado($actaPath);
     }
