@@ -722,54 +722,72 @@ class CreateReglamentoInterno extends CreateRecord
                         ))
                         ->columnSpanFull(),
 
-                    Forms\Components\Section::make('¿Qué conductas quiere regular?')
-                        ->description('Los campos ya vienen con las conductas del catálogo de Sanciones Laborales. Puede eliminar las que no apliquen a su empresa y agregar conductas adicionales específicas de su sector.')
+                    Forms\Components\Section::make('Conductas sancionables y medidas disciplinarias')
+                        ->description('Las conductas vienen pre-cargadas del catálogo estándar de Sanciones Laborales. Puede eliminar las que no apliquen, cambiar el tipo de falta o ajustar la sanción de cada conducta. También puede agregar conductas propias de su sector.')
                         ->schema([
-                            Forms\Components\TagsInput::make('faltas_leves')
-                                ->label('Faltas leves — se sancionan con llamado de atención o suspensión')
-                                ->default(fn() => SancionLaboral::where('tipo_falta', 'leve')
-                                    ->where('activa', true)
-                                    ->whereNull('sancion_padre_id')
-                                    ->orderBy('orden')
-                                    ->pluck('nombre_claro')
-                                    ->toArray()
-                                )
-                                ->placeholder('Escriba una conducta adicional y presione Enter')
-                                ->helperText('Conductas del catálogo de Sanciones Laborales. Elimine las que no apliquen o agregue las propias de su sector.')
-                                ->columnSpanFull(),
-
-                            Forms\Components\TagsInput::make('faltas_graves')
-                                ->label('Faltas graves — pueden llevar a terminación del contrato')
-                                ->default(fn() => SancionLaboral::where('tipo_falta', 'grave')
-                                    ->where('activa', true)
-                                    ->whereNull('sancion_padre_id')
-                                    ->orderBy('orden')
-                                    ->pluck('nombre_claro')
-                                    ->toArray()
-                                )
-                                ->placeholder('Escriba una conducta adicional y presione Enter')
-                                ->helperText('Conductas del catálogo de Sanciones Laborales. Elimine las que no apliquen o agregue las propias de su sector.')
-                                ->columnSpanFull(),
-
-                        ]),
-
-                    Forms\Components\Section::make('¿Qué medidas disciplinarias puede aplicar la empresa?')
-                        ->description('Seleccione las sanciones que está dispuesto a usar. El sistema las ordenará de menor a mayor en el texto del RIT. Recuerde: las sanciones deben ser proporcionales a la gravedad de la falta.')
-                        ->schema([
-                            Forms\Components\CheckboxList::make('sanciones_contempladas')
-                                ->label('Medidas disciplinarias contempladas')
-                                ->options([
-                                    'llamado_verbal'  => 'Llamado de atención verbal',
-                                    'llamado_escrito' => 'Llamado de atención escrito',
-                                    'suspension_1_8'  => 'Suspensión 1 a 8 días sin sueldo',
-                                    'suspension_1_15'  => 'Suspensión 1 a 15 días sin sueldo',
-                                    'suspension_1_30' => 'Suspensión 1 a 30 días sin sueldo',
-                                    'suspension_1_40' => 'Suspensión 1 a 40 días sin sueldo',
-                                    'suspension_1_60' => 'Suspensión 1 a 60 días sin sueldo',
-                                    'terminacion'     => 'Terminación del contrato con justa causa',
+                            Forms\Components\Repeater::make('sanciones_configuradas')
+                                ->label('Régimen disciplinario')
+                                ->helperText('Haga clic en una conducta para expandirla y modificarla. Elimine con el ícono de basura. Agregue conductas adicionales al final.')
+                                ->schema([
+                                    Forms\Components\TextInput::make('nombre')
+                                        ->label('Conducta sancionable')
+                                        ->required()
+                                        ->columnSpan(4),
+                                    Forms\Components\Select::make('tipo_falta')
+                                        ->label('Tipo de falta')
+                                        ->options(['leve' => 'Leve', 'grave' => 'Grave'])
+                                        ->required()
+                                        ->native(false)
+                                        ->columnSpan(2),
+                                    Forms\Components\Select::make('tipo_sancion')
+                                        ->label('Sanción aplicable')
+                                        ->options([
+                                            'llamado_atencion' => 'Llamado de atención',
+                                            'suspension'       => 'Suspensión',
+                                            'terminacion'      => 'Terminación del contrato',
+                                        ])
+                                        ->required()
+                                        ->native(false)
+                                        ->live()
+                                        ->columnSpan(3),
+                                    Forms\Components\TextInput::make('dias_suspension')
+                                        ->label('Días de suspensión')
+                                        ->numeric()
+                                        ->minValue(1)
+                                        ->maxValue(60)
+                                        ->placeholder('máx.')
+                                        ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
+                                        ->columnSpan(3),
                                 ])
-                                ->default(['llamado_verbal', 'llamado_escrito', 'suspension_1_8', 'suspension_1_15', 'terminacion'])
-                                ->columns(2),
+                                ->columns(12)
+                                ->default(fn() => SancionLaboral::where('activa', true)
+                                    ->whereNull('sancion_padre_id')
+                                    ->orderBy('tipo_falta')
+                                    ->orderBy('orden')
+                                    ->get()
+                                    ->map(fn($s) => [
+                                        'nombre'          => $s->nombre_claro,
+                                        'tipo_falta'      => $s->tipo_falta,
+                                        'tipo_sancion'    => $s->tipo_sancion,
+                                        'dias_suspension' => $s->dias_suspension_max,
+                                    ])
+                                    ->toArray()
+                                )
+                                ->reorderable(false)
+                                ->collapsible()
+                                ->collapsed()
+                                ->itemLabel(fn(array $state): string =>
+                                    ($state['nombre'] ?? 'Nueva conducta') .
+                                    ' — ' . ($state['tipo_falta'] === 'grave' ? 'Grave' : 'Leve') .
+                                    ' → ' . match ($state['tipo_sancion'] ?? '') {
+                                        'llamado_atencion' => 'Llamado de atención',
+                                        'suspension'       => 'Suspensión' . (!empty($state['dias_suspension']) ? ' ' . $state['dias_suspension'] . ' días' : ''),
+                                        'terminacion'      => 'Terminación',
+                                        default            => '—',
+                                    }
+                                )
+                                ->addActionLabel('+ Agregar conducta')
+                                ->columnSpanFull(),
                         ]),
                 ]),
 

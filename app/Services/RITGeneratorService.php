@@ -660,6 +660,37 @@ HTML;
             if ($nb) $beneficiosTexto .= "  - {$nb}: {$db}\n";
         }
 
+        // Sanciones configuradas (nuevo formato por conducta) o fallback al formato antiguo
+        $sancionesTexto = '';
+        if (!empty($r['sanciones_configuradas']) && is_array($r['sanciones_configuradas'])) {
+            $leves  = array_filter($r['sanciones_configuradas'], fn($s) => ($s['tipo_falta'] ?? '') === 'leve');
+            $graves = array_filter($r['sanciones_configuradas'], fn($s) => ($s['tipo_falta'] ?? '') === 'grave');
+            $fmtSancion = fn(array $s): string => match ($s['tipo_sancion'] ?? '') {
+                'llamado_atencion' => 'llamado de atención',
+                'suspension'       => 'suspensión' . (!empty($s['dias_suspension']) ? ' de ' . $s['dias_suspension'] . ' días' : ''),
+                'terminacion'      => 'terminación del contrato',
+                default            => $s['tipo_sancion'] ?? '',
+            };
+            if ($leves) {
+                $sancionesTexto .= "- Faltas leves y sus sanciones:\n";
+                foreach ($leves as $s) {
+                    $sancionesTexto .= "  - {$s['nombre']}: {$fmtSancion($s)}\n";
+                }
+            }
+            if ($graves) {
+                $sancionesTexto .= "- Faltas graves y sus sanciones:\n";
+                foreach ($graves as $s) {
+                    $sancionesTexto .= "  - {$s['nombre']}: {$fmtSancion($s)}\n";
+                }
+            }
+        } else {
+            $sancionesTexto .= "- Faltas leves: " . $lista($r['faltas_leves'] ?? []) . "\n";
+            $sancionesTexto .= "- Faltas graves: " . $lista($r['faltas_graves'] ?? []) . "\n";
+            if (!empty($r['sanciones_contempladas'])) {
+                $sancionesTexto .= "- Sanciones contempladas: " . $lista($r['sanciones_contempladas'] ?? []) . "\n";
+            }
+        }
+
         $representante = $empresa->representante_legal ?? '';
         $fechaHoy      = now()->locale('es')->translatedFormat('j \d\e F \d\e Y');
 
@@ -707,10 +738,7 @@ SALARIO Y BENEFICIOS
 - Descripción licencias: " . ($r['descripcion_licencias'] ?? 'N/A') . "
 
 RÉGIMEN DISCIPLINARIO
-- Faltas leves: " . $lista($r['faltas_leves'] ?? []) . "
-- Faltas graves: " . $lista($r['faltas_graves'] ?? []) . "
-- Faltas muy graves: " . $lista($r['faltas_muy_graves'] ?? []) . "
-- Sanciones contempladas: " . $lista($r['sanciones_contempladas'] ?? []) . "
+" . $sancionesTexto . "
 
 SEGURIDAD Y SALUD EN EL TRABAJO
 - Tiene SG-SST implementado: " . ($r['tiene_sg_sst'] ?? '') . "
