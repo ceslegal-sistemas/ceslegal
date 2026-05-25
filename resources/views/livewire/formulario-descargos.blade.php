@@ -1,17 +1,3 @@
-{{-- ── Tracker global de comportamiento (Capa 2) ───────────────────────────────────
-     Se inicializa UNA sola vez. Registra cambios de pestaña acumulados para que
-     cada pregunta pueda calcular cuántos ocurrieron mientras la estaba respondiendo.
-──────────────────────────────────────────────────────────────────────────────── --}}
-<script>
-(function () {
-    if (window._cesTracker) return; // ya inicializado en un re-render de Livewire
-    window._cesTracker = { totalCambiosPestana: 0 };
-    document.addEventListener('visibilitychange', function () {
-        if (document.hidden) window._cesTracker.totalCambiosPestana++;
-    });
-})();
-</script>
-
 <div class="min-h-screen bg-gray-50 sm:bg-gray-100 sm:py-8 sm:px-4">
     {{-- Contenedor centrado en desktop --}}
     <div class="sm:max-w-xl sm:mx-auto">
@@ -1433,5 +1419,16 @@
                 // El feedback modal se maneja por Livewire
             });
         });
+    </script>
+
+    {{-- Capa 2: Rastreador global de cambios de pestaña --}}
+    <script>
+        (function () {
+            if (window._cesTracker) return;
+            window._cesTracker = { totalCambiosPestana: 0 };
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) window._cesTracker.totalCambiosPestana++;
+            });
+        })();
     </script>
 </div>
