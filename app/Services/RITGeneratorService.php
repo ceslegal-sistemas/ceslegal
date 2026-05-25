@@ -245,6 +245,12 @@ class RITGeneratorService
             $eEmail    ? 'Email. ' . $eEmail   : '',
         ]));
 
+        // Eliminar la primera línea si Gemini repite el título (evita duplicado con el header HTML)
+        $textoRIT = ltrim($textoRIT);
+        if (preg_match('/^REGLAMENTO\s+INTERNO\s+DE\s+TRABAJO/iu', $textoRIT)) {
+            $textoRIT = ltrim(substr($textoRIT, strpos($textoRIT, "\n")), "\r\n");
+        }
+
         $cuerpo     = '';
         $enLista    = false;
         $enTabla    = false;
@@ -421,15 +427,15 @@ body {
     text-align: justify;
     font-weight: bold;
     font-size: 9pt;
-    margin-top: 8pt;
-    margin-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 8pt;
 }
 .paragrafo {
     text-align: justify;
     font-weight: bold;
     font-size: 9pt;
     margin-top: 0;
-    margin-bottom: 0;
+    margin-bottom: 8pt;
     margin-left: 14pt;
 }
 .body {
