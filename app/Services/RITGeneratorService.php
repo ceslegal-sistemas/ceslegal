@@ -189,11 +189,140 @@ class RITGeneratorService
     }
 
     /**
-     * Genera un PDF de solo lectura (no editable) en un archivo temporal.
-     * Usa DOMPDF + encriptación Cpdf para bloquear modificaciones.
-     * El documento se abre sin contraseña pero no puede ser editado.
+     * Genera un PDF del RIT en un archivo temporal.
+     * Intenta primero con LibreOffice (DOCX → PDF, calidad Word real).
+     * Fallback: DomPDF si LibreOffice no está disponible.
      */
     public function generarPDFTemp(string $textoRIT, Empresa $empresa): string
+    {
+        $loPath = $this->detectarLibreOffice();
+
+        if ($loPath) {
+            try {
+                return $this->generarPDFviaLibreOffice($textoRIT, $empresa, $loPath);
+            } catch (\Exception $e) {
+                Log::warning('RITGeneratorService: LibreOffice falló, fallback a DomPDF', [
+                    'empresa_id' => $empresa->id,
+                    'error'      => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $this->generarPDFviaDomPDF($textoRIT, $empresa);
+    }
+
+    /** Detecta la ruta de LibreOffice según el SO. */
+    private function detectarLibreOffice(): ?string
+    {
+        if (PHP_OS_FAMILY === 'Linux') {
+            foreach (['/usr/bin/soffice', '/usr/local/bin/soffice', '/snap/bin/soffice'] as $p) {
+                if (file_exists($p)) return $p;
+            }
+            return null;
+        }
+        foreach ([
+            'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+            'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
+        ] as $p) {
+            if (file_exists($p)) return $p;
+        }
+        return null;
+    }
+
+    /** Genera PDF usando LibreOffice: escribe DOCX y lo convierte. */
+    private function generarPDFviaLibreOffice(string $textoRIT, Empresa $empresa, string $loPath): string
+    {
+        $uid    = uniqid('rit_', true);
+        $tmpDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $uid;
+        mkdir($tmpDir, 0755, true);
+
+        $docxPath = $tmpDir . DIRECTORY_SEPARATOR . 'reglamento.docx';
+        $pdfPath  = $tmpDir . DIRECTORY_SEPARATOR . 'reglamento.pdf';
+
+        $this->escribirDocx($textoRIT, $empresa, $docxPath);
+
+        // Perfil de usuario único para evitar conflictos de instancia concurrente
+        // file:/// (3 slashes) es necesario para rutas absolutas en Windows y Linux
+        $profileDir = str_replace('\\', '/', $tmpDir . '/lo_profile');
+        $loProfile  = 'file:///' . ltrim($profileDir, '/');
+
+        $cmd = [
+            $loPath,
+            '--headless',
+            '--nofirststartwizard',
+            '-env:UserInstallation=' . $loProfile,
+            '--convert-to', 'pdf',
+            '--outdir', $tmpDir,
+            $docxPath,
+        ];
+
+        // Usar proc_open con timeout de 60s para evitar bloqueos indefinidos en Windows
+        $process = proc_open(
+            $cmd,
+            [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+            $pipes
+        );
+
+        if (!is_resource($process)) {
+            $this->limpiarDir($tmpDir);
+            throw new \RuntimeException('No se pudo iniciar el proceso LibreOffice');
+        }
+
+        fclose($pipes[0]);
+
+        $timeout  = 60;  // segundos
+        $deadline = microtime(true) + $timeout;
+        $output   = '';
+
+        // Lectura no bloqueante con timeout
+        stream_set_blocking($pipes[1], false);
+        stream_set_blocking($pipes[2], false);
+
+        $code = null;
+        while (microtime(true) < $deadline) {
+            $status = proc_get_status($process);
+            if (!$status['running']) {
+                $code = $status['exitcode'];
+                break;
+            }
+            $output .= stream_get_contents($pipes[1]);
+            $output .= stream_get_contents($pipes[2]);
+            usleep(200_000); // 200ms
+        }
+
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        if ($code === null) {
+            // Timeout: matar el proceso
+            proc_terminate($process);
+            proc_close($process);
+            $this->limpiarDir($tmpDir);
+            throw new \RuntimeException('LibreOffice superó el tiempo límite de ' . $timeout . 's');
+        }
+
+        proc_close($process);
+
+        if ($code !== 0 || !file_exists($pdfPath)) {
+            $this->limpiarDir($tmpDir);
+            throw new \RuntimeException(
+                'LibreOffice no convirtió el DOCX (código ' . $code . '): ' . trim($output)
+            );
+        }
+
+        $finalPath = tempnam(sys_get_temp_dir(), 'rit_') . '.pdf';
+        copy($pdfPath, $finalPath);
+        $this->limpiarDir($tmpDir);
+
+        Log::info('RITGeneratorService: PDF generado con LibreOffice', [
+            'empresa_id' => $empresa->id,
+        ]);
+
+        return $finalPath;
+    }
+
+    /** Fallback: genera PDF con DomPDF desde HTML. */
+    private function generarPDFviaDomPDF(string $textoRIT, Empresa $empresa): string
     {
         $html = $this->textoAHtml($textoRIT, $empresa);
 
@@ -207,10 +336,6 @@ class RITGeneratorService
         $dompdf->setPaper('letter', 'portrait');
         $dompdf->render();
 
-        // El footer se genera vía CSS (position: fixed) — no se necesita page_script
-
-        // Encriptar: solo lectura + impresión permitida — sin contraseña para abrir
-        // La clave del propietario es derivada del app key + empresa → nadie la conoce
         $canvas = $dompdf->getCanvas();
         if ($canvas instanceof CpdfAdapter) {
             $ownerPass = substr(hash('sha256', config('app.key') . $empresa->id . 'rit'), 0, 32);
@@ -221,6 +346,16 @@ class RITGeneratorService
         file_put_contents($tmpPath, $dompdf->output());
 
         return $tmpPath;
+    }
+
+    /** Elimina todos los archivos y el directorio temporal. */
+    private function limpiarDir(string $dir): void
+    {
+        if (!is_dir($dir)) return;
+        foreach (glob($dir . DIRECTORY_SEPARATOR . '*') as $f) {
+            is_dir($f) ? $this->limpiarDir($f) : @unlink($f);
+        }
+        @rmdir($dir);
     }
 
     /**
@@ -552,8 +687,8 @@ HTML;
         $section = $phpWord->addSection([
             'marginTop'    => Converter::cmToTwip(2.5),
             'marginBottom' => Converter::cmToTwip(2.5),
-            'marginLeft'   => Converter::cmToTwip(3),
-            'marginRight'  => Converter::cmToTwip(3),
+            'marginLeft'   => Converter::cmToTwip(2.5),
+            'marginRight'  => Converter::cmToTwip(2.5),
         ]);
 
         // Footer con datos de la empresa (alineado a la derecha, igual que el PDF)
@@ -574,6 +709,12 @@ HTML;
             $fBold,
             ['alignment' => Jc::CENTER, 'spaceAfter' => 160, 'spaceBefore' => 0, 'lineRule' => 'auto', 'line' => 240]
         );
+
+        // Eliminar la primera línea si Gemini repite el título (evita duplicado con el addText del título)
+        $textoRIT = ltrim($textoRIT);
+        if (preg_match('/^REGLAMENTO\s+INTERNO\s+DE\s+TRABAJO/iu', $textoRIT)) {
+            $textoRIT = ltrim(substr($textoRIT, strpos($textoRIT, "\n")), "\r\n");
+        }
 
         // Parser — idéntica lógica a textoAHtml()
         $lastCapNum = false;
