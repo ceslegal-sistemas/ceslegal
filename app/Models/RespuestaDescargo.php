@@ -14,11 +14,17 @@ class RespuestaDescargo extends Model
         'respuesta',
         'respondido_en',
         'archivos_adjuntos',
+        'fue_pegada',
+        'tiempo_respuesta_segundos',
+        'cambios_pestana_durante',
     ];
 
     protected $casts = [
-        'respondido_en' => 'datetime',
-        'archivos_adjuntos' => 'array',
+        'respondido_en'             => 'datetime',
+        'archivos_adjuntos'         => 'array',
+        'fue_pegada'                => 'boolean',
+        'tiempo_respuesta_segundos' => 'integer',
+        'cambios_pestana_durante'   => 'integer',
     ];
 
     public function pregunta(): BelongsTo

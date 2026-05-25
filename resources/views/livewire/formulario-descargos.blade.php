@@ -1,3 +1,17 @@
+{{-- ── Tracker global de comportamiento (Capa 2) ───────────────────────────────────
+     Se inicializa UNA sola vez. Registra cambios de pestaña acumulados para que
+     cada pregunta pueda calcular cuántos ocurrieron mientras la estaba respondiendo.
+──────────────────────────────────────────────────────────────────────────────── --}}
+<script>
+(function () {
+    if (window._cesTracker) return; // ya inicializado en un re-render de Livewire
+    window._cesTracker = { totalCambiosPestana: 0 };
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) window._cesTracker.totalCambiosPestana++;
+    });
+})();
+</script>
+
 <div class="min-h-screen bg-gray-50 sm:bg-gray-100 sm:py-8 sm:px-4">
     {{-- Contenedor centrado en desktop --}}
     <div class="sm:max-w-xl sm:mx-auto">
@@ -1108,8 +1122,31 @@
                         @if ($preguntaSiguiente)
                             @php $pregunta = $preguntaSiguiente; @endphp
 
+                            {{-- Alpine.js: tracking de comportamiento por pregunta (Capa 2) --}}
                             <div class="border border-gray-200 rounded-xl overflow-hidden"
-                                wire:key="pregunta-{{ $pregunta->id }}">
+                                wire:key="pregunta-{{ $pregunta->id }}"
+                                x-data="{
+                                    fuePegada: false,
+                                    tabsAlInicio: 0,
+                                    inicioTs: 0,
+                                    init() {
+                                        this.tabsAlInicio = window._cesTracker ? window._cesTracker.totalCambiosPestana : 0;
+                                        this.inicioTs = Date.now();
+                                    },
+                                    getCambiosPestana() {
+                                        var total = window._cesTracker ? window._cesTracker.totalCambiosPestana : 0;
+                                        return Math.max(0, total - this.tabsAlInicio);
+                                    },
+                                    getTiempoSegundos() {
+                                        return Math.round((Date.now() - this.inicioTs) / 1000);
+                                    },
+                                    enviar(preguntaId) {
+                                        var pegada   = this.fuePegada ? 1 : 0;
+                                        var cambios  = this.getCambiosPestana();
+                                        var tiempo   = this.getTiempoSegundos();
+                                        $wire.guardarRespuesta(preguntaId, pegada, cambios, tiempo);
+                                    }
+                                }">
                                 {{-- Encabezado pregunta --}}
                                 <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
                                     <div class="flex items-start gap-3">
@@ -1138,13 +1175,14 @@
                                     @if (!($preguntasProcesadas[$pregunta->id] ?? false))
                                         <textarea wire:model.defer="respuestas.{{ $pregunta->id }}" rows="5"
                                             class="w-full text-base border-gray-300 rounded-xl focus:border-primary-500 focus:ring-primary-500 resize-none"
-                                            placeholder="Escriba su respuesta aquí..."></textarea>
+                                            placeholder="Escriba su respuesta aquí..."
+                                            @paste="fuePegada = true"></textarea>
 
                                         @error("respuesta_{$pregunta->id}")
                                             <p class="mt-2 text-sm text-danger-600">{{ $message }}</p>
                                         @enderror
 
-                                        <button wire:click="guardarRespuesta({{ $pregunta->id }})" type="button"
+                                        <button @click="enviar({{ $pregunta->id }})" type="button"
                                             class="mt-4 w-full flex items-center justify-center gap-2 px-5 py-3 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl shadow-sm transition-colors">
                                             Guardar y continuar
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor"

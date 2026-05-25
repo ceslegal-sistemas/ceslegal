@@ -421,9 +421,13 @@ class FormularioDescargos extends Component
     }
 
     /**
-     * Guarda o actualiza una respuesta y genera nuevas preguntas si es necesario
+     * Guarda o actualiza una respuesta y genera nuevas preguntas si es necesario.
+     * Los tres parámetros opcionales son señales de comportamiento captadas por el frontend:
+     *  - $fuePegada: el trabajador pegó el texto en lugar de teclearlo
+     *  - $cambiosPestana: cuántas veces cambió de pestaña mientras respondía esta pregunta
+     *  - $tiempoSegundos: segundos transcurridos entre que apareció la pregunta y envió la respuesta
      */
-    public function guardarRespuesta(int $preguntaId)
+    public function guardarRespuesta(int $preguntaId, bool $fuePegada = false, int $cambiosPestana = 0, int $tiempoSegundos = 0)
     {
         $pregunta = PreguntaDescargo::find($preguntaId);
 
@@ -470,10 +474,16 @@ class FormularioDescargos extends Component
             $respuesta = RespuestaDescargo::updateOrCreate(
                 ['pregunta_descargo_id' => $preguntaId],
                 [
-                    'respuesta' => $respuestaTexto,
-                    'respondido_en' => now(),
+                    'respuesta'                 => $respuestaTexto,
+                    'respondido_en'             => now(),
+                    'fue_pegada'                => $fuePegada,
+                    'tiempo_respuesta_segundos' => $tiempoSegundos > 0 ? $tiempoSegundos : null,
+                    'cambios_pestana_durante'   => $cambiosPestana,
                 ]
             );
+
+            // Actualizar resumen de comportamiento de la diligencia
+            $this->actualizarResumenComportamiento($preguntaId, $fuePegada, $cambiosPestana, $tiempoSegundos);
 
             $pregunta->update(['estado' => 'respondida']);
 
@@ -801,6 +811,58 @@ class FormularioDescargos extends Component
             ]);
         } catch (\Exception $e) {
             Log::warning('Error al guardar feedback del trabajador', [
+                'diligencia_id' => $this->diligencia->id,
+                'error'         => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Actualiza el resumen de comportamiento de la diligencia después de cada respuesta.
+     * Calcula el nivel de alerta (bajo / medio / alto) basado en:
+     *  - Total de cambios de pestaña durante la diligencia
+     *  - Cantidad de respuestas que fueron pegadas
+     */
+    private function actualizarResumenComportamiento(int $preguntaId, bool $fuePegada, int $cambiosPestana, int $tiempoSegundos): void
+    {
+        try {
+            $actual = $this->diligencia->resumen_comportamiento ?? [
+                'total_cambios_pestana'  => 0,
+                'preguntas_con_pegado'   => [],
+                'detalle_por_pregunta'   => [],
+                'nivel_alerta'           => 'bajo',
+            ];
+
+            // Acumular cambios de pestaña (sumamos los de esta pregunta al total)
+            $actual['total_cambios_pestana'] = ($actual['total_cambios_pestana'] ?? 0) + $cambiosPestana;
+
+            // Registrar si esta respuesta fue pegada
+            if ($fuePegada && !in_array($preguntaId, $actual['preguntas_con_pegado'] ?? [])) {
+                $actual['preguntas_con_pegado'][] = $preguntaId;
+            }
+
+            // Agregar detalle de esta pregunta
+            $actual['detalle_por_pregunta'][] = [
+                'pregunta_id'  => $preguntaId,
+                'pegada'       => $fuePegada,
+                'tiempo_s'     => $tiempoSegundos,
+                'cambios_tab'  => $cambiosPestana,
+            ];
+
+            // Calcular nivel de alerta
+            $totalPegadas   = count($actual['preguntas_con_pegado'] ?? []);
+            $totalTabSwitch = $actual['total_cambios_pestana'] ?? 0;
+
+            $actual['nivel_alerta'] = match(true) {
+                $totalPegadas >= 3 || $totalTabSwitch >= 6 => 'alto',
+                $totalPegadas >= 2 || $totalTabSwitch >= 3 => 'medio',
+                default                                    => 'bajo',
+            };
+
+            $this->diligencia->update(['resumen_comportamiento' => $actual]);
+
+        } catch (\Exception $e) {
+            Log::warning('[comportamiento] Error al actualizar resumen', [
                 'diligencia_id' => $this->diligencia->id,
                 'error'         => $e->getMessage(),
             ]);

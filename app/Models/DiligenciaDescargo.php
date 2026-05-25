@@ -56,6 +56,7 @@ class DiligenciaDescargo extends Model
         'verificacion_token',
         'verificacion_hash',
         'verificacion_generada_en',
+        'resumen_comportamiento',
     ];
 
     protected $casts = [
@@ -80,8 +81,9 @@ class DiligenciaDescargo extends Model
         'disclaimer_aceptado_en' => 'datetime',
         'foto_inicio_en' => 'datetime',
         'foto_fin_en' => 'datetime',
-        'evidencia_metadata' => 'array',
+        'evidencia_metadata'       => 'array',
         'verificacion_generada_en' => 'datetime',
+        'resumen_comportamiento'   => 'array',
     ];
 
     public function proceso(): BelongsTo

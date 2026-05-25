@@ -3552,6 +3552,103 @@ class ProcesoDisciplinarioResource extends Resource
                     ->columns(2)
                     ->hidden(fn($record) => empty($record->autorizador_nombre))
                     ->collapsible(),
+
+                // ── Señales de Comportamiento — Capa 2 ───────────────────────────
+                Infolists\Components\Section::make('Señales de Comportamiento durante los Descargos')
+                    ->icon('heroicon-o-eye')
+                    ->description('Indicios técnicos captados automáticamente durante el formulario del trabajador. Son señales de apoyo, no prueba definitiva.')
+                    ->schema([
+                        Infolists\Components\Placeholder::make('comportamiento_card')
+                            ->hiddenLabel()
+                            ->content(function ($record) {
+                                $diligencia = $record->diligenciaDescargo;
+                                if (!$diligencia) {
+                                    return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-400">No hay diligencia registrada.</p>');
+                                }
+
+                                $resumen = $diligencia->resumen_comportamiento;
+                                if (empty($resumen)) {
+                                    return new \Illuminate\Support\HtmlString('<p class="text-sm text-gray-400 italic">Sin datos de comportamiento — el trabajador aún no ha completado el formulario, o completó una versión anterior del sistema.</p>');
+                                }
+
+                                $nivel          = $resumen['nivel_alerta'] ?? 'bajo';
+                                $tabSwitches    = $resumen['total_cambios_pestana'] ?? 0;
+                                $pegadas        = count($resumen['preguntas_con_pegado'] ?? []);
+                                $detalle        = $resumen['detalle_por_pregunta'] ?? [];
+
+                                [$nivelLabel, $nivelColor, $nivelBg, $nivelBorder] = match($nivel) {
+                                    'alto'  => ['Alto', '#dc2626', 'rgba(239,68,68,0.08)',  'rgba(239,68,68,0.30)'],
+                                    'medio' => ['Medio', '#d97706', 'rgba(251,191,36,0.08)', 'rgba(251,191,36,0.30)'],
+                                    default => ['Bajo', '#16a34a', 'rgba(74,222,128,0.08)',  'rgba(74,222,128,0.28)'],
+                                };
+
+                                $html  = '<div style="display:grid;gap:12px;">';
+
+                                // Badge nivel
+                                $html .= '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:12px;'
+                                    . "background:{$nivelBg};border:1px solid {$nivelBorder}\">"
+                                    . '<div style="width:12px;height:12px;border-radius:50%;background:' . $nivelColor . ';flex-shrink:0;"></div>'
+                                    . '<div>'
+                                    . '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(0,0,0,.45);margin:0 0 2px;">Nivel de alerta general</p>'
+                                    . '<p style="font-size:16px;font-weight:800;color:' . $nivelColor . ';margin:0;">' . $nivelLabel . '</p>'
+                                    . '</div></div>';
+
+                                // Métricas
+                                $html .= '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+
+                                $html .= '<div style="padding:12px 14px;border-radius:10px;background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.07);">'
+                                    . '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(0,0,0,.40);margin:0 0 3px;">Cambios de pestaña totales</p>'
+                                    . '<p style="font-size:22px;font-weight:800;color:' . ($tabSwitches >= 6 ? '#dc2626' : ($tabSwitches >= 3 ? '#d97706' : '#374151')) . ';margin:0;">' . $tabSwitches . '</p>'
+                                    . '</div>';
+
+                                $html .= '<div style="padding:12px 14px;border-radius:10px;background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.07);">'
+                                    . '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(0,0,0,.40);margin:0 0 3px;">Respuestas pegadas (Ctrl+V)</p>'
+                                    . '<p style="font-size:22px;font-weight:800;color:' . ($pegadas >= 3 ? '#dc2626' : ($pegadas >= 2 ? '#d97706' : '#374151')) . ';margin:0;">' . $pegadas . '</p>'
+                                    . '</div>';
+
+                                $html .= '</div>';
+
+                                // Detalle por pregunta
+                                if (!empty($detalle)) {
+                                    $html .= '<div style="border:1px solid rgba(0,0,0,.08);border-radius:10px;overflow:hidden;">';
+                                    $html .= '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+                                    $html .= '<thead><tr style="background:rgba(0,0,0,.04);">'
+                                        . '<th style="text-align:left;padding:8px 12px;font-weight:700;color:rgba(0,0,0,.50);">#</th>'
+                                        . '<th style="text-align:center;padding:8px 12px;font-weight:700;color:rgba(0,0,0,.50);">Pegada</th>'
+                                        . '<th style="text-align:center;padding:8px 12px;font-weight:700;color:rgba(0,0,0,.50);">Tiempo (s)</th>'
+                                        . '<th style="text-align:center;padding:8px 12px;font-weight:700;color:rgba(0,0,0,.50);">Cambios tab</th>'
+                                        . '</tr></thead><tbody>';
+
+                                    foreach ($detalle as $i => $d) {
+                                        $esPegada  = !empty($d['pegada']);
+                                        $tiempo    = $d['tiempo_s'] ?? '—';
+                                        $cambios   = $d['cambios_tab'] ?? 0;
+                                        $fila      = ($i % 2 === 0) ? 'rgba(0,0,0,.01)' : 'transparent';
+                                        $alertFila = ($esPegada || $cambios > 0) ? 'border-left:3px solid #f87171;' : '';
+                                        $html .= '<tr style="background:' . $fila . ';' . $alertFila . '">'
+                                            . '<td style="padding:7px 12px;color:rgba(0,0,0,.55);">P' . ($i + 1) . '</td>'
+                                            . '<td style="padding:7px 12px;text-align:center;">' . ($esPegada ? '<span style="color:#dc2626;font-weight:700;">Sí</span>' : '<span style="color:#6b7280;">No</span>') . '</td>'
+                                            . '<td style="padding:7px 12px;text-align:center;color:rgba(0,0,0,.60);">' . ($tiempo > 0 ? $tiempo . 's' : '—') . '</td>'
+                                            . '<td style="padding:7px 12px;text-align:center;color:' . ($cambios > 0 ? '#d97706' : 'rgba(0,0,0,.50)') . ';font-weight:' . ($cambios > 0 ? '700' : '400') . ';">' . $cambios . '</td>'
+                                            . '</tr>';
+                                    }
+
+                                    $html .= '</tbody></table></div>';
+                                }
+
+                                $html .= '<p style="font-size:11px;color:rgba(0,0,0,.40);margin:0;">'
+                                    . 'Criterios: nivel <strong>Alto</strong> si ≥3 respuestas pegadas o ≥6 cambios de pestaña; '
+                                    . '<strong>Medio</strong> si ≥2 pegadas o ≥3 cambios; <strong>Bajo</strong> en caso contrario.'
+                                    . '</p>';
+
+                                $html .= '</div>';
+                                return new \Illuminate\Support\HtmlString($html);
+                            })
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(1)
+                    ->hidden(fn($record) => !$record->diligenciaDescargo)
+                    ->collapsible(),
             ]);
     }
 
