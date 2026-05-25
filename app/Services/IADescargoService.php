@@ -20,8 +20,9 @@ class IADescargoService
     protected array $config;
 
     // Control de timeout y reintentos — se ajustan según el modo de uso
-    protected int $timeoutSegundos = 20;  // para generación en batch
-    protected int $maxReintentos   = 2;   // para generación en batch
+    protected int $timeoutSegundos  = 20;  // para generación en batch
+    protected int $maxReintentos    = 2;   // para generación en batch
+    protected int $maxSalidaTokens  = 0;   // 0 = usar config; se sobreescribe en modo realtime
 
     // Límite máximo de preguntas totales por diligencia
     const LIMITE_MAXIMO_PREGUNTAS = 30;
@@ -78,10 +79,10 @@ class IADescargoService
             return [];
         }
 
-        // Modo realtime: con 2 modelos (2.5-flash + 1.5-flash), 25s cada uno = 50s máx.
-        // 25s es suficiente para gemini-2.5-flash bajo alta demanda.
+        // Modo realtime: con 2 modelos, 25s cada uno = 50s máx.
         $this->timeoutSegundos = 25;
         $this->maxReintentos   = 0;
+        $this->maxSalidaTokens = 350; // 2 preguntas cortas — no necesitamos más
 
         $preguntasDisponibles = self::LIMITE_MAXIMO_PREGUNTAS - $totalPreguntasActuales;
         $contexto = $this->construirContexto($diligencia);
@@ -158,7 +159,8 @@ class IADescargoService
                 ->toArray();
         }
 
-        // Solo preguntas YA RESPONDIDAS para el razonamiento contextual
+        // Preguntas YA RESPONDIDAS — truncadas para ahorrar tokens en el prompt
+        // (el modelo solo necesita saber QUÉ temas se cubrieron, no la respuesta completa)
         $preguntasYRespuestas = $diligencia->preguntas()
             ->with('respuesta')
             ->activas()
@@ -166,12 +168,28 @@ class IADescargoService
             ->get()
             ->map(function ($pregunta) {
                 return [
-                    'pregunta' => $pregunta->pregunta,
-                    'respuesta' => $pregunta->respuesta->respuesta,
+                    'pregunta' => mb_substr($pregunta->pregunta, 0, 120),
+                    'respuesta' => mb_substr($pregunta->respuesta->respuesta ?? '', 0, 220),
                     'es_ia'     => $pregunta->es_generada_por_ia,
                 ];
             })
             ->toArray();
+
+        $totalRespondidas = count($preguntasYRespuestas);
+
+        // Detección PHP de ancla episódica ya cubierta:
+        // si alguna respuesta menciona hora, lugar específico o personas presentes,
+        // el tipo de ancla está cubierto — evitamos pedirle al modelo que lo infiera.
+        $anclaYaCubierta = false;
+        $patronAncla = '/\b(\d{1,2}:\d{2}|\d{1,2}\s*[aApP][mM]|hora|piso|sala|área|pasillo|oficina'
+            . '|estaba haciendo|estaba realizando|quién estaba|personas presentes'
+            . '|nombre de quien|me encontraba|estaba en)\b/iu';
+        foreach ($preguntasYRespuestas as $pr) {
+            if (preg_match($patronAncla, $pr['respuesta'])) {
+                $anclaYaCubierta = true;
+                break;
+            }
+        }
 
         // Preguntas pendientes (sin respuesta) — la IA NO debe regenerarlas
         $preguntasPendientes = $diligencia->preguntas()
@@ -186,9 +204,15 @@ class IADescargoService
             ->pluck('pregunta')
             ->toArray();
 
-        // Contexto del RIT de la empresa y normas relevantes por RAG
-        $ritContexto = $empresaId ? $this->obtenerContextoRIT($empresaId) : '';
-        $normasRag   = $this->buscarNormasRelevantes($proceso->hechos ?? '', $empresaId, limite: 3, proceso: $proceso);
+        // RIT: reducido para llamadas dinámicas (2500 chars en lugar de 8000)
+        // ya hay contexto suficiente del proceso; el RIT completo se usó al inicio
+        $ritContexto = $empresaId ? mb_substr($this->obtenerContextoRIT($empresaId), 0, 2500) : '';
+
+        // RAG normas: solo hasta 5 preguntas respondidas
+        // Después, el contexto legal ya está establecido; más normas solo saturan el prompt
+        $normasRag = $totalRespondidas < 6
+            ? $this->buscarNormasRelevantes($proceso->hechos ?? '', $empresaId, limite: 2, proceso: $proceso)
+            : '';
 
         return [
             'hechos'              => $proceso->hechos,
@@ -200,6 +224,8 @@ class IADescargoService
             'cargo'               => $proceso->trabajador->cargo,
             'rit_contexto'        => $ritContexto,
             'normas_rag'          => $normasRag,
+            'ancla_cubierta'      => $anclaYaCubierta,
+            'total_respondidas'   => $totalRespondidas,
         ];
     }
 
@@ -229,10 +255,45 @@ class IADescargoService
             ? "\nNORMAS LEGALES RECUPERADAS (RIT, CST, jurisprudencia — cita solo estas):\n{$contexto['normas_rag']}\n"
             : '';
 
-        $disponibles = $contexto['preguntas_disponibles'] ?? 10;
-        $notaLimite  = $disponibles <= 4
+        $disponibles      = $contexto['preguntas_disponibles'] ?? 10;
+        $totalRespondidas = $contexto['total_respondidas'] ?? 0;
+        $anclaYaCubierta  = $contexto['ancla_cubierta'] ?? false;
+
+        $notaLimite = $disponibles <= 4
             ? "\n⚠ ESPACIO REDUCIDO: Solo puedes añadir {$disponibles} pregunta(s) más. Prioriza las más críticas para el expediente.\n"
             : '';
+
+        // Umbral progresivo: con muchas preguntas respondidas, el criterio para generar
+        // más debe ser mucho más estricto para evitar repetición y fatiga del trabajador
+        $notaUmbral = '';
+        if ($totalRespondidas >= 10) {
+            $notaUmbral = "\n⛔ YA HAY {$totalRespondidas} PREGUNTAS RESPONDIDAS. El expediente está muy avanzado.\n"
+                . "SOLO genera una nueva pregunta si detectas una laguna ESPECÍFICA e INEQUÍVOCA (un hecho concreto sin documentar).\n"
+                . "Ante cualquier duda, retorna NO_REQUIERE.\n";
+        } elseif ($totalRespondidas >= 7) {
+            $notaUmbral = "\n⚠ Con {$totalRespondidas} preguntas respondidas, el expediente está bien documentado.\n"
+                . "Solo genera preguntas para lagunas concretas y verificables. Prefiere NO_REQUIERE si no hay una laguna clara.\n";
+        }
+
+        // Ancla episódica: si PHP ya detectó que está cubierta, omitir la instrucción
+        // (evita que el modelo genere preguntas de hora/lugar que ya fueron respondidas)
+        if ($anclaYaCubierta) {
+            $anclaInstruccion = "✅ ANCLA YA CUBIERTA — el historial contiene al menos una respuesta con hora, "
+                . "lugar específico o personas presentes. NO es necesario ni permitido generar "
+                . "más preguntas de este tipo. Omite completamente este aspecto.";
+        } else {
+            $anclaInstruccion = "Una IA generativa puede inventar respuestas plausibles sobre hechos generales, "
+                . "pero no puede saber detalles que solo conoce quien estuvo físicamente presente.\n"
+                . "Si ninguna respuesta del historial menciona datos episódicos concretos, formula UNA "
+                . "pregunta (contada dentro del máximo de 2) que requiera uno de estos tipos de detalle:\n"
+                . "  → Tipo A: la hora o momento exacto del evento\n"
+                . "  → Tipo B: quién más estaba presente y dónde se encontraba cada uno\n"
+                . "  → Tipo C: las palabras textuales que usó alguien involucrado\n"
+                . "  → Tipo D: el lugar físico concreto dentro de la empresa\n"
+                . "  → Tipo E: qué herramienta, documento o sistema estaba usando el trabajador\n\n"
+                . "REGLA: formula la pregunta adaptada a los HECHOS DEL CASO, no como pregunta genérica.\n"
+                . "NO copies ni parafrasees estos tipos literalmente — derivan del contexto del proceso.";
+        }
 
         // Preguntas pendientes — el trabajador las responderá próximamente, NO regenerar
         $pendientesText = '';
@@ -360,25 +421,9 @@ ya fue abordado. Si fue respondido (aunque sea brevemente), está CUBIERTO → n
    (Solo aplica a los hechos. No preguntes sobre funciones del cargo no relacionadas con ellos.)
 
 ════════════════════════════════════════════════════════
-ANCLAS DE MEMORIA EPISÓDICA — CAPA ANTI-IA
+ANCLA DE MEMORIA EPISÓDICA — CAPA ANTI-IA
 ════════════════════════════════════════════════════════
-Una herramienta de inteligencia artificial (ChatGPT, Gemini, etc.) puede generar respuestas
-plausibles sobre hechos generales, pero NO puede saber detalles específicos que solo conoce
-quien estuvo físicamente presente. Por eso, si aún no se ha hecho, incluye al menos UNA
-pregunta "ancla" que exija memoria episódica concreta. Ejemplos adaptables a los hechos:
-
-• "¿A qué hora exacta ocurrió esto?"
-• "¿Quién más estaba físicamente presente en ese momento y dónde estaba cada uno?"
-• "¿Qué palabras exactas usó [persona mencionada] cuando le dijo/preguntó eso?"
-• "¿En qué lugar específico dentro de la empresa ocurrió? (área, piso, sala, etc.)"
-• "¿Qué estaba haciendo usted justo antes de que sucediera?"
-• "¿Cómo se enteró de que [evento concreto] había ocurrido? ¿Quién se lo dijo o cómo lo vio?"
-• "¿Había algún documento, sistema o herramienta que usted estuviera usando en ese momento?
-   Descríbalo."
-
-IMPORTANTE: Solo incluye este tipo de ancla si AÚN NO se ha preguntado algo similar en el
-historial. Si ya hay una pregunta sobre hora, lugar o personas presentes, no la dupliques.
-Las anclas son preguntas más, no reemplazan los 9 aspectos del expediente.
+{$anclaInstruccion}
 
 ════════════════════════════════════════════════════════
 TU TAREA
@@ -418,7 +463,7 @@ FORMATO DE RESPUESTA
 Si hay aspectos sin documentar (1 o 2 preguntas):
 PREGUNTA_1: [texto de la pregunta]
 PREGUNTA_2: [texto de la pregunta] ← solo si hay un segundo aspecto genuinamente sin cubrir
-{$notaLimite}
+{$notaLimite}{$notaUmbral}
 Si todos los aspectos relevantes ya están documentados o cubiertos por preguntas pendientes:
 NO_REQUIERE
 PROMPT;
@@ -557,9 +602,9 @@ PROMPT;
                 ]
             ],
             'generationConfig' => [
-                'temperature' => 0.7,
-                'maxOutputTokens' => $this->config['max_tokens'],
-                'topP' => 0.95,
+                'temperature'     => 0.7,
+                'maxOutputTokens' => $this->maxSalidaTokens ?: ($this->config['max_tokens'] ?? 1024),
+                'topP'            => 0.95,
             ],
         ];
 
