@@ -195,15 +195,15 @@ class DiligenciaDescargo extends Model
 
         $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        $this->update([
-            'otp_codigo'    => $codigo,
-            'otp_expira_en' => now()->addMinutes(10),
-            'otp_intentos'  => 0,
-            'otp_canal'     => 'email',
-            'otp_enviado_a' => $this->enmascararEmail($email),
-        ]);
-
         try {
+            $this->update([
+                'otp_codigo'    => $codigo,
+                'otp_expira_en' => now()->addMinutes(10),
+                'otp_intentos'  => 0,
+                'otp_canal'     => 'email',
+                'otp_enviado_a' => $this->enmascararEmail($email),
+            ]);
+
             Mail::to($email)->send(new OtpDescargos(
                 $codigo,
                 $this->proceso->trabajador->nombre_completo,

@@ -117,13 +117,18 @@
                             </div>
 
                             @if (!$otpEnviado)
-                                <button wire:click="enviarOtp" type="button"
-                                    class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl shadow-sm transition-colors">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <button wire:click="enviarOtp" wire:loading.attr="disabled" wire:target="enviarOtp" type="button"
+                                    class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                    <svg wire:loading.remove wire:target="enviarOtp" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                                     </svg>
-                                    Enviar código de verificación
+                                    <svg wire:loading wire:target="enviarOtp" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                    </svg>
+                                    <span wire:loading.remove wire:target="enviarOtp">Enviar código de verificación</span>
+                                    <span wire:loading wire:target="enviarOtp">Enviando...</span>
                                 </button>
                             @else
                                 {{-- Formulario de verificación del código --}}
@@ -168,9 +173,14 @@
                                         </div>
                                     @endif
 
-                                    <button wire:click="verificarOtp" type="button"
-                                        class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl shadow-sm transition-colors">
-                                        Verificar código
+                                    <button wire:click="verificarOtp" wire:loading.attr="disabled" wire:target="verificarOtp" type="button"
+                                        class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                        <svg wire:loading wire:target="verificarOtp" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                        </svg>
+                                        <span wire:loading.remove wire:target="verificarOtp">Verificar código</span>
+                                        <span wire:loading wire:target="verificarOtp">Verificando...</span>
                                     </button>
 
                                     {{-- Reenvío con countdown --}}
