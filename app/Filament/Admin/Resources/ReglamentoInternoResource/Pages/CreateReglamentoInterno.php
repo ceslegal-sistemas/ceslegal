@@ -82,6 +82,22 @@ class CreateReglamentoInterno extends CreateRecord
             if (empty($saved['cargos'])) {
                 $saved['cargos'] = [['nombre_cargo' => '', 'instancia_sancionatoria' => 'ninguna']];
             }
+
+            // Pre-cargar sanciones estándar si el cliente aún no ha configurado ninguna
+            if (empty($saved['sanciones_configuradas'])) {
+                $saved['sanciones_configuradas'] = SancionLaboral::where('activa', true)
+                    ->whereNull('sancion_padre_id')
+                    ->orderBy('tipo_falta')
+                    ->orderBy('orden')
+                    ->get()
+                    ->map(fn($s) => [
+                        'nombre'          => $s->nombre_claro,
+                        'tipo_falta'      => $s->tipo_falta,
+                        'tipo_sancion'    => $s->tipo_sancion,
+                        'dias_suspension' => $s->dias_suspension_max,
+                    ])
+                    ->toArray();
+            }
         }
 
         $this->form->fill($saved);
