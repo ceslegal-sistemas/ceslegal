@@ -80,7 +80,7 @@ class CreateReglamentoInterno extends CreateRecord
 
             // Garantizar al menos 1 ítem en el repeater de cargos
             if (empty($saved['cargos'])) {
-                unset($saved['cargos']); // deja que defaultItems(1) lo cree
+                $saved['cargos'] = [['nombre_cargo' => '', 'instancia_sancionatoria' => 'ninguna']];
             }
         }
 
