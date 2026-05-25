@@ -31,6 +31,33 @@ class AuditarRIT extends Page implements HasForms
     protected static ?int    $navigationSort  = 11;
     protected static string  $view            = 'filament.pages.auditar-rit';
 
+    /**
+     * Ocultar el ítem de navegación para clientes cuyo RIT fue construido/mejorado
+     * por la IA del sistema — ya cumple los estándares jurídicos, no requiere auditoría externa.
+     * Los administradores siempre lo ven.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+        if ($user->hasRole('super_admin') || $user->hasRole('abogado')) {
+            return true;
+        }
+        $empresa = $user->empresa ?? null;
+        if ($empresa) {
+            $rit = ReglamentoInterno::where('empresa_id', $empresa->id)
+                ->where('activo', true)
+                ->orderByDesc('updated_at')
+                ->first();
+            if ($rit && in_array($rit->fuente, ['construido_ia', 'mejora_ia'])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public ?Empresa           $empresa              = null;
     public ?AuditoriaRIT      $auditoria            = null;
     public ?ReglamentoInterno $rit                  = null;

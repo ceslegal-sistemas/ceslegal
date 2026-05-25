@@ -447,11 +447,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
           <p style="font-size:.8125rem;font-weight:600;color:#f87171;margin:0 0 .3rem">No se pudo generar el RIT Mejorado</p>
-          @if($auditoria->mensaje_error)
-            <p style="font-size:.73rem;color:#94a3b8;margin:0;font-family:ui-monospace,monospace;word-break:break-all;line-height:1.5">{{ $auditoria->mensaje_error }}</p>
-          @else
-            <p style="font-size:.775rem;color:#94a3b8;margin:0">Ocurrió un error durante la generación automática.</p>
-          @endif
+          <p style="font-size:.775rem;color:#94a3b8;margin:0">El servicio de inteligencia artificial no está disponible en este momento. Por favor, reintenta en unos minutos.</p>
         </div>
         <button wire:click="reintentarMejora" style="display:inline-flex;align-items:center;gap:.4rem;font-size:.775rem;font-weight:600;padding:.45rem .9rem;border-radius:.5rem;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:#f87171;cursor:pointer;white-space:nowrap;flex-shrink:0">
           <svg style="width:13px;height:13px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
