@@ -157,7 +157,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->default($empresa?->razon_social ?? '')
                                 ->disabled()
                                 ->dehydrated(false)
-                                ->columnSpan(2),
+                                ->columnSpanFull(),
 
                             Forms\Components\TextInput::make('tipo_societario')
                                 ->label('Tipo societario')
@@ -179,9 +179,10 @@ class CreateReglamentoInterno extends CreateRecord
                                     ($empresa?->departamento ?? '')
                                 ))
                                 ->disabled()
-                                ->dehydrated(false),
+                                ->dehydrated(false)
+                                ->columnSpanFull(),
                         ])
-                        ->columns(2),
+                        ->columns(['default' => 1, 'sm' => 2]),
 
                     Forms\Components\Section::make('¿A qué se dedica su empresa?')
                         ->description('La actividad económica define los riesgos laborales específicos que el RIT debe cubrir. Si no sabe el código, busque por nombre (ej: "servicios", "construcción").')
@@ -264,7 +265,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->inline()
                                 ->live(),
                         ])
-                        ->columns(2),
+                        ->columns(['default' => 1, 'sm' => 2]),
 
                     Forms\Components\Repeater::make('sucursales')
                         ->label('Sucursales / Sedes adicionales')
@@ -280,7 +281,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->numeric()
                                 ->placeholder('Ej: 5'),
                         ])
-                        ->columns(3)
+                        ->columns(['default' => 1, 'sm' => 2, 'md' => 3])
                         ->addActionLabel('Agregar otra sede')
                         ->visible(fn(Get $get) => $get('tiene_sucursales') === 'si')
                         ->columnSpanFull(),
@@ -321,7 +322,7 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->default('ninguna')
                                         ->helperText('Solo los cargos con autoridad real deben tener esta facultad.'),
                                 ])
-                                ->columns(2)
+                                ->columns(['default' => 1, 'sm' => 2])
                                 ->addActionLabel('Agregar otro cargo')
                                 ->minItems(1)
                                 ->defaultItems(1)
@@ -351,7 +352,7 @@ class CreateReglamentoInterno extends CreateRecord
                                     'aprendizaje' => 'Aprendizaje SENA',
                                 ])
                                 ->default(['indefinido'])
-                                ->columns(2)
+                                ->columns(['default' => 1, 'sm' => 2])
                                 ->helperText('Seleccione todos los que usa actualmente.'),
 
                             Forms\Components\TextInput::make('num_aprendices_sena')
@@ -407,7 +408,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->inline()
                                 ->helperText('Acuerdo directo con trabajadores no afiliados al sindicato.'),
                         ])
-                        ->columns(2),
+                        ->columns(['default' => 1, 'sm' => 2]),
                 ]),
 
             // ─────────────────────────────────────────────────────────────────
@@ -441,7 +442,7 @@ class CreateReglamentoInterno extends CreateRecord
                                     'vigilancia_guardias'     => 'Vigilancia / guardias de seguridad',
                                 ])
                                 ->default(['jornada_fija_diurna'])
-                                ->columns(2)
+                                ->columns(['default' => 1, 'sm' => 2])
                                 ->columnSpanFull(),
                         ]),
 
@@ -458,7 +459,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->id('rit_horario_salida')
                                 ->helperText('Ej: 5:30 PM (incluye pausa de almuerzo)'),
                         ])
-                        ->columns(2),
+                        ->columns(['default' => 1, 'sm' => 2]),
 
                     Forms\Components\Section::make('¿Tiene turnos o rotaciones?')
                         ->description('Solo si tiene empleados con horarios diferentes: mañana, tarde, noche u operación continua.')
@@ -509,7 +510,7 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->placeholder('Ej: Operarios planta, Conductores')
                                         ->columnSpanFull(),
                                 ])
-                                ->columns(3)
+                                ->columns(['default' => 1, 'sm' => 2, 'md' => 3])
                                 ->addActionLabel('Agregar otro turno')
                                 ->visible(fn(Get $get) => $get('opera_en_turnos') !== 'no' && $get('opera_en_turnos') !== null)
                                 ->columnSpanFull(),
@@ -527,7 +528,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->helperText('El trabajo nocturno tiene recargo del 35% según el Art. 168 CST.')
                                 ->columnSpanFull(),
                         ])
-                        ->columns(2),
+                        ->columns(['default' => 1, 'sm' => 2]),
 
                     Forms\Components\Section::make('¿Trabaja sábados, domingos o festivos?')
                         ->description('Esto determina si el RIT debe incluir los artículos de recargos dominicales y compensatorios.')
@@ -562,7 +563,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->helperText('Estos cargos están exentos del límite de 8 horas diarias (Art. 162 CST). Déjelo en blanco si no aplica.')
                                 ->columnSpanFull(),
                         ])
-                        ->columns(2),
+                        ->columns(['default' => 1, 'sm' => 2]),
 
                     Forms\Components\Section::make('Control de asistencia y horas extras')
                         ->description('¿Cómo sabe quién llegó y a qué hora? ¿Qué pasa si alguien trabaja tiempo adicional?')
@@ -590,7 +591,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->native(false)
                                 ->helperText('La ley exige que las horas extra sean autorizadas por escrito antes de realizarse.'),
                         ])
-                        ->columns(2),
+                        ->columns(['default' => 1, 'sm' => 2]),
                 ]),
 
             // ─────────────────────────────────────────────────────────────────
@@ -633,7 +634,7 @@ class CreateReglamentoInterno extends CreateRecord
                                     'destajo'   => 'Por obra o destajo (según producción)',
                                 ])
                                 ->default(['mensual'])
-                                ->columns(3)
+                                ->columns(['default' => 1, 'sm' => 2, 'md' => 3])
                                 ->columnSpanFull()
                                 ->live(),
 
@@ -644,7 +645,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->visible(fn(Get $get) => count((array) $get('periodicidad_pago')) > 1)
                                 ->columnSpanFull(),
                         ])
-                        ->columns(2),
+                        ->columns(['default' => 1, 'sm' => 2]),
 
                     Forms\Components\Section::make('¿Da comisiones o bonos?')
                         ->description('Los beneficios que da de forma habitual deben quedar en el RIT para no convertirse en "salario" a efectos legales.')
@@ -685,7 +686,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->visible(fn(Get $get) => $get('tiene_beneficios_extralegales') === 'si')
                                 ->columnSpanFull(),
                         ])
-                        ->columns(2),
+                        ->columns(['default' => 1, 'sm' => 2]),
 
                     Forms\Components\Section::make('Permisos y licencias')
                         ->description('El RIT debe establecer cómo solicitar un permiso y qué permisos especiales otorga la empresa.')
@@ -748,13 +749,13 @@ class CreateReglamentoInterno extends CreateRecord
                                     Forms\Components\TextInput::make('nombre')
                                         ->label('Conducta sancionable')
                                         ->required()
-                                        ->columnSpan(4),
+                                        ->columnSpan(['default' => 1, 'sm' => 4]),
                                     Forms\Components\Select::make('tipo_falta')
                                         ->label('Tipo de falta')
                                         ->options(['leve' => 'Leve', 'grave' => 'Grave'])
                                         ->required()
                                         ->native(false)
-                                        ->columnSpan(2),
+                                        ->columnSpan(['default' => 1, 'sm' => 2]),
                                     Forms\Components\Select::make('tipo_sancion')
                                         ->label('Sanción aplicable')
                                         ->options([
@@ -765,7 +766,7 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->required()
                                         ->native(false)
                                         ->live()
-                                        ->columnSpan(3),
+                                        ->columnSpan(['default' => 1, 'sm' => 3]),
                                     Forms\Components\TextInput::make('dias_suspension')
                                         ->label('Días de suspensión')
                                         ->numeric()
@@ -773,9 +774,9 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->maxValue(60)
                                         ->placeholder('máx.')
                                         ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
-                                        ->columnSpan(3),
+                                        ->columnSpan(['default' => 1, 'sm' => 3]),
                                 ])
-                                ->columns(12)
+                                ->columns(['default' => 1, 'sm' => 12])
                                 ->default(fn() => SancionLaboral::where('activa', true)
                                     ->whereNull('sancion_padre_id')
                                     ->orderBy('tipo_falta')
@@ -855,7 +856,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ])
                                 ->default(['ergonomico'])
                                 ->live()
-                                ->columns(2),
+                                ->columns(['default' => 1, 'sm' => 2]),
 
                             Forms\Components\TextInput::make('riesgos_otros')
                                 ->label('¿Cuál es ese otro riesgo?')
@@ -877,7 +878,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->placeholder('Ej: Casco, guantes de trabajo, botas de seguridad punta de acero, gafas industriales')
                                 ->visible(fn(Get $get) => $get('tiene_epp') === 'si'),
                         ])
-                        ->columns(2),
+                        ->columns(['default' => 1, 'sm' => 2]),
 
                     Forms\Components\Section::make('Normas de convivencia y uso de recursos')
                         ->description('Estas reglas previenen conflictos cotidianos y establecen expectativas claras desde el primer día de trabajo.')
@@ -929,7 +930,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->helperText('Escríbalo en sus propias palabras. Esto ayuda a personalizar el capítulo de conductas prohibidas.')
                                 ->columnSpanFull(),
                         ])
-                        ->columns(2),
+                        ->columns(['default' => 1, 'sm' => 2]),
                 ]),
 
             // ─────────────────────────────────────────────────────────────────
