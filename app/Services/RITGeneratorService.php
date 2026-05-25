@@ -256,7 +256,7 @@ class RITGeneratorService
             $linea = rtrim($linea);
 
             // ── INICIO DE TABLA ───────────────────────────────────────────────
-            if (preg_match('/^TABLA:\s*$/iu', $linea)) {
+            if (preg_match('/^TABLA:/iu', $linea)) {
                 if ($enLista) { $cuerpo .= '</div>'; $enLista = false; }
                 $enTabla   = true;
                 $tablaHdr  = null;
@@ -271,7 +271,7 @@ class RITGeneratorService
                     $tablaHdr = array_map('trim', explode('|', $m[1]));
                 } elseif (preg_match('/^FILA:\s*(.+)$/iu', $linea, $m)) {
                     $tablaRows[] = array_map('trim', explode('|', $m[1]));
-                } elseif (preg_match('/^FIN_TABLA\s*$/iu', $linea)) {
+                } elseif (preg_match('/^FIN_TABLA/iu', $linea)) {
                     $enTabla = false;
                     $cuerpo .= '<table class="rit-tbl">';
                     if ($tablaHdr) {
@@ -382,7 +382,7 @@ class RITGeneratorService
 body {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 9pt;
-    line-height: 1.4;
+    line-height: 1.08;
     color: #000000;
 }
 .ftr {
@@ -398,13 +398,14 @@ body {
     text-align: center;
     font-weight: bold;
     font-size: 9pt;
-    margin-bottom: 10pt;
+    margin-top: 0;
+    margin-bottom: 8pt;
 }
 .cap-num {
     text-align: center;
     font-weight: bold;
     font-size: 9pt;
-    margin-top: 14pt;
+    margin-top: 16pt;
     margin-bottom: 0;
     page-break-after: avoid;
 }
@@ -412,6 +413,7 @@ body {
     text-align: center;
     font-weight: bold;
     font-size: 9pt;
+    margin-top: 0;
     margin-bottom: 8pt;
     page-break-before: avoid;
 }
@@ -419,32 +421,33 @@ body {
     text-align: justify;
     font-weight: bold;
     font-size: 9pt;
-    margin-top: 6pt;
-    margin-bottom: 4pt;
+    margin-top: 8pt;
+    margin-bottom: 0;
 }
 .paragrafo {
     text-align: justify;
     font-weight: bold;
     font-size: 9pt;
-    margin-top: 4pt;
-    margin-bottom: 4pt;
+    margin-top: 0;
+    margin-bottom: 0;
     margin-left: 14pt;
 }
 .body {
     text-align: justify;
     font-weight: normal;
     font-size: 9pt;
-    margin-bottom: 4pt;
+    margin-top: 0;
+    margin-bottom: 8pt;
 }
-.lista { margin-left: 14pt; margin-bottom: 2pt; }
-.lista-item { display: table; width: 100%; font-size: 9pt; margin-bottom: 2pt; }
+.lista { margin-left: 14pt; margin-bottom: 0; }
+.lista-item { display: table; width: 100%; font-size: 9pt; margin-bottom: 4pt; }
 .lista-marc { display: table-cell; width: 14pt; vertical-align: top; }
 .lista-txt  { display: table-cell; text-align: justify; vertical-align: top; }
 .rit-tbl {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 4pt;
-    margin-bottom: 6pt;
+    margin-top: 6pt;
+    margin-bottom: 8pt;
     font-size: 9pt;
 }
 .rit-tbl th {
@@ -536,65 +539,122 @@ HTML;
     private function escribirDocx(string $textoRIT, Empresa $empresa, string $rutaAbsoluta): void
     {
         $phpWord = new PhpWord();
-        $phpWord->setDefaultFontName('Times New Roman');
-        $phpWord->setDefaultFontSize(12);
+        $phpWord->setDefaultFontName('Arial');
+        $phpWord->setDefaultFontSize(9);
+
+        // Estilos comunes — igual que SERVISOM: interlineado sencillo (240 twips), 8pt after
+        $fNorm = ['name' => 'Arial', 'size' => 9];
+        $fBold = ['name' => 'Arial', 'size' => 9, 'bold' => true];
+        $fSmal = ['name' => 'Arial', 'size' => 8];
+
+        $pBody = ['alignment' => Jc::BOTH,   'spaceAfter' => 160, 'spaceBefore' => 0,   'lineRule' => 'auto', 'line' => 240];
+        $pCap  = ['alignment' => Jc::CENTER,  'spaceAfter' => 0,   'spaceBefore' => 280, 'lineRule' => 'auto', 'line' => 240];
+        $pCapT = ['alignment' => Jc::CENTER,  'spaceAfter' => 160, 'spaceBefore' => 0,   'lineRule' => 'auto', 'line' => 240];
+        $pArt  = ['alignment' => Jc::BOTH,   'spaceAfter' => 0,   'spaceBefore' => 160, 'lineRule' => 'auto', 'line' => 240];
+        $pPar  = ['alignment' => Jc::BOTH,   'spaceAfter' => 0,   'spaceBefore' => 0,   'lineRule' => 'auto', 'line' => 240, 'indentation' => ['left' => Converter::cmToTwip(0.7)]];
+        $pR    = ['alignment' => Jc::RIGHT,  'spaceAfter' => 0,   'spaceBefore' => 0,   'lineRule' => 'auto', 'line' => 240];
 
         $section = $phpWord->addSection([
             'marginTop'    => Converter::cmToTwip(2.5),
             'marginBottom' => Converter::cmToTwip(2.5),
             'marginLeft'   => Converter::cmToTwip(3),
-            'marginRight'  => Converter::cmToTwip(2.5),
+            'marginRight'  => Converter::cmToTwip(3),
         ]);
 
+        // Footer con datos de la empresa (alineado a la derecha, igual que el PDF)
+        $footer  = $section->addFooter();
+        $eLugar  = trim(($empresa->ciudad ?? '') . (($empresa->departamento ?? '') ? ', ' . $empresa->departamento : ''));
+        $fLine1  = implode('. ', array_filter([$empresa->direccion ?? '', $eLugar]));
+        $fLine2  = implode('   ', array_filter([
+            ($empresa->telefono       ?? '') ? 'Tel. '   . $empresa->telefono       : '',
+            ($empresa->email_contacto ?? '') ? 'Email. ' . $empresa->email_contacto : '',
+        ]));
+        if ($fLine1) $footer->addText(htmlspecialchars($fLine1), $fSmal, $pR);
+        if ($fLine2) $footer->addText(htmlspecialchars($fLine2), $fSmal, $pR);
+
+        // Título principal
+        $eNombre = strtoupper($empresa->nombre_completo ?? $empresa->razon_social ?? '');
         $section->addText(
-            'REGLAMENTO INTERNO DE TRABAJO',
-            ['bold' => true, 'size' => 14, 'name' => 'Times New Roman'],
-            ['alignment' => Jc::CENTER, 'spaceAfter' => 120]
+            "REGLAMENTO INTERNO DE TRABAJO DE {$eNombre}",
+            $fBold,
+            ['alignment' => Jc::CENTER, 'spaceAfter' => 160, 'spaceBefore' => 0, 'lineRule' => 'auto', 'line' => 240]
         );
 
-        $section->addText(
-            strtoupper($empresa->nombre_completo),
-            ['bold' => true, 'size' => 12, 'name' => 'Times New Roman'],
-            ['alignment' => Jc::CENTER, 'spaceAfter' => 240]
-        );
+        // Parser — idéntica lógica a textoAHtml()
+        $lastCapNum = false;
 
-        $lineas = explode("\n", $textoRIT);
-        foreach ($lineas as $linea) {
+        foreach (explode("\n", $textoRIT) as $linea) {
             $linea = rtrim($linea);
 
-            if ($linea === '') {
-                $section->addTextBreak(1);
+            if (trim($linea) === '') {
+                $lastCapNum = false;
+                continue; // no añadir saltos de línea extras; el spaceAfter ya separa
+            }
+
+            // Limpiar markdown
+            $linea = preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '$1', $linea);
+            $linea = ltrim($linea, '-*# ');
+            $linea = rtrim($linea);
+            if ($linea === '') continue;
+
+            // ── TABLA ──────────────────────────────────────────────────────────
+            // (las tablas en DOCX se omiten por complejidad; se dejan como texto)
+            if (preg_match('/^(TABLA:|ENCABEZADO:|FILA:|FIN_TABLA)/iu', $linea)) {
                 continue;
             }
 
-            // Detectar líneas completamente en negrita markdown (**texto**)
-            $esNegritaMarkdown = preg_match('/^\*{1,2}(.+?)\*{1,2}$/', $linea, $m);
-            $textoLimpio = $esNegritaMarkdown
-                ? trim($m[1])
-                : preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '$1', $linea); // quitar ** inline
-
-            // Quitar guiones, asteriscos, almohadillas al inicio (e.g. "- ARTÍCULO 1.")
-            $textoLimpio = ltrim($textoLimpio, '-*# ');
-            $textoLimpio = trim($textoLimpio);
-
-            // Detectar títulos: CAPÍTULO, ARTÍCULO, o línea markdown-bold
-            $esTitulo = $esNegritaMarkdown
-                || preg_match('/^(CAPÍTULO|ARTÍCULO|ART\.)\s*/ui', $textoLimpio);
-
-            if ($esTitulo) {
-                $section->addText(
-                    $textoLimpio,
-                    ['bold' => true, 'size' => 12, 'name' => 'Times New Roman'],
-                    ['spaceAfter' => 80, 'spaceBefore' => 120]
-                );
-            } else {
-                $section->addText(
-                    $textoLimpio,
-                    ['size' => 12, 'name' => 'Times New Roman'],
-                    ['spaceAfter' => 60, 'lineHeight' => 1.5]
-                );
+            // ── CAPÍTULO X — TÍTULO (una sola línea) ──────────────────────────
+            if (preg_match('/^(CAPÍTULO\s+[IVXLCDM]+)\s*[—–\-]+\s*(.+)$/iu', $linea, $m)) {
+                $section->addText(strtoupper($m[1]), $fBold, $pCap);
+                $section->addText(strtoupper(trim($m[2])), $fBold, $pCapT);
+                $lastCapNum = false;
+                continue;
             }
+
+            // ── CAPÍTULO X solo (siguiente línea = título) ────────────────────
+            if (preg_match('/^CAPÍTULO\s+[IVXLCDM]+\.?\s*$/iu', $linea)) {
+                $section->addText(strtoupper(trim($linea)), $fBold, $pCap);
+                $lastCapNum = true;
+                continue;
+            }
+
+            // ── Título del capítulo ───────────────────────────────────────────
+            if ($lastCapNum) {
+                $section->addText(strtoupper(trim($linea)), $fBold, $pCapT);
+                $lastCapNum = false;
+                continue;
+            }
+            $lastCapNum = false;
+
+            // ── ARTÍCULO ──────────────────────────────────────────────────────
+            if (preg_match('/^ARTÍCULO\s+\d+\./iu', $linea)) {
+                $section->addText($linea, $fBold, $pArt);
+                continue;
+            }
+
+            // ── PARÁGRAFO ─────────────────────────────────────────────────────
+            if (preg_match('/^PARÁGRAFO/iu', $linea)) {
+                $section->addText($linea, $fBold, $pPar);
+                continue;
+            }
+
+            // ── Cuerpo genérico ───────────────────────────────────────────────
+            $section->addText($linea, $fNorm, $pBody);
         }
+
+        // Bloque de firmas
+        $section->addTextBreak(3);
+        $firmaTable = $section->addTable(['borderSize' => 0, 'borderColor' => 'FFFFFF', 'width' => 100 * 50, 'unit' => 'pct']);
+        $firmaTable->addRow();
+        $col1 = $firmaTable->addCell(Converter::cmToTwip(7));
+        $col1->addText('________________________', $fNorm, ['alignment' => Jc::CENTER]);
+        $col1->addText(strtoupper($empresa->representante_legal ?? ''), $fBold, ['alignment' => Jc::CENTER]);
+        $col1->addText('Representante Legal', $fNorm, ['alignment' => Jc::CENTER]);
+        $col1->addText(htmlspecialchars($empresa->nombre_completo ?? ''), $fNorm, ['alignment' => Jc::CENTER]);
+        $col2 = $firmaTable->addCell(Converter::cmToTwip(7));
+        $col2->addText('________________________', $fNorm, ['alignment' => Jc::CENTER]);
+        $col2->addText('Firma del Trabajador', $fBold, ['alignment' => Jc::CENTER]);
+        $col2->addText('Fecha de recibido: ___________________________', $fNorm, ['alignment' => Jc::CENTER]);
 
         $writer = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
         $writer->save($rutaAbsoluta);
