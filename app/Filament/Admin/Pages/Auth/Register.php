@@ -160,7 +160,7 @@ class Register extends BaseRegister
                             Forms\Components\Placeholder::make('ciiu_aviso')
                                 ->label('')
                                 ->content(new HtmlString(
-                                    '<p class="text-sm text-gray-600 dark:text-gray-400">Busque y seleccione la actividad económica según el RUT de su empresa. Si no la encuentra, puede continuar sin seleccionarla y agregarla posteriormente.</p>'
+                                    view('filament.components.register-step-ciiu-info')->render()
                                 ))
                                 ->columnSpanFull(),
 
@@ -241,10 +241,7 @@ class Register extends BaseRegister
                             Forms\Components\Placeholder::make('rit_info')
                                 ->label('')
                                 ->content(new HtmlString(
-                                    '<div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700 text-sm text-blue-800 dark:text-blue-200">' .
-                                    '<p class="font-semibold mb-1">¿Por qué es importante el Reglamento Interno de Trabajo (RIT)?</p>' .
-                                    '<p>El RIT es obligatorio para empresas con más de 5 trabajadores (Art. 105 CST). <strong>Sin RIT activo, la plataforma solo puede aplicar terminación de contrato</strong> como medida disciplinaria. Con RIT puede aplicar también llamados de atención y suspensiones.</p>' .
-                                    '</div>'
+                                    view('filament.components.register-step-rit-info')->render()
                                 ))
                                 ->columnSpanFull(),
 
@@ -406,35 +403,4 @@ class Register extends BaseRegister
         return parent::getRedirectUrl();
     }
 
-    private function getRitCtaHtml(): string
-    {
-        $purchaseUrl = config('ces.rit_purchase_url');
-
-        $boton = $purchaseUrl
-            ? "<a href=\"{$purchaseUrl}\" target=\"_blank\" rel=\"noopener\" class=\"inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-600 text-white font-semibold text-sm hover:bg-primary-500 transition-colors shadow-sm\">Adquirir Reglamento Interno</a>"
-            : '';
-
-        $script = '<script>if(!window._liLoaded){window._liLoaded=true;var s=document.createElement("script");s.src="https://cdn.lordicon.com/lordicon.js";document.head.appendChild(s);}</script>';
-
-        $html  = $script;
-        $html .= '<div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3">';
-        $html .= '<div class="flex items-start gap-3">';
-        $html .= '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#3b82f6,secondary:#93c5fd" style="width:36px;height:36px;flex-shrink:0;margin-top:2px"></lord-icon>';
-        $html .= '<div>';
-        $html .= '<p class="font-semibold text-gray-900 dark:text-gray-100 text-base">¿Ya tiene Reglamento Interno de Trabajo?</p>';
-        $html .= '<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">El RIT es obligatorio para empresas con más de 5 trabajadores (Art. 105 CST). Sin él, la plataforma solo podrá aplicar terminación de contrato como medida disciplinaria.</p>';
-        $html .= '<ul class="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">';
-        $html .= '<li><strong class="text-gray-800 dark:text-gray-200">Si ya tiene RIT:</strong> súbalo directamente en el campo de abajo.</li>';
-        $html .= '<li><strong class="text-gray-800 dark:text-gray-200">Si no lo tiene:</strong> puede continuar sin él y adquirirlo después.</li>';
-        $html .= '</ul>';
-        $html .= '</div>';
-        $html .= '</div>';
-
-        if ($boton) {
-            $html .= "<div class='pt-1'>{$boton}</div>";
-        }
-
-        $html .= '</div>';
-        return $html;
-    }
 }
