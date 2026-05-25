@@ -1928,31 +1928,12 @@ class ProcesoDisciplinarioResource extends Resource
                             Forms\Components\Hidden::make('autoridad_rango_rit_json')
                                 ->default(json_encode($autoridadRit)),
 
-                            // ── Sanción máxima recomendada por la IA ─────────────────────────
-                            Forms\Components\Placeholder::make('_recomendaciones_ia')
-                                ->hiddenLabel()
-                                ->content(function () use ($iaRecomendada, $iaSancionesRecomendadas, $labelsMap) {
-                                    if (empty($iaRecomendada)) return new \Illuminate\Support\HtmlString('');
-                                    $labelMax = e($labelsMap[$iaRecomendada] ?? $iaRecomendada);
-                                    // Opciones no divergentes (en sanciones_sugeridas)
-                                    $validas = array_map(fn($s) => e($labelsMap[$s] ?? $s), $iaSancionesRecomendadas);
-                                    $validasTxt = implode(' / ', $validas);
-                                    return new \Illuminate\Support\HtmlString(
-                                        '<div style="padding:10px 14px;border-radius:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.22);margin-bottom:4px">'
-                                        . '<span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#818cf8">Sanción máxima recomendada por la IA</span>'
-                                        . '<span style="display:block;font-size:13px;font-weight:600;color:#c7d2fe;margin-top:3px">→ ' . $labelMax . '</span>'
-                                        . (!empty($validasTxt) && $validasTxt !== $labelMax
-                                            ? '<span style="display:block;font-size:11px;color:#94a3b8;margin-top:2px">Opciones jurídicamente válidas: ' . $validasTxt . '</span>'
-                                            : '')
-                                        . '<span style="display:block;font-size:11px;color:#94a3b8;margin-top:2px">Solo se muestran las opciones permitidas. Elegir una diferente a las válidas requerirá justificación.</span>'
-                                        . '</div>'
-                                    );
-                                })
-                                ->visible(!$esFallback && !empty($iaRecomendada)),
-
                             // ── Decisión de Sanción — botones con color ───────────────────────
                             Forms\Components\ToggleButtons::make('tipo_sancion')
                                 ->label('Decisión de Sanción')
+                                ->helperText(!$esFallback && !empty($iaSancionesRecomendadas)
+                                    ? 'Opciones recomendadas por la IA: ' . implode(', ', array_map(fn($s) => $labelsMap[$s] ?? $s, $iaSancionesRecomendadas)) . '. Elegir una diferente requiere justificación.'
+                                    : null)
                                 ->options($opcionesPermitidas)
                                 ->colors([
                                     'llamado_atencion' => 'info',
