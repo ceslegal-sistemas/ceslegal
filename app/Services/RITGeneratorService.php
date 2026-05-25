@@ -383,21 +383,12 @@ class RITGeneratorService
 <head>
 <meta charset="UTF-8">
 <style>
-@page { margin: 2.5cm 3cm 2.5cm 3cm; }
+@page { margin: 2.5cm; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 9pt;
     line-height: 1.08;
-    color: #000000;
-}
-.ftr {
-    position: fixed;
-    bottom: -2.2cm;
-    left: 3cm; right: 3cm;
-    height: 1.6cm;
-    text-align: right;
-    font-size: 8pt;
     color: #000000;
 }
 .titulo {
@@ -478,8 +469,6 @@ body {
 </style>
 </head>
 <body>
-
-<div class="ftr">{$fLine1}<br>{$fLine2}</div>
 
 <p class="titulo">REGLAMENTO INTERNO DE TRABAJO DE {$eNombre}</p>
 
