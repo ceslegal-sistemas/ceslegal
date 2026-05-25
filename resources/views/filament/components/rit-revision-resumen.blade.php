@@ -175,9 +175,10 @@ html:not(.dark) .rr-bullet strong { color:#111827 }
 
 /* ── Stats strip ───────────────────────────── */
 .rr-stats {
-  display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;
+  display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;
   max-width:480px;margin:0 auto .875rem;
 }
+@media(min-width:420px){ .rr-stats { grid-template-columns:repeat(4,1fr) } }
 .rr-stat {
   background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);
   border-radius:.75rem;padding:.6rem .5rem;text-align:center;

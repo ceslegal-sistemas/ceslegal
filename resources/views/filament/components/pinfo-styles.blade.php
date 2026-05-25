@@ -45,4 +45,14 @@
 
     .t-gold                               { color: #fbbf24; }
     html:not(.dark) .t-gold              { color: #d97706; }
+
+    /* ── Tom Select multi-select: truncate long tags on mobile ─────────── */
+    .ts-wrapper { min-width: 0; }
+    .ts-control { min-width: 0; overflow: hidden; }
+    .ts-control .item {
+        max-width: min(220px, calc(100vw - 100px));
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 </style>
