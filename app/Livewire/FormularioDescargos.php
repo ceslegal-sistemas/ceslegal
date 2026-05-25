@@ -141,17 +141,26 @@ class FormularioDescargos extends Component
     {
         $this->otpError = '';
 
-        if (!$this->diligencia->emailTrabajador()) {
-            $this->otpError = 'sin_email';
-            return;
-        }
-
-        $enviado = $this->diligencia->enviarOtp();
-
-        if ($enviado) {
+        try {
+            $this->diligencia->enviarOtp();
             $this->otpEnviado = true;
-        } else {
+        } catch (\RuntimeException $e) {
+            if ($e->getMessage() === 'sin_email') {
+                $this->otpError = 'sin_email';
+            } else {
+                $this->otpError = 'Error al enviar el código. Intente de nuevo.';
+            }
+            Log::channel('descargos')->error('[OTP] Falló envío', [
+                'diligencia_id' => $this->diligencia->id,
+                'error'         => $e->getMessage(),
+            ]);
+        } catch (\Throwable $e) {
             $this->otpError = 'Error al enviar el código. Intente de nuevo.';
+            Log::channel('descargos')->error('[OTP] Excepción inesperada en envío', [
+                'diligencia_id' => $this->diligencia->id,
+                'error'         => $e->getMessage(),
+                'class'         => get_class($e),
+            ]);
         }
     }
 

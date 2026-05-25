@@ -226,37 +226,32 @@ class DiligenciaDescargo extends Model
         return $this->proceso?->trabajador?->email ?: null;
     }
 
-    public function enviarOtp(): bool
+    /**
+     * Genera y envía el OTP al correo del trabajador.
+     * Lanza \RuntimeException si el envío falla (el caller decide cómo manejarlo).
+     */
+    public function enviarOtp(): void
     {
         $email = $this->emailTrabajador();
         if (!$email) {
-            return false;
+            throw new \RuntimeException('sin_email');
         }
 
         $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        try {
-            $this->update([
-                'otp_codigo'    => $codigo,
-                'otp_expira_en' => now()->addMinutes(10),
-                'otp_intentos'  => 0,
-                'otp_canal'     => 'email',
-                'otp_enviado_a' => $this->enmascararEmail($email),
-            ]);
+        $this->update([
+            'otp_codigo'    => $codigo,
+            'otp_expira_en' => now()->addMinutes(10),
+            'otp_intentos'  => 0,
+            'otp_canal'     => 'email',
+            'otp_enviado_a' => $this->enmascararEmail($email),
+        ]);
 
-            Mail::to($email)->send(new OtpDescargos(
-                $codigo,
-                $this->proceso->trabajador->nombre_completo,
-                $this->proceso->codigo,
-            ));
-            return true;
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Error al enviar OTP descargos', [
-                'diligencia_id' => $this->id,
-                'error'         => $e->getMessage(),
-            ]);
-            return false;
-        }
+        Mail::to($email)->send(new OtpDescargos(
+            $codigo,
+            $this->proceso->trabajador->nombre_completo,
+            $this->proceso->codigo,
+        ));
     }
 
     public function verificarOtp(string $codigo): bool
