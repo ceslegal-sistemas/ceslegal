@@ -28,10 +28,24 @@ class DescargoPublicoController extends Controller
         }
 
         if (!$diligencia->puedeAccederHoy()) {
-            $fechaPermitida = $diligencia->fecha_acceso_permitida->format('d/m/Y');
+            $fechaPermitida = $diligencia->fecha_acceso_permitida;
+            $esTemprano     = $diligencia->esDemaisadoTemprano();
+            $hora           = $diligencia->proceso?->hora_descargos_programada;
+            $horaFormateada = $hora
+                ? \Carbon\Carbon::createFromFormat('H:i:s', $hora, 'America/Bogota')->format('H:i')
+                : null;
+
+            if ($esTemprano) {
+                $mensaje = "La diligencia está programada para las {$horaFormateada}. Podrá acceder a partir de esa hora.";
+            } else {
+                $mensaje = "Este enlace solo estará disponible el día {$fechaPermitida->format('d/m/Y')}.";
+            }
+
             return view('descargos.acceso-denegado', [
-                'mensaje' => "Este enlace solo estará disponible el día {$fechaPermitida}.",
-                'fechaPermitida' => $diligencia->fecha_acceso_permitida
+                'mensaje'        => $mensaje,
+                'fechaPermitida' => $fechaPermitida,
+                'horaPermitida'  => $horaFormateada,
+                'esTemprano'     => $esTemprano,
             ]);
         }
 

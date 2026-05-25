@@ -143,11 +143,51 @@ class DiligenciaDescargo extends Model
             return false;
         }
 
-        // Permite acceder DESDE el día de la diligencia en adelante.
-        // El límite superior lo controla token_expira_en (mínimo 3 días).
-        // La restricción "solo ese día exacto" causaba falsos rechazos cuando
-        // el enlace se abría al día siguiente o había diferencia de zona horaria.
-        return now()->toDateString() >= $this->fecha_acceso_permitida->toDateString();
+        $ahora = Carbon::now('America/Bogota');
+        $hoy   = $ahora->toDateString();
+        $dia   = $this->fecha_acceso_permitida->toDateString();
+
+        // Antes del día permitido → bloquear
+        if ($hoy < $dia) {
+            return false;
+        }
+
+        // Después del día permitido → permitir (token_expira_en controla el límite superior)
+        if ($hoy > $dia) {
+            return true;
+        }
+
+        // Es el día correcto → verificar la hora programada si existe
+        $hora = $this->proceso?->hora_descargos_programada;
+        if (!$hora) {
+            return true; // Sin hora registrada → acceso todo el día
+        }
+
+        $horaPermitida = Carbon::createFromFormat('H:i:s', $hora, 'America/Bogota');
+        return $ahora->gte($horaPermitida);
+    }
+
+    /**
+     * Retorna true si el acceso fue denegado porque es el día correcto
+     * pero aún no ha llegado la hora programada.
+     */
+    public function esDemaisadoTemprano(): bool
+    {
+        if (!$this->fecha_acceso_permitida) {
+            return false;
+        }
+
+        $ahora = Carbon::now('America/Bogota');
+        if ($ahora->toDateString() !== $this->fecha_acceso_permitida->toDateString()) {
+            return false;
+        }
+
+        $hora = $this->proceso?->hora_descargos_programada;
+        if (!$hora) {
+            return false;
+        }
+
+        return $ahora->lt(Carbon::createFromFormat('H:i:s', $hora, 'America/Bogota'));
     }
 
     // Métodos de acceso por día
