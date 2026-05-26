@@ -1628,8 +1628,8 @@ HTML;
 
             if ($actaPath && file_exists($actaPath)) {
                 $message->attach($actaPath, [
-                    'as'   => 'Acta_de_Descargos.docx',
-                    'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'as'   => 'Acta_de_Descargos.pdf',
+                    'mime' => 'application/pdf',
                 ]);
             }
         });
