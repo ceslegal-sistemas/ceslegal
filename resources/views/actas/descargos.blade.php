@@ -3,17 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <style>
-* { box-sizing: border-box; }
+@page { margin: 2.5cm 3cm; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 body {
     font-family: 'DejaVu Sans', Arial, sans-serif;
     font-size: 11pt;
     color: #111111;
-    margin: 0;
-    padding: 0;
     line-height: 1.55;
 }
 .page {
-    padding: 72pt;
+    padding: 0;
 }
 .page-break {
     page-break-before: always;
