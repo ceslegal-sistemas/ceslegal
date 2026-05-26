@@ -472,17 +472,23 @@ class RITGeneratorService
             }
             $lastCapNum = false;
 
-            // ── ARTÍCULO ──────────────────────────────────────────────────────
-            if (preg_match('/^ARTÍCULO\s+\d+\./iu', $linea)) {
+            // ── ARTÍCULO: título en negrita, cuerpo en normal ─────────────────
+            if (preg_match('/^(ARTÍCULO\s+\d+\.[^.]+\.)\s*(.*)$/iu', $linea, $mArt)) {
                 if ($enLista) { $cuerpo .= '</div>'; $enLista = false; }
-                $cuerpo .= '<p class="art">' . htmlspecialchars($linea, ENT_QUOTES, 'UTF-8') . '</p>';
+                $tArt = htmlspecialchars(trim($mArt[1]), ENT_QUOTES, 'UTF-8');
+                $bArt = htmlspecialchars(trim($mArt[2] ?? ''), ENT_QUOTES, 'UTF-8');
+                $cuerpo .= '<p class="art"><strong>' . $tArt . '</strong>'
+                         . ($bArt !== '' ? ' ' . $bArt : '') . '</p>';
                 continue;
             }
 
-            // ── PARÁGRAFO ─────────────────────────────────────────────────────
-            if (preg_match('/^PARÁGRAFO(?:\s+(?:ÚNICO|PRIMERO|SEGUNDO|TERCERO|CUARTO|\d+))?\s*[:.]/iu', $linea)) {
+            // ── PARÁGRAFO: etiqueta en negrita, cuerpo en normal ──────────────
+            if (preg_match('/^(PARÁGRAFO(?:\s+(?:ÚNICO|PRIMERO|SEGUNDO|TERCERO|CUARTO|\d+))?\s*[:.])(.*)$/iu', $linea, $mPar)) {
                 if ($enLista) { $cuerpo .= '</div>'; $enLista = false; }
-                $cuerpo .= '<p class="paragrafo">' . htmlspecialchars($linea, ENT_QUOTES, 'UTF-8') . '</p>';
+                $tPar = htmlspecialchars(trim($mPar[1]), ENT_QUOTES, 'UTF-8');
+                $bPar = htmlspecialchars(trim($mPar[2] ?? ''), ENT_QUOTES, 'UTF-8');
+                $cuerpo .= '<p class="paragrafo"><strong>' . $tPar . '</strong>'
+                         . ($bPar !== '' ? ' ' . $bPar : '') . '</p>';
                 continue;
             }
 
@@ -552,14 +558,14 @@ body {
 }
 .art {
     text-align: justify;
-    font-weight: bold;
+    font-weight: normal;
     font-size: 9pt;
     margin-top: 0;
     margin-bottom: 8pt;
 }
 .paragrafo {
     text-align: justify;
-    font-weight: bold;
+    font-weight: normal;
     font-size: 9pt;
     margin-top: 0;
     margin-bottom: 8pt;
@@ -596,12 +602,6 @@ body {
     text-align: left;
     vertical-align: top;
 }
-.firma-wrap { margin-top: 40pt; page-break-inside: avoid; }
-.firma-tbl  { display: table; width: 100%; }
-.firma-col  { display: table-cell; width: 50%; text-align: center; padding: 0 1.5cm; vertical-align: bottom; }
-.firma-line { border-top: 0.5pt solid #000000; margin-bottom: 3pt; }
-.firma-nom  { font-weight: bold; font-size: 9pt; }
-.firma-sub  { font-size: 9pt; }
 </style>
 </head>
 <body>
@@ -609,22 +609,6 @@ body {
 <p class="titulo">REGLAMENTO INTERNO DE TRABAJO DE {$eNombre}</p>
 
 {$cuerpo}
-
-<div class="firma-wrap">
-  <div class="firma-tbl">
-    <div class="firma-col">
-      <div class="firma-line"></div>
-      <p class="firma-nom">{$eRepresentante}</p>
-      <p class="firma-sub">Representante Legal</p>
-      <p class="firma-sub">{$eNombre}</p>
-    </div>
-    <div class="firma-col">
-      <div class="firma-line"></div>
-      <p class="firma-nom">Firma del Trabajador</p>
-      <p class="firma-sub">Fecha de recibido: ___________________________</p>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
@@ -764,35 +748,33 @@ HTML;
             }
             $lastCapNum = false;
 
-            // ── ARTÍCULO ──────────────────────────────────────────────────────
-            if (preg_match('/^ARTÍCULO\s+\d+\./iu', $linea)) {
-                $section->addText($linea, $fBold, $pArt);
+            // ── ARTÍCULO: título en negrita, cuerpo en normal ─────────────────
+            if (preg_match('/^(ARTÍCULO\s+\d+\.[^.]+\.)\s*(.*)$/iu', $linea, $mArt)) {
+                $tArt = trim($mArt[1]);
+                $bArt = trim($mArt[2] ?? '');
+                $run  = $section->addTextRun($pArt);
+                $run->addText($tArt . ($bArt !== '' ? ' ' : ''), $fBold);
+                if ($bArt !== '') {
+                    $run->addText($bArt, $fNorm);
+                }
                 continue;
             }
 
-            // ── PARÁGRAFO ─────────────────────────────────────────────────────
-            if (preg_match('/^PARÁGRAFO/iu', $linea)) {
-                $section->addText($linea, $fBold, $pPar);
+            // ── PARÁGRAFO: etiqueta en negrita, cuerpo en normal ──────────────
+            if (preg_match('/^(PARÁGRAFO(?:\s+(?:ÚNICO|PRIMERO|SEGUNDO|TERCERO|CUARTO|\d+))?\s*[:.])(.*)$/iu', $linea, $mPar)) {
+                $tPar = trim($mPar[1]);
+                $bPar = trim($mPar[2] ?? '');
+                $run  = $section->addTextRun($pPar);
+                $run->addText($tPar . ($bPar !== '' ? ' ' : ''), $fBold);
+                if ($bPar !== '') {
+                    $run->addText($bPar, $fNorm);
+                }
                 continue;
             }
 
             // ── Cuerpo genérico ───────────────────────────────────────────────
             $section->addText($linea, $fNorm, $pBody);
         }
-
-        // Bloque de firmas
-        $section->addTextBreak(3);
-        $firmaTable = $section->addTable(['borderSize' => 0, 'borderColor' => 'FFFFFF', 'width' => 100 * 50, 'unit' => 'pct']);
-        $firmaTable->addRow();
-        $col1 = $firmaTable->addCell(Converter::cmToTwip(7));
-        $col1->addText('________________________', $fNorm, ['alignment' => Jc::CENTER]);
-        $col1->addText(strtoupper($empresa->representante_legal ?? ''), $fBold, ['alignment' => Jc::CENTER]);
-        $col1->addText('Representante Legal', $fNorm, ['alignment' => Jc::CENTER]);
-        $col1->addText(htmlspecialchars($empresa->nombre_completo ?? ''), $fNorm, ['alignment' => Jc::CENTER]);
-        $col2 = $firmaTable->addCell(Converter::cmToTwip(7));
-        $col2->addText('________________________', $fNorm, ['alignment' => Jc::CENTER]);
-        $col2->addText('Firma del Trabajador', $fBold, ['alignment' => Jc::CENTER]);
-        $col2->addText('Fecha de recibido: ___________________________', $fNorm, ['alignment' => Jc::CENTER]);
 
         $writer = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
         $writer->save($rutaAbsoluta);
