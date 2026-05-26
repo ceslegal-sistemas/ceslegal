@@ -241,20 +241,14 @@ table { border-collapse: collapse; width: 100%; }
             </div>
         </td>
         <td style="width:4%;"></td>
-        {{-- Columna trabajador: certificado digital --}}
+        {{-- Columna trabajador: firma física --}}
         <td style="width:48%; vertical-align:top;">
             <div class="firma-box">
-                <p style="text-align:center; font-weight:bold; font-size:8.5pt; margin:0 0 4pt;">CERTIFICADO DE VERIFICACIÓN DIGITAL</p>
-                <p style="text-align:center; font-weight:bold; font-size:10pt; margin:0 0 1pt;">{{ $nombreTrab }}</p>
-                <p style="text-align:center; font-size:8.5pt; margin:0 0 1pt;">{{ $tipoDoc }} N.° {{ $numDoc }}</p>
-                <p style="text-align:center; font-size:8.5pt; font-style:italic; margin:0 0 8pt;">Cargo: {{ $cargo }}</p>
-                <p class="mono" style="margin:0 0 2pt;">Verificacion OTP:           {{ $otpVerif }}</p>
-                <p class="mono" style="margin:0 0 2pt;">Verificacion facial inicio: {{ $fotoInicioEn }}</p>
-                <p class="mono" style="margin:0 0 2pt;">Verificacion facial cierre: {{ $fotoFinEn }}</p>
-                <p class="mono" style="margin:0 0 8pt;">IP de acceso:               {{ $ipAcceso }}</p>
-                <p style="text-align:center; font-size:7.5pt; font-style:italic; color:#555555; margin:0;">
-                    Ley 527 de 1999 — Decreto 2364 de 2012
-                </p>
+                <div style="height:60pt;"></div>
+                <p style="text-align:center; margin:0 0 3pt;">_________________________________</p>
+                <p style="text-align:center; font-size:9pt; margin:0 0 2pt;">{{ $nombreTrab }}</p>
+                <p style="text-align:center; font-size:9pt; margin:0 0 2pt;">{{ $tipoDoc }} N.° {{ $numDoc }}</p>
+                <p style="text-align:center; font-size:9pt; margin:0;">Cargo: {{ $cargo }}</p>
             </div>
         </td>
     </tr>
