@@ -123,20 +123,34 @@ class BibliotecaLegalResource extends Resource
                     ->searchable()
                     ->placeholder('—'),
 
-                Tables\Columns\BadgeColumn::make('estado')
+                Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')
-                    ->colors([
-                        'warning' => 'pendiente',
-                        'info'    => 'procesando',
-                        'success' => 'procesado',
-                        'danger'  => 'error',
-                    ])
-                    ->icons([
-                        'heroicon-o-clock'            => 'pendiente',
-                        'heroicon-o-arrow-path'        => 'procesando',
-                        'heroicon-o-check-circle'      => 'procesado',
-                        'heroicon-o-exclamation-circle' => 'error',
-                    ]),
+                    ->badge()
+                    ->html()
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'procesando' => '<span style="display:inline-flex;align-items:center;gap:4px">'
+                            . '<svg class="animate-spin" style="width:11px;height:11px;flex-shrink:0" fill="none" viewBox="0 0 24 24">'
+                            . '<circle style="opacity:.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>'
+                            . '<path style="opacity:.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>'
+                            . '</svg>Procesando</span>',
+                        'pendiente' => 'Pendiente',
+                        'procesado' => 'Procesado',
+                        'error'     => 'Error',
+                        default     => ucfirst($state),
+                    })
+                    ->color(fn(string $state): string => match ($state) {
+                        'pendiente'  => 'warning',
+                        'procesando' => 'info',
+                        'procesado'  => 'success',
+                        'error'      => 'danger',
+                        default      => 'gray',
+                    })
+                    ->icon(fn(string $state): ?string => match ($state) {
+                        'pendiente' => 'heroicon-o-clock',
+                        'procesado' => 'heroicon-o-check-circle',
+                        'error'     => 'heroicon-o-exclamation-circle',
+                        default     => null,
+                    }),
 
                 Tables\Columns\TextColumn::make('total_fragmentos')
                     ->label('Fragmentos')
@@ -285,6 +299,7 @@ class BibliotecaLegalResource extends Resource
                 ]),
             ])
             ->defaultSort('updated_at', 'desc')
+            ->poll('10s')
             ->striped()
             ->emptyStateHeading('Biblioteca vacía')
             ->emptyStateDescription('Suba sentencias, artículos del CST o doctrina para que la IA las use como fuente de verdad.')
