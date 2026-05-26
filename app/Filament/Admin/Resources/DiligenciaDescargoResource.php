@@ -22,6 +22,20 @@ use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use App\Models\DisponibilidadAbogado;
+use App\Models\Empresa;
+use App\Models\Trabajador;
+use App\Models\User;
+use Filament\Infolists;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Navigation\NavigationItem;
+use Filament\Support\Colors\Color;
+use Illuminate\Support\Facades\Auth;
+use HusamTariq\FilamentTimePicker\Forms\Components\TimePickerField;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class DiligenciaDescargoResource extends Resource
 {
@@ -389,7 +403,7 @@ class DiligenciaDescargoResource extends Resource
                 //     ->openUrlInNewTab()
                 //     ->visible(fn(DiligenciaDescargo $record) => $record->acta_generada && !empty($record->ruta_acta) && file_exists($record->ruta_acta)),
 
-                Tables\Actions\Action::make('descargar_acta')
+                Tables\Actions\Action::make('descargar_acta_descargos')
                     ->label('Descargar Acta de Descargos')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('info')
