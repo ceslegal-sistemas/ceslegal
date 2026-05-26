@@ -407,10 +407,10 @@ class DiligenciaDescargoResource extends Resource
                     ->label('Descargar Acta de Descargos')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('info')
-                    ->action(function (ProcesoDisciplinario $record) {
+                    ->action(function (DiligenciaDescargo $record) {
                         try {
                             $actaService = new \App\Services\ActaDescargosService();
-                            $resultado = $actaService->generarActaDescargos($record->diligenciaDescargo);
+                            $resultado = $actaService->generarActaDescargos($record);
 
                             if ($resultado['success']) {
                                 return response()->download($resultado['path'], $resultado['filename']);
