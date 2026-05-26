@@ -328,12 +328,13 @@ class RITGeneratorService
 
         $options = new Options();
         $options->set('isRemoteEnabled', false);
-        $options->set('defaultPaperSize', 'letter');
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('defaultFont', 'Arial');
         $options->set('isFontSubsettingEnabled', true);
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html, 'UTF-8');
-        $dompdf->setPaper('letter', 'portrait');
+        $dompdf->setPaper('a4', 'portrait');
         $dompdf->render();
 
         $canvas = $dompdf->getCanvas();
@@ -518,8 +519,8 @@ class RITGeneratorService
 <head>
 <meta charset="UTF-8">
 <style>
-@page { margin: 2.5cm; }
-* { box-sizing: border-box; margin: 0; padding: 0; }
+@page { margin: 2.5cm 3cm; }
+* { box-sizing: border-box; }
 body {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 9pt;
@@ -685,10 +686,11 @@ HTML;
         $pR    = ['alignment' => Jc::RIGHT,  'spaceAfter' => 0,   'spaceBefore' => 0,   'lineRule' => 'auto', 'line' => 240];
 
         $section = $phpWord->addSection([
+            'paperSize'    => 'A4',
             'marginTop'    => Converter::cmToTwip(2.5),
             'marginBottom' => Converter::cmToTwip(2.5),
-            'marginLeft'   => Converter::cmToTwip(2.5),
-            'marginRight'  => Converter::cmToTwip(2.5),
+            'marginLeft'   => Converter::cmToTwip(3.0),
+            'marginRight'  => Converter::cmToTwip(3.0),
         ]);
 
         // Footer con datos de la empresa (alineado a la derecha, igual que el PDF)

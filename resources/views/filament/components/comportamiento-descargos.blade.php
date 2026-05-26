@@ -9,6 +9,22 @@
     0%,100%{opacity:1;transform:scale(1)}
     50%{opacity:.5;transform:scale(1.4)}
 }
+:root {
+    --cb-text:      rgba(51,65,85,.9);
+    --cb-meta:      rgba(71,85,105,.75);
+    --cb-meta-80:   rgba(71,85,105,.8);
+    --cb-dim:       rgba(71,85,105,.4);
+    --cb-hint:      rgba(71,85,105,.55);
+    --cb-note:      rgba(71,85,105,.6);
+}
+.dark {
+    --cb-text:      #e2e8f0;
+    --cb-meta:      #94a3b8;
+    --cb-meta-80:   #94a3b8;
+    --cb-dim:       rgba(148,163,184,.45);
+    --cb-hint:      rgba(148,163,184,.6);
+    --cb-note:      rgba(148,163,184,.65);
+}
 </style>
 @endonce
 
@@ -53,7 +69,7 @@
 
 {{-- ── Estado vacío ─────────────────────────────────────────────────────────── --}}
 @if($sinDatos)
-<p style="font-size:.8125rem;color:rgba(100,116,139,.7);font-style:italic;margin:0;">
+<p style="font-size:.8125rem;color:var(--cb-meta);font-style:italic;margin:0;">
     @if(!$diligencia)
         No hay diligencia de descargos registrada para este proceso.
     @else
@@ -103,12 +119,12 @@
                     <path d="M9 21V9"/>
                 </svg>
                 <p style="margin:0;font-size:.7rem;font-weight:700;text-transform:uppercase;
-                           letter-spacing:.08em;color:rgba(100,116,139,.8);">Cambios de pestaña</p>
+                           letter-spacing:.08em;color:var(--cb-meta-80);">Cambios de pestaña</p>
             </div>
             <p style="margin:0 0 4px;font-size:2rem;font-weight:900;line-height:1;color:{{ $colorTabs }};">
                 {{ $tabSwitches }}
             </p>
-            <p style="margin:0;font-size:.7rem;color:rgba(100,116,139,.65);">
+            <p style="margin:0;font-size:.7rem;color:var(--cb-hint);">
                 Umbral alto: ≥6 · Umbral medio: ≥3
             </p>
         </div>
@@ -124,12 +140,12 @@
                     <rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/>
                 </svg>
                 <p style="margin:0;font-size:.7rem;font-weight:700;text-transform:uppercase;
-                           letter-spacing:.08em;color:rgba(100,116,139,.8);">Respuestas pegadas (Ctrl+V)</p>
+                           letter-spacing:.08em;color:var(--cb-meta-80);">Respuestas pegadas (Ctrl+V)</p>
             </div>
             <p style="margin:0 0 4px;font-size:2rem;font-weight:900;line-height:1;color:{{ $colorPeg }};">
                 {{ $pegadas }}
             </p>
-            <p style="margin:0;font-size:.7rem;color:rgba(100,116,139,.65);">
+            <p style="margin:0;font-size:.7rem;color:var(--cb-hint);">
                 Umbral alto: ≥3 · Umbral medio: ≥2
             </p>
         </div>
@@ -140,7 +156,7 @@
     <div style="border-radius:10px;border:1px solid rgba(128,128,128,.15);overflow:hidden;">
         <div style="padding:9px 14px;border-bottom:1px solid rgba(128,128,128,.12);">
             <p style="margin:0;font-size:.7rem;font-weight:700;text-transform:uppercase;
-                       letter-spacing:.08em;color:rgba(100,116,139,.7);">Detalle por pregunta</p>
+                       letter-spacing:.08em;color:var(--cb-meta);">Detalle por pregunta</p>
         </div>
         <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
             <colgroup>
@@ -152,13 +168,13 @@
             <thead>
                 <tr style="background:rgba(128,128,128,.06);">
                     <th style="padding:7px 12px;text-align:left;font-size:.65rem;font-weight:700;
-                                text-transform:uppercase;letter-spacing:.07em;color:rgba(100,116,139,.7);">#</th>
+                                text-transform:uppercase;letter-spacing:.07em;color:var(--cb-meta);">#</th>
                     <th style="padding:7px 12px;text-align:center;font-size:.65rem;font-weight:700;
-                                text-transform:uppercase;letter-spacing:.07em;color:rgba(100,116,139,.7);">Pegada</th>
+                                text-transform:uppercase;letter-spacing:.07em;color:var(--cb-meta);">Pegada</th>
                     <th style="padding:7px 12px;text-align:center;font-size:.65rem;font-weight:700;
-                                text-transform:uppercase;letter-spacing:.07em;color:rgba(100,116,139,.7);">Tiempo</th>
+                                text-transform:uppercase;letter-spacing:.07em;color:var(--cb-meta);">Tiempo</th>
                     <th style="padding:7px 12px;text-align:center;font-size:.65rem;font-weight:700;
-                                text-transform:uppercase;letter-spacing:.07em;color:rgba(100,116,139,.7);">Cambios de pestaña</th>
+                                text-transform:uppercase;letter-spacing:.07em;color:var(--cb-meta);">Cambios de pestaña</th>
                 </tr>
             </thead>
             <tbody>
@@ -171,15 +187,15 @@
                     $alertFila = ($esPegada || $cambios > 0);
                 @endphp
                 <tr style="{{ $bgFila }}{{ $alertFila ? 'border-left:3px solid #ef4444;' : 'border-left:3px solid transparent;' }}">
-                    <td style="padding:6px 12px;font-size:.8rem;font-weight:600;color:rgba(100,116,139,.8);">P{{ $i + 1 }}</td>
+                    <td style="padding:6px 12px;font-size:.8rem;font-weight:600;color:var(--cb-meta-80);">P{{ $i + 1 }}</td>
                     <td style="padding:6px 12px;text-align:center;font-size:.8rem;">
                         @if($esPegada)
                             <span style="font-weight:700;color:#ef4444;">Sí</span>
                         @else
-                            <span style="color:rgba(100,116,139,.4);">—</span>
+                            <span style="color:var(--cb-dim);">—</span>
                         @endif
                     </td>
-                    <td style="padding:6px 12px;text-align:center;font-size:.8rem;color:rgba(100,116,139,.6);">
+                    <td style="padding:6px 12px;text-align:center;font-size:.8rem;color:var(--cb-note);">
                         {{ $tiempo > 0 ? $tiempo.'s' : '—' }}
                     </td>
                     <td style="padding:6px 12px;text-align:center;font-size:.8rem;">
@@ -188,7 +204,7 @@
                                 {{ $cambios }}
                             </span>
                         @else
-                            <span style="color:rgba(100,116,139,.4);">0</span>
+                            <span style="color:var(--cb-dim);">0</span>
                         @endif
                     </td>
                 </tr>
@@ -229,7 +245,7 @@
             @if($analizadoEn)
             <span style="font-size:.7rem;padding:2px 9px;border-radius:100px;
                           background:rgba(128,128,128,.08);border:1px solid rgba(128,128,128,.15);
-                          color:rgba(100,116,139,.7);">
+                          color:var(--cb-meta);">
                 {{ $analizadoEn }}
             </span>
             @endif
@@ -238,7 +254,7 @@
         <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
 
             @if($conclusion)
-            <p style="margin:0;font-size:.8125rem;line-height:1.65;color:rgba(71,85,105,.9);">
+            <p style="margin:0;font-size:.8125rem;line-height:1.65;color:var(--cb-text);">
                 {{ $conclusion }}
             </p>
             @endif
@@ -246,14 +262,14 @@
             @if(!empty($indicadores))
             <div>
                 <p style="margin:0 0 6px;font-size:.7rem;font-weight:700;text-transform:uppercase;
-                           letter-spacing:.08em;color:rgba(100,116,139,.7);">Indicadores detectados</p>
+                           letter-spacing:.08em;color:var(--cb-meta);">Indicadores detectados</p>
                 <div style="display:flex;flex-direction:column;gap:4px;">
                     @foreach($indicadores as $ind)
                     <div style="display:flex;align-items:flex-start;gap:8px;">
                         <svg style="width:14px;height:14px;flex-shrink:0;margin-top:2px;color:{{ $acfg['color'] }};" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
                         </svg>
-                        <span style="font-size:.8rem;line-height:1.55;color:rgba(71,85,105,.85);">{{ $ind }}</span>
+                        <span style="font-size:.8rem;line-height:1.55;color:var(--cb-text);">{{ $ind }}</span>
                     </div>
                     @endforeach
                 </div>
@@ -263,7 +279,7 @@
             @if(!empty($sospechosas))
             <div>
                 <p style="margin:0 0 6px;font-size:.7rem;font-weight:700;text-transform:uppercase;
-                           letter-spacing:.08em;color:rgba(100,116,139,.7);">Respuestas que generan sospecha</p>
+                           letter-spacing:.08em;color:var(--cb-meta);">Respuestas que generan sospecha</p>
                 <div style="display:flex;flex-direction:column;gap:4px;">
                     @foreach($sospechosas as $s)
                     <div style="padding:7px 11px;border-radius:7px;
@@ -272,7 +288,7 @@
                         <span style="font-size:.75rem;font-weight:700;color:{{ $acfg['color'] }};flex-shrink:0;">
                             {{ $s['pregunta_numero'] ?? '' }}
                         </span>
-                        <span style="font-size:.75rem;color:rgba(100,116,139,.7);">
+                        <span style="font-size:.75rem;color:var(--cb-meta);">
                             {{ $s['razon'] ?? '' }}
                         </span>
                     </div>
@@ -281,7 +297,7 @@
             </div>
             @endif
 
-            <p style="margin:0;font-size:.7rem;color:rgba(100,116,139,.55);line-height:1.55;
+            <p style="margin:0;font-size:.7rem;color:var(--cb-hint);line-height:1.55;
                        border-top:1px solid rgba(128,128,128,.1);padding-top:10px;">
                 Este análisis es orientativo y no constituye prueba definitiva.
                 Debe complementarse con el criterio del abogado.
@@ -293,10 +309,10 @@
     <div style="padding:11px 14px;border-radius:8px;
                 background:rgba(128,128,128,.04);border:1px solid rgba(128,128,128,.12);
                 display:flex;align-items:center;gap:9px;">
-        <svg style="width:16px;height:16px;flex-shrink:0;color:rgba(100,116,139,.4);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <svg style="width:16px;height:16px;flex-shrink:0;color:var(--cb-dim);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
         </svg>
-        <p style="margin:0;font-size:.8rem;color:rgba(100,116,139,.6);font-style:italic;">
+        <p style="margin:0;font-size:.8rem;color:var(--cb-note);font-style:italic;">
             El análisis de autenticidad por IA se ejecuta al finalizar el formulario.
             Aún no disponible para este proceso.
         </p>
