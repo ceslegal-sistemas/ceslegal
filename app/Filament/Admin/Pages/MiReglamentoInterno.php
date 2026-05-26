@@ -2,8 +2,10 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Jobs\GenerarTextoRITJob;
 use App\Models\Empresa;
 use App\Models\ReglamentoInterno;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 
@@ -31,13 +33,39 @@ class MiReglamentoInterno extends Page
             : ($user->empresa ?? null);
 
         if ($this->empresa) {
-            // Mostrar solo el RIT activo. El RIT Mejorado (activo=false) se
-            // descarga desde la página de Auditoría, no aquí.
+            // Prioridad: RIT activo (completado) ó el más reciente en estado generando/error
             $this->reglamento = ReglamentoInterno::where('empresa_id', $this->empresa->id)
-                ->where('activo', true)
+                ->where(function ($q) {
+                    $q->where('activo', true)
+                      ->orWhereIn('estado_generacion', ['generando', 'error']);
+                })
                 ->orderByDesc('updated_at')
                 ->first();
         }
+    }
+
+    /** Reintenta la generación del RIT cuando falló. */
+    public function reintentarGeneracion(): void
+    {
+        if (!$this->reglamento || $this->reglamento->estado_generacion !== 'error') {
+            return;
+        }
+
+        $this->reglamento->update([
+            'estado_generacion' => 'generando',
+            'mensaje_error_ia'  => null,
+        ]);
+
+        GenerarTextoRITJob::dispatch($this->reglamento, Auth::id());
+
+        Notification::make()
+            ->info()
+            ->title('Reintentando generación...')
+            ->body('La IA está procesando su RIT nuevamente. Le notificaremos cuando esté listo.')
+            ->send();
+
+        // Recargar estado para que la vista muestre el shimmer inmediatamente
+        $this->reglamento = $this->reglamento->fresh();
     }
 
     public function getTitle(): string

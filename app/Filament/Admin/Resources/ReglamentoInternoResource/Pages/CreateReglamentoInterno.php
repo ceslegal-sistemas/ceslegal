@@ -7,7 +7,7 @@ use App\Models\ActividadEconomica;
 use App\Models\Empresa;
 use App\Models\ReglamentoInterno;
 use App\Models\SancionLaboral;
-use App\Services\RITGeneratorService;
+use App\Jobs\GenerarTextoRITJob;
 use Filament\Forms;
 use Filament\Forms\Components\Wizard\Step;
 use Filament\Forms\Get;
@@ -997,9 +997,6 @@ class CreateReglamentoInterno extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
-        // Flash genera en ~15-30s. Permitir hasta 3 minutos como máximo absoluto.
-        set_time_limit(180);
-
         $empresa = $this->getEmpresa();
 
         if (!$empresa) {
@@ -1046,7 +1043,8 @@ class CreateReglamentoInterno extends CreateRecord
             ($empresa->departamento ?? '')
         );
 
-        // 4. Guardar cuestionario PRIMERO (así no se pierde nada si la IA falla)
+        // 4. Guardar cuestionario PRIMERO en estado 'generando' — si la UI se cierra o
+        //    el navegador falla, las respuestas no se pierden y el job puede completarse.
         $record = ReglamentoInterno::updateOrCreate(
             ['empresa_id' => $empresa->id],
             [
@@ -1055,72 +1053,20 @@ class CreateReglamentoInterno extends CreateRecord
                 'activo'                  => false,
                 'respuestas_cuestionario' => $data,
                 'fuente'                  => 'construido_ia',
+                'estado_generacion'       => 'generando',
+                'mensaje_error_ia'        => null,
             ]
         );
 
-        // 5. Llamar a la IA (Flash: ~15-30s habitual)
-        $service = app(RITGeneratorService::class);
-        try {
-            $textoRIT = $service->generarTextoRIT($data, $empresa);
-
-            // Advertir solo si se llegó al último recurso (flash-lite = calidad reducida)
-            if ($service->esFallbackLite) {
-                Notification::make()
-                    ->warning()
-                    ->title('Documento generado con modelo alternativo')
-                    ->body(
-                        'Los modelos principales de IA tenían alta demanda. El reglamento fue generado '
-                        . 'con un modelo de menor capacidad. Le recomendamos ejecutar la auditoría '
-                        . 'antes de presentar el documento.'
-                    )
-                    ->persistent()
-                    ->send();
-            }
-        } catch (\Exception $e) {
-            Log::error('Error generando RIT con IA', [
-                'empresa_id' => $empresa->id,
-                'error'      => $e->getMessage(),
-            ]);
-            Notification::make()
-                ->danger()
-                ->title('Error al generar el texto con IA')
-                ->body('Sus respuestas quedaron guardadas. Puede intentar de nuevo con el botón "Crear".')
-                ->persistent()
-                ->send();
-            throw new Halt();
-        }
-
-        // 6. Post-procesar: reemplazar cualquier placeholder que haya dejado la IA
-        $representante = $empresa->representante_legal ?? '_______________';
-        $textoRIT = str_replace(
-            ['[DÍA]', '[MES]', '[AÑO]', '[NOMBRE DEL REPRESENTANTE LEGAL]', '[NOMBRE REPRESENTANTE LEGAL]',
-             '[NÚMERO DE CÉDULA]', '[NÚMERO CÉDULA]', '[NIT]', '[RAZÓN SOCIAL]', '[DOMICILIO]'],
-            [now()->day, now()->locale('es')->translatedFormat('F'), now()->year,
-             $representante, $representante,
-             '_______________', '_______________',
-             $empresa->nit ?? '_______________',
-             $empresa->razon_social ?? '_______________',
-             trim(($empresa->direccion ?? '') . ' ' . ($empresa->ciudad ?? ''))],
-            $textoRIT
-        );
-
-        // 7. Actualizar con el texto generado
-        $record->update([
-            'nombre'         => 'Reglamento Interno generado con IA — ' . now()->format('d/m/Y'),
-            'texto_completo' => $textoRIT,
-            'activo'         => true,
-        ]);
-
-        // 8. Guardar DOCX en disco público para adjunto nativo (no fatal si falla)
-        $rutaDocx = $service->guardarDocxPublico($textoRIT, $empresa);
-        if ($rutaDocx) {
-            $record->update(['ruta_docx' => $rutaDocx]);
-        }
+        // 5. Despachar el job al queue 'gemini' — la IA corre fuera del ciclo HTTP,
+        //    sin límites de timeout del servidor web.
+        GenerarTextoRITJob::dispatch($record, Auth::id());
 
         Notification::make()
-            ->success()
-            ->title('¡Reglamento Interno generado!')
-            ->body('Su RIT fue redactado con IA y guardado. Puede descargarlo desde Configuración → Construir RIT.')
+            ->info()
+            ->title('Generando su Reglamento Interno...')
+            ->body('La IA está redactando su RIT en segundo plano. Recibirá una notificación cuando esté listo (1-2 minutos).')
+            ->persistent()
             ->send();
 
         return $record;

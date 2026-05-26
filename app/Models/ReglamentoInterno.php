@@ -18,6 +18,8 @@ class ReglamentoInterno extends Model
         'activo',
         'respuestas_cuestionario',
         'fuente',
+        'estado_generacion',
+        'mensaje_error_ia',
         'sanciones_extraidas',
         'version',
         'auditoria_origen_id',
@@ -54,5 +56,15 @@ class ReglamentoInterno extends Model
     public function esMejorado(): bool
     {
         return $this->version > 1;
+    }
+
+    public function estaGenerando(): bool
+    {
+        return $this->estado_generacion === 'generando';
+    }
+
+    public function tieneErrorGeneracion(): bool
+    {
+        return $this->estado_generacion === 'error';
     }
 }
