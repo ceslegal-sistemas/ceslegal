@@ -82,7 +82,6 @@ class IADescargoService
         // Modo realtime: con 2 modelos, 25s cada uno = 50s máx.
         $this->timeoutSegundos = 25;
         $this->maxReintentos   = 0;
-        $this->maxSalidaTokens = 350; // 2 preguntas cortas — no necesitamos más
 
         $preguntasDisponibles = self::LIMITE_MAXIMO_PREGUNTAS - $totalPreguntasActuales;
         $contexto = $this->construirContexto($diligencia);
@@ -159,8 +158,7 @@ class IADescargoService
                 ->toArray();
         }
 
-        // Preguntas YA RESPONDIDAS — truncadas para ahorrar tokens en el prompt
-        // (el modelo solo necesita saber QUÉ temas se cubrieron, no la respuesta completa)
+        // Preguntas YA RESPONDIDAS — historial completo para contexto íntegro
         $preguntasYRespuestas = $diligencia->preguntas()
             ->with('respuesta')
             ->activas()
@@ -168,8 +166,8 @@ class IADescargoService
             ->get()
             ->map(function ($pregunta) {
                 return [
-                    'pregunta' => mb_substr($pregunta->pregunta, 0, 120),
-                    'respuesta' => mb_substr($pregunta->respuesta->respuesta ?? '', 0, 220),
+                    'pregunta' => $pregunta->pregunta,
+                    'respuesta' => $pregunta->respuesta->respuesta ?? '',
                     'es_ia'     => $pregunta->es_generada_por_ia,
                 ];
             })
@@ -204,15 +202,9 @@ class IADescargoService
             ->pluck('pregunta')
             ->toArray();
 
-        // RIT: reducido para llamadas dinámicas (2500 chars en lugar de 8000)
-        // ya hay contexto suficiente del proceso; el RIT completo se usó al inicio
-        $ritContexto = $empresaId ? mb_substr($this->obtenerContextoRIT($empresaId), 0, 2500) : '';
-
-        // RAG normas: solo hasta 5 preguntas respondidas
-        // Después, el contexto legal ya está establecido; más normas solo saturan el prompt
-        $normasRag = $totalRespondidas < 6
-            ? $this->buscarNormasRelevantes($proceso->hechos ?? '', $empresaId, limite: 2, proceso: $proceso)
-            : '';
+        // RIT completo y normas RAG en cada llamada para máximo contexto legal
+        $ritContexto = $empresaId ? $this->obtenerContextoRIT($empresaId) : '';
+        $normasRag   = $this->buscarNormasRelevantes($proceso->hechos ?? '', $empresaId, limite: 3, proceso: $proceso);
 
         return [
             'hechos'              => $proceso->hechos,
