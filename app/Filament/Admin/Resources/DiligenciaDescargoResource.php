@@ -381,13 +381,40 @@ class DiligenciaDescargoResource extends Resource
                         $record->preguntas()->has('respuesta')->count() > 0 && !$record->acta_generada
                     ),
 
+                // Tables\Actions\Action::make('descargar_acta')
+                //     ->label('Descargar Acta')
+                //     ->icon('heroicon-o-arrow-down-tray')
+                //     ->color('primary')
+                //     ->url(fn(DiligenciaDescargo $record) => route('descargar.acta', $record->id))
+                //     ->openUrlInNewTab()
+                //     ->visible(fn(DiligenciaDescargo $record) => $record->acta_generada && !empty($record->ruta_acta) && file_exists($record->ruta_acta)),
+
                 Tables\Actions\Action::make('descargar_acta')
-                    ->label('Descargar Acta')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('primary')
-                    ->url(fn(DiligenciaDescargo $record) => route('descargar.acta', $record->id))
-                    ->openUrlInNewTab()
-                    ->visible(fn(DiligenciaDescargo $record) => $record->acta_generada && !empty($record->ruta_acta) && file_exists($record->ruta_acta)),
+                    ->label('Descargar Acta de Descargos')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('info')
+                    ->action(function (ProcesoDisciplinario $record) {
+                        try {
+                            $actaService = new \App\Services\ActaDescargosService();
+                            $resultado = $actaService->generarActaDescargos($record->diligenciaDescargo);
+
+                            if ($resultado['success']) {
+                                return response()->download($resultado['path'], $resultado['filename']);
+                            } else {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('Error al generar acta')
+                                    ->body($resultado['error'] ?? 'No se pudo generar el acta de descargos')
+                                    ->send();
+                            }
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Error')
+                                ->body('Error al generar el acta: ' . $e->getMessage())
+                                ->send();
+                        }
+                    }),
 
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make(),
