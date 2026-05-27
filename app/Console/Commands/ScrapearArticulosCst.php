@@ -168,7 +168,7 @@ class ScrapearArticulosCst extends Command
         95   => ['especiales',                  95],  // Clases de agentes
         96   => ['especiales',                  96],  // Agentes dependientes
         97   => ['especiales',                  97],  // Agentes independientes
-        '97A' => ['especiales',               971],  // Colocadores de apuestas permanentes
+        '97-A' => ['especiales',               971],  // Colocadores de apuestas permanentes
         98   => ['especiales',                  98],  // Contrato de trabajo
         99   => ['especiales',                  99],  // Hay contrato de trabajo entre los trabajadores de las Notarías
         100  => ['especiales',                 100],  // Responsabilidad de los notarios y registradores
