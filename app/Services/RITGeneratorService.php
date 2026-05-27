@@ -62,7 +62,7 @@ class RITGeneratorService
             $articulosObligatorios = $this->obtenerArticulosObligatorios($cap['codigos_obligatorios'] ?? []);
             $contextoEmpresa       = $this->construirContextoEmpresa($cap, $respuestas, $empresa);
 
-            $prompt = $this->construirPromptCapitulo(
+            $prompt = $this->construirPrompt(
                 cap:                   $cap,
                 contextoEmpresa:       $contextoEmpresa,
                 articulosObligatorios: $articulosObligatorios,
@@ -323,7 +323,7 @@ class RITGeneratorService
         return implode("\n", $lineas);
     }
 
-    private function construirPromptCapitulo(
+    private function construirPrompt(
         array   $cap,
         string  $contextoEmpresa,
         string  $articulosObligatorios,
