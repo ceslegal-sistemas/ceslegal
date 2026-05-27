@@ -50,8 +50,6 @@ class ScrapearArticulosCst extends Command
         // Artículos 1-9: leyes.co usa ordinal con "o" (1o.htm, 2o.htm, …)
         '1'   => '1o', '2'   => '2o', '3'  => '3o', '4'  => '4o', '5'  => '5o',
         '6'   => '6o', '7'   => '7o', '8'  => '8o', '9'  => '9o',
-        // Art. 167A: Ley 2101/2021 — leyes.co usa 'a' minúscula
-        '167A' => '167a',
     ];
 
     private array $articulos = [
