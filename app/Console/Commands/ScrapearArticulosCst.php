@@ -10,9 +10,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * Descarga artículos del Código Sustantivo del Trabajo desde leyes.co
  * y los importa con embeddings Gemini en articulos_legales.
- *
- * Es idempotente. Excluye automáticamente artículos que tienen versión
- * manual más actualizada (ej: Art. 115 modificado por Ley 2466/2025).
+ * El comando es idempotente: si un artículo ya existe, se actualiza su título y descripción sin modificar el embedding a menos que se use --force.
  *
  * Uso:
  *   php artisan cst:scraper                # Importa/actualiza todos
@@ -622,13 +620,13 @@ class ScrapearArticulosCst extends Command
         foreach ($lista as $numero => $meta) {
             // Respetar exclusiones (solo si no se usa --solo)
             if (!$soloNum && in_array($numero, $this->excluidos)) {
-                $this->line("  [excluido] Art. {$numero} — usar versión manual (más actualizada)");
+                $this->line("  [excluido] Artículo. {$numero} — usar versión manual (más actualizada)");
                 $skip++;
                 continue;
             }
 
             [$categoria, $orden] = $meta;
-            $codigo = "Art. {$numero} CST";
+            $codigo = "Artículo. {$numero} CST";
 
             // Verificar si ya existe con embedding (skip si no --force)
             $existente = ArticuloLegal::where('codigo', $codigo)
@@ -646,7 +644,7 @@ class ScrapearArticulosCst extends Command
 
             if (!$resultado) {
                 $this->warn("  [error] {$codigo} — no se pudo obtener de leyes.co");
-                Log::warning("cst:scraper — sin resultado para Art. {$numero}");
+                Log::warning("cst:scraper — sin resultado para Artículo. {$numero}");
                 $errores++;
                 continue;
             }
@@ -700,13 +698,13 @@ class ScrapearArticulosCst extends Command
                 ->get($url);
 
             if (!$response->successful()) {
-                Log::warning("cst:scraper HTTP {$response->status()} Art. {$numero}");
+                Log::warning("cst:scraper HTTP {$response->status()} Artículo. {$numero}");
                 return null;
             }
 
             return $this->parsearHtml($response->body(), $numero);
         } catch (\Exception $e) {
-            Log::error("cst:scraper excepción Art. {$numero}", ['error' => $e->getMessage()]);
+            Log::error("cst:scraper excepción Artículo. {$numero}", ['error' => $e->getMessage()]);
             return null;
         }
     }
@@ -726,7 +724,7 @@ class ScrapearArticulosCst extends Command
         // El contenido del artículo está en div#statya (estructura de leyes.co)
         $statya = $xpath->query('//div[@id="statya"]');
         if (!$statya || $statya->length === 0) {
-            Log::warning("cst:scraper — div#statya no encontrado Art. {$numero}");
+            Log::warning("cst:scraper — div#statya no encontrado Artículo. {$numero}");
             return null;
         }
 
@@ -760,7 +758,7 @@ class ScrapearArticulosCst extends Command
         $texto = html_entity_decode(trim($texto), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         if (mb_strlen($texto) < 15) {
-            Log::warning("cst:scraper — texto demasiado corto Art. {$numero}");
+            Log::warning("cst:scraper — texto demasiado corto Artículo. {$numero}");
             return null;
         }
 
