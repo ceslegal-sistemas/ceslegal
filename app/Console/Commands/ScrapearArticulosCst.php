@@ -661,7 +661,7 @@ class ScrapearArticulosCst extends Command
                 ],
                 [
                     'titulo'         => $resultado['titulo'],
-                    'descripcion'    => mb_substr($resultado['texto'], 0, 255),
+                    'descripcion'    => $resultado['texto'],
                     'texto_completo' => $resultado['texto'],
                     'categoria'      => $categoria,
                     'orden'          => $orden,
