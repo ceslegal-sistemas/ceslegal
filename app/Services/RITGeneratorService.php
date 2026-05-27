@@ -105,7 +105,7 @@ class RITGeneratorService
         $modelPrincipal = 'gemini-2.5-flash';
         $modelosCascada = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 
-        $prompt = $this->construirPrompt($respuestas, $empresa);
+        // $prompt = $this->construirPrompt($respuestas, $empresa);
 
         // Limpiar bytes UTF-8 inválidos que provienen de fragmentos de PDFs/DOCX
         // y que rompen json_encode al construir el payload
