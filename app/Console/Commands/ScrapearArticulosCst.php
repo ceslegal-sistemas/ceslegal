@@ -248,7 +248,6 @@ class ScrapearArticulosCst extends Command
         165  => ['jornada',                    165],  // Trabajo por turnos
         166  => ['jornada',                    166],  // Trabajo sin solucion de continuidad
         167  => ['jornada',                    167],  // Distribucion de las horas de trabajo
-        '167A' => ['jornada',                1671],  // Art. 167A — horas extras límite
         168  => ['jornada',                    168],  // Tasas y liquidacion de recargos
         169  => ['jornada',                    169],  // Base del recargo nocturno
         170  => ['jornada',                    170],  // Salario en caso de turnos
@@ -514,8 +513,8 @@ class ScrapearArticulosCst extends Command
         413  => ['grupos_protegidos',         413],  // Sanciones disciplinarias
         414  => ['grupos_protegidos',         414],  // Derecho de asociacion
         415  => ['grupos_protegidos',         415],  // Atencion por parte de las autoridades
-        '416A' => ['grupos_protegidos',      4161],  // Las organizaciones sindicales de los servidores públicos tienen
         416  => ['grupos_protegidos',         416],  // Limitacion de las funciones
+        '416-A' => ['grupos_protegidos',      4161],  // Las organizaciones sindicales de los servidores públicos tienen
         417  => ['grupos_protegidos',         417],  // Derecho de federacion
         418  => ['grupos_protegidos',         418],  // Funciones adicionales
         419  => ['grupos_protegidos',         419],  // Autorizacion a los fundadores
