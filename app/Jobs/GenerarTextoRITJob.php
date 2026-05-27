@@ -19,8 +19,8 @@ class GenerarTextoRITJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** El RIT completo puede tardar 60-120s con Gemini Flash thinking. */
-    public int $timeout = 300;
+    /** Generación capítulo por capítulo: 16 caps × ~30s = hasta 480s. */
+    public int $timeout = 600;
 
     /** Sin reintentos automáticos: el cascade de modelos maneja la redundancia. */
     public int $tries = 1;
@@ -45,8 +45,14 @@ class GenerarTextoRITJob implements ShouldQueue
         $empresa = $rit->empresa;
         $data    = $rit->respuestas_cuestionario ?? [];
 
-        // Generar texto con Gemini (cascade flash → flash-lite)
-        $textoRIT = $service->generarTextoRIT($data, $empresa);
+        // Generar capítulo por capítulo, actualizando el progreso en BD
+        $textoRIT = $service->generarCapitulosRIT(
+            $data,
+            $empresa,
+            function (int $cap, int $total, string $titulo) use ($rit): void {
+                $rit->update(['progreso_generacion' => "Capítulo {$cap}/{$total}: {$titulo}"]);
+            }
+        );
 
         // Post-procesar: eliminar placeholders que Gemini pueda haber dejado
         $representante = $empresa->representante_legal ?? '_______________';
@@ -70,11 +76,12 @@ class GenerarTextoRITJob implements ShouldQueue
 
         // Persistir texto y activar el reglamento
         $rit->update([
-            'nombre'            => 'Reglamento Interno generado con IA — ' . now()->format('d/m/Y'),
-            'texto_completo'    => $textoRIT,
-            'activo'            => true,
-            'estado_generacion' => 'completado',
-            'mensaje_error_ia'  => null,
+            'nombre'               => 'Reglamento Interno generado con IA — ' . now()->format('d/m/Y'),
+            'texto_completo'       => $textoRIT,
+            'activo'               => true,
+            'estado_generacion'    => 'completado',
+            'mensaje_error_ia'     => null,
+            'progreso_generacion'  => null,
         ]);
 
         // Guardar DOCX en disco público (no fatal si falla)

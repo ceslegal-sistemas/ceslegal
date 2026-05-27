@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ArticuloLegal;
 use App\Models\Empresa;
 use App\Services\BibliotecaLegalService;
 use Illuminate\Support\Facades\Http;
@@ -23,16 +24,84 @@ class RITGeneratorService
     public bool $esFallbackLite = false;
 
     /**
-     * Genera el texto completo del RIT usando Gemini a partir de las respuestas del cuestionario F2.
+     * Genera el texto completo del RIT usando Gemini, capítulo por capítulo.
      */
     public function generarTextoRIT(array $respuestas, Empresa $empresa): string
+    {
+        return $this->generarCapitulosRIT($respuestas, $empresa);
+    }
+
+    /**
+     * Genera el RIT capítulo por capítulo con soporte de callback de progreso.
+     * El callback $onProgress recibe ($capActual, $total, $tituloCapitulo).
+     */
+    public function generarCapitulosRIT(
+        array     $respuestas,
+        Empresa   $empresa,
+        ?\Closure $onProgress = null
+    ): string {
+        $biblioteca     = app(BibliotecaLegalService::class);
+        $capitulos      = self::getCapitulos();
+        $total          = count($capitulos);
+        $partes         = [];
+        $articuloInicio = 1;
+
+        foreach (array_values($capitulos) as $idx => $cap) {
+            if ($onProgress) {
+                $onProgress($idx + 1, $total, $cap['titulo']);
+            }
+
+            Log::info('RITGeneratorService: generando capítulo', [
+                'empresa_id'      => $empresa->id,
+                'capitulo'        => $cap['numero'],
+                'titulo'          => $cap['titulo'],
+                'articulo_inicio' => $articuloInicio,
+            ]);
+
+            $rag                   = $biblioteca->buscarFragmentos($cap['query_rag'], limite: 8, umbral: 0.30);
+            $articulosObligatorios = $this->obtenerArticulosObligatorios($cap['codigos_obligatorios'] ?? []);
+            $contextoEmpresa       = $this->construirContextoEmpresa($cap, $respuestas, $empresa);
+
+            $prompt = $this->construirPromptCapitulo(
+                cap:                   $cap,
+                contextoEmpresa:       $contextoEmpresa,
+                articulosObligatorios: $articulosObligatorios,
+                rag:                   $rag,
+                articuloInicio:        $articuloInicio,
+                empresa:               $empresa,
+            );
+
+            $prompt = preg_replace(
+                '/[^\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u',
+                '', $prompt
+            ) ?? iconv('UTF-8', 'UTF-8//IGNORE', $prompt);
+
+            $textoCapitulo = $this->llamarGemini($prompt, $empresa->id);
+
+            if (!$this->validarCapitulo($textoCapitulo, $cap['titulo'])) {
+                Log::warning('RITGeneratorService: capítulo inválido, reintentando', [
+                    'empresa_id' => $empresa->id,
+                    'capitulo'   => $cap['numero'],
+                ]);
+                $textoCapitulo = $this->llamarGemini($prompt, $empresa->id);
+            }
+
+            $partes[] = trim($textoCapitulo);
+
+            preg_match_all('/^ARTÍCULO\s+\d+/imu', $textoCapitulo, $matches);
+            $articuloInicio += max(1, count($matches[0]));
+        }
+
+        return implode("\n\n", $partes);
+    }
+
+    // ── Métodos internos de generación ────────────────────────────────────────
+
+    private function llamarGemini(string $prompt, int $empresaId = 0): string
     {
         $config = config('services.ia.gemini', []);
         $apiKey = $config['api_key'] ?? '';
 
-        // RIT: Flash genera en 10-30s (dentro del timeout HTTP).
-        // Pro tomaba 60-120s síncronamente → timeout de Livewire/nginx.
-        // Cascade: Flash → Flash-Lite (último recurso, activa aviso de calidad reducida).
         $modelPrincipal = 'gemini-2.5-flash';
         $modelosCascada = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 
@@ -63,13 +132,12 @@ class RITGeneratorService
         foreach (array_values($modelosCascada) as $idx => $model) {
             $url         = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
             $esUltimo    = ($idx === $totalModelos - 1);
-            // Flash: 2 intentos antes de ceder al lite. Flash-lite: 2 intentos.
             $maxIntentos = 2;
-            $esperas     = [10, 30]; // segundos entre intentos
+            $esperas     = [10, 30];
 
-            Log::info('RITGeneratorService: generando texto con Gemini', [
-                'empresa_id' => $empresa->id,
-                'model'      => $model,
+            Log::info('RITGeneratorService: llamada Gemini', [
+                'empresa_id'     => $empresaId,
+                'model'          => $model,
                 'intento_modelo' => $idx + 1,
             ]);
 
@@ -84,8 +152,6 @@ class RITGeneratorService
                     $data  = $response->json();
                     $parts = $data['candidates'][0]['content']['parts'] ?? [];
 
-                    // gemini-2.5-flash (thinking model): el texto real está en el último part sin "thought"
-                    // gemini-2.0/1.5-flash: parts[0]['text'] es el contenido directamente
                     $texto = '';
                     foreach (array_reverse($parts) as $part) {
                         if (empty($part['thought']) && !empty($part['text'])) {
@@ -104,8 +170,8 @@ class RITGeneratorService
                     $this->esFallbackLite = ($model === 'gemini-2.5-flash-lite');
 
                     if ($idx > 0) {
-                        Log::info('RITGeneratorService: texto generado con modelo de respaldo', [
-                            'empresa_id'    => $empresa->id,
+                        Log::info('RITGeneratorService: usando modelo de respaldo', [
+                            'empresa_id'    => $empresaId,
                             'model_usado'   => $model,
                             'model_primario' => $modelPrincipal,
                         ]);
@@ -117,21 +183,17 @@ class RITGeneratorService
                 $status    = $response->status();
                 $lastError = $response->body();
 
-                // 503/429 = sobrecarga → probar siguiente modelo en cascade
-                // Otros errores (400, 401, 404) → no tiene sentido reintentar con otro modelo
                 $esSobrecarga  = in_array($status, [429, 503]);
                 $esTransitorio = in_array($status, [500, 502, 504]);
 
                 Log::warning('RITGeneratorService: fallo en intento', [
-                    'empresa_id'  => $empresa->id,
-                    'model'       => $model,
-                    'intento'     => $intento,
-                    'status'      => $status,
-                    'cascade'     => $esSobrecarga && !$esUltimo,
+                    'empresa_id' => $empresaId,
+                    'model'      => $model,
+                    'intento'    => $intento,
+                    'status'     => $status,
                 ]);
 
                 if ($esSobrecarga) {
-                    // Espera corta y luego intenta con el siguiente modelo
                     if ($intento < $maxIntentos) {
                         sleep($esperas[$intento - 1]);
                     } else {
@@ -141,15 +203,13 @@ class RITGeneratorService
                 } elseif ($esTransitorio && $intento < $maxIntentos) {
                     sleep($esperas[$intento - 1]);
                 } else {
-                    // Error permanente — no tiene sentido probar otro modelo
                     throw new \RuntimeException('Error en API Gemini: ' . $lastError);
                 }
             }
 
-            // Si llegamos aquí por sobrecarga y hay más modelos, continuar cascade
             if ($sobrecarga && !$esUltimo) {
-                Log::warning('RITGeneratorService: modelo saturado, cambiando al siguiente', [
-                    'empresa_id'    => $empresa->id,
+                Log::warning('RITGeneratorService: modelo saturado, cascadeando', [
+                    'empresa_id'    => $empresaId,
                     'model_fallido' => $model,
                     'model_next'    => $modelosCascada[$idx + 1] ?? 'ninguno',
                 ]);
@@ -160,6 +220,181 @@ class RITGeneratorService
         }
 
         throw new \RuntimeException('Error en API Gemini (todos los modelos intentados): ' . $lastError);
+    }
+
+    private function validarCapitulo(string $texto, string $titulo): bool
+    {
+        if (strlen(trim($texto)) < 200) {
+            Log::warning("RITGeneratorService: capítulo '{$titulo}' demasiado corto");
+            return false;
+        }
+        if (!preg_match('/ARTÍCULO\s+\d+/iu', $texto)) {
+            Log::warning("RITGeneratorService: capítulo '{$titulo}' sin artículos detectados");
+            return false;
+        }
+        return true;
+    }
+
+    private function obtenerArticulosObligatorios(array $codigos): string
+    {
+        if (empty($codigos)) return '';
+
+        try {
+            $articulos = ArticuloLegal::whereIn('codigo', $codigos)
+                ->whereNull('empresa_id')
+                ->where('activo', true)
+                ->get();
+
+            if ($articulos->isEmpty()) return '';
+
+            return $articulos->map(fn($a) => "--- {$a->codigo}: {$a->titulo} ---\n{$a->texto_completo}")
+                ->implode("\n\n");
+        } catch (\Throwable $e) {
+            Log::warning('RITGeneratorService: no se pudieron obtener artículos obligatorios', [
+                'codigos' => $codigos,
+                'error'   => $e->getMessage(),
+            ]);
+            return '';
+        }
+    }
+
+    private function construirContextoEmpresa(array $cap, array $respuestas, Empresa $empresa): string
+    {
+        $lista = fn($arr) => is_array($arr) ? implode(', ', array_filter($arr)) : ($arr ?? '');
+
+        $lineas = [
+            'DATOS DE LA EMPRESA:',
+            '- Razón social: ' . $empresa->nombre_completo,
+            '- NIT: ' . $empresa->nit,
+            '- Tipo societario: ' . ($empresa->tipo_societario ?? 'No especificado'),
+            '- Representante Legal: ' . ($empresa->representante_legal ?? ''),
+            '- Fecha de elaboración: ' . now()->locale('es')->translatedFormat('j \d\e F \d\e Y'),
+        ];
+
+        foreach ($cap['datos_empresa_keys'] as $key) {
+            $val = $respuestas[$key] ?? null;
+            if ($val === null || $val === '') continue;
+
+            if ($key === 'cargos') {
+                $txt = '';
+                foreach ((array) $val as $c) {
+                    $nombre   = $c['nombre_cargo'] ?? '';
+                    $sanciona = ($c['puede_sancionar'] ?? false) ? 'puede sancionar' : 'no sanciona';
+                    if ($nombre) $txt .= "  - {$nombre} ({$sanciona})\n";
+                }
+                $lineas[] = "- Cargos:\n{$txt}";
+            } elseif ($key === 'sucursales') {
+                $txt = '';
+                foreach ((array) $val as $s) {
+                    $ciudad = $s['ciudad'] ?? '';
+                    $dir    = $s['direccion'] ?? '';
+                    $trab   = $s['num_trabajadores'] ?? '';
+                    if ($ciudad) $txt .= "  - {$ciudad}: {$dir}, {$trab} trabajadores\n";
+                }
+                $lineas[] = "- Sucursales:\n{$txt}";
+            } elseif ($key === 'beneficios_extralegales') {
+                $txt = '';
+                foreach ((array) $val as $b) {
+                    $nb = $b['nombre_beneficio'] ?? '';
+                    $db = $b['descripcion'] ?? '';
+                    if ($nb) $txt .= "  - {$nb}: {$db}\n";
+                }
+                $lineas[] = "- Beneficios extralegales:\n" . ($txt ?: "  - Ninguno\n");
+            } elseif ($key === 'sanciones_configuradas') {
+                $leves  = array_filter((array) $val, fn($s) => ($s['tipo_falta'] ?? '') === 'leve');
+                $graves = array_filter((array) $val, fn($s) => ($s['tipo_falta'] ?? '') === 'grave');
+                $fmtS   = fn(array $s): string => match ($s['tipo_sancion'] ?? '') {
+                    'llamado_atencion' => 'llamado de atención',
+                    'suspension'       => 'suspensión' . (!empty($s['dias_suspension']) ? ' de ' . $s['dias_suspension'] . ' días' : ''),
+                    'terminacion'      => 'terminación del contrato',
+                    default            => $s['tipo_sancion'] ?? '',
+                };
+                $txt = '';
+                foreach ($leves  as $s) $txt .= "  - [leve] {$s['nombre']}: {$fmtS($s)}\n";
+                foreach ($graves as $s) $txt .= "  - [grave] {$s['nombre']}: {$fmtS($s)}\n";
+                if ($txt) $lineas[] = "- Sanciones configuradas:\n{$txt}";
+            } elseif (is_array($val)) {
+                $lineas[] = "- {$key}: " . $lista($val);
+            } else {
+                $lineas[] = "- {$key}: {$val}";
+            }
+        }
+
+        return implode("\n", $lineas);
+    }
+
+    private function construirPromptCapitulo(
+        array   $cap,
+        string  $contextoEmpresa,
+        string  $articulosObligatorios,
+        string  $rag,
+        int     $articuloInicio,
+        Empresa $empresa,
+    ): string {
+        $numero  = $cap['numero'];
+        $titulo  = $cap['titulo'];
+        $instr   = $cap['instrucciones'];
+
+        $seccionArticulos = $articulosObligatorios
+            ? "═══════════════════════════════════════════════════\n"
+              . "TEXTO OFICIAL DE ARTÍCULOS DEL CST (fuente: base de datos interna)\n"
+              . "Reproduce el contenido de estos artículos con fidelidad. Puedes citar su número.\n"
+              . "═══════════════════════════════════════════════════\n"
+              . $articulosObligatorios . "\n"
+            : '';
+
+        $seccionBiblioteca = $rag
+            ? "═══════════════════════════════════════════════════\n"
+              . "FRAGMENTOS DE LA BIBLIOTECA JURÍDICA INTERNA\n"
+              . "Puedes citar artículos y leyes que aparezcan textualmente en estos fragmentos.\n"
+              . "═══════════════════════════════════════════════════\n"
+              . $rag . "\n"
+            : '';
+
+        $razonSocial = $empresa->nombre_completo;
+
+        $advertenciaLegal = (!$articulosObligatorios && !$rag)
+            ? "ADVERTENCIA: No hay contexto jurídico disponible para este capítulo. "
+              . "Redacta el contenido temático completo SIN citar números de artículo ni nombres de ley.\n"
+            : '';
+
+        return <<<PROMPT
+Eres un abogado laboral colombiano experto en Reglamentos Internos de Trabajo.
+
+Redacta ÚNICAMENTE el CAPÍTULO {$numero} ({$titulo}) del RIT de "{$razonSocial}".
+Los artículos comienzan desde ARTÍCULO {$articuloInicio}.
+
+REGLA FUNDAMENTAL — CITAS LEGALES:
+- Números de artículo, nombres de ley, porcentajes y plazos legales: SOLO los que aparezcan
+  textualmente en el contexto jurídico inyectado más abajo (artículos CST o biblioteca).
+- PROHIBIDO inventar o recordar artículos, leyes, porcentajes o plazos de tu entrenamiento.
+- Si el contexto no trae una cifra o referencia, redacta el concepto sin citar la fuente legal.
+
+INSTRUCCIONES TEMÁTICAS DE ESTE CAPÍTULO:
+{$instr}
+
+REGLAS DE FORMATO — OBLIGATORIAS:
+1. Inicia con CAPÍTULO {$numero} (primera línea) y {$titulo} (segunda línea), ambas en MAYÚSCULAS.
+2. Cada artículo en su propia línea: ARTÍCULO N. NOMBRE. Texto completo (mínimo 60 palabras).
+3. Párrafos adicionales de un artículo: líneas a continuación sin prefijo ARTÍCULO.
+4. PARÁGRAFO en línea propia: PARÁGRAFO PRIMERO. Texto.
+5. Listas dentro de artículo: 1) texto  2) texto  (en líneas separadas).
+6. TABLAS cuando corresponda (horarios, escalas de sanciones, etapas disciplinarias):
+   TABLA:
+   ENCABEZADO: Col1 | Col2
+   FILA: dato1 | dato2
+   FIN_TABLA
+7. Sin Markdown: sin *, sin #, sin **.
+8. NUNCA uses corchetes ni placeholders. Usa los datos reales de la empresa.
+9. Devuelve SOLO el texto del capítulo.
+
+{$advertenciaLegal}
+{$seccionArticulos}
+{$seccionBiblioteca}
+{$contextoEmpresa}
+
+Comienza ahora con "CAPÍTULO {$numero}":
+PROMPT;
     }
 
     /**
@@ -780,9 +1015,265 @@ HTML;
         $writer->save($rutaAbsoluta);
     }
 
-    private function construirPrompt(array $r, Empresa $empresa): string
+    public static function getCapitulos(): array
     {
-        // RAG por área temática: múltiples consultas para mayor cobertura de la biblioteca
+        return [
+            [
+                'numero' => 'I', 'titulo' => 'DENOMINACIÓN, DOMICILIO Y OBJETO',
+                'query_rag' => 'reglamento interno trabajo denominación domicilio objeto ámbito aplicación',
+                'codigos_obligatorios' => ['Art. 104 CST', 'Art. 105 CST', 'Art. 106 CST'],
+                'datos_empresa_keys'   => ['domicilio', 'tiene_sucursales', 'sucursales', 'actividad_economica', 'actividades_secundarias', 'num_trabajadores'],
+                'instrucciones' => implode("\n", [
+                    'Redacta estos artículos, cada uno como párrafo completo:',
+                    '1. Ámbito de aplicación del reglamento: a quiénes aplica, desde cuándo rige.',
+                    '2. Denominación completa, NIT y tipo societario de la empresa.',
+                    '3. Domicilio principal; si tiene sucursales, listarlas con ciudad y dirección.',
+                    '4. Actividad económica principal y secundarias.',
+                    '5. Representante legal y su facultad de dirección y sanción disciplinaria.',
+                    'IMPORTANTE: los artículos del CST que aplican están en el contexto jurídico inyectado.',
+                ]),
+            ],
+            [
+                'numero' => 'II', 'titulo' => 'ADMISIÓN Y PERÍODO DE PRUEBA',
+                'query_rag' => 'admisión trabajadores período de prueba requisitos ingreso contrato trabajo',
+                'codigos_obligatorios' => ['Art. 76 CST', 'Art. 77 CST', 'Art. 78 CST', 'Art. 80 CST'],
+                'datos_empresa_keys'   => ['tipos_contrato', 'tiene_trabajadores_mision', 'cargos'],
+                'instrucciones' => implode("\n", [
+                    '1. REQUISITOS DE INGRESO: lista de documentos que la empresa exige (hoja de vida, documento de identidad, certificados de estudio y experiencia). Los antecedentes judiciales solo son exigibles cuando el cargo lo requiera por razones de seguridad, no como criterio automático de exclusión. Lista en formato 1) 2) 3).',
+                    '2. PERÍODO DE PRUEBA: reglas de duración, forma de pactarlo (siempre por escrito), terminación durante el período. Los plazos exactos y condiciones provienen del contexto jurídico inyectado.',
+                    '3. PROHIBICIONES DE INGRESO: documentos o pruebas que NO pueden exigirse al trabajador como condición de ingreso (libreta militar, pruebas de embarazo, pruebas de salud discriminatorias, etc.). Los artículos y normas aplicables están en el contexto jurídico inyectado.',
+                    '4. TIPOS DE CONTRATO que usa la empresa (según datos empresa). Si usa trabajadores en misión (empresas temporales), mencionar el marco aplicable.',
+                    'IMPORTANTE: los plazos, porcentajes y referencias legales exactas provienen únicamente del contexto jurídico inyectado.',
+                ]),
+            ],
+            [
+                'numero' => 'III', 'titulo' => 'JORNADA ORDINARIA DE TRABAJO',
+                'query_rag' => 'jornada laboral ordinaria horas trabajo diurno nocturno descanso dominical compensatorio',
+                'codigos_obligatorios' => ['Art. 158 CST', 'Art. 159 CST', 'Art. 160 CST', 'Art. 161 CST', 'Art. 162 CST', 'Art. 181 CST', 'Art. 182 CST'],
+                'datos_empresa_keys'   => ['horario_entrada', 'horario_salida', 'opera_en_turnos', 'numero_turnos', 'definicion_turnos', 'rotacion_turnos', 'trabaja_sabados', 'trabaja_dominicales', 'cargos_exentos_jornada', 'modalidades_jornada', 'cargos_nocturnos', 'control_asistencia'],
+                'instrucciones' => implode("\n", [
+                    'A. JORNADA MÁXIMA LEGAL: definición, horas máximas semanales y tendencia de reducción según normativa vigente (ver contexto jurídico). Definir trabajo diurno y nocturno con los horarios que establezca la ley.',
+                    'B. HORARIO DE LA EMPRESA — usar TABLA con los datos reales de la empresa:',
+                    '   TABLA:',
+                    '   ENCABEZADO: Días | Horario entrada | Descanso | Horario salida',
+                    '   FILA: [días según datos] | [hora entrada] | [pausa almuerzo] | [hora salida]',
+                    '   FIN_TABLA  (si trabaja sábados, agregar fila; si opera en turnos, una tabla por turno)',
+                    'C. DESCANSO DOMINICAL: artículo independiente sobre el derecho al descanso dominical remunerado. El contenido exacto proviene del contexto jurídico inyectado.',
+                    'D. DESCANSO COMPENSATORIO: artículo independiente sobre qué ocurre cuando se trabaja el día de descanso obligatorio. Los derechos económicos exactos provienen del contexto jurídico inyectado.',
+                    'E. Si opera en turnos: artículo por turno con horario exacto y cargos asignados, usando TABLA.',
+                    'F. Si hay cargos de dirección, manejo o confianza excluidos de jornada máxima: artículo expreso indicando qué cargos y sus condiciones. Ver contexto jurídico para la norma aplicable.',
+                    'G. CONTROL DE ASISTENCIA: sistema que usa la empresa (según datos empresa).',
+                ]),
+            ],
+            [
+                'numero' => 'IV', 'titulo' => 'TRABAJO SUPLEMENTARIO, DOMINICALES Y FESTIVOS',
+                'query_rag' => 'horas extras trabajo suplementario dominicales festivos recargo nocturno límite autorización',
+                'codigos_obligatorios' => ['Art. 167 CST', 'Art. 168 CST', 'Art. 169 CST', 'Art. 179 CST', 'Art. 180 CST'],
+                'datos_empresa_keys'   => ['politica_horas_extras', 'trabaja_dominicales', 'cargos_nocturnos'],
+                'instrucciones' => implode("\n", [
+                    'A. LÍMITE DE HORAS EXTRAS: artículo sobre el máximo de horas extras permitidas diaria y semanalmente, la obligación de autorización previa y escrita del empleador, y que las no autorizadas no generan pago. Los límites exactos provienen del contexto jurídico inyectado.',
+                    'B. RECARGOS POR TRABAJO SUPLEMENTARIO: artículo que enumere los diferentes recargos aplicables (hora extra diurna, hora extra nocturna, trabajo dominical o festivo, recargo nocturno ordinario). Los porcentajes exactos de cada recargo provienen del contexto jurídico inyectado.',
+                    'C. Si opera con turnos nocturnos regulares: artículo sobre el recargo nocturno aplicable.',
+                    'D. REGISTRO: registro individual de trabajo suplementario firmado por ambas partes.',
+                    'E. Política interna de autorización de horas extras de la empresa (según datos empresa).',
+                    'IMPORTANTE: los porcentajes de recargo y los límites en horas provienen únicamente del contexto jurídico inyectado.',
+                ]),
+            ],
+            [
+                'numero' => 'V', 'titulo' => 'REMUNERACIÓN Y FORMA DE PAGO',
+                'query_rag' => 'salario remuneración forma pago periodicidad salario en especie propinas prohibición fichas',
+                'codigos_obligatorios' => ['Art. 127 CST', 'Art. 128 CST', 'Art. 129 CST', 'Art. 131 CST', 'Art. 132 CST', 'Art. 134 CST', 'Art. 136 CST'],
+                'datos_empresa_keys'   => ['forma_pago', 'periodicidad_pago', 'periodicidad_detalle', 'maneja_comisiones', 'tipo_comisiones', 'beneficios_extralegales'],
+                'instrucciones' => implode("\n", [
+                    'A. MODALIDADES DE SALARIO: por unidad de tiempo, por obra o tarea, variable. Salario integral si aplica a algún cargo (ver condiciones en contexto jurídico).',
+                    'B. PERÍODO Y FORMA DE PAGO: periodicidad según datos de la empresa. Forma de pago (transferencia, efectivo, etc.). Comprobante de pago discriminado con devengados y descuentos.',
+                    'C. PROHIBICIÓN DE PAGO EN ESPECIE NO AUTORIZADA: artículo sobre la prohibición de pagar con fichas, vales, mercancías u otros sustitutos. Texto y referencias exactas provienen del contexto jurídico inyectado.',
+                    'D. SALARIO EN ESPECIE: reglas sobre cuándo es válido, porcentajes máximos permitidos y obligación de pactarlo por escrito. Los límites exactos provienen del contexto jurídico inyectado.',
+                    'E. PROPINAS: artículo sobre la naturaleza jurídica de las propinas. El texto exacto aplicable proviene del contexto jurídico inyectado.',
+                    'F. Si maneja comisiones: artículo sobre su naturaleza y liquidación. Beneficios extralegales de la empresa (según datos empresa), indicando si son o no factor salarial.',
+                    'IMPORTANTE: los porcentajes, condiciones y referencias legales exactas provienen únicamente del contexto jurídico inyectado.',
+                ]),
+            ],
+            [
+                'numero' => 'VI', 'titulo' => 'VACACIONES Y PERMISOS',
+                'query_rag' => 'vacaciones remuneradas días hábiles registro acumulación compensación dinero permisos remunerados',
+                'codigos_obligatorios' => ['Art. 186 CST', 'Art. 187 CST', 'Art. 188 CST', 'Art. 189 CST', 'Art. 190 CST'],
+                'datos_empresa_keys'   => ['politica_permisos'],
+                'instrucciones' => implode("\n", [
+                    'A. VACACIONES ANUALES: artículo sobre el derecho a vacaciones remuneradas por año de servicio. El número exacto de días y las condiciones provienen del contexto jurídico inyectado.',
+                    'B. DISFRUTE Y REGISTRO: acuerdo entre partes para fijar la época de vacaciones; registro especial de vacaciones con datos del trabajador, fecha de salida y retorno, y saldo acumulado.',
+                    'C. ACUMULACIÓN: posibilidad de acumular vacaciones por acuerdo escrito entre las partes; condiciones y límites según contexto jurídico inyectado.',
+                    'D. INTERRUPCIÓN: qué ocurre cuando durante el disfrute de vacaciones sobreviene incapacidad médica o calamidad doméstica.',
+                    'E. COMPENSACIÓN EN DINERO: posibilidad de compensar parte de las vacaciones en dinero, condiciones y límites según contexto jurídico inyectado.',
+                    'F. PERMISOS REMUNERADOS: calamidad doméstica, sufragio, diligencias personales con aviso previo. Política interna de la empresa (según datos empresa).',
+                    'IMPORTANTE: el número exacto de días y los límites de acumulación provienen únicamente del contexto jurídico inyectado.',
+                ]),
+            ],
+            [
+                'numero' => 'VII', 'titulo' => 'LICENCIAS ESPECIALES',
+                'query_rag' => 'licencia maternidad paternidad luto calamidad doméstica enfermedad no remunerada',
+                'codigos_obligatorios' => ['Art. 236 CST', 'Art. 237 CST', 'Art. 238 CST', 'Art. 239 CST'],
+                'datos_empresa_keys'   => ['tiene_licencias_especiales', 'descripcion_licencias'],
+                'instrucciones' => implode("\n", [
+                    'A. LICENCIA DE MATERNIDAD: derecho de la trabajadora, duración, quién la paga, prohibición de laborar durante la licencia. La duración exacta en semanas proviene del contexto jurídico inyectado.',
+                    'B. LICENCIA DE PATERNIDAD: derecho del padre trabajador, duración, condiciones. La duración exacta proviene del contexto jurídico inyectado.',
+                    'C. LICENCIA DE LUTO: duración en días hábiles, parentesco que la activa. Los días exactos y el grado de parentesco cubierto provienen del contexto jurídico inyectado.',
+                    'D. LICENCIA POR CALAMIDAD DOMÉSTICA GRAVE: eventos que la activan, duración razonable definida por la empresa.',
+                    'E. LICENCIAS NO REMUNERADAS: posibilidad de acuerdo escrito para estudios, trámites u otras causas justificadas.',
+                    'F. Licencias especiales propias de la empresa (según datos empresa), si las hay.',
+                    'IMPORTANTE: las duraciones exactas (semanas, días) provienen únicamente del contexto jurídico inyectado.',
+                ]),
+            ],
+            [
+                'numero' => 'VIII', 'titulo' => 'RÉGIMEN DISCIPLINARIO: CLASIFICACIÓN DE FALTAS',
+                'query_rag' => 'régimen disciplinario faltas leves graves procedimiento descargos garantía debido proceso',
+                'codigos_obligatorios' => ['Art. 108 CST', 'Art. 111 CST', 'Art. 113 CST', 'Art. 115 CST'],
+                'datos_empresa_keys'   => ['sanciones_configuradas', 'faltas_leves', 'faltas_graves', 'cargos'],
+                'instrucciones' => implode("\n", [
+                    'A. DEFINICIÓN DE FALTA DISCIPLINARIA: incumplimiento de obligaciones o transgresión de prohibiciones del reglamento.',
+                    'B. CATÁLOGO DE FALTAS LEVES (mínimo 8, lista 1) 2) 3)): impuntualidad reiterada, ausentarse sin permiso, descuido en el puesto, uso personal de equipos de la empresa, incumplimiento de entregas, presentación personal inadecuada, descuido en el uso de elementos de seguridad, etc.',
+                    'C. CATÁLOGO DE FALTAS GRAVES (mínimo 8): reincidencia en faltas leves, abandono injustificado del puesto, daño doloso a bienes, engaño o fraude, falta grave de respeto, divulgación de información confidencial, inasistencia injustificada, incumplimiento reiterado de instrucciones.',
+                    'D. CATÁLOGO DE FALTAS MUY GRAVES (mínimo 5): hurto o apropiación indebida, agresión física, acoso laboral o sexual, presentarse bajo efectos de alcohol o sustancias psicoactivas, sabotaje.',
+                    'E. PROCEDIMIENTO DISCIPLINARIO: garantía del debido proceso. Usar TABLA con las etapas:',
+                    '   TABLA:',
+                    '   ENCABEZADO: Etapa | Descripción',
+                    '   FILA: Citación a descargos | El empleador comunica por escrito los cargos y traslada las pruebas al trabajador.',
+                    '   FILA: Preparación de descargos | El trabajador cuenta con el plazo legal para preparar y presentar sus descargos por escrito.',
+                    '   FILA: Audiencia de descargos | El trabajador expone sus argumentos y puede estar acompañado de representante sindical o persona de su confianza.',
+                    '   FILA: Decisión motivada | El empleador emite fallo escrito debidamente fundamentado en hechos y derecho.',
+                    '   FILA: Notificación e impugnación | Se notifica al trabajador, quien puede apelar ante el superior jerárquico en el plazo legal.',
+                    '   FILA: Segunda instancia | El superior jerárquico resuelve la apelación en el plazo legal.',
+                    '   FIN_TABLA',
+                    'IMPORTANTE: los plazos exactos (días hábiles) del procedimiento provienen únicamente del contexto jurídico inyectado.',
+                ]),
+            ],
+            [
+                'numero' => 'IX', 'titulo' => 'ESCALA DE SANCIONES',
+                'query_rag' => 'escala sanciones disciplinarias multa suspensión terminación justa causa proporcionalidad',
+                'codigos_obligatorios' => ['Art. 112 CST', 'Art. 113 CST', 'Art. 114 CST'],
+                'datos_empresa_keys'   => ['sanciones_configuradas', 'faltas_leves', 'faltas_graves'],
+                'instrucciones' => implode("\n", [
+                    'Artículo introductorio sobre proporcionalidad de las sanciones. Luego TABLA obligatoria:',
+                    'TABLA:',
+                    'ENCABEZADO: Sanción | Concepto | Faltas que la generan',
+                    'FILA: Llamado de atención verbal | Amonestación oral privada con registro en hoja de vida. | Faltas leves por primera vez.',
+                    'FILA: Llamado de atención escrito | Notificación formal con copia a hoja de vida. | Faltas leves reiteradas.',
+                    'FILA: Multa | Descuento salarial según límite legal, destinado al fondo de premios de los trabajadores. | Según gravedad de la falta.',
+                    'FILA: Suspensión sin remuneración | Interrupción temporal del contrato sin pago, dentro del límite legal de días. | Faltas graves.',
+                    'FILA: Terminación con justa causa | Desvinculación por falta muy grave o reincidencia. | Faltas muy graves o reincidencia en graves.',
+                    'FIN_TABLA',
+                    'Artículo adicional sobre: proporcionalidad; derecho de impugnación ante el Inspector del Trabajo.',
+                    'Si la empresa tiene sanciones configuradas específicas (según datos empresa): incluirlas o ajustar la tabla.',
+                    'IMPORTANTE: el límite máximo de la multa y de la suspensión (en días) provienen únicamente del contexto jurídico inyectado.',
+                ]),
+            ],
+            [
+                'numero' => 'X', 'titulo' => 'RECLAMOS Y PROCEDIMIENTOS',
+                'query_rag' => 'reclamos peticiones trabajadores procedimiento queja instancias respuesta empleador',
+                'codigos_obligatorios' => [],
+                'datos_empresa_keys'   => [],
+                'instrucciones' => implode("\n", [
+                    'A. INSTANCIAS INTERNAS: jefe directo → área de RRHH → Gerencia. Cómo presenta el trabajador su reclamo.',
+                    'B. PLAZO DE RESPUESTA: la empresa debe responder por escrito en un plazo razonable desde la recepción del reclamo. El plazo exacto se indica si aparece en el contexto jurídico inyectado.',
+                    'C. RECLAMOS CONTRA EL SUPERIOR JERÁRQUICO: procedimiento especial cuando el reclamo involucra directamente al superior.',
+                    'D. ACCESO EXTERNO: si no hay acuerdo interno, el trabajador puede acudir al Inspector del Trabajo o a la jurisdicción laboral ordinaria.',
+                    'E. PROHIBICIÓN DE REPRESALIAS: el empleador no puede tomar represalias contra el trabajador que presente reclamos de buena fe.',
+                ]),
+            ],
+            [
+                'numero' => 'XI', 'titulo' => 'NORMAS DE CONDUCTA Y COMPORTAMIENTO',
+                'query_rag' => 'obligaciones especiales trabajador empleador prohibiciones conducta confidencialidad',
+                'codigos_obligatorios' => ['Art. 57 CST', 'Art. 58 CST', 'Art. 59 CST', 'Art. 60 CST'],
+                'datos_empresa_keys'   => ['politica_celular', 'usa_uniforme', 'tiene_codigo_etica', 'politica_confidencialidad', 'que_quiere_prevenir'],
+                'instrucciones' => implode("\n", [
+                    'A. OBLIGACIONES DEL TRABAJADOR: puntualidad, cuidado de bienes, respeto hacia compañeros/superiores/clientes, confidencialidad, obediencia a instrucciones razonables, reporte oportuno de novedades. Lista 1) 2) 3).',
+                    'B. OBLIGACIONES DEL EMPLEADOR: suministrar instrumentos y condiciones de trabajo, garantizar seguridad, pagar oportunamente, respetar la dignidad del trabajador.',
+                    'C. PROHIBICIONES DEL TRABAJADOR: sustracción de bienes, actividades personales durante la jornada, consumo de alcohol o sustancias psicoactivas, proselitismo político o religioso, uso ilícito de recursos de la empresa, divulgación de información confidencial.',
+                    'D. POLÍTICA DE USO DE CELULARES Y DISPOSITIVOS PERSONALES: según datos empresa; uso personal restringido o prohibido durante la jornada laboral.',
+                    'E. Si usa uniforme (según datos empresa): artículo sobre entrega, uso obligatorio, mantenimiento y devolución.',
+                    'F. POLÍTICA DE CONFIDENCIALIDAD: información empresarial reservada; obligación vigente durante y después de la relación laboral. Según política de la empresa.',
+                    'G. Mencionar específicamente qué quiere prevenir la empresa (según datos empresa).',
+                ]),
+            ],
+            [
+                'numero' => 'XII', 'titulo' => 'SEGURIDAD Y SALUD EN EL TRABAJO',
+                'query_rag' => 'seguridad salud trabajo SG-SST obligaciones empleador trabajador EPP exámenes médicos accidentes laborales COPASST',
+                'codigos_obligatorios' => [],
+                'datos_empresa_keys'   => ['tiene_sg_sst', 'riesgos_principales', 'tiene_epp', 'epp_descripcion', 'num_trabajadores'],
+                'instrucciones' => implode("\n", [
+                    'Cada artículo mínimo 60 palabras:',
+                    'A. POLÍTICA DE SST: compromiso de la alta dirección, recursos asignados, objetivos del sistema de gestión.',
+                    'B. OBLIGACIONES DEL EMPLEADOR EN SST: afiliar a ARL, proveer EPP, garantizar condiciones seguras, realizar exámenes médicos de ingreso/periódicos/egreso, investigar accidentes y enfermedades laborales.',
+                    'C. OBLIGACIONES DEL TRABAJADOR EN SST: usar correctamente el EPP, reportar condiciones inseguras, asistir a capacitaciones, no manipular equipos de seguridad sin autorización.',
+                    'D. VIGÍA DE SST O COPASST: según número de trabajadores (ver datos empresa); período de gestión, reuniones y funciones de vigilancia. Los umbrales exactos de trabajadores para cada figura provienen del contexto jurídico inyectado.',
+                    'E. EXÁMENES MÉDICOS OCUPACIONALES: ingreso, periódicos y de egreso; incluir exámenes de alcoholemia y sustancias psicoactivas para cargos con riesgo para terceros (conductores, maquinaria, alturas); reserva absoluta de información médica.',
+                    'F. REPORTE DE ACCIDENTES: el trabajador notifica al empleador el mismo día del accidente; la empresa notifica a la ARL dentro del plazo legal; investigación interna obligatoria.',
+                    'G. USO OBLIGATORIO DE EPP: según matriz de riesgos del cargo; incumplimiento constituye falta disciplinaria. EPP de la empresa según datos empresa.',
+                    'H. PROHIBICIÓN PARA CARGOS DE RIESGO: artículo expreso prohibiendo a trabajadores en cargos de riesgo para terceros (conductores, operadores de maquinaria, trabajo en alturas) presentarse o permanecer en el trabajo bajo efectos de alcohol, sustancias psicoactivas o medicamentos que alteren el estado de alerta. Calificarlo como falta muy grave. Referencias normativas exactas provienen del contexto jurídico inyectado.',
+                    'I. Riesgos principales identificados en la empresa (según datos empresa).',
+                ]),
+            ],
+            [
+                'numero' => 'XIII', 'titulo' => 'USO DE EQUIPOS, UNIFORMES Y BIENES DE LA EMPRESA',
+                'query_rag' => 'equipos bienes empresa responsabilidad trabajador daños uniformes devolución activos',
+                'codigos_obligatorios' => [],
+                'datos_empresa_keys'   => ['usa_uniforme'],
+                'instrucciones' => implode("\n", [
+                    'A. ASIGNACIÓN DE EQUIPOS: procedimiento de entrega formal mediante acta con inventario detallado.',
+                    'B. RESPONSABILIDAD POR DAÑOS: el trabajador responde por daños causados por negligencia, descuido o mal uso intencional; no responde por el deterioro derivado del uso normal.',
+                    'C. Si usa uniforme (según datos empresa): entrega, uso obligatorio durante la jornada, mantenimiento adecuado, prohibición de uso en actividades que dañen la imagen corporativa, devolución al terminar.',
+                    'D. DEVOLUCIÓN DE BIENES: obligación de devolver todos los bienes asignados al terminar el contrato, mediante acta de devolución.',
+                    'E. USO DE RECURSOS TECNOLÓGICOS: los equipos de cómputo, acceso a internet y correo corporativo son para uso laboral; la empresa puede monitorear su uso para fines de seguridad.',
+                ]),
+            ],
+            [
+                'numero' => 'XIV', 'titulo' => 'COMITÉ DE CONVIVENCIA LABORAL Y PREVENCIÓN DE ACOSO',
+                'query_rag' => 'acoso laboral sexual comité convivencia modalidades procedimiento queja denuncia prevención',
+                'codigos_obligatorios' => [],
+                'datos_empresa_keys'   => ['num_trabajadores'],
+                'instrucciones' => implode("\n", [
+                    'Cada artículo mínimo 60 palabras:',
+                    'A. ACOSO LABORAL — DEFINICIÓN Y MODALIDADES: persecución, discriminación, entorpecimiento, inequidad y desprotección. Definir cada modalidad con ejemplo concreto. Las referencias normativas exactas provienen del contexto jurídico inyectado.',
+                    'B. COMITÉ DE CONVIVENCIA LABORAL: conformación bipartita (representantes del empleador y de los trabajadores); elección democrática de los representantes de los trabajadores; período de gestión; reuniones ordinarias y extraordinarias. El número exacto de representantes y las resoluciones aplicables provienen del contexto jurídico inyectado.',
+                    'C. FUNCIONES DEL COMITÉ: recibir quejas de acoso, examinar las conductas denunciadas, facilitar el diálogo entre las partes, formular recomendaciones, hacer seguimiento a las medidas adoptadas.',
+                    'D. PROCEDIMIENTO INTERNO DE QUEJA POR ACOSO LABORAL — pasos numerados: 1) Presentación escrita al Comité; 2) Notificación al presunto acosador; 3) Investigación confidencial; 4) Audiencia de conciliación; 5) Informe final con medidas correctivas y plazos; 6) Seguimiento periódico.',
+                    'E. PREVENCIÓN DEL ACOSO SEXUAL — ARTÍCULO AUTÓNOMO: definición de acoso sexual en el contexto laboral; tipos de conductas constitutivas (verbales, físicas, digitales); canal confidencial exclusivo para denuncias; protocolo de investigación y respuesta con plazos; garantía de confidencialidad de la víctima; prohibición expresa de represalias. Las referencias normativas exactas provienen del contexto jurídico inyectado.',
+                    'F. SANCIONES POR ACOSO: calificación como falta muy grave; consecuencias disciplinarias, administrativas y penales. Los artículos exactos del Código Penal aplicables provienen del contexto jurídico inyectado.',
+                ]),
+            ],
+            [
+                'numero' => 'XV', 'titulo' => 'PROTECCIÓN DE SUJETOS DE ESPECIAL PROTECCIÓN',
+                'query_rag' => 'mujer embarazada maternidad paternidad discapacidad estabilidad laboral reforzada fuero sindical no discriminación',
+                'codigos_obligatorios' => ['Art. 239 CST', 'Art. 240 CST', 'Art. 241 CST', 'Art. 241A CST'],
+                'datos_empresa_keys'   => [],
+                'instrucciones' => implode("\n", [
+                    'A. MUJER EMBARAZADA Y EN PERÍODO DE LACTANCIA: protección especial contra el despido; prohibición de exigir pruebas de embarazo o exámenes de salud discriminatorios; duración de la licencia de maternidad. Los artículos y plazos exactos provienen del contexto jurídico inyectado.',
+                    'B. LICENCIA DE PATERNIDAD: derecho del padre, duración, condiciones de pago. La duración exacta proviene del contexto jurídico inyectado.',
+                    'C. PERSONAS EN SITUACIÓN DE DISCAPACIDAD: estabilidad laboral reforzada; prohibición de despido sin autorización previa de la autoridad competente; obligación de realizar ajustes razonables en el puesto de trabajo.',
+                    'D. TRABAJADORES CON FUERO SINDICAL: prohibición de despido, traslado o desmejora sin autorización judicial previa; consecuencias del desconocimiento del fuero. Los artículos exactos del CST provienen del contexto jurídico inyectado.',
+                    'E. NO DISCRIMINACIÓN: prohibición absoluta de discriminación por raza, sexo, edad, religión, orientación sexual, identidad de género, origen nacional o social, posición económica u otra condición. Referencias normativas exactas provienen del contexto jurídico inyectado.',
+                ]),
+            ],
+            [
+                'numero' => 'XVI', 'titulo' => 'DISPOSICIONES FINALES',
+                'query_rag' => 'disposiciones finales vigencia reglamento interno trabajo depósito Ministerio Trabajo publicación modificaciones',
+                'codigos_obligatorios' => [],
+                'datos_empresa_keys'   => ['domicilio'],
+                'instrucciones' => implode("\n", [
+                    'A. VIGENCIA: el reglamento rige desde la fecha de su publicación a los trabajadores y permanece vigente mientras no sea derogado o modificado.',
+                    'B. MODIFICACIONES: procedimiento para modificar el reglamento; obligación de comunicar a los trabajadores con anticipación mínima y de depositar ante el Ministerio del Trabajo.',
+                    'C. PUBLICACIÓN Y ACCESO: publicar en lugar visible de cada establecimiento y entregar copia a cada trabajador al momento de su vinculación.',
+                    'D. DEPÓSITO ANTE EL MINISTERIO: plazo para depositar ante la Dirección Territorial del Ministerio del Trabajo competente según el domicilio de la empresa. El plazo exacto proviene del contexto jurídico inyectado.',
+                    'E. INCORPORACIÓN A CONTRATOS: el presente reglamento queda incorporado como parte integrante de todos los contratos individuales de trabajo.',
+                    'F. ARTÍCULO FINAL DE FIRMA: ciudad, fecha de elaboración (usar fecha actual), nombre completo y cargo del representante legal.',
+                ]),
+            ],
+        ];
+    }
+
+    private function _placeholder(): string
+    {
+        // Este método no se usa — aquí termina la clase
         $biblioteca = app(BibliotecaLegalService::class);
 
         $queriesTematicas = [
@@ -804,8 +1295,8 @@ HTML;
         }
         $contextoBiblioteca = implode("\n\n---\n\n", array_filter($fragmentosPorTema));
         // Limitar el contexto de biblioteca para no saturar el prompt
-        if (strlen($contextoBiblioteca) > 8000) {
-            $contextoBiblioteca = substr($contextoBiblioteca, 0, 8000) . "\n[...fragmentos adicionales omitidos por límite de longitud]";
+        if (strlen($contextoBiblioteca) > 10000) {
+            $contextoBiblioteca = substr($contextoBiblioteca, 0, 10000) . "\n[...fragmentos adicionales omitidos por límite de longitud]";
         }
 
         $razonSocial  = $empresa->nombre_completo; // razón social + tipo societario

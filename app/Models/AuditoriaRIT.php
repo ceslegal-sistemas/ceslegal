@@ -22,6 +22,7 @@ class AuditoriaRIT extends Model
         'estado_mejora',
         'reglamento_mejorado_id',
         'texto_auditado',
+        'progreso_mejora',
     ];
 
     protected $casts = [

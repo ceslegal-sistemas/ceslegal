@@ -16,8 +16,8 @@ class GenerarRITMejoradoJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** El RIT completo puede tardar 60-120s en generarse con Gemini Flash */
-    public int $timeout = 280;
+    /** Mejora capítulo por capítulo puede tardar hasta 480s. */
+    public int $timeout = 600;
 
     /** Sin reintentos automáticos: el cascade de modelos maneja la redundancia */
     public int $tries = 1;

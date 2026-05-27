@@ -25,6 +25,7 @@ class ReglamentoInterno extends Model
         'auditoria_origen_id',
         'reglamento_origen_id',
         'ruta_pdf',
+        'progreso_generacion',
     ];
 
     protected $casts = [

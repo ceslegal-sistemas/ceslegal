@@ -160,7 +160,7 @@ html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(99,102,2
         <span class="rit-viewer-label">Redactando documento</span>
         <span style="font-size:.75rem;color:#64748b;display:flex;align-items:center;gap:6px">
           <svg style="width:13px;height:13px;animation:rit-spin 1.2s linear infinite;color:#818cf8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
-          En progreso...
+          {{ $reglamento->progreso_generacion ?? 'Iniciando generación...' }}
         </span>
       </div>
       <div class="rit-viewer-body" style="padding:1.75rem 1.75rem">

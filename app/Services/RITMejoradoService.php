@@ -202,14 +202,7 @@ class RITMejoradoService
             }
         }
 
-        $bloque = implode("\n\n---\n\n", array_filter($fragmentosPorTema));
-
-        // Limitar para no saturar el prompt (el RIT original ya ocupa bastante)
-        if (strlen($bloque) > 10000) {
-            $bloque = mb_substr($bloque, 0, 10000) . "\n[...fragmentos adicionales omitidos por límite de longitud]";
-        }
-
-        return $bloque;
+        return implode("\n\n---\n\n", array_filter($fragmentosPorTema));
     }
 
     /**
@@ -363,12 +356,7 @@ class RITMejoradoService
               . $contextoBiblioteca . "\n"
             : "ADVERTENCIA: La biblioteca legal no devolvió fragmentos. Usa el conocimiento del prompt para mejorar el RIT.\n";
 
-        // Limitar el texto original para reducir tokens de entrada y tiempo de procesamiento
         $textoOriginalAEnviar = $textoOriginal;
-        if (strlen($textoOriginal) > 30000) {
-            $textoOriginalAEnviar = mb_substr($textoOriginal, 0, 30000)
-                . "\n[...resto omitido. Mantén la estructura y continúa hasta las DISPOSICIONES FINALES.]";
-        }
 
         return <<<PROMPT
 Eres un abogado laboral colombiano experto en Reglamentos Internos de Trabajo.

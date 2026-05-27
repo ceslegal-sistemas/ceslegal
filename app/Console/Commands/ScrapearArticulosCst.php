@@ -42,9 +42,30 @@ class ScrapearArticulosCst extends Command
      * Lista de artículos a importar.
      * Formato: numero => [categoria, orden]
      */
+    /**
+     * Artículos cuya URL en leyes.co difiere del número puro.
+     * Clave: número del artículo | Valor: sufijo de la URL antes de ".htm"
+     */
+    private array $urlOverrides = [
+        // Artículos 1-9: leyes.co usa ordinal con "o" (1o.htm, 2o.htm, …)
+        '1'   => '1o', '2'   => '2o', '3'  => '3o', '4'  => '4o', '5'  => '5o',
+        '6'   => '6o', '7'   => '7o', '8'  => '8o', '9'  => '9o',
+        // Art. 167A: Ley 2101/2021 — leyes.co usa 'a' minúscula
+        '167A' => '167a',
+    ];
+
     private array $articulos = [
 
-        // ── PRINCIPIOS GENERALES ─────────────────────────────────────────────
+        // ── PRINCIPIOS GENERALES Y CAMPO DE APLICACIÓN ───────────────────────
+        '1'  => ['principios',                  1],  // Objeto y finalidad del CST
+        '2'  => ['principios',                  2],  // Ámbito de aplicación
+        '3'  => ['principios',                  3],  // Relaciones no reguladas
+        '4'  => ['principios',                  4],  // Fuentes formales
+        '5'  => ['principios',                  5],  // Definición de trabajo
+        '6'  => ['principios',                  6],  // Trabajo ocasional
+        '7'  => ['principios',                  7],  // Vigencia de las disposiciones
+        '8'  => ['principios',                  8],  // Efectividad de los derechos
+        '9'  => ['principios',                  9],  // Protección al trabajo
         10  => ['principios',                 10],
         13  => ['principios',                 13],
 
@@ -82,6 +103,45 @@ class ScrapearArticulosCst extends Command
         78  => ['contrato',                   78],
         80  => ['contrato',                   80],
 
+        // ── SALARIO ──────────────────────────────────────────────────────────
+        127 => ['salario',                   127],
+        128 => ['salario',                   128],
+        129 => ['salario',                   129],
+        130 => ['salario',                   130],
+        131 => ['salario',                   131],
+        132 => ['salario',                   132],
+        133 => ['salario',                   133],
+        134 => ['salario',                   134],
+        135 => ['salario',                   135],
+        136 => ['salario',                   136],
+        141 => ['salario',                   141],
+        143 => ['salario',                   143],
+        149 => ['salario',                   149],
+
+        // ── JORNADA LABORAL ──────────────────────────────────────────────────
+        158 => ['jornada',                   158],
+        159 => ['jornada',                   159],
+        160 => ['jornada',                   160],
+        161 => ['jornada',                   161],
+        162 => ['jornada',                   162],
+        167 => ['jornada',                   167],
+        '167A' => ['jornada',               1671], // Art. 167A — horas extras límite
+        168 => ['jornada',                   168],
+        169 => ['jornada',                   169],
+
+        // ── DESCANSOS Y DOMINICALES ──────────────────────────────────────────
+        179 => ['descansos',                 179],
+        180 => ['descansos',                 180],
+        181 => ['descansos',                 181],
+        182 => ['descansos',                 182],
+
+        // ── VACACIONES ───────────────────────────────────────────────────────
+        186 => ['vacaciones',                186],
+        187 => ['vacaciones',                187],
+        188 => ['vacaciones',                188],
+        189 => ['vacaciones',                189],
+        190 => ['vacaciones',                190],
+
         // ── REGLAMENTO INTERNO DE TRABAJO ────────────────────────────────────
         104 => ['reglamento_interno',        104],
         105 => ['reglamento_interno',        105],
@@ -105,6 +165,7 @@ class ScrapearArticulosCst extends Command
         239 => ['grupos_protegidos',         239],
         240 => ['grupos_protegidos',         240],
         241 => ['grupos_protegidos',         241],
+        '241A' => ['grupos_protegidos',    2411], // Art. 241A — fuero de maternidad
 
         // ── FUERO SINDICAL ───────────────────────────────────────────────────
         405 => ['grupos_protegidos',         405],
@@ -200,9 +261,10 @@ class ScrapearArticulosCst extends Command
     // Scraping y parsing
     // ──────────────────────────────────────────────────────────────────────────
 
-    private function scrapearArticulo(int $numero): ?array
+    private function scrapearArticulo(int|string $numero): ?array
     {
-        $url = self::BASE_URL . "{$numero}.htm";
+        $urlSegmento = $this->urlOverrides[(string) $numero] ?? (string) $numero;
+        $url = self::BASE_URL . "{$urlSegmento}.htm";
 
         try {
             $response = Http::timeout(15)
@@ -225,7 +287,7 @@ class ScrapearArticulosCst extends Command
         }
     }
 
-    private function parsearHtml(string $html, int $numero): ?array
+    private function parsearHtml(string $html, int|string $numero): ?array
     {
         libxml_use_internal_errors(true);
 
