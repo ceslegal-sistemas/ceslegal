@@ -33,10 +33,10 @@ class ScrapearArticulosCst extends Command
      * Artículos que NO se scraperan porque tienen versión manual más actualizada.
      * Mantener sincronizado con ImportarArticulosCst.php.
      */
-    private array $excluidos = [
-        115, // Ley 2466/2025 — leyes.co puede no tenerlo aún
-        236, // Ley 2114/2021 — versión manual incluye parágrafos completos
-    ];
+    // private array $excluidos = [
+    //     115, // Ley 2466/2025 — leyes.co puede no tenerlo aún
+    //     236, // Ley 2114/2021 — versión manual incluye parágrafos completos
+    // ];
 
     /**
      * Lista de artículos a importar.
@@ -48,8 +48,15 @@ class ScrapearArticulosCst extends Command
      */
     private array $urlOverrides = [
         // Artículos 1-9: leyes.co usa ordinal con "o" (1o.htm, 2o.htm, …)
-        '1'   => '1o', '2'   => '2o', '3'  => '3o', '4'  => '4o', '5'  => '5o',
-        '6'   => '6o', '7'   => '7o', '8'  => '8o', '9'  => '9o',
+        '1'   => '1o',
+        '2'   => '2o',
+        '3'  => '3o',
+        '4'  => '4o',
+        '5'  => '5o',
+        '6'   => '6o',
+        '7'   => '7o',
+        '8'  => '8o',
+        '9'  => '9o',
     ];
 
     private array $articulos = [
@@ -88,6 +95,7 @@ class ScrapearArticulosCst extends Command
         57  => ['obligaciones',               57],
         58  => ['obligaciones',               58],
         59  => ['prohibiciones',              59],
+        '59A' => ['prohibiciones',            591],
         60  => ['prohibiciones',              60],
         61  => ['terminacion',                61],
         62  => ['terminacion',                62],
@@ -100,6 +108,7 @@ class ScrapearArticulosCst extends Command
         77  => ['contrato',                   77],
         78  => ['contrato',                   78],
         80  => ['contrato',                   80],
+        '81A' => ['contrato',                811],
 
         // ── SALARIO ──────────────────────────────────────────────────────────
         127 => ['salario',                   127],
