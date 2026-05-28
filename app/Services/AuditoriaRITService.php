@@ -20,10 +20,7 @@ use App\Services\RITGeneratorService;
  */
 class AuditoriaRITService
 {
-    /** Máximo de caracteres del RIT a enviar por sección.
-     *  Un capítulo típico tiene 5-7 artículos de ~100 palabras = ~4500 chars.
-     *  Secciones con num_capitulos=2 (jornada, disciplina) necesitan ~8-10k chars. */
-    private const MAX_CHARS_SECCION = 8000;
+
 
     /** Secciones obligatorias del CST con sus queries RAG, palabras clave y artículos del scraper */
     private const SECCIONES = [
@@ -386,7 +383,7 @@ PROMPT;
 
                 $fragmento = implode("\n", array_slice($lineas, $inicio, $fin - $inicio));
                 if (!empty(trim($fragmento))) {
-                    return mb_substr(trim($fragmento), 0, self::MAX_CHARS_SECCION);
+                    return trim($fragmento);
                 }
             }
         }
@@ -416,7 +413,7 @@ PROMPT;
             $prev = $i;
         }
 
-        return mb_substr(trim($fragmento), 0, self::MAX_CHARS_SECCION);
+        return trim($fragmento);
     }
 
     /**
@@ -456,16 +453,15 @@ PROMPT;
         // - flash/flash-lite soportan thinkingBudget:0 (respuesta inmediata, sin razonamiento)
         // - gemini-2.5-pro REQUIERE thinking mode (budget >= 1); usar 2048 como mínimo seguro
         $modelosConfig = [
-            'gemini-2.5-flash'      => ['budget' => 0,    'timeout' => 60],
-            'gemini-2.5-flash-lite' => ['budget' => 0,    'timeout' => 60],
-            'gemini-2.5-pro'        => ['budget' => 2048, 'timeout' => 120],
+            'gemini-2.5-flash'      => ['budget' => 0,    'timeout' => 120],
+            'gemini-2.5-flash-lite' => ['budget' => 0,    'timeout' => 120],
+            'gemini-2.5-pro'        => ['budget' => 2048, 'timeout' => 180],
         ];
         $modelos      = array_keys($modelosConfig);
         $totalModelos = count($modelos);
 
         $genConfigBase = [
-            'temperature'     => 0.2,
-            'maxOutputTokens' => $forzarJSON ? 2048 : 768,
+            'temperature' => 0.2,
         ];
         if ($forzarJSON) {
             $genConfigBase['responseMimeType'] = 'application/json';
