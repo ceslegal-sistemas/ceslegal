@@ -20,10 +20,10 @@ use App\Services\RITGeneratorService;
  */
 class AuditoriaRITService
 {
-    /** Máximo de caracteres del RIT a enviar por sección (~1200 palabras).
+    /** Máximo de caracteres del RIT a enviar por sección.
      *  Un capítulo típico tiene 5-7 artículos de ~100 palabras = ~4500 chars.
-     *  Con 5000 se captura el capítulo completo sin truncar artículos clave. */
-    private const MAX_CHARS_SECCION = 5000;
+     *  Secciones con num_capitulos=2 (jornada, disciplina) necesitan ~8-10k chars. */
+    private const MAX_CHARS_SECCION = 8000;
 
     /** Secciones obligatorias del CST con sus queries RAG, palabras clave y artículos del scraper */
     private const SECCIONES = [
@@ -351,14 +351,18 @@ PROMPT;
         $total  = count($lineas);
 
         // ── Estrategia 1: extracción por encabezado CAPÍTULO ──────────────────
+        // El generador produce DOS líneas: "CAPÍTULO III" seguido de "JORNADA ORDINARIA..."
+        // Por eso se revisa la línea actual Y la siguiente para encontrar el título.
         if (!empty($capitulos)) {
             $inicio = null;
             foreach ($lineas as $i => $linea) {
-                // Buscar línea que contenga "CAPÍTULO" y alguna de las palabras del capítulo
                 if (!preg_match('/CAP[IÍ]TULO/ui', $linea)) continue;
-                $lineaUp = mb_strtoupper($linea);
+                // Línea actual (ej: "CAPÍTULO III JORNADA...") + línea siguiente (ej: "JORNADA...")
+                $lineaUp     = mb_strtoupper($linea);
+                $siguienteUp = isset($lineas[$i + 1]) ? mb_strtoupper($lineas[$i + 1]) : '';
                 foreach ($capitulos as $keyword) {
-                    if (str_contains($lineaUp, mb_strtoupper($keyword))) {
+                    $kw = mb_strtoupper($keyword);
+                    if (str_contains($lineaUp, $kw) || str_contains($siguienteUp, $kw)) {
                         $inicio = $i;
                         break 2;
                     }
