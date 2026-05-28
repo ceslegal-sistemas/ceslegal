@@ -7,10 +7,11 @@ use Illuminate\Support\Facades\Http;
 
 class GoogleOAuthService
 {
-    private const AUTH_URL   = 'https://accounts.google.com/o/oauth2/v2/auth';
-    private const TOKEN_URL  = 'https://oauth2.googleapis.com/token';
-    private const REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
-    private const SCOPE      = 'https://www.googleapis.com/auth/gmail.send';
+    private const AUTH_URL                  = 'https://accounts.google.com/o/oauth2/v2/auth';
+    private const TOKEN_URL                 = 'https://oauth2.googleapis.com/token';
+    private const REVOKE_URL                = 'https://oauth2.googleapis.com/revoke';
+    private const SCOPE                     = 'https://www.googleapis.com/auth/gmail.send';
+    private const TOKEN_REFRESH_MARGIN_SECONDS = 60;
 
     public function buildAuthUrl(int $empresaId): string
     {
@@ -41,6 +42,10 @@ class GoogleOAuthService
         $response->throw();
         $data = $response->json();
 
+        if (empty($data['access_token']) || empty($data['refresh_token']) || empty($data['expires_in'])) {
+            throw new \RuntimeException('Invalid token response from Google during code exchange');
+        }
+
         $empresa->update([
             'google_oauth_email'  => $this->fetchGmailEmail($data['access_token']),
             'google_oauth_tokens' => json_encode([
@@ -57,7 +62,11 @@ class GoogleOAuthService
     {
         $tokens = json_decode($empresa->google_oauth_tokens, true);
 
-        if ($tokens['expires_at'] > (time() + 60)) {
+        if (!is_array($tokens) || !isset($tokens['access_token'], $tokens['expires_at'])) {
+            throw new \RuntimeException('OAuth tokens are missing or malformed for empresa ' . $empresa->id);
+        }
+
+        if ($tokens['expires_at'] > (time() + self::TOKEN_REFRESH_MARGIN_SECONDS)) {
             return $tokens['access_token'];
         }
 
@@ -68,6 +77,10 @@ class GoogleOAuthService
     {
         $tokens = json_decode($empresa->google_oauth_tokens, true);
 
+        if (!is_array($tokens) || empty($tokens['refresh_token'])) {
+            throw new \RuntimeException('Refresh token is missing for empresa ' . $empresa->id);
+        }
+
         $response = Http::asForm()->post(self::TOKEN_URL, [
             'refresh_token' => $tokens['refresh_token'],
             'client_id'     => config('services.google.client_id'),
@@ -77,6 +90,10 @@ class GoogleOAuthService
 
         $response->throw();
         $data = $response->json();
+
+        if (empty($data['access_token']) || empty($data['expires_in'])) {
+            throw new \RuntimeException('Invalid token response from Google during refresh');
+        }
 
         $tokens['access_token'] = $data['access_token'];
         $tokens['expires_at']   = time() + (int) $data['expires_in'];
@@ -90,7 +107,9 @@ class GoogleOAuthService
     {
         try {
             $tokens = json_decode($empresa->google_oauth_tokens, true);
-            Http::post(self::REVOKE_URL . '?token=' . $tokens['refresh_token']);
+            if (is_array($tokens) && !empty($tokens['refresh_token'])) {
+                Http::post(self::REVOKE_URL . '?token=' . $tokens['refresh_token']);
+            }
         } catch (\Throwable) {
             // Revocation failure is non-critical; clear locally regardless
         }
