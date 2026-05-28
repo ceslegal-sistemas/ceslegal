@@ -2,51 +2,107 @@
 
 namespace App\Policies;
 
-use App\Models\CorreoEnviado;
 use App\Models\User;
+use App\Models\CorreoEnviado;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class CorreoEnviadoPolicy
 {
     use HandlesAuthorization;
 
-    private function esAutorizado(User $user): bool
-    {
-        return $user->hasRole('super_admin') || $user->hasRole('abogado');
-    }
-
+    /**
+     * Determine whether the user can view any models.
+     */
     public function viewAny(User $user): bool
     {
-        return $this->esAutorizado($user);
+        return $user->can('view_any_correo::enviado');
     }
 
-    public function view(User $user, CorreoEnviado $correo): bool
+    /**
+     * Determine whether the user can view the model.
+     */
+    public function view(User $user, CorreoEnviado $correoEnviado): bool
     {
-        return $this->esAutorizado($user);
+        return $user->can('view_correo::enviado');
     }
 
+    /**
+     * Determine whether the user can create models.
+     */
     public function create(User $user): bool
     {
-        return $this->esAutorizado($user);
+        return $user->can('create_correo::enviado');
     }
 
-    public function update(User $user, CorreoEnviado $correo): bool
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(User $user, CorreoEnviado $correoEnviado): bool
     {
-        return false; // Los correos enviados no se editan
+        return $user->can('update_correo::enviado');
     }
 
-    public function delete(User $user, CorreoEnviado $correo): bool
+    /**
+     * Determine whether the user can delete the model.
+     */
+    public function delete(User $user, CorreoEnviado $correoEnviado): bool
     {
-        return $user->hasRole('super_admin');
+        return $user->can('delete_correo::enviado');
     }
 
-    public function restore(User $user, CorreoEnviado $correo): bool
+    /**
+     * Determine whether the user can bulk delete.
+     */
+    public function deleteAny(User $user): bool
     {
-        return false;
+        return $user->can('delete_any_correo::enviado');
     }
 
-    public function forceDelete(User $user, CorreoEnviado $correo): bool
+    /**
+     * Determine whether the user can permanently delete.
+     */
+    public function forceDelete(User $user, CorreoEnviado $correoEnviado): bool
     {
-        return false;
+        return $user->can('force_delete_correo::enviado');
+    }
+
+    /**
+     * Determine whether the user can permanently bulk delete.
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_correo::enviado');
+    }
+
+    /**
+     * Determine whether the user can restore.
+     */
+    public function restore(User $user, CorreoEnviado $correoEnviado): bool
+    {
+        return $user->can('restore_correo::enviado');
+    }
+
+    /**
+     * Determine whether the user can bulk restore.
+     */
+    public function restoreAny(User $user): bool
+    {
+        return $user->can('restore_any_correo::enviado');
+    }
+
+    /**
+     * Determine whether the user can replicate.
+     */
+    public function replicate(User $user, CorreoEnviado $correoEnviado): bool
+    {
+        return $user->can('replicate_correo::enviado');
+    }
+
+    /**
+     * Determine whether the user can reorder.
+     */
+    public function reorder(User $user): bool
+    {
+        return $user->can('reorder_correo::enviado');
     }
 }
