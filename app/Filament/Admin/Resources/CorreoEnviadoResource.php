@@ -97,7 +97,9 @@ class CorreoEnviadoResource extends Resource
                                 )
                                 ->limit(300)
                                 ->get()
-                                ->mapWithKeys(fn($p) => [$p->id => $p->codigo])
+                                ->mapWithKeys(fn($t) => [
+                                    $t->id => "{$t->codigo} - {$t->nombres} {$t->apellidos}",
+                                ])
                         )
                         ->searchable()
                         ->nullable()
