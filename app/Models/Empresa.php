@@ -24,6 +24,8 @@ class Empresa extends Model
         'active',
         'dias_laborales',
         'actividad_economica_id',
+        'google_oauth_email',
+        'google_oauth_tokens',
     ];
 
     /** Tipos societarios reconocidos en Colombia */
@@ -80,6 +82,7 @@ class Empresa extends Model
 
     protected $casts = [
         'active' => 'boolean',
+        'google_oauth_tokens' => 'encrypted',
     ];
 
     /**
@@ -149,6 +152,16 @@ class Empresa extends Model
     public function tieneSuscripcionActiva(): bool
     {
         return $this->suscripcion?->estaActiva() ?? false;
+    }
+
+    public function tieneGmailConectado(): bool
+    {
+        return !empty($this->google_oauth_tokens);
+    }
+
+    public function correos(): HasMany
+    {
+        return $this->hasMany(\App\Models\CorreoEnviado::class);
     }
 
     public function puedeUsarTodasLasSanciones(): bool
