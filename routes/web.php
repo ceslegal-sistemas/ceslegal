@@ -216,6 +216,14 @@ Route::get('/correo/track/{token}.gif', [\App\Http\Controllers\CorreoTrackingCon
     ->name('correo.tracking.pixel');
 
 
+// Google OAuth para Gmail por empresa
+Route::middleware('auth')->group(function () {
+    Route::get('/google/oauth/iniciar/{empresaId}', [\App\Http\Controllers\GoogleOAuthController::class, 'iniciar'])
+        ->name('google.oauth.iniciar');
+    Route::get('/google/oauth/callback', [\App\Http\Controllers\GoogleOAuthController::class, 'callback'])
+        ->name('google.oauth.callback');
+});
+
 // Servir documentación estática de Starlight
 Route::get('/docs/{path?}', function ($path = '') {
     $basePath = public_path('docs');
