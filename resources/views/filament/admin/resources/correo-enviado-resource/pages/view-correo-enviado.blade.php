@@ -8,9 +8,9 @@
 
     // Lordicon por estado (CDN oficial, free tier)
     $lordSrc = match ($estado) {
-        'leido'     => 'https://cdn.lordicon.com/oqdsmbbf.json',  // ojo
+        'leido'     => 'https://cdn.lordicon.com/dicvhxpz.json',  // ojo
         'entregado' => 'https://cdn.lordicon.com/wlpxtupd.json',  // sobre abierto
-        default     => 'https://cdn.lordicon.com/wqbqnwkx.json',  // reloj / espera
+        default     => 'https://cdn.lordicon.com/abgtphux.json',  // reloj / espera
     };
     $lordColors = match ($estado) {
         'leido'     => 'primary:#22c55e,secondary:#86efac',
