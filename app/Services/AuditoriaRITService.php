@@ -7,6 +7,7 @@ use App\Models\Empresa;
 use App\Models\ReglamentoInterno;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Services\RITGeneratorService;
 
 /**
  * Servicio de Auditoría de Reglamento Interno de Trabajo.
@@ -24,65 +25,73 @@ class AuditoriaRITService
      *  Con 5000 se captura el capítulo completo sin truncar artículos clave. */
     private const MAX_CHARS_SECCION = 5000;
 
-    /** Secciones obligatorias del CST con sus queries RAG y palabras clave */
+    /** Secciones obligatorias del CST con sus queries RAG, palabras clave y artículos del scraper */
     private const SECCIONES = [
         'admision' => [
-            'titulo'         => 'Admisión y Período de Prueba',
-            'query'          => 'admisión trabajadores período de prueba requisitos contrato Art. 76 80 CST',
-            'palabras_clave' => ['admis', 'prueba', 'contrat', 'vinculac', 'ingres', 'libreta', 'embarazo', 'decreto 2663'],
-            'capitulos'      => ['ADMISIÓN', 'ADMISION', 'PERÍODO DE PRUEBA', 'PERIODO DE PRUEBA'],
+            'titulo'               => 'Admisión y Período de Prueba',
+            'query'                => 'admisión trabajadores período de prueba requisitos contrato periodo prueba',
+            'codigos_obligatorios' => ['Art. 76 CST', 'Art. 77 CST', 'Art. 78 CST', 'Art. 80 CST'],
+            'palabras_clave'       => ['admis', 'prueba', 'contrat', 'vinculac', 'ingres', 'libreta', 'embarazo', 'decreto 2663'],
+            'capitulos'            => ['ADMISIÓN', 'ADMISION', 'PERÍODO DE PRUEBA', 'PERIODO DE PRUEBA'],
         ],
         'jornada' => [
-            'titulo'         => 'Jornada Laboral y Horas Extras',
-            'query'          => 'jornada laboral horas extras trabajo nocturno dominicales festivos Art. 158 168 179 CST',
-            'palabras_clave' => ['jornada', 'horario', 'hora extra', 'suplementar', 'nocturno', 'dominical', 'festiv', '167A', 'diarias', 'semanales', 'recargo'],
-            'capitulos'      => ['JORNADA', 'TRABAJO SUPLEMENTARIO', 'HORAS EXTRAS', 'DOMINICALES'],
+            'titulo'               => 'Jornada Laboral y Horas Extras',
+            'query'                => 'jornada laboral horas extras trabajo nocturno dominicales festivos trabajo suplementario recargo',
+            'codigos_obligatorios' => ['Art. 158 CST', 'Art. 159 CST', 'Art. 160 CST', 'Art. 161 CST', 'Art. 162 CST', 'Art. 167 CST', 'Art. 168 CST', 'Art. 169 CST'],
+            'palabras_clave'       => ['jornada', 'horario', 'hora extra', 'suplementar', 'nocturno', 'dominical', 'festiv', 'diarias', 'semanales', 'recargo'],
+            'capitulos'            => ['JORNADA', 'TRABAJO SUPLEMENTARIO', 'HORAS EXTRAS', 'DOMINICALES'],
             // Captura Cap III (jornada ordinaria) + Cap IV (suplementario/extras) juntos
-            'num_capitulos'  => 2,
+            'num_capitulos'        => 2,
         ],
         'descansos' => [
-            'titulo'         => 'Descansos y Vacaciones',
-            'query'          => 'descanso remunerado vacaciones compensación permisos Art. 186 192 CST',
-            'palabras_clave' => ['vacacion', 'descanso', 'compensa', 'permiso', 'licencia', 'hábiles', 'consecutiv', 'registro especial', 'registro de vacac'],
-            'capitulos'      => ['VACACIONES', 'DESCANSO', 'PERMISOS Y LICENCIAS', 'LICENCIAS'],
+            'titulo'               => 'Descansos y Vacaciones',
+            'query'                => 'descanso remunerado vacaciones compensatorio permisos licencias acumulación registro',
+            'codigos_obligatorios' => ['Art. 179 CST', 'Art. 180 CST', 'Art. 181 CST', 'Art. 182 CST', 'Art. 186 CST', 'Art. 187 CST', 'Art. 188 CST', 'Art. 189 CST', 'Art. 190 CST'],
+            'palabras_clave'       => ['vacacion', 'descanso', 'compensa', 'permiso', 'licencia', 'hábiles', 'consecutiv', 'registro especial', 'registro de vacac'],
+            'capitulos'            => ['VACACIONES', 'DESCANSO', 'PERMISOS Y LICENCIAS', 'LICENCIAS'],
         ],
         'salario' => [
-            'titulo'         => 'Remuneración y Forma de Pago',
-            'query'          => 'salario remuneración forma periodicidad pago deducciones Art. 127 149 CST',
-            'palabras_clave' => ['salario', 'remunera', 'pago', 'sueldo', 'deduccion', 'nómina', 'trueque', 'fichas', 'víveres'],
-            'capitulos'      => ['REMUNERACIÓN', 'REMUNERACION', 'SALARIO', 'FORMA DE PAGO'],
+            'titulo'               => 'Remuneración y Forma de Pago',
+            'query'                => 'salario remuneración forma periodicidad pago deducciones propinas viáticos salario especie',
+            'codigos_obligatorios' => ['Art. 127 CST', 'Art. 128 CST', 'Art. 129 CST', 'Art. 131 CST', 'Art. 132 CST', 'Art. 133 CST', 'Art. 134 CST', 'Art. 136 CST', 'Art. 143 CST', 'Art. 149 CST'],
+            'palabras_clave'       => ['salario', 'remunera', 'pago', 'sueldo', 'deduccion', 'nómina', 'trueque', 'fichas', 'víveres'],
+            'capitulos'            => ['REMUNERACIÓN', 'REMUNERACION', 'SALARIO', 'FORMA DE PAGO'],
         ],
         'disciplina' => [
-            'titulo'         => 'Régimen Disciplinario',
-            'query'          => 'régimen disciplinario faltas leves graves sanciones descargos procedimiento Art. 105 113 CST',
-            'palabras_clave' => ['falta', 'sanc', 'disciplin', 'descargo', 'amonestac', 'suspens', 'sindical', 'multa', '1/5'],
-            'capitulos'      => ['RÉGIMEN DISCIPLINARIO', 'REGIMEN DISCIPLINARIO', 'FALTAS', 'SANCIONES', 'ESCALA DE SANCIONES'],
+            'titulo'               => 'Régimen Disciplinario',
+            'query'                => 'régimen disciplinario faltas leves graves sanciones descargos procedimiento multa suspensión',
+            'codigos_obligatorios' => ['Art. 108 CST', 'Art. 111 CST', 'Art. 112 CST', 'Art. 113 CST', 'Art. 114 CST', 'Art. 115 CST'],
+            'palabras_clave'       => ['falta', 'sanc', 'disciplin', 'descargo', 'amonestac', 'suspens', 'sindical', 'multa', '1/5'],
+            'capitulos'            => ['RÉGIMEN DISCIPLINARIO', 'REGIMEN DISCIPLINARIO', 'FALTAS', 'SANCIONES', 'ESCALA DE SANCIONES'],
             // Captura Cap VIII (clasificación de faltas) + Cap IX (escala de sanciones) juntos
-            'num_capitulos'  => 2,
+            'num_capitulos'        => 2,
         ],
         'sst' => [
-            'titulo'         => 'Seguridad y Salud en el Trabajo (SG-SST)',
-            'query'          => 'seguridad salud trabajo SG-SST riesgos profesionales accidentes enfermedades laborales obligaciones empleador',
-            'palabras_clave' => ['seguridad', 'salud', 'riesgo', 'accidente', 'SST', 'ARL', 'EPP', 'alcoholemia', 'psicoactiv', 'médico'],
-            'capitulos'      => ['SEGURIDAD Y SALUD', 'SG-SST', 'SST'],
+            'titulo'               => 'Seguridad y Salud en el Trabajo (SG-SST)',
+            'query'                => 'seguridad salud trabajo SG-SST riesgos profesionales accidentes enfermedades laborales EPP COPASST',
+            'codigos_obligatorios' => [],
+            'palabras_clave'       => ['seguridad', 'salud', 'riesgo', 'accidente', 'SST', 'ARL', 'EPP', 'alcoholemia', 'psicoactiv', 'médico'],
+            'capitulos'            => ['SEGURIDAD Y SALUD', 'SG-SST', 'SST'],
         ],
         'acoso' => [
-            'titulo'         => 'Acoso Laboral y Sexual',
-            'query'          => 'acoso laboral sexual prevención Ley 1010 2006 Ley 2365 2024 comité convivencia',
-            'palabras_clave' => ['acoso', 'hostigamiento', 'sexual', 'convivencia', 'matonismo', 'Ley 1010', 'Ley 2365', 'bipartit', '734', 'comité'],
-            'capitulos'      => ['ACOSO', 'CONVIVENCIA LABORAL', 'COMITÉ DE CONVIVENCIA', 'PREVENCIÓN DE ACOSO'],
+            'titulo'               => 'Acoso Laboral y Sexual',
+            'query'                => 'acoso laboral sexual prevención comité convivencia modalidades procedimiento queja denuncia',
+            'codigos_obligatorios' => [],
+            'palabras_clave'       => ['acoso', 'hostigamiento', 'sexual', 'convivencia', 'matonismo', 'bipartit', '734', 'comité'],
+            'capitulos'            => ['ACOSO', 'CONVIVENCIA LABORAL', 'COMITÉ DE CONVIVENCIA', 'PREVENCIÓN DE ACOSO'],
         ],
         'grupos_protegidos' => [
-            'titulo'         => 'Protección de Sujetos Especiales',
-            'query'          => 'mujer embarazada maternidad paternidad discapacidad fuero circunstancial trabajadores protegidos',
-            'palabras_clave' => ['maternidad', 'paternidad', 'embarazo', 'discapacidad', 'fuero', 'sindical', 'sujetos especial'],
-            // 'PROTECCIÓN' sola es demasiado genérica (puede coincidir con Cap XIV PREVENCIÓN DE ACOSO)
-            'capitulos'      => ['SUJETOS DE ESPECIAL', 'ESPECIAL PROTECCIÓN', 'GRUPOS PROTEGIDOS', 'TRABAJADORES PROTEGIDOS'],
+            'titulo'               => 'Protección de Sujetos Especiales',
+            'query'                => 'mujer embarazada maternidad paternidad discapacidad fuero sindical estabilidad laboral reforzada',
+            'codigos_obligatorios' => ['Art. 239 CST', 'Art. 240 CST', 'Art. 241 CST', 'Art. 241A CST'],
+            'palabras_clave'       => ['maternidad', 'paternidad', 'embarazo', 'discapacidad', 'fuero', 'sindical', 'sujetos especial'],
+            'capitulos'            => ['SUJETOS DE ESPECIAL', 'ESPECIAL PROTECCIÓN', 'GRUPOS PROTEGIDOS', 'TRABAJADORES PROTEGIDOS'],
         ],
     ];
 
     public function __construct(
-        private BibliotecaLegalService $biblioteca
+        private BibliotecaLegalService $biblioteca,
+        private RITGeneratorService    $ritGenerator,
     ) {}
 
     /**
@@ -247,56 +256,68 @@ class AuditoriaRITService
             $config['num_capitulos'] ?? 1
         );
 
-        // 2. Buscar normativa relevante en la biblioteca legal (RAG) — umbral bajo para capturar más
-        $normativa = $this->biblioteca->buscarFragmentos(
+        // 2. Artículos del CST (scraper leyes.co) — fuente primaria de normativa
+        $articulosCst = $this->ritGenerator->obtenerArticulosObligatorios(
+            $config['codigos_obligatorios'] ?? []
+        );
+
+        // 3. Biblioteca RAG — fuente complementaria
+        $normativaRag = $this->biblioteca->buscarFragmentos(
             texto: $config['query'],
-            limite: 5,
+            limite: 4,
             umbral: 0.35
         );
 
-        // 3. Sin documentos en la biblioteca → no se puede auditar esta sección con fundamento
-        if (empty(trim($normativa ?? ''))) {
-            Log::warning("AuditoriaRIT: biblioteca sin documentos para sección '{$config['titulo']}'");
+        // 4. Sin ninguna fuente de normativa → abortar con advertencia
+        if (empty(trim($articulosCst)) && empty(trim($normativaRag ?? ''))) {
+            Log::warning("AuditoriaRIT: sin normativa (scraper ni biblioteca) para '{$config['titulo']}'");
             return [
-                'titulo'              => $config['titulo'],
-                'cumple'              => false,
-                'calificacion'        => 'Sin base normativa',
-                'score'               => 0,
-                'hallazgos'           => ['La biblioteca legal no contiene documentos para auditar esta sección.'],
-                'recomendaciones'     => ['Cargue los documentos normativos correspondientes en la biblioteca legal.'],
+                'titulo'               => $config['titulo'],
+                'cumple'               => false,
+                'calificacion'         => 'Sin base normativa',
+                'score'                => 0,
+                'hallazgos'            => ['No se encontró normativa CST para auditar esta sección. Ejecute el scraper o cargue documentos en la biblioteca legal.'],
+                'recomendaciones'      => ['Ejecute php artisan cst:scraper para poblar la base normativa.'],
                 'articulos_referencia' => [],
-                'seccion_encontrada'  => !empty(trim($fragmentoRIT)),
+                'seccion_encontrada'   => !empty(trim($fragmentoRIT)),
             ];
         }
 
-        // 4. Construir prompt — Gemini debe limitarse EXCLUSIVAMENTE a la biblioteca legal
+        // 5. Construir prompt con artículos reales del CST + RAG como contexto jurídico
         $seccionEncontrada = !empty(trim($fragmentoRIT));
         $contextoRIT = $seccionEncontrada
-            ? "TEXTO DEL RIT (sección relevante):\n{$fragmentoRIT}"
-            : "TEXTO DEL RIT: Esta sección NO fue encontrada en el documento.";
+            ? "TEXTO DEL RIT — SECCIÓN RELEVANTE:\n{$fragmentoRIT}"
+            : "TEXTO DEL RIT: Esta sección NO fue encontrada en el documento — calificar como Ausente.";
+
+        $seccionArticulos = $articulosCst
+            ? "\nARTÍCULOS OFICIALES DEL CST (fuente: base de datos interna — principal referencia normativa):\n{$articulosCst}\n"
+            : '';
+
+        $seccionRag = $normativaRag
+            ? "\nFRAGMENTOS DE LA BIBLIOTECA JURÍDICA (fuente complementaria):\n{$normativaRag}\n"
+            : '';
 
         $prompt = <<<PROMPT
 Eres un auditor legal que revisa el Reglamento Interno de Trabajo de "{$razonSocial}".
 
-INSTRUCCIÓN CRÍTICA: Basa tu análisis EXCLUSIVAMENTE en los fragmentos de la biblioteca jurídica
-proporcionados a continuación. NO uses tu conocimiento de entrenamiento, NO cites normas que no
-aparezcan en los fragmentos provistos. Si los fragmentos no son suficientes para evaluar un aspecto,
-indícalo en hallazgos. Cita siempre el documento fuente de cada hallazgo.
-
+REGLA FUNDAMENTAL: Basa tu análisis EXCLUSIVAMENTE en el contexto jurídico inyectado más abajo.
+NO uses tu conocimiento de entrenamiento. NO cites normas que no aparezcan en el contexto.
+Si el contexto jurídico es insuficiente para evaluar un aspecto, indícalo en hallazgos.
+{$seccionArticulos}{$seccionRag}
 SECCIÓN A AUDITAR: {$config['titulo']}
-
-FRAGMENTOS DE LA BIBLIOTECA JURÍDICA (única fuente autorizada):
-{$normativa}
 
 {$contextoRIT}
 
-Analiza si el RIT cumple la normativa provista. JSON de respuesta (sin texto adicional):
-- cumple: boolean
-- calificacion: "Completo", "Parcial" o "Ausente"
-- score: integer 0-100
-- hallazgos: array máximo 2 strings, cada uno máximo 80 caracteres
-- recomendaciones: array máximo 2 strings, cada uno máximo 80 caracteres
-- articulos_referencia: array máximo 4 strings cortos (ej: "Art. 76 CST")
+Evalúa si el RIT cumple lo que establece el contexto jurídico para esta sección.
+Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
+{
+  "cumple": boolean,
+  "calificacion": "Completo" | "Parcial" | "Ausente",
+  "score": integer 0-100,
+  "hallazgos": [ máximo 3 strings, cada uno máximo 100 caracteres ],
+  "recomendaciones": [ máximo 3 strings, cada uno máximo 100 caracteres ],
+  "articulos_referencia": [ máximo 5 strings cortos, ej: "Art. 76 CST", solo los presentes en el contexto ]
+}
 PROMPT;
 
         $respuesta = $this->llamarIA($prompt, true);

@@ -13,10 +13,11 @@
         'warning' => '#f59e0b',
         default   => '#ef4444',
     };
+    $esExterno       = $auditoria?->fuente === 'externo';   // RIT subido manualmente
     $estadoMejora    = $auditoria?->estado_mejora ?? 'no_aplica';
-    $mejorando       = $estadoMejora === 'procesando';
-    $mejoraLista     = $estadoMejora === 'completado' && $ritMejorado;
-    $mejoraFallo     = $estadoMejora === 'fallido';
+    $mejorando       = $esExterno && $estadoMejora === 'procesando';
+    $mejoraLista     = $esExterno && $estadoMejora === 'completado' && $ritMejorado;
+    $mejoraFallo     = $esExterno && $estadoMejora === 'fallido';
     $numCorregidas   = $mejoraLista ? collect($secciones)->filter(fn($s) => ($s['score'] ?? 100) < 100)->count() : 0;
 
     // GAP
@@ -372,6 +373,19 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
         @endforeach
       </div>
     </div>
+
+    {{-- ── INFO: RIT generado por el sistema (no aplica versión mejorada) ── --}}
+    @if($auditoria?->estado === 'completado' && !$esExterno)
+    <div style="padding:1rem 1.25rem;border-radius:.875rem;border:1px solid rgba(99,102,241,.2);background:rgba(99,102,241,.05);display:flex;align-items:flex-start;gap:.875rem">
+      <svg style="width:18px;height:18px;color:#818cf8;flex-shrink:0;margin-top:.1rem" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
+      <div>
+        <p style="font-size:.8125rem;font-weight:600;color:#a5b4fc;margin:0 0 .2rem">RIT generado por el sistema</p>
+        <p style="font-size:.775rem;color:#64748b;margin:0;line-height:1.6">
+          Este reglamento fue creado por la IA del sistema siguiendo los estándares del CST. Los hallazgos de la auditoría son informativos; no se genera una versión mejorada (v+1) para RITs producidos por el sistema.
+        </p>
+      </div>
+    </div>
+    @endif
 
     {{-- ── RIT MEJORADO: EN PROCESO ── --}}
     @if($mejorando)

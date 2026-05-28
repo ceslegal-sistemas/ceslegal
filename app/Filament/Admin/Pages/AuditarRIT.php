@@ -255,6 +255,12 @@ class AuditarRIT extends Page implements HasForms
             Notification::make()->warning()->title('No hay auditoría completada')->send();
             return;
         }
+        if ($this->auditoria->fuente !== 'externo') {
+            Notification::make()->warning()->title('Sin acción disponible')
+                ->body('La versión mejorada solo aplica para RITs subidos manualmente.')
+                ->send();
+            return;
+        }
 
         $this->auditoria->update([
             'estado_mejora' => 'procesando',
