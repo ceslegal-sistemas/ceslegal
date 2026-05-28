@@ -5,15 +5,12 @@ namespace App\Filament\Admin\Pages;
 use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
 use App\Filament\Admin\Widgets\StatsOverviewWidget;
 use App\Filament\Admin\Widgets\RecentProcessesWidget;
-use App\Filament\Admin\Widgets\ExpiringTermsWidget;
 use App\Filament\Admin\Widgets\ProcessesByStatusChart;
 use App\Filament\Admin\Widgets\RecentActivityWidget;
+use App\Services\GoogleOAuthService;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Actions;
-use Filament\Actions\Action;
-use App\Services\GoogleOAuthService;
 use Filament\Notifications\Notification;
-use App\Filament\Admin\Resources\EmpresaResource;
 
 class Dashboard extends BaseDashboard
 {
@@ -38,8 +35,8 @@ class Dashboard extends BaseDashboard
                     'onclick' => 'window.iniciarTour(); return false;',
                 ]),
 
-            Actions\Action::make('Crear DESCARGOS')
-                ->label('Crear DESCARGOS')
+            Actions\Action::make('Crear Descargos')
+                ->label('Crear Descargos')
                 ->icon('heroicon-o-plus-circle')
                 ->color('primary')
                 ->url(ProcesoDisciplinarioResource::getUrl('create')),
