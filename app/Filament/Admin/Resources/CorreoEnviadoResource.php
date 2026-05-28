@@ -87,22 +87,30 @@ class CorreoEnviadoResource extends Resource
                 ->schema([
                     Forms\Components\Select::make('proceso_id')
                         ->label('Proceso disciplinario (opcional)')
-                        ->options(
-                            ProcesoDisciplinario::query()
+                        ->options(function (Forms\Get $get) {
+                            $trabajadorId = $get('trabajador_id');
+                            
+                            $query = ProcesoDisciplinario::query()
                                 ->select('id', 'codigo')
-                                ->orderByDesc('created_at')
-                                ->when(
-                                    !Auth::user()->hasRole('super_admin'),
-                                    fn($query) => $query->where('empresa_id', Auth::user()->empresa_id)
-                                )
+                                ->orderByDesc('created_at');
+                            
+                            if ($trabajadorId) {
+                                $query->where('trabajador_id', $trabajadorId);
+                            }
+                            
+                            $query->when(
+                                !Auth::user()->hasRole('super_admin'),
+                                fn($q) => $q->where('empresa_id', Auth::user()->empresa_id)
+                            );
+                            
+                            return $query
                                 ->limit(300)
                                 ->get()
-                                ->mapWithKeys(fn($t) => [
-                                    $t->id => "{$t->codigo} - {$t->trabajador_id->nombres} {$t->trabajador_id->apellidos}",
-                                ])
-                        )
+                                ->mapWithKeys(fn($p) => [$p->id => $p->codigo]);
+                        })
                         ->searchable()
                         ->nullable()
+                        ->live()
                         ->placeholder('Vincular a un proceso...'),
 
                     Forms\Components\Select::make('empresa_id')
