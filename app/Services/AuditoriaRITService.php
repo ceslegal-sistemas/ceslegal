@@ -42,10 +42,13 @@ class AuditoriaRITService
         ],
         'descansos' => [
             'titulo'               => 'Descansos y Vacaciones',
-            'query'                => 'descanso remunerado vacaciones compensatorio permisos licencias acumulación registro',
+            'query'                => 'descanso remunerado vacaciones compensatorio permisos licencias acumulación registro dominical recargo técnicos',
             'codigos_obligatorios' => ['Art. 179 CST', 'Art. 180 CST', 'Art. 181 CST', 'Art. 182 CST', 'Art. 186 CST', 'Art. 187 CST', 'Art. 188 CST', 'Art. 189 CST', 'Art. 190 CST'],
-            'palabras_clave'       => ['vacacion', 'descanso', 'compensa', 'permiso', 'licencia', 'hábiles', 'consecutiv', 'registro especial', 'registro de vacac'],
-            'capitulos'            => ['VACACIONES', 'DESCANSO', 'PERMISOS Y LICENCIAS', 'LICENCIAS'],
+            'palabras_clave'       => ['vacacion', 'descanso', 'compensa', 'permiso', 'licencia', 'hábiles', 'consecutiv', 'registro especial', 'registro de vacac', 'dominical', 'recargo'],
+            // El descanso dominical/compensatorio vive en Cap III (Jornada). Empezar desde ahí
+            // y capturar 4 capítulos consecutivos (III→IV→V→VI) para no perder ese contenido.
+            'capitulos'            => ['JORNADA', 'VACACIONES', 'DESCANSO', 'PERMISOS Y LICENCIAS', 'LICENCIAS'],
+            'num_capitulos'        => 4,
         ],
         'salario' => [
             'titulo'               => 'Remuneración y Forma de Pago',
