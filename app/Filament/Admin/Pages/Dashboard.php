@@ -45,19 +45,20 @@ class Dashboard extends BaseDashboard
                 ->label('Conectar Gmail')
                 ->icon('heroicon-o-envelope')
                 ->color('success')
-                ->url(fn() => app(GoogleOAuthService::class)->buildAuthUrl($this->record->id))
-                ->visible(fn() => !$this->record->tieneGmailConectado()),
+                ->url(fn() => app(GoogleOAuthService::class)->buildAuthUrl(auth()->user()?->id))
+                ->visible(fn() => !(auth()->user()?->tieneGmailConectado() ?? false)),
 
             Actions\Action::make('desconectar_gmail')
-                ->label(fn() => 'Desconectar Gmail: ' . $this->record->google_oauth_email)
+                ->label(fn() => 'Desconectar Gmail: ' . (auth()->user()?->google_oauth_email ?? ''))
                 ->icon('heroicon-o-x-mark')
                 ->color('danger')
                 ->requiresConfirmation()
                 ->modalHeading('Desconectar Gmail')
                 ->modalDescription('¿Está seguro de que desea desconectar la cuenta de Gmail de esta empresa? Los correos futuros se enviarán por SMTP.')
                 ->action(function () {
-                    app(GoogleOAuthService::class)->disconnect($this->record);
-                    $this->record->refresh();
+                    $user = auth()->user();
+                    app(GoogleOAuthService::class)->disconnect($user);
+                    $user?->refresh();
 
                     Notification::make()
                         ->success()
@@ -65,7 +66,7 @@ class Dashboard extends BaseDashboard
                         ->body('La cuenta ha sido desvinculada. Los correos futuros se enviarán por SMTP.')
                         ->send();
                 })
-                ->visible(fn() => $this->record->tieneGmailConectado()),
+                ->visible(fn() => auth()->user()?->tieneGmailConectado() ?? false),
         ];
     }
 
