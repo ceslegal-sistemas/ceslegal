@@ -11,7 +11,7 @@ class EmailTracking extends Model
 {
     protected $fillable = [
         'token',
-        'tipo_correo',
+        'tipo_documento',
         'proceso_id',
         'trabajador_id',
         'email_destinatario',
@@ -132,9 +132,9 @@ class EmailTracking extends Model
     /**
      * Scope para filtrar por tipo de correo
      */
-    public function scopeTipoCorreo($query, string $tipo)
+    public function scopeTipoDocumento($query, string $tipo)
     {
-        return $query->where('tipo_correo', $tipo);
+        return $query->where('tipo_documento', $tipo);
     }
 
     /**
@@ -168,12 +168,15 @@ class EmailTracking extends Model
     /**
      * Obtener el nombre legible del tipo de correo
      */
-    public function getTipoCorreoLegibleAttribute(): string
+    public function getTipoDocumentoLegibleAttribute(): string
     {
-        return match ($this->tipo_correo) {
-            'citacion' => 'Citación a Descargos',
-            'sancion' => 'Notificación de Sanción',
-            default => ucfirst($this->tipo_correo),
+        return match ($this->tipo_documento) {
+            'citacion_descargos'              => 'Citación a Descargos',
+            'sancion'                         => 'Notificación de Sanción',
+            'recordatorio_descargos'          => 'Recordatorio de Descargos',
+            'descargos_no_realizados_empleador' => 'Descargos No Realizados',
+            'resolucion_impugnacion'          => 'Resolución de Impugnación',
+            default                           => ucfirst(str_replace('_', ' ', $this->tipo_documento ?? '')),
         };
     }
 }
