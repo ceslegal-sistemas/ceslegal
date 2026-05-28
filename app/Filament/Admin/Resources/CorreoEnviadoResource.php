@@ -27,7 +27,7 @@ class CorreoEnviadoResource extends Resource
     public static function canAccess(): bool
     {
         $user = Auth::user();
-        return $user && ($user->hasRole('super_admin') || $user->hasRole('abogado'));
+        // return $user && ($user->hasRole('super_admin') || $user->hasRole('abogado'));
     }
 
     public static function form(Form $form): Form
