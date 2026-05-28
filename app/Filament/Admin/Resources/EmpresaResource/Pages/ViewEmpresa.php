@@ -21,7 +21,7 @@ class ViewEmpresa extends ViewRecord
                 ->label('Conectar Gmail')
                 ->icon('heroicon-o-envelope')
                 ->color('success')
-                ->url(fn () => route('google.oauth.iniciar', $this->record->id))
+                ->url(fn () => app(GoogleOAuthService::class)->buildAuthUrl($this->record->id))
                 ->visible(fn () => !$this->record->tieneGmailConectado()),
 
             Actions\Action::make('desconectar_gmail')
