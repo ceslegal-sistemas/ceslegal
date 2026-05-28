@@ -24,11 +24,11 @@ class CorreoEnviadoResource extends Resource
     protected static ?string $navigationGroup  = 'Comunicaciones';
     protected static ?int    $navigationSort   = 90;
 
-    public static function canAccess(): bool
-    {
-        $user = Auth::user();
-        // return $user && ($user->hasRole('super_admin') || $user->hasRole('abogado'));
-    }
+    // public static function canAccess(): bool
+    // {
+    //     $user = Auth::user();
+    //     // return $user && ($user->hasRole('super_admin') || $user->hasRole('abogado'));
+    // }
 
     public static function form(Form $form): Form
     {
