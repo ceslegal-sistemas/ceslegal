@@ -11,6 +11,7 @@ use App\Services\GoogleOAuthService;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Actions;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Auth;
 
 class Dashboard extends BaseDashboard
 {
@@ -46,17 +47,17 @@ class Dashboard extends BaseDashboard
                 ->icon('heroicon-o-envelope')
                 ->color('success')
                 ->url(function() {
-                    $user = \Auth::user();
+                    $user = Auth::user();
                     return app(GoogleOAuthService::class)->buildAuthUrl($user?->id);
                 })
                 ->visible(function() {
-                    $user = \Auth::user();
+                    $user = Auth::user();
                     return !($user?->google_oauth_tokens ?? null);
                 }),
 
             Actions\Action::make('desconectar_gmail')
                 ->label(function() {
-                    $user = \Auth::user();
+                    $user = Auth::user();
                     return 'Desconectar Gmail: ' . ($user?->google_oauth_email ?? '');
                 })
                 ->icon('heroicon-o-x-mark')
@@ -65,7 +66,7 @@ class Dashboard extends BaseDashboard
                 ->modalHeading('Desconectar Gmail')
                 ->modalDescription('¿Está seguro de que desea desconectar la cuenta de Gmail de esta empresa? Los correos futuros se enviarán por SMTP.')
                 ->action(function () {
-                    $user = \Auth::user();
+                    $user = Auth::user();
                     app(GoogleOAuthService::class)->disconnect($user);
                     $user?->refresh();
 
@@ -76,7 +77,7 @@ class Dashboard extends BaseDashboard
                         ->send();
                 })
                 ->visible(function() {
-                    $user = \Auth::user();
+                    $user = Auth::user();
                     return (bool) ($user?->google_oauth_tokens ?? null);
                 }),
         ];
