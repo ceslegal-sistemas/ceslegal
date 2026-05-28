@@ -96,6 +96,14 @@ class CorreoEnviadoResource extends Resource
                         ->nullable()
                         ->placeholder('Vincular a un proceso...'),
 
+                    Forms\Components\Select::make('empresa_id')
+                        ->label('Empresa remitente (Gmail)')
+                        ->relationship('empresa', 'razon_social')
+                        ->searchable()
+                        ->nullable()
+                        ->placeholder('Sistema (SMTP por defecto)')
+                        ->helperText('Si la empresa tiene Gmail conectado, el correo saldrá desde ese Gmail.'),
+
                     Forms\Components\Select::make('prioridad')
                         ->label('Prioridad')
                         ->options([
