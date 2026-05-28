@@ -59,7 +59,15 @@ class RITGeneratorService
             ]);
 
             $rag                   = $biblioteca->buscarFragmentos($cap['query_rag'], limite: 8, umbral: 0.30);
-            $articulosObligatorios = $this->obtenerArticulosObligatorios($cap['codigos_obligatorios'] ?? []);
+            $codigosObligatorios   = $cap['codigos_obligatorios'] ?? [];
+            $articulosObligatorios = $this->obtenerArticulosObligatorios($codigosObligatorios);
+            $articulosPorTema      = $this->buscarArticulosPorTema(
+                $cap['query_rag'],
+                $codigosObligatorios,   // excluir los ya obtenidos por código exacto
+                8
+            );
+            // Combinar: los obligatorios primero, luego los encontrados por tema
+            $articulosObligatorios = trim($articulosObligatorios . ($articulosPorTema ? "\n\n" . $articulosPorTema : ''));
             $contextoEmpresa       = $this->construirContextoEmpresa($cap, $respuestas, $empresa);
 
             $prompt = $this->construirPrompt(
@@ -258,6 +266,56 @@ class RITGeneratorService
         }
     }
 
+    /**
+     * Busca artículos scrapeados por palabras clave del tema del capítulo.
+     * Complementa obtenerArticulosObligatorios() con artículos relevantes
+     * que no están en la lista codigos_obligatorios.
+     * Excluye los artículos ya obtenidos por código exacto.
+     */
+    public function buscarArticulosPorTema(string $queryTema, array $yaObtenidos = [], int $limite = 8): string
+    {
+        // Extraer términos significativos (> 4 chars, sin stopwords básicas)
+        $stopwords = ['para', 'como', 'desde', 'hasta', 'sobre', 'entre', 'según', 'cuando', 'donde', 'trabajo'];
+        $terminos = array_filter(
+            array_unique(explode(' ', mb_strtolower($queryTema))),
+            fn($t) => strlen($t) > 4 && !in_array($t, $stopwords)
+        );
+        $terminos = array_slice(array_values($terminos), 0, 6);
+
+        if (empty($terminos)) return '';
+
+        try {
+            $query = \App\Models\ArticuloLegal::whereNull('empresa_id')
+                ->where('activo', true);
+
+            if (!empty($yaObtenidos)) {
+                $query->whereNotIn('codigo', $yaObtenidos);
+            }
+
+            // Cada término debe aparecer en título o texto
+            foreach ($terminos as $termino) {
+                $query->where(function ($q) use ($termino) {
+                    $q->whereRaw('LOWER(titulo) LIKE ?', ["%{$termino}%"])
+                      ->orWhereRaw('LOWER(texto_completo) LIKE ?', ["%{$termino}%"]);
+                });
+            }
+
+            $articulos = $query->limit($limite)->get();
+
+            if ($articulos->isEmpty()) return '';
+
+            return $articulos
+                ->map(fn($a) => "--- {$a->codigo}: {$a->titulo} ---\n{$a->texto_completo}")
+                ->implode("\n\n");
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('RITGeneratorService: buscarArticulosPorTema falló', [
+                'query' => $queryTema,
+                'error' => $e->getMessage(),
+            ]);
+            return '';
+        }
+    }
+
     private function construirContextoEmpresa(array $cap, array $respuestas, Empresa $empresa): string
     {
         $lista = fn($arr) => is_array($arr) ? implode(', ', array_filter($arr)) : ($arr ?? '');
@@ -364,11 +422,19 @@ Eres un abogado laboral colombiano experto en Reglamentos Internos de Trabajo.
 Redacta ÚNICAMENTE el CAPÍTULO {$numero} ({$titulo}) del RIT de "{$razonSocial}".
 Los artículos comienzan desde ARTÍCULO {$articuloInicio}.
 
-REGLA FUNDAMENTAL — CITAS LEGALES:
-- Números de artículo, nombres de ley, porcentajes y plazos legales: SOLO los que aparezcan
-  textualmente en el contexto jurídico inyectado más abajo (artículos CST o biblioteca).
-- PROHIBIDO inventar o recordar artículos, leyes, porcentajes o plazos de tu entrenamiento.
-- Si el contexto no trae una cifra o referencia, redacta el concepto sin citar la fuente legal.
+REGLA FUNDAMENTAL — ANTI-ALUCINACIÓN (INCUMPLIRLA INVALIDA EL DOCUMENTO):
+PROHIBICIÓN ABSOLUTA: NUNCA menciones ningún número de artículo, nombre de ley, decreto,
+resolución, sentencia, porcentaje, plazo en días/semanas/meses, ni salario mínimo concreto
+que NO aparezca literalmente en la sección "ARTÍCULOS OFICIALES" inyectada abajo.
+ESTO INCLUYE todo lo que recuerdes de tu entrenamiento, aunque estés completamente seguro
+de que es correcto. "Ley 2101 de 2021", "Art. 167A", "18 semanas", "Resolución 652/2012",
+"Decreto 1072/2015" — NINGUNO puede aparecer en el texto generado a menos que esté
+literalmente en el contexto inyectado.
+CUANDO QUIERAS CITAR algo que no está en el contexto inyectado: escribe la obligación
+en términos generales. Ejemplos CORRECTOS: "conforme a la normativa vigente", "según la
+ley laboral aplicable", "de acuerdo con el contexto jurídico que rige esta materia".
+ÚNICO ORIGEN VÁLIDO de cualquier cifra, artículo, ley o porcentaje específico:
+los textos que aparecen en la sección ARTÍCULOS OFICIALES más abajo.
 
 INSTRUCCIONES TEMÁTICAS DE ESTE CAPÍTULO:
 {$instr}
@@ -1145,7 +1211,7 @@ HTML;
                 'datos_empresa_keys'   => ['sanciones_configuradas', 'faltas_leves', 'faltas_graves', 'cargos'],
                 'instrucciones' => implode("\n", [
                     'A. DEFINICIÓN DE FALTA DISCIPLINARIA: incumplimiento de obligaciones o transgresión de prohibiciones del reglamento.',
-                    'B. LABORES PROHIBIDAS — artículo OBLIGATORIO exigido por el Art. 108 del CST: indicar expresamente las labores que NO pueden ejecutar las mujeres y los menores de dieciséis (16) años en la empresa, con referencia a las normas del contexto jurídico inyectado. Si la empresa no emplea menores ni tiene labores de alto riesgo para mujeres gestantes o en lactancia, indicarlo explícitamente.',
+                    'B. LABORES PROHIBIDAS — artículo OBLIGATORIO: indicar expresamente las labores que NO pueden ejecutar las mujeres y los menores de dieciséis (16) años en la empresa, con referencia a las normas del contexto jurídico inyectado. Si la empresa no emplea menores ni tiene labores de alto riesgo para mujeres gestantes o en lactancia, indicarlo explícitamente.',
                     'C. CATÁLOGO DE FALTAS LEVES (mínimo 8, lista 1) 2) 3)): impuntualidad reiterada, ausentarse sin permiso, descuido en el puesto, uso personal de equipos de la empresa, incumplimiento de entregas, presentación personal inadecuada, descuido en el uso de elementos de seguridad, etc.',
                     'D. CATÁLOGO DE FALTAS GRAVES (mínimo 8): reincidencia en faltas leves, abandono injustificado del puesto, daño doloso a bienes, engaño o fraude, falta grave de respeto, divulgación de información confidencial, inasistencia injustificada, incumplimiento reiterado de instrucciones.',
                     'E. CATÁLOGO DE FALTAS MUY GRAVES (mínimo 5): hurto o apropiación indebida, agresión física, acoso laboral o sexual, presentarse bajo efectos de alcohol o sustancias psicoactivas, sabotaje.',
@@ -1260,7 +1326,7 @@ HTML;
                     '   d) Reuniones ordinarias y extraordinarias cuando se requiera. La frecuencia mínima proviene del contexto jurídico inyectado.',
                     '   e) Quorum para sesionar según el contexto jurídico inyectado.',
                     '   f) Actas de reunión como constancia de las actuaciones.',
-                    'C. FUNCIONES DEL COMITÉ — artículo completo con TODAS estas funciones (Res. 652/2012): recibir y dar trámite a las quejas de acoso laboral; escuchar a las partes involucradas; promover acuerdos conciliatorios entre las partes; formular planes de mejora para convivencia laboral; hacer seguimiento a las medidas adoptadas; hacer seguimiento a las recomendaciones dadas por el Comité a las dependencias de gestión del talento humano y salud ocupacional de la empresa; reportar a la alta dirección los casos y sus resultados; hacer seguimiento trimestral de los casos atendidos.',
+                    'C. FUNCIONES DEL COMITÉ — artículo completo con TODAS estas funciones: recibir y dar trámite a las quejas de acoso laboral; escuchar a las partes involucradas; promover acuerdos conciliatorios entre las partes; formular planes de mejora para convivencia laboral; hacer seguimiento a las medidas adoptadas; hacer seguimiento a las recomendaciones dadas por el Comité a las dependencias de gestión del talento humano y salud ocupacional de la empresa; reportar a la alta dirección los casos y sus resultados; hacer seguimiento trimestral de los casos atendidos.',
                     'D. PROCEDIMIENTO INTERNO DE QUEJA POR ACOSO LABORAL — artículo con pasos numerados obligatorios:',
                     '   1) Presentación escrita de la queja ante el Comité de Convivencia Laboral, con descripción de los hechos, fechas y testigos.',
                     '   2) Notificación al presunto acosador dentro de los 5 días hábiles siguientes.',
