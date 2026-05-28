@@ -211,6 +211,10 @@ Route::get('/api/email-tracking/{procesoId}', [EmailTrackingController::class, '
     ->middleware(['auth'])
     ->name('email.tracking.estado');
 
+// Tracking de correos oficiales (CorreoEnviado)
+Route::get('/correo/track/{token}.gif', [\App\Http\Controllers\CorreoTrackingController::class, 'pixel'])
+    ->name('correo.tracking.pixel');
+
 
 // Servir documentación estática de Starlight
 Route::get('/docs/{path?}', function ($path = '') {
