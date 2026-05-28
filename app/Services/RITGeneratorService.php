@@ -235,7 +235,7 @@ class RITGeneratorService
         return true;
     }
 
-    private function obtenerArticulosObligatorios(array $codigos): string
+    public function obtenerArticulosObligatorios(array $codigos): string
     {
         if (empty($codigos)) return '';
 

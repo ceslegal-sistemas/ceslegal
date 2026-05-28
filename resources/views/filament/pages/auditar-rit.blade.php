@@ -385,7 +385,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
             Generando RIT Mejorado con IA...
           </p>
           <p style="font-size:.775rem;color:#64748b;margin:0;line-height:1.5">
-            La IA está aplicando las correcciones de la auditoría y consultando la biblioteca jurídica para generar la versión mejorada del Reglamento Interno.
+            {{ $auditoria?->progreso_mejora ?? 'Iniciando mejora capítulo por capítulo...' }}
           </p>
         </div>
       </div>

@@ -43,7 +43,14 @@ class GenerarRITMejoradoJob implements ShouldQueue
             return;
         }
 
-        $ritMejorado = $service->generar($auditoria);
+        $ritMejorado = $service->generar(
+            $auditoria,
+            function (int $cap, int $total, string $titulo) use ($auditoria): void {
+                $auditoria->update(['progreso_mejora' => "Capítulo {$cap}/{$total}: {$titulo}"]);
+            }
+        );
+
+        $auditoria->update(['progreso_mejora' => null]);
 
         // Notificar al usuario
         $user = \App\Models\User::find($this->userId);
