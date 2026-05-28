@@ -16,6 +16,7 @@ class CorreoEnviado extends Model
         'enviado_por',
         'trabajador_id',
         'proceso_id',
+        'empresa_id',
         'destinatario_nombre',
         'email_destinatario',
         'email_cc',
@@ -54,6 +55,11 @@ class CorreoEnviado extends Model
     public function proceso(): BelongsTo
     {
         return $this->belongsTo(ProcesoDisciplinario::class, 'proceso_id');
+    }
+
+    public function empresa(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Empresa::class, 'empresa_id');
     }
 
     // ── Helpers de token ─────────────────────────────────────────────────────
