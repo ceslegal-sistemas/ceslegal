@@ -98,7 +98,7 @@ class CorreoEnviadoResource extends Resource
                                 ->limit(300)
                                 ->get()
                                 ->mapWithKeys(fn($t) => [
-                                    $t->id => "{$t->codigo} - {$t->nombres} {$t->apellidos}",
+                                    $t->id => "{$t->codigo} - {$t->trabajador?->nombres} {$t->trabajador?->apellidos}",
                                 ])
                         )
                         ->searchable()
@@ -110,7 +110,7 @@ class CorreoEnviadoResource extends Resource
                         ->relationship('empresa', 'razon_social')
                         ->searchable()
                         ->nullable()
-                        ->visible(fn() => auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('abogado'))
+                        ->visible(fn() => Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('abogado'))
                         ->placeholder('Sistema (SMTP por defecto)')
                         ->helperText('Si la empresa tiene Gmail conectado, el correo saldrá desde ese Gmail.'),
 
