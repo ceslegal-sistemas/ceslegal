@@ -13,6 +13,7 @@ use Filament\Actions;
 use Filament\Actions\Action;
 use App\Services\GoogleOAuthService;
 use Filament\Notifications\Notification;
+use App\Filament\Admin\Resources\EmpresaResource;
 
 class Dashboard extends BaseDashboard
 {
@@ -69,6 +70,11 @@ class Dashboard extends BaseDashboard
                 })
                 ->visible(fn() => $this->record->tieneGmailConectado()),
         ];
+    }
+
+    public function tieneGmailConectado(): bool
+    {
+        return !empty($this->google_oauth_tokens);
     }
 
     public function getWidgets(): array
