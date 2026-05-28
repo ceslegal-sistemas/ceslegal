@@ -45,18 +45,27 @@ class Dashboard extends BaseDashboard
                 ->label('Conectar Gmail')
                 ->icon('heroicon-o-envelope')
                 ->color('success')
-                ->url(fn() => app(GoogleOAuthService::class)->buildAuthUrl(auth()->user()?->id))
-                ->visible(fn() => !(auth()->user()?->tieneGmailConectado() ?? false)),
+                ->url(function() {
+                    $user = \Auth::user();
+                    return app(GoogleOAuthService::class)->buildAuthUrl($user?->id);
+                })
+                ->visible(function() {
+                    $user = \Auth::user();
+                    return !($user?->google_oauth_tokens ?? null);
+                }),
 
             Actions\Action::make('desconectar_gmail')
-                ->label(fn() => 'Desconectar Gmail: ' . (auth()->user()?->google_oauth_email ?? ''))
+                ->label(function() {
+                    $user = \Auth::user();
+                    return 'Desconectar Gmail: ' . ($user?->google_oauth_email ?? '');
+                })
                 ->icon('heroicon-o-x-mark')
                 ->color('danger')
                 ->requiresConfirmation()
                 ->modalHeading('Desconectar Gmail')
                 ->modalDescription('¿Está seguro de que desea desconectar la cuenta de Gmail de esta empresa? Los correos futuros se enviarán por SMTP.')
                 ->action(function () {
-                    $user = auth()->user();
+                    $user = \Auth::user();
                     app(GoogleOAuthService::class)->disconnect($user);
                     $user?->refresh();
 
@@ -66,13 +75,11 @@ class Dashboard extends BaseDashboard
                         ->body('La cuenta ha sido desvinculada. Los correos futuros se enviarán por SMTP.')
                         ->send();
                 })
-                ->visible(fn() => auth()->user()?->tieneGmailConectado() ?? false),
+                ->visible(function() {
+                    $user = \Auth::user();
+                    return (bool) ($user?->google_oauth_tokens ?? null);
+                }),
         ];
-    }
-
-    public function tieneGmailConectado(): bool
-    {
-        return !empty($this->google_oauth_tokens);
     }
 
     public function getWidgets(): array
