@@ -3,7 +3,9 @@
 namespace App\Filament\Admin\Resources\CorreoEnviadoResource\Pages;
 
 use App\Filament\Admin\Resources\CorreoEnviadoResource;
+use App\Services\GoogleOAuthService;
 use Filament\Actions;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +18,45 @@ class ListCorreosEnviados extends ListRecords
     {
         return [
             Actions\CreateAction::make()->label('Redactar correo'),
+
+            Actions\Action::make('conectar_gmail')
+                ->label('Conectar Gmail')
+                ->icon('heroicon-o-envelope')
+                ->color('success')
+                ->url(function () {
+                    $user = Auth::user();
+                    return app(GoogleOAuthService::class)->buildAuthUrl($user?->id);
+                })
+                ->visible(function () {
+                    $user = Auth::user();
+                    return !($user?->google_oauth_tokens ?? null);
+                }),
+
+            Actions\Action::make('desconectar_gmail')
+                ->label(function () {
+                    $user = Auth::user();
+                    return 'Desconectar Gmail: ' . ($user?->google_oauth_email ?? '');
+                })
+                ->icon('heroicon-o-x-mark')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Desconectar Gmail')
+                ->modalDescription('¿Está seguro de que desea desconectar la cuenta de Gmail de esta empresa? Los correos futuros se enviarán por SMTP.')
+                ->action(function () {
+                    $user = Auth::user();
+                    app(GoogleOAuthService::class)->disconnect($user);
+                    $user?->refresh();
+
+                    Notification::make()
+                        ->success()
+                        ->title('Gmail desconectado')
+                        ->body('La cuenta ha sido desvinculada. Los correos futuros se enviarán por SMTP.')
+                        ->send();
+                })
+                ->visible(function () {
+                    $user = Auth::user();
+                    return (bool) ($user?->google_oauth_tokens ?? null);
+                }),
         ];
     }
 
