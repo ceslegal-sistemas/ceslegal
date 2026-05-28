@@ -42,7 +42,7 @@ class CorreoEnviadoResource extends Resource
                         ->options(
                             Trabajador::query()
                                 ->where('empresa_id', auth()->user()->empresa_id)
-                                ->orWhere('empresa_id', null)
+                                ->when(!auth()->user()->hasRole('super_admin'), fn($q) => $q->where('empresa_id', auth()->user()->empresa_id))
                                 ->get()
                                 ->mapWithKeys(fn($t) => [
                                     $t->id => "{$t->nombres} {$t->apellidos} — {$t->email}",
@@ -90,7 +90,7 @@ class CorreoEnviadoResource extends Resource
                                 ->select('id', 'codigo')
                                 ->orderByDesc('created_at')
                                 ->where('empresa_id', auth()->user()->empresa_id)
-                                ->orWhere('empresa_id', null)
+                                ->when(!auth()->user()->hasRole('super_admin'), fn($q) => $q->where('empresa_id', auth()->user()->empresa_id))
                                 ->limit(300)
                                 ->get()
                                 ->mapWithKeys(fn($p) => [$p->id => $p->codigo])
