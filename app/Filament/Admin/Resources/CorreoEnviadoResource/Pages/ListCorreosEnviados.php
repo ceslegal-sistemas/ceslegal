@@ -20,7 +20,7 @@ class ListCorreosEnviados extends ListRecords
             Actions\CreateAction::make()->label('Redactar correo'),
 
             Actions\Action::make('conectar_gmail')
-                ->label('Conectar Gmail')
+                ->label('Conecta tu Gmail')
                 ->icon('heroicon-o-envelope')
                 ->color('success')
                 ->url(function () {
@@ -35,7 +35,7 @@ class ListCorreosEnviados extends ListRecords
             Actions\Action::make('desconectar_gmail')
                 ->label(function () {
                     $user = Auth::user();
-                    return 'Desconectar Gmail: ' . ($user?->google_oauth_email ?? '');
+                    return 'Desconecta tu Gmail: ' . ($user?->google_oauth_email ?? '');
                 })
                 ->icon('heroicon-o-x-mark')
                 ->color('danger')

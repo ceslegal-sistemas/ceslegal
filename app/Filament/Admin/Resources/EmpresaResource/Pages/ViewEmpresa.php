@@ -18,14 +18,14 @@ class ViewEmpresa extends ViewRecord
             Actions\EditAction::make(),
 
             Actions\Action::make('conectar_gmail')
-                ->label('Conectar Gmail')
+                ->label('Conecta tu Gmail')
                 ->icon('heroicon-o-envelope')
                 ->color('success')
                 ->url(fn () => app(GoogleOAuthService::class)->buildAuthUrl($this->record->id))
                 ->visible(fn () => !$this->record->tieneGmailConectado()),
 
             Actions\Action::make('desconectar_gmail')
-                ->label(fn () => 'Gmail: ' . $this->record->google_oauth_email)
+                ->label(fn () => 'Desconecta tu Gmail: ' . $this->record->google_oauth_email)
                 ->icon('heroicon-o-x-mark')
                 ->color('danger')
                 ->requiresConfirmation()
