@@ -36,15 +36,38 @@ class EnviarCorreoOficialJob implements ShouldQueue
             return;
         }
 
-        Mail::to($correo->email_destinatario, $correo->destinatario_nombre)
-            ->send(new CorreoOficial($correo));
+        // Resolve empresa by priority: explicit > trabajador's > proceso's
+        $empresaId = $correo->empresa_id
+            ?? $correo->trabajador?->empresa_id
+            ?? $correo->proceso?->empresa_id;
+
+        $empresa  = $empresaId ? \App\Models\Empresa::find($empresaId) : null;
+        $viaGmail = false;
+
+        if ($empresa && $empresa->tieneGmailConectado()) {
+            try {
+                $accessToken = app(\App\Services\GoogleOAuthService::class)->getValidAccessToken($empresa);
+                app(\App\Services\GmailApiService::class)->send($correo, $accessToken);
+                $viaGmail = true;
+            } catch (\Throwable $e) {
+                Log::warning('Gmail API falló, usando SMTP como fallback', [
+                    'correo_id' => $correo->id,
+                    'error'     => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if (!$viaGmail) {
+            Mail::to($correo->email_destinatario, $correo->destinatario_nombre)
+                ->send(new CorreoOficial($correo));
+        }
 
         $correo->update(['enviado_en' => now('America/Bogota')]);
 
         Log::info('Correo oficial enviado', [
             'correo_id'    => $correo->id,
             'destinatario' => $correo->email_destinatario,
-            'asunto'       => $correo->asunto,
+            'via'          => $viaGmail ? 'gmail_oauth' : 'smtp',
         ]);
     }
 
