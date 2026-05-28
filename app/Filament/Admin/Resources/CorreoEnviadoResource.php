@@ -41,9 +41,9 @@ class CorreoEnviadoResource extends Resource
                         ->label('Seleccionar trabajador (opcional)')
                         ->options(
                             Trabajador::query()
-                                ->where('active', true)
+                                ->where('empresa_id', auth()->user()->empresa_id)
                                 ->get()
-                                ->mapWithKeys(fn ($t) => [
+                                ->mapWithKeys(fn($t) => [
                                     $t->id => "{$t->nombres} {$t->apellidos} — {$t->email}",
                                 ])
                         )
@@ -88,9 +88,10 @@ class CorreoEnviadoResource extends Resource
                             ProcesoDisciplinario::query()
                                 ->select('id', 'codigo')
                                 ->orderByDesc('created_at')
+                                ->where('empresa_id', auth()->user()->empresa_id)
                                 ->limit(300)
                                 ->get()
-                                ->mapWithKeys(fn ($p) => [$p->id => $p->codigo])
+                                ->mapWithKeys(fn($p) => [$p->id => $p->codigo])
                         )
                         ->searchable()
                         ->nullable()
@@ -101,6 +102,7 @@ class CorreoEnviadoResource extends Resource
                         ->relationship('empresa', 'razon_social')
                         ->searchable()
                         ->nullable()
+                        ->visible(fn() => auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('abogado'))
                         ->placeholder('Sistema (SMTP por defecto)')
                         ->helperText('Si la empresa tiene Gmail conectado, el correo saldrá desde ese Gmail.'),
 
@@ -124,12 +126,18 @@ class CorreoEnviadoResource extends Resource
                         ->label('Cuerpo del correo')
                         ->required()
                         ->toolbarButtons([
-                            'bold', 'italic', 'underline', 'strike',
-                            'bulletList', 'orderedList',
-                            'h2', 'h3',
+                            'bold',
+                            'italic',
+                            'underline',
+                            'strike',
+                            'bulletList',
+                            'orderedList',
+                            'h2',
+                            'h3',
                             'link',
                             'blockquote',
-                            'undo', 'redo',
+                            'undo',
+                            'redo',
                         ])
                         ->columnSpanFull(),
                 ]),
@@ -141,7 +149,7 @@ class CorreoEnviadoResource extends Resource
                         ->label('Archivos adjuntos')
                         ->multiple()
                         ->disk('local')
-                        ->directory(fn () => 'correos/' . now()->format('Y') . '/' . now()->format('m'))
+                        ->directory(fn() => 'correos/' . now()->format('Y') . '/' . now()->format('m'))
                         ->acceptedFileTypes([
                             'application/pdf',
                             'application/msword',
@@ -162,7 +170,7 @@ class CorreoEnviadoResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('destinatario_nombre')
                     ->label('Destinatario')
-                    ->description(fn (CorreoEnviado $r) => $r->email_destinatario)
+                    ->description(fn(CorreoEnviado $r) => $r->email_destinatario)
                     ->searchable()
                     ->sortable(),
 
@@ -185,7 +193,7 @@ class CorreoEnviadoResource extends Resource
                         'warning' => 'alta',
                         'secondary' => 'normal',
                     ])
-                    ->formatStateUsing(fn (string $state) => match ($state) {
+                    ->formatStateUsing(fn(string $state) => match ($state) {
                         'urgente' => 'Urgente',
                         'alta'    => 'Alta',
                         default   => 'Normal',
@@ -199,11 +207,11 @@ class CorreoEnviadoResource extends Resource
 
                 Tables\Columns\BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn (CorreoEnviado $r) => $r->getLabelEstado())
+                    ->formatStateUsing(fn(CorreoEnviado $r) => $r->getLabelEstado())
                     ->colors([
-                        'success'   => fn (CorreoEnviado $r) => $r->estado === 'leido',
-                        'warning'   => fn (CorreoEnviado $r) => $r->estado === 'entregado',
-                        'secondary' => fn (CorreoEnviado $r) => $r->estado === 'pendiente',
+                        'success'   => fn(CorreoEnviado $r) => $r->estado === 'leido',
+                        'warning'   => fn(CorreoEnviado $r) => $r->estado === 'entregado',
+                        'secondary' => fn(CorreoEnviado $r) => $r->estado === 'pendiente',
                     ]),
             ])
             ->defaultSort('created_at', 'desc')
@@ -232,8 +240,8 @@ class CorreoEnviadoResource extends Resource
                     ])
                     ->query(function ($query, array $data) {
                         return $query
-                            ->when($data['desde'], fn ($q) => $q->whereDate('created_at', '>=', $data['desde']))
-                            ->when($data['hasta'], fn ($q) => $q->whereDate('created_at', '<=', $data['hasta']));
+                            ->when($data['desde'], fn($q) => $q->whereDate('created_at', '>=', $data['desde']))
+                            ->when($data['hasta'], fn($q) => $q->whereDate('created_at', '<=', $data['hasta']));
                     }),
             ])
             ->actions([
