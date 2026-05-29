@@ -85,9 +85,12 @@ class AuditoriaRITService
         'grupos_protegidos' => [
             'titulo'               => 'Protección de Sujetos Especiales',
             'query'                => 'mujer embarazada maternidad paternidad discapacidad fuero sindical estabilidad laboral reforzada',
-            'codigos_obligatorios' => ['Art. 239 CST', 'Art. 240 CST', 'Art. 241 CST', 'Art. 241A CST'],
+            // Art. 236-238 (duración licencia maternidad/paternidad) + 239-241A (fuero, no despido)
+            'codigos_obligatorios' => ['Art. 236 CST', 'Art. 237 CST', 'Art. 238 CST', 'Art. 239 CST', 'Art. 240 CST', 'Art. 241 CST', 'Art. 241A CST'],
             'palabras_clave'       => ['maternidad', 'paternidad', 'embarazo', 'discapacidad', 'fuero', 'sindical', 'sujetos especial'],
             'capitulos'            => ['SUJETOS DE ESPECIAL', 'ESPECIAL PROTECCIÓN', 'GRUPOS PROTEGIDOS', 'TRABAJADORES PROTEGIDOS'],
+            // El contenido de maternidad/paternidad también está en Cap VII (LICENCIAS ESPECIALES)
+            'capitulos_extra'      => ['LICENCIAS ESPECIALES', 'LICENCIAS'],
         ],
     ];
 
@@ -257,14 +260,33 @@ class AuditoriaRITService
             $config['num_capitulos'] ?? 1
         );
 
-        // 2. RAG semántico sobre articulos_legales usando cosine similarity de embeddings.
-        //    Sin listas predefinidas — el auditor consume lo más relevante por tema.
-        $articulosCst = $this->ritGenerator->buscarArticulosPorEmbedding(
+        // Capítulos extra: secciones cuyo contenido está dividido en varios capítulos del RIT
+        // (ej: protección de maternidad está en Cap XV y también en Cap VII Licencias).
+        if (!empty($config['capitulos_extra'])) {
+            $fragmentoExtra = $this->extraerFragmentoRIT($textoRIT, [], $config['capitulos_extra'], 1);
+            if (!empty(trim($fragmentoExtra))) {
+                $fragmentoRIT = trim($fragmentoRIT . "\n\n" . $fragmentoExtra);
+            }
+        }
+
+        // 2. Contexto normativo — espejo del generador:
+        //    2a. Artículos por código exacto (mismos que usa el generador para esta sección).
+        $codigosObligatorios   = $config['codigos_obligatorios'] ?? [];
+        $articulosObligatorios = !empty($codigosObligatorios)
+            ? $this->ritGenerator->obtenerArticulosObligatorios($codigosObligatorios)
+            : '';
+
+        //    2b. RAG semántico complementario — excluye los ya obtenidos por código exacto.
+        $limiteSematico   = !empty($codigosObligatorios) ? 6 : 12;
+        $articulosSemant  = $this->ritGenerator->buscarArticulosPorEmbedding(
             queryTema:   $config['query'],
-            yaObtenidos: [],
-            limite:      12,
+            yaObtenidos: $codigosObligatorios,
+            limite:      $limiteSematico,
             umbral:      0.35,
         );
+
+        // Combinar: exactos primero (alta precisión), semánticos después (cobertura complementaria).
+        $articulosCst = trim($articulosObligatorios . ($articulosSemant ? "\n\n" . $articulosSemant : ''));
 
         // 3. Sin normativa → abortar
         if (empty(trim($articulosCst))) {
@@ -317,6 +339,17 @@ SECCIÓN A AUDITAR: {$config['titulo']}
 {$contextoRIT}
 
 Evalúa si el RIT cumple lo que establece el contexto jurídico para esta sección.
+
+CRITERIO DE PUNTUACIÓN:
+- 95-100 (Completo): El RIT cubre correctamente todos los temas principales. Se acepta que
+  las condiciones exactas se expresen en términos generales ("conforme a la ley vigente",
+  "según la normativa aplicable") cuando el CONTEXTO LEGAL no incluyó la cifra exacta.
+- 80-94 (Parcial alto): El RIT cubre el tema principal pero omite algún elemento de detalle.
+- 60-79 (Parcial): El RIT cubre parcialmente el tema; falta un elemento significativo.
+- 0-59 (Ausente/Incorrecto): El tema está ausente o contiene información claramente errónea.
+NO PENALICE por detalles operativos (provisión de mobiliario físico, avisos internos en
+carteleras, registros administrativos) que no son contenido estándar de un Reglamento Interno.
+
 Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
 {
   "cumple": boolean,
