@@ -262,8 +262,6 @@ class AuditoriaRITService
         $articulosCst        = $this->ritGenerator->obtenerArticulosObligatorios($codigosObligatorios);
 
         // 2b. Búsqueda por tema en articulos_legales (igual que el generador) — misma fuente RAG
-        //     que usó el generador al construir el RIT, evita falsos positivos por artículos
-        //     encontrados vía RAG que no están en codigos_obligatorios.
         $articulosTema = $this->ritGenerator->buscarArticulosPorTema(
             queryTema:   $config['query'],
             yaObtenidos: $codigosObligatorios,
@@ -272,6 +270,10 @@ class AuditoriaRITService
         if (!empty(trim($articulosTema))) {
             $articulosCst = trim($articulosCst . "\n\n" . $articulosTema);
         }
+
+        Log::info("AuditoriaRIT [{$config['titulo']}]: codigos=" . count($codigosObligatorios)
+            . " cst_chars=" . strlen($articulosCst)
+            . " tema_chars=" . strlen($articulosTema ?? ''));
 
         // 3. Sin normativa → abortar
         if (empty(trim($articulosCst))) {
