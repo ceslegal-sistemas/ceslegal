@@ -34,7 +34,7 @@ class AuditoriaRITService
         'jornada' => [
             'titulo'               => 'Jornada Laboral y Horas Extras',
             'query'                => 'jornada laboral horas extras trabajo nocturno dominicales festivos trabajo suplementario recargo',
-            'codigos_obligatorios' => ['Art. 158 CST', 'Art. 159 CST', 'Art. 160 CST', 'Art. 161 CST', 'Art. 162 CST', 'Art. 167 CST', 'Art. 168 CST', 'Art. 169 CST'],
+            'codigos_obligatorios' => ['Art. 158 CST', 'Art. 159 CST', 'Art. 160 CST', 'Art. 161 CST', 'Art. 162 CST', 'Art. 167 CST', 'Art. 168 CST', 'Art. 169 CST', 'Art. 179 CST', 'Art. 180 CST', 'Art. 181 CST', 'Art. 182 CST'],
             'palabras_clave'       => ['jornada', 'horario', 'hora extra', 'suplementar', 'nocturno', 'dominical', 'festiv', 'diarias', 'semanales', 'recargo'],
             'capitulos'            => ['JORNADA', 'TRABAJO SUPLEMENTARIO', 'HORAS EXTRAS', 'DOMINICALES'],
             // Captura Cap III (jornada ordinaria) + Cap IV (suplementario/extras) juntos
@@ -259,10 +259,20 @@ class AuditoriaRITService
             $config['num_capitulos'] ?? 1
         );
 
-        // 2. Artículos del CST (scraper leyes.co) — fuente primaria de normativa
-        $articulosCst = $this->ritGenerator->obtenerArticulosObligatorios(
-            $config['codigos_obligatorios'] ?? []
+        // 2. Artículos obligatorios por código exacto (fuente primaria)
+        $codigosObligatorios = $config['codigos_obligatorios'] ?? [];
+        $articulosCst        = $this->ritGenerator->obtenerArticulosObligatorios($codigosObligatorios);
+
+        // 2b. Búsqueda por tema en articulos_legales (igual que el generador) para que el auditor
+        //     tenga acceso a los mismos artículos que el generador inyectó al crear el RIT.
+        $articulosTema = $this->ritGenerator->buscarArticulosPorTema(
+            queryTema:   $config['query'],
+            yaObtenidos: $codigosObligatorios,
+            limite:      6,
         );
+        if (!empty(trim($articulosTema))) {
+            $articulosCst = trim($articulosCst . "\n\n" . $articulosTema);
+        }
 
         // 3. Biblioteca RAG — fuente complementaria
         $normativaRag = $this->biblioteca->buscarFragmentos(
@@ -303,9 +313,18 @@ class AuditoriaRITService
         $prompt = <<<PROMPT
 Eres un auditor legal que revisa el Reglamento Interno de Trabajo de "{$razonSocial}".
 
-REGLA FUNDAMENTAL: Basa tu análisis EXCLUSIVAMENTE en el contexto jurídico inyectado más abajo.
-NO uses tu conocimiento de entrenamiento. NO cites normas que no aparezcan en el contexto.
-Si el contexto jurídico es insuficiente para evaluar un aspecto, indícalo en hallazgos.
+REGLA FUNDAMENTAL — ANTI-ALUCINACIÓN (INCUMPLIRLA INVALIDA LA AUDITORÍA):
+PROHIBICIÓN ABSOLUTA: En los campos "hallazgos" y "recomendaciones" NUNCA menciones ningún
+número de artículo, nombre de ley, decreto, resolución, numeral, parágrafo, sentencia,
+porcentaje, plazo en días ni salario mínimo que NO aparezca LITERALMENTE en la sección
+"ARTÍCULOS OFICIALES" o "FRAGMENTOS DE BIBLIOTECA" inyectada abajo.
+Esto incluye sub-referencias como "Num. 7", "Parágrafo 2°", "literal b" si no están en el texto.
+Si el contexto es insuficiente para evaluar un aspecto, describe el hallazgo en términos
+generales SIN citar artículo alguno (ej: "El RIT no incluye el procedimiento de descargos").
+
+Para "articulos_referencia": copia TEXTUALMENTE los códigos TAL COMO aparecen en el contexto
+(ej: "Art. 115 CST", "Art. 7 Ley 1010"). NUNCA reformatees ni añadas numerales o sub-referencias
+que no estén en el texto inyectado. Si no hay artículos relevantes, devuelve [].
 {$seccionArticulos}{$seccionRag}
 SECCIÓN A AUDITAR: {$config['titulo']}
 
@@ -317,9 +336,9 @@ Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
   "cumple": boolean,
   "calificacion": "Completo" | "Parcial" | "Ausente",
   "score": integer 0-100,
-  "hallazgos": [ máximo 3 strings, cada uno máximo 100 caracteres ],
-  "recomendaciones": [ máximo 3 strings, cada uno máximo 100 caracteres ],
-  "articulos_referencia": [ máximo 5 strings cortos, ej: "Art. 76 CST", solo los presentes en el contexto ]
+  "hallazgos": [ máximo 3 strings sin citar artículos fuera del contexto, máx 120 chars c/u ],
+  "recomendaciones": [ máximo 3 strings sin citar artículos fuera del contexto, máx 120 chars c/u ],
+  "articulos_referencia": [ códigos copiados textualmente del contexto, máximo 5, o [] ]
 }
 PROMPT;
 
@@ -435,6 +454,10 @@ PROMPT;
 
         $prompt = <<<PROMPT
 Eres un abogado laboral colombiano. Redacta un resumen ejecutivo profesional de la auditoría del RIT de "{$razonSocial}".
+
+REGLA FUNDAMENTAL: NO cites ningún artículo, ley, decreto, resolución ni norma específica por nombre o número.
+Usa únicamente términos generales como "la legislación laboral vigente", "las normas de seguridad en el trabajo",
+"el régimen disciplinario exigido por la ley", etc.
 
 Score general: {$score}/100
 Resultados por sección:
