@@ -232,7 +232,7 @@ class ProcesoDisciplinario extends Model
     public function citacionFueLeida(): bool
     {
         return $this->emailTrackings()
-            ->where('tipo_correo', 'citacion')
+            ->where('tipo_documento', 'citacion')
             ->whereNotNull('abierto_en')
             ->exists();
     }
@@ -243,7 +243,7 @@ class ProcesoDisciplinario extends Model
     public function sancionFueLeida(): bool
     {
         return $this->emailTrackings()
-            ->where('tipo_correo', 'sancion')
+            ->where('tipo_documento', 'sancion')
             ->whereNotNull('abierto_en')
             ->exists();
     }
@@ -254,7 +254,7 @@ class ProcesoDisciplinario extends Model
     public function getUltimoTrackingCitacionAttribute(): ?EmailTracking
     {
         return $this->emailTrackings()
-            ->where('tipo_correo', 'citacion')
+            ->where('tipo_documento', 'citacion')
             ->latest('enviado_en')
             ->first();
     }
@@ -265,7 +265,7 @@ class ProcesoDisciplinario extends Model
     public function getUltimoTrackingSancionAttribute(): ?EmailTracking
     {
         return $this->emailTrackings()
-            ->where('tipo_correo', 'sancion')
+            ->where('tipo_documento', 'sancion')
             ->latest('enviado_en')
             ->first();
     }

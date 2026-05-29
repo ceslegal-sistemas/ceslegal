@@ -12,6 +12,7 @@ use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
 class CorreoEnviadoResource extends Resource
@@ -29,6 +30,18 @@ class CorreoEnviadoResource extends Resource
     //     $user = Auth::user();
     //     // return $user && ($user->hasRole('super_admin') || $user->hasRole('abogado'));
     // }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user  = auth()->user();
+
+        if ($user && $user->hasRole('cliente')) {
+            $query->where('enviado_por', $user->id);
+        }
+
+        return $query;
+    }
 
     public static function form(Form $form): Form
     {

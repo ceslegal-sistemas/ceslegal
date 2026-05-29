@@ -643,7 +643,7 @@ HTML;
         // Crear registro de tracking para el correo (hora de Colombia)
         $tracking = EmailTracking::create([
             'token' => EmailTracking::generarToken(),
-            'tipo_correo' => 'citacion',
+            'tipo_documento' => 'citacion',
             'proceso_id' => $proceso->id,
             'trabajador_id' => $trabajador->id,
             'email_destinatario' => $trabajador->email,
@@ -1440,7 +1440,7 @@ HTML;
         // Crear registro de tracking para el correo (hora de Colombia)
         $tracking = EmailTracking::create([
             'token' => EmailTracking::generarToken(),
-            'tipo_correo' => 'sancion',
+            'tipo_documento' => 'sancion',
             'proceso_id' => $proceso->id,
             'trabajador_id' => $trabajador->id,
             'email_destinatario' => $trabajador->email,
@@ -1594,7 +1594,7 @@ HTML;
         // Crear registro de tracking para el correo
         $tracking = EmailTracking::create([
             'token' => EmailTracking::generarToken(),
-            'tipo_correo' => 'estado_descargos',
+            'tipo_documento' => 'estado_descargos',
             'proceso_id' => $proceso->id,
             'trabajador_id' => $trabajador->id,
             'email_destinatario' => $trabajador->email,
@@ -1678,7 +1678,7 @@ HTML;
                 // Crear registro de tracking para el correo
                 $tracking = EmailTracking::create([
                     'token' => EmailTracking::generarToken(),
-                    'tipo_correo' => 'estado_descargos_cliente',
+                    'tipo_documento' => 'estado_descargos_cliente',
                     'proceso_id' => $proceso->id,
                     'trabajador_id' => $trabajador->id,
                     'email_destinatario' => $cliente->email,
@@ -1893,7 +1893,7 @@ HTML;
         // Crear registro de tracking
         $tracking = EmailTracking::create([
             'token' => EmailTracking::generarToken(),
-            'tipo_correo' => 'resolucion_impugnacion',
+            'tipo_documento' => 'resolucion_impugnacion',
             'proceso_id' => $proceso->id,
             'trabajador_id' => $trabajador->id,
             'email_destinatario' => $trabajador->email,

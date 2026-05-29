@@ -1227,7 +1227,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->label('Acuse Citación')
                     ->getStateUsing(function (ProcesoDisciplinario $record) {
                         $tracking = $record->emailTrackings()
-                            ->where('tipo_correo', 'citacion')
+                            ->where('tipo_documento', 'citacion')
                             ->latest('enviado_en')
                             ->first();
 
@@ -1240,7 +1240,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->badge()
                     ->color(function (ProcesoDisciplinario $record) {
                         $tracking = $record->emailTrackings()
-                            ->where('tipo_correo', 'citacion')
+                            ->where('tipo_documento', 'citacion')
                             ->latest('enviado_en')
                             ->first();
 
@@ -1252,7 +1252,7 @@ class ProcesoDisciplinarioResource extends Resource
                     })
                     ->tooltip(function (ProcesoDisciplinario $record) {
                         $tracking = $record->emailTrackings()
-                            ->where('tipo_correo', 'citacion')
+                            ->where('tipo_documento', 'citacion')
                             ->latest('enviado_en')
                             ->first();
 
@@ -1283,7 +1283,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->label('Acuse Sanción')
                     ->getStateUsing(function (ProcesoDisciplinario $record) {
                         $tracking = $record->emailTrackings()
-                            ->where('tipo_correo', 'sancion')
+                            ->where('tipo_documento', 'sancion')
                             ->latest('enviado_en')
                             ->first();
 
@@ -1296,7 +1296,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->badge()
                     ->color(function (ProcesoDisciplinario $record) {
                         $tracking = $record->emailTrackings()
-                            ->where('tipo_correo', 'sancion')
+                            ->where('tipo_documento', 'sancion')
                             ->latest('enviado_en')
                             ->first();
 
@@ -1308,7 +1308,7 @@ class ProcesoDisciplinarioResource extends Resource
                     })
                     ->tooltip(function (ProcesoDisciplinario $record) {
                         $tracking = $record->emailTrackings()
-                            ->where('tipo_correo', 'sancion')
+                            ->where('tipo_documento', 'sancion')
                             ->latest('enviado_en')
                             ->first();
 

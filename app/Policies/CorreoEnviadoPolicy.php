@@ -23,7 +23,16 @@ class CorreoEnviadoPolicy
      */
     public function view(User $user, CorreoEnviado $correoEnviado): bool
     {
-        return $user->can('view_correo::enviado');
+        if (! $user->can('view_correo::enviado')) {
+            return false;
+        }
+
+        // Los clientes solo pueden ver sus propios correos
+        if ($user->hasRole('cliente')) {
+            return $correoEnviado->enviado_por === $user->id;
+        }
+
+        return true;
     }
 
     /**

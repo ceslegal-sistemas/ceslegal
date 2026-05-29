@@ -26,7 +26,7 @@ class EmailTrackingController extends Controller
 
                 Log::info('Email tracking registrado', [
                     'token' => substr($token, 0, 10) . '...',
-                    'tipo_correo' => $tracking->tipo_correo,
+                    'tipo_documento' => $tracking->tipo_documento,
                     'proceso_id' => $tracking->proceso_id,
                     'trabajador_email' => $tracking->email_destinatario,
                     'veces_abierto' => $tracking->veces_abierto,
@@ -65,7 +65,7 @@ class EmailTrackingController extends Controller
             'proceso_id' => $procesoId,
             'trackings' => $trackings->map(function ($tracking) {
                 return [
-                    'tipo_correo' => $tracking->tipo_correo_legible,
+                    'tipo_documento' => $tracking->tipo_documento_legible,
                     'email' => $tracking->email_destinatario,
                     'enviado_en' => $tracking->enviado_en->format('d/m/Y H:i:s'),
                     'estado' => $tracking->getEstadoLectura(),
