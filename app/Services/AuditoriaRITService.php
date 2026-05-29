@@ -271,10 +271,6 @@ class AuditoriaRITService
             $articulosCst = trim($articulosCst . "\n\n" . $articulosTema);
         }
 
-        Log::info("AuditoriaRIT [{$config['titulo']}]: codigos=" . count($codigosObligatorios)
-            . " cst_chars=" . strlen($articulosCst)
-            . " tema_chars=" . strlen($articulosTema ?? ''));
-
         // 3. Sin normativa → abortar
         if (empty(trim($articulosCst))) {
             Log::warning("AuditoriaRIT: sin normativa en articulos_legales para '{$config['titulo']}'");
