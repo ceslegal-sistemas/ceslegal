@@ -257,19 +257,13 @@ class AuditoriaRITService
             $config['num_capitulos'] ?? 1
         );
 
-        // 2. Artículos obligatorios por código exacto (fuente primaria)
-        $codigosObligatorios = $config['codigos_obligatorios'] ?? [];
-        $articulosCst        = $this->ritGenerator->obtenerArticulosObligatorios($codigosObligatorios);
-
-        // 2b. Búsqueda por tema en articulos_legales (igual que el generador) — misma fuente RAG
-        $articulosTema = $this->ritGenerator->buscarArticulosPorTema(
+        // 2. RAG puro sobre articulos_legales — sin listas predefinidas de artículos obligatorios.
+        //    El auditor consume lo que sea relevante según el tema de la sección.
+        $articulosCst = $this->ritGenerator->buscarArticulosPorTema(
             queryTema:   $config['query'],
-            yaObtenidos: $codigosObligatorios,
-            limite:      6,
+            yaObtenidos: [],
+            limite:      12,
         );
-        if (!empty(trim($articulosTema))) {
-            $articulosCst = trim($articulosCst . "\n\n" . $articulosTema);
-        }
 
         // 3. Sin normativa → abortar
         if (empty(trim($articulosCst))) {

@@ -292,13 +292,13 @@ class RITGeneratorService
                 $query->whereNotIn('codigo', $yaObtenidos);
             }
 
-            // Cada término debe aparecer en título o texto
-            foreach ($terminos as $termino) {
-                $query->where(function ($q) use ($termino) {
-                    $q->whereRaw('LOWER(titulo) LIKE ?', ["%{$termino}%"])
+            // Al menos un término debe aparecer en título o texto (OR — no AND)
+            $query->where(function ($q) use ($terminos) {
+                foreach ($terminos as $termino) {
+                    $q->orWhereRaw('LOWER(titulo) LIKE ?', ["%{$termino}%"])
                       ->orWhereRaw('LOWER(texto_completo) LIKE ?', ["%{$termino}%"]);
-                });
-            }
+                }
+            });
 
             $articulos = $query->limit($limite)->get();
 
