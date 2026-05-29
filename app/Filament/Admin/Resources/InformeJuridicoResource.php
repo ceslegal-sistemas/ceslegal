@@ -532,6 +532,13 @@ class InformeJuridicoResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['empresa', 'creador', 'areaPractica', 'tipoGestion', 'subtipo']);
+        $query = parent::getEloquentQuery()->with(['empresa', 'creador', 'areaPractica', 'tipoGestion', 'subtipo']);
+        $user  = auth()->user();
+
+        if ($user && $user->hasRole('cliente')) {
+            $query->where('empresa_id', $user->empresa_id);
+        }
+
+        return $query;
     }
 }

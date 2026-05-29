@@ -23,7 +23,15 @@ class ProcesoDisciplinarioPolicy
      */
     public function view(User $user, ProcesoDisciplinario $procesoDisciplinario): bool
     {
-        return $user->can('view_proceso::disciplinario');
+        if (! $user->can('view_proceso::disciplinario')) {
+            return false;
+        }
+
+        if ($user->hasRole('cliente')) {
+            return $procesoDisciplinario->empresa_id === $user->empresa_id;
+        }
+
+        return true;
     }
 
     /**

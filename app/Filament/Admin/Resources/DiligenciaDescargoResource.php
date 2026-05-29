@@ -53,6 +53,18 @@ class DiligenciaDescargoResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class]);
+        $user  = auth()->user();
+
+        if ($user && $user->hasRole('cliente')) {
+            $query->whereHas('proceso', fn (Builder $q) => $q->where('empresa_id', $user->empresa_id));
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
         return $form

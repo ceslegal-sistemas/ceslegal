@@ -31,6 +31,18 @@ class TrabajadorResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user  = auth()->user();
+
+        if ($user && $user->hasRole('cliente')) {
+            $query->where('empresa_id', $user->empresa_id);
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
         return $form

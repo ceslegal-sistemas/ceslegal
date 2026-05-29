@@ -65,6 +65,18 @@ class ProcesoDisciplinarioResource extends Resource
         ];
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class]);
+        $user  = auth()->user();
+
+        if ($user && $user->hasRole('cliente')) {
+            $query->where('empresa_id', $user->empresa_id);
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
         return $form

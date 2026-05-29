@@ -23,7 +23,15 @@ class InformeJuridicoPolicy
      */
     public function view(User $user, InformeJuridico $informeJuridico): bool
     {
-        return $user->can('view_informe::juridico');
+        if (! $user->can('view_informe::juridico')) {
+            return false;
+        }
+
+        if ($user->hasRole('cliente')) {
+            return $informeJuridico->empresa_id === $user->empresa_id;
+        }
+
+        return true;
     }
 
     /**

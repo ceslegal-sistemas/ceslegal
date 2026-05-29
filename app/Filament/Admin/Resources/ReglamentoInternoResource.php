@@ -7,6 +7,7 @@ use App\Models\ReglamentoInterno;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ReglamentoInternoResource extends Resource
 {
@@ -21,6 +22,18 @@ class ReglamentoInternoResource extends Resource
     public static function getNavigationUrl(): string
     {
         return route('filament.admin.pages.mi-reglamento-interno');
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user  = auth()->user();
+
+        if ($user && $user->hasRole('cliente')) {
+            $query->where('empresa_id', $user->empresa_id);
+        }
+
+        return $query;
     }
 
     public static function form(Form $form): Form

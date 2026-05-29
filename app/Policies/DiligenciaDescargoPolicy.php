@@ -23,7 +23,15 @@ class DiligenciaDescargoPolicy
      */
     public function view(User $user, DiligenciaDescargo $diligenciaDescargo): bool
     {
-        return $user->can('view_diligencia::descargo');
+        if (! $user->can('view_diligencia::descargo')) {
+            return false;
+        }
+
+        if ($user->hasRole('cliente')) {
+            return $diligenciaDescargo->proceso?->empresa_id === $user->empresa_id;
+        }
+
+        return true;
     }
 
     /**

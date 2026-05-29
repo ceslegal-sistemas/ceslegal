@@ -31,6 +31,18 @@ class SolicitudContratoResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user  = auth()->user();
+
+        if ($user && $user->hasRole('cliente')) {
+            $query->where('empresa_id', $user->empresa_id);
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
         return $form

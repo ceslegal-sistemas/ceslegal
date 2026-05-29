@@ -23,7 +23,15 @@ class SolicitudContratoPolicy
      */
     public function view(User $user, SolicitudContrato $solicitudContrato): bool
     {
-        return $user->can('view_solicitud::contrato');
+        if (! $user->can('view_solicitud::contrato')) {
+            return false;
+        }
+
+        if ($user->hasRole('cliente')) {
+            return $solicitudContrato->empresa_id === $user->empresa_id;
+        }
+
+        return true;
     }
 
     /**

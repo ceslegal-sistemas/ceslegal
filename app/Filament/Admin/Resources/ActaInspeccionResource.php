@@ -28,6 +28,18 @@ class ActaInspeccionResource extends Resource
         return in_array($role, ['super_admin', 'abogado']);
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user  = auth()->user();
+
+        if ($user && $user->hasRole('cliente')) {
+            $query->where('empresa_id', $user->empresa_id);
+        }
+
+        return $query;
+    }
+
     // ─── Formulario ──────────────────────────────────────────────────────
 
     public static function form(Form $form): Form

@@ -23,7 +23,15 @@ class TrabajadorPolicy
      */
     public function view(User $user, Trabajador $trabajador): bool
     {
-        return $user->can('view_trabajador');
+        if (! $user->can('view_trabajador')) {
+            return false;
+        }
+
+        if ($user->hasRole('cliente')) {
+            return $trabajador->empresa_id === $user->empresa_id;
+        }
+
+        return true;
     }
 
     /**

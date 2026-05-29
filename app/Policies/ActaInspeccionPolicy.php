@@ -23,7 +23,15 @@ class ActaInspeccionPolicy
      */
     public function view(User $user, ActaInspeccion $actaInspeccion): bool
     {
-        return $user->can('view_acta::inspeccion');
+        if (! $user->can('view_acta::inspeccion')) {
+            return false;
+        }
+
+        if ($user->hasRole('cliente')) {
+            return $actaInspeccion->empresa_id === $user->empresa_id;
+        }
+
+        return true;
     }
 
     /**

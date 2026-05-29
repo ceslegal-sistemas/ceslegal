@@ -23,7 +23,15 @@ class ReglamentoInternoPolicy
      */
     public function view(User $user, ReglamentoInterno $reglamentoInterno): bool
     {
-        return $user->can('view_reglamento::interno');
+        if (! $user->can('view_reglamento::interno')) {
+            return false;
+        }
+
+        if ($user->hasRole('cliente')) {
+            return $reglamentoInterno->empresa_id === $user->empresa_id;
+        }
+
+        return true;
     }
 
     /**
