@@ -27,8 +27,9 @@ class GenerarGAPReporteJob implements ShouldQueue
         public readonly AuditoriaRIT $auditoria,
         public readonly int          $userId,
     ) {
-        // Cola default: no requiere rate limiter de Gemini
-        $this->onQueue('default');
+        // Misma cola que el worker de auditoría; DomPDF no llama a Gemini
+        // pero el worker gemini es el único que corre en producción.
+        $this->onQueue('gemini');
     }
 
     public function handle(GAPReporteService $service): void
