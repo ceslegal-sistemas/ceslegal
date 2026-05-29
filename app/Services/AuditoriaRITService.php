@@ -12,11 +12,10 @@ use App\Services\RITGeneratorService;
 /**
  * Servicio de Auditoría de Reglamento Interno de Trabajo.
  *
- * Estrategia de eficiencia de tokens:
- * - El RIT se procesa por secciones temáticas (no todo de una vez).
- * - Para cada sección se hace un RAG targetizado (3-4 fragmentos de la biblioteca).
- * - Se extrae solo el fragmento relevante del RIT (~1,500 chars) por sección.
- * - Resultado: ~3,000 tokens/sección × 8 secciones ≈ 24,000 tokens totales.
+ * Fuente normativa: ÚNICAMENTE articulos_legales (scrapeados).
+ * - codigos_obligatorios: lookup exacto por código (fuente primaria).
+ * - buscarArticulosPorTema(): RAG por palabras clave (misma fuente que el generador).
+ * No se usa BibliotecaLegalService para evitar inyectar fragmentos externos no controlados.
  */
 class AuditoriaRITService
 {
@@ -93,8 +92,7 @@ class AuditoriaRITService
     ];
 
     public function __construct(
-        private BibliotecaLegalService $biblioteca,
-        private RITGeneratorService    $ritGenerator,
+        private RITGeneratorService $ritGenerator,
     ) {}
 
     /**
@@ -247,7 +245,7 @@ class AuditoriaRITService
     }
 
     /**
-     * Audita una sección temática del RIT contra la biblioteca legal.
+     * Audita una sección temática del RIT usando exclusivamente articulos_legales.
      */
     private function auditarSeccion(string $textoRIT, array $config, string $razonSocial): array
     {
@@ -263,8 +261,9 @@ class AuditoriaRITService
         $codigosObligatorios = $config['codigos_obligatorios'] ?? [];
         $articulosCst        = $this->ritGenerator->obtenerArticulosObligatorios($codigosObligatorios);
 
-        // 2b. Búsqueda por tema en articulos_legales (igual que el generador) para que el auditor
-        //     tenga acceso a los mismos artículos que el generador inyectó al crear el RIT.
+        // 2b. Búsqueda por tema en articulos_legales (igual que el generador) — misma fuente RAG
+        //     que usó el generador al construir el RIT, evita falsos positivos por artículos
+        //     encontrados vía RAG que no están en codigos_obligatorios.
         $articulosTema = $this->ritGenerator->buscarArticulosPorTema(
             queryTema:   $config['query'],
             yaObtenidos: $codigosObligatorios,
@@ -274,41 +273,28 @@ class AuditoriaRITService
             $articulosCst = trim($articulosCst . "\n\n" . $articulosTema);
         }
 
-        // 3. Biblioteca RAG — fuente complementaria
-        $normativaRag = $this->biblioteca->buscarFragmentos(
-            texto: $config['query'],
-            limite: 4,
-            umbral: 0.35
-        );
-
-        // 4. Sin ninguna fuente de normativa → abortar con advertencia
-        if (empty(trim($articulosCst)) && empty(trim($normativaRag ?? ''))) {
-            Log::warning("AuditoriaRIT: sin normativa (scraper ni biblioteca) para '{$config['titulo']}'");
+        // 3. Sin normativa → abortar
+        if (empty(trim($articulosCst))) {
+            Log::warning("AuditoriaRIT: sin normativa en articulos_legales para '{$config['titulo']}'");
             return [
                 'titulo'               => $config['titulo'],
                 'cumple'               => false,
                 'calificacion'         => 'Sin base normativa',
                 'score'                => 0,
-                'hallazgos'            => ['No se encontró normativa CST para auditar esta sección. Ejecute el scraper o cargue documentos en la biblioteca legal.'],
+                'hallazgos'            => ['No se encontró normativa para auditar esta sección. Ejecute el scraper de artículos legales.'],
                 'recomendaciones'      => ['Ejecute php artisan cst:scraper para poblar la base normativa.'],
                 'articulos_referencia' => [],
                 'seccion_encontrada'   => !empty(trim($fragmentoRIT)),
             ];
         }
 
-        // 5. Construir prompt con artículos reales del CST + RAG como contexto jurídico
+        // 4. Construir prompt — única fuente: articulos_legales (scrapeados)
         $seccionEncontrada = !empty(trim($fragmentoRIT));
         $contextoRIT = $seccionEncontrada
             ? "TEXTO DEL RIT — SECCIÓN RELEVANTE:\n{$fragmentoRIT}"
             : "TEXTO DEL RIT: Esta sección NO fue encontrada en el documento — calificar como Ausente.";
 
-        $seccionArticulos = $articulosCst
-            ? "\nARTÍCULOS OFICIALES DEL CST (fuente: base de datos interna — principal referencia normativa):\n{$articulosCst}\n"
-            : '';
-
-        $seccionRag = $normativaRag
-            ? "\nFRAGMENTOS DE LA BIBLIOTECA JURÍDICA (fuente complementaria):\n{$normativaRag}\n"
-            : '';
+        $seccionArticulos = "\nARTÍCULOS OFICIALES (fuente: base de datos de artículos scrapeados — ÚNICA referencia normativa válida):\n{$articulosCst}\n";
 
         $prompt = <<<PROMPT
 Eres un auditor legal que revisa el Reglamento Interno de Trabajo de "{$razonSocial}".
@@ -317,15 +303,14 @@ REGLA FUNDAMENTAL — ANTI-ALUCINACIÓN (INCUMPLIRLA INVALIDA LA AUDITORÍA):
 PROHIBICIÓN ABSOLUTA: En los campos "hallazgos" y "recomendaciones" NUNCA menciones ningún
 número de artículo, nombre de ley, decreto, resolución, numeral, parágrafo, sentencia,
 porcentaje, plazo en días ni salario mínimo que NO aparezca LITERALMENTE en la sección
-"ARTÍCULOS OFICIALES" o "FRAGMENTOS DE BIBLIOTECA" inyectada abajo.
-Esto incluye sub-referencias como "Num. 7", "Parágrafo 2°", "literal b" si no están en el texto.
-Si el contexto es insuficiente para evaluar un aspecto, describe el hallazgo en términos
-generales SIN citar artículo alguno (ej: "El RIT no incluye el procedimiento de descargos").
+"ARTÍCULOS OFICIALES" inyectada abajo. Esto incluye sub-referencias como "Num. 7",
+"Parágrafo 2°", "literal b" si no están en el texto inyectado.
+Si el contexto es insuficiente, describe el hallazgo en términos generales SIN citar artículo.
 
-Para "articulos_referencia": copia TEXTUALMENTE los códigos TAL COMO aparecen en el contexto
-(ej: "Art. 115 CST", "Art. 7 Ley 1010"). NUNCA reformatees ni añadas numerales o sub-referencias
-que no estén en el texto inyectado. Si no hay artículos relevantes, devuelve [].
-{$seccionArticulos}{$seccionRag}
+Para "articulos_referencia": copia TEXTUALMENTE los encabezados "--- CODIGO: ..." que aparecen
+en ARTÍCULOS OFICIALES (ej: "Art. 115 CST", "Art. 7 Ley 1010"). NUNCA reformatees ni añadas
+numerales, parágrafos ni sub-referencias. Si no hay artículos relevantes, devuelve [].
+{$seccionArticulos}
 SECCIÓN A AUDITAR: {$config['titulo']}
 
 {$contextoRIT}
@@ -344,6 +329,14 @@ PROMPT;
 
         $respuesta = $this->llamarIA($prompt, true);
         $datos     = $this->parsearJSON($respuesta);
+
+        // Validar articulos_referencia: solo conservar códigos que aparezcan literalmente en el contexto
+        if (!empty($datos['articulos_referencia'])) {
+            $datos['articulos_referencia'] = array_values(array_filter(
+                $datos['articulos_referencia'],
+                fn($codigo) => is_string($codigo) && str_contains($articulosCst, $codigo)
+            ));
+        }
 
         return array_merge([
             'titulo'              => $config['titulo'],
