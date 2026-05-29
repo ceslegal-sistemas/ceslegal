@@ -257,12 +257,13 @@ class AuditoriaRITService
             $config['num_capitulos'] ?? 1
         );
 
-        // 2. RAG puro sobre articulos_legales — sin listas predefinidas de artículos obligatorios.
-        //    El auditor consume lo que sea relevante según el tema de la sección.
-        $articulosCst = $this->ritGenerator->buscarArticulosPorTema(
+        // 2. RAG semántico sobre articulos_legales usando cosine similarity de embeddings.
+        //    Sin listas predefinidas — el auditor consume lo más relevante por tema.
+        $articulosCst = $this->ritGenerator->buscarArticulosPorEmbedding(
             queryTema:   $config['query'],
             yaObtenidos: [],
             limite:      12,
+            umbral:      0.35,
         );
 
         // 3. Sin normativa → abortar

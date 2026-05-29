@@ -316,6 +316,105 @@ class RITGeneratorService
         }
     }
 
+    /**
+     * Búsqueda semántica (vector / cosine similarity) sobre articulos_legales.
+     * Usa los embeddings pre-calculados para obtener relevancia real en lugar
+     * de coincidencias de palabras clave. Fallback a buscarArticulosPorTema()
+     * si el embedding del query falla.
+     */
+    public function buscarArticulosPorEmbedding(
+        string $queryTema,
+        array  $yaObtenidos = [],
+        int    $limite      = 10,
+        float  $umbral      = 0.35,
+    ): string {
+        $queryEmb = $this->obtenerEmbeddingQuery($queryTema);
+
+        if (empty($queryEmb)) {
+            // Fallback a keyword search si la API de embeddings falla
+            return $this->buscarArticulosPorTema($queryTema, $yaObtenidos, $limite);
+        }
+
+        try {
+            $q = ArticuloLegal::whereNull('empresa_id')
+                ->where('activo', true)
+                ->whereNotNull('embedding');
+
+            if (!empty($yaObtenidos)) {
+                $q->whereNotIn('codigo', $yaObtenidos);
+            }
+
+            $articulos = $q->get(['codigo', 'titulo', 'texto_completo', 'embedding']);
+
+            $scored = $articulos
+                ->map(function (ArticuloLegal $a) use ($queryEmb) {
+                    $emb = $a->embedding;
+                    if (empty($emb)) return null;
+                    return [
+                        'articulo' => $a,
+                        'score'    => $this->cosineSimilarity($queryEmb, $emb),
+                    ];
+                })
+                ->filter(fn($item) => $item !== null && $item['score'] >= $umbral)
+                ->sortByDesc('score')
+                ->take($limite)
+                ->values();
+
+            if ($scored->isEmpty()) {
+                return $this->buscarArticulosPorTema($queryTema, $yaObtenidos, $limite);
+            }
+
+            return $scored
+                ->map(fn($item) => "--- {$item['articulo']->codigo}: {$item['articulo']->titulo} ---\n{$item['articulo']->texto_completo}")
+                ->implode("\n\n");
+
+        } catch (\Throwable $e) {
+            Log::warning('RITGeneratorService: buscarArticulosPorEmbedding falló', [
+                'query' => $queryTema,
+                'error' => $e->getMessage(),
+            ]);
+            return $this->buscarArticulosPorTema($queryTema, $yaObtenidos, $limite);
+        }
+    }
+
+    /**
+     * Obtiene embedding de una query (taskType RETRIEVAL_QUERY) con caché de 24h.
+     */
+    private function obtenerEmbeddingQuery(string $texto): ?array
+    {
+        $apiKey   = config('services.ia.gemini.api_key', '');
+        $cacheKey = 'emb_q_' . md5($texto);
+
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(24), function () use ($texto, $apiKey) {
+            $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=' . $apiKey;
+            try {
+                $response = Http::timeout(20)->post($url, [
+                    'model'    => 'models/gemini-embedding-001',
+                    'content'  => ['parts' => [['text' => mb_substr($texto, 0, 8000)]]],
+                    'taskType' => 'RETRIEVAL_QUERY',
+                ]);
+                if (!$response->successful()) return null;
+                $values = $response->json('embedding.values');
+                return is_array($values) && !empty($values) ? $values : null;
+            } catch (\Throwable $e) {
+                return null;
+            }
+        });
+    }
+
+    private function cosineSimilarity(array $a, array $b): float
+    {
+        $dot = $magA = $magB = 0.0;
+        $n   = min(count($a), count($b));
+        for ($i = 0; $i < $n; $i++) {
+            $dot  += $a[$i] * $b[$i];
+            $magA += $a[$i] * $a[$i];
+            $magB += $b[$i] * $b[$i];
+        }
+        $denom = sqrt($magA) * sqrt($magB);
+        return $denom > 0.0 ? $dot / $denom : 0.0;
+    }
+
     private function construirContextoEmpresa(array $cap, array $respuestas, Empresa $empresa): string
     {
         $lista = fn($arr) => is_array($arr) ? implode(', ', array_filter($arr)) : ($arr ?? '');
