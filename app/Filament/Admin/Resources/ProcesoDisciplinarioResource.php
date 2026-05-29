@@ -3595,22 +3595,6 @@ class ProcesoDisciplinarioResource extends Resource
         ];
     }
 
-    public static function getEloquentQuery(): Builder
-    {
-        $query = parent::getEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
-
-        // Si es cliente, solo mostrar procesos de su empresa
-        $user = Auth::user();
-        if ($user && $user->isCliente()) {
-            $query->where('empresa_id', $user->empresa_id);
-        }
-
-        return $query;
-    }
-
     protected static function getCargos(): array
     {
         return [

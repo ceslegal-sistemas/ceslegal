@@ -74,7 +74,12 @@ class AuditoriaRITService
         'acoso' => [
             'titulo'               => 'Acoso Laboral y Sexual',
             'query'                => 'acoso laboral sexual prevención comité convivencia modalidades procedimiento queja denuncia',
-            'codigos_obligatorios' => [],
+            'codigos_obligatorios' => [
+                'Art. 1 Ley 1010', 'Art. 2 Ley 1010', 'Art. 6 Ley 1010', 'Art. 7 Ley 1010',
+                'Art. 9 Ley 1010', 'Art. 10 Ley 1010', 'Art. 11 Ley 1010', 'Art. 13 Ley 1010',
+                'Art. 3 Res. 652/2012', 'Art. 5 Res. 652/2012', 'Art. 6 Res. 652/2012',
+                'Art. 7 Res. 652/2012', 'Art. 8 Res. 652/2012', 'Art. 9 Res. 652/2012',
+            ],
             'palabras_clave'       => ['acoso', 'hostigamiento', 'sexual', 'convivencia', 'matonismo', 'bipartit', '734', 'comité'],
             'capitulos'            => ['ACOSO', 'CONVIVENCIA LABORAL', 'COMITÉ DE CONVIVENCIA', 'PREVENCIÓN DE ACOSO'],
         ],

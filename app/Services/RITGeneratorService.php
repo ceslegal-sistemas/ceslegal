@@ -1313,8 +1313,15 @@ HTML;
             ],
             [
                 'numero' => 'XIV', 'titulo' => 'COMITÉ DE CONVIVENCIA LABORAL Y PREVENCIÓN DE ACOSO',
-                'query_rag' => 'acoso laboral sexual comité convivencia Ley 1010 modalidades procedimiento queja denuncia prevención protocolo',
-                'codigos_obligatorios' => [],
+                'query_rag' => 'acoso laboral sexual comité convivencia modalidades procedimiento queja denuncia prevención protocolo',
+                'codigos_obligatorios' => [
+                    // Ley 1010/2006 — artículos clave de acoso laboral
+                    'Art. 1 Ley 1010', 'Art. 2 Ley 1010', 'Art. 6 Ley 1010', 'Art. 7 Ley 1010',
+                    'Art. 9 Ley 1010', 'Art. 10 Ley 1010', 'Art. 11 Ley 1010', 'Art. 13 Ley 1010',
+                    // Res. 652/2012 — conformación y funciones del Comité de Convivencia
+                    'Art. 3 Res. 652/2012', 'Art. 5 Res. 652/2012', 'Art. 6 Res. 652/2012',
+                    'Art. 7 Res. 652/2012', 'Art. 8 Res. 652/2012', 'Art. 9 Res. 652/2012',
+                ],
                 'datos_empresa_keys'   => ['num_trabajadores'],
                 'instrucciones' => implode("\n", [
                     'Este capítulo es OBLIGATORIO. Cada artículo mínimo 80 palabras.',
