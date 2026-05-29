@@ -32,7 +32,7 @@ class AuditoriaRITService
         ],
         'jornada' => [
             'titulo'               => 'Jornada Laboral y Horas Extras',
-            'query'                => 'jornada laboral horas extras trabajo nocturno dominicales festivos trabajo suplementario recargo',
+            'query'                => 'jornada laboral horas extras trabajo nocturno dominicales festivos trabajo suplementario recargo descanso dominical remunerado trabajo habitual domingo',
             'codigos_obligatorios' => ['Art. 158 CST', 'Art. 159 CST', 'Art. 160 CST', 'Art. 161 CST', 'Art. 162 CST', 'Art. 167 CST', 'Art. 168 CST', 'Art. 169 CST', 'Art. 179 CST', 'Art. 180 CST', 'Art. 181 CST', 'Art. 182 CST'],
             'palabras_clave'       => ['jornada', 'horario', 'hora extra', 'suplementar', 'nocturno', 'dominical', 'festiv', 'diarias', 'semanales', 'recargo'],
             'capitulos'            => ['JORNADA', 'TRABAJO SUPLEMENTARIO', 'HORAS EXTRAS', 'DOMINICALES'],
@@ -287,21 +287,29 @@ class AuditoriaRITService
             ? "TEXTO DEL RIT — SECCIÓN RELEVANTE:\n{$fragmentoRIT}"
             : "TEXTO DEL RIT: Esta sección NO fue encontrada en el documento — calificar como Ausente.";
 
-        $seccionArticulos = "\nARTÍCULOS OFICIALES (fuente: base de datos de artículos scrapeados — ÚNICA referencia normativa válida):\n{$articulosCst}\n";
+        $seccionArticulos = "\nCONTEXTO LEGAL (normativa colombiana vigente — ÚNICA referencia normativa válida para esta auditoría):\n{$articulosCst}\n";
 
         $prompt = <<<PROMPT
 Eres un auditor legal que revisa el Reglamento Interno de Trabajo de "{$razonSocial}".
 
 REGLA FUNDAMENTAL — ANTI-ALUCINACIÓN (INCUMPLIRLA INVALIDA LA AUDITORÍA):
-PROHIBICIÓN ABSOLUTA: En los campos "hallazgos" y "recomendaciones" NUNCA menciones ningún
-número de artículo, nombre de ley, decreto, resolución, numeral, parágrafo, sentencia,
-porcentaje, plazo en días ni salario mínimo que NO aparezca LITERALMENTE en la sección
-"ARTÍCULOS OFICIALES" inyectada abajo. Esto incluye sub-referencias como "Num. 7",
-"Parágrafo 2°", "literal b" si no están en el texto inyectado.
-Si el contexto es insuficiente, describe el hallazgo en términos generales SIN citar artículo.
+
+PROHIBICIÓN 1 — REFERENCIAS: En "hallazgos" y "recomendaciones" NUNCA menciones ningún
+número de artículo, ley, decreto, resolución, numeral, parágrafo, sentencia, porcentaje,
+plazo en días ni salario mínimo que NO aparezca LITERALMENTE en el CONTEXTO LEGAL de abajo.
+Esto incluye sub-referencias como "Num. 7", "Parágrafo 2°", "literal b" no presentes.
+Si el contexto es insuficiente, describe el hallazgo en términos generales SIN citar norma.
+
+PROHIBICIÓN 2 — REVELACIÓN DE CONTEXTO: NUNCA uses en "hallazgos" o "recomendaciones"
+frases como "no fue proporcionado", "no está en el contexto", "no aparece en el contexto",
+"CONTEXTO LEGAL", "BASE NORMATIVA", ni ninguna referencia a los límites del material
+inyectado. Si el RIT cita un artículo que no puedes verificar con la normativa disponible,
+descríbelo en términos del cumplimiento (ej: "Se recomienda verificar que las condiciones
+de trabajo dominical habitual cumplan con los requisitos legales aplicables") sin mencionar
+la fuente de tu información ni sus límites.
 
 Para "articulos_referencia": copia TEXTUALMENTE los encabezados "--- CODIGO: ..." que aparecen
-en ARTÍCULOS OFICIALES (ej: "Art. 115 CST", "Art. 7 Ley 1010"). NUNCA reformatees ni añadas
+en CONTEXTO LEGAL (ej: "Art. 115 CST", "Art. 7 Ley 1010"). NUNCA reformatees ni añadas
 numerales, parágrafos ni sub-referencias. Si no hay artículos relevantes, devuelve [].
 {$seccionArticulos}
 SECCIÓN A AUDITAR: {$config['titulo']}
