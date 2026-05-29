@@ -23,7 +23,16 @@ class EmpresaPolicy
      */
     public function view(User $user, Empresa $empresa): bool
     {
-        return $user->can('view_empresa');
+        if (! $user->can('view_empresa')) {
+            return false;
+        }
+
+        // Los clientes solo pueden ver su propia empresa
+        if ($user->hasRole('cliente')) {
+            return $empresa->id === $user->empresa_id;
+        }
+
+        return true;
     }
 
     /**

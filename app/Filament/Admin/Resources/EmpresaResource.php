@@ -22,7 +22,14 @@ class EmpresaResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('reglamentoInterno');
+        $query = parent::getEloquentQuery()->with('reglamentoInterno');
+        $user  = auth()->user();
+
+        if ($user && $user->hasRole('cliente')) {
+            $query->where('id', $user->empresa_id);
+        }
+
+        return $query;
     }
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
