@@ -626,7 +626,7 @@ class ScrapearArticulosCst extends Command
             }
 
             [$categoria, $orden] = $meta;
-            $codigo = "Artículo. {$numero} CST";
+            $codigo = "Art. {$numero} CST";
 
             // Verificar si ya existe con embedding (skip si no --force)
             $existente = ArticuloLegal::where('codigo', $codigo)
