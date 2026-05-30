@@ -65,8 +65,8 @@ class AuditoriaRITService
         ],
         'sst' => [
             'titulo'               => 'Seguridad y Salud en el Trabajo (SG-SST)',
-            'query'                => 'seguridad salud trabajo SG-SST riesgos profesionales accidentes enfermedades laborales EPP COPASST',
-            'codigos_obligatorios' => [],
+            'query'                => 'seguridad salud trabajo SG-SST obligaciones empleador COPASST vigía EPP accidentes laborales exámenes médicos responsabilidades trabajadores',
+            'codigos_obligatorios' => ['Art. 56 CST', 'Art. 57 CST'],
             'palabras_clave'       => ['seguridad', 'salud', 'riesgo', 'accidente', 'SST', 'ARL', 'EPP', 'alcoholemia', 'psicoactiv', 'médico'],
             'capitulos'            => ['SEGURIDAD Y SALUD', 'SG-SST', 'SST'],
         ],
@@ -277,10 +277,13 @@ class AuditoriaRITService
             : '';
 
         //    2b. RAG semántico complementario — excluye los ya obtenidos por código exacto.
-        $limiteSematico   = !empty($codigosObligatorios) ? 6 : 12;
-        $articulosSemant  = $this->ritGenerator->buscarArticulosPorEmbedding(
+        //        También excluir el formato alternativo "Artículo." para evitar duplicados del scraper.
+        $articuloCodes       = array_map(fn($c) => preg_replace('/^Art\./', 'Artículo.', $c), $codigosObligatorios);
+        $codigosParaExcluir  = array_unique(array_merge($codigosObligatorios, $articuloCodes));
+        $limiteSematico      = !empty($codigosObligatorios) ? 6 : 12;
+        $articulosSemant     = $this->ritGenerator->buscarArticulosPorEmbedding(
             queryTema:   $config['query'],
-            yaObtenidos: $codigosObligatorios,
+            yaObtenidos: $codigosParaExcluir,
             limite:      $limiteSematico,
             umbral:      0.35,
         );
@@ -330,6 +333,14 @@ descríbelo en términos del cumplimiento (ej: "Se recomienda verificar que las 
 de trabajo dominical habitual cumplan con los requisitos legales aplicables") sin mencionar
 la fuente de tu información ni sus límites.
 
+PROHIBICIÓN 3 — ALCANCE DE LA EVALUACIÓN: SOLO puedes crear "hallazgos" y "recomendaciones"
+basados en obligaciones que aparezcan EXPLÍCITAMENTE en el CONTEXTO LEGAL inyectado.
+NUNCA crees un hallazgo para una obligación que conozcas de tu entrenamiento pero que NO
+esté mencionada en los artículos del CONTEXTO LEGAL. Si el CONTEXTO LEGAL no menciona un
+requisito (ej. sala de lactancia, ampliación de licencia por determinada ley, instalaciones
+físicas especiales), NO lo evalúes aunque lo conozcas. Evalúa SOLO lo que dice el texto de
+los artículos inyectados.
+
 Para "articulos_referencia": copia TEXTUALMENTE los encabezados "--- CODIGO: ..." que aparecen
 en CONTEXTO LEGAL (ej: "Art. 115 CST", "Art. 7 Ley 1010"). NUNCA reformatees ni añadas
 numerales, parágrafos ni sub-referencias. Si no hay artículos relevantes, devuelve [].
@@ -347,8 +358,15 @@ CRITERIO DE PUNTUACIÓN:
 - 80-94 (Parcial alto): El RIT cubre el tema principal pero omite algún elemento de detalle.
 - 60-79 (Parcial): El RIT cubre parcialmente el tema; falta un elemento significativo.
 - 0-59 (Ausente/Incorrecto): El tema está ausente o contiene información claramente errónea.
-NO PENALICE por detalles operativos (provisión de mobiliario físico, avisos internos en
-carteleras, registros administrativos) que no son contenido estándar de un Reglamento Interno.
+NO PENALICE por:
+- Detalles operativos (provisión de asientos, muebles o equipos físicos, avisos en carteleras,
+  registros administrativos internos) que no son contenido estándar de un RIT.
+- Obligaciones de infraestructura física de higiene/seguridad (condiciones de locales,
+  ventilación, iluminación, instalaciones especiales por actividad productiva, alojamiento
+  de trabajadores en zonas remotas) — estas son condiciones de trabajo reguladas aparte.
+- Cualquier requisito que no esté mencionado en el CONTEXTO LEGAL inyectado (PROHIBICIÓN 3).
+Un RIT de calidad en SST cubre: compromiso con el SG-SST, COPASST/Vigía, EPP, reporte de
+accidentes, exámenes médicos de ingreso/retiro, prohibición de sustancias psicoactivas.
 
 Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
 {

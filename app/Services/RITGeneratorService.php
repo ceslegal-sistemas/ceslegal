@@ -248,15 +248,30 @@ class RITGeneratorService
         if (empty($codigos)) return '';
 
         try {
-            $articulos = ArticuloLegal::whereIn('codigo', $codigos)
+            // El scraper produce dos formatos: "Art. X CST" y "Artículo. X CST".
+            // Se consultan ambos para no perder artículos con prefijo diferente (ej: Art. 236).
+            $articuloCodes    = array_map(fn($c) => preg_replace('/^Art\./', 'Artículo.', $c), $codigos);
+            $todosLosFormatos = array_unique(array_merge($codigos, $articuloCodes));
+
+            $articulos = ArticuloLegal::whereIn('codigo', $todosLosFormatos)
                 ->whereNull('empresa_id')
                 ->where('activo', true)
                 ->get();
 
             if ($articulos->isEmpty()) return '';
 
-            return $articulos->map(fn($a) => "--- {$a->codigo}: {$a->titulo} ---\n{$a->texto_completo}")
-                ->implode("\n\n");
+            // Deduplicar por contenido: el scraper puede haber guardado "Art. 238" y "Artículo. 238" idénticos.
+            $vistos    = [];
+            $resultado = [];
+            foreach ($articulos as $a) {
+                $hash = md5(mb_substr($a->texto_completo, 0, 200));
+                if (!isset($vistos[$hash])) {
+                    $vistos[$hash] = true;
+                    $resultado[]   = "--- {$a->codigo}: {$a->titulo} ---\n{$a->texto_completo}";
+                }
+            }
+
+            return implode("\n\n", $resultado);
         } catch (\Throwable $e) {
             Log::warning('RITGeneratorService: no se pudieron obtener artículos obligatorios', [
                 'codigos' => $codigos,
@@ -1454,7 +1469,7 @@ HTML;
             [
                 'numero' => 'XV', 'titulo' => 'PROTECCIÓN DE SUJETOS DE ESPECIAL PROTECCIÓN',
                 'query_rag' => 'mujer embarazada maternidad paternidad discapacidad estabilidad laboral reforzada fuero sindical no discriminación',
-                'codigos_obligatorios' => ['Art. 239 CST', 'Art. 240 CST', 'Art. 241 CST', 'Art. 241A CST'],
+                'codigos_obligatorios' => ['Art. 236 CST', 'Art. 238 CST', 'Art. 239 CST', 'Art. 240 CST', 'Art. 241 CST', 'Art. 241A CST'],
                 'datos_empresa_keys'   => [],
                 'instrucciones' => implode("\n", [
                     'A. MUJER EMBARAZADA Y EN PERÍODO DE LACTANCIA — artículo completo y detallado con todos estos elementos:',
@@ -1462,8 +1477,8 @@ HTML;
                     '   b) NULIDAD DEL DESPIDO: el despido efectuado durante el embarazo o los tres meses siguientes al parto, sin autorización del Ministerio del Trabajo, se presume que es por razón del embarazo y es INEFICAZ. La trabajadora puede reclamar su reintegro y el pago de los salarios dejados de percibir.',
                     '   c) INDEMNIZACIÓN ADICIONAL: si el empleador despide a la trabajadora sin la autorización requerida, debe pagar adicionalmente, a título de indemnización, el valor establecido en el contexto jurídico inyectado.',
                     '   d) Prohibición de exigir pruebas de embarazo como condición de ingreso o permanencia en el empleo.',
-                    '   e) Derecho al descanso durante la lactancia (tiempo para amamantar). Las condiciones y duración exactas provienen del contexto jurídico inyectado.',
-                    'B. LICENCIA DE PATERNIDAD: derecho del padre trabajador a una licencia remunerada desde el nacimiento del hijo. La duración exacta en días hábiles proviene del contexto jurídico inyectado. Condición: el padre debe haber cotizado al sistema de seguridad social durante el período que establezca la norma.',
+                    '   e) DESCANSOS DE LACTANCIA: el empleador concederá los descansos remunerados para amamantar según la duración y frecuencia EXACTAS establecidas en el Art. 238 del contexto jurídico inyectado. Cita expresamente la cantidad de descansos, los minutos de cada uno y el período de edad del menor.',
+                    'B. LICENCIA DE PATERNIDAD: derecho del padre trabajador a una licencia remunerada desde el nacimiento del hijo. La duración exacta en semanas o días proviene del contexto jurídico inyectado (Art. 236). Condición: el padre debe haber cotizado al sistema de seguridad social durante el período que establezca la norma.',
                     'C. PERSONAS EN SITUACIÓN DE DISCAPACIDAD: estabilidad laboral reforzada; prohibición de despido sin autorización previa del Inspector del Trabajo o del Ministerio del Trabajo; obligación de realizar ajustes razonables en el puesto de trabajo para garantizar la inclusión laboral.',
                     'D. TRABAJADORES CON FUERO SINDICAL: prohibición de despido, traslado o desmejora de condiciones sin autorización judicial previa (fuero de retiro). El empleador que desconozca el fuero debe pagar los salarios dejados de percibir y reintegrar al trabajador. Los artículos exactos del CST provienen del contexto jurídico inyectado.',
                     'E. NO DISCRIMINACIÓN: prohibición absoluta de discriminación por raza, sexo, edad, religión, orientación sexual, identidad de género, origen nacional o social, posición económica u otra condición. Referencias normativas exactas provienen del contexto jurídico inyectado.',
