@@ -135,7 +135,7 @@ class ScrapearNormasLaborales extends Command
                 ],
                 [
                     'titulo'         => $data['titulo'],
-                    'descripcion'    => mb_substr($data['texto'], 0, 500),
+                    'descripcion'    => $data['texto'],
                     'texto_completo' => $data['texto'],
                     'categoria'      => $config['categoria'],
                     'orden'          => (int) $num,

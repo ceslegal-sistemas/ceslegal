@@ -1878,13 +1878,9 @@ class ProcesoDisciplinarioResource extends Resource
 
                         $labelsMap = ['llamado_atencion' => 'Llamado de Atención', 'suspension' => 'Suspensión Laboral', 'terminacion' => 'Terminación de Contrato', 'no_sancion' => 'Sin Sanción'];
 
-                        // Techo de severidad: el usuario puede elegir la sanción recomendada o una menor,
-                        // nunca una más grave. Jerarquía: terminacion(3) > suspension(2) > llamado_atencion(1) > no_sancion(0)
-                        $severidadMap = ['terminacion' => 3, 'suspension' => 2, 'llamado_atencion' => 1, 'no_sancion' => 0];
-                        $maxSeveridad = $severidadMap[$iaRecomendada] ?? 3;
-                        $opcionesPermitidas = (!$sinRit && !$esFallback && $iaRecomendada)
-                            ? array_filter($opcionesSancion, fn($k) => ($severidadMap[$k] ?? 0) <= $maxSeveridad, ARRAY_FILTER_USE_KEY)
-                            : $opcionesSancion;
+                        // Se muestran siempre todas las opciones disponibles.
+                        // La decisión contraria a la recomendación de la IA se gestiona
+                        // mediante la sección de exoneración (más abajo).
 
                         return [
                             // ── Tarjetas: Análisis + Recomendación (o error IA) ──────────────
@@ -1946,7 +1942,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->helperText(!$esFallback && !empty($iaSancionesRecomendadas)
                                     ? 'Opciones recomendadas por la IA: ' . implode(', ', array_map(fn($s) => $labelsMap[$s] ?? $s, $iaSancionesRecomendadas)) . '. Elegir una diferente requiere justificación.'
                                     : null)
-                                ->options($opcionesPermitidas)
+                                ->options($opcionesSancion)
                                 ->colors([
                                     'llamado_atencion' => 'info',
                                     'suspension'       => 'warning',
