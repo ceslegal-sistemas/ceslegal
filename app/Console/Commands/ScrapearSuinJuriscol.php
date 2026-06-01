@@ -327,17 +327,20 @@ class ScrapearSuinJuriscol extends Command
             $text = trim(preg_replace('/\s+/', ' ', strip_tags($decoded)));
 
             // Debe comenzar con "ARTICULO N" o "Artículo N"
-            // Captura: "ARTICULO 241", "ARTICULO 241A", "ARTICULO 241 A", "ARTICULO 1o"
-            if (!preg_match('/^\s*ART[IÍ]CULO\s+(\d+)\s*([A-Z]?)(?:[oO°º])?[.\s\-]*(.*)/iu', $text, $am)) {
+            // Captura: "ARTICULO 241", "ARTICULO 241A", "ARTICULO 241 A.", "ARTICULO 1o"
+            // Sufijo de letra: solo se captura si la letra NO va seguida de más letras.
+            // Ej correcto:  "241 A. Medidas..."  → sufijo="A"   (A seguida de punto)
+            // Ej incorrecto: "293 Beneficiarios" → sufijo=""   (B seguida de "eneficiarios")
+            if (!preg_match('/^\s*ART[IÍ]CULO\s+(\d+)(?:\s*([A-Za-z])(?!\p{L}))?(?:[°º])?[.\s\-]*(.*)/iu', $text, $am)) {
                 continue;
             }
 
-            // Reconstruir número: "241" + "A" → "241A"; "1" + "o" (ordinal) → "1"
+            // Reconstruir número: "241" + "A" → "241A"; sufijo "o"/"O" (ordinal) → ignorar
             $numStr = strtoupper(trim($am[1]));
             $sufijo = strtoupper(trim($am[2] ?? ''));
             $resto  = trim($am[3] ?? '');
-            // Añadir sufijo solo si es letra distinta de "O" ordinal (art. 1º, 2º…)
-            if ($sufijo !== '' && !($sufijo === 'O' && (int)$numStr <= 9)) {
+            // Solo agregar sufijo si es letra real (no ordinal "O")
+            if ($sufijo !== '' && $sufijo !== 'O') {
                 $numStr .= $sufijo;
             }
 
