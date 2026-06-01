@@ -1979,10 +1979,9 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->schema([
                                     Forms\Components\Placeholder::make('exoneracion_aviso')
                                         ->hiddenLabel()
-                                        ->content(function(Get $get) use ($labelsMap) {
+                                        ->content(function(Get $get) use ($labelsMap, $iaRazonesNoRecomendadas) {
                                             $tipoSeleccionado  = $get('tipo_sancion');
-                                            $razones           = json_decode($get('razones_no_recomendadas_json') ?? '{}', true) ?: [];
-                                            $razonEspecifica   = $razones[$tipoSeleccionado] ?? null;
+                                            $razonEspecifica   = $iaRazonesNoRecomendadas[$tipoSeleccionado] ?? null;
                                             $labelSeleccionado = $labelsMap[$tipoSeleccionado] ?? ucfirst(str_replace('_', ' ', $tipoSeleccionado ?? ''));
 
                                             $html  = '<style>:root{--exo-label:rgba(0,0,0,0.45);--exo-text:rgba(17,24,39,0.78);--exo-strong:#b91c1c;--exo-reason-bg:rgba(239,68,68,0.06);--exo-reason-border:rgba(239,68,68,0.18);}';
@@ -2010,18 +2009,18 @@ class ProcesoDisciplinarioResource extends Resource
                                     Forms\Components\Textarea::make('razon_divergencia')
                                         ->label('Razón por la cual se elige esta sanción en lugar de las recomendadas por la IA')
                                         ->rows(3)
-                                        ->required(fn(Get $get) => !empty($get('sanciones_ia_recomendadas')) && !in_array($get('tipo_sancion'), json_decode($get('sanciones_ia_recomendadas') ?? '[]', true) ?: [])),
+                                        ->required(fn(Get $get) => !empty($iaSancionesRecomendadas) && !in_array($get('tipo_sancion'), $iaSancionesRecomendadas)),
 
                                     Forms\Components\Toggle::make('exoneracion_aceptada')
                                         ->label('Confirmo que entiendo las recomendaciones jurídicas emitidas por la IA, que aun así decido aplicar una sanción diferente, y que asumo completamente la responsabilidad jurídica, laboral y judicial de esta decisión, exonerando a CES Legal de cualquier consecuencia derivada de la misma.')
-                                        ->required(fn(Get $get) => !empty($get('sanciones_ia_recomendadas')) && !in_array($get('tipo_sancion'), json_decode($get('sanciones_ia_recomendadas') ?? '[]', true) ?: []))
+                                        ->required(fn(Get $get) => !empty($iaSancionesRecomendadas) && !in_array($get('tipo_sancion'), $iaSancionesRecomendadas))
                                         ->accepted()
                                         ->onColor('danger'),
                                 ])
                                 ->hidden(fn(Get $get) =>
                                     empty($get('tipo_sancion')) ||
-                                    empty($get('sanciones_ia_recomendadas')) ||
-                                    in_array($get('tipo_sancion'), json_decode($get('sanciones_ia_recomendadas') ?? '[]', true) ?: [])
+                                    empty($iaSancionesRecomendadas) ||
+                                    in_array($get('tipo_sancion'), $iaSancionesRecomendadas)
                                 )
                                 ->collapsible(false),
 
