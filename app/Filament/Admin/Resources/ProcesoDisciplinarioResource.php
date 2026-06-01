@@ -1871,10 +1871,11 @@ class ProcesoDisciplinarioResource extends Resource
                             ];
 
                         // Si la IA no estuvo disponible: no preseleccionar ni mostrar análisis engañoso
-                        $recomendacionFinal      = $esFallback ? null : ($analisis['recomendacion_final'] ?? null);
-                        $iaRecomendada           = $esFallback ? null : ($recomendacionFinal['sancion_principal'] ?? $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null);
-                        $iaSancionesRecomendadas = $esFallback ? [] : ($recomendacionFinal['sanciones_sugeridas'] ?? ($iaRecomendada ? [$iaRecomendada] : []));
-                        $autoridadRit            = $esFallback ? [] : ($analisis['autoridad_sancion'] ?? []);
+                        $recomendacionFinal         = $esFallback ? null : ($analisis['recomendacion_final'] ?? null);
+                        $iaRecomendada              = $esFallback ? null : ($recomendacionFinal['sancion_principal'] ?? $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null);
+                        $iaSancionesRecomendadas    = $esFallback ? [] : ($recomendacionFinal['sanciones_sugeridas'] ?? ($iaRecomendada ? [$iaRecomendada] : []));
+                        $autoridadRit               = $esFallback ? [] : ($analisis['autoridad_sancion'] ?? []);
+                        $iaRazonesNoRecomendadas    = $esFallback ? [] : ($analisis['razones_no_recomendadas'] ?? []);
 
                         $labelsMap = ['llamado_atencion' => 'Llamado de Atención', 'suspension' => 'Suspensión Laboral', 'terminacion' => 'Terminación de Contrato', 'no_sancion' => 'Sin Sanción'];
 
@@ -1936,6 +1937,9 @@ class ProcesoDisciplinarioResource extends Resource
                             Forms\Components\Hidden::make('autoridad_rango_rit_json')
                                 ->default(json_encode($autoridadRit)),
 
+                            Forms\Components\Hidden::make('razones_no_recomendadas_json')
+                                ->default(json_encode($iaRazonesNoRecomendadas)),
+
                             // ── Decisión de Sanción — botones con color ───────────────────────
                             Forms\Components\ToggleButtons::make('tipo_sancion')
                                 ->label('Decisión de Sanción')
@@ -1975,22 +1979,33 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->schema([
                                     Forms\Components\Placeholder::make('exoneracion_aviso')
                                         ->hiddenLabel()
-                                        ->content(fn() => new \Illuminate\Support\HtmlString(
-                                            '<style>:root{--exo-label:rgba(0,0,0,0.45);--exo-text:rgba(17,24,39,0.78);--exo-strong:#b91c1c;}' .
-                                            'html.dark{--exo-label:rgba(255,255,255,0.35);--exo-text:rgba(255,255,255,0.70);--exo-strong:rgba(255,160,160,0.95);}</style>' .
-                                            '<div style="padding:16px 18px;background:rgba(239,68,68,0.11);border-radius:14px;' .
-                                            'border:1px solid rgba(239,68,68,0.22);border-left:3px solid #f87171;">' .
-                                            '<div style="display:flex;align-items:flex-start;gap:12px;">' .
-                                            '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="800" stroke="bold" ' .
-                                            'colors="primary:#f87171,secondary:#fca5a5" style="width:36px;height:36px;flex-shrink:0;margin-top:-2px"></lord-icon>' .
-                                            '<div style="flex:1;min-width:0;">' .
-                                            '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--exo-label);margin:0 0 4px;">Advertencia Legal</p>' .
-                                            '<p style="font-size:15px;font-weight:800;color:#f87171;margin:0 0 10px;line-height:1.2;">Decisión contraria a la recomendación jurídica</p>' .
-                                            '<p style="font-size:13px;color:var(--exo-text);line-height:1.6;margin:0;">' .
-                                            'La decisión que está tomando va en contra de la recomendación jurídica emitida por el sistema de inteligencia artificial de CES Legal. ' .
-                                            '<strong style="color:var(--exo-strong);">CES Legal no se responsabiliza por las consecuencias legales, laborales o judiciales derivadas de esta decisión.</strong>' .
-                                            '</p></div></div></div>'
-                                        )),
+                                        ->content(function(Get $get) use ($labelsMap) {
+                                            $tipoSeleccionado  = $get('tipo_sancion');
+                                            $razones           = json_decode($get('razones_no_recomendadas_json') ?? '{}', true) ?: [];
+                                            $razonEspecifica   = $razones[$tipoSeleccionado] ?? null;
+                                            $labelSeleccionado = $labelsMap[$tipoSeleccionado] ?? ucfirst(str_replace('_', ' ', $tipoSeleccionado ?? ''));
+
+                                            $html  = '<style>:root{--exo-label:rgba(0,0,0,0.45);--exo-text:rgba(17,24,39,0.78);--exo-strong:#b91c1c;--exo-reason-bg:rgba(239,68,68,0.06);--exo-reason-border:rgba(239,68,68,0.18);}';
+                                            $html .= 'html.dark{--exo-label:rgba(255,255,255,0.35);--exo-text:rgba(255,255,255,0.70);--exo-strong:rgba(255,160,160,0.95);--exo-reason-bg:rgba(239,68,68,0.10);--exo-reason-border:rgba(248,113,113,0.25);}</style>';
+                                            $html .= '<div style="padding:16px 18px;background:rgba(239,68,68,0.11);border-radius:14px;border:1px solid rgba(239,68,68,0.22);border-left:3px solid #f87171;">';
+                                            $html .= '<div style="display:flex;align-items:flex-start;gap:12px;">';
+                                            $html .= '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="800" stroke="bold" colors="primary:#f87171,secondary:#fca5a5" style="width:36px;height:36px;flex-shrink:0;margin-top:-2px"></lord-icon>';
+                                            $html .= '<div style="flex:1;min-width:0;">';
+                                            $html .= '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--exo-label);margin:0 0 4px;">Advertencia Legal</p>';
+                                            $html .= '<p style="font-size:15px;font-weight:800;color:#f87171;margin:0 0 10px;line-height:1.2;">Decisión contraria a la recomendación jurídica</p>';
+                                            $html .= '<p style="font-size:13px;color:var(--exo-text);line-height:1.6;margin:0;">La decisión que está tomando va en contra de la recomendación jurídica emitida por el sistema de inteligencia artificial de CES Legal. <strong style="color:var(--exo-strong);">CES Legal no se responsabiliza por las consecuencias legales, laborales o judiciales derivadas de esta decisión.</strong></p>';
+
+                                            if ($razonEspecifica) {
+                                                $html .= '<div style="margin-top:12px;padding:12px 14px;background:var(--exo-reason-bg);border-radius:10px;border:1px solid var(--exo-reason-border);">';
+                                                $html .= '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--exo-label);margin:0 0 5px;">Por qué la IA no recomienda «' . e($labelSeleccionado) . '»</p>';
+                                                $html .= '<p style="font-size:13px;color:var(--exo-text);line-height:1.6;margin:0;">' . e($razonEspecifica) . '</p>';
+                                                $html .= '</div>';
+                                            }
+
+                                            $html .= '</div></div></div>';
+
+                                            return new \Illuminate\Support\HtmlString($html);
+                                        }),
 
                                     Forms\Components\Textarea::make('razon_divergencia')
                                         ->label('Razón por la cual se elige esta sanción en lugar de las recomendadas por la IA')
