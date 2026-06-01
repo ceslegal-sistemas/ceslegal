@@ -111,12 +111,12 @@ class GAPReporteService
 
         $options = new Options();
         $options->set('isRemoteEnabled', false);
-        $options->set('defaultPaperSize', 'letter');
+        $options->set('defaultPaperSize', 'a4');
         $options->set('isFontSubsettingEnabled', true);
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html, 'UTF-8');
-        $dompdf->setPaper('letter', 'portrait');
+        $dompdf->setPaper('a4', 'portrait');
         $dompdf->render();
 
         $canvas = $dompdf->getCanvas();
