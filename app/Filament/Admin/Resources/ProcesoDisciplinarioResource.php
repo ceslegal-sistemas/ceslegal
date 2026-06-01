@@ -1840,13 +1840,14 @@ class ProcesoDisciplinarioResource extends Resource
                         // Cachear el análisis en sesión para evitar re-llamadas a la IA
                         // cuando ->live() en ToggleButtons dispara un re-render de Livewire.
                         // NO se cachea si la IA devolvió datos de fallback (análisis fallido).
-                        // v3: invalida caches anteriores que no tenían razones_no_recomendadas.
-                        $cacheKey = 'emitir_sancion_analisis_v3_' . $record->id;
+                        // v4: invalida caches que no tenían no_sancion en razones_no_recomendadas.
+                        $cacheKey = 'emitir_sancion_analisis_v4_' . $record->id;
                         $resultado = session($cacheKey);
                         $cacheValido = $resultado
                             && is_array($resultado)
                             && isset($resultado['analisis'])
-                            && array_key_exists('razones_no_recomendadas', $resultado['analisis']);
+                            && array_key_exists('razones_no_recomendadas', $resultado['analisis'])
+                            && isset($resultado['analisis']['razones_no_recomendadas']['no_sancion']);
                         if (!$cacheValido) {
                             $iaService = new \App\Services\IAAnalisisSancionService();
                             $resultado = $iaService->analizarYSugerirSanciones($record);
@@ -1882,7 +1883,7 @@ class ProcesoDisciplinarioResource extends Resource
                         $autoridadRit               = $esFallback ? [] : ($analisis['autoridad_sancion'] ?? []);
                         $iaRazonesNoRecomendadas    = $esFallback ? [] : ($analisis['razones_no_recomendadas'] ?? []);
 
-                        $labelsMap = ['llamado_atencion' => 'Llamado de Atención', 'suspension' => 'Suspensión Laboral', 'terminacion' => 'Terminación de Contrato', 'no_sancion' => 'Sin Sanción'];
+                        $labelsMap = ['llamado_atencion' => 'Llamado de Atención', 'suspension' => 'Suspensión Laboral', 'terminacion' => 'Terminación de Contrato', 'no_sancion' => 'No Aplicar Sanción'];
 
                         // Se muestran siempre todas las opciones disponibles.
                         // La decisión contraria a la recomendación de la IA se gestiona

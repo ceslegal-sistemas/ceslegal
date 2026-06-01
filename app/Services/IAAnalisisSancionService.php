@@ -481,7 +481,7 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
     "llamado_atencion": "Solo si llamado_atencion NO está en sanciones_sugeridas: explicar concretamente por qué sería insuficiente o inadecuado para este caso específico, citando la gravedad de los hechos o el historial del trabajador",
     "suspension": "Solo si suspension NO está en sanciones_sugeridas: explicar concretamente por qué sería desproporcionada o inapropiada para este caso, citando la levedad de la falta o el contexto del trabajador",
     "terminacion": "Solo si terminacion NO está en sanciones_sugeridas: explicar concretamente por qué sería excesiva o no configura justa causa según los hechos y el RIT o CST aplicable",
-    "no_sancion": "Solo si no_sancion no sería apropiada: explicar por qué omitir la sanción generaría un precedente negativo o desconocería la falta cometida según el RIT"
+    "no_sancion": "SIEMPRE incluir este campo: explicar por qué no aplicar ninguna sanción sería un error jurídico y laboral en este caso concreto, qué precedente negativo genera y cómo desconocería la falta según el RIT"
   }
 }
 
@@ -497,7 +497,7 @@ REGLAS ESTRICTAS:
 - En "motivos_analizados": incluye CADA motivo seleccionado con su análisis individual.
 - Si hay "otro motivo": analisis_otro_motivo.aplica=true y completa TODOS sus campos.
 - Si NO hay "otro motivo": analisis_otro_motivo.aplica=false y los demás campos son null.
-- razones_no_recomendadas: incluir SOLO las claves de sanciones que NO están en sanciones_sugeridas. Cada texto (máximo 80 palabras) debe explicar de forma jurídicamente fundamentada y específica al caso por qué esa sanción no es la decisión apropiada. No incluir claves para sanciones que sí están recomendadas. Si todas las sanciones son válidas, este objeto puede estar vacío {}.
+- razones_no_recomendadas: incluir una clave por CADA sanción que NO esté en sanciones_sugeridas. "no_sancion" SIEMPRE debe aparecer aquí porque nunca es una sanción recomendada en un proceso disciplinario. Para llamado_atencion, suspension y terminacion: incluir SOLO si NO están en sanciones_sugeridas. Cada texto (máximo 80 palabras) debe explicar de forma jurídicamente fundamentada y específica al caso por qué esa decisión no es apropiada. Usar lenguaje claro, directo y sin tecnicismos innecesarios.
 - Máximo 150 palabras por campo de texto (salvo razones_no_recomendadas: 80 palabras). No uses saltos de línea dentro de strings JSON.
 - Genera SOLO el JSON, sin markdown ni texto fuera del objeto JSON.
 PROMPT;
