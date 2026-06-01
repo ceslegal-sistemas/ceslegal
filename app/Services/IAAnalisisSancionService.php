@@ -439,8 +439,8 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
   "gravedad": "leve|grave",
   "es_reincidencia": true/false,
   "justificacion": "Por qué la conducta es leve o grave, citando el RIT o CST aplicable",
-  "sanciones_disponibles": ["llamado_atencion", "suspension", "terminacion"],
-  "sancion_recomendada": "llamado_atencion|suspension|terminacion",
+  "sanciones_disponibles": ["llamado_atencion", "suspension", "multa", "terminacion"],
+  "sancion_recomendada": "llamado_atencion|suspension|multa|terminacion",
   "dias_suspension_max_rit": null,
   "razonamiento_legal": "Fundamento en el RIT de la empresa y el CST. Citar artículo o capítulo del RIT si aplica",
   "consideraciones_especiales": "Historial, descargos del trabajador, atenuantes o agravantes relevantes",
@@ -448,7 +448,7 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
     {
       "motivo": "Nombre del motivo",
       "tipo_falta": "leve|grave",
-      "sancion_asociada": "llamado_atencion|suspension|terminacion",
+      "sancion_asociada": "llamado_atencion|suspension|multa|terminacion",
       "observacion": "Análisis breve de este motivo específico"
     }
   ],
@@ -456,30 +456,33 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
     "aplica": true/false,
     "descripcion_analizada": "Descripción del otro motivo",
     "tipo_falta_determinado": "leve|grave",
-    "sancion_recomendada": "llamado_atencion|suspension|terminacion",
+    "sancion_recomendada": "llamado_atencion|suspension|multa|terminacion",
     "dias_suspension_max_rit": null,
     "justificacion": "Análisis de este motivo según RIT y CST"
   },
   "autoridad_sancion": {
     "llamado_atencion": "texto indicando qué cargo/área puede autorizar esta sanción según el RIT (ej: 'Jefe inmediato con aprobación de RRHH'), o 'No especificado en el RIT' si no está claro",
     "suspension": "texto indicando qué cargo/área puede autorizar suspensiones según el RIT, o 'No especificado en el RIT' si no está claro",
+    "multa": "Solo si el RIT contempla multa: texto indicando qué cargo/área puede autorizarla y el monto o porcentaje máximo definido en el RIT, o omitir esta clave si el RIT no la contempla",
     "terminacion": "texto indicando qué cargo/área puede autorizar terminaciones de contrato según el RIT o el CST, o 'No especificado en el RIT' si no está claro"
   },
   "recomendacion_final": {
     "sanciones_sugeridas": ["llamado_atencion", "suspension"],
-    "sancion_principal": "llamado_atencion|suspension|terminacion",
+    "sancion_principal": "llamado_atencion|suspension|multa|terminacion",
     "dias_suspension": null,
     "confianza": "alta|media|baja",
     "mensaje_para_decision": "Mensaje para el empleador explicando la recomendación, sus fundamentos y las opciones disponibles",
     "bases_juridicas": {
       "llamado_atencion": "Argumentación específica para el llamado de atención: artículo del RIT o del CST que lo soporta y por qué es la sanción proporcional al caso",
       "suspension": "Argumentación específica para la suspensión: artículo del RIT o del CST inyectado que la permite, duración recomendada y proporcionalidad con la falta",
+      "multa": "Solo si multa está en sanciones_sugeridas: artículo o capítulo del RIT que la contempla, monto o porcentaje definido y proporcionalidad con la falta",
       "terminacion": "Argumentación específica para terminación: causal exacta del CST inyectado que aplica y por qué los hechos la configuran"
     }
   },
   "razones_no_recomendadas": {
     "llamado_atencion": "Solo si llamado_atencion NO está en sanciones_sugeridas: explicar concretamente por qué sería insuficiente o inadecuado para este caso específico, citando la gravedad de los hechos o el historial del trabajador",
     "suspension": "Solo si suspension NO está en sanciones_sugeridas: explicar concretamente por qué sería desproporcionada o inapropiada para este caso, citando la levedad de la falta o el contexto del trabajador",
+    "multa": "Solo si multa está en sanciones_disponibles PERO NO en sanciones_sugeridas: explicar por qué aplicar multa no sería lo más adecuado en este caso concreto",
     "terminacion": "Solo si terminacion NO está en sanciones_sugeridas: explicar concretamente por qué sería excesiva o no configura justa causa según los hechos y el RIT o CST aplicable",
     "no_sancion": "SIEMPRE incluir este campo: explicar por qué no aplicar ninguna sanción sería un error jurídico y laboral en este caso concreto, qué precedente negativo genera y cómo desconocería la falta según el RIT"
   }
@@ -489,7 +492,7 @@ REGLAS ESTRICTAS:
 - sanciones_sugeridas: array con TODOS los tipos de sanción jurídicamente válidos y proporcionales para este caso. Puede ser uno, dos o tres. No incluir "no_sancion". Ejemplo: si tanto llamado_atencion como suspension son proporcionales, incluir ambos.
 - bases_juridicas: incluir SOLO las sanciones que estén en sanciones_sugeridas. Cada texto (máximo 100 palabras) debe argumentar específicamente esa sanción citando el artículo concreto del RIT o del CST que la sustenta. No repetir el contenido de razonamiento_legal; este campo es la base jurídica puntual de cada opción.
 - sancion_principal: el tipo que más se ajusta al caso, debe estar dentro de sanciones_sugeridas.
-- sanciones_disponibles: incluye SOLO las sanciones que el RIT contempla. Sin RIT, aplica lo que permite el CST según la gravedad.
+- sanciones_disponibles: incluye SOLO las sanciones que el RIT contempla. Sin RIT, aplica lo que permite el CST según la gravedad. "multa" solo si el RIT la define explícitamente con monto o porcentaje; de lo contrario, no la incluyas.
 - dias_suspension_max_rit: número entero con el MÁXIMO de días que el RIT contempla EXPLÍCITAMENTE para la suspensión aplicable. Si el RIT no especifica días concretos, usa el límite que establezca el artículo correspondiente en el bloque CONTEXTO LEGAL CST inyectado. Si no aplica suspensión, pon null. NUNCA inventes un valor que no esté en el RIT ni en el bloque CONTEXTO LEGAL CST inyectado.
 - dias_suspension (recomendacion_final): número concreto dentro del rango 1..dias_suspension_max_rit que mejor se ajuste al caso, o null si no hay suspensión.
 - La gravedad es SOLO "leve" o "grave" — no hay subcategorías ni niveles. La clasificación la define el RIT.
@@ -497,7 +500,7 @@ REGLAS ESTRICTAS:
 - En "motivos_analizados": incluye CADA motivo seleccionado con su análisis individual.
 - Si hay "otro motivo": analisis_otro_motivo.aplica=true y completa TODOS sus campos.
 - Si NO hay "otro motivo": analisis_otro_motivo.aplica=false y los demás campos son null.
-- razones_no_recomendadas: incluir una clave por CADA sanción que NO esté en sanciones_sugeridas. "no_sancion" SIEMPRE debe aparecer aquí porque nunca es una sanción recomendada en un proceso disciplinario. Para llamado_atencion, suspension y terminacion: incluir SOLO si NO están en sanciones_sugeridas. Cada texto (máximo 80 palabras) debe explicar de forma jurídicamente fundamentada y específica al caso por qué esa decisión no es apropiada. Usar lenguaje claro, directo y sin tecnicismos innecesarios.
+- razones_no_recomendadas: incluir una clave por CADA sanción que NO esté en sanciones_sugeridas. "no_sancion" SIEMPRE debe aparecer. Para multa: incluir SOLO si está en sanciones_disponibles pero NO en sanciones_sugeridas; si el RIT no contempla multa, no incluir esta clave. Para llamado_atencion, suspension y terminacion: incluir SOLO si NO están en sanciones_sugeridas. Cada texto (máximo 80 palabras), lenguaje claro y directo sin tecnicismos.
 - Máximo 150 palabras por campo de texto (salvo razones_no_recomendadas: 80 palabras). No uses saltos de línea dentro de strings JSON.
 - Genera SOLO el JSON, sin markdown ni texto fuera del objeto JSON.
 PROMPT;

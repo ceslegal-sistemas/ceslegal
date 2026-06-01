@@ -1840,8 +1840,8 @@ class ProcesoDisciplinarioResource extends Resource
                         // Cachear el análisis en sesión para evitar re-llamadas a la IA
                         // cuando ->live() en ToggleButtons dispara un re-render de Livewire.
                         // NO se cachea si la IA devolvió datos de fallback (análisis fallido).
-                        // v4: invalida caches que no tenían no_sancion en razones_no_recomendadas.
-                        $cacheKey = 'emitir_sancion_analisis_v4_' . $record->id;
+                        // v5: invalida caches anteriores; ahora incluye multa si el RIT la contempla.
+                        $cacheKey = 'emitir_sancion_analisis_v5_' . $record->id;
                         $resultado = session($cacheKey);
                         $cacheValido = $resultado
                             && is_array($resultado)
@@ -1864,17 +1864,25 @@ class ProcesoDisciplinarioResource extends Resource
                         // ¿Tiene RIT activo?
                         $sinRit = !$record->empresa->reglamentoInterno()->where('activo', true)->exists();
 
-                        $opcionesSancion = $sinRit
-                            ? [
+                        // ¿El RIT contempla multa? La IA lo indica en sanciones_disponibles.
+                        $tieneMulta = !$sinRit && in_array('multa', $analisis['sanciones_disponibles'] ?? []);
+
+                        if ($sinRit) {
+                            $opcionesSancion = [
                                 'terminacion' => 'Terminación de Contrato (Art. 62 CST)',
                                 'no_sancion'  => 'No Aplicar Sanción',
-                            ]
-                            : [
+                            ];
+                        } else {
+                            $opcionesSancion = [
                                 'llamado_atencion' => 'Llamado de Atención',
                                 'suspension'       => 'Suspensión Laboral',
-                                'terminacion'      => 'Terminación de Contrato',
-                                'no_sancion'       => 'No Aplicar Sanción',
                             ];
+                            if ($tieneMulta) {
+                                $opcionesSancion['multa'] = 'Multa';
+                            }
+                            $opcionesSancion['terminacion'] = 'Terminación de Contrato';
+                            $opcionesSancion['no_sancion']  = 'No Aplicar Sanción';
+                        }
 
                         // Si la IA no estuvo disponible: no preseleccionar ni mostrar análisis engañoso
                         $recomendacionFinal         = $esFallback ? null : ($analisis['recomendacion_final'] ?? null);
@@ -1883,7 +1891,7 @@ class ProcesoDisciplinarioResource extends Resource
                         $autoridadRit               = $esFallback ? [] : ($analisis['autoridad_sancion'] ?? []);
                         $iaRazonesNoRecomendadas    = $esFallback ? [] : ($analisis['razones_no_recomendadas'] ?? []);
 
-                        $labelsMap = ['llamado_atencion' => 'Llamado de Atención', 'suspension' => 'Suspensión Laboral', 'terminacion' => 'Terminación de Contrato', 'no_sancion' => 'No Aplicar Sanción'];
+                        $labelsMap = ['llamado_atencion' => 'Llamado de Atención', 'suspension' => 'Suspensión Laboral', 'multa' => 'Multa', 'terminacion' => 'Terminación de Contrato', 'no_sancion' => 'No Aplicar Sanción'];
 
                         // Se muestran siempre todas las opciones disponibles.
                         // La decisión contraria a la recomendación de la IA se gestiona
@@ -1956,12 +1964,14 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->colors([
                                     'llamado_atencion' => 'info',
                                     'suspension'       => 'warning',
+                                    'multa'            => 'secondary',
                                     'terminacion'      => 'danger',
                                     'no_sancion'       => 'success',
                                 ])
                                 ->icons([
                                     'llamado_atencion' => 'heroicon-o-chat-bubble-bottom-center-text',
                                     'suspension'       => 'heroicon-o-clock',
+                                    'multa'            => 'heroicon-o-banknotes',
                                     'terminacion'      => 'heroicon-o-x-circle',
                                     'no_sancion'       => 'heroicon-o-check-circle',
                                 ])

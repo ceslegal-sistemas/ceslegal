@@ -62,6 +62,14 @@
             'lord'       => 'uphbloed.json',
             'lordColors' => 'primary:#fbbf24,secondary:#fde68a',
         ],
+        'multa' => [
+            'label'      => 'Multa',
+            'accent'     => '#a78bfa',
+            'glow'       => 'rgba(167,139,250,0.09)',
+            'border'     => 'rgba(167,139,250,0.28)',
+            'lord'       => 'lupugrca.json',
+            'lordColors' => 'primary:#a78bfa,secondary:#ddd6fe',
+        ],
         'terminacion' => [
             'label'      => 'Terminación de Contrato',
             'accent'     => '#f87171',
