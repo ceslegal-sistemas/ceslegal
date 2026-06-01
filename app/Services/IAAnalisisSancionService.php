@@ -395,12 +395,18 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
     "sancion_principal": "llamado_atencion|suspension|terminacion",
     "dias_suspension": null,
     "confianza": "alta|media|baja",
-    "mensaje_para_decision": "Mensaje para el empleador explicando la recomendación, sus fundamentos y las opciones disponibles"
+    "mensaje_para_decision": "Mensaje para el empleador explicando la recomendación, sus fundamentos y las opciones disponibles",
+    "bases_juridicas": {
+      "llamado_atencion": "Argumentación específica para el llamado de atención: artículo del RIT o del CST que lo soporta y por qué es la sanción proporcional al caso",
+      "suspension": "Argumentación específica para la suspensión: artículo del RIT o Art. 112 CST que la permite, duración recomendada y proporcionalidad con la falta",
+      "terminacion": "Argumentación específica para terminación: causal exacta del Art. 62 CST que aplica y por qué los hechos la configuran"
+    }
   }
 }
 
 REGLAS ESTRICTAS:
 - sanciones_sugeridas: array con TODOS los tipos de sanción jurídicamente válidos y proporcionales para este caso. Puede ser uno, dos o tres. No incluir "no_sancion". Ejemplo: si tanto llamado_atencion como suspension son proporcionales, incluir ambos.
+- bases_juridicas: incluir SOLO las sanciones que estén en sanciones_sugeridas. Cada texto (máximo 100 palabras) debe argumentar específicamente esa sanción citando el artículo concreto del RIT o del CST que la sustenta. No repetir el contenido de razonamiento_legal; este campo es la base jurídica puntual de cada opción.
 - sancion_principal: el tipo que más se ajusta al caso, debe estar dentro de sanciones_sugeridas.
 - sanciones_disponibles: incluye SOLO las sanciones que el RIT contempla. Sin RIT, aplica lo que permite el CST según la gravedad.
 - dias_suspension_max_rit: número entero con el MÁXIMO de días que el RIT contempla EXPLÍCITAMENTE para la suspensión aplicable. Si el RIT no especifica días concretos, usa el límite del Art. 112 CST: 8 días primera vez, hasta 60 días en reincidencia. Si no aplica suspensión, pon null. NUNCA inventes un valor que no esté en el RIT ni en el CST.

@@ -16,6 +16,7 @@
         ?? ($sancionPrincipal ? [$sancionPrincipal] : []);
     $diasSusp         = $recomendacion['dias_suspension'] ?? null;
     $mensaje          = $recomendacion['mensaje_para_decision'] ?? $analisis['consideraciones_especiales'] ?? '';
+    $basesJuridicas   = $recomendacion['bases_juridicas'] ?? [];
 
     // Asegurar que sancion_principal va primero
     if ($sancionPrincipal && ($pos = array_search($sancionPrincipal, $sancionesValidas)) !== false && $pos > 0) {
@@ -161,6 +162,8 @@ html.dark .esa-badge-reincidencia {
     border: 1px solid var(--esa-border);
     color: var(--esa-sub);
 }
+.esa-base-juridica summary::-webkit-details-marker { display: none; }
+.esa-base-juridica[open] .esa-chevron { transform: rotate(90deg); }
 </style>
 
 <div class="space-y-2">
@@ -225,50 +228,84 @@ html.dark .esa-badge-reincidencia {
                         'lord'       => 'edcgvlnw.json',
                         'lordColors' => 'primary:#818cf8,secondary:#c7d2fe',
                     ];
-                    $esPrincipal = ($s === $sancionPrincipal);
-                    $delay = 1000 + ($loop->index * 250);
-                    $iconSize = $esPrincipal ? '32px' : '26px';
+                    $esPrincipal  = ($s === $sancionPrincipal);
+                    $delay        = 1000 + ($loop->index * 250);
+                    $iconSize     = $esPrincipal ? '32px' : '26px';
+                    $baseJuridica = $basesJuridicas[$s] ?? null;
                 @endphp
 
-                <div style="display:flex;align-items:center;gap:12px;
-                            padding:{{ $esPrincipal ? '12px' : '9px' }} 18px;
+                {{-- Contenedor de cada sanción: encabezado + desplegable base jurídica --}}
+                <div style="border-top:{{ $loop->first ? 'none' : '1px solid var(--esa-divider)' }};
                             background:{{ $esPrincipal ? $sc['glow'] : 'transparent' }};
-                            border-top:{{ $loop->first ? 'none' : '1px solid var(--esa-divider)' }};
                             border-left:3px solid {{ $esPrincipal ? $sc['accent'] : 'transparent' }};">
 
-                    <lord-icon
-                        src="https://cdn.lordicon.com/{{ $sc['lord'] }}"
-                        trigger="loop" delay="{{ $delay }}" stroke="bold"
-                        colors="{{ $sc['lordColors'] }}"
-                        style="width:{{ $iconSize }};height:{{ $iconSize }};flex-shrink:0;">
-                    </lord-icon>
+                    {{-- Fila principal --}}
+                    <div style="display:flex;align-items:center;gap:12px;
+                                padding:{{ $esPrincipal ? '12px' : '9px' }} 18px;">
 
-                    <div style="flex:1;min-width:0;">
-                        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
-                            <span style="font-size:{{ $esPrincipal ? '15px' : '13px' }};
-                                         font-weight:{{ $esPrincipal ? '800' : '600' }};
-                                         color:{{ $sc['accent'] }};
-                                         line-height:1.2;">
-                                {{ $sc['label'] }}
-                                @if($s === 'suspension' && $diasSusp && $esPrincipal)
-                                    <span style="font-size:12px;font-weight:400;color:var(--esa-days);">
-                                        &nbsp;·&nbsp;{{ $diasSusp }} día{{ $diasSusp > 1 ? 's' : '' }}
-                                    </span>
-                                @endif
-                            </span>
+                        <lord-icon
+                            src="https://cdn.lordicon.com/{{ $sc['lord'] }}"
+                            trigger="loop" delay="{{ $delay }}" stroke="bold"
+                            colors="{{ $sc['lordColors'] }}"
+                            style="width:{{ $iconSize }};height:{{ $iconSize }};flex-shrink:0;">
+                        </lord-icon>
 
-                            @if($esPrincipal)
-                                <span class="esa-badge-principal"
-                                      style="background:{{ $sc['glow'] }};
-                                             border:1px solid {{ $sc['border'] }};
-                                             color:{{ $sc['accent'] }};">
-                                    ★ Principal
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+                                <span style="font-size:{{ $esPrincipal ? '15px' : '13px' }};
+                                             font-weight:{{ $esPrincipal ? '800' : '600' }};
+                                             color:{{ $sc['accent'] }};
+                                             line-height:1.2;">
+                                    {{ $sc['label'] }}
+                                    @if($s === 'suspension' && $diasSusp && $esPrincipal)
+                                        <span style="font-size:12px;font-weight:400;color:var(--esa-days);">
+                                            &nbsp;·&nbsp;{{ $diasSusp }} día{{ $diasSusp > 1 ? 's' : '' }}
+                                        </span>
+                                    @endif
                                 </span>
-                            @else
-                                <span class="esa-badge-valido">✓ También válido</span>
-                            @endif
+
+                                @if($esPrincipal)
+                                    <span class="esa-badge-principal"
+                                          style="background:{{ $sc['glow'] }};
+                                                 border:1px solid {{ $sc['border'] }};
+                                                 color:{{ $sc['accent'] }};">
+                                        ★ Principal
+                                    </span>
+                                @else
+                                    <span class="esa-badge-valido">✓ También válido</span>
+                                @endif
+                            </div>
                         </div>
                     </div>
+
+                    {{-- Desplegable: base jurídica argumentada --}}
+                    @if($baseJuridica)
+                        <details class="esa-base-juridica"
+                                 style="margin:0 18px 10px; padding:0;">
+                            <summary style="font-size:11px;font-weight:700;
+                                           color:{{ $sc['accent'] }};
+                                           list-style:none;display:flex;align-items:center;
+                                           gap:5px;cursor:pointer;user-select:none;
+                                           opacity:0.85;width:fit-content;">
+                                <svg class="esa-chevron" xmlns="http://www.w3.org/2000/svg"
+                                     viewBox="0 0 20 20" fill="currentColor"
+                                     style="width:12px;height:12px;transition:transform .2s;flex-shrink:0;">
+                                    <path fill-rule="evenodd"
+                                          d="M7.293 4.707a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L10.586 10 7.293 6.707a1 1 0 010-1.414z"
+                                          clip-rule="evenodd"/>
+                                </svg>
+                                Base jurídica argumentada
+                            </summary>
+                            <div style="margin-top:6px;padding:10px 12px;border-radius:8px;
+                                        background:rgba(0,0,0,0.04);border:1px solid {{ $sc['border'] }};">
+                                <p style="font-size:12.5px;color:var(--esa-text);
+                                          line-height:1.65;margin:0;">
+                                    {{ $baseJuridica }}
+                                </p>
+                            </div>
+                        </details>
+                    @endif
+
                 </div>
             @endforeach
         </div>
