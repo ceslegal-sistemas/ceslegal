@@ -261,7 +261,11 @@ class EmpresaResource extends Resource
                                 $chars  = $rit->texto_completo
                                     ? number_format(strlen($rit->texto_completo)) . ' caracteres'
                                     : '—';
-                                $url = route('rit.descargar.admin', $record);
+                                $user = auth()->user();
+                                $esAdmin = $user?->hasRole('super_admin') || $user?->hasRole('abogado');
+                                $url = $esAdmin
+                                    ? route('rit.descargar.admin', $record)
+                                    : route('rit.descargar');
 
                                 return new HtmlString(<<<HTML
                                 <div style="display:flex;flex-direction:column;gap:.5rem">
@@ -442,7 +446,11 @@ class EmpresaResource extends Resource
                     ->label('Descargar RIT')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
-                    ->url(fn(Empresa $record): string => route('rit.descargar.admin', $record))
+                    ->url(fn(Empresa $record): string => (
+                        auth()->user()?->hasRole('super_admin') || auth()->user()?->hasRole('abogado')
+                            ? route('rit.descargar.admin', $record)
+                            : route('rit.descargar')
+                    ))
                     ->openUrlInNewTab()
                     ->visible(fn(Empresa $record): bool => $record->reglamentoInterno !== null),
                 Tables\Actions\ViewAction::make()
