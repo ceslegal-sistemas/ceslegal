@@ -154,18 +154,25 @@ class GAPReporteService
         $tmpDir  = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $uid;
         mkdir($tmpDir, 0755, true);
 
-        $docxPath  = $tmpDir . DIRECTORY_SEPARATOR . 'gap.docx';
-        $pdfPath   = $tmpDir . DIRECTORY_SEPARATOR . 'gap.pdf';
-        $loProfile = $tmpDir . DIRECTORY_SEPARATOR . 'lo_profile';
+        $docxPath = $tmpDir . DIRECTORY_SEPARATOR . 'gap.docx';
+        $pdfPath  = $tmpDir . DIRECTORY_SEPARATOR . 'gap.pdf';
 
         $this->escribirDocx($auditoria, $empresa, $gapsAgrupados, $tipo, $docxPath);
 
-        $cmd  = escapeshellarg($loPath);
-        $cmd .= ' --headless --norestore --nofirststartwizard';
-        $cmd .= ' "-env:UserInstallation=file:///' . str_replace('\\', '/', $loProfile) . '"';
-        $cmd .= ' --convert-to pdf';
-        $cmd .= ' --outdir ' . escapeshellarg($tmpDir);
-        $cmd .= ' ' . escapeshellarg($docxPath);
+        // Mismo formato que RITGeneratorService: array para proc_open
+        // evita problemas de escaping en Windows con cmd.exe
+        $profileDir = str_replace('\\', '/', $tmpDir . '/lo_profile');
+        $loProfileUrl = 'file:///' . ltrim($profileDir, '/');
+
+        $cmd = [
+            $loPath,
+            '--headless',
+            '--nofirststartwizard',
+            '-env:UserInstallation=' . $loProfileUrl,
+            '--convert-to', 'pdf',
+            '--outdir', $tmpDir,
+            $docxPath,
+        ];
 
         $process = proc_open($cmd, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
 
