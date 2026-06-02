@@ -1,4 +1,7 @@
 <x-filament-panels::page>
+@once
+<script src="https://cdn.lordicon.com/lordicon.js"></script>
+@endonce
 @php
     $tieneAuditoria  = $auditoria && $auditoria->estado !== 'pendiente';
     $secciones       = $auditoria?->secciones ?? [];
@@ -183,13 +186,21 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
           </span>
         @endif
       @elseif($procesando)
-        <span class="rit-badge rit-badge-ia">
-          <svg style="width:11px;height:11px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+        <span class="rit-badge rit-badge-ia" style="gap:.5rem">
+          <lord-icon src="https://cdn.lordicon.com/xjsqfzte.json"
+            trigger="loop" delay="0" stroke="bold"
+            colors="primary:#a5b4fc,secondary:#818cf8"
+            style="width:14px;height:14px;margin-top:-1px">
+          </lord-icon>
           Analizando con IA
         </span>
       @else
-        <span class="rit-badge rit-badge-ia">
-          <svg style="width:11px;height:11px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+        <span class="rit-badge rit-badge-ia" style="gap:.5rem">
+          <lord-icon src="https://cdn.lordicon.com/xjsqfzte.json"
+            trigger="loop" delay="800" stroke="bold"
+            colors="primary:#a5b4fc,secondary:#818cf8"
+            style="width:14px;height:14px;margin-top:-1px">
+          </lord-icon>
           Servicio de auditoría
         </span>
       @endif
@@ -397,10 +408,15 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
     <div wire:poll.2000ms="refrescarEstado" class="mejora-shimmer" style="padding:1.75rem 2rem">
       {{-- Encabezado --}}
       <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem">
-        <div style="width:48px;height:48px;border-radius:50%;background:rgba(99,102,241,.18);border:2px solid rgba(99,102,241,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <svg style="width:24px;height:24px;color:#a5b4fc;animation:aspin .9s linear infinite" viewBox="0 0 24 24" fill="none">
-            <path stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
-          </svg>
+        <div style="width:52px;height:52px;border-radius:50%;background:rgba(99,102,241,.15);border:2px solid rgba(99,102,241,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <lord-icon src="https://cdn.lordicon.com/xjsqfzte.json"
+            trigger="loop" delay="0" stroke="bold"
+            colors="primary:#a5b4fc,secondary:#818cf8"
+            data-pt-icon
+            data-pt-dark="primary:#a5b4fc,secondary:#818cf8"
+            data-pt-light="primary:#4f46e5,secondary:#6366f1"
+            style="width:32px;height:32px">
+          </lord-icon>
         </div>
         <div style="flex:1;min-width:0">
           <p style="font-size:1rem;font-weight:700;color:#a5b4fc;margin:0 0 .2rem">Generando RIT Mejorado con IA</p>
