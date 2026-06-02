@@ -384,19 +384,54 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
 
     {{-- ── RIT MEJORADO: EN PROCESO ── --}}
     @if($mejorando)
-    <div wire:poll.2000ms="refrescarEstado" class="mejora-shimmer" style="padding:1.5rem 1.75rem">
-      <div style="display:flex;align-items:center;gap:1rem">
-        <div style="width:40px;height:40px;border-radius:50%;background:rgba(99,102,241,.15);border:1.5px solid rgba(99,102,241,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:adot 1.4s ease-in-out infinite">
-          <svg style="width:20px;height:20px;color:#a5b4fc" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+    @php
+      // Extraer "Capítulo X/Y" del texto de progreso para mostrar barra visual
+      $progresoTexto = $auditoria?->progreso_mejora ?? '';
+      $capActual = 0; $capTotal = 16;
+      if (preg_match('/Cap[ií]tulo\s+(\d+)\s*\/\s*(\d+)/iu', $progresoTexto, $m)) {
+          $capActual = (int) $m[1];
+          $capTotal  = (int) $m[2];
+      }
+      $pct = $capTotal > 0 ? min(100, round($capActual / $capTotal * 100)) : 0;
+    @endphp
+    <div wire:poll.2000ms="refrescarEstado" class="mejora-shimmer" style="padding:1.75rem 2rem">
+      {{-- Encabezado --}}
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem">
+        <div style="width:48px;height:48px;border-radius:50%;background:rgba(99,102,241,.18);border:2px solid rgba(99,102,241,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg style="width:24px;height:24px;color:#a5b4fc;animation:aspin .9s linear infinite" viewBox="0 0 24 24" fill="none">
+            <path stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+          </svg>
         </div>
-        <div>
-          <p style="font-size:.875rem;font-weight:700;color:#a5b4fc;margin:0 0 .2rem">
-            Generando RIT Mejorado con IA...
-          </p>
-          <p style="font-size:.775rem;color:#64748b;margin:0;line-height:1.5">
-            {{ $auditoria?->progreso_mejora ?? 'Iniciando mejora capítulo por capítulo...' }}
+        <div style="flex:1;min-width:0">
+          <p style="font-size:1rem;font-weight:700;color:#a5b4fc;margin:0 0 .2rem">Generando RIT Mejorado con IA</p>
+          <p style="font-size:.8125rem;color:#64748b;margin:0;line-height:1.5">
+            {{ $progresoTexto ?: 'Iniciando mejora capítulo por capítulo...' }}
           </p>
         </div>
+        @if($capActual > 0)
+          <div style="text-align:right;flex-shrink:0">
+            <span style="font-size:1.25rem;font-weight:800;color:#818cf8;line-height:1">{{ $capActual }}</span>
+            <span style="font-size:.75rem;color:#475569"> / {{ $capTotal }}</span>
+            <p style="font-size:.65rem;color:#64748b;margin:.15rem 0 0;text-transform:uppercase;letter-spacing:.06em">capítulos</p>
+          </div>
+        @endif
+      </div>
+
+      {{-- Barra de progreso --}}
+      <div style="width:100%;height:8px;border-radius:4px;background:rgba(99,102,241,.12);overflow:hidden;margin-bottom:.875rem">
+        <div style="height:100%;border-radius:4px;background:linear-gradient(90deg,#6366f1,#818cf8);width:{{ $pct }}%;transition:width .6s ease"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#475569;margin-bottom:1rem">
+        <span>Progreso de mejora</span>
+        <span>{{ $pct }}%</span>
+      </div>
+
+      {{-- Aviso: proceso continúa en segundo plano --}}
+      <div style="display:flex;align-items:center;gap:.6rem;padding:.65rem 1rem;border-radius:.625rem;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.18)">
+        <svg style="width:14px;height:14px;color:#818cf8;flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
+        <p style="font-size:.75rem;color:#94a3b8;margin:0;line-height:1.4">
+          Puede salir de esta página sin problema — el proceso continúa en segundo plano y recibirá una notificación cuando el RIT mejorado esté listo.
+        </p>
       </div>
     </div>
     @endif
