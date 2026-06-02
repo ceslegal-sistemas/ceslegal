@@ -329,12 +329,19 @@ class Register extends BaseRegister
         $rutaDocx  = $data['reglamento_docx_temp'] ?? null;
 
         if ($ritOpcion === 'tiene' && $rutaDocx) {
-            $rutaAbsoluta = Storage::disk('local')->path($rutaDocx);
+            $nombreArchivo  = basename($rutaDocx);
+            $rutaPermanente = 'reglamentos/' . $empresa->id . '/' . $nombreArchivo;
+
+            // Mover de temp a directorio permanente para que la descarga directa funcione
+            Storage::disk('local')->move($rutaDocx, $rutaPermanente);
+
+            $rutaAbsoluta = Storage::disk('local')->path($rutaPermanente);
 
             app(ReglamentoInternoService::class)->procesarDocumento(
                 $rutaAbsoluta,
                 $empresa->id,
-                basename($rutaDocx)
+                $nombreArchivo,
+                $rutaPermanente,
             );
 
             // Redirigir a la auditoría para que se ejecute automáticamente al ingresar

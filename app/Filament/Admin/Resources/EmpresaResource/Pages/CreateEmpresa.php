@@ -17,10 +17,16 @@ class CreateEmpresa extends CreateRecord
         $path = $this->data['reglamento_docx_temp'] ?? null;
         if ($path) {
             try {
+                $nombreArchivo  = basename($path);
+                $rutaPermanente = 'reglamentos/' . $this->record->id . '/' . $nombreArchivo;
+
+                \Illuminate\Support\Facades\Storage::disk('local')->move($path, $rutaPermanente);
+
                 app(ReglamentoInternoService::class)->procesarDocumento(
-                    storage_path("app/{$path}"),
+                    storage_path("app/{$rutaPermanente}"),
                     $this->record->id,
-                    basename($path)
+                    $nombreArchivo,
+                    $rutaPermanente,
                 );
             } catch (\Exception $e) {
                 Log::error('Error al procesar reglamento interno en CreateEmpresa', [
