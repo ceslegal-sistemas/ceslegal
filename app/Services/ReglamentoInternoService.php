@@ -65,11 +65,14 @@ class ReglamentoInternoService
 
         // Al subir un nuevo RIT manual, limpiar sanciones previas para forzar re-extracción
         $campos['sanciones_extraidas'] = null;
+        $campos['empresa_id']          = $empresaId;
 
-        $reglamento = ReglamentoInterno::updateOrCreate(
-            ['empresa_id' => $empresaId],
-            $campos
-        );
+        // Desactivar todos los registros anteriores para que solo quede este como activo.
+        // Se hace antes de crear el nuevo para que la relación hasOne(activo=true).latest()
+        // no devuelva un registro antiguo de IA cuando coexisten varios por empresa.
+        ReglamentoInterno::where('empresa_id', $empresaId)->update(['activo' => false]);
+
+        $reglamento = ReglamentoInterno::create($campos);
 
         Log::info('ReglamentoInternoService: documento registrado', [
             'empresa_id' => $empresaId,
