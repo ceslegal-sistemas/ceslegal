@@ -332,8 +332,8 @@ PROMPT;
             $payload = [
                 'contents'         => [['parts' => [['text' => $prompt]]]],
                 'generationConfig' => [
-                    'temperature'     => 0.25,
-                    'maxOutputTokens' => 8192,
+                    'temperature'     => 0.3,
+                    'maxOutputTokens' => 32768,
                     'topP'            => 0.95,
                     'thinkingConfig'  => ['thinkingBudget' => $cfg['budget']],
                 ],

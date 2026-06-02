@@ -59,10 +59,9 @@ class ProcesarAuditoriaRIT implements ShouldQueue
                 ->sendToDatabase($user);
         }
 
-        // Solo para RITs externos (subidos manualmente): generar versión mejorada automáticamente.
-        // Los RITs generados por el sistema ya cumplen los estándares jurídicos del CST
-        // y no requieren una versión mejorada (v+1) adicional.
-        if ($auditoria && $score < 100 && $auditoria->estado === 'completado' && $auditoria->fuente === 'externo') {
+        // Para RITs externos (subidos manualmente): siempre generar versión mejorada,
+        // independientemente del score. Los RITs generados por el sistema no requieren mejora adicional.
+        if ($auditoria && $auditoria->estado === 'completado' && $auditoria->fuente === 'externo') {
             $auditoria->update(['estado_mejora' => 'procesando']);
             GenerarRITMejoradoJob::dispatch($auditoria, $this->userId);
         }
