@@ -122,7 +122,7 @@ Route::get('/admin/fotos-descargos/{diligencia}/{tipo}', function ($diligenciaId
         ->header('Cache-Control', 'private, max-age=3600');
 })->middleware(['auth'])->name('admin.fotos-descargos');
 
-// Descarga del RIT generado con IA
+// Descarga del RIT del cliente autenticado
 Route::get('/descargar/rit', function () {
     $user    = auth()->user();
     $empresa = $user?->empresa;
@@ -131,22 +131,43 @@ Route::get('/descargar/rit', function () {
         abort(403, 'No autorizado');
     }
 
+    // Prioridad 1: RIT con archivo físico adjunto (subido manualmente)
+    $ritConArchivo = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
+        ->whereNotNull('ruta_docx')
+        ->orderByDesc('updated_at')
+        ->first();
+
+    if ($ritConArchivo) {
+        $rutaAbsoluta = \Illuminate\Support\Facades\Storage::disk('local')->path($ritConArchivo->ruta_docx);
+        if (file_exists($rutaAbsoluta)) {
+            $extension = strtolower(pathinfo($rutaAbsoluta, PATHINFO_EXTENSION)) ?: 'docx';
+            $mimeTypes = [
+                'pdf'  => 'application/pdf',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ];
+            $nombreDescarga = $ritConArchivo->nombre ?? ('RIT_' . \Str::slug($empresa->razon_social) . ".{$extension}");
+            return response()->download($rutaAbsoluta, $nombreDescarga, [
+                'Content-Type' => $mimeTypes[$extension] ?? 'application/octet-stream',
+            ]);
+        }
+    }
+
+    // Prioridad 2: generar PDF desde texto_completo (RIT construido/mejorado con IA)
     $rit = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
         ->orderByDesc('updated_at')
         ->first();
 
-    if (!$rit || empty($rit->texto_completo)) {
-        abort(404, 'Documento no encontrado. Genere su RIT primero.');
+    if ($rit && !empty($rit->texto_completo)) {
+        $service = app(\App\Services\RITGeneratorService::class);
+        $tmpPath = $service->generarPDFTemp($rit->texto_completo, $empresa);
+        $nombre  = 'Reglamento_Interno_' . \Str::slug($empresa->razon_social) . '.pdf';
+
+        return response()->download($tmpPath, $nombre, [
+            'Content-Type' => 'application/pdf',
+        ])->deleteFileAfterSend();
     }
 
-    // Generar PDF de solo lectura en temp
-    $service = app(\App\Services\RITGeneratorService::class);
-    $tmpPath = $service->generarPDFTemp($rit->texto_completo, $empresa);
-    $nombre  = 'Reglamento_Interno_' . \Str::slug($empresa->razon_social) . '.pdf';
-
-    return response()->download($tmpPath, $nombre, [
-        'Content-Type' => 'application/pdf',
-    ])->deleteFileAfterSend();
+    abort(404, 'Documento no encontrado. Genere su RIT primero.');
 })->middleware(['auth'])->name('rit.descargar');
 
 // Descarga del RIT para super admin (por empresa_id)
@@ -156,6 +177,28 @@ Route::get('/descargar/rit/admin/{empresa}', function (\App\Models\Empresa $empr
         abort(403, 'No autorizado');
     }
 
+    // Prioridad 1: RIT con archivo físico adjunto (subido manualmente)
+    $ritConArchivo = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
+        ->whereNotNull('ruta_docx')
+        ->orderByDesc('updated_at')
+        ->first();
+
+    if ($ritConArchivo) {
+        $rutaAbsoluta = \Illuminate\Support\Facades\Storage::disk('local')->path($ritConArchivo->ruta_docx);
+        if (file_exists($rutaAbsoluta)) {
+            $extension = strtolower(pathinfo($rutaAbsoluta, PATHINFO_EXTENSION)) ?: 'docx';
+            $mimeTypes = [
+                'pdf'  => 'application/pdf',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ];
+            $nombreDescarga = $ritConArchivo->nombre ?? ('RIT_' . \Str::slug($empresa->razon_social) . ".{$extension}");
+            return response()->download($rutaAbsoluta, $nombreDescarga, [
+                'Content-Type' => $mimeTypes[$extension] ?? 'application/octet-stream',
+            ]);
+        }
+    }
+
+    // Prioridad 2: generar PDF desde texto_completo (RIT construido/mejorado con IA)
     $rit = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
         ->orderByDesc('updated_at')
         ->first();
@@ -164,24 +207,6 @@ Route::get('/descargar/rit/admin/{empresa}', function (\App\Models\Empresa $empr
         abort(404, 'Documento no encontrado para esta empresa.');
     }
 
-    // Prioridad 1: servir el archivo original tal como fue subido
-    if ($rit->ruta_docx) {
-        $rutaAbsoluta = \Illuminate\Support\Facades\Storage::disk('local')->path($rit->ruta_docx);
-        if (file_exists($rutaAbsoluta)) {
-            $extension = strtolower(pathinfo($rutaAbsoluta, PATHINFO_EXTENSION)) ?: 'docx';
-            $mimeTypes = [
-                'pdf'  => 'application/pdf',
-                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            ];
-            // Usar el nombre original guardado en el registro
-            $nombreDescarga = $rit->nombre ?? ('RIT_' . \Str::slug($empresa->razon_social) . ".{$extension}");
-            return response()->download($rutaAbsoluta, $nombreDescarga, [
-                'Content-Type' => $mimeTypes[$extension] ?? 'application/octet-stream',
-            ]);
-        }
-    }
-
-    // Prioridad 2: generar PDF de solo lectura desde texto_completo (RIT construido en plataforma)
     if (!empty($rit->texto_completo)) {
         $service = app(\App\Services\RITGeneratorService::class);
         $tmpPath = $service->generarPDFTemp($rit->texto_completo, $empresa);
