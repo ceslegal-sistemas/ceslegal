@@ -13,7 +13,9 @@
         'warning' => '#f59e0b',
         default   => '#ef4444',
     };
-    $esExterno       = $auditoria?->fuente === 'externo';   // RIT subido manualmente
+    // 'externo' si la auditoría lo marcó así, O si el RIT base fue subido manualmente
+    // (cubre auditorías antiguas cuyo campo fuente quedó como 'sistema' por el bug anterior)
+    $esExterno       = ($auditoria?->fuente === 'externo') || ($rit?->fuente === 'subido');
     $estadoMejora    = $auditoria?->estado_mejora ?? 'no_aplica';
     $mejorando       = $esExterno && $estadoMejora === 'procesando';
     $mejoraLista     = $esExterno && $estadoMejora === 'completado' && $ritMejorado;

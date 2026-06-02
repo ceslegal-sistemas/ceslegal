@@ -64,7 +64,9 @@ class AuditarRIT extends Page implements HasForms
         }
 
         if ($this->empresa) {
+            // Cargar el RIT base (subido manualmente o construido con IA), no la versión mejorada
             $this->rit = ReglamentoInterno::where('empresa_id', $this->empresa->id)
+                ->where('fuente', '!=', 'mejora_ia')
                 ->orderByDesc('updated_at')
                 ->first();
 

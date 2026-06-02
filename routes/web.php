@@ -152,8 +152,12 @@ Route::get('/descargar/rit', function () {
         }
     }
 
-    // Prioridad 2: generar PDF desde texto_completo (RIT construido/mejorado con IA)
+    // Prioridad 2: texto del RIT base (subido manualmente o construido con IA, nunca mejora_ia)
     $rit = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
+        ->where('fuente', '!=', 'mejora_ia')
+        ->orderByDesc('updated_at')
+        ->first()
+        ?? \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
         ->orderByDesc('updated_at')
         ->first();
 
@@ -198,8 +202,12 @@ Route::get('/descargar/rit/admin/{empresa}', function (\App\Models\Empresa $empr
         }
     }
 
-    // Prioridad 2: generar PDF desde texto_completo (RIT construido/mejorado con IA)
+    // Prioridad 2: texto del RIT base (subido manualmente o construido con IA, nunca mejora_ia)
     $rit = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
+        ->where('fuente', '!=', 'mejora_ia')
+        ->orderByDesc('updated_at')
+        ->first()
+        ?? \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
         ->orderByDesc('updated_at')
         ->first();
 
