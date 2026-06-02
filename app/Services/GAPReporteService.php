@@ -111,6 +111,7 @@ class GAPReporteService
 
         $options = new Options();
         $options->set('isRemoteEnabled', false);
+        $options->set('isHtml5ParserEnabled', true);
         $options->set('defaultPaperSize', 'a4');
         $options->set('isFontSubsettingEnabled', true);
 
