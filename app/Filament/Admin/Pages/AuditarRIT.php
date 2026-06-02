@@ -38,34 +38,16 @@ class AuditarRIT extends Page implements HasForms
      */
     public static function shouldRegisterNavigation(): bool
     {
-        $user = Auth::user();
-        if (!$user) {
-            return false;
-        }
-        if ($user->hasRole('super_admin') || $user->hasRole('abogado')) {
-            return true;
-        }
-        $empresa = $user->empresa ?? null;
-        if ($empresa) {
-            $rit = ReglamentoInterno::where('empresa_id', $empresa->id)
-                ->where('activo', true)
-                ->orderByDesc('updated_at')
-                ->first();
-            if ($rit && in_array($rit->fuente, ['construido_ia', 'mejora_ia'])) {
-                return false;
-            }
-        }
-        return true;
+        return Auth::check();
     }
 
-    public ?Empresa           $empresa              = null;
-    public ?AuditoriaRIT      $auditoria            = null;
-    public ?ReglamentoInterno $rit                  = null;
-    public ?ReglamentoInterno $ritMejorado          = null;
-    public ?GapReporte        $gapReporte           = null;
-    public bool               $procesando           = false;
-    public bool               $soloExternoPermitido = false;
-    public array              $data                 = [];
+    public ?Empresa           $empresa    = null;
+    public ?AuditoriaRIT      $auditoria  = null;
+    public ?ReglamentoInterno $rit        = null;
+    public ?ReglamentoInterno $ritMejorado= null;
+    public ?GapReporte        $gapReporte = null;
+    public bool               $procesando = false;
+    public array              $data       = [];
 
     public function mount(): void
     {
@@ -85,12 +67,6 @@ class AuditarRIT extends Page implements HasForms
             $this->rit = ReglamentoInterno::where('empresa_id', $this->empresa->id)
                 ->orderByDesc('updated_at')
                 ->first();
-
-            // Lógica de negocio: clientes con RIT construido/mejorado por el sistema
-            // no pueden auditarlo directamente — el módulo es para RITs externos.
-            if (!$esAdmin && $this->rit && in_array($this->rit->fuente, ['construido_ia', 'mejora_ia'])) {
-                $this->soloExternoPermitido = true;
-            }
 
             // Cargar auditoría más reciente
             $this->auditoria = AuditoriaRIT::where('empresa_id', $this->empresa->id)
@@ -152,16 +128,6 @@ class AuditarRIT extends Page implements HasForms
         $archivoExterno = $this->data['rit_externo'] ?? null;
         if (is_array($archivoExterno)) {
             $archivoExterno = $archivoExterno[0] ?? null;
-        }
-
-        // Lógica de negocio: clientes con RIT generado por el sistema deben subir un archivo externo
-        if ($this->soloExternoPermitido && !$archivoExterno) {
-            Notification::make()
-                ->warning()
-                ->title('Se requiere documento externo')
-                ->body('El módulo de auditoría verifica su propio RIT contra la normativa vigente. Adjunte el documento para continuar.')
-                ->send();
-            return;
         }
 
         if (!$archivoExterno && (!$this->rit || empty($this->rit->texto_completo))) {

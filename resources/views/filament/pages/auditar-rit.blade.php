@@ -209,18 +209,11 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
             <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z"/></svg>
             Ver mi RIT
           </a>
-        @elseif(!$procesando)
-          @if(!$soloExternoPermitido)
-            <button wire:click="iniciarAuditoria" wire:loading.attr="disabled" class="rit-btn rit-btn-primary">
-              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803M10.5 7.5v6m3-3h-6"/></svg>
-              Auditar RIT
-            </button>
-          @else
-            <button wire:click="iniciarAuditoria" wire:loading.attr="disabled" class="rit-btn rit-btn-primary">
-              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
-              Auditar mi RIT
-            </button>
-          @endif
+        @elseif(!$procesando && $rit)
+          <button wire:click="iniciarAuditoria" wire:loading.attr="disabled" class="rit-btn rit-btn-primary">
+            <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803M10.5 7.5v6m3-3h-6"/></svg>
+            Auditar mi Reglamento Interno
+          </button>
         @endif
       </div>
 
@@ -558,78 +551,20 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
     </div>
   </div>
 
-  {{-- ── FORMULARIO INICIAL: solo para soloExternoPermitido o cuando no hay RIT almacenado ── --}}
-  @elseif(!$procesando && ($soloExternoPermitido || !$rit || empty($rit->texto_completo)))
+  {{-- ── SIN RIT: mensaje cuando no hay reglamento en el sistema ── --}}
+  @elseif(!$procesando && (!$rit || empty($rit->texto_completo)))
   <div class="rit-viewer">
-    <div class="rit-viewer-header">
-      <span class="rit-viewer-label">
-        @if($soloExternoPermitido) Auditar documento externo
-        @elseif($rit && !empty($rit->texto_completo)) Auditar RIT existente
-        @else Subir documento
-        @endif
-      </span>
-      @if($rit && !$soloExternoPermitido)
-        <span style="font-size:.75rem;color:#64748b">Último RIT: {{ $rit->updated_at->format('d/m/Y') }}</span>
-      @endif
-    </div>
     <div class="rit-viewer-body">
-
-      @if($soloExternoPermitido)
-        {{-- Panel informativo: RIT fue construido por CES Legal --}}
-        <div style="padding:1rem 1.25rem;border-radius:.875rem;border:1px solid rgba(245,158,11,.22);background:rgba(245,158,11,.06);margin-bottom:1.25rem">
-          <div style="display:flex;align-items:flex-start;gap:.875rem">
-            <div style="width:36px;height:36px;border-radius:50%;background:rgba(245,158,11,.12);border:1.5px solid rgba(245,158,11,.28);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.125rem">
-              <svg style="width:18px;height:18px;color:#fcd34d" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"/>
-              </svg>
-            </div>
-            <div style="flex:1;min-width:0">
-              <p style="font-size:.875rem;font-weight:700;color:#fcd34d;margin:0 0 .375rem;line-height:1.4">
-                Su Reglamento Interno fue elaborado por CES Legal
-              </p>
-              <p style="font-size:.8rem;color:#94a3b8;margin:0;line-height:1.65">
-                El módulo de auditoría está diseñado para verificar <strong style="color:#cbd5e1">documentos propios de la empresa</strong>
-                frente a la normativa colombiana vigente. Como su RIT fue construido directamente por CES Legal aplicando
-                todos los estándares jurídicos, no es posible auditarlo a través de este módulo.<br><br>
-                Si cuenta con un <strong style="color:#cbd5e1">Reglamento Interno previo o de otra fuente</strong> que desee
-                verificar, adjúntelo a continuación y lo revisaremos sección por sección.
-              </p>
-            </div>
-          </div>
+      <div class="rit-empty">
+        <div class="rit-empty-icon">
+          <svg style="width:26px;height:26px;color:#818cf8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
         </div>
-        <p style="font-size:.8125rem;color:#64748b;margin-bottom:1rem;line-height:1.6">
-          Adjunte el documento a auditar (PDF o Word) y verificaremos su cumplimiento frente al CST,
-          Ley 1010/2006, Ley 2365/2024 y la jurisprudencia de la biblioteca legal.
-        </p>
-      @elseif($rit && !empty($rit->texto_completo))
-        {{-- <p style="font-size:.8125rem;color:#64748b;margin-bottom:1rem;line-height:1.6">
-          El sistema auditará el Reglamento Interno almacenado y lo comparará sección por sección
-          contra el Código Sustantivo del Trabajo, Ley 1010/2006, Ley 2365/2024 y la jurisprudencia
-          de la biblioteca legal. También puede adjuntar un documento externo para auditarlo.
-        </p> --}}
-      @else
-        <p style="font-size:.8125rem;color:#64748b;margin-bottom:1rem;line-height:1.6">
-          No hay un RIT en el sistema. Adjunte el Reglamento Interno de su empresa en formato
-          PDF o Word y lo auditaremos contra la normativa colombiana vigente.
-        </p>
-      @endif
-
-      <form wire:submit="iniciarAuditoria">
-        {{ $this->form }}
-        <div style="margin-top:1.25rem">
-          <button type="submit" wire:loading.attr="disabled" class="rit-btn rit-btn-primary" style="font-size:.875rem;padding:.65rem 1.375rem">
-            @if($soloExternoPermitido)
-              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
-              <span wire:loading.remove>Auditar documento adjunto</span>
-            @else
-              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803M10.5 7.5v6m3-3h-6"/></svg>
-              <span wire:loading.remove>Iniciar Auditoría Legal</span>
-            @endif
-            <span wire:loading>Analizando RIT... puede tardar varios minutos</span>
-          </button>
-        </div>
-      </form>
-
+        <p class="rit-empty-title">Sin Reglamento Interno</p>
+        <p class="rit-empty-sub">Aún no tiene un Reglamento Interno en el sistema. Genérelo desde el módulo correspondiente para poder auditarlo.</p>
+        <a href="{{ route('filament.admin.pages.mi-reglamento-interno') }}" class="rit-btn rit-btn-primary" style="font-size:.875rem;padding:.65rem 1.375rem">
+          Ir a Mi Reglamento Interno
+        </a>
+      </div>
     </div>
   </div>
   @endif
