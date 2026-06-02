@@ -108,7 +108,9 @@ class AuditoriaRITService
             ->orderByDesc('updated_at')
             ->first();
 
-        $fuente = $textoExternoRIT ? 'externo' : 'sistema';
+        // 'externo' si: se subió un archivo externo al momento de auditar, O
+        // si el RIT fue cargado manualmente durante el registro (fuente='subido').
+        $fuente = ($textoExternoRIT || $rit?->fuente === 'subido') ? 'externo' : 'sistema';
 
         $auditoria = AuditoriaRIT::create([
             'empresa_id'           => $empresa->id,
