@@ -111,16 +111,16 @@ class AuditarRIT extends Page implements HasForms
     {
         return $form
             ->schema([
-                FileUpload::make('rit_externo')
-                    ->label('Subir RIT externo (PDF o Word)')
-                    ->helperText('Si tiene un RIT propio que desea auditar, adjúntelo aquí. Si no, se auditará el RIT generado en el sistema.')
-                    ->disk('local')
-                    ->directory('tmp/auditoria')
-                    ->acceptedFileTypes(['application/pdf',
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        'application/msword'])
-                    ->maxSize(10240)
-                    ->nullable(),
+                // FileUpload::make('rit_externo')
+                //     ->label('Subir RIT externo (PDF o Word)')
+                //     ->helperText('Si tiene un RIT propio que desea auditar, adjúntelo aquí. Si no, se auditará el RIT generado en el sistema.')
+                //     ->disk('local')
+                //     ->directory('tmp/auditoria')
+                //     ->acceptedFileTypes(['application/pdf',
+                //         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                //         'application/msword'])
+                //     ->maxSize(10240)
+                //     ->nullable(),
             ])
             ->statePath('data');
     }

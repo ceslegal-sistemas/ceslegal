@@ -602,11 +602,11 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
           Ley 1010/2006, Ley 2365/2024 y la jurisprudencia de la biblioteca legal.
         </p>
       @elseif($rit && !empty($rit->texto_completo))
-        <p style="font-size:.8125rem;color:#64748b;margin-bottom:1rem;line-height:1.6">
+        {{-- <p style="font-size:.8125rem;color:#64748b;margin-bottom:1rem;line-height:1.6">
           El sistema auditará el Reglamento Interno almacenado y lo comparará sección por sección
           contra el Código Sustantivo del Trabajo, Ley 1010/2006, Ley 2365/2024 y la jurisprudencia
           de la biblioteca legal. También puede adjuntar un documento externo para auditarlo.
-        </p>
+        </p> --}}
       @else
         <p style="font-size:.8125rem;color:#64748b;margin-bottom:1rem;line-height:1.6">
           No hay un RIT en el sistema. Adjunte el Reglamento Interno de su empresa en formato
