@@ -558,8 +558,8 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
     </div>
   </div>
 
-  {{-- ── FORMULARIO INICIAL ── --}}
-  @elseif(!$procesando)
+  {{-- ── FORMULARIO INICIAL: solo para soloExternoPermitido o cuando no hay RIT almacenado ── --}}
+  @elseif(!$procesando && ($soloExternoPermitido || !$rit || empty($rit->texto_completo)))
   <div class="rit-viewer">
     <div class="rit-viewer-header">
       <span class="rit-viewer-label">

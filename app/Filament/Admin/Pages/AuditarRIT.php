@@ -105,6 +105,17 @@ class AuditarRIT extends Page implements HasForms
         }
 
         $this->form->fill();
+
+        // Auto-iniciar auditoría para clientes que subieron su RIT durante el registro
+        // y aún no tienen ninguna auditoría ejecutada.
+        if (!$esAdmin
+            && $this->empresa
+            && $this->rit
+            && $this->rit->fuente === 'subido'
+            && !$this->auditoria
+        ) {
+            $this->autoIniciarAuditoria();
+        }
     }
 
     public function form(Form $form): Form
@@ -248,6 +259,26 @@ class AuditarRIT extends Page implements HasForms
         $this->form->fill();
     }
 
+    /**
+     * Inicia la auditoría automáticamente al cargar la página para clientes
+     * que subieron su RIT durante el registro (fuente = 'subido').
+     */
+    private function autoIniciarAuditoria(): void
+    {
+        if (!$this->empresa || !$this->rit || empty($this->rit->texto_completo)) {
+            return;
+        }
+
+        $service          = app(AuditoriaRITService::class);
+        $this->auditoria  = $service->iniciar($this->empresa, null);
+        $this->procesando = true;
+
+        ProcesarAuditoriaRIT::dispatch($this->auditoria, Auth::id());
+
+        $this->auditoria  = $this->auditoria->fresh();
+        $this->procesando = $this->auditoria?->estaEnProceso() ?? false;
+    }
+
     public function reintentarMejora(): void
     {
         $this->verificarPropiedadEmpresa();
@@ -255,7 +286,10 @@ class AuditarRIT extends Page implements HasForms
             Notification::make()->warning()->title('No hay auditoría completada')->send();
             return;
         }
-        if ($this->auditoria->fuente !== 'externo') {
+        // Permitir reintentar tanto para auditorías de archivos externos
+        // como para clientes que subieron su RIT durante el registro (fuente=subido).
+        $esRitSubido = $this->rit && $this->rit->fuente === 'subido';
+        if ($this->auditoria->fuente !== 'externo' && !$esRitSubido) {
             Notification::make()->warning()->title('Sin acción disponible')
                 ->body('La versión mejorada solo aplica para RITs subidos manualmente.')
                 ->send();

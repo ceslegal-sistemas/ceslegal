@@ -59,9 +59,19 @@ class ProcesarAuditoriaRIT implements ShouldQueue
                 ->sendToDatabase($user);
         }
 
-        // Para RITs externos (subidos manualmente): siempre generar versión mejorada,
-        // independientemente del score. Los RITs generados por el sistema no requieren mejora adicional.
-        if ($auditoria && $auditoria->estado === 'completado' && $auditoria->fuente === 'externo') {
+        // Generar versión mejorada cuando:
+        // - El RIT fue auditado con texto externo (fuente='externo'), O
+        // - El cliente subió su propio RIT durante el registro (ReglamentoInterno.fuente='subido')
+        // Solo si el score es menor a 100 (hay algo que mejorar).
+        $empresaRitFuente = \App\Models\ReglamentoInterno::where('empresa_id', $auditoria->empresa_id ?? 0)
+            ->orderByDesc('updated_at')
+            ->value('fuente');
+
+        if ($auditoria
+            && $score < 100
+            && $auditoria->estado === 'completado'
+            && ($auditoria->fuente === 'externo' || $empresaRitFuente === 'subido')
+        ) {
             $auditoria->update(['estado_mejora' => 'procesando']);
             GenerarRITMejoradoJob::dispatch($auditoria, $this->userId);
         }

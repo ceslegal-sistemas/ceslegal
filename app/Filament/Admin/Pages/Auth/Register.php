@@ -336,6 +336,11 @@ class Register extends BaseRegister
                 $empresa->id,
                 basename($rutaDocx)
             );
+
+            // Redirigir a la auditoría para que se ejecute automáticamente al ingresar
+            if (empty($this->redirectUrl)) {
+                $this->redirectUrl = route('filament.admin.pages.auditar-r-i-t');
+            }
         } elseif ($ritOpcion === 'construir') {
             // Tras el registro, redirigir a Mi Reglamento Interno
             // (se sobreescribe solo si no hay ya redirect a PayU)
