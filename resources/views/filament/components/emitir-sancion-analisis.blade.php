@@ -3,6 +3,8 @@
     Variables esperadas: $analisis (array), $recomendacion (array|null)
 --}}
 @php
+    $analisis       = $analisis ?? [];
+    $recomendacion  = $recomendacion ?? [];
     $gravedad       = $analisis['gravedad'] ?? 'leve';
     $esReincidencia = $analisis['es_reincidencia'] ?? false;
     $justificacion  = $analisis['justificacion'] ?? '';

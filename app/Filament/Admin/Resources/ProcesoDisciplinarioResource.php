@@ -1886,8 +1886,52 @@ class ProcesoDisciplinarioResource extends Resource
 
                         // Si la IA no estuvo disponible: no preseleccionar ni mostrar análisis engañoso
                         $recomendacionFinal         = $esFallback ? null : ($analisis['recomendacion_final'] ?? null);
-                        $iaRecomendada              = $esFallback ? null : ($recomendacionFinal['sancion_principal'] ?? $recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null);
-                        $iaSancionesRecomendadas    = $esFallback ? [] : ($recomendacionFinal['sanciones_sugeridas'] ?? ($iaRecomendada ? [$iaRecomendada] : []));
+
+                        // Coherencia recomendación ↔ opciones: la IA NUNCA debe recomendar un
+                        // tipo de sanción que no esté entre las opciones disponibles (las que
+                        // el RIT del cliente contempla). Se filtra la recomendación a esos tipos.
+                        $tiposDisponibles = array_values(array_diff(array_keys($opcionesSancion), ['no_sancion']));
+                        if ($recomendacionFinal) {
+                            $sugeridas = array_values(array_intersect(
+                                $recomendacionFinal['sanciones_sugeridas'] ?? [],
+                                $tiposDisponibles
+                            ));
+                            $principal = $recomendacionFinal['sancion_principal']
+                                ?? $recomendacionFinal['sancion_sugerida']
+                                ?? ($analisis['sancion_recomendada'] ?? null);
+                            if (!in_array($principal, $tiposDisponibles, true)) {
+                                $principal = $sugeridas[0] ?? null;
+                            }
+                            if (empty($sugeridas) && $principal) {
+                                $sugeridas = [$principal];
+                            }
+                            $recomendacionFinal['sanciones_sugeridas'] = $sugeridas;
+                            $recomendacionFinal['sancion_principal']   = $principal;
+                            // Mostrar solo las bases jurídicas de los tipos realmente disponibles
+                            if (!empty($recomendacionFinal['bases_juridicas']) && is_array($recomendacionFinal['bases_juridicas'])) {
+                                $recomendacionFinal['bases_juridicas'] = array_intersect_key(
+                                    $recomendacionFinal['bases_juridicas'],
+                                    array_flip($tiposDisponibles)
+                                );
+                            }
+                            // Si tras el filtro no queda ninguna sanción válida, no mostrar tarjeta engañosa
+                            if (empty($sugeridas)) {
+                                $recomendacionFinal = null;
+                            }
+                        }
+
+                        // El blade usa sancion_recomendada como respaldo: sanearla también
+                        // para que la tarjeta jamas muestre un tipo fuera de las opciones.
+                        if (!in_array($analisis['sancion_recomendada'] ?? null, $tiposDisponibles, true)) {
+                            $analisis['sancion_recomendada'] = $recomendacionFinal['sancion_principal'] ?? null;
+                        }
+
+                        $iaRecomendada              = $esFallback ? null : ($recomendacionFinal['sancion_principal'] ?? $analisis['sancion_recomendada'] ?? null);
+                        $iaRecomendada              = in_array($iaRecomendada, $tiposDisponibles, true) ? $iaRecomendada : null;
+                        $iaSancionesRecomendadas    = $esFallback ? [] : array_values(array_intersect(
+                            $recomendacionFinal['sanciones_sugeridas'] ?? ($iaRecomendada ? [$iaRecomendada] : []),
+                            $tiposDisponibles
+                        ));
                         $autoridadRit               = $esFallback ? [] : ($analisis['autoridad_sancion'] ?? []);
                         $iaRazonesNoRecomendadas    = $esFallback ? [] : ($analisis['razones_no_recomendadas'] ?? []);
 
