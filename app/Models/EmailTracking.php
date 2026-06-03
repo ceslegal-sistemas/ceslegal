@@ -171,7 +171,8 @@ class EmailTracking extends Model
     public function getTipoDocumentoLegibleAttribute(): string
     {
         return match ($this->tipo_documento) {
-            'citacion_descargos'              => 'Citación a Descargos',
+            'citacion', 'citacion_descargos' => 'Citación a Descargos',
+            'estado_descargos'                => 'Acta de Descargos',
             'sancion'                         => 'Notificación de Sanción',
             'recordatorio_descargos'          => 'Recordatorio de Descargos',
             'descargos_no_realizados_empleador' => 'Descargos No Realizados',

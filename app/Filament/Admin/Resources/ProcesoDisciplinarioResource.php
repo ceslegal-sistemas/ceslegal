@@ -1344,7 +1344,63 @@ class ProcesoDisciplinarioResource extends Resource
 
                         return $info;
                     })
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
+
+                // Columna de acuse del acta de descargos (correo enviado al completar los descargos)
+                Tables\Columns\TextColumn::make('email_tracking_acta')
+                    ->label('Acuse Acta')
+                    ->getStateUsing(function (ProcesoDisciplinario $record) {
+                        $tracking = $record->emailTrackings()
+                            ->where('tipo_documento', 'estado_descargos')
+                            ->latest('enviado_en')
+                            ->first();
+
+                        if (!$tracking) {
+                            return 'No enviado';
+                        }
+
+                        return $tracking->getEstadoLectura();
+                    })
+                    ->badge()
+                    ->color(function (ProcesoDisciplinario $record) {
+                        $tracking = $record->emailTrackings()
+                            ->where('tipo_documento', 'estado_descargos')
+                            ->latest('enviado_en')
+                            ->first();
+
+                        if (!$tracking) {
+                            return 'gray';
+                        }
+
+                        return $tracking->getColorEstado();
+                    })
+                    ->tooltip(function (ProcesoDisciplinario $record) {
+                        $tracking = $record->emailTrackings()
+                            ->where('tipo_documento', 'estado_descargos')
+                            ->latest('enviado_en')
+                            ->first();
+
+                        if (!$tracking) {
+                            return 'No se ha enviado el acta de descargos por correo';
+                        }
+
+                        $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
+
+                        if ($tracking->fueEntregado()) {
+                            $info .= "\nCorreo Entregado: Sí";
+                        }
+
+                        if ($tracking->fueAbierto()) {
+                            $info .= "\nLeído: " . $tracking->abierto_en->format('d/m/Y H:i');
+                            $info .= "\nVeces leído: " . ($tracking->veces_abierto - 1);
+                            if ($tracking->ip_apertura) {
+                                $info .= "\nIP: " . $tracking->ip_apertura;
+                            }
+                        }
+
+                        return $info;
+                    })
+                    ->toggleable(),
 
                 // Tables\Columns\TextColumn::make('modalidad_descargos')
                 //     ->label('Modalidad Descargos')
