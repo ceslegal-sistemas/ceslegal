@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Models\CorreoEnviado;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -34,7 +35,17 @@ class CorreoOficial extends Mailable
             default   => '',
         };
 
+        // El nombre del remitente es la razón social del cliente, no "CES Legal".
+        // (El fallback SMTP conserva la dirección configurada; solo cambia el nombre visible.)
+        $empresa = $this->correo->empresa
+            ?? $this->correo->trabajador?->empresa
+            ?? $this->correo->proceso?->empresa;
+        $nombreRemitente = $empresa?->razon_social ?? $empresa?->nombre_completo;
+
         return new Envelope(
+            from: $nombreRemitente
+                ? new Address(config('mail.from.address'), $nombreRemitente)
+                : null,
             subject: $prefijo . $this->correo->asunto,
             cc: $cc,
         );

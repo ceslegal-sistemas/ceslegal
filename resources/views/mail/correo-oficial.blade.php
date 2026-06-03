@@ -6,85 +6,78 @@
     <title>{{ $correo->asunto }}</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f1f5f9; color: #1e293b; -webkit-text-size-adjust: 100%; }
-        .wrapper { max-width: 600px; margin: 32px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.10); }
-        .header { background: linear-gradient(135deg, #1e3a5f 0%, #1e2d5a 100%); padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; }
-        .header-brand { font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: -.01em; }
-        .header-brand span { color: #c9a84c; }
-        .priority-badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; }
-        .priority-urgente { background: rgba(239,68,68,.2); border: 1px solid rgba(239,68,68,.4); color: #fca5a5; }
-        .priority-alta { background: rgba(245,158,11,.18); border: 1px solid rgba(245,158,11,.38); color: #fcd34d; }
-        .body { padding: 36px 40px; }
-        .greeting { font-size: 15px; color: #475569; margin-bottom: 8px; }
-        .greeting strong { color: #0f172a; }
-        .divider { height: 1px; background: #e2e8f0; margin: 24px 0; }
-        .content { font-size: 14.5px; line-height: 1.75; color: #334155; }
+        body { font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; background: #f4f4f4; color: #222222; -webkit-text-size-adjust: 100%; }
+        .wrapper { max-width: 620px; margin: 24px auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; }
+        .topbar { padding: 20px 32px 0; }
+        .priority-badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 4px; }
+        .priority-urgente { background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; }
+        .priority-alta { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; }
+        .body { padding: 24px 32px 8px; }
+        .greeting { font-size: 15px; color: #222222; margin-bottom: 16px; }
+        .content { font-size: 15px; line-height: 1.7; color: #222222; }
         .content p { margin-bottom: 12px; }
-        .content ul, .content ol { padding-left: 20px; margin-bottom: 12px; }
+        .content ul, .content ol { padding-left: 22px; margin-bottom: 12px; }
         .content li { margin-bottom: 4px; }
-        .content a { color: #4f46e5; text-decoration: underline; }
-        .content strong { font-weight: 600; color: #0f172a; }
-        .content h2 { font-size: 16px; font-weight: 700; color: #0f172a; margin: 16px 0 8px; }
-        .content h3 { font-size: 14px; font-weight: 600; color: #1e293b; margin: 12px 0 6px; }
-        .content blockquote { border-left: 3px solid #e2e8f0; padding: 8px 16px; color: #64748b; background: #f8fafc; border-radius: 0 4px 4px 0; margin: 12px 0; }
-        .meta-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; margin-top: 8px; }
-        .meta-dot { width: 4px; height: 4px; border-radius: 50%; background: #cbd5e1; flex-shrink: 0; }
-        .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 40px; }
-        .footer p { font-size: 11px; color: #94a3b8; line-height: 1.6; }
-        .footer strong { color: #64748b; }
+        .content a { color: #1a73e8; text-decoration: underline; }
+        .content strong { font-weight: 700; }
+        .content h2 { font-size: 17px; font-weight: 700; margin: 16px 0 8px; }
+        .content h3 { font-size: 15px; font-weight: 700; margin: 12px 0 6px; }
+        .content blockquote { border-left: 3px solid #e5e7eb; padding: 8px 16px; color: #555555; background: #f8f9fa; margin: 12px 0; }
+        .signature { margin-top: 24px; font-size: 15px; line-height: 1.6; color: #222222; }
+        .signature strong { font-weight: 700; }
+        .footer { border-top: 1px solid #e5e7eb; padding: 16px 32px; margin-top: 16px; }
+        .footer p { font-size: 12px; color: #888888; line-height: 1.6; }
         @media (max-width: 640px) {
-            .wrapper { margin: 0; border-radius: 0; }
-            .body { padding: 24px 20px; }
+            .wrapper { margin: 0; border-radius: 0; border-left: 0; border-right: 0; }
+            .body { padding: 20px; }
+            .topbar { padding: 16px 20px 0; }
             .footer { padding: 16px 20px; }
-            .header { padding: 20px; }
         }
     </style>
 </head>
 <body>
+    @php
+        // El correo se envía desde la cuenta del propio cliente: la identidad es la
+        // razón social de la empresa, NUNCA "CES Legal".
+        $empresa   = $correo->empresa ?? $correo->trabajador?->empresa ?? $correo->proceso?->empresa;
+        $remitente = $empresa?->razon_social
+            ?? $empresa?->nombre_completo
+            ?? $correo->enviador?->name
+            ?? 'La empresa';
+    @endphp
     <div class="wrapper">
 
-        {{-- Encabezado --}}
-        <div class="header">
-            <div class="header-brand">CES <span>LEGAL</span></div>
-            @if($correo->prioridad === 'urgente')
-                <span class="priority-badge priority-urgente">Urgente</span>
-            @elseif($correo->prioridad === 'alta')
-                <span class="priority-badge priority-alta">Importante</span>
-            @endif
-        </div>
+        {{-- Distintivo de prioridad (solo urgente/alta) --}}
+        @if(in_array($correo->prioridad, ['urgente', 'alta']))
+            <div class="topbar">
+                @if($correo->prioridad === 'urgente')
+                    <span class="priority-badge priority-urgente">Urgente</span>
+                @else
+                    <span class="priority-badge priority-alta">Importante</span>
+                @endif
+            </div>
+        @endif
 
         {{-- Cuerpo --}}
         <div class="body">
-            <p class="greeting">Para: <strong>{{ $correo->destinatario_nombre }}</strong></p>
-
-            <div class="meta-row">
-                <span>{{ $correo->asunto }}</span>
-                @if($correo->proceso)
-                    <div class="meta-dot"></div>
-                    <span>Expediente {{ $correo->proceso->codigo ?? 'N/A' }}</span>
-                @endif
-            </div>
-
-            <div class="divider"></div>
+            <p class="greeting">Estimado(a) <strong>{{ $correo->destinatario_nombre }}</strong>,</p>
 
             <div class="content">
                 {!! $correo->cuerpo !!}
             </div>
 
-            <div class="divider"></div>
-
-            <p style="font-size:12px;color:#94a3b8;line-height:1.6;">
-                Enviado por <strong style="color:#64748b">{{ $correo->enviador?->name ?? 'CES Legal' }}</strong>
-                mediante la plataforma CES Legal.
-            </p>
+            <div class="signature">
+                <p>Atentamente,</p>
+                <p><strong>{{ $remitente }}</strong></p>
+            </div>
         </div>
 
         {{-- Footer --}}
         <div class="footer">
             <p>
-                <strong>CES LEGAL</strong> — Plataforma de gestión jurídica laboral.<br>
-                Este correo es de carácter oficial. Si usted no era el destinatario, por favor notifíquelo
-                y elimine este mensaje. La información contenida es confidencial.
+                Este mensaje y sus archivos adjuntos son confidenciales y van dirigidos exclusivamente
+                a su destinatario. Si usted no es el destinatario, por favor notifíquelo al remitente y
+                elimine este mensaje.
             </p>
         </div>
 
