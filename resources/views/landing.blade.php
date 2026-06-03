@@ -23,6 +23,13 @@
     <link rel="preload" href="/landing/assets/fonts/playfair-display-v30-latin/playfair-display-v30-latin-italic.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/landing/assets/fonts/playfair-display-v30-latin/playfair-display-v30-latin-900.woff2" as="font" type="font/woff2" crossorigin>
 
+    <style>
+        /* Logo CES Legal más grande, manteniendo proporción y centrado vertical */
+        .header-brand { align-items: center; }
+        .logo img { height: 56px; width: auto; display: block; }
+        @media (max-width: 767px) { .logo img { height: 46px; } }
+    </style>
+
 </head>
 
 <body>
@@ -42,7 +49,7 @@
                         </svg>
                     </div>
                     <a href="/" class="logo" title="CES Legal">
-                        <img src="/images/ces-legal-logo.png" width="44" height="31" alt="CES Legal">
+                        <img src="/images/ces-legal-logo.png" width="79" height="56" alt="CES Legal">
                     </a>
                 </div>
             </div>
