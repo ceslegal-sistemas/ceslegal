@@ -24,6 +24,9 @@
     $mejoraLista     = $esExterno && $estadoMejora === 'completado' && $ritMejorado;
     $mejoraFallo     = $esExterno && $estadoMejora === 'fallido';
     $numCorregidas   = $mejoraLista ? collect($secciones)->filter(fn($s) => ($s['score'] ?? 100) < 100)->count() : 0;
+    // Decisión del cliente sobre el RIT mejorado: null/'pendiente', 'adoptado', 'rechazado'
+    $decisionMejora  = $auditoria?->decision_mejora;
+    $mejoraPendiente = $mejoraLista && !in_array($decisionMejora, ['adoptado', 'rechazado'], true);
 
     // GAP
     $gapGenerando    = $gapReporte?->estaGenerando() ?? false;
@@ -135,6 +138,9 @@ html:not(.dark) .mejora-badge-version{background:rgba(79,70,229,.1);border-color
 html:not(.dark) .mejora-badge-ok{background:rgba(22,163,74,.09);border-color:rgba(22,163,74,.22);color:#166534}
 .mejora-download-btn{display:inline-flex;align-items:center;gap:.5rem;font-size:.8125rem;font-weight:600;padding:.6rem 1.25rem;border-radius:.625rem;border:none;cursor:pointer;text-decoration:none;transition:all .2s;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;box-shadow:0 2px 8px rgba(99,102,241,.35)}
 .mejora-download-btn:hover{opacity:.9;box-shadow:0 4px 12px rgba(99,102,241,.45);transform:translateY(-1px)}
+.mejora-keep-btn{display:inline-flex;align-items:center;gap:.5rem;font-size:.8125rem;font-weight:600;padding:.6rem 1.25rem;border-radius:.625rem;cursor:pointer;text-decoration:none;transition:all .2s;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);color:#e2e8f0}
+html:not(.dark) .mejora-keep-btn{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.12);color:#374151}
+.mejora-keep-btn:hover{opacity:.85}
 
 /* ── Reporte GAP ── */
 .gap-shimmer{border-radius:1rem;overflow:hidden;border:1px solid rgba(185,28,28,.22);background:linear-gradient(135deg,rgba(185,28,28,.06) 0%,rgba(239,68,68,.04) 50%,rgba(185,28,28,.06) 100%);background-size:200% 200%;animation:mejora-shine 2.4s ease-in-out infinite}
@@ -463,7 +469,13 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
           <p style="font-size:.875rem;font-weight:700;color:#f1f5f9;margin:0 0 .2rem">RIT Mejorado Generado</p>
           <p style="font-size:.75rem;color:#64748b;margin:0">Versión {{ $ritMejorado->version }} · {{ $ritMejorado->created_at->format('d/m/Y g:i A') }}</p>
         </div>
-        <span class="mejora-badge mejora-badge-version">v{{ $ritMejorado->version }}</span>
+        @if($decisionMejora === 'adoptado')
+          <span class="mejora-badge mejora-badge-ok">RIT vigente</span>
+        @elseif($decisionMejora === 'rechazado')
+          <span class="mejora-badge mejora-badge-version" style="opacity:.7">Archivado</span>
+        @else
+          <span class="mejora-badge mejora-badge-version">v{{ $ritMejorado->version }}</span>
+        @endif
       </div>
       <div style="padding:1.25rem 1.5rem">
         <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
@@ -482,12 +494,9 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
             Biblioteca jurídica consultada
           </span>
         </div>
-        <p style="font-size:.8125rem;color:#64748b;line-height:1.6;margin-bottom:1.125rem">
-          La IA aplicó las correcciones de la auditoría y consultó la biblioteca jurídica para generar
-          esta versión mejorada del Reglamento Interno. Revise el documento antes de activarlo
-          como versión vigente en el sistema.
-        </p>
-        <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+
+        {{-- Descarga del PDF mejorado (siempre disponible para revisión) --}}
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.25rem">
           @if($ritMejorado->ruta_pdf)
             <button wire:click="downloadPDFMejorado" class="mejora-download-btn">
               <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
@@ -497,6 +506,48 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
             <span style="font-size:.8rem;color:#94a3b8;font-style:italic">PDF en generación...</span>
           @endif
         </div>
+
+        {{-- ── DECISIÓN DEL CLIENTE ── --}}
+        @if($mejoraPendiente)
+          <div style="border-top:1px dashed rgba(99,102,241,.25);padding-top:1.125rem">
+            <p style="font-size:.8125rem;font-weight:600;color:#a5b4fc;margin:0 0 .35rem">¿Desea utilizar este RIT mejorado?</p>
+            <p style="font-size:.8rem;color:#64748b;line-height:1.6;margin:0 0 1rem">
+              Revise el documento descargado. Si lo aprueba, reemplazará su Reglamento Interno actual como
+              versión vigente. Si prefiere conservar el que subió manualmente, puede mantenerlo y la versión
+              mejorada quedará archivada.
+            </p>
+            <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+              <button wire:click="adoptarRITMejorado"
+                      wire:confirm="¿Confirma usar el RIT mejorado como su Reglamento Interno vigente? Esto reemplazará el actual."
+                      class="mejora-download-btn">
+                <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                Usar el RIT mejorado
+              </button>
+              <button wire:click="mantenerRITActual" class="mejora-keep-btn">
+                <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Mantener mi RIT actual
+              </button>
+            </div>
+          </div>
+        @elseif($decisionMejora === 'adoptado')
+          <div style="display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem;border-radius:.625rem;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22)">
+            <svg style="width:16px;height:16px;color:#22c55e;flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <p style="font-size:.8rem;color:#86efac;margin:0;line-height:1.4">
+              Esta versión mejorada es ahora su <strong>Reglamento Interno vigente</strong>.
+            </p>
+          </div>
+        @elseif($decisionMejora === 'rechazado')
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:.7rem 1rem;border-radius:.625rem;background:rgba(100,116,139,.08);border:1px solid rgba(100,116,139,.2)">
+            <p style="font-size:.8rem;color:#94a3b8;margin:0;line-height:1.4">
+              Conservó su RIT actual. La versión mejorada quedó archivada.
+            </p>
+            <button wire:click="adoptarRITMejorado"
+                    wire:confirm="¿Confirma usar el RIT mejorado como su Reglamento Interno vigente? Esto reemplazará el actual."
+                    style="font-size:.775rem;font-weight:600;color:#a5b4fc;background:none;border:none;cursor:pointer;text-decoration:underline;white-space:nowrap">
+              Usar mejorado
+            </button>
+          </div>
+        @endif
       </div>
     </div>
     @endif

@@ -131,47 +131,7 @@ Route::get('/descargar/rit', function () {
         abort(403, 'No autorizado');
     }
 
-    // Prioridad 1: RIT con archivo físico adjunto (subido manualmente)
-    $ritConArchivo = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
-        ->whereNotNull('ruta_docx')
-        ->orderByDesc('updated_at')
-        ->first();
-
-    if ($ritConArchivo) {
-        $rutaAbsoluta = \Illuminate\Support\Facades\Storage::disk('local')->path($ritConArchivo->ruta_docx);
-        if (file_exists($rutaAbsoluta)) {
-            $extension = strtolower(pathinfo($rutaAbsoluta, PATHINFO_EXTENSION)) ?: 'docx';
-            $mimeTypes = [
-                'pdf'  => 'application/pdf',
-                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            ];
-            $nombreDescarga = $ritConArchivo->nombre ?? ('RIT_' . \Str::slug($empresa->razon_social) . ".{$extension}");
-            return response()->download($rutaAbsoluta, $nombreDescarga, [
-                'Content-Type' => $mimeTypes[$extension] ?? 'application/octet-stream',
-            ]);
-        }
-    }
-
-    // Prioridad 2: texto del RIT base (subido manualmente o construido con IA, nunca mejora_ia)
-    $rit = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
-        ->where('fuente', '!=', 'mejora_ia')
-        ->orderByDesc('updated_at')
-        ->first()
-        ?? \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
-        ->orderByDesc('updated_at')
-        ->first();
-
-    if ($rit && !empty($rit->texto_completo)) {
-        $service = app(\App\Services\RITGeneratorService::class);
-        $tmpPath = $service->generarPDFTemp($rit->texto_completo, $empresa);
-        $nombre  = 'Reglamento_Interno_' . \Str::slug($empresa->razon_social) . '.pdf';
-
-        return response()->download($tmpPath, $nombre, [
-            'Content-Type' => 'application/pdf',
-        ])->deleteFileAfterSend();
-    }
-
-    abort(404, 'Documento no encontrado. Genere su RIT primero.');
+    return \App\Support\RitDescarga::responder($empresa);
 })->middleware(['auth'])->name('rit.descargar');
 
 // Descarga del RIT para super admin (por empresa_id)
@@ -181,51 +141,7 @@ Route::get('/descargar/rit/admin/{empresa}', function (\App\Models\Empresa $empr
         abort(403, 'No autorizado');
     }
 
-    // Prioridad 1: RIT con archivo físico adjunto (subido manualmente)
-    $ritConArchivo = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
-        ->whereNotNull('ruta_docx')
-        ->orderByDesc('updated_at')
-        ->first();
-
-    if ($ritConArchivo) {
-        $rutaAbsoluta = \Illuminate\Support\Facades\Storage::disk('local')->path($ritConArchivo->ruta_docx);
-        if (file_exists($rutaAbsoluta)) {
-            $extension = strtolower(pathinfo($rutaAbsoluta, PATHINFO_EXTENSION)) ?: 'docx';
-            $mimeTypes = [
-                'pdf'  => 'application/pdf',
-                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            ];
-            $nombreDescarga = $ritConArchivo->nombre ?? ('RIT_' . \Str::slug($empresa->razon_social) . ".{$extension}");
-            return response()->download($rutaAbsoluta, $nombreDescarga, [
-                'Content-Type' => $mimeTypes[$extension] ?? 'application/octet-stream',
-            ]);
-        }
-    }
-
-    // Prioridad 2: texto del RIT base (subido manualmente o construido con IA, nunca mejora_ia)
-    $rit = \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
-        ->where('fuente', '!=', 'mejora_ia')
-        ->orderByDesc('updated_at')
-        ->first()
-        ?? \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
-        ->orderByDesc('updated_at')
-        ->first();
-
-    if (!$rit) {
-        abort(404, 'Documento no encontrado para esta empresa.');
-    }
-
-    if (!empty($rit->texto_completo)) {
-        $service = app(\App\Services\RITGeneratorService::class);
-        $tmpPath = $service->generarPDFTemp($rit->texto_completo, $empresa);
-        $nombre  = 'RIT_' . \Str::slug($empresa->razon_social) . '.pdf';
-
-        return response()->download($tmpPath, $nombre, [
-            'Content-Type' => 'application/pdf',
-        ])->deleteFileAfterSend();
-    }
-
-    abort(404, 'Documento no encontrado para esta empresa.');
+    return \App\Support\RitDescarga::responder($empresa);
 })->middleware(['auth'])->name('rit.descargar.admin');
 
 // Descarga de documentos de la Biblioteca Legal

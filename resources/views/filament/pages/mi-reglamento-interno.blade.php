@@ -7,7 +7,9 @@
     $fecha = $reglamento?->updated_at?->format('d/m/Y \a \l\a\s g:i A');
     $wizardUrl  = route('filament.admin.resources.reglamento-internos.create');
     $esAdmin = auth()->user()?->hasRole('super_admin') || auth()->user()?->hasRole('abogado');
-    $descargaUrl = $tiene && $eIA
+    // Descarga disponible para CUALQUIER RIT vigente (subido manualmente o generado por IA).
+    // Las rutas resuelven la prioridad: archivo físico (ruta_docx) → texto del RIT base.
+    $descargaUrl = $tiene
         ? ($esAdmin && $empresa ? route('rit.descargar.admin', $empresa) : route('rit.descargar'))
         : null;
 @endphp
@@ -138,7 +140,7 @@ html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(99,102,2
           @if($descargaUrl)
             <a href="{{ $descargaUrl }}" class="rit-btn rit-btn-success">
               <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-              Descargar PDF
+              Descargar Reglamento Interno
             </a>
           @endif
           @if($tiene)

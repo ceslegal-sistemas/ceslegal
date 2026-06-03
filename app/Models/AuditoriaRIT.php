@@ -21,6 +21,7 @@ class AuditoriaRIT extends Model
         'fuente',
         'estado_mejora',
         'reglamento_mejorado_id',
+        'decision_mejora',
         'texto_auditado',
         'progreso_mejora',
     ];

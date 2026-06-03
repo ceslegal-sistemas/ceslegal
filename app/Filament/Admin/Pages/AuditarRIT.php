@@ -301,6 +301,58 @@ class AuditarRIT extends Page implements HasForms
         ]);
     }
 
+    /**
+     * El cliente decide adoptar el RIT mejorado: se activa como versión vigente
+     * y se desactivan los demás reglamentos de la empresa (incluido el original).
+     */
+    public function adoptarRITMejorado(): void
+    {
+        $this->verificarPropiedadEmpresa();
+
+        if (!$this->ritMejorado) {
+            Notification::make()->warning()->title('No hay RIT mejorado disponible')->send();
+            return;
+        }
+
+        // Desactivar todos los reglamentos de la empresa y activar el mejorado
+        ReglamentoInterno::where('empresa_id', $this->empresa->id)
+            ->update(['activo' => false]);
+
+        $this->ritMejorado->update(['activo' => true]);
+        $this->auditoria->update(['decision_mejora' => 'adoptado']);
+
+        $this->ritMejorado = $this->ritMejorado->fresh();
+        $this->auditoria   = $this->auditoria->fresh();
+
+        Notification::make()
+            ->success()
+            ->title('RIT Mejorado activado')
+            ->body('La versión mejorada ahora es su Reglamento Interno vigente. Puede descargarla desde "Mi Reglamento Interno".')
+            ->send();
+    }
+
+    /**
+     * El cliente decide mantener su RIT actual (subido manualmente).
+     * El RIT mejorado queda archivado, sin activarse.
+     */
+    public function mantenerRITActual(): void
+    {
+        $this->verificarPropiedadEmpresa();
+
+        if (!$this->auditoria) {
+            return;
+        }
+
+        $this->auditoria->update(['decision_mejora' => 'rechazado']);
+        $this->auditoria = $this->auditoria->fresh();
+
+        Notification::make()
+            ->info()
+            ->title('Conservó su RIT actual')
+            ->body('Se mantuvo su Reglamento Interno vigente. La versión mejorada queda archivada por si desea usarla más adelante.')
+            ->send();
+    }
+
     public function generarReporteGAP(): void
     {
         $this->verificarPropiedadEmpresa();
