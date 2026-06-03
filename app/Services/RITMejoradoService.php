@@ -126,6 +126,8 @@ class RITMejoradoService
         $capitulosOriginales = $this->parsearCapitulos($textoOriginal);
         $secciones          = $auditoria->secciones ?? [];
         $empresa            = $auditoria->empresa;
+        // Respuestas del cuestionario del RIT origen (vacío para RITs subidos manualmente)
+        $respuestas         = (array) ($auditoria->reglamento?->respuestas_cuestionario ?? []);
 
         $capitulos    = RITGeneratorService::getCapitulos();
         $total        = count($capitulos);
@@ -133,10 +135,24 @@ class RITMejoradoService
         $bloques      = [];
 
         foreach ($capitulos as $idx => $cap) {
-            $capOriginal      = $capitulosOriginales[$cap['numero']] ?? '';
-            $hallazgos        = $this->hallazgosParaCapitulo($cap, $secciones);
-            $rag              = $this->biblioteca->buscarFragmentos($cap['query_rag'], limite: 4, umbral: 0.30) ?? '';
-            $articulosLegales = $this->ritGenerator->obtenerArticulosObligatorios($cap['codigos_obligatorios']);
+            $capOriginal         = $capitulosOriginales[$cap['numero']] ?? '';
+            $hallazgos           = $this->hallazgosParaCapitulo($cap, $secciones);
+            $codigosObligatorios = $cap['codigos_obligatorios'] ?? [];
+
+            // Paridad con el generador: RAG a 8 fragmentos
+            $rag = $this->biblioteca->buscarFragmentos($cap['query_rag'], limite: 8, umbral: 0.30) ?? '';
+
+            // Paridad con el generador: obligatorios por código + búsqueda por tema
+            $articulosLegales = $this->ritGenerator->obtenerArticulosObligatorios($codigosObligatorios);
+            $articulosPorTema = $this->ritGenerator->buscarArticulosPorTema(
+                $cap['query_rag'],
+                $codigosObligatorios,   // excluir los ya obtenidos por código exacto
+                8
+            );
+            $articulosLegales = trim($articulosLegales . ($articulosPorTema ? "\n\n" . $articulosPorTema : ''));
+
+            // Paridad con el generador: contexto completo de la empresa
+            $contextoEmpresa = $this->ritGenerator->construirContextoEmpresa($cap, $respuestas, $empresa);
 
             $prompt = $this->construirPromptMejoraCapitulo(
                 $cap,
@@ -146,10 +162,21 @@ class RITMejoradoService
                 $rag,
                 $articuloInicio,
                 $empresa->nombre_completo,
+                $contextoEmpresa,
             );
 
             $textoCap = $this->llamarGemini($prompt, $empresa->id);
-            $bloques[]      = $textoCap;
+
+            // Paridad con el generador: validación + un reintento si el capítulo sale inválido
+            if (!$this->ritGenerator->validarCapitulo($textoCap, $cap['titulo'])) {
+                Log::warning('RITMejoradoService: capítulo inválido, reintentando', [
+                    'empresa_id' => $empresa->id,
+                    'capitulo'   => $cap['numero'],
+                ]);
+                $textoCap = $this->llamarGemini($prompt, $empresa->id);
+            }
+
+            $bloques[]      = trim($textoCap);
             $articuloInicio += max(1, preg_match_all('/^ARTÍCULO\s+\d+/m', $textoCap));
 
             if ($onProgress) {
@@ -184,20 +211,88 @@ class RITMejoradoService
     /**
      * Divide el texto del RIT en bloques por capítulo.
      * Retorna array ['I' => 'CAPÍTULO I\n...', 'II' => ..., ...]
+     *
+     * Tolera formatos heterogéneos de RITs subidos manualmente:
+     *   - Con o sin tilde: "CAPÍTULO" / "CAPITULO"
+     *   - Romanos (I, II), arábigos (1, 2) u ordinales en palabra (PRIMERO, SEGUNDO)
+     *   - Cualquier mayúscula/minúscula y separadores posteriores (—, -, ., :)
+     * Normaliza siempre la clave al número romano que usa getCapitulos().
      */
     private function parsearCapitulos(string $texto): array
     {
-        // Dividir en el patrón "CAPÍTULO [ROMAN]" al inicio de línea
-        $partes = preg_split('/(?=^CAPÍTULO\s+[IVXLCDM]+\b)/m', $texto, -1, PREG_SPLIT_NO_EMPTY);
+        // Ordinales en palabra reconocidos (evita partir en "CAPÍTULO DE DISPOSICIONES...")
+        $ordinales = 'PRIMERO|SEGUNDO|TERCERO|CUARTO|QUINTO|SEXTO|S[EÉ]PTIMO|OCTAVO|NOVENO'
+            . '|D[EÉ]CIMO|UND[EÉ]CIMO|DUOD[EÉ]CIMO'
+            . '|DECIMOPRIMERO|DECIMOSEGUNDO|DECIMOTERCERO|DECIMOCUARTO|DECIMOQUINTO|DECIMOSEXTO';
+
+        // Encabezado: CAP[IÍ]TULO + (romano | arábigo | ordinal reconocido)
+        $token  = "(?:[IVXLCDM]+|\d+|{$ordinales})";
+        $patron = "/(?=^\s*CAP[IÍ]TULO\s+{$token}\b)/imu";
+        $partes = preg_split($patron, $texto, -1, PREG_SPLIT_NO_EMPTY);
 
         $capitulos = [];
         foreach ($partes as $bloque) {
-            if (preg_match('/^CAPÍTULO\s+([IVXLCDM]+)\b/m', $bloque, $m)) {
-                $capitulos[$m[1]] = trim($bloque);
+            if (preg_match("/^\s*CAP[IÍ]TULO\s+({$token})\b/imu", $bloque, $m)) {
+                $romano = $this->normalizarNumeroCapitulo($m[1]);
+                if ($romano !== null && !isset($capitulos[$romano])) {
+                    $capitulos[$romano] = trim($bloque);
+                }
             }
         }
 
         return $capitulos;
+    }
+
+    /**
+     * Normaliza el identificador de un capítulo a número romano (I..XVI).
+     * Acepta romanos ('IV'), arábigos ('4') y ordinales en palabra ('CUARTO').
+     * Retorna null si no se reconoce.
+     */
+    private function normalizarNumeroCapitulo(string $raw): ?string
+    {
+        $raw = trim(mb_strtoupper($raw));
+
+        // Ya es romano válido
+        if (preg_match('/^[IVXLCDM]+$/', $raw)) {
+            return $raw;
+        }
+
+        // Arábigo → romano
+        if (ctype_digit($raw)) {
+            return $this->intentarArabigoARomano((int) $raw);
+        }
+
+        // Ordinal en palabra → romano
+        $ordinales = [
+            'PRIMERO' => 1, 'SEGUNDO' => 2, 'TERCERO' => 3, 'CUARTO' => 4,
+            'QUINTO' => 5, 'SEXTO' => 6, 'SÉPTIMO' => 7, 'SEPTIMO' => 7,
+            'OCTAVO' => 8, 'NOVENO' => 9, 'DÉCIMO' => 10, 'DECIMO' => 10,
+            'UNDÉCIMO' => 11, 'UNDECIMO' => 11, 'DECIMOPRIMERO' => 11,
+            'DUODÉCIMO' => 12, 'DUODECIMO' => 12, 'DECIMOSEGUNDO' => 12,
+            'DECIMOTERCERO' => 13, 'DECIMOCUARTO' => 14, 'DECIMOQUINTO' => 15,
+            'DECIMOSEXTO' => 16,
+        ];
+
+        return isset($ordinales[$raw]) ? $this->intentarArabigoARomano($ordinales[$raw]) : null;
+    }
+
+    /** Convierte un entero 1..16 a número romano. */
+    private function intentarArabigoARomano(int $n): ?string
+    {
+        if ($n < 1 || $n > 39) {
+            return null;
+        }
+        $mapa = [
+            10 => 'X', 9 => 'IX', 5 => 'V', 4 => 'IV', 1 => 'I',
+        ];
+        $romano = '';
+        foreach ($mapa as $valor => $simbolo) {
+            while ($n >= $valor) {
+                $romano .= $simbolo;
+                $n -= $valor;
+            }
+        }
+        return $romano;
     }
 
     /**
@@ -250,6 +345,7 @@ class RITMejoradoService
         string $rag,
         int    $articuloInicio,
         string $razonSocial,
+        string $contextoEmpresa = '',
     ): string {
         $numero      = $cap['numero'];
         $titulo      = $cap['titulo'];
@@ -263,6 +359,11 @@ class RITMejoradoService
         $seccionRag = $rag
             ? "\nFRAGMENTOS DE LA BIBLIOTECA JURÍDICA (fuente autorizada para citas adicionales):\n"
               . $rag . "\n"
+            : '';
+
+        $seccionContexto = $contextoEmpresa
+            ? "\nDATOS REALES DE LA EMPRESA (úsalos en la redacción; NUNCA uses corchetes ni placeholders):\n"
+              . $contextoEmpresa . "\n"
             : '';
 
         $seccionOriginal = $capituloOriginal
@@ -279,7 +380,7 @@ REGLA FUNDAMENTAL — CITAS LEGALES:
   textualmente en el contexto jurídico inyectado más abajo.
 - PROHIBIDO inventar o recordar artículos, leyes, porcentajes o plazos de tu entrenamiento.
 - Si el contexto jurídico no trae una cifra o referencia, redacta el concepto sin citar fuente.
-{$seccionArticulos}{$seccionRag}
+{$seccionArticulos}{$seccionRag}{$seccionContexto}
 HALLAZGOS DE LA AUDITORÍA PARA ESTE CAPÍTULO (CORRÍGELOS TODOS):
 {$hallazgos}
 {$seccionOriginal}
@@ -291,6 +392,7 @@ INSTRUCCIONES DE FORMATO:
 - Primera línea del capítulo: CAPÍTULO {$numero}
 - Segunda línea: {$titulo}
 - Cada artículo: párrafo completo de mínimo 60 palabras en su propia línea.
+- Usa los datos reales de la empresa cuando el artículo lo requiera; NUNCA uses corchetes ni placeholders.
 - NUNCA uses guiones (-), asteriscos (*) ni almohadillas (#) al inicio de línea.
 - Para listas internas usa: "1) texto 2) texto" en líneas separadas.
 - TABLAS cuando aplique: TABLA: / ENCABEZADO: col1 | col2 / FILA: v1 | v2 / FIN_TABLA

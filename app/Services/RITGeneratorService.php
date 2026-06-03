@@ -230,7 +230,7 @@ class RITGeneratorService
         throw new \RuntimeException('Error en API Gemini (todos los modelos intentados): ' . $lastError);
     }
 
-    private function validarCapitulo(string $texto, string $titulo): bool
+    public function validarCapitulo(string $texto, string $titulo): bool
     {
         if (strlen(trim($texto)) < 200) {
             Log::warning("RITGeneratorService: capítulo '{$titulo}' demasiado corto");
@@ -430,7 +430,7 @@ class RITGeneratorService
         return $denom > 0.0 ? $dot / $denom : 0.0;
     }
 
-    private function construirContextoEmpresa(array $cap, array $respuestas, Empresa $empresa): string
+    public function construirContextoEmpresa(array $cap, array $respuestas, Empresa $empresa): string
     {
         $lista = fn($arr) => is_array($arr) ? implode(', ', array_filter($arr)) : ($arr ?? '');
 
