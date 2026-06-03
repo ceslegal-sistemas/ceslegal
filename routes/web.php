@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\File;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('landing');
 });
 
 // PayU — URL de confirmación server-to-server (sin CSRF, sin auth)
