@@ -469,7 +469,7 @@
                             <div class="mmc-item">
                                 <div class="mmc-label">Correo:</div>
                                 <ul class="mmc-list">
-                                    <li><a href="mailto:superadmin@ceslegal.co">superadmin@ceslegal.co</a></li>
+                                    <li><a href="mailto:admin@ceslegal.co">admin@ceslegal.co</a></li>
                                 </ul>
                             </div>
                         </div>
