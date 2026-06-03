@@ -10,8 +10,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 
-    <link rel="icon" href="/favicon.svg">
-    <link rel="apple-touch-icon" href="/images/ces-legal-logo.png"/>
+    <link rel="icon" type="image/png" href="/images/ces-legal-favicon.png">
+    <link rel="apple-touch-icon" href="/images/ces-legal-favicon.png"/>
 
     <link rel="stylesheet" href="/landing/assets/css/style.css">
     <link rel="preload" href="/landing/assets/fonts/source-sans-pro-v21-latin/source-sans-pro-v21-latin-regular.woff2" as="font" type="font/woff2" crossorigin>

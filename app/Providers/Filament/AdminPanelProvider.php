@@ -95,7 +95,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             // ->brandName('CES Legal')
             // ->brandLogo(asset('storage/logo_3.png'))
-            ->favicon(asset('storage/logo_2.png'))
+            ->favicon(asset('images/ces-legal-favicon.png'))
             ->id('admin')
             ->path('admin')
             ->login()
