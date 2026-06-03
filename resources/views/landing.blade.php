@@ -129,29 +129,28 @@
 								<div class="iitem-center">
 									<div class="iitem-icon iitem-icon-accent svg-fill svg-accent-fill">
 										<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-											<path fill-rule="evenodd" clip-rule="evenodd" d="M10.9421 3.14492V4.69023H12.0398H13.1375V3.14492V1.59961H12.0398H10.9421V3.14492ZM5.6001 7.92461V9.00273H7.17343H8.74676V7.92461V6.84648H7.17343H5.6001V7.92461ZM10.9421 22.623V38.3996H23.0531H35.1641V27.1152V15.8309H30.5905H26.0168V11.3387V6.84648H18.4795H10.9421V22.623ZM28.2122 10.2605V13.6746H31.7061H35.2001L31.7247 10.2605C29.8132 8.38281 28.241 6.84648 28.2308 6.84648C28.2205 6.84648 28.2122 8.38281 28.2122 10.2605Z"/>
-										</svg>
-									</div>
-									<h3 class="item-heading-large">Procesos disciplinarios</h3>
-									<p class="item-desc">Guía paso a paso: incidente con hechos constatables, llamado a descargos y sanción, con el debido proceso garantizado.</p>
-									<div class="iitem-numb-abs iitem-numb-abs-1"><span>1</span></div>
-								</div>
-							</div>
-						</div>
-						<div class="col-sm-1_2 col-lg-1_3">
-							<div class="iitem">
-								<div class="iitem-center">
-									<div class="iitem-icon iitem-icon-accent svg-fill svg-accent-fill">
-										<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
 											<path fill-rule="evenodd" clip-rule="evenodd" d="M22.4099 6.4251C20.8605 6.59066 19.104 7.24761 17.6981 8.18752C16.8903 8.72757 15.4885 10.1545 14.9339 11.0013C14.6308 11.4641 14.4795 11.6351 14.3966 11.6087C14.3331 11.5884 14.0539 11.4909 13.776 11.392C11.294 10.5084 8.58401 11.4617 7.11566 13.735C6.59398 14.5426 6.29091 15.4562 6.21222 16.4584L6.16855 17.0142L5.51696 17.48C2.06483 19.9477 0.713444 24.3781 2.19503 28.3709C3.08862 30.779 5.15462 32.8747 7.52864 33.7811C8.99052 34.3392 9.62974 34.4004 14.0049 34.4004H17.6981V29.7304V25.0603H15.396H13.0938L16.52 20.4268C18.4043 17.8783 19.9704 15.7932 20.0001 15.7932C20.0298 15.7932 21.5958 17.8783 23.4802 20.4268L26.9063 25.0603H24.6042H22.302V29.7304V34.4004H25.9953C30.3704 34.4004 31.0096 34.3392 32.4715 33.7811C34.8512 32.8726 36.9095 30.7847 37.8051 28.3709C39.2868 24.378 37.9354 19.9477 34.4829 17.4798L33.831 17.0137L33.782 16.2758C33.4614 11.4489 30.119 7.55882 25.4672 6.59847C24.7317 6.44662 23.0832 6.35315 22.4099 6.4251Z"/>
 										</svg>
 									</div>
 									<h3 class="item-heading-large">Reglamento Interno (RIT)</h3>
 									<p class="item-desc">Construye, audita y mejora tu RIT con IA anclada al Código Sustantivo del Trabajo y a la jurisprudencia vigente.</p>
+									<div class="iitem-numb-abs iitem-numb-abs-1"><span>1</span></div>
+								</div>
+							</div>
+						<div class="col-sm-1_2 col-lg-1_3">
+							<div class="iitem">
+								<div class="iitem-center">
+									<div class="iitem-icon iitem-icon-accent svg-fill svg-accent-fill">
+										<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+											<path fill-rule="evenodd" clip-rule="evenodd" d="M10.9421 3.14492V4.69023H12.0398H13.1375V3.14492V1.59961H12.0398H10.9421V3.14492ZM5.6001 7.92461V9.00273H7.17343H8.74676V7.92461V6.84648H7.17343H5.6001V7.92461ZM10.9421 22.623V38.3996H23.0531H35.1641V27.1152V15.8309H30.5905H26.0168V11.3387V6.84648H18.4795H10.9421V22.623ZM28.2122 10.2605V13.6746H31.7061H35.2001L31.7247 10.2605C29.8132 8.38281 28.241 6.84648 28.2308 6.84648C28.2205 6.84648 28.2122 8.38281 28.2122 10.2605Z"/>
+										</svg>
+									</div>
+									<h3 class="item-heading-large">Procesos disciplinarios</h3>
+									<p class="item-desc">Guía paso a paso: incidente con hechos constatables, llamado a descargos y sanción, con el debido proceso garantizado.</p>
 									<div class="iitem-numb-abs"><span>2</span></div>
 								</div>
 							</div>
-						</div>
+						{{-- En desarrollo: se reactivará cuando el módulo esté disponible
 						<div class="col-sm-1_2 col-lg-1_3">
 							<div class="iitem">
 								<div class="iitem-center">
@@ -165,7 +164,8 @@
 									<div class="iitem-numb-abs"><span>3</span></div>
 								</div>
 							</div>
-						</div>
+						--}}
+					</div>
 					</div>
 					<div class="row">
 						<div class="col-1">
