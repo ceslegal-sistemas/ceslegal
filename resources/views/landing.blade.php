@@ -137,6 +137,7 @@
 									<div class="iitem-numb-abs iitem-numb-abs-1"><span>1</span></div>
 								</div>
 							</div>
+						</div>
 						<div class="col-sm-1_2 col-lg-1_3">
 							<div class="iitem">
 								<div class="iitem-center">
@@ -150,7 +151,7 @@
 									<div class="iitem-numb-abs"><span>2</span></div>
 								</div>
 							</div>
-						{{-- En desarrollo: se reactivará cuando el módulo esté disponible --}}
+						</div>
 						<div class="col-sm-1_2 col-lg-1_3">
 							<div class="iitem">
 								<div class="iitem-center">
@@ -164,8 +165,7 @@
 									<div class="iitem-numb-abs"><span>3</span></div>
 								</div>
 							</div>
-						
-					</div>
+						</div>
 					</div>
 					<div class="row">
 						<div class="col-1">
