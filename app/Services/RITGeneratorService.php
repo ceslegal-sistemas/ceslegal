@@ -661,12 +661,24 @@ PROMPT;
         $profileDir = str_replace('\\', '/', $tmpDir . '/lo_profile');
         $loProfile  = 'file:///' . ltrim($profileDir, '/');
 
+        // Exportar con restricciones: contraseña de propietario + solo impresión.
+        // Sin contraseña de apertura (el PDF abre libre) pero bloquea edición/copia.
+        $ownerPass = $this->ownerPassword($empresa);
+        $filterData = json_encode([
+            'EncryptFile'                            => ['type' => 'boolean', 'value' => 'true'],
+            'PermissionPassword'                     => ['type' => 'string',  'value' => $ownerPass],
+            'Printing'                               => ['type' => 'long',    'value' => '2'],  // 2 = alta resolución
+            'Changes'                                => ['type' => 'long',    'value' => '0'],  // 0 = ningún cambio
+            'EnableCopyingOfContent'                 => ['type' => 'boolean', 'value' => 'false'],
+            'EnableTextAccessForAccessibilityTools'  => ['type' => 'boolean', 'value' => 'false'],
+        ], JSON_UNESCAPED_SLASHES);
+
         $cmd = [
             $loPath,
             '--headless',
             '--nofirststartwizard',
             '-env:UserInstallation=' . $loProfile,
-            '--convert-to', 'pdf',
+            '--convert-to', 'pdf:writer_pdf_Export:' . $filterData,
             '--outdir', $tmpDir,
             $docxPath,
         ];
@@ -725,15 +737,36 @@ PROMPT;
             );
         }
 
+        // Garantía de protección: si LibreOffice no cifró el PDF (filtro no soportado
+        // en esta versión), abortar para que generarPDFTemp caiga al fallback DomPDF,
+        // que sí aplica el cifrado. Así NUNCA se entrega un PDF sin restricciones.
+        if (!$this->pdfEstaCifrado($pdfPath)) {
+            $this->limpiarDir($tmpDir);
+            throw new \RuntimeException('LibreOffice generó el PDF sin cifrado; se usará DomPDF');
+        }
+
         $finalPath = tempnam(sys_get_temp_dir(), 'rit_') . '.pdf';
         copy($pdfPath, $finalPath);
         $this->limpiarDir($tmpDir);
 
-        Log::info('RITGeneratorService: PDF generado con LibreOffice', [
+        Log::info('RITGeneratorService: PDF protegido generado con LibreOffice', [
             'empresa_id' => $empresa->id,
         ]);
 
         return $finalPath;
+    }
+
+    /** Contraseña de propietario determinística por empresa (no se expone al usuario). */
+    private function ownerPassword(Empresa $empresa): string
+    {
+        return substr(hash('sha256', config('app.key') . $empresa->id . 'rit'), 0, 32);
+    }
+
+    /** Comprueba si un PDF está cifrado (contiene el diccionario /Encrypt). */
+    private function pdfEstaCifrado(string $rutaPdf): bool
+    {
+        $contenido = @file_get_contents($rutaPdf);
+        return $contenido !== false && str_contains($contenido, '/Encrypt');
     }
 
     /** Fallback: genera PDF con DomPDF desde HTML. */
@@ -754,8 +787,7 @@ PROMPT;
 
         $canvas = $dompdf->getCanvas();
         if ($canvas instanceof CpdfAdapter) {
-            $ownerPass = substr(hash('sha256', config('app.key') . $empresa->id . 'rit'), 0, 32);
-            $canvas->get_cpdf()->setEncryption('', $ownerPass, ['print']);
+            $canvas->get_cpdf()->setEncryption('', $this->ownerPassword($empresa), ['print']);
         }
 
         $tmpPath = tempnam(sys_get_temp_dir(), 'rit_') . '.pdf';

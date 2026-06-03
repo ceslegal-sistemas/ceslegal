@@ -280,25 +280,43 @@ class AuditarRIT extends Page implements HasForms
 
     public function downloadPDFMejorado(): mixed
     {
-        if (!$this->ritMejorado?->ruta_pdf) {
-            Notification::make()->warning()->title('PDF no disponible aún')->send();
+        if (!$this->ritMejorado) {
+            Notification::make()->warning()->title('RIT mejorado no disponible aún')->send();
             return null;
         }
 
-        $rutaAbsoluta = Storage::path($this->ritMejorado->ruta_pdf);
-
-        if (!file_exists($rutaAbsoluta)) {
-            Notification::make()->danger()->title('Archivo no encontrado en el servidor')->send();
-            return null;
-        }
-
-        $nombreEmpresa = $this->empresa?->razon_social ?? 'empresa';
+        $nombreEmpresa       = $this->empresa?->razon_social ?? 'empresa';
         $nombreEmpresaSeguro = preg_replace('/[^A-Za-z0-9\-_]/', '_', $nombreEmpresa);
-        $nombreArchivo = "RIT_v{$this->ritMejorado->version}_{$nombreEmpresaSeguro}.pdf";
+        $nombreArchivo       = "RIT_v{$this->ritMejorado->version}_{$nombreEmpresaSeguro}.pdf";
 
-        return response()->download($rutaAbsoluta, $nombreArchivo, [
-            'Content-Type' => 'application/pdf',
-        ]);
+        // Servir el PDF permanente solo si está cifrado (protegido, solo impresión).
+        if ($this->ritMejorado->ruta_pdf) {
+            $rutaAbsoluta = Storage::path($this->ritMejorado->ruta_pdf);
+            if (file_exists($rutaAbsoluta) && $this->pdfEstaCifrado($rutaAbsoluta)) {
+                return response()->download($rutaAbsoluta, $nombreArchivo, [
+                    'Content-Type' => 'application/pdf',
+                ]);
+            }
+        }
+
+        // PDF antiguo sin cifrar o ausente: regenerar protegido desde el texto.
+        if (!empty($this->ritMejorado->texto_completo) && $this->empresa) {
+            $tmpPath = app(\App\Services\RITGeneratorService::class)
+                ->generarPDFTemp($this->ritMejorado->texto_completo, $this->empresa);
+            return response()->download($tmpPath, $nombreArchivo, [
+                'Content-Type' => 'application/pdf',
+            ])->deleteFileAfterSend();
+        }
+
+        Notification::make()->danger()->title('Archivo no encontrado en el servidor')->send();
+        return null;
+    }
+
+    /** Comprueba si un PDF está cifrado (contiene el diccionario /Encrypt). */
+    private function pdfEstaCifrado(string $rutaPdf): bool
+    {
+        $contenido = @file_get_contents($rutaPdf);
+        return $contenido !== false && str_contains($contenido, '/Encrypt');
     }
 
     /**
