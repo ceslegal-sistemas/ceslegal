@@ -29,6 +29,7 @@
         $gravedad === 'grave' => [
             'label'      => 'Falta Grave',
             'accent'     => '#fbbf24',
+            'accentLight'=> '#b45309',
             'glow'       => 'rgba(251,191,36,0.10)',
             'border'     => 'rgba(251,191,36,0.35)',
             'lord'       => 'hmpomorl.json',
@@ -37,6 +38,7 @@
         default => [
             'label'      => 'Falta Leve',
             'accent'     => '#4ade80',
+            'accentLight'=> '#15803d',
             'glow'       => 'rgba(74,222,128,0.09)',
             'border'     => 'rgba(74,222,128,0.30)',
             'lord'       => 'fikcyfpp.json',
@@ -49,6 +51,7 @@
         'llamado_atencion' => [
             'label'      => 'Llamado de Atención',
             'accent'     => '#60a5fa',
+            'accentLight'=> '#1d4ed8',
             'glow'       => 'rgba(96,165,250,0.09)',
             'border'     => 'rgba(96,165,250,0.28)',
             'lord'       => 'jdgfsfzr.json',
@@ -57,6 +60,7 @@
         'suspension' => [
             'label'      => 'Suspensión Laboral',
             'accent'     => '#fbbf24',
+            'accentLight'=> '#b45309',
             'glow'       => 'rgba(251,191,36,0.09)',
             'border'     => 'rgba(251,191,36,0.28)',
             'lord'       => 'uphbloed.json',
@@ -65,6 +69,7 @@
         'multa' => [
             'label'      => 'Multa',
             'accent'     => '#a78bfa',
+            'accentLight'=> '#6d28d9',
             'glow'       => 'rgba(167,139,250,0.09)',
             'border'     => 'rgba(167,139,250,0.28)',
             'lord'       => 'lupugrca.json',
@@ -73,6 +78,7 @@
         'terminacion' => [
             'label'      => 'Terminación de Contrato',
             'accent'     => '#f87171',
+            'accentLight'=> '#b91c1c',
             'glow'       => 'rgba(248,113,113,0.09)',
             'border'     => 'rgba(248,113,113,0.28)',
             'lord'       => 'hmpomorl.json',
@@ -172,6 +178,10 @@ html.dark .esa-badge-reincidencia {
 }
 .esa-base-juridica summary::-webkit-details-marker { display: none; }
 .esa-base-juridica[open] .esa-chevron { transform: rotate(90deg); }
+/* Texto con acento: tono oscuro/saturado en modo claro, pastel en modo oscuro.
+   Cada elemento define --a-light y --a-dark inline según su sanción/gravedad. */
+.esa-accent-text { color: var(--a-light); }
+html.dark .esa-accent-text { color: var(--a-dark); }
 </style>
 
 <div class="space-y-2">
@@ -194,7 +204,9 @@ html.dark .esa-badge-reincidencia {
                     <p class="esa-label">Análisis IA — Gravedad de la falta</p>
 
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                        <span style="font-size:17px;font-weight:800;color:{{ $gc['accent'] }};line-height:1.2;">
+                        <span class="esa-accent-text"
+                              style="--a-light:{{ $gc['accentLight'] }};--a-dark:{{ $gc['accent'] }};
+                                     font-size:17px;font-weight:800;line-height:1.2;">
                             {{ $gc['label'] }}
                         </span>
                         @if($esReincidencia)
@@ -231,6 +243,7 @@ html.dark .esa-badge-reincidencia {
                     $sc = $scMap[$s] ?? [
                         'label'      => ucfirst(str_replace('_', ' ', $s)),
                         'accent'     => '#818cf8',
+                        'accentLight'=> '#4338ca',
                         'glow'       => 'rgba(129,140,248,0.08)',
                         'border'     => 'rgba(129,140,248,0.28)',
                         'lord'       => 'edcgvlnw.json',
@@ -260,9 +273,10 @@ html.dark .esa-badge-reincidencia {
 
                         <div style="flex:1;min-width:0;">
                             <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
-                                <span style="font-size:{{ $esPrincipal ? '15px' : '13px' }};
+                                <span class="esa-accent-text"
+                                      style="--a-light:{{ $sc['accentLight'] }};--a-dark:{{ $sc['accent'] }};
+                                             font-size:{{ $esPrincipal ? '15px' : '13px' }};
                                              font-weight:{{ $esPrincipal ? '800' : '600' }};
-                                             color:{{ $sc['accent'] }};
                                              line-height:1.2;">
                                     {{ $sc['label'] }}
                                     @if($s === 'suspension' && $diasSusp && $esPrincipal)
@@ -273,10 +287,10 @@ html.dark .esa-badge-reincidencia {
                                 </span>
 
                                 @if($esPrincipal)
-                                    <span class="esa-badge-principal"
-                                          style="background:{{ $sc['glow'] }};
-                                                 border:1px solid {{ $sc['border'] }};
-                                                 color:{{ $sc['accent'] }};">
+                                    <span class="esa-badge-principal esa-accent-text"
+                                          style="--a-light:{{ $sc['accentLight'] }};--a-dark:{{ $sc['accent'] }};
+                                                 background:{{ $sc['glow'] }};
+                                                 border:1px solid {{ $sc['border'] }};">
                                         ★ Principal
                                     </span>
                                 @else
@@ -290,8 +304,9 @@ html.dark .esa-badge-reincidencia {
                     @if($baseJuridica)
                         <details class="esa-base-juridica"
                                  style="margin:0 18px 10px; padding:0;">
-                            <summary style="font-size:11px;font-weight:700;
-                                           color:{{ $sc['accent'] }};
+                            <summary class="esa-accent-text"
+                                     style="--a-light:{{ $sc['accentLight'] }};--a-dark:{{ $sc['accent'] }};
+                                           font-size:11px;font-weight:700;
                                            list-style:none;display:flex;align-items:center;
                                            gap:5px;cursor:pointer;user-select:none;
                                            opacity:0.85;width:fit-content;">
