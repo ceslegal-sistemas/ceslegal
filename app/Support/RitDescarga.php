@@ -68,10 +68,12 @@ class RitDescarga
             }
         }
 
-        // c. PDF generado al vuelo desde el texto
+        // c. PDF generado al vuelo desde el texto.
+        //    Protegido solo si es RIT de IA; los subidos por el cliente van sin protección.
         if (!empty($rit->texto_completo)) {
-            $tmpPath = app(RITGeneratorService::class)->generarPDFTemp($rit->texto_completo, $empresa);
-            $nombre  = 'Reglamento_Interno_' . Str::slug($empresa->razon_social) . '.pdf';
+            $proteger = $rit->fuente !== 'subido';
+            $tmpPath  = app(RITGeneratorService::class)->generarPDFTemp($rit->texto_completo, $empresa, $proteger);
+            $nombre   = 'Reglamento_Interno_' . Str::slug($empresa->razon_social) . '.pdf';
             return response()->download($tmpPath, $nombre, [
                 'Content-Type' => 'application/pdf',
             ])->deleteFileAfterSend();

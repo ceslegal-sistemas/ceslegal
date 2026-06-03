@@ -607,14 +607,18 @@ PROMPT;
      * Genera un PDF del RIT en un archivo temporal.
      * Intenta primero con LibreOffice (DOCX → PDF, calidad Word real).
      * Fallback: DomPDF si LibreOffice no está disponible.
+     *
+     * @param  bool  $proteger  Cifrar el PDF (solo impresión, sin copia/edición).
+     *   Solo para RIT producidos por la IA. Los RIT subidos por el cliente son
+     *   su propio documento y se entregan SIN protección.
      */
-    public function generarPDFTemp(string $textoRIT, Empresa $empresa): string
+    public function generarPDFTemp(string $textoRIT, Empresa $empresa, bool $proteger = true): string
     {
         $loPath = $this->detectarLibreOffice();
 
         if ($loPath) {
             try {
-                return $this->generarPDFviaLibreOffice($textoRIT, $empresa, $loPath);
+                return $this->generarPDFviaLibreOffice($textoRIT, $empresa, $loPath, $proteger);
             } catch (\Exception $e) {
                 Log::warning('RITGeneratorService: LibreOffice falló, fallback a DomPDF', [
                     'empresa_id' => $empresa->id,
@@ -623,7 +627,7 @@ PROMPT;
             }
         }
 
-        return $this->generarPDFviaDomPDF($textoRIT, $empresa);
+        return $this->generarPDFviaDomPDF($textoRIT, $empresa, $proteger);
     }
 
     /** Detecta la ruta de LibreOffice según el SO. */
@@ -645,7 +649,7 @@ PROMPT;
     }
 
     /** Genera PDF usando LibreOffice: escribe DOCX y lo convierte. */
-    private function generarPDFviaLibreOffice(string $textoRIT, Empresa $empresa, string $loPath): string
+    private function generarPDFviaLibreOffice(string $textoRIT, Empresa $empresa, string $loPath, bool $proteger = true): string
     {
         $uid    = uniqid('rit_', true);
         $tmpDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $uid;
@@ -661,24 +665,30 @@ PROMPT;
         $profileDir = str_replace('\\', '/', $tmpDir . '/lo_profile');
         $loProfile  = 'file:///' . ltrim($profileDir, '/');
 
-        // Exportar con restricciones: contraseña de propietario + solo impresión.
-        // Sin contraseña de apertura (el PDF abre libre) pero bloquea edición/copia.
-        $ownerPass = $this->ownerPassword($empresa);
-        $filterData = json_encode([
-            'EncryptFile'                            => ['type' => 'boolean', 'value' => 'true'],
-            'PermissionPassword'                     => ['type' => 'string',  'value' => $ownerPass],
-            'Printing'                               => ['type' => 'long',    'value' => '2'],  // 2 = alta resolución
-            'Changes'                                => ['type' => 'long',    'value' => '0'],  // 0 = ningún cambio
-            'EnableCopyingOfContent'                 => ['type' => 'boolean', 'value' => 'false'],
-            'EnableTextAccessForAccessibilityTools'  => ['type' => 'boolean', 'value' => 'false'],
-        ], JSON_UNESCAPED_SLASHES);
+        // Exportar con restricciones SOLO si se pide proteger (RIT de IA):
+        // contraseña de propietario + solo impresión, sin contraseña de apertura.
+        // Los RIT subidos por el cliente se convierten sin cifrado.
+        if ($proteger) {
+            $ownerPass = $this->ownerPassword($empresa);
+            $filterData = json_encode([
+                'EncryptFile'                            => ['type' => 'boolean', 'value' => 'true'],
+                'PermissionPassword'                     => ['type' => 'string',  'value' => $ownerPass],
+                'Printing'                               => ['type' => 'long',    'value' => '2'],  // 2 = alta resolución
+                'Changes'                                => ['type' => 'long',    'value' => '0'],  // 0 = ningún cambio
+                'EnableCopyingOfContent'                 => ['type' => 'boolean', 'value' => 'false'],
+                'EnableTextAccessForAccessibilityTools'  => ['type' => 'boolean', 'value' => 'false'],
+            ], JSON_UNESCAPED_SLASHES);
+            $convertTo = 'pdf:writer_pdf_Export:' . $filterData;
+        } else {
+            $convertTo = 'pdf';
+        }
 
         $cmd = [
             $loPath,
             '--headless',
             '--nofirststartwizard',
             '-env:UserInstallation=' . $loProfile,
-            '--convert-to', 'pdf:writer_pdf_Export:' . $filterData,
+            '--convert-to', $convertTo,
             '--outdir', $tmpDir,
             $docxPath,
         ];
@@ -737,10 +747,10 @@ PROMPT;
             );
         }
 
-        // Garantía de protección: si LibreOffice no cifró el PDF (filtro no soportado
-        // en esta versión), abortar para que generarPDFTemp caiga al fallback DomPDF,
-        // que sí aplica el cifrado. Así NUNCA se entrega un PDF sin restricciones.
-        if (!$this->pdfEstaCifrado($pdfPath)) {
+        // Garantía de protección (solo RIT de IA): si LibreOffice no cifró el PDF
+        // (filtro no soportado en esta versión), abortar para que generarPDFTemp caiga
+        // al fallback DomPDF, que sí cifra. Así NUNCA se entrega un RIT de IA sin proteger.
+        if ($proteger && !$this->pdfEstaCifrado($pdfPath)) {
             $this->limpiarDir($tmpDir);
             throw new \RuntimeException('LibreOffice generó el PDF sin cifrado; se usará DomPDF');
         }
@@ -749,8 +759,9 @@ PROMPT;
         copy($pdfPath, $finalPath);
         $this->limpiarDir($tmpDir);
 
-        Log::info('RITGeneratorService: PDF protegido generado con LibreOffice', [
+        Log::info('RITGeneratorService: PDF generado con LibreOffice', [
             'empresa_id' => $empresa->id,
+            'protegido'  => $proteger,
         ]);
 
         return $finalPath;
@@ -770,7 +781,7 @@ PROMPT;
     }
 
     /** Fallback: genera PDF con DomPDF desde HTML. */
-    private function generarPDFviaDomPDF(string $textoRIT, Empresa $empresa): string
+    private function generarPDFviaDomPDF(string $textoRIT, Empresa $empresa, bool $proteger = true): string
     {
         $html = $this->textoAHtml($textoRIT, $empresa);
 
@@ -785,8 +796,9 @@ PROMPT;
         $dompdf->setPaper('a4', 'portrait');
         $dompdf->render();
 
+        // Cifrar solo RIT de IA (solo impresión). Los subidos por el cliente, sin protección.
         $canvas = $dompdf->getCanvas();
-        if ($canvas instanceof CpdfAdapter) {
+        if ($proteger && $canvas instanceof CpdfAdapter) {
             $canvas->get_cpdf()->setEncryption('', $this->ownerPassword($empresa), ['print']);
         }
 
