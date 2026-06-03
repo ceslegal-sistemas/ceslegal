@@ -150,7 +150,7 @@
 									<div class="iitem-numb-abs"><span>2</span></div>
 								</div>
 							</div>
-						{{-- En desarrollo: se reactivará cuando el módulo esté disponible
+						{{-- En desarrollo: se reactivará cuando el módulo esté disponible --}}
 						<div class="col-sm-1_2 col-lg-1_3">
 							<div class="iitem">
 								<div class="iitem-center">
@@ -160,11 +160,11 @@
 										</svg>
 									</div>
 									<h3 class="item-heading-large">Documentos y notificaciones</h3>
-									<p class="item-desc">Genera cartas, actas e informes jurídicos en PDF y notifica desde el correo de tu propia empresa, con seguimiento de apertura.</p>
+									<p class="item-desc">Genera citaciones, actas, sanciones en PDF y notifica desde el correo de tu propia empresa, con seguimiento de apertura.</p>
 									<div class="iitem-numb-abs"><span>3</span></div>
 								</div>
 							</div>
-						--}}
+						
 					</div>
 					</div>
 					<div class="row">
