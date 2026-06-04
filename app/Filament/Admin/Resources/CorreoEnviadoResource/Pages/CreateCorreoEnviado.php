@@ -27,6 +27,14 @@ class CreateCorreoEnviado extends CreateRecord
         $data['enviado_por'] = Auth::id();
         $data['estado']      = 'pendiente';
 
+        // El cliente no ve el campo "Empresa remitente" (solo super_admin/abogado).
+        // Forzamos su empresa para que el correo salga con su razón social como
+        // remitente y, si tiene Gmail conectado, desde ese Gmail.
+        $user = Auth::user();
+        if (empty($data['empresa_id']) && ! $user->hasRole('super_admin') && ! $user->hasRole('abogado')) {
+            $data['empresa_id'] = $user->empresa_id;
+        }
+
         return $data;
     }
 
