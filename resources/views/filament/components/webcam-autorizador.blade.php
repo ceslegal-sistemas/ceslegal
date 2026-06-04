@@ -105,7 +105,7 @@ button.wca-btn-secondary:hover {
              try {
                  // Cargar face-api.js si aún no está disponible.
                  // Se hace aquí (no en <script> externo) para evitar la condición
-                 // de carrera entre el <script> inyectado por Livewire y x-init de Alpine.
+                 // de carrera entre el <script> insertado por Livewire y x-init de Alpine.
                  if (typeof faceapi === 'undefined') {
                      if (window._faceApiScriptEl) {
                          await new Promise((resolve, reject) => {

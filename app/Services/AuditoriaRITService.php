@@ -15,7 +15,7 @@ use App\Services\RITGeneratorService;
  * Fuente normativa: ÚNICAMENTE articulos_legales (scrapeados).
  * - codigos_obligatorios: lookup exacto por código (fuente primaria).
  * - buscarArticulosPorTema(): RAG por palabras clave (misma fuente que el generador).
- * No se usa BibliotecaLegalService para evitar inyectar fragmentos externos no controlados.
+ * No se usa BibliotecaLegalService para evitar incorporar fragmentos externos no controlados.
  */
 class AuditoriaRITService
 {
@@ -330,18 +330,18 @@ Si el contexto es insuficiente, describe el hallazgo en términos generales SIN 
 PROHIBICIÓN 2 — REVELACIÓN DE CONTEXTO: NUNCA uses en "hallazgos" o "recomendaciones"
 frases como "no fue proporcionado", "no está en el contexto", "no aparece en el contexto",
 "CONTEXTO LEGAL", "BASE NORMATIVA", ni ninguna referencia a los límites del material
-inyectado. Si el RIT cita un artículo que no puedes verificar con la normativa disponible,
+proporcionado. Si el RIT cita un artículo que no puedes verificar con la normativa disponible,
 descríbelo en términos del cumplimiento (ej: "Se recomienda verificar que las condiciones
 de trabajo dominical habitual cumplan con los requisitos legales aplicables") sin mencionar
 la fuente de tu información ni sus límites.
 
 PROHIBICIÓN 3 — ALCANCE DE LA EVALUACIÓN: SOLO puedes crear "hallazgos" y "recomendaciones"
-basados en obligaciones que aparezcan EXPLÍCITAMENTE en el CONTEXTO LEGAL inyectado.
+basados en obligaciones que aparezcan EXPLÍCITAMENTE en el CONTEXTO LEGAL proporcionado.
 NUNCA crees un hallazgo para una obligación que conozcas de tu entrenamiento pero que NO
 esté mencionada en los artículos del CONTEXTO LEGAL. Si el CONTEXTO LEGAL no menciona un
 requisito (ej. sala de lactancia, ampliación de licencia por determinada ley, instalaciones
 físicas especiales), NO lo evalúes aunque lo conozcas. Evalúa SOLO lo que dice el texto de
-los artículos inyectados.
+los artículos proporcionados.
 
 Para "articulos_referencia": copia TEXTUALMENTE los encabezados "--- CODIGO: ..." que aparecen
 en CONTEXTO LEGAL (ej: "Art. 115 CST", "Art. 7 Ley 1010"). NUNCA reformatees ni añadas
@@ -366,7 +366,7 @@ NO PENALICE por:
 - Obligaciones de infraestructura física de higiene/seguridad (condiciones de locales,
   ventilación, iluminación, instalaciones especiales por actividad productiva, alojamiento
   de trabajadores en zonas remotas) — estas son condiciones de trabajo reguladas aparte.
-- Cualquier requisito que no esté mencionado en el CONTEXTO LEGAL inyectado (PROHIBICIÓN 3).
+- Cualquier requisito que no esté mencionado en el CONTEXTO LEGAL proporcionado (PROHIBICIÓN 3).
 Un RIT de calidad en SST cubre: compromiso con el SG-SST, COPASST/Vigía, EPP, reporte de
 accidentes, exámenes médicos de ingreso/retiro, prohibición de sustancias psicoactivas.
 

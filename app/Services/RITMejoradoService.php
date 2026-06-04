@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Storage;
  * Flujo:
  * 1. Obtiene el texto del RIT auditado.
  * 2. Parsea el texto original en sus 16 capítulos.
- * 3. Por cada capítulo: inyecta artículos del scraper + RAG + hallazgos de auditoría.
+ * 3. Por cada capítulo: incorpora artículos del scraper + RAG + hallazgos de auditoría.
  * 4. Llama a Gemini capítulo por capítulo (cascade flash → flash-lite).
  * 5. Ensambla el texto completo y crea un nuevo ReglamentoInterno (version+1).
  * 6. Genera PDF permanente con DomPDF.
@@ -118,7 +118,7 @@ class RITMejoradoService
 
     /**
      * Parsea el RIT original en capítulos, mejora cada uno con Gemini
-     * inyectando artículos del scraper + RAG + hallazgos de la auditoría.
+     * incorporando artículos del scraper + RAG + hallazgos de la auditoría.
      */
     public function mejorarCapitulosRIT(AuditoriaRIT $auditoria, ?\Closure $onProgress = null): string
     {
@@ -377,7 +377,7 @@ TAREA: Reescribir y mejorar el CAPÍTULO {$numero} ({$titulo}) del RIT de "{$raz
 
 REGLA FUNDAMENTAL — CITAS LEGALES:
 - Números de artículo, nombres de ley, porcentajes y plazos legales: SOLO los que aparezcan
-  textualmente en el contexto jurídico inyectado más abajo.
+  textualmente en el contexto jurídico proporcionado más abajo.
 - PROHIBIDO inventar o recordar artículos, leyes, porcentajes o plazos de tu entrenamiento.
 - Si el contexto jurídico no trae una cifra o referencia, redacta el concepto sin citar fuente.
 {$seccionArticulos}{$seccionRag}{$seccionContexto}

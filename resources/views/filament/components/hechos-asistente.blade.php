@@ -48,7 +48,7 @@
     document.addEventListener('alpine:init', function () {
 
         // ── Componente completarIA ─────────────────────────────────────────────
-        // Se registra aquí (HTML inicial) porque paso-hechos-completar se inyecta
+        // Se registra aquí (HTML inicial) porque paso-hechos-completar se inserta
         // vía Livewire DESPUÉS de que Alpine ya está inicializado, por lo que su
         // propio alpine:init nunca volvería a dispararse.
         if (!window._phcRegistered) {

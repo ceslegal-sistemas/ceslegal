@@ -1090,7 +1090,7 @@ PROMPT;
     // ── RAG — RIT y jurisprudencia ────────────────────────────────────────────
 
     /**
-     * Recupera un extracto relevante del RIT de la empresa para inyectar en el prompt.
+     * Recupera un extracto relevante del RIT de la empresa para incluir en el prompt.
      */
     private function obtenerContextoRIT(int $empresaId): string
     {
@@ -1112,7 +1112,7 @@ PROMPT;
      * Si se pasa $proceso, usa el embedding almacenado en BD (sin llamada a API).
      * Si no existe o el texto cambió, lo genera y lo persiste para la próxima vez.
      *
-     * @return string Bloque de texto listo para inyectar en el prompt. Vacío si no hay embeddings.
+     * @return string Bloque de texto listo para incluir en el prompt. Vacío si no hay embeddings.
      */
     private function buscarNormasRelevantes(string $texto, ?int $empresaId = null, int $limite = 3, ?ProcesoDisciplinario $proceso = null): string
     {

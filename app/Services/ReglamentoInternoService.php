@@ -339,7 +339,7 @@ PROMPT;
     /**
      * Busca en el RIT usando RAG: fragmenta y embebe si aún no existe caché,
      * luego recupera los K fragmentos más relevantes para la query dada.
-     * Retorna texto listo para inyectar en el prompt (vacío si no hay resultado).
+     * Retorna texto listo para incluir en el prompt (vacío si no hay resultado).
      */
     public function buscarEnRIT(ReglamentoInterno $rit, string $query, int $limite = 4, float $umbral = 0.48): string
     {

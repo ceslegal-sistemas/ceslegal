@@ -129,7 +129,7 @@ class IAAnalisisSancionService
      *      Art. 111 (sanciones en RIT), Art. 112 (límites suspensión).
      *   2. Búsqueda semántica por embedding sobre los hechos y motivos del caso.
      *
-     * La IA SOLO puede citar artículos presentes en este contexto inyectado.
+     * La IA SOLO puede citar artículos presentes en este contexto proporcionado.
      */
     private function obtenerContextoCST(ProcesoDisciplinario $proceso): string
     {
@@ -378,7 +378,7 @@ class IAAnalisisSancionService
             $seccionRIT .= "lo que el RIT de la empresa contempla. No sugiera sanciones que el RIT no prevea.\n";
         }
 
-        // Construir bloque de contexto CST inyectado
+        // Construir bloque de contexto CST proporcionado
         $seccionCST = '';
         if (!empty($contextoCST)) {
             $seccionCST  = "\n═══════════════════════════════════════════════════════════════════\n";
@@ -396,10 +396,10 @@ class IAAnalisisSancionService
 Eres un abogado laboralista colombiano con amplia experiencia en procesos disciplinarios. Analiza el siguiente proceso y determina la sanción apropiada basándote EXCLUSIVAMENTE en tres fuentes, en este orden de prioridad:
 
 1. EL REGLAMENTO INTERNO DE TRABAJO (RIT) DE LA EMPRESA — es la fuente primaria: define qué conductas son faltas leves o graves y qué sanciones contempla.
-2. EL CÓDIGO SUSTANTIVO DEL TRABAJO (CST) — los artículos aplicables se inyectan en el bloque "CONTEXTO LEGAL CST" más abajo. Solo puedes citar artículos que aparezcan en ese bloque; nunca inventes números de artículos.
+2. EL CÓDIGO SUSTANTIVO DEL TRABAJO (CST) — los artículos aplicables se incluyen en el bloque "CONTEXTO LEGAL CST" más abajo. Solo puedes citar artículos que aparezcan en ese bloque; nunca inventes números de artículos.
 3. EL HISTORIAL DISCIPLINARIO DEL TRABAJADOR — determina reincidencia y agravantes.
 
-INSTRUCCIÓN CRÍTICA: No inventes rangos de días ni categorías de faltas. Deriva TODO de lo que el RIT de esta empresa específicamente contempla y de los artículos del CST inyectados. Si el RIT dice "suspensión hasta 8 días", no puedes sugerir 30 días. Si el RIT no contempla terminación, no la sugieras.
+INSTRUCCIÓN CRÍTICA: No inventes rangos de días ni categorías de faltas. Deriva TODO de lo que el RIT de esta empresa específicamente contempla y de los artículos del CST proporcionados. Si el RIT dice "suspensión hasta 8 días", no puedes sugerir 30 días. Si el RIT no contempla terminación, no la sugieras.
 Analiza el RIT o contexto disponible para identificar quién tiene potestad disciplinaria para cada tipo de sanción. Si el RIT no especifica, indica "No especificado en el RIT".
 
 INFORMACIÓN DEL PROCESO:
@@ -429,10 +429,10 @@ HISTORIAL DEL TRABAJADOR:
 
 PROCESO DE ANÁLISIS:
 1. Clasifica la conducta como LEVE o GRAVE según lo que el RIT de la empresa define. Si el RIT no tiene esa conducta, usa el CST como referencia.
-2. Verifica si hay reincidencia en el historial — agrava la sanción conforme al RIT y los artículos del CST inyectados en el bloque CONTEXTO LEGAL CST.
+2. Verifica si hay reincidencia en el historial — agrava la sanción conforme al RIT y los artículos del CST proporcionados en el bloque CONTEXTO LEGAL CST.
 3. Evalúa los descargos del trabajador — considera atenuantes y argumentos de defensa.
-4. De las sanciones que el RIT contempla, selecciona la apropiada. Si el RIT no aporta datos, aplica solo lo que los artículos del CST inyectados permiten.
-5. Para suspensiones: indica únicamente días dentro del rango que el RIT establece, respetando los límites que establece el bloque CONTEXTO LEGAL CST inyectado.
+4. De las sanciones que el RIT contempla, selecciona la apropiada. Si el RIT no aporta datos, aplica solo lo que los artículos del CST proporcionados permiten.
+5. Para suspensiones: indica únicamente días dentro del rango que el RIT establece, respetando los límites que establece el bloque CONTEXTO LEGAL CST proporcionado.
 
 Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adicional):
 {
@@ -474,9 +474,9 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
     "mensaje_para_decision": "Mensaje para el empleador explicando la recomendación, sus fundamentos y las opciones disponibles",
     "bases_juridicas": {
       "llamado_atencion": "Argumentación específica para el llamado de atención: artículo del RIT o del CST que lo soporta y por qué es la sanción proporcional al caso",
-      "suspension": "Argumentación específica para la suspensión: artículo del RIT o del CST inyectado que la permite, duración recomendada y proporcionalidad con la falta",
+      "suspension": "Argumentación específica para la suspensión: artículo del RIT o del CST proporcionado que la permite, duración recomendada y proporcionalidad con la falta",
       "multa": "Solo si multa está en sanciones_sugeridas: artículo o capítulo del RIT que la contempla, monto o porcentaje definido y proporcionalidad con la falta",
-      "terminacion": "Argumentación específica para terminación: causal exacta del CST inyectado que aplica y por qué los hechos la configuran"
+      "terminacion": "Argumentación específica para terminación: causal exacta del CST proporcionado que aplica y por qué los hechos la configuran"
     }
   },
   "razones_no_recomendadas": {
@@ -493,7 +493,7 @@ REGLAS ESTRICTAS:
 - bases_juridicas: incluir SOLO las sanciones que estén en sanciones_sugeridas. Cada texto (máximo 100 palabras) debe argumentar específicamente esa sanción citando el artículo concreto del RIT o del CST que la sustenta. No repetir el contenido de razonamiento_legal; este campo es la base jurídica puntual de cada opción.
 - sancion_principal: el tipo que más se ajusta al caso, debe estar dentro de sanciones_sugeridas.
 - sanciones_disponibles: incluye SOLO las sanciones que el RIT contempla. Sin RIT, aplica lo que permite el CST según la gravedad. "multa" solo si el RIT la define explícitamente con monto o porcentaje; de lo contrario, no la incluyas.
-- dias_suspension_max_rit: número entero con el MÁXIMO de días que el RIT contempla EXPLÍCITAMENTE para la suspensión aplicable. Si el RIT no especifica días concretos, usa el límite que establezca el artículo correspondiente en el bloque CONTEXTO LEGAL CST inyectado. Si no aplica suspensión, pon null. NUNCA inventes un valor que no esté en el RIT ni en el bloque CONTEXTO LEGAL CST inyectado.
+- dias_suspension_max_rit: número entero con el MÁXIMO de días que el RIT contempla EXPLÍCITAMENTE para la suspensión aplicable. Si el RIT no especifica días concretos, usa el límite que establezca el artículo correspondiente en el bloque CONTEXTO LEGAL CST proporcionado. Si no aplica suspensión, pon null. NUNCA inventes un valor que no esté en el RIT ni en el bloque CONTEXTO LEGAL CST proporcionado.
 - dias_suspension (recomendacion_final): número concreto dentro del rango 1..dias_suspension_max_rit que mejor se ajuste al caso, o null si no hay suspensión.
 - La gravedad es SOLO "leve" o "grave" — no hay subcategorías ni niveles. La clasificación la define el RIT.
 - Confianza "alta": el RIT clasifica explícitamente esta conducta. "media": se infiere del RIT. "baja": no hay datos del RIT, se aplica solo el CST.

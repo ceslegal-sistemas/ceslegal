@@ -651,7 +651,7 @@ SYSTEM;
      * Recupera los artículos legales más relevantes para el texto dado,
      * usando cosine similarity sobre los embeddings almacenados en la BD.
      *
-     * @return string Bloque de texto con los artículos encontrados, listo para inyectar en prompt.
+     * @return string Bloque de texto con los artículos encontrados, listo para incluir en prompt.
      *                Cadena vacía si no hay embeddings o hay error.
      */
     private function buscarNormasRelevantes(string $texto, int $limite = 4, ?int $empresaId = null): string

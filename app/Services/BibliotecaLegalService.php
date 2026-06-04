@@ -106,7 +106,7 @@ class BibliotecaLegalService
 
     /**
      * Busca los fragmentos más relevantes para un texto dado.
-     * Retorna un bloque de texto listo para inyectar en el prompt de la IA.
+     * Retorna un bloque de texto listo para incluir en el prompt de la IA.
      *
      * @param  string $texto    Texto de búsqueda (hechos del proceso, etc.)
      * @param  int    $limite   Máximo de fragmentos a retornar
