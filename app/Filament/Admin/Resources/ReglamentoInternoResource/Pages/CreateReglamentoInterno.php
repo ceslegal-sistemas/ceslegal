@@ -652,6 +652,7 @@ class CreateReglamentoInterno extends CreateRecord
                                     'supervision_rondas' => 'warning',
                                     'sin_control'        => 'danger',
                                 ])
+                                ->inline()
                                 ->default('planilla')
                                 ->columnSpanFull(),
 
