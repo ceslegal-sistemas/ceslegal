@@ -134,6 +134,22 @@ class CreateReglamentoInterno extends CreateRecord
         return [
 
             // ─────────────────────────────────────────────────────────────────
+            // STEP 0: Bienvenida
+            // ─────────────────────────────────────────────────────────────────
+            Step::make('bienvenida')
+                ->label('Bienvenida')
+                ->description('Lea antes de empezar')
+                ->icon('heroicon-o-information-circle')
+                ->schema([
+                    Forms\Components\Placeholder::make('bienvenida_contenido')
+                        ->label('')
+                        ->content(fn() => new HtmlString(
+                            view('filament.components.bienvenida-rit')->render()
+                        ))
+                        ->columnSpanFull(),
+                ]),
+
+            // ─────────────────────────────────────────────────────────────────
             // STEP 1: Empresa y Actividad Económica
             // ─────────────────────────────────────────────────────────────────
             Step::make('empresa')

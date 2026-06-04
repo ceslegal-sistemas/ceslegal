@@ -1290,62 +1290,6 @@ class ProcesoDisciplinarioResource extends Resource
                     })
                     ->toggleable(),
 
-                // Columna de acuse de sanción
-                Tables\Columns\TextColumn::make('email_tracking_sancion')
-                    ->label('Acuse Sanción')
-                    ->getStateUsing(function (ProcesoDisciplinario $record) {
-                        $tracking = $record->emailTrackings()
-                            ->where('tipo_documento', 'sancion')
-                            ->latest('enviado_en')
-                            ->first();
-
-                        if (!$tracking) {
-                            return 'No enviado';
-                        }
-
-                        return $tracking->getEstadoLectura();
-                    })
-                    ->badge()
-                    ->color(function (ProcesoDisciplinario $record) {
-                        $tracking = $record->emailTrackings()
-                            ->where('tipo_documento', 'sancion')
-                            ->latest('enviado_en')
-                            ->first();
-
-                        if (!$tracking) {
-                            return 'gray';
-                        }
-
-                        return $tracking->getColorEstado();
-                    })
-                    ->tooltip(function (ProcesoDisciplinario $record) {
-                        $tracking = $record->emailTrackings()
-                            ->where('tipo_documento', 'sancion')
-                            ->latest('enviado_en')
-                            ->first();
-
-                        if (!$tracking) {
-                            return 'No se ha enviado la sanción por correo';
-                        }
-
-                        $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
-
-                        if ($tracking->fueEntregado()) {
-                            $info .= "\nCorreo Entregado: Sí";
-                        }
-
-                        if ($tracking->fueAbierto()) {
-                            $info .= "\nLeído: " . $tracking->abierto_en->format('d/m/Y H:i');
-                            $info .= "\nVeces leído: " . ($tracking->veces_abierto - 1);
-                            if ($tracking->ip_apertura) {
-                                $info .= "\nIP: " . $tracking->ip_apertura;
-                            }
-                        }
-
-                        return $info;
-                    })
-                    ->toggleable(),
-
                 // Columna de acuse del acta de descargos (correo enviado al completar los descargos)
                 Tables\Columns\TextColumn::make('email_tracking_acta')
                     ->label('Acuse Acta')
@@ -1382,6 +1326,62 @@ class ProcesoDisciplinarioResource extends Resource
 
                         if (!$tracking) {
                             return 'No se ha enviado el acta de descargos por correo';
+                        }
+
+                        $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
+
+                        if ($tracking->fueEntregado()) {
+                            $info .= "\nCorreo Entregado: Sí";
+                        }
+
+                        if ($tracking->fueAbierto()) {
+                            $info .= "\nLeído: " . $tracking->abierto_en->format('d/m/Y H:i');
+                            $info .= "\nVeces leído: " . ($tracking->veces_abierto - 1);
+                            if ($tracking->ip_apertura) {
+                                $info .= "\nIP: " . $tracking->ip_apertura;
+                            }
+                        }
+
+                        return $info;
+                    })
+                    ->toggleable(),
+
+                // Columna de acuse de sanción
+                Tables\Columns\TextColumn::make('email_tracking_sancion')
+                    ->label('Acuse Sanción')
+                    ->getStateUsing(function (ProcesoDisciplinario $record) {
+                        $tracking = $record->emailTrackings()
+                            ->where('tipo_documento', 'sancion')
+                            ->latest('enviado_en')
+                            ->first();
+
+                        if (!$tracking) {
+                            return 'No enviado';
+                        }
+
+                        return $tracking->getEstadoLectura();
+                    })
+                    ->badge()
+                    ->color(function (ProcesoDisciplinario $record) {
+                        $tracking = $record->emailTrackings()
+                            ->where('tipo_documento', 'sancion')
+                            ->latest('enviado_en')
+                            ->first();
+
+                        if (!$tracking) {
+                            return 'gray';
+                        }
+
+                        return $tracking->getColorEstado();
+                    })
+                    ->tooltip(function (ProcesoDisciplinario $record) {
+                        $tracking = $record->emailTrackings()
+                            ->where('tipo_documento', 'sancion')
+                            ->latest('enviado_en')
+                            ->first();
+
+                        if (!$tracking) {
+                            return 'No se ha enviado la sanción por correo';
                         }
 
                         $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
@@ -1790,10 +1790,10 @@ class ProcesoDisciplinarioResource extends Resource
                         $record->save();
 
                         app(\App\Services\TimelineService::class)->registrarNotificacion(
-                            procesoTipo:      'proceso_disciplinario',
-                            procesoId:        $record->id,
+                            procesoTipo: 'proceso_disciplinario',
+                            procesoId: $record->id,
                             tipoNotificacion: 'Citación reprogramada',
-                            destinatario:     $record->trabajador->email
+                            destinatario: $record->trabajador->email
                         );
 
                         if ($emailEnviado) {
@@ -1819,9 +1819,10 @@ class ProcesoDisciplinarioResource extends Resource
                     ->color('success')
                     ->requiresConfirmation()
                     ->modalHeading('Corregir estado del proceso')
-                    ->modalDescription(fn(ProcesoDisciplinario $record) =>
+                    ->modalDescription(
+                        fn(ProcesoDisciplinario $record) =>
                         'El trabajador ' . ($record->trabajador?->nombre_completo ?? '') . ' completó la diligencia de descargos. '
-                        . '¿Desea actualizar el estado del proceso a "Descargos realizados"?'
+                            . '¿Desea actualizar el estado del proceso a "Descargos realizados"?'
                     )
                     ->modalSubmitActionLabel('Sí, corregir estado')
                     ->visible(function (ProcesoDisciplinario $record) {
@@ -2095,7 +2096,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->schema([
                                     Forms\Components\Placeholder::make('exoneracion_aviso')
                                         ->hiddenLabel()
-                                        ->content(function(Get $get) use ($labelsMap, $iaRazonesNoRecomendadas) {
+                                        ->content(function (Get $get) use ($labelsMap, $iaRazonesNoRecomendadas) {
                                             $tipoSeleccionado  = $get('tipo_sancion');
                                             $razonEspecifica   = $iaRazonesNoRecomendadas[$tipoSeleccionado] ?? null;
                                             $labelSeleccionado = $labelsMap[$tipoSeleccionado] ?? ucfirst(str_replace('_', ' ', $tipoSeleccionado ?? ''));
@@ -2133,10 +2134,11 @@ class ProcesoDisciplinarioResource extends Resource
                                         ->accepted()
                                         ->onColor('danger'),
                                 ])
-                                ->hidden(fn(Get $get) =>
+                                ->hidden(
+                                    fn(Get $get) =>
                                     empty($get('tipo_sancion')) ||
-                                    empty($iaSancionesRecomendadas) ||
-                                    in_array($get('tipo_sancion'), $iaSancionesRecomendadas)
+                                        empty($iaSancionesRecomendadas) ||
+                                        in_array($get('tipo_sancion'), $iaSancionesRecomendadas)
                                 )
                                 ->collapsible(false),
 
@@ -2160,11 +2162,11 @@ class ProcesoDisciplinarioResource extends Resource
                                         ->hiddenLabel()
                                         ->content(fn() => new \Illuminate\Support\HtmlString(
                                             '<style>:root{--decl-bg:rgba(0,0,0,0.03);--decl-border:rgba(0,0,0,0.10);--decl-left:rgba(0,0,0,0.15);--decl-label:rgba(0,0,0,0.45);--decl-text:rgba(17,24,39,0.78);}' .
-                                            'html.dark{--decl-bg:rgba(255,255,255,0.04);--decl-border:rgba(255,255,255,0.10);--decl-left:rgba(255,255,255,0.25);--decl-label:rgba(255,255,255,0.38);--decl-text:rgba(255,255,255,0.72);}</style>' .
-                                            '<div style="padding:14px 16px;background:var(--decl-bg);border-radius:12px;border:1px solid var(--decl-border);border-left:3px solid var(--decl-left);">' .
-                                            '<p style="font-size:10px;font-weight:700;color:var(--decl-label);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px;">Declaración del Autorizador</p>' .
-                                            '<p style="font-size:13px;color:var(--decl-text);line-height:1.6;margin:0;">Al marcar la casilla a continuación, declaro que tengo la potestad disciplinaria para emitir esta sanción, que he revisado los hechos del proceso y las evidencias aportadas, y que autorizo expresamente la emisión de esta decisión disciplinaria. Entiendo que esta acción queda registrada con fecha, hora e imagen de verificación como parte del expediente del proceso.</p>' .
-                                            '</div>'
+                                                'html.dark{--decl-bg:rgba(255,255,255,0.04);--decl-border:rgba(255,255,255,0.10);--decl-left:rgba(255,255,255,0.25);--decl-label:rgba(255,255,255,0.38);--decl-text:rgba(255,255,255,0.72);}</style>' .
+                                                '<div style="padding:14px 16px;background:var(--decl-bg);border-radius:12px;border:1px solid var(--decl-border);border-left:3px solid var(--decl-left);">' .
+                                                '<p style="font-size:10px;font-weight:700;color:var(--decl-label);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px;">Declaración del Autorizador</p>' .
+                                                '<p style="font-size:13px;color:var(--decl-text);line-height:1.6;margin:0;">Al marcar la casilla a continuación, declaro que tengo la potestad disciplinaria para emitir esta sanción, que he revisado los hechos del proceso y las evidencias aportadas, y que autorizo expresamente la emisión de esta decisión disciplinaria. Entiendo que esta acción queda registrada con fecha, hora e imagen de verificación como parte del expediente del proceso.</p>' .
+                                                '</div>'
                                         )),
 
                                     Forms\Components\Checkbox::make('declaracion_aceptada')
@@ -2236,7 +2238,7 @@ class ProcesoDisciplinarioResource extends Resource
                         // 2. Determinar si la decisión es divergente
                         $sancionesRecomendadasArr = json_decode($data['sanciones_ia_recomendadas'] ?? '[]', true) ?: [];
                         $esDivergente = !empty($sancionesRecomendadasArr) &&
-                                        !in_array($data['tipo_sancion'], $sancionesRecomendadasArr);
+                            !in_array($data['tipo_sancion'], $sancionesRecomendadasArr);
 
                         // 3. Guardar campos de trazabilidad
                         $record->update([
@@ -2581,29 +2583,31 @@ class ProcesoDisciplinarioResource extends Resource
                                 'desproporcion' => 'Desproporción entre la falta y la sanción',
                                 'otro_motivo' => 'Otro motivo',
                             ])
-                            ->visible(fn (Forms\Get $get) => $get('tipo_contenido') === 'motivos_predefinidos')
-                            ->required(fn (Forms\Get $get) => $get('tipo_contenido') === 'motivos_predefinidos')
+                            ->visible(fn(Forms\Get $get) => $get('tipo_contenido') === 'motivos_predefinidos')
+                            ->required(fn(Forms\Get $get) => $get('tipo_contenido') === 'motivos_predefinidos')
                             ->live()
                             ->columns(1)
                             ->helperText('Seleccione uno o más motivos'),
 
                         Forms\Components\Textarea::make('motivo_personalizado')
-                            ->label(fn (Forms\Get $get) => $get('tipo_contenido') === 'motivos_escritos'
+                            ->label(fn(Forms\Get $get) => $get('tipo_contenido') === 'motivos_escritos'
                                 ? 'Motivos de la Impugnación'
                                 : 'Especifique el otro motivo')
-                            ->visible(fn (Forms\Get $get) =>
+                            ->visible(
+                                fn(Forms\Get $get) =>
                                 $get('tipo_contenido') === 'motivos_escritos' ||
-                                ($get('tipo_contenido') === 'motivos_predefinidos' && is_array($get('motivos_predefinidos_lista')) && in_array('otro_motivo', $get('motivos_predefinidos_lista')))
+                                    ($get('tipo_contenido') === 'motivos_predefinidos' && is_array($get('motivos_predefinidos_lista')) && in_array('otro_motivo', $get('motivos_predefinidos_lista')))
                             )
-                            ->required(fn (Forms\Get $get) =>
+                            ->required(
+                                fn(Forms\Get $get) =>
                                 $get('tipo_contenido') === 'motivos_escritos' ||
-                                ($get('tipo_contenido') === 'motivos_predefinidos' && is_array($get('motivos_predefinidos_lista')) && in_array('otro_motivo', $get('motivos_predefinidos_lista')))
+                                    ($get('tipo_contenido') === 'motivos_predefinidos' && is_array($get('motivos_predefinidos_lista')) && in_array('otro_motivo', $get('motivos_predefinidos_lista')))
                             )
                             ->rows(5)
-                            ->placeholder(fn (Forms\Get $get) => $get('tipo_contenido') === 'motivos_escritos'
+                            ->placeholder(fn(Forms\Get $get) => $get('tipo_contenido') === 'motivos_escritos'
                                 ? 'Transcriba los motivos expresados por el trabajador...'
                                 : 'Describa el otro motivo...')
-                            ->helperText(fn (Forms\Get $get) => $get('tipo_contenido') === 'motivos_escritos'
+                            ->helperText(fn(Forms\Get $get) => $get('tipo_contenido') === 'motivos_escritos'
                                 ? 'Transcriba los argumentos presentados por el trabajador'
                                 : null),
 
@@ -2762,8 +2766,8 @@ class ProcesoDisciplinarioResource extends Resource
                                         ->label('Motivos expuestos por el trabajador')
                                         ->content(fn() => new \Illuminate\Support\HtmlString(
                                             "<div class='p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border-l-4 border-yellow-500 italic'>" .
-                                            nl2br(e($impugnacion->motivos_impugnacion)) .
-                                            "</div>"
+                                                nl2br(e($impugnacion->motivos_impugnacion)) .
+                                                "</div>"
                                         )),
                                 ])
                                 ->collapsible()
@@ -2784,8 +2788,8 @@ class ProcesoDisciplinarioResource extends Resource
                                             if (empty($cache)) {
                                                 return new \Illuminate\Support\HtmlString(
                                                     "<div class='p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center text-blue-700 dark:text-blue-300'>" .
-                                                    "<p class='text-sm'>Haga clic en <strong>\"Sugerir fundamento con IA\"</strong> en la sección de abajo para generar el análisis automático del expediente.</p>" .
-                                                    "</div>"
+                                                        "<p class='text-sm'>Haga clic en <strong>\"Sugerir fundamento con IA\"</strong> en la sección de abajo para generar el análisis automático del expediente.</p>" .
+                                                        "</div>"
                                                 );
                                             }
                                             $analisis = json_decode($cache, true);
@@ -3070,9 +3074,17 @@ class ProcesoDisciplinarioResource extends Resource
                                 Forms\Components\Select::make('nuevos_dias_suspension')
                                     ->label('Días de Suspensión')
                                     ->options([
-                                        1 => '1 día', 2 => '2 días', 3 => '3 días', 4 => '4 días',
-                                        5 => '5 días', 6 => '6 días', 7 => '7 días', 8 => '8 días',
-                                        15 => '15 días', 30 => '30 días', 60 => '60 días',
+                                        1 => '1 día',
+                                        2 => '2 días',
+                                        3 => '3 días',
+                                        4 => '4 días',
+                                        5 => '5 días',
+                                        6 => '6 días',
+                                        7 => '7 días',
+                                        8 => '8 días',
+                                        15 => '15 días',
+                                        30 => '30 días',
+                                        60 => '60 días',
                                     ])
                                     ->required()
                                     ->native(false)
@@ -3357,7 +3369,8 @@ class ProcesoDisciplinarioResource extends Resource
                         ->visible(fn(ProcesoDisciplinario $record) => $record->estado === 'cerrado')
                         ->requiresConfirmation()
                         ->modalHeading('Archivar Proceso')
-                        ->modalDescription(fn(ProcesoDisciplinario $record) =>
+                        ->modalDescription(
+                            fn(ProcesoDisciplinario $record) =>
                             "¿Está seguro que desea archivar el proceso {$record->codigo}? Esta acción indica que el proceso ha sido completamente finalizado y archivado para histórico."
                         )
                         ->modalSubmitActionLabel('Sí, archivar')
@@ -3390,7 +3403,8 @@ class ProcesoDisciplinarioResource extends Resource
                         ->label('Ver Evidencias')
                         ->icon('heroicon-o-paper-clip')
                         ->color('info')
-                        ->visible(fn (ProcesoDisciplinario $record) =>
+                        ->visible(
+                            fn(ProcesoDisciplinario $record) =>
                             $record->diligencias()
                                 ->whereNotNull('archivos_evidencia')
                                 ->whereRaw("archivos_evidencia NOT IN ('[]', 'null', '')")
@@ -3411,7 +3425,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     '<p class="text-sm text-gray-400 dark:text-gray-500 italic p-4">Este proceso no tiene archivos de evidencia adjuntos.</p>'
                                 );
                             }
-                            $imageExts = ['jpg','jpeg','png','gif','webp','bmp'];
+                            $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
                             $items = '';
                             foreach ($archivos as $i => $a) {
                                 $url   = e(\Illuminate\Support\Facades\Storage::disk('public')->url($a['path'] ?? ''));
@@ -3422,18 +3436,18 @@ class ProcesoDisciplinarioResource extends Resource
                                     ? '<svg class="w-4 h-4 shrink-0 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>'
                                     : '<svg class="w-4 h-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>';
                                 $items .= "<div class='flex items-center justify-between gap-3 py-2 border-b border-gray-100 dark:border-white/5 last:border-0'>"
-                                        . "<span class='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 truncate'>{$icon}{$name}</span>"
-                                        . "<a href='{$url}' target='_blank' rel='noopener' class='shrink-0 inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:underline'>"
-                                        . "<svg class='w-3.5 h-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'/><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'/></svg>"
-                                        . "Ver / Descargar</a>"
-                                        . "</div>";
+                                    . "<span class='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 truncate'>{$icon}{$name}</span>"
+                                    . "<a href='{$url}' target='_blank' rel='noopener' class='shrink-0 inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:underline'>"
+                                    . "<svg class='w-3.5 h-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'/><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'/></svg>"
+                                    . "Ver / Descargar</a>"
+                                    . "</div>";
                             }
                             $count = count($archivos);
                             return new \Illuminate\Support\HtmlString(
                                 "<div class='px-1'>"
-                                . "<p class='text-xs text-gray-400 dark:text-gray-500 mb-3'>{$count} " . ($count === 1 ? 'archivo' : 'archivos') . "</p>"
-                                . "<div>{$items}</div>"
-                                . "</div>"
+                                    . "<p class='text-xs text-gray-400 dark:text-gray-500 mb-3'>{$count} " . ($count === 1 ? 'archivo' : 'archivos') . "</p>"
+                                    . "<div>{$items}</div>"
+                                    . "</div>"
                             );
                         }),
                     Tables\Actions\ForceDeleteAction::make()
@@ -3569,13 +3583,13 @@ class ProcesoDisciplinarioResource extends Resource
                             }
                         }
                         if (empty($archivos)) {
-                            return [Infolists\Components\TextEntry::make('_sin_archivos')->label('')->getStateUsing(fn () => 'Sin archivos adjuntos.')];
+                            return [Infolists\Components\TextEntry::make('_sin_archivos')->label('')->getStateUsing(fn() => 'Sin archivos adjuntos.')];
                         }
                         return collect($archivos)->map(function ($a, $i) {
                             $url  = \Illuminate\Support\Facades\Storage::disk('public')->url($a['path'] ?? '');
                             $name = $a['nombre'] ?? 'Archivo';
                             $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-                            $icon = in_array($ext, ['jpg','jpeg','png','gif','webp','bmp'])
+                            $icon = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'])
                                 ? 'heroicon-o-photo'
                                 : ($ext === 'pdf' ? 'heroicon-o-document-text' : 'heroicon-o-paper-clip');
                             return Infolists\Components\Actions::make([
@@ -3643,13 +3657,15 @@ class ProcesoDisciplinarioResource extends Resource
 
                         Infolists\Components\TextEntry::make('_divergencia')
                             ->label('¿Siguió la recomendación?')
-                            ->getStateUsing(fn($record) =>
+                            ->getStateUsing(
+                                fn($record) =>
                                 $record->sancion_ia_recomendada && $record->tipo_sancion !== $record->sancion_ia_recomendada
                                     ? 'No — exoneración requerida'
                                     : 'Sí'
                             )
                             ->badge()
-                            ->color(fn($state) =>
+                            ->color(
+                                fn($state) =>
                                 str_starts_with($state, 'No') ? 'danger' : 'success'
                             ),
 
