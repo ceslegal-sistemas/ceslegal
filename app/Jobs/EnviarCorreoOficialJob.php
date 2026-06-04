@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Mail\CorreoOficial;
 use App\Models\CorreoEnviado;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -10,7 +9,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class EnviarCorreoOficialJob implements ShouldQueue
 {
@@ -25,7 +23,7 @@ class EnviarCorreoOficialJob implements ShouldQueue
         $this->onQueue('default');
     }
 
-    public function handle(): void
+    public function handle(\App\Services\CorreoOficialSender $sender): void
     {
         $correo = $this->correo->fresh();
 
@@ -36,38 +34,14 @@ class EnviarCorreoOficialJob implements ShouldQueue
             return;
         }
 
-        // Resolve empresa by priority: explicit > trabajador's > proceso's
-        $empresaId = $correo->empresa_id
-            ?? $correo->trabajador?->empresa_id
-            ?? $correo->proceso?->empresa_id;
-
-        $empresa  = $empresaId ? \App\Models\Empresa::find($empresaId) : null;
-        $viaGmail = false;
-
-        if ($empresa && $empresa->tieneGmailConectado()) {
-            try {
-                $accessToken = app(\App\Services\GoogleOAuthService::class)->getValidAccessToken($empresa);
-                app(\App\Services\GmailApiService::class)->send($correo, $accessToken);
-                $viaGmail = true;
-            } catch (\Throwable $e) {
-                Log::warning('Gmail API falló, usando SMTP como fallback', [
-                    'correo_id' => $correo->id,
-                    'error'     => $e->getMessage(),
-                ]);
-            }
-        }
-
-        if (!$viaGmail) {
-            Mail::to($correo->email_destinatario, $correo->destinatario_nombre)
-                ->send(new CorreoOficial($correo));
-        }
+        $via = $sender->send($correo);
 
         $correo->update(['enviado_en' => now('America/Bogota')]);
 
         Log::info('Correo oficial enviado', [
             'correo_id'    => $correo->id,
             'destinatario' => $correo->email_destinatario,
-            'via'          => $viaGmail ? 'gmail_oauth' : 'smtp',
+            'via'          => $via,
         ]);
     }
 

@@ -86,6 +86,11 @@ class CorreoEnviadoResource extends Resource
                         ->label('Email destinatario')
                         ->email()
                         ->required()
+                        ->rule(new \App\Rules\EmailDominioEntregable())
+                        ->validationMessages([
+                            'email' => 'El correo no tiene un formato válido.',
+                        ])
+                        ->helperText('Verifica que el correo esté bien escrito: el correo se envía de inmediato al guardar.')
                         ->maxLength(255),
 
                     Forms\Components\TagsInput::make('email_cc')
