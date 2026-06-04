@@ -169,12 +169,12 @@ class CreateReglamentoInterno extends CreateRecord
                         ))
                         ->columnSpanFull(),
 
-                    Forms\Components\Placeholder::make('info_paso_empresa')
-                        ->label('')
-                        // ->content(fn() => new HtmlString(
-                        //     view('filament.components.rit-step-empresa-info')->render()
-                        // ))
-                        ->columnSpanFull(),
+                    // Forms\Components\Placeholder::make('info_paso_empresa')
+                    //     ->label('')
+                    //     ->content(fn() => new HtmlString(
+                    //         view('filament.components.rit-step-empresa-info')->render()
+                    //     ))
+                    //     ->columnSpanFull(),
 
                     Forms\Components\Section::make('Datos de su empresa')
                         ->description('Estos datos vienen de su registro y aparecerán en el encabezado oficial del Reglamento.')
@@ -334,12 +334,12 @@ class CreateReglamentoInterno extends CreateRecord
                         ))
                         ->columnSpanFull(),
 
-                    Forms\Components\Placeholder::make('info_paso_estructura')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.rit-step-estructura-info')->render()
-                        ))
-                        ->columnSpanFull(),
+                    // Forms\Components\Placeholder::make('info_paso_estructura')
+                    //     ->label('')
+                    //     ->content(fn() => new HtmlString(
+                    //         view('filament.components.rit-step-estructura-info')->render()
+                    //     ))
+                    //     ->columnSpanFull(),
 
                     Forms\Components\Section::make('¿Qué cargos existen en su empresa?')
                         ->description('Liste cada cargo que existe. Puede ser Gerente, Operario, Vendedor, Auxiliar... el nombre que use internamente. Solo marque "puede sancionar" en los que realmente toman decisiones disciplinarias.')
@@ -469,12 +469,12 @@ class CreateReglamentoInterno extends CreateRecord
                         ))
                         ->columnSpanFull(),
 
-                    Forms\Components\Placeholder::make('info_paso_jornada')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.rit-step-jornada-info')->render()
-                        ))
-                        ->columnSpanFull(),
+                    // Forms\Components\Placeholder::make('info_paso_jornada')
+                    //     ->label('')
+                    //     ->content(fn() => new HtmlString(
+                    //         view('filament.components.rit-step-jornada-info')->render()
+                    //     ))
+                    //     ->columnSpanFull(),
 
                     Forms\Components\Section::make('¿Cómo trabajan sus empleados?')
                         ->description('Seleccione todo lo que aplique a su empresa. Si es oficina pura, solo marque "Jornada fija diurna".')
@@ -700,12 +700,12 @@ class CreateReglamentoInterno extends CreateRecord
                         ))
                         ->columnSpanFull(),
 
-                    Forms\Components\Placeholder::make('info_paso_salario')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.rit-step-salario-info')->render()
-                        ))
-                        ->columnSpanFull(),
+                    // Forms\Components\Placeholder::make('info_paso_salario')
+                    //     ->label('')
+                    //     ->content(fn() => new HtmlString(
+                    //         view('filament.components.rit-step-salario-info')->render()
+                    //     ))
+                    //     ->columnSpanFull(),
 
                     Forms\Components\Section::make('¿Cómo paga el salario?')
                         ->description('El RIT debe especificar la forma y frecuencia de pago. Si diferentes grupos de empleados reciben el pago de forma distinta, puede indicar ambas.')
@@ -840,12 +840,12 @@ class CreateReglamentoInterno extends CreateRecord
                         ))
                         ->columnSpanFull(),
 
-                    Forms\Components\Placeholder::make('info_paso_disciplina')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.rit-step-disciplina-info')->render()
-                        ))
-                        ->columnSpanFull(),
+                    // Forms\Components\Placeholder::make('info_paso_disciplina')
+                    //     ->label('')
+                    //     ->content(fn() => new HtmlString(
+                    //         view('filament.components.rit-step-disciplina-info')->render()
+                    //     ))
+                    //     ->columnSpanFull(),
 
                     Forms\Components\Section::make('Conductas sancionables y medidas disciplinarias')
                         ->description('Las conductas vienen pre-cargadas del catálogo estándar de Sanciones Laborales. Puede eliminar las que no apliquen, cambiar el tipo de falta o ajustar la sanción de cada conducta. También puede agregar conductas propias de su sector.')
@@ -936,12 +936,12 @@ class CreateReglamentoInterno extends CreateRecord
                         ))
                         ->columnSpanFull(),
 
-                    Forms\Components\Placeholder::make('info_paso_sst')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.rit-step-sst-info')->render()
-                        ))
-                        ->columnSpanFull(),
+                    // Forms\Components\Placeholder::make('info_paso_sst')
+                    //     ->label('')
+                    //     ->content(fn() => new HtmlString(
+                    //         view('filament.components.rit-step-sst-info')->render()
+                    //     ))
+                    //     ->columnSpanFull(),
 
                     Forms\Components\Section::make('Seguridad y Salud en el Trabajo (SG-SST)')
                         ->description('El Ministerio de Trabajo verifica que el RIT incluya el SG-SST. No importa si está en proceso — lo importante es que quede documentado.')
@@ -1072,12 +1072,12 @@ class CreateReglamentoInterno extends CreateRecord
                         ))
                         ->columnSpanFull(),
 
-                    Forms\Components\Placeholder::make('info_paso_generar')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.rit-step-generar-info')->render()
-                        ))
-                        ->columnSpanFull(),
+                    // Forms\Components\Placeholder::make('info_paso_generar')
+                    //     ->label('')
+                    //     ->content(fn() => new HtmlString(
+                    //         view('filament.components.rit-step-generar-info')->render()
+                    //     ))
+                    //     ->columnSpanFull(),
 
                     Forms\Components\Placeholder::make('revision_rit')
                         ->label('')
