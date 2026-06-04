@@ -10,16 +10,16 @@
     encabezado de paso con barra de progreso). El alcance lo limita la clase
     `rit-hide-wizard-steps`, por lo que no afecta a otros wizards (p. ej. Procesos).
 --}}
-<style>
+{{-- <style>
     .rit-hide-wizard-steps .fi-fo-wizard-header {
         display: none;
     }
-</style>
+</style> --}}
 
 <x-filament-panels::page
     @class([
         'fi-resource-create-record-page',
-        'rit-hide-wizard-steps',
+        // 'rit-hide-wizard-steps',
         'fi-resource-' . str_replace('/', '-', $this->getResource()::getSlug()),
     ])
 >
