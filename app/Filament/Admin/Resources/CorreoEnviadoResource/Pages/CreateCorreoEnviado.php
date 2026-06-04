@@ -5,8 +5,11 @@ namespace App\Filament\Admin\Resources\CorreoEnviadoResource\Pages;
 use App\Filament\Admin\Resources\CorreoEnviadoResource;
 use App\Models\CorreoEnviado;
 use App\Services\CorreoOficialSender;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Wizard\Step;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Resources\Pages\CreateRecord\Concerns\HasWizard;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -14,11 +17,50 @@ use Illuminate\Support\Str;
 
 class CreateCorreoEnviado extends CreateRecord
 {
+    use HasWizard;
+
     protected static string $resource = CorreoEnviadoResource::class;
 
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    /**
+     * Pasos del asistente de envío, consistentes con el resto del panel.
+     * Los campos se reutilizan desde el Resource (única fuente de verdad).
+     */
+    protected function getSteps(): array
+    {
+        return [
+            Step::make('destinatario')
+                ->label('Destinatario')
+                ->description('¿A quién se envía?')
+                ->icon('heroicon-o-user')
+                ->schema(CorreoEnviadoResource::camposDestinatario()),
+
+            Step::make('mensaje')
+                ->label('Mensaje')
+                ->description('Asunto y contenido')
+                ->icon('heroicon-o-envelope-open')
+                ->schema(CorreoEnviadoResource::camposMensaje()),
+
+            Step::make('adjuntos')
+                ->label('Adjuntos')
+                ->description('Archivos (opcional)')
+                ->icon('heroicon-o-paper-clip')
+                ->schema(CorreoEnviadoResource::camposAdjuntos()),
+        ];
+    }
+
+    /**
+     * Renombrar el botón final del wizard: en lugar de "Crear", "Enviar correo".
+     */
+    protected function getCreateFormAction(): Action
+    {
+        return parent::getCreateFormAction()
+            ->label('Enviar correo')
+            ->icon('heroicon-o-paper-airplane');
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array

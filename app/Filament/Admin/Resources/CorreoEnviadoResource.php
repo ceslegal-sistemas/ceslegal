@@ -49,153 +49,186 @@ class CorreoEnviadoResource extends Resource
 
             Forms\Components\Section::make('Destinatario')
                 ->icon('heroicon-o-user')
-                ->schema([
-                    Forms\Components\Select::make('trabajador_id')
-                        ->label('Seleccionar trabajador (opcional)')
-                        ->options(
-                            Trabajador::query()
-                                ->when(
-                                    !Auth::user()->hasRole('super_admin'),
-                                    fn($query) => $query->where('empresa_id', Auth::user()->empresa_id)
-                                )
-                                ->get()
-                                ->mapWithKeys(fn($t) => [
-                                    $t->id => "{$t->nombres} {$t->apellidos} — {$t->email}",
-                                ])
-                        )
-                        ->searchable()
-                        ->nullable()
-                        ->placeholder('Buscar trabajador...')
-                        ->live()
-                        ->afterStateUpdated(function (?int $state, Set $set) {
-                            if ($state) {
-                                $trabajador = Trabajador::find($state);
-                                if ($trabajador) {
-                                    $set('email_destinatario', $trabajador->email);
-                                    $set('destinatario_nombre', $trabajador->nombres . ' ' . $trabajador->apellidos);
-                                }
-                            }
-                        }),
-
-                    Forms\Components\TextInput::make('destinatario_nombre')
-                        ->label('Nombre del destinatario')
-                        ->required()
-                        ->maxLength(255),
-
-                    Forms\Components\TextInput::make('email_destinatario')
-                        ->label('Email destinatario')
-                        ->email()
-                        ->required()
-                        ->rule(new \App\Rules\EmailDominioEntregable())
-                        ->validationMessages([
-                            'email' => 'El correo no tiene un formato válido.',
-                        ])
-                        ->helperText('Verifica que el correo esté bien escrito: el correo se envía de inmediato al guardar.')
-                        ->maxLength(255),
-
-                    Forms\Components\TagsInput::make('email_cc')
-                        ->label('Con copia (CC)')
-                        ->placeholder('correo@ejemplo.com')
-                        ->helperText('Presione Enter o coma para agregar cada email')
-                        ->nullable(),
-                ]),
+                ->schema(static::camposDestinatario()),
 
             Forms\Components\Section::make('Correo')
                 ->icon('heroicon-o-envelope-open')
-                ->schema([
-                    Forms\Components\Select::make('proceso_id')
-                        ->label('Proceso disciplinario (opcional)')
-                        ->options(function (Forms\Get $get) {
-                            $trabajadorId = $get('trabajador_id');
-                            
-                            $query = ProcesoDisciplinario::query()
-                                ->select('id', 'codigo')
-                                ->orderByDesc('created_at');
-                            
-                            if ($trabajadorId) {
-                                $query->where('trabajador_id', $trabajadorId);
-                            }
-                            
-                            $query->when(
-                                !Auth::user()->hasRole('super_admin'),
-                                fn($q) => $q->where('empresa_id', Auth::user()->empresa_id)
-                            );
-                            
-                            return $query
-                                ->limit(300)
-                                ->get()
-                                ->mapWithKeys(fn($p) => [$p->id => $p->codigo]);
-                        })
-                        ->searchable()
-                        ->nullable()
-                        ->live()
-                        ->placeholder('Vincular a un proceso...'),
-
-                    Forms\Components\Select::make('empresa_id')
-                        ->label('Empresa remitente (Gmail)')
-                        ->relationship('empresa', 'razon_social')
-                        ->searchable()
-                        ->nullable()
-                        ->visible(fn() => Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('abogado'))
-                        ->placeholder('Sistema (SMTP por defecto)')
-                        ->helperText('Si la empresa tiene Gmail conectado, el correo saldrá desde ese Gmail.'),
-
-                    Forms\Components\Select::make('prioridad')
-                        ->label('Prioridad')
-                        ->options([
-                            'normal'  => 'Normal',
-                            'alta'    => 'Alta',
-                            'urgente' => 'Urgente',
-                        ])
-                        ->default('normal')
-                        ->required(),
-
-                    Forms\Components\TextInput::make('asunto')
-                        ->label('Asunto')
-                        ->required()
-                        ->maxLength(500)
-                        ->columnSpanFull(),
-
-                    Forms\Components\RichEditor::make('cuerpo')
-                        ->label('Cuerpo del correo')
-                        ->required()
-                        ->toolbarButtons([
-                            'bold',
-                            'italic',
-                            'underline',
-                            'strike',
-                            'bulletList',
-                            'orderedList',
-                            'h2',
-                            'h3',
-                            'link',
-                            'blockquote',
-                            'undo',
-                            'redo',
-                        ])
-                        ->columnSpanFull(),
-                ]),
+                ->schema(static::camposMensaje()),
 
             Forms\Components\Section::make('Adjuntos')
                 ->icon('heroicon-o-paper-clip')
-                ->schema([
-                    Forms\Components\FileUpload::make('adjuntos')
-                        ->label('Archivos adjuntos')
-                        ->multiple()
-                        ->disk('local')
-                        ->directory(fn() => 'correos/' . now()->format('Y') . '/' . now()->format('m'))
-                        ->acceptedFileTypes([
-                            'application/pdf',
-                            'application/msword',
-                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                            'image/jpeg',
-                            'image/png',
-                        ])
-                        ->maxSize(10240)
-                        ->nullable(),
-                ])
+                ->schema(static::camposAdjuntos())
                 ->collapsible(),
         ]);
+    }
+
+    /**
+     * Campos del destinatario. Reutilizados por el formulario (secciones) y por
+     * el wizard de la página de creación, para mantener una sola fuente de verdad.
+     *
+     * @return array<\Filament\Forms\Components\Component>
+     */
+    public static function camposDestinatario(): array
+    {
+        return [
+            Forms\Components\Select::make('trabajador_id')
+                ->label('Seleccionar trabajador (opcional)')
+                ->options(
+                    Trabajador::query()
+                        ->when(
+                            !Auth::user()->hasRole('super_admin'),
+                            fn($query) => $query->where('empresa_id', Auth::user()->empresa_id)
+                        )
+                        ->get()
+                        ->mapWithKeys(fn($t) => [
+                            $t->id => "{$t->nombres} {$t->apellidos} — {$t->email}",
+                        ])
+                )
+                ->searchable()
+                ->nullable()
+                ->placeholder('Buscar trabajador...')
+                ->live()
+                ->afterStateUpdated(function (?int $state, Set $set) {
+                    if ($state) {
+                        $trabajador = Trabajador::find($state);
+                        if ($trabajador) {
+                            $set('email_destinatario', $trabajador->email);
+                            $set('destinatario_nombre', $trabajador->nombres . ' ' . $trabajador->apellidos);
+                        }
+                    }
+                })
+                ->columnSpanFull(),
+
+            Forms\Components\TextInput::make('destinatario_nombre')
+                ->label('Nombre del destinatario')
+                ->required()
+                ->maxLength(255),
+
+            Forms\Components\TextInput::make('email_destinatario')
+                ->label('Email destinatario')
+                ->email()
+                ->required()
+                ->rule(new \App\Rules\EmailDominioEntregable())
+                ->validationMessages([
+                    'email' => 'El correo no tiene un formato válido.',
+                ])
+                ->helperText('Verifica que el correo esté bien escrito: el correo se envía de inmediato al guardar.')
+                ->maxLength(255),
+
+            Forms\Components\TagsInput::make('email_cc')
+                ->label('Con copia (CC)')
+                ->placeholder('correo@ejemplo.com')
+                ->helperText('Presione Enter o coma para agregar cada email')
+                ->nullable()
+                ->columnSpanFull(),
+        ];
+    }
+
+    /**
+     * Campos del mensaje (proceso, remitente, prioridad, asunto y cuerpo).
+     *
+     * @return array<\Filament\Forms\Components\Component>
+     */
+    public static function camposMensaje(): array
+    {
+        return [
+            Forms\Components\Select::make('proceso_id')
+                ->label('Proceso disciplinario (opcional)')
+                ->options(function (Forms\Get $get) {
+                    $trabajadorId = $get('trabajador_id');
+
+                    $query = ProcesoDisciplinario::query()
+                        ->select('id', 'codigo')
+                        ->orderByDesc('created_at');
+
+                    if ($trabajadorId) {
+                        $query->where('trabajador_id', $trabajadorId);
+                    }
+
+                    $query->when(
+                        !Auth::user()->hasRole('super_admin'),
+                        fn($q) => $q->where('empresa_id', Auth::user()->empresa_id)
+                    );
+
+                    return $query
+                        ->limit(300)
+                        ->get()
+                        ->mapWithKeys(fn($p) => [$p->id => $p->codigo]);
+                })
+                ->searchable()
+                ->nullable()
+                ->live()
+                ->placeholder('Vincular a un proceso...'),
+
+            Forms\Components\Select::make('empresa_id')
+                ->label('Empresa remitente (Gmail)')
+                ->relationship('empresa', 'razon_social')
+                ->searchable()
+                ->nullable()
+                ->visible(fn() => Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('abogado'))
+                ->placeholder('Sistema (SMTP por defecto)')
+                ->helperText('Si la empresa tiene Gmail conectado, el correo saldrá desde ese Gmail.'),
+
+            Forms\Components\Select::make('prioridad')
+                ->label('Prioridad')
+                ->options([
+                    'normal'  => 'Normal',
+                    'alta'    => 'Alta',
+                    'urgente' => 'Urgente',
+                ])
+                ->default('normal')
+                ->required(),
+
+            Forms\Components\TextInput::make('asunto')
+                ->label('Asunto')
+                ->required()
+                ->maxLength(500)
+                ->columnSpanFull(),
+
+            Forms\Components\RichEditor::make('cuerpo')
+                ->label('Cuerpo del correo')
+                ->required()
+                ->toolbarButtons([
+                    'bold',
+                    'italic',
+                    'underline',
+                    'strike',
+                    'bulletList',
+                    'orderedList',
+                    'h2',
+                    'h3',
+                    'link',
+                    'blockquote',
+                    'undo',
+                    'redo',
+                ])
+                ->columnSpanFull(),
+        ];
+    }
+
+    /**
+     * Campo de adjuntos.
+     *
+     * @return array<\Filament\Forms\Components\Component>
+     */
+    public static function camposAdjuntos(): array
+    {
+        return [
+            Forms\Components\FileUpload::make('adjuntos')
+                ->label('Archivos adjuntos')
+                ->multiple()
+                ->disk('local')
+                ->directory(fn() => 'correos/' . now()->format('Y') . '/' . now()->format('m'))
+                ->acceptedFileTypes([
+                    'application/pdf',
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'image/jpeg',
+                    'image/png',
+                ])
+                ->maxSize(10240)
+                ->nullable(),
+        ];
     }
 
     public static function table(Table $table): Table
