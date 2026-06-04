@@ -158,6 +158,17 @@ class CreateReglamentoInterno extends CreateRecord
                 ->icon('heroicon-o-building-office-2')
                 ->schema([
 
+                    Forms\Components\Placeholder::make('step_header_empresa')
+                        ->label('')
+                        ->content(fn() => new HtmlString(
+                            view('filament.components.step-header', [
+                                'step' => 1, 'total' => 7, 'title' => 'Empresa',
+                                'accent' => '#60a5fa', 'lord' => 'https://cdn.lordicon.com/moedrfvp.json',
+                                'subtitle' => 'Datos generales de su empresa y su actividad económica.',
+                            ])->render()
+                        ))
+                        ->columnSpanFull(),
+
                     Forms\Components\Placeholder::make('info_paso_empresa')
                         ->label('')
                         ->content(fn() => new HtmlString(
@@ -312,6 +323,17 @@ class CreateReglamentoInterno extends CreateRecord
                 ->icon('heroicon-o-users')
                 ->schema([
 
+                    Forms\Components\Placeholder::make('step_header_estructura')
+                        ->label('')
+                        ->content(fn() => new HtmlString(
+                            view('filament.components.step-header', [
+                                'step' => 2, 'total' => 7, 'title' => 'Estructura',
+                                'accent' => '#34d399', 'lord' => 'https://cdn.lordicon.com/jdgfsfzr.json',
+                                'subtitle' => 'Cargos, tipos de contrato y relaciones colectivas.',
+                            ])->render()
+                        ))
+                        ->columnSpanFull(),
+
                     Forms\Components\Placeholder::make('info_paso_estructura')
                         ->label('')
                         ->content(fn() => new HtmlString(
@@ -436,6 +458,17 @@ class CreateReglamentoInterno extends CreateRecord
                 ->icon('heroicon-o-clock')
                 ->schema([
 
+                    Forms\Components\Placeholder::make('step_header_jornada')
+                        ->label('')
+                        ->content(fn() => new HtmlString(
+                            view('filament.components.step-header', [
+                                'step' => 3, 'total' => 7, 'title' => 'Jornada',
+                                'accent' => '#c9a84c', 'lord' => 'https://cdn.lordicon.com/uphbloed.json',
+                                'subtitle' => 'Horarios, turnos, dominicales y control de asistencia.',
+                            ])->render()
+                        ))
+                        ->columnSpanFull(),
+
                     Forms\Components\Placeholder::make('info_paso_jornada')
                         ->label('')
                         ->content(fn() => new HtmlString(
@@ -549,29 +582,41 @@ class CreateReglamentoInterno extends CreateRecord
                     Forms\Components\Section::make('¿Trabaja sábados, domingos o festivos?')
                         ->description('Esto determina si el RIT debe incluir los artículos de recargos dominicales y compensatorios.')
                         ->schema([
-                            Forms\Components\Select::make('jornada_sabado')
+                            Forms\Components\Radio::make('jornada_sabado')
                                 ->label('¿Trabaja los sábados?')
                                 ->options([
                                     'no'             => 'No',
-                                    'media_jornada'  => 'Sí — media jornada (hasta el mediodía)',
-                                    'dia_completo'   => 'Sí — día completo',
-                                    'algunos_cargos' => 'Sí — solo algunos cargos (operativos, guardia)',
-                                    'en_turnos'      => 'Sí — incluido en los turnos rotativos',
+                                    'media_jornada'  => 'Media jornada',
+                                    'dia_completo'   => 'Día completo',
+                                    'algunos_cargos' => 'Solo algunos cargos',
+                                    'en_turnos'      => 'Incluido en turnos',
                                 ])
-                                ->default($empresa?->dias_laborales === 'lunes_sabado' ? 'media_jornada' : 'no')
-                                ->native(false),
+                                ->descriptions([
+                                    'no'             => 'No se labora los sábados.',
+                                    'media_jornada'  => 'Hasta el mediodía.',
+                                    'dia_completo'   => 'Jornada completa el sábado.',
+                                    'algunos_cargos' => 'Operativos, guardia u otros.',
+                                    'en_turnos'      => 'Cubierto por la rotación de turnos.',
+                                ])
+                                ->default($empresa?->dias_laborales === 'lunes_sabado' ? 'media_jornada' : 'no'),
 
-                            Forms\Components\Select::make('trabaja_dominicales')
+                            Forms\Components\Radio::make('trabaja_dominicales')
                                 ->label('¿Trabaja domingos o festivos?')
                                 ->options([
                                     'no'             => 'No',
-                                    'ocasionalmente' => 'Ocasionalmente (con día compensatorio)',
-                                    'algunos_cargos' => 'Sí — regularmente, algunos cargos',
-                                    'regularmente'   => 'Sí — toda la operación (recargo 75%)',
-                                    'en_turnos'      => 'Sí — incluido en los turnos rotativos',
+                                    'ocasionalmente' => 'Ocasionalmente',
+                                    'algunos_cargos' => 'Algunos cargos',
+                                    'regularmente'   => 'Toda la operación',
+                                    'en_turnos'      => 'Incluido en turnos',
                                 ])
-                                ->default('no')
-                                ->native(false),
+                                ->descriptions([
+                                    'no'             => 'No se labora domingos ni festivos.',
+                                    'ocasionalmente' => 'Con día compensatorio.',
+                                    'algunos_cargos' => 'Regularmente, solo ciertos cargos.',
+                                    'regularmente'   => 'Recargo dominical del 75%.',
+                                    'en_turnos'      => 'Cubierto por la rotación de turnos.',
+                                ])
+                                ->default('no'),
 
                             Forms\Components\TextInput::make('cargos_exentos_jornada')
                                 ->label('¿Tiene cargos de confianza sin horario fijo? (Gerentes, directores, jefes)')
@@ -584,28 +629,53 @@ class CreateReglamentoInterno extends CreateRecord
                     Forms\Components\Section::make('Control de asistencia y horas extras')
                         ->description('¿Cómo sabe quién llegó y a qué hora? ¿Qué pasa si alguien trabaja tiempo adicional?')
                         ->schema([
-                            Forms\Components\Select::make('control_asistencia')
+                            Forms\Components\ToggleButtons::make('control_asistencia')
                                 ->label('¿Cómo controla la asistencia?')
                                 ->options([
-                                    'biometrico'         => 'Reloj biométrico (huella o facial)',
-                                    'planilla'           => 'Planilla o registro manual',
-                                    'app'                => 'App móvil o sistema digital',
-                                    'supervision_rondas' => 'Supervisión directa / rondas',
+                                    'biometrico'         => 'Reloj biométrico',
+                                    'planilla'           => 'Planilla / manual',
+                                    'app'                => 'App o sistema digital',
+                                    'supervision_rondas' => 'Supervisión / rondas',
                                     'sin_control'        => 'Sin sistema formal aún',
                                 ])
+                                ->icons([
+                                    'biometrico'         => 'heroicon-o-finger-print',
+                                    'planilla'           => 'heroicon-o-clipboard-document-list',
+                                    'app'                => 'heroicon-o-device-phone-mobile',
+                                    'supervision_rondas' => 'heroicon-o-eye',
+                                    'sin_control'        => 'heroicon-o-exclamation-triangle',
+                                ])
+                                ->colors([
+                                    'biometrico'         => 'success',
+                                    'planilla'           => 'gray',
+                                    'app'                => 'info',
+                                    'supervision_rondas' => 'warning',
+                                    'sin_control'        => 'danger',
+                                ])
                                 ->default('planilla')
-                                ->native(false),
+                                ->columnSpanFull(),
 
-                            Forms\Components\Select::make('politica_horas_extras')
+                            Forms\Components\ToggleButtons::make('politica_horas_extras')
                                 ->label('¿Qué hace con las horas extras?')
                                 ->options([
-                                    'recargo_legal'  => 'Se pagan con el recargo legal (previa autorización escrita)',
-                                    'no_autorizadas' => 'No se autorizan — nadie trabaja horas extra',
+                                    'recargo_legal'  => 'Se pagan con recargo legal',
+                                    'no_autorizadas' => 'No se autorizan',
                                     'compensatorio'  => 'Se compensan con tiempo libre',
                                 ])
+                                ->icons([
+                                    'recargo_legal'  => 'heroicon-o-banknotes',
+                                    'no_autorizadas' => 'heroicon-o-no-symbol',
+                                    'compensatorio'  => 'heroicon-o-clock',
+                                ])
+                                ->colors([
+                                    'recargo_legal'  => 'success',
+                                    'no_autorizadas' => 'danger',
+                                    'compensatorio'  => 'info',
+                                ])
+                                ->inline()
                                 ->default('recargo_legal')
-                                ->native(false)
-                                ->helperText('La ley exige que las horas extra sean autorizadas por escrito antes de realizarse.'),
+                                ->helperText('La ley exige que las horas extra sean autorizadas por escrito antes de realizarse.')
+                                ->columnSpanFull(),
                         ])
                         ->columns(['default' => 1, 'sm' => 2]),
                 ]),
@@ -618,6 +688,17 @@ class CreateReglamentoInterno extends CreateRecord
                 ->description('Pago y beneficios')
                 ->icon('heroicon-o-banknotes')
                 ->schema([
+
+                    Forms\Components\Placeholder::make('step_header_salario')
+                        ->label('')
+                        ->content(fn() => new HtmlString(
+                            view('filament.components.step-header', [
+                                'step' => 4, 'total' => 7, 'title' => 'Salario',
+                                'accent' => '#a78bfa', 'lord' => 'https://cdn.lordicon.com/hmpomorl.json',
+                                'subtitle' => 'Forma de pago, beneficios, permisos e incapacidades.',
+                            ])->render()
+                        ))
+                        ->columnSpanFull(),
 
                     Forms\Components\Placeholder::make('info_paso_salario')
                         ->label('')
@@ -748,6 +829,17 @@ class CreateReglamentoInterno extends CreateRecord
                 ->icon('heroicon-o-scale')
                 ->schema([
 
+                    Forms\Components\Placeholder::make('step_header_disciplina')
+                        ->label('')
+                        ->content(fn() => new HtmlString(
+                            view('filament.components.step-header', [
+                                'step' => 5, 'total' => 7, 'title' => 'Disciplina',
+                                'accent' => '#fb923c', 'lord' => 'https://cdn.lordicon.com/xjsqfzte.json',
+                                'subtitle' => 'Conductas sancionables y medidas disciplinarias.',
+                            ])->render()
+                        ))
+                        ->columnSpanFull(),
+
                     Forms\Components\Placeholder::make('info_paso_disciplina')
                         ->label('')
                         ->content(fn() => new HtmlString(
@@ -832,6 +924,17 @@ class CreateReglamentoInterno extends CreateRecord
                 ->description('Seguridad y comportamiento')
                 ->icon('heroicon-o-shield-check')
                 ->schema([
+
+                    Forms\Components\Placeholder::make('step_header_sst')
+                        ->label('')
+                        ->content(fn() => new HtmlString(
+                            view('filament.components.step-header', [
+                                'step' => 6, 'total' => 7, 'title' => 'SST y Conducta',
+                                'accent' => '#f472b6', 'lord' => 'https://cdn.lordicon.com/edcgvlnw.json',
+                                'subtitle' => 'Seguridad y salud en el trabajo y normas de convivencia.',
+                            ])->render()
+                        ))
+                        ->columnSpanFull(),
 
                     Forms\Components\Placeholder::make('info_paso_sst')
                         ->label('')
@@ -957,6 +1060,17 @@ class CreateReglamentoInterno extends CreateRecord
                 ->description('Revisar y construir')
                 ->icon('heroicon-o-cpu-chip')
                 ->schema([
+
+                    Forms\Components\Placeholder::make('step_header_generar')
+                        ->label('')
+                        ->content(fn() => new HtmlString(
+                            view('filament.components.step-header', [
+                                'step' => 7, 'total' => 7, 'title' => 'Revisión y generación',
+                                'accent' => '#22d3ee', 'lord' => 'https://cdn.lordicon.com/wpsdctqb.json',
+                                'subtitle' => 'Revise el resumen; la IA redactará su Reglamento.',
+                            ])->render()
+                        ))
+                        ->columnSpanFull(),
 
                     Forms\Components\Placeholder::make('info_paso_generar')
                         ->label('')
