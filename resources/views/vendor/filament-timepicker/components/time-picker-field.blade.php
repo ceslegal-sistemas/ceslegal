@@ -44,9 +44,9 @@
             value="{{ $initVal }}"
             x-data="{}"
             x-init="
-                var _wire = $wire;
-                var _el   = $el;
-                var _path = '{{ $getStatePath() }}';
+                let _wire = $wire;
+                let _el   = $el;
+                let _path = '{{ $getStatePath() }}';
                 $nextTick(function () {
                     mdtimepicker(_el, {
                         okLabel:     '{{ $getOkLabel() }}',
