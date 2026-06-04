@@ -171,9 +171,9 @@ class CreateReglamentoInterno extends CreateRecord
 
                     Forms\Components\Placeholder::make('info_paso_empresa')
                         ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.rit-step-empresa-info')->render()
-                        ))
+                        // ->content(fn() => new HtmlString(
+                        //     view('filament.components.rit-step-empresa-info')->render()
+                        // ))
                         ->columnSpanFull(),
 
                     Forms\Components\Section::make('Datos de su empresa')
