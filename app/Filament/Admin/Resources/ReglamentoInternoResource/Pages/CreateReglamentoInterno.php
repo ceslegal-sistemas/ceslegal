@@ -1331,8 +1331,9 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->inline()
                                 ->columnSpanFull(),
 
-                            Forms\Components\CheckboxList::make('riesgos_principales')
+                            Forms\Components\ToggleButtons::make('riesgos_principales')
                                 ->label('¿Cuáles son los principales riesgos en su empresa? (seleccione todos los que aplican)')
+                                ->multiple()
                                 ->hintAction(
                                     \Filament\Forms\Components\Actions\Action::make('sugerir_riesgos')
                                         ->label('Sugerir según mi actividad')
@@ -1374,6 +1375,20 @@ class CreateReglamentoInterno extends CreateRecord
                                     'biologico'   => 'Biológico — manipulación de alimentos, residuos o agentes biológicos',
                                     'locativo'    => 'Locativo — pisos húmedos, escaleras, superficies irregulares',
                                     'otro'        => 'Otro riesgo específico de mi empresa',
+                                ])
+                                ->icons([
+                                    'ergonomico'  => 'heroicon-o-user',
+                                    'psicosocial' => 'heroicon-o-face-frown',
+                                    'mecanico'    => 'heroicon-o-cog-6-tooth',
+                                    'electrico'   => 'heroicon-o-bolt',
+                                    'publico'     => 'heroicon-o-shield-exclamation',
+                                    'alturas'     => 'heroicon-o-arrow-trending-up',
+                                    'quimico'     => 'heroicon-o-beaker',
+                                    'vial'        => 'heroicon-o-truck',
+                                    'fisico'      => 'heroicon-o-speaker-wave',
+                                    'biologico'   => 'heroicon-o-bug-ant',
+                                    'locativo'    => 'heroicon-o-building-office-2',
+                                    'otro'        => 'heroicon-o-ellipsis-horizontal-circle',
                                 ])
                                 ->default(['ergonomico'])
                                 ->live()
