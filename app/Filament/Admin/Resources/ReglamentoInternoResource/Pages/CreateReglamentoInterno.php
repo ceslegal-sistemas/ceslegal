@@ -1392,12 +1392,14 @@ class CreateReglamentoInterno extends CreateRecord
                                 ])
                                 ->default(['ergonomico'])
                                 ->live()
-                                ->columns(['default' => 1, 'sm' => 2]),
+                                ->columns(['default' => 1, 'sm' => 2])
+                                ->columnSpanFull(),
 
                             Forms\Components\TextInput::make('riesgos_otros')
                                 ->label('¿Cuál es ese otro riesgo?')
                                 ->placeholder('Ej: Riesgo químico por manejo de solventes, riesgo de alturas en construcción')
-                                ->visible(fn(Get $get) => in_array('otro', (array) $get('riesgos_principales'))),
+                                ->visible(fn(Get $get) => in_array('otro', (array) $get('riesgos_principales')))
+                                ->columnSpanFull(),
 
                             Forms\Components\ToggleButtons::make('tiene_epp')
                                 ->label('¿Sus trabajadores necesitan elementos de protección personal? (casco, guantes, gafas, botas...)')
@@ -1407,12 +1409,14 @@ class CreateReglamentoInterno extends CreateRecord
                                 ])
                                 ->default('no')
                                 ->inline()
-                                ->live(),
+                                ->live()
+                                ->columnSpanFull(),
 
                             Forms\Components\TextInput::make('epp_descripcion')
                                 ->label('¿Qué elementos de protección usan?')
                                 ->placeholder('Ej: Casco, guantes de trabajo, botas de seguridad punta de acero, gafas industriales')
-                                ->visible(fn(Get $get) => $get('tiene_epp') === 'si'),
+                                ->visible(fn(Get $get) => $get('tiene_epp') === 'si')
+                                ->columnSpanFull(),
                         ])
                         ->columns(['default' => 1, 'sm' => 2]),
 
