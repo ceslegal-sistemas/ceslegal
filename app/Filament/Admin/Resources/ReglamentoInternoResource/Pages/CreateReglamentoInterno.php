@@ -554,11 +554,11 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->colors([
                                     'jornada_fija_diurna'     => 'primary',
                                     'turnos_rotativos'        => 'warning',
-                                    'turno_nocturno_regular'  => 'light',
+                                    'turno_nocturno_regular'  => 'gray',
                                     'operacion_continua_247'  => 'danger',
                                     'jornada_flexible'        => 'success',
                                     'teletrabajo'             => 'info',
-                                    'vigilancia_guardias'     => 'secondary',
+                                    'vigilancia_guardias'     => 'gray',
                                 ])
                                 ->icons([
                                     'jornada_fija_diurna'     => 'heroicon-o-building-office',
@@ -805,7 +805,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ])
                                 ->native(false),
 
-                            Forms\Components\CheckboxList::make('periodicidad_pago')
+                            Forms\Components\ToggleButtons::make('periodicidad_pago')
                                 ->label('¿Cada cuánto paga el salario?')
                                 ->helperText('Puede seleccionar varias si distintos cargos o grupos tienen diferente frecuencia de pago.')
                                 ->options([
@@ -815,7 +815,23 @@ class CreateReglamentoInterno extends CreateRecord
                                     'diario'    => 'Diario / jornaleros',
                                     'destajo'   => 'Por obra o destajo (según producción)',
                                 ])
-                                ->default(['mensual'])
+                                ->colors([
+                                    'mensual'   => 'primary',
+                                    'quincenal' => 'success',
+                                    'semanal'   => 'warning',
+                                    'diario'    => 'danger',
+                                    'destajo'   => 'info',
+                                ])
+                                ->icons([
+                                    'mensual'   => 'heroicon-o-calendar',
+                                    'quincenal' => 'heroicon-o-calendar-date-range',
+                                    'semanal'   => 'heroicon-o-calendar-days',
+                                    'diario'    => 'heroicon-o-calendar-days',
+                                    'destajo'   => 'heroicon-o-cube-transparent',
+                                ])
+                                ->live()
+                                ->default([])
+                                ->multiple()
                                 ->columns(['default' => 1, 'sm' => 2, 'md' => 3])
                                 ->columnSpanFull()
                                 ->live(),
@@ -945,24 +961,34 @@ class CreateReglamentoInterno extends CreateRecord
                                     Forms\Components\TextInput::make('nombre')
                                         ->label('Conducta sancionable')
                                         ->required()
-                                        ->columnSpan(['default' => 1, 'sm' => 4]),
-                                    Forms\Components\Select::make('tipo_falta')
+                                        ->columnSpanFull(),
+                                    Forms\Components\ToggleButtons::make('tipo_falta')
                                         ->label('Tipo de falta')
                                         ->options(['leve' => 'Leve', 'grave' => 'Grave'])
+                                        ->colors(['leve' => 'gray', 'grave' => 'danger'])
+                                        ->icons([
+                                            'leve'  => 'heroicon-o-information-circle',
+                                            'grave' => 'heroicon-o-exclamation-triangle',
+                                        ])
+                                        ->grouped()
                                         ->required()
-                                        ->native(false)
-                                        ->columnSpan(['default' => 1, 'sm' => 2]),
-                                    Forms\Components\Select::make('tipo_sancion')
+                                        ->columnSpan(['default' => 1, 'sm' => 4]),
+                                    Forms\Components\ToggleButtons::make('tipo_sancion')
                                         ->label('Sanción aplicable')
                                         ->options([
-                                            'llamado_atencion' => 'Llamado de atención',
+                                            'llamado_atencion' => 'Llamado',
                                             'suspension'       => 'Suspensión',
-                                            'terminacion'      => 'Terminación del contrato',
+                                            'terminacion'      => 'Terminación',
                                         ])
+                                        ->colors([
+                                            'llamado_atencion' => 'info',
+                                            'suspension'       => 'warning',
+                                            'terminacion'      => 'danger',
+                                        ])
+                                        ->grouped()
                                         ->required()
-                                        ->native(false)
                                         ->live()
-                                        ->columnSpan(['default' => 1, 'sm' => 3]),
+                                        ->columnSpan(['default' => 1, 'sm' => 5]),
                                     Forms\Components\TextInput::make('dias_suspension')
                                         ->label('Días de suspensión')
                                         ->numeric()
