@@ -63,8 +63,8 @@ class CreateReglamentoInterno extends CreateRecord
             $saved['nit']             = $empresa->nit ?? '';
             $saved['domicilio']    = trim(
                 ($empresa->direccion ?? '') . ' ' .
-                ($empresa->ciudad ?? '') . ', ' .
-                ($empresa->departamento ?? '')
+                    ($empresa->ciudad ?? '') . ', ' .
+                    ($empresa->departamento ?? '')
             );
 
             // Si no hay IDs guardados en el cuestionario, tomarlos de la empresa
@@ -162,8 +162,11 @@ class CreateReglamentoInterno extends CreateRecord
                         ->label('')
                         ->content(fn() => new HtmlString(
                             view('filament.components.step-header', [
-                                'step' => 1, 'total' => 7, 'title' => 'Empresa',
-                                'accent' => '#60a5fa', 'lord' => 'https://cdn.lordicon.com/moedrfvp.json',
+                                'step' => 1,
+                                'total' => 7,
+                                'title' => 'Empresa',
+                                'accent' => '#60a5fa',
+                                'lord' => 'https://cdn.lordicon.com/moedrfvp.json',
                                 'subtitle' => 'Datos generales de su empresa y su actividad económica.',
                             ])->render()
                         ))
@@ -202,8 +205,8 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->label('Dirección y ciudad principal')
                                 ->default(trim(
                                     ($empresa?->direccion ?? '') . ' ' .
-                                    ($empresa?->ciudad ?? '') . ', ' .
-                                    ($empresa?->departamento ?? '')
+                                        ($empresa?->ciudad ?? '') . ', ' .
+                                        ($empresa?->departamento ?? '')
                                 ))
                                 ->disabled()
                                 ->dehydrated(false)
@@ -217,12 +220,14 @@ class CreateReglamentoInterno extends CreateRecord
                             Forms\Components\Select::make('actividad_economica_id')
                                 ->label('Actividad económica principal')
                                 ->searchable()
-                                ->getSearchResultsUsing(fn(string $search) =>
+                                ->getSearchResultsUsing(
+                                    fn(string $search) =>
                                     ActividadEconomica::query()
                                         ->where('activo', true)
-                                        ->where(fn($q) => $q
-                                            ->where('codigo', 'like', "%{$search}%")
-                                            ->orWhere('nombre', 'like', "%{$search}%")
+                                        ->where(
+                                            fn($q) => $q
+                                                ->where('codigo', 'like', "%{$search}%")
+                                                ->orWhere('nombre', 'like', "%{$search}%")
                                         )
                                         ->orderBy('codigo')
                                         ->limit(50)
@@ -230,8 +235,8 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} — {$a->nombre}"])
                                         ->all()
                                 )
-                                ->getOptionLabelUsing(fn($value) =>
-                                    ($a = ActividadEconomica::find($value))
+                                ->getOptionLabelUsing(
+                                    fn($value) => ($a = ActividadEconomica::find($value))
                                         ? "{$a->codigo} — {$a->nombre}"
                                         : $value
                                 )
@@ -245,12 +250,14 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->label('¿Tiene otras actividades secundarias?')
                                 ->searchable()
                                 ->multiple()
-                                ->getSearchResultsUsing(fn(string $search) =>
+                                ->getSearchResultsUsing(
+                                    fn(string $search) =>
                                     ActividadEconomica::query()
                                         ->where('activo', true)
-                                        ->where(fn($q) => $q
-                                            ->where('codigo', 'like', "%{$search}%")
-                                            ->orWhere('nombre', 'like', "%{$search}%")
+                                        ->where(
+                                            fn($q) => $q
+                                                ->where('codigo', 'like', "%{$search}%")
+                                                ->orWhere('nombre', 'like', "%{$search}%")
                                         )
                                         ->orderBy('codigo')
                                         ->limit(50)
@@ -258,12 +265,13 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} — {$a->nombre}"])
                                         ->all()
                                 )
-                                ->getOptionLabelUsing(fn($value) =>
-                                    ($a = ActividadEconomica::find($value))
+                                ->getOptionLabelUsing(
+                                    fn($value) => ($a = ActividadEconomica::find($value))
                                         ? "{$a->codigo} — {$a->nombre}"
                                         : $value
                                 )
-                                ->getOptionLabelsUsing(fn(array $values) =>
+                                ->getOptionLabelsUsing(
+                                    fn(array $values) =>
                                     ActividadEconomica::whereIn('id', $values)
                                         ->get()
                                         ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} — {$a->nombre}"])
@@ -271,7 +279,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 )
                                 ->default($empresa?->actividadesSecundarias?->pluck('id')->toArray() ?? [])
                                 ->nullable()
-                                ->placeholder('Opcional — buscar actividades adicionales...')
+                                ->placeholder('Buscar actividades adicionales')
                                 ->helperText('Solo si su empresa realiza actividades muy diferentes entre sí.')
                                 ->columnSpanFull(),
                         ]),
@@ -281,15 +289,18 @@ class CreateReglamentoInterno extends CreateRecord
                             Forms\Components\TextInput::make('num_trabajadores')
                                 ->label('¿Cuántos empleados tiene actualmente?')
                                 ->numeric()
+                                ->integer()
+                                ->extraInputAttributes(['min' => 1, 'onkeydown' => "return event.key !== '-'"])
                                 ->minValue(1)
                                 ->placeholder('Ej: 15')
                                 ->helperText('Cuente todos los trabajadores, incluyendo los de tiempo parcial.'),
 
-                            Forms\Components\Radio::make('tiene_sucursales')
+                            Forms\Components\ToggleButtons::make('tiene_sucursales')
                                 ->label('¿Tiene sucursales o sedes en otras ciudades?')
                                 ->options(['no' => 'No', 'si' => 'Sí'])
                                 ->default('no')
                                 ->inline()
+                                // ->colors(['no' => 'primary', 'si' => 'success'])
                                 ->live(),
                         ])
                         ->columns(['default' => 1, 'sm' => 2]),
@@ -306,6 +317,9 @@ class CreateReglamentoInterno extends CreateRecord
                             Forms\Components\TextInput::make('num_trabajadores')
                                 ->label('N.° trabajadores en esa sede')
                                 ->numeric()
+                                ->integer()
+                                ->minValue(0)
+                                ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
                                 ->placeholder('Ej: 5'),
                         ])
                         ->columns(['default' => 1, 'sm' => 2, 'md' => 3])
@@ -327,8 +341,11 @@ class CreateReglamentoInterno extends CreateRecord
                         ->label('')
                         ->content(fn() => new HtmlString(
                             view('filament.components.step-header', [
-                                'step' => 2, 'total' => 7, 'title' => 'Estructura',
-                                'accent' => '#34d399', 'lord' => 'https://cdn.lordicon.com/jdgfsfzr.json',
+                                'step' => 2,
+                                'total' => 7,
+                                'title' => 'Estructura',
+                                'accent' => '#34d399',
+                                'lord' => 'https://cdn.lordicon.com/jdgfsfzr.json',
                                 'subtitle' => 'Cargos, tipos de contrato y relaciones colectivas.',
                             ])->render()
                         ))
@@ -370,18 +387,37 @@ class CreateReglamentoInterno extends CreateRecord
                     Forms\Components\Section::make('Contratos y documentación')
                         ->description('Esto determina qué cláusulas aplican en el Reglamento para cada tipo de empleado.')
                         ->schema([
-                            Forms\Components\Select::make('tiene_manual_funciones')
+                            Forms\Components\ToggleButtons::make('tiene_manual_funciones')
                                 ->label('¿Tiene escrito qué hace cada cargo? (manual de funciones)')
                                 ->options([
                                     'si'              => 'Sí, tenemos manual de funciones',
                                     'no'              => 'No',
                                     'en_construccion' => 'Lo estamos construyendo',
                                 ])
+                                ->colors([
+                                    'si' => 'success',
+                                    'no' => 'danger',
+                                    'en_construccion' => 'warning',
+                                ])
                                 ->default('no')
-                                ->native(false)
+                                ->live()
+                                ->inline()
+                                // ->native(false)
                                 ->helperText('No es obligatorio para el RIT, pero es buena práctica tenerlo.'),
 
-                            Forms\Components\CheckboxList::make('tipos_contrato')
+                            // Forms\Components\CheckboxList::make('tipos_contrato')
+                            //     ->label('¿Qué tipos de contrato usa con sus empleados?')
+                            //     ->options([
+                            //         'indefinido'  => 'Término indefinido (sin fecha de fin)',
+                            //         'fijo'        => 'Término fijo (con fecha de vencimiento)',
+                            //         'obra_labor'  => 'Obra o labor (hasta terminar el proyecto)',
+                            //         'aprendizaje' => 'Aprendizaje SENA',
+                            //     ])
+                            //     ->default(['indefinido'])
+                            //     ->columns(['default' => 1, 'sm' => 2])
+                            //     ->helperText('Seleccione todos los que usa actualmente.'),
+
+                            Forms\Components\ToggleButtons::make('tipos_contrato')
                                 ->label('¿Qué tipos de contrato usa con sus empleados?')
                                 ->options([
                                     'indefinido'  => 'Término indefinido (sin fecha de fin)',
@@ -389,20 +425,37 @@ class CreateReglamentoInterno extends CreateRecord
                                     'obra_labor'  => 'Obra o labor (hasta terminar el proyecto)',
                                     'aprendizaje' => 'Aprendizaje SENA',
                                 ])
-                                ->default(['indefinido'])
+                                ->icons([
+                                    'indefinido'  => 'heroicon-o-briefcase',
+                                    'fijo'        => 'heroicon-o-calendar',
+                                    'obra_labor'  => 'heroicon-o-cube-transparent',
+                                    'aprendizaje' => 'heroicon-o-academic-cap',
+                                ])
+                                ->colors([
+                                    'indefinido'  => 'success',
+                                    'fijo'        => 'primary',
+                                    'obra_labor'  => 'warning',
+                                    'aprendizaje' => 'info',
+                                ])
+                                ->multiple()
+                                ->default([])
+                                ->live()
                                 ->columns(['default' => 1, 'sm' => 2])
-                                ->helperText('Seleccione todos los que usa actualmente.'),
+                                ->inline()
+                                ->helperText('Seleccione todos los que usa actualmente en la empresa.'),
 
                             Forms\Components\TextInput::make('num_aprendices_sena')
                                 ->label('¿Cuántos aprendices SENA tiene actualmente?')
                                 ->numeric()
+                                ->integer()
                                 ->minValue(0)
+                                ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
                                 ->default(0)
                                 ->placeholder('0')
                                 ->helperText('Si tiene contrato de aprendizaje, indique cuántos. Si no tiene, deje en 0.')
                                 ->visible(fn(Get $get) => in_array('aprendizaje', (array) $get('tipos_contrato'))),
 
-                            Forms\Components\Radio::make('tiene_trabajadores_mision')
+                            Forms\Components\ToggleButtons::make('tiene_trabajadores_mision')
                                 ->label('¿Tiene temporales o trabajadores de una empresa de servicios?')
                                 ->options(['no' => 'No', 'si' => 'Sí'])
                                 ->default('no')
@@ -414,12 +467,17 @@ class CreateReglamentoInterno extends CreateRecord
                     Forms\Components\Section::make('Relaciones colectivas de trabajo')
                         ->description('Esta información define si el RIT debe incluir cláusulas sobre convención o pacto colectivo.')
                         ->schema([
-                            Forms\Components\Radio::make('tiene_sindicato')
+                            Forms\Components\ToggleButtons::make('tiene_sindicato')
                                 ->label('¿Existe sindicato en la empresa?')
                                 ->options([
                                     'no'           => 'No',
                                     'si'           => 'Sí',
                                     'en_formacion' => 'En proceso de formación',
+                                ])
+                                ->colors([
+                                    'no' => 'primary',
+                                    'si' => 'success',
+                                    'en_formacion' => 'warning',
                                 ])
                                 ->default('no')
                                 ->inline()
@@ -432,14 +490,14 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->visible(fn(Get $get) => $get('tiene_sindicato') === 'si')
                                 ->columnSpanFull(),
 
-                            Forms\Components\Radio::make('tiene_convencion_colectiva')
+                            Forms\Components\ToggleButtons::make('tiene_convencion_colectiva')
                                 ->label('¿Tiene convención colectiva vigente?')
                                 ->options(['no' => 'No', 'si' => 'Sí'])
                                 ->default('no')
                                 ->inline()
                                 ->helperText('Acuerdo negociado con el sindicato que mejora condiciones de trabajo.'),
 
-                            Forms\Components\Radio::make('tiene_pacto_colectivo')
+                            Forms\Components\ToggleButtons::make('tiene_pacto_colectivo')
                                 ->label('¿Tiene pacto colectivo con trabajadores no sindicalizados?')
                                 ->options(['no' => 'No', 'si' => 'Sí'])
                                 ->default('no')
@@ -462,8 +520,11 @@ class CreateReglamentoInterno extends CreateRecord
                         ->label('')
                         ->content(fn() => new HtmlString(
                             view('filament.components.step-header', [
-                                'step' => 3, 'total' => 7, 'title' => 'Jornada',
-                                'accent' => '#c9a84c', 'lord' => 'https://cdn.lordicon.com/uphbloed.json',
+                                'step' => 3,
+                                'total' => 7,
+                                'title' => 'Jornada',
+                                'accent' => '#c9a84c',
+                                'lord' => 'https://cdn.lordicon.com/uphbloed.json',
                                 'subtitle' => 'Horarios, turnos, dominicales y control de asistencia.',
                             ])->render()
                         ))
@@ -479,7 +540,7 @@ class CreateReglamentoInterno extends CreateRecord
                     Forms\Components\Section::make('¿Cómo trabajan sus empleados?')
                         ->description('Seleccione todo lo que aplique a su empresa. Si es oficina pura, solo marque "Jornada fija diurna".')
                         ->schema([
-                            Forms\Components\CheckboxList::make('modalidades_jornada')
+                            Forms\Components\ToggleButtons::make('modalidades_jornada')
                                 ->label('Tipos de jornada en su empresa')
                                 ->options([
                                     'jornada_fija_diurna'     => 'Jornada fija diurna (oficina, lunes a viernes)',
@@ -490,7 +551,27 @@ class CreateReglamentoInterno extends CreateRecord
                                     'teletrabajo'             => 'Teletrabajo / trabajo desde casa',
                                     'vigilancia_guardias'     => 'Vigilancia / guardias de seguridad',
                                 ])
-                                ->default(['jornada_fija_diurna'])
+                                ->colors([
+                                    'jornada_fija_diurna'     => 'primary',
+                                    'turnos_rotativos'        => 'warning',
+                                    'turno_nocturno_regular'  => 'light',
+                                    'operacion_continua_247'  => 'danger',
+                                    'jornada_flexible'        => 'success',
+                                    'teletrabajo'             => 'info',
+                                    'vigilancia_guardias'     => 'secondary',
+                                ])
+                                ->icons([
+                                    'jornada_fija_diurna'     => 'heroicon-o-building-office',
+                                    'turnos_rotativos'        => 'heroicon-o-arrows-right-left',
+                                    'turno_nocturno_regular'  => 'heroicon-o-moon',
+                                    'operacion_continua_247'  => 'heroicon-o-bolt',
+                                    'jornada_flexible'        => 'heroicon-o-adjustments-horizontal',
+                                    'teletrabajo'             => 'heroicon-o-computer-desktop',
+                                    'vigilancia_guardias'     => 'heroicon-o-shield-check',
+                                ])
+                                ->live()
+                                ->multiple()
+                                ->default([])
                                 ->columns(['default' => 1, 'sm' => 2])
                                 ->columnSpanFull(),
                         ]),
@@ -694,8 +775,11 @@ class CreateReglamentoInterno extends CreateRecord
                         ->label('')
                         ->content(fn() => new HtmlString(
                             view('filament.components.step-header', [
-                                'step' => 4, 'total' => 7, 'title' => 'Salario',
-                                'accent' => '#a78bfa', 'lord' => 'https://cdn.lordicon.com/hmpomorl.json',
+                                'step' => 4,
+                                'total' => 7,
+                                'title' => 'Salario',
+                                'accent' => '#a78bfa',
+                                'lord' => 'https://cdn.lordicon.com/hmpomorl.json',
                                 'subtitle' => 'Forma de pago, beneficios, permisos e incapacidades.',
                             ])->render()
                         ))
@@ -748,7 +832,7 @@ class CreateReglamentoInterno extends CreateRecord
                     Forms\Components\Section::make('¿Da comisiones o bonos?')
                         ->description('Los beneficios que da de forma habitual deben quedar en el RIT para no convertirse en "salario" a efectos legales.')
                         ->schema([
-                            Forms\Components\Radio::make('maneja_comisiones')
+                            Forms\Components\ToggleButtons::make('maneja_comisiones')
                                 ->label('¿Paga comisiones o bonos a algún empleado?')
                                 ->options(['no' => 'No', 'si' => 'Sí'])
                                 ->default('no')
@@ -765,7 +849,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->native(false)
                                 ->visible(fn(Get $get) => $get('maneja_comisiones') === 'si'),
 
-                            Forms\Components\Radio::make('tiene_beneficios_extralegales')
+                            Forms\Components\ToggleButtons::make('tiene_beneficios_extralegales')
                                 ->label('¿Da algún beneficio adicional al salario? (auxilio de alimentación, transporte adicional, subsidios...)')
                                 ->options(['no' => 'No', 'si' => 'Sí'])
                                 ->default('no')
@@ -796,7 +880,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->helperText('Puede escribirlo en sus propias palabras — el sistema lo redactará formalmente.')
                                 ->columnSpanFull(),
 
-                            Forms\Components\Radio::make('tiene_licencias_especiales')
+                            Forms\Components\ToggleButtons::make('tiene_licencias_especiales')
                                 ->label('¿Da permisos especiales adicionales a los que exige la ley?')
                                 ->options(['no' => 'No', 'si' => 'Sí'])
                                 ->default('no')
@@ -834,8 +918,11 @@ class CreateReglamentoInterno extends CreateRecord
                         ->label('')
                         ->content(fn() => new HtmlString(
                             view('filament.components.step-header', [
-                                'step' => 5, 'total' => 7, 'title' => 'Disciplina',
-                                'accent' => '#fb923c', 'lord' => 'https://cdn.lordicon.com/xjsqfzte.json',
+                                'step' => 5,
+                                'total' => 7,
+                                'title' => 'Disciplina',
+                                'accent' => '#fb923c',
+                                'lord' => 'https://cdn.lordicon.com/xjsqfzte.json',
                                 'subtitle' => 'Conductas sancionables y medidas disciplinarias.',
                             ])->render()
                         ))
@@ -879,38 +966,41 @@ class CreateReglamentoInterno extends CreateRecord
                                     Forms\Components\TextInput::make('dias_suspension')
                                         ->label('Días de suspensión')
                                         ->numeric()
+                                        ->integer()
                                         ->minValue(1)
+                                        ->extraInputAttributes(['min' => 1, 'onkeydown' => "return event.key !== '-'"])
                                         ->maxValue(60)
                                         ->placeholder('máx.')
                                         ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
                                         ->columnSpan(['default' => 1, 'sm' => 3]),
                                 ])
                                 ->columns(['default' => 1, 'sm' => 12])
-                                ->default(fn() => SancionLaboral::where('activa', true)
-                                    ->whereNull('sancion_padre_id')
-                                    ->orderBy('tipo_falta')
-                                    ->orderBy('orden')
-                                    ->get()
-                                    ->map(fn($s) => [
-                                        'nombre'          => $s->nombre_claro,
-                                        'tipo_falta'      => $s->tipo_falta,
-                                        'tipo_sancion'    => $s->tipo_sancion,
-                                        'dias_suspension' => $s->dias_suspension_max,
-                                    ])
-                                    ->toArray()
+                                ->default(
+                                    fn() => SancionLaboral::where('activa', true)
+                                        ->whereNull('sancion_padre_id')
+                                        ->orderBy('tipo_falta')
+                                        ->orderBy('orden')
+                                        ->get()
+                                        ->map(fn($s) => [
+                                            'nombre'          => $s->nombre_claro,
+                                            'tipo_falta'      => $s->tipo_falta,
+                                            'tipo_sancion'    => $s->tipo_sancion,
+                                            'dias_suspension' => $s->dias_suspension_max,
+                                        ])
+                                        ->toArray()
                                 )
                                 ->reorderable(false)
                                 ->collapsible()
                                 ->collapsed()
-                                ->itemLabel(fn(array $state): string =>
-                                    ($state['nombre'] ?? 'Nueva conducta') .
-                                    ' — ' . ($state['tipo_falta'] === 'grave' ? 'Grave' : 'Leve') .
-                                    ' → ' . match ($state['tipo_sancion'] ?? '') {
-                                        'llamado_atencion' => 'Llamado de atención',
-                                        'suspension'       => 'Suspensión' . (!empty($state['dias_suspension']) ? ' ' . $state['dias_suspension'] . ' días' : ''),
-                                        'terminacion'      => 'Terminación',
-                                        default            => '—',
-                                    }
+                                ->itemLabel(
+                                    fn(array $state): string => ($state['nombre'] ?? 'Nueva conducta') .
+                                        ' — ' . ($state['tipo_falta'] === 'grave' ? 'Grave' : 'Leve') .
+                                        ' → ' . match ($state['tipo_sancion'] ?? '') {
+                                            'llamado_atencion' => 'Llamado de atención',
+                                            'suspension'       => 'Suspensión' . (!empty($state['dias_suspension']) ? ' ' . $state['dias_suspension'] . ' días' : ''),
+                                            'terminacion'      => 'Terminación',
+                                            default            => '—',
+                                        }
                                 )
                                 ->addActionLabel('+ Agregar conducta')
                                 ->columnSpanFull(),
@@ -930,8 +1020,11 @@ class CreateReglamentoInterno extends CreateRecord
                         ->label('')
                         ->content(fn() => new HtmlString(
                             view('filament.components.step-header', [
-                                'step' => 6, 'total' => 7, 'title' => 'SST y Conducta',
-                                'accent' => '#f472b6', 'lord' => 'https://cdn.lordicon.com/edcgvlnw.json',
+                                'step' => 6,
+                                'total' => 7,
+                                'title' => 'SST y Conducta',
+                                'accent' => '#f472b6',
+                                'lord' => 'https://cdn.lordicon.com/edcgvlnw.json',
                                 'subtitle' => 'Seguridad y salud en el trabajo y normas de convivencia.',
                             ])->render()
                         ))
@@ -983,7 +1076,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->placeholder('Ej: Riesgo químico por manejo de solventes, riesgo de alturas en construcción')
                                 ->visible(fn(Get $get) => in_array('otro', (array) $get('riesgos_principales'))),
 
-                            Forms\Components\Radio::make('tiene_epp')
+                            Forms\Components\ToggleButtons::make('tiene_epp')
                                 ->label('¿Sus trabajadores necesitan elementos de protección personal? (casco, guantes, gafas, botas...)')
                                 ->options([
                                     'no' => 'No aplica — trabajo de oficina o bajo riesgo',
@@ -1013,7 +1106,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->default('descansos')
                                 ->native(false),
 
-                            Forms\Components\Radio::make('usa_uniforme')
+                            Forms\Components\ToggleButtons::make('usa_uniforme')
                                 ->label('¿La empresa entrega uniforme o dotación?')
                                 ->options([
                                     'no'              => 'No',
@@ -1023,7 +1116,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->default('no')
                                 ->inline(),
 
-                            Forms\Components\Radio::make('tiene_codigo_etica')
+                            Forms\Components\ToggleButtons::make('tiene_codigo_etica')
                                 ->label('¿Tiene algún manual de ética, código de conducta o valores de empresa?')
                                 ->options([
                                     'si'              => 'Sí',
@@ -1066,8 +1159,11 @@ class CreateReglamentoInterno extends CreateRecord
                         ->label('')
                         ->content(fn() => new HtmlString(
                             view('filament.components.step-header', [
-                                'step' => 7, 'total' => 7, 'title' => 'Revisión y generación',
-                                'accent' => '#22d3ee', 'lord' => 'https://cdn.lordicon.com/wpsdctqb.json',
+                                'step' => 7,
+                                'total' => 7,
+                                'title' => 'Revisión y generación',
+                                'accent' => '#22d3ee',
+                                'lord' => 'https://cdn.lordicon.com/wpsdctqb.json',
                                 'subtitle' => 'Revise el resumen; la IA redactará su Reglamento.',
                             ])->render()
                         ))
@@ -1170,8 +1266,8 @@ class CreateReglamentoInterno extends CreateRecord
         $data['nit']          = $empresa->nit ?? '';
         $data['domicilio']    = trim(
             ($empresa->direccion ?? '') . ' ' .
-            ($empresa->ciudad ?? '') . ', ' .
-            ($empresa->departamento ?? '')
+                ($empresa->ciudad ?? '') . ', ' .
+                ($empresa->departamento ?? '')
         );
 
         // 4. Guardar cuestionario PRIMERO en estado 'generando' — si la UI se cierra o
