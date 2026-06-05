@@ -993,7 +993,7 @@ class CreateReglamentoInterno extends CreateRecord
                                             'grave'     => 'heroicon-o-exclamation-triangle',
                                             'muy_grave' => 'heroicon-o-fire',
                                         ])
-                                        ->grouped()
+                                        ->inline()
                                         ->required()
                                         ->columnSpan(['default' => 1, 'sm' => 6]),
                                     Forms\Components\ToggleButtons::make('tipo_sancion')
@@ -1008,7 +1008,7 @@ class CreateReglamentoInterno extends CreateRecord
                                             'suspension'       => 'warning',
                                             'terminacion'      => 'danger',
                                         ])
-                                        ->grouped()
+                                        ->inline()
                                         ->required()
                                         ->live()
                                         ->columnSpan(['default' => 1, 'sm' => 6]),
@@ -1026,7 +1026,7 @@ class CreateReglamentoInterno extends CreateRecord
                                             'primera_vez'  => 'heroicon-o-flag',
                                             'reincidencia' => 'heroicon-o-arrow-path',
                                         ])
-                                        ->grouped()
+                                        ->inline()
                                         ->live()
                                         ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
                                         ->columnSpan(['default' => 1, 'sm' => 8])
