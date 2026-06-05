@@ -473,8 +473,9 @@ class RITGeneratorService
                 }
                 $lineas[] = "- Beneficios extralegales:\n" . ($txt ?: "  - Ninguno\n");
             } elseif ($key === 'sanciones_configuradas') {
-                $leves  = array_filter((array) $val, fn($s) => ($s['tipo_falta'] ?? '') === 'leve');
-                $graves = array_filter((array) $val, fn($s) => ($s['tipo_falta'] ?? '') === 'grave');
+                $leves     = array_filter((array) $val, fn($s) => ($s['tipo_falta'] ?? '') === 'leve');
+                $graves    = array_filter((array) $val, fn($s) => ($s['tipo_falta'] ?? '') === 'grave');
+                $muyGraves = array_filter((array) $val, fn($s) => ($s['tipo_falta'] ?? '') === 'muy_grave');
                 $fmtS   = fn(array $s): string => match ($s['tipo_sancion'] ?? '') {
                     'llamado_atencion' => 'llamado de atención',
                     'suspension'       => 'suspensión' . (!empty($s['dias_suspension']) ? ' de ' . $s['dias_suspension'] . ' días' : ''),
@@ -482,8 +483,9 @@ class RITGeneratorService
                     default            => $s['tipo_sancion'] ?? '',
                 };
                 $txt = '';
-                foreach ($leves  as $s) $txt .= "  - [leve] {$s['nombre']}: {$fmtS($s)}\n";
-                foreach ($graves as $s) $txt .= "  - [grave] {$s['nombre']}: {$fmtS($s)}\n";
+                foreach ($leves     as $s) $txt .= "  - [leve] {$s['nombre']}: {$fmtS($s)}\n";
+                foreach ($graves    as $s) $txt .= "  - [grave] {$s['nombre']}: {$fmtS($s)}\n";
+                foreach ($muyGraves as $s) $txt .= "  - [muy grave] {$s['nombre']}: {$fmtS($s)}\n";
                 if ($txt) $lineas[] = "- Sanciones configuradas:\n{$txt}";
             } elseif (is_array($val)) {
                 $lineas[] = "- {$key}: " . $lista($val);
@@ -1608,8 +1610,9 @@ HTML;
         // Sanciones configuradas (nuevo formato por conducta) o fallback al formato antiguo
         $sancionesTexto = '';
         if (!empty($r['sanciones_configuradas']) && is_array($r['sanciones_configuradas'])) {
-            $leves  = array_filter($r['sanciones_configuradas'], fn($s) => ($s['tipo_falta'] ?? '') === 'leve');
-            $graves = array_filter($r['sanciones_configuradas'], fn($s) => ($s['tipo_falta'] ?? '') === 'grave');
+            $leves     = array_filter($r['sanciones_configuradas'], fn($s) => ($s['tipo_falta'] ?? '') === 'leve');
+            $graves    = array_filter($r['sanciones_configuradas'], fn($s) => ($s['tipo_falta'] ?? '') === 'grave');
+            $muyGraves = array_filter($r['sanciones_configuradas'], fn($s) => ($s['tipo_falta'] ?? '') === 'muy_grave');
             $fmtSancion = fn(array $s): string => match ($s['tipo_sancion'] ?? '') {
                 'llamado_atencion' => 'llamado de atención',
                 'suspension'       => 'suspensión' . (!empty($s['dias_suspension']) ? ' de ' . $s['dias_suspension'] . ' días' : ''),
@@ -1625,6 +1628,12 @@ HTML;
             if ($graves) {
                 $sancionesTexto .= "- Faltas graves y sus sanciones:\n";
                 foreach ($graves as $s) {
+                    $sancionesTexto .= "  - {$s['nombre']}: {$fmtSancion($s)}\n";
+                }
+            }
+            if ($muyGraves) {
+                $sancionesTexto .= "- Faltas muy graves y sus sanciones:\n";
+                foreach ($muyGraves as $s) {
                     $sancionesTexto .= "  - {$s['nombre']}: {$fmtSancion($s)}\n";
                 }
             }

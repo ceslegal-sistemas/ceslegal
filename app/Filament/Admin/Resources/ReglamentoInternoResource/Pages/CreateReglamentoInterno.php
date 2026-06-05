@@ -964,15 +964,24 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->columnSpanFull(),
                                     Forms\Components\ToggleButtons::make('tipo_falta')
                                         ->label('Tipo de falta')
-                                        ->options(['leve' => 'Leve', 'grave' => 'Grave'])
-                                        ->colors(['leve' => 'gray', 'grave' => 'danger'])
+                                        ->options([
+                                            'leve'      => 'Leve',
+                                            'grave'     => 'Grave',
+                                            'muy_grave' => 'Muy grave',
+                                        ])
+                                        ->colors([
+                                            'leve'      => 'gray',
+                                            'grave'     => 'warning',
+                                            'muy_grave' => 'danger',
+                                        ])
                                         ->icons([
-                                            'leve'  => 'heroicon-o-information-circle',
-                                            'grave' => 'heroicon-o-exclamation-triangle',
+                                            'leve'      => 'heroicon-o-information-circle',
+                                            'grave'     => 'heroicon-o-exclamation-triangle',
+                                            'muy_grave' => 'heroicon-o-fire',
                                         ])
                                         ->grouped()
                                         ->required()
-                                        ->columnSpan(['default' => 1, 'sm' => 4]),
+                                        ->columnSpan(['default' => 1, 'sm' => 6]),
                                     Forms\Components\ToggleButtons::make('tipo_sancion')
                                         ->label('Sanción aplicable')
                                         ->options([
@@ -988,7 +997,7 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->grouped()
                                         ->required()
                                         ->live()
-                                        ->columnSpan(['default' => 1, 'sm' => 5]),
+                                        ->columnSpan(['default' => 1, 'sm' => 6]),
                                     Forms\Components\TextInput::make('dias_suspension')
                                         ->label('Días de suspensión')
                                         ->numeric()
@@ -997,8 +1006,9 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->extraInputAttributes(['min' => 1, 'onkeydown' => "return event.key !== '-'"])
                                         ->maxValue(60)
                                         ->placeholder('máx.')
+                                        ->helperText('Art. 112 CST: hasta 8 días la primera vez; hasta 2 meses (60 días) por reincidencia.')
                                         ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
-                                        ->columnSpan(['default' => 1, 'sm' => 3]),
+                                        ->columnSpan(['default' => 1, 'sm' => 4]),
                                 ])
                                 ->columns(['default' => 1, 'sm' => 12])
                                 ->default(
@@ -1020,7 +1030,11 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->collapsed()
                                 ->itemLabel(
                                     fn(array $state): string => ($state['nombre'] ?? 'Nueva conducta') .
-                                        ' — ' . ($state['tipo_falta'] === 'grave' ? 'Grave' : 'Leve') .
+                                        ' — ' . match ($state['tipo_falta'] ?? 'leve') {
+                                            'muy_grave' => 'Muy grave',
+                                            'grave'     => 'Grave',
+                                            default     => 'Leve',
+                                        } .
                                         ' → ' . match ($state['tipo_sancion'] ?? '') {
                                             'llamado_atencion' => 'Llamado de atención',
                                             'suspension'       => 'Suspensión' . (!empty($state['dias_suspension']) ? ' ' . $state['dias_suspension'] . ' días' : ''),
