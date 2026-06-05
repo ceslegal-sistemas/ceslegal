@@ -998,15 +998,40 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->required()
                                         ->live()
                                         ->columnSpan(['default' => 1, 'sm' => 6]),
+                                    Forms\Components\ToggleButtons::make('escenario_suspension')
+                                        ->label('Escenario')
+                                        ->options([
+                                            'primera_vez'  => 'Primera vez',
+                                            'reincidencia' => 'Reincidencia',
+                                        ])
+                                        ->colors([
+                                            'primera_vez'  => 'success',
+                                            'reincidencia' => 'danger',
+                                        ])
+                                        ->icons([
+                                            'primera_vez'  => 'heroicon-o-flag',
+                                            'reincidencia' => 'heroicon-o-arrow-path',
+                                        ])
+                                        ->default('primera_vez')
+                                        ->grouped()
+                                        ->live()
+                                        ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
+                                        ->columnSpan(['default' => 1, 'sm' => 8]),
                                     Forms\Components\TextInput::make('dias_suspension')
                                         ->label('Días de suspensión')
                                         ->numeric()
                                         ->integer()
                                         ->minValue(1)
-                                        ->extraInputAttributes(['min' => 1, 'onkeydown' => "return event.key !== '-'"])
-                                        ->maxValue(60)
+                                        ->maxValue(fn(Get $get): int => ($get('escenario_suspension') ?? 'primera_vez') === 'reincidencia' ? 60 : 8)
+                                        ->extraInputAttributes(fn(Get $get): array => [
+                                            'min'      => 1,
+                                            'max'      => ($get('escenario_suspension') ?? 'primera_vez') === 'reincidencia' ? 60 : 8,
+                                            'onkeydown' => "return event.key !== '-'",
+                                        ])
                                         ->placeholder('máx.')
-                                        ->helperText('Art. 112 CST: hasta 8 días la primera vez; hasta 2 meses (60 días) por reincidencia.')
+                                        ->helperText(fn(Get $get): string => ($get('escenario_suspension') ?? 'primera_vez') === 'reincidencia'
+                                            ? 'Art. 112 CST: por reincidencia hasta 2 meses (60 días).'
+                                            : 'Art. 112 CST: la primera vez hasta 8 días.')
                                         ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
                                         ->columnSpan(['default' => 1, 'sm' => 4]),
                                 ])
