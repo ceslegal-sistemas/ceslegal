@@ -1012,7 +1012,6 @@ class CreateReglamentoInterno extends CreateRecord
                                             'primera_vez'  => 'heroicon-o-flag',
                                             'reincidencia' => 'heroicon-o-arrow-path',
                                         ])
-                                        ->default('primera_vez')
                                         ->grouped()
                                         ->live()
                                         ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
@@ -1022,16 +1021,13 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->numeric()
                                         ->integer()
                                         ->minValue(1)
-                                        ->maxValue(fn(Get $get): int => ($get('escenario_suspension') ?? 'primera_vez') === 'reincidencia' ? 60 : 8)
+                                        ->maxValue(fn(Get $get): int => $get('escenario_suspension') === 'primera_vez' ? 8 : 60)
                                         ->extraInputAttributes(fn(Get $get): array => [
-                                            'min'      => 1,
-                                            'max'      => ($get('escenario_suspension') ?? 'primera_vez') === 'reincidencia' ? 60 : 8,
+                                            'min'       => 1,
+                                            'max'       => $get('escenario_suspension') === 'primera_vez' ? 8 : 60,
                                             'onkeydown' => "return event.key !== '-'",
                                         ])
                                         ->placeholder('máx.')
-                                        ->helperText(fn(Get $get): string => ($get('escenario_suspension') ?? 'primera_vez') === 'reincidencia'
-                                            ? 'Art. 112 CST: por reincidencia hasta 2 meses (60 días).'
-                                            : 'Art. 112 CST: la primera vez hasta 8 días.')
                                         ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
                                         ->columnSpan(['default' => 1, 'sm' => 4]),
                                 ])
