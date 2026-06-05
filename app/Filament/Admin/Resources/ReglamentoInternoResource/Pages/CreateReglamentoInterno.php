@@ -128,6 +128,77 @@ class CreateReglamentoInterno extends CreateRecord
         return $data;
     }
 
+    /**
+     * Recap en vivo: sección colapsable que resume lo diligenciado hasta el
+     * momento. Se inserta al inicio de los pasos intermedios y se refresca al
+     * navegar entre pasos (y cuando cambia un campo reactivo).
+     */
+    protected function recapEnVivo(): Forms\Components\Section
+    {
+        return Forms\Components\Section::make('Resumen en vivo')
+            ->description('Lo diligenciado hasta ahora. Se actualiza al avanzar de paso.')
+            ->icon('heroicon-o-clipboard-document-check')
+            ->collapsible()
+            ->collapsed()
+            ->compact()
+            ->schema([
+                Forms\Components\Placeholder::make('recap_vivo')
+                    ->label('')
+                    ->content(fn(Get $get) => new HtmlString(
+                        view('filament.components.rit-recap-vivo', [
+                            'items' => $this->recapItems($get),
+                        ])->render()
+                    ))
+                    ->columnSpanFull(),
+            ])
+            ->columnSpanFull();
+    }
+
+    /**
+     * Construye los pares etiqueta/valor del recap a partir del estado actual
+     * del formulario. value === null se muestra como "Pendiente".
+     */
+    protected function recapItems(Get $get): array
+    {
+        $cargos       = collect($get('cargos') ?? [])->filter(fn($c) => !empty($c['nombre_cargo']))->count();
+        $tipos        = count((array) $get('tipos_contrato'));
+        $modalidades  = count((array) $get('modalidades_jornada'));
+        $periodicidad = count((array) $get('periodicidad_pago'));
+        $conductas    = count((array) $get('sanciones_configuradas'));
+        $riesgos      = count((array) $get('riesgos_principales'));
+
+        $entrada = $get('horario_entrada');
+        $salida  = $get('horario_salida');
+        $horario = ($entrada && $salida) ? "{$entrada} – {$salida}" : null;
+
+        $formaPagoLabels = [
+            'transferencia' => 'Transferencia',
+            'cheque'        => 'Cheque',
+            'efectivo'      => 'Efectivo',
+            'mixto'         => 'Mixto',
+        ];
+        $sgsstLabels = [
+            'implementado' => 'Implementado',
+            'en_proceso'   => 'En proceso',
+            'no'           => 'No tiene',
+        ];
+
+        $num = $get('num_trabajadores');
+
+        return [
+            ['label' => 'Trabajadores',  'value' => $num ? (string) $num : null],
+            ['label' => 'Cargos',        'value' => $cargos ? (string) $cargos : null],
+            ['label' => 'Tipos contrato', 'value' => $tipos ? (string) $tipos : null],
+            ['label' => 'Jornada',       'value' => $horario],
+            ['label' => 'Modalidades',   'value' => $modalidades ? (string) $modalidades : null],
+            ['label' => 'Forma de pago', 'value' => $formaPagoLabels[$get('forma_pago')] ?? null],
+            ['label' => 'Periodicidad',  'value' => $periodicidad ? $periodicidad . ' modo(s)' : null],
+            ['label' => 'Conductas',     'value' => $conductas ? (string) $conductas : null],
+            ['label' => 'SG-SST',        'value' => $sgsstLabels[$get('tiene_sg_sst')] ?? null],
+            ['label' => 'Riesgos',       'value' => $riesgos ? (string) $riesgos : null],
+        ];
+    }
+
     protected function getSteps(): array
     {
         $empresa = $this->getEmpresa();
@@ -172,6 +243,8 @@ class CreateReglamentoInterno extends CreateRecord
                             ])->render()
                         ))
                         ->columnSpanFull(),
+
+                    $this->recapEnVivo(),
 
                     // Forms\Components\Placeholder::make('info_paso_empresa')
                     //     ->label('')
@@ -352,6 +425,8 @@ class CreateReglamentoInterno extends CreateRecord
                         ))
                         ->columnSpanFull(),
 
+                    $this->recapEnVivo(),
+
                     // Forms\Components\Placeholder::make('info_paso_estructura')
                     //     ->label('')
                     //     ->content(fn() => new HtmlString(
@@ -530,6 +605,8 @@ class CreateReglamentoInterno extends CreateRecord
                             ])->render()
                         ))
                         ->columnSpanFull(),
+
+                    $this->recapEnVivo(),
 
                     // Forms\Components\Placeholder::make('info_paso_jornada')
                     //     ->label('')
@@ -786,6 +863,8 @@ class CreateReglamentoInterno extends CreateRecord
                         ))
                         ->columnSpanFull(),
 
+                    $this->recapEnVivo(),
+
                     // Forms\Components\Placeholder::make('info_paso_salario')
                     //     ->label('')
                     //     ->content(fn() => new HtmlString(
@@ -958,6 +1037,8 @@ class CreateReglamentoInterno extends CreateRecord
                         ))
                         ->columnSpanFull(),
 
+                    $this->recapEnVivo(),
+
                     // Forms\Components\Placeholder::make('info_paso_disciplina')
                     //     ->label('')
                     //     ->content(fn() => new HtmlString(
@@ -1125,6 +1206,8 @@ class CreateReglamentoInterno extends CreateRecord
                             ])->render()
                         ))
                         ->columnSpanFull(),
+
+                    $this->recapEnVivo(),
 
                     // Forms\Components\Placeholder::make('info_paso_sst')
                     //     ->label('')
