@@ -11,6 +11,7 @@ use App\Jobs\GenerarTextoRITJob;
 use Filament\Forms;
 use Filament\Forms\Components\Wizard\Step;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use HusamTariq\FilamentTimePicker\Forms\Components\TimePickerField;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -1015,13 +1016,34 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->grouped()
                                         ->live()
                                         ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
-                                        ->columnSpan(['default' => 1, 'sm' => 8]),
+                                        ->columnSpan(['default' => 1, 'sm' => 8])
+                                        // Los radios nativos no se deseleccionan: al hacer clic en la
+                                        // opción ya activa, la limpiamos manualmente (deja el escenario en blanco).
+                                        ->extraAttributes([
+                                            'x-data' => '{ pre: null }',
+                                            'x-on:mousedown.capture' => "pre = \$event.target.closest('div')?.querySelector('input[type=radio]')?.checked ? \$event.target.closest('div').querySelector('input[type=radio]').value : null",
+                                            'x-on:click.capture' => "(() => { const inp = \$event.target.closest('div')?.querySelector('input[type=radio]'); if (!inp || pre === null || inp.value !== pre) return; \$event.preventDefault(); inp.checked = false; const a = [...inp.attributes].find(x => x.name.startsWith('wire:model')); if (a) \$wire.set(a.value, null); })()",
+                                        ]),
                                     Forms\Components\TextInput::make('dias_suspension')
                                         ->label('Días de suspensión')
                                         ->numeric()
                                         ->integer()
                                         ->minValue(1)
                                         ->maxValue(fn(Get $get): int => $get('escenario_suspension') === 'primera_vez' ? 8 : 60)
+                                        ->live(onBlur: true)
+                                        // Clamp en tiempo real al límite del CST según el escenario.
+                                        ->afterStateUpdated(function ($state, Set $set, Get $get): void {
+                                            if ($state === null || $state === '') {
+                                                return;
+                                            }
+                                            $max = $get('escenario_suspension') === 'primera_vez' ? 8 : 60;
+                                            $v = (int) $state;
+                                            if ($v > $max) {
+                                                $set('dias_suspension', $max);
+                                            } elseif ($v < 1) {
+                                                $set('dias_suspension', 1);
+                                            }
+                                        })
                                         ->extraInputAttributes(fn(Get $get): array => [
                                             'min'       => 1,
                                             'max'       => $get('escenario_suspension') === 'primera_vez' ? 8 : 60,
