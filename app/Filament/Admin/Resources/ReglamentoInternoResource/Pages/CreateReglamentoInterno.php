@@ -796,7 +796,7 @@ class CreateReglamentoInterno extends CreateRecord
                     Forms\Components\Section::make('¿Cómo paga el salario?')
                         ->description('El RIT debe especificar la forma y frecuencia de pago. Si diferentes grupos de empleados reciben el pago de forma distinta, puede indicar ambas.')
                         ->schema([
-                            Forms\Components\Select::make('forma_pago')
+                            Forms\Components\ToggleButtons::make('forma_pago')
                                 ->label('¿Cómo paga el salario?')
                                 ->options([
                                     'transferencia' => 'Transferencia bancaria',
@@ -804,7 +804,14 @@ class CreateReglamentoInterno extends CreateRecord
                                     'efectivo'      => 'Efectivo',
                                     'mixto'         => 'Mixto (transferencia y efectivo)',
                                 ])
-                                ->native(false),
+                                ->icons([
+                                    'transferencia' => 'heroicon-o-building-library',
+                                    'cheque'        => 'heroicon-o-document-text',
+                                    'efectivo'      => 'heroicon-o-banknotes',
+                                    'mixto'         => 'heroicon-o-arrows-right-left',
+                                ])
+                                ->inline()
+                                ->columnSpanFull(),
 
                             Forms\Components\ToggleButtons::make('periodicidad_pago')
                                 ->label('¿Cada cuánto paga el salario?')
@@ -856,14 +863,20 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->inline()
                                 ->live(),
 
-                            Forms\Components\Select::make('tipo_comisiones')
+                            Forms\Components\ToggleButtons::make('tipo_comisiones')
                                 ->label('¿Qué tipo de comisiones o bonos?')
                                 ->options([
                                     'comisiones_ventas' => 'Comisiones de ventas',
                                     'bonos_desempeno'   => 'Bonos por desempeño / cumplimiento de metas',
                                     'ambos'             => 'Ambos',
                                 ])
-                                ->native(false)
+                                ->icons([
+                                    'comisiones_ventas' => 'heroicon-o-currency-dollar',
+                                    'bonos_desempeno'   => 'heroicon-o-trophy',
+                                    'ambos'             => 'heroicon-o-squares-plus',
+                                ])
+                                ->inline()
+                                ->columnSpanFull()
                                 ->visible(fn(Get $get) => $get('maneja_comisiones') === 'si'),
 
                             Forms\Components\ToggleButtons::make('tiene_beneficios_extralegales')
@@ -1123,15 +1136,25 @@ class CreateReglamentoInterno extends CreateRecord
                     Forms\Components\Section::make('Seguridad y Salud en el Trabajo (SG-SST)')
                         ->description('El Ministerio de Trabajo verifica que el RIT incluya el SG-SST. No importa si está en proceso — lo importante es que quede documentado.')
                         ->schema([
-                            Forms\Components\Select::make('tiene_sg_sst')
+                            Forms\Components\ToggleButtons::make('tiene_sg_sst')
                                 ->label('¿Su empresa tiene el Sistema de Gestión de Seguridad y Salud en el Trabajo (SG-SST)?')
                                 ->options([
                                     'implementado' => 'Sí, está implementado y en funcionamiento',
                                     'en_proceso'   => 'Estamos en proceso de implementarlo',
                                     'no'           => 'No, aún no lo tenemos',
                                 ])
+                                ->colors([
+                                    'implementado' => 'success',
+                                    'en_proceso'   => 'warning',
+                                    'no'           => 'danger',
+                                ])
+                                ->icons([
+                                    'implementado' => 'heroicon-o-shield-check',
+                                    'en_proceso'   => 'heroicon-o-clock',
+                                    'no'           => 'heroicon-o-shield-exclamation',
+                                ])
                                 ->default('en_proceso')
-                                ->native(false)
+                                ->inline()
                                 ->columnSpanFull(),
 
                             Forms\Components\CheckboxList::make('riesgos_principales')
@@ -1179,15 +1202,26 @@ class CreateReglamentoInterno extends CreateRecord
                     Forms\Components\Section::make('Normas de convivencia y uso de recursos')
                         ->description('Estas reglas previenen conflictos cotidianos y establecen expectativas claras desde el primer día de trabajo.')
                         ->schema([
-                            Forms\Components\Select::make('politica_celular')
+                            Forms\Components\ToggleButtons::make('politica_celular')
                                 ->label('¿Pueden los empleados usar el celular personal durante el trabajo?')
                                 ->options([
                                     'libre'     => 'Sí, libre uso',
                                     'descansos' => 'Solo en descansos y pausas',
                                     'prohibido' => 'No — prohibido salvo emergencias',
                                 ])
+                                ->colors([
+                                    'libre'     => 'success',
+                                    'descansos' => 'warning',
+                                    'prohibido' => 'danger',
+                                ])
+                                ->icons([
+                                    'libre'     => 'heroicon-o-device-phone-mobile',
+                                    'descansos' => 'heroicon-o-pause-circle',
+                                    'prohibido' => 'heroicon-o-no-symbol',
+                                ])
                                 ->default('descansos')
-                                ->native(false),
+                                ->inline()
+                                ->columnSpanFull(),
 
                             Forms\Components\ToggleButtons::make('usa_uniforme')
                                 ->label('¿La empresa entrega uniforme o dotación?')
@@ -1209,15 +1243,26 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->default('no')
                                 ->inline(),
 
-                            Forms\Components\Select::make('politica_confidencialidad')
+                            Forms\Components\ToggleButtons::make('politica_confidencialidad')
                                 ->label('¿Exige confidencialidad o reserva de información a sus empleados?')
                                 ->options([
                                     'por_contrato' => 'Sí — está en el contrato de trabajo',
                                     'solo_verbal'  => 'Solo lo mencionamos verbalmente',
                                     'no'           => 'No aplica a nuestra empresa',
                                 ])
+                                ->colors([
+                                    'por_contrato' => 'success',
+                                    'solo_verbal'  => 'warning',
+                                    'no'           => 'gray',
+                                ])
+                                ->icons([
+                                    'por_contrato' => 'heroicon-o-lock-closed',
+                                    'solo_verbal'  => 'heroicon-o-chat-bubble-left-right',
+                                    'no'           => 'heroicon-o-lock-open',
+                                ])
                                 ->default('no')
-                                ->native(false),
+                                ->inline()
+                                ->columnSpanFull(),
 
                             Forms\Components\Textarea::make('que_quiere_prevenir')
                                 ->label('¿Qué situaciones problemáticas quiere evitar principalmente? (opcional)')
