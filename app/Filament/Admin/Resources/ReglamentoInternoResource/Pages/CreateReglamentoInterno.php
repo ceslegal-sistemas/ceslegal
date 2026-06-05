@@ -199,6 +199,97 @@ class CreateReglamentoInterno extends CreateRecord
         ];
     }
 
+    /**
+     * Infiere los riesgos SST probables a partir de la(s) actividad(es)
+     * económica(s) seleccionada(s): primero por sección CIIU (A–U) y luego
+     * con un refuerzo por palabras clave del nombre de la actividad.
+     * No incluye 'otro'. Devuelve claves del CheckboxList de riesgos.
+     */
+    protected function riesgosSugeridos(Get $get): array
+    {
+        $ids = array_filter(array_merge(
+            [$get('actividad_economica_id')],
+            (array) $get('actividades_secundarias_ids'),
+        ));
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        // Riesgos típicos por sección CIIU Rev. 4 (DANE).
+        $porSeccion = [
+            'A' => ['ergonomico', 'mecanico', 'quimico', 'biologico', 'fisico', 'vial'],
+            'B' => ['mecanico', 'quimico', 'fisico', 'alturas', 'locativo', 'ergonomico'],
+            'C' => ['mecanico', 'ergonomico', 'quimico', 'fisico', 'electrico', 'locativo'],
+            'D' => ['electrico', 'mecanico', 'alturas', 'fisico'],
+            'E' => ['biologico', 'quimico', 'mecanico', 'ergonomico'],
+            'F' => ['alturas', 'mecanico', 'locativo', 'ergonomico', 'fisico', 'electrico'],
+            'G' => ['ergonomico', 'publico', 'locativo', 'vial'],
+            'H' => ['vial', 'ergonomico', 'mecanico', 'psicosocial'],
+            'I' => ['biologico', 'ergonomico', 'locativo', 'publico', 'fisico'],
+            'J' => ['psicosocial', 'ergonomico'],
+            'K' => ['psicosocial', 'ergonomico', 'publico'],
+            'L' => ['psicosocial', 'ergonomico'],
+            'M' => ['psicosocial', 'ergonomico'],
+            'N' => ['ergonomico', 'psicosocial', 'publico', 'biologico'],
+            'O' => ['psicosocial', 'ergonomico', 'publico'],
+            'P' => ['psicosocial', 'ergonomico', 'publico'],
+            'Q' => ['biologico', 'psicosocial', 'ergonomico', 'quimico'],
+            'R' => ['psicosocial', 'publico', 'ergonomico', 'fisico'],
+            'S' => ['ergonomico', 'publico', 'quimico'],
+            'T' => ['ergonomico', 'biologico', 'locativo'],
+            'U' => ['psicosocial', 'ergonomico'],
+        ];
+
+        $rows = ActividadEconomica::whereIn('id', $ids)->get(['seccion', 'nombre']);
+        $riesgos = [];
+
+        foreach ($rows as $row) {
+            $sec = strtoupper(trim((string) $row->seccion));
+            $riesgos = array_merge($riesgos, $porSeccion[$sec] ?? []);
+            $riesgos = array_merge($riesgos, $this->riesgosPorPalabras($row->nombre));
+        }
+
+        // Si no se reconoció nada, asumir perfil de oficina / bajo riesgo.
+        if (empty($riesgos)) {
+            $riesgos = ['ergonomico', 'psicosocial'];
+        }
+
+        return array_values(array_unique($riesgos));
+    }
+
+    /**
+     * Refuerzo por palabras clave del nombre de la actividad (sin tildes).
+     */
+    protected function riesgosPorPalabras(?string $nombre): array
+    {
+        $n = \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii((string) $nombre));
+
+        $reglas = [
+            ['kw' => ['constru', 'obra', 'andamio', 'altura', 'techo'],                          'r' => ['alturas', 'mecanico', 'locativo']],
+            ['kw' => ['transport', 'conduc', 'vehicul', 'logistic', 'mensajer', 'domicil', 'taxi', 'carga'], 'r' => ['vial']],
+            ['kw' => ['aliment', 'restaurant', 'comida', 'carnic', 'panad', 'agro', 'agricol', 'pecuar', 'ganad', 'pesca', 'cultivo'], 'r' => ['biologico']],
+            ['kw' => ['quimic', 'solvent', 'pintura', 'plagui', 'fumig', 'plastic'],             'r' => ['quimico']],
+            ['kw' => ['salud', 'hospital', 'clinic', 'medic', 'odontolog', 'veterinar', 'laboratorio'], 'r' => ['biologico', 'quimico']],
+            ['kw' => ['electric', 'energia', 'subestac'],                                         'r' => ['electrico']],
+            ['kw' => ['mina', 'mineria', 'cantera', 'extracci', 'carbon'],                        'r' => ['mecanico', 'quimico', 'fisico']],
+            ['kw' => ['segurid', 'vigilanc', 'custodia'],                                         'r' => ['publico']],
+            ['kw' => ['limpieza', 'aseo', 'residuo', 'reciclaj', 'desech'],                       'r' => ['biologico', 'quimico']],
+        ];
+
+        $out = [];
+        foreach ($reglas as $regla) {
+            foreach ($regla['kw'] as $kw) {
+                if (str_contains($n, $kw)) {
+                    $out = array_merge($out, $regla['r']);
+                    break;
+                }
+            }
+        }
+
+        return $out;
+    }
+
     protected function getSteps(): array
     {
         $empresa = $this->getEmpresa();
@@ -1242,6 +1333,34 @@ class CreateReglamentoInterno extends CreateRecord
 
                             Forms\Components\CheckboxList::make('riesgos_principales')
                                 ->label('¿Cuáles son los principales riesgos en su empresa? (seleccione todos los que aplican)')
+                                ->hintAction(
+                                    \Filament\Forms\Components\Actions\Action::make('sugerir_riesgos')
+                                        ->label('Sugerir según mi actividad')
+                                        ->icon('heroicon-m-sparkles')
+                                        ->link()
+                                        ->action(function (Get $get, Set $set): void {
+                                            $sugeridos = $this->riesgosSugeridos($get);
+
+                                            if (empty($sugeridos)) {
+                                                Notification::make()
+                                                    ->warning()
+                                                    ->title('Primero seleccione su actividad económica')
+                                                    ->body('Vuelva al paso "Empresa" y elija su actividad para poder sugerir riesgos.')
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            $actuales = (array) $get('riesgos_principales');
+                                            $union = array_values(array_unique(array_merge($actuales, $sugeridos)));
+                                            $set('riesgos_principales', $union);
+
+                                            Notification::make()
+                                                ->success()
+                                                ->title('Riesgos sugeridos agregados')
+                                                ->body('Se marcaron los riesgos típicos de su actividad. Revise y desmarque los que no apliquen.')
+                                                ->send();
+                                        }),
+                                )
                                 ->options([
                                     'ergonomico'  => 'Ergonómico — posturas, levantamiento de cargas, trabajo de pie',
                                     'psicosocial' => 'Psicosocial — estrés, turnos nocturnos, atención al público',
