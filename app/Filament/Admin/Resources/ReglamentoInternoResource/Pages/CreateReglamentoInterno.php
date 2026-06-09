@@ -385,6 +385,9 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->extraInputAttributes(['min' => 1, 'onkeydown' => "return event.key !== '-'"])
                                 ->minValue(1)
                                 ->placeholder('Ej: 15')
+                                ->hint('¿Es obligatorio el RIT?')
+                                ->hintColor('info')
+                                ->hintIcon('heroicon-m-information-circle', tooltip: 'El RIT es obligatorio para empresas con más de 5 trabajadores en lo comercial, más de 10 en lo industrial y más de 20 en lo agrícola, ganadero o forestal (Art. 105 CST).')
                                 ->helperText('Cuente todos los trabajadores, incluyendo los de tiempo parcial.'),
 
                             Forms\Components\ToggleButtons::make('tiene_sucursales')
@@ -666,6 +669,9 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->live()
                                 ->multiple()
                                 ->default([])
+                                ->hint('Límite legal de jornada')
+                                ->hintColor('info')
+                                ->hintIcon('heroicon-m-information-circle', tooltip: 'La jornada máxima ordinaria se reduce gradualmente a 42 horas semanales, sin disminuir el salario ni los derechos del trabajador (Ley 2101 de 2021).')
                                 ->columns(['default' => 1, 'sm' => 2])
                                 ->columnSpanFull(),
                         ]),
@@ -854,6 +860,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ])
                                 ->inline()
                                 ->default('recargo_legal')
+                                ->hintIcon('heroicon-m-information-circle', tooltip: 'Máximo 2 horas extra al día y 12 a la semana. El recargo es del 25% sobre la hora ordinaria si son diurnas y del 75% si son nocturnas (Arts. 22 Ley 50 de 1990 y 168 CST).')
                                 ->helperText('La ley exige que las horas extra sean autorizadas por escrito antes de realizarse.')
                                 ->columnSpanFull(),
                         ])
@@ -1092,6 +1099,7 @@ class CreateReglamentoInterno extends CreateRecord
                                         ])
                                         ->inline()
                                         ->required()
+                                        ->hintIcon('heroicon-m-information-circle', tooltip: 'La sanción debe ser proporcional a la gravedad de la falta. Clasificar bien (leve, grave o muy grave) es clave para que la medida resista una eventual demanda.')
                                         ->columnSpan(['default' => 1, 'sm' => 6]),
                                     Forms\Components\ToggleButtons::make('tipo_sancion')
                                         ->label('Sanción aplicable')
@@ -1160,6 +1168,7 @@ class CreateReglamentoInterno extends CreateRecord
                                             'onkeydown' => "return event.key !== '-'",
                                         ])
                                         ->placeholder('máx.')
+                                        ->hintIcon('heroicon-m-information-circle', tooltip: 'La suspensión no puede superar 8 días por la primera vez ni 2 meses (60 días) en caso de reincidencia (Art. 112 CST).')
                                         ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
                                         ->columnSpan(['default' => 1, 'sm' => 4]),
                                 ])
@@ -1252,6 +1261,9 @@ class CreateReglamentoInterno extends CreateRecord
                                 ])
                                 ->default('en_proceso')
                                 ->inline()
+                                ->hint('Obligatorio para toda empresa')
+                                ->hintColor('info')
+                                ->hintIcon('heroicon-m-information-circle', tooltip: 'El SG-SST es obligatorio para todas las empresas sin importar su tamaño o sector (Decreto 1072 de 2015 y Resolución 0312 de 2019).')
                                 ->columnSpanFull(),
 
                             Forms\Components\ToggleButtons::make('riesgos_principales')
