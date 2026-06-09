@@ -676,11 +676,15 @@ class CreateReglamentoInterno extends CreateRecord
                             TimePickerField::make('horario_entrada')
                                 ->label('Hora de entrada')
                                 ->id('rit_horario_entrada')
+                                ->okLabel('Aceptar')
+                                ->cancelLabel('Cancelar')
                                 ->helperText('Ej: 8:00 AM para jornada de oficina estándar'),
 
                             TimePickerField::make('horario_salida')
                                 ->label('Hora de salida (lunes a viernes)')
                                 ->id('rit_horario_salida')
+                                ->okLabel('Aceptar')
+                                ->cancelLabel('Cancelar')
                                 ->helperText('Ej: 5:30 PM (incluye pausa de almuerzo)'),
                         ])
                         ->columns(['default' => 1, 'sm' => 2]),

@@ -1,3 +1,17 @@
+{{--
+    Override de husam-tariq/filament-timepicker.
+
+    Bug original: el formateador interno de mdtimepicker usa el regex
+    /(hh|h|mm|ss|tt|t)/g SIN flag de mayus/minus, por lo que solo reconoce
+    tokens en minuscula. El token 'hh' produce hora 24h con padding (0-23).
+    Configurar 'HH:mm' (mayuscula) deja el "HH" sin reemplazar y devuelve
+    literalmente "HH:30", valor invalido para <input type="time"> -> el campo
+    quedaba en blanco tras seleccionar.
+
+    Ademas, mdtimepicker escribe en el input usando 'format' (no 'timeFormat'),
+    asi que 'format' tambien debe ser 24h valido o el campo se vacia al recargar
+    el paso. Por eso ambos van en minuscula 'hh:mm' (24h con padding).
+--}}
 @php
     $isPrefixInline = $isPrefixInline();
     $isSuffixInline = $isSuffixInline();
@@ -51,8 +65,10 @@
                     mdtimepicker(_el, {
                         okLabel:     '{{ $getOkLabel() }}',
                         cancelLabel: '{{ $getCancelLabel() }}',
-                        format:      'h:mm tt',
-                        timeFormat:  'HH:mm',
+                        // Minuscula obligatoria: 'hh' = 24h con padding. 'HH' no lo
+                        // reconoce el regex interno y devolveria "HH:mm" literal.
+                        format:      'hh:mm',
+                        timeFormat:  'hh:mm',
                         events: {
                             timeChanged: function (data, timepicker) {
                                 _el.value = data.time;
