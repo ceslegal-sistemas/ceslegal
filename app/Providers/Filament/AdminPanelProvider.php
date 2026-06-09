@@ -42,6 +42,16 @@ class AdminPanelProvider extends PanelProvider
             fn(): string => '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>',
         );
 
+        // Oculta el stepper nativo de Filament SOLO donde exista la clase
+        // `rit-hide-wizard-steps` (la añade la página CreateReglamentoInterno, que
+        // usa su propio encabezado de paso). El CSS va en el <head> via render hook,
+        // por lo que no agrega un segundo nodo raíz al componente Livewire (un
+        // <style> inline en la vista de la página rompe el wizard).
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            fn(): string => '<style>.rit-hide-wizard-steps .fi-fo-wizard-header{display:none}</style>',
+        );
+
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_END,
             fn(): string => '<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script><script src="' . asset('js/tour-descargos.js') . '"></script>',
