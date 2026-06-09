@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use AlexSyvolap\FilamentConfetti\FilamentConfettiPlugin;
 use Awcodes\LightSwitch\LightSwitchPlugin;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use DiogoGPinto\AuthUIEnhancer\AuthUIEnhancerPlugin;
@@ -161,6 +162,8 @@ class AdminPanelProvider extends PanelProvider
                     ->volume(1.0) // Volume (0.0 to 1.0)
                     ->showAnimation(true) // Show animation on notification badge
                     ->enabled(true),
+                // Confeti (fireworks) tras registrarse, al aterrizar en auditar/generar RIT
+                FilamentConfettiPlugin::make(),
             ])
             ->authMiddleware([
                 Authenticate::class,

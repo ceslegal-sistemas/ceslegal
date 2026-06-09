@@ -348,6 +348,9 @@ class Register extends BaseRegister
             if (empty($this->redirectUrl)) {
                 $this->redirectUrl = route('filament.admin.pages.auditar-r-i-t');
             }
+
+            // Celebrar con confeti al aterrizar en Auditar RIT (se consume una sola vez)
+            session(['celebrar_registro_rit' => true]);
         } elseif ($ritOpcion === 'construir') {
             // Tras el registro, redirigir a Mi Reglamento Interno
             // (se sobreescribe solo si no hay ya redirect a PayU)
@@ -357,6 +360,9 @@ class Register extends BaseRegister
                 // Hay redirect a PayU; guardar en sesión para redirigir post-pago
                 session(['rit_construir_despues_pago' => true]);
             }
+
+            // Celebrar con confeti al aterrizar en Generar/Mi RIT (se consume una sola vez)
+            session(['celebrar_registro_rit' => true]);
         }
 
         $user = User::create([

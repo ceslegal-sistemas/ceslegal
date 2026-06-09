@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
+use AlexSyvolap\FilamentConfetti\Confetti;
 use App\Jobs\GenerarTextoRITJob;
 use App\Models\Empresa;
 use App\Models\ReglamentoInterno;
@@ -51,6 +52,11 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                 })
                 ->orderByDesc('updated_at')
                 ->first();
+        }
+
+        // Confeti de bienvenida: solo la primera vez tras registrarse (flag de un solo uso).
+        if (session()->pull('celebrar_registro_rit')) {
+            Confetti::fireworks()->shoot();
         }
     }
 

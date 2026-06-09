@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
+use AlexSyvolap\FilamentConfetti\Confetti;
 use App\Jobs\GenerarGAPReporteJob;
 use App\Jobs\GenerarRITMejoradoJob;
 use App\Jobs\ProcesarAuditoriaRIT;
@@ -93,6 +94,11 @@ class AuditarRIT extends Page implements HasForms
             && !$this->auditoria
         ) {
             $this->autoIniciarAuditoria();
+        }
+
+        // Confeti de bienvenida: solo la primera vez tras registrarse (flag de un solo uso).
+        if (session()->pull('celebrar_registro_rit')) {
+            Confetti::fireworks()->shoot();
         }
     }
 

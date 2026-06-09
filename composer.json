@@ -7,6 +7,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "alexsyvolap/filament-confetti": "^1.0",
         "awcodes/light-switch": "^1.0",
         "aws/aws-sdk-php": "^3.380",
         "barryvdh/laravel-dompdf": "^3.1",
