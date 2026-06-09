@@ -160,6 +160,8 @@ class ProcesoDisciplinarioResource extends Resource
                                         ->label('Número de Documento')
                                         ->required()
                                         ->numeric()
+                                        ->integer()
+                                        ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
                                         ->maxLength(50)
                                         ->placeholder('Ej: 1234567890'),
 
@@ -2065,7 +2067,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->colors([
                                     'llamado_atencion' => 'info',
                                     'suspension'       => 'warning',
-                                    'multa'            => 'secondary',
+                                    'multa'            => 'gray',
                                     'terminacion'      => 'danger',
                                     'no_sancion'       => 'success',
                                 ])

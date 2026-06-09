@@ -428,7 +428,7 @@ HISTORIAL DEL TRABAJADOR:
 {$historialTexto}
 
 PROCESO DE ANÁLISIS:
-1. Clasifica la conducta como LEVE o GRAVE según lo que el RIT de la empresa define. Si el RIT no tiene esa conducta, usa el CST como referencia.
+1. Clasifica la conducta como LEVE GRAVE o MUY GRAVE según lo que el RIT de la empresa define. Si el RIT no tiene esa conducta, usa el CST como referencia.
 2. Verifica si hay reincidencia en el historial — agrava la sanción conforme al RIT y los artículos del CST proporcionados en el bloque CONTEXTO LEGAL CST.
 3. Evalúa los descargos del trabajador — considera atenuantes y argumentos de defensa.
 4. De las sanciones que el RIT contempla, selecciona la apropiada. Si el RIT no aporta datos, aplica solo lo que los artículos del CST proporcionados permiten.
@@ -436,9 +436,9 @@ PROCESO DE ANÁLISIS:
 
 Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adicional):
 {
-  "gravedad": "leve|grave",
+  "gravedad": "leve|grave|muy_grave",
   "es_reincidencia": true/false,
-  "justificacion": "Por qué la conducta es leve o grave, citando el RIT o CST aplicable",
+  "justificacion": "Por qué la conducta es leve, grave o muy grave, citando el RIT o CST aplicable",
   "sanciones_disponibles": ["llamado_atencion", "suspension", "multa", "terminacion"],
   "sancion_recomendada": "llamado_atencion|suspension|multa|terminacion",
   "dias_suspension_max_rit": null,
@@ -447,7 +447,7 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
   "motivos_analizados": [
     {
       "motivo": "Nombre del motivo",
-      "tipo_falta": "leve|grave",
+      "tipo_falta": "leve|grave|muy_grave",
       "sancion_asociada": "llamado_atencion|suspension|multa|terminacion",
       "observacion": "Análisis breve de este motivo específico"
     }
@@ -455,7 +455,7 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
   "analisis_otro_motivo": {
     "aplica": true/false,
     "descripcion_analizada": "Descripción del otro motivo",
-    "tipo_falta_determinado": "leve|grave",
+    "tipo_falta_determinado": "leve|grave|muy_grave",
     "sancion_recomendada": "llamado_atencion|suspension|multa|terminacion",
     "dias_suspension_max_rit": null,
     "justificacion": "Análisis de este motivo según RIT y CST"
@@ -495,7 +495,7 @@ REGLAS ESTRICTAS:
 - sanciones_disponibles: incluye SOLO las sanciones que el RIT contempla. Sin RIT, aplica lo que permite el CST según la gravedad. "multa" solo si el RIT la define explícitamente con monto o porcentaje; de lo contrario, no la incluyas.
 - dias_suspension_max_rit: número entero con el MÁXIMO de días que el RIT contempla EXPLÍCITAMENTE para la suspensión aplicable. Si el RIT no especifica días concretos, usa el límite que establezca el artículo correspondiente en el bloque CONTEXTO LEGAL CST proporcionado. Si no aplica suspensión, pon null. NUNCA inventes un valor que no esté en el RIT ni en el bloque CONTEXTO LEGAL CST proporcionado.
 - dias_suspension (recomendacion_final): número concreto dentro del rango 1..dias_suspension_max_rit que mejor se ajuste al caso, o null si no hay suspensión.
-- La gravedad es SOLO "leve" o "grave" — no hay subcategorías ni niveles. La clasificación la define el RIT.
+- La gravedad es "leve", "grave" o "muy_grave" — no hay subcategorías ni niveles. La clasificación la define el RIT.
 - Confianza "alta": el RIT clasifica explícitamente esta conducta. "media": se infiere del RIT. "baja": no hay datos del RIT, se aplica solo el CST.
 - En "motivos_analizados": incluye CADA motivo seleccionado con su análisis individual.
 - Si hay "otro motivo": analisis_otro_motivo.aplica=true y completa TODOS sus campos.

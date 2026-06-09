@@ -179,6 +179,8 @@ class SolicitudContratoResource extends Resource
                                         ->label('Número de Documento')
                                         ->required()
                                         ->numeric()
+                                        ->integer()
+                                        ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
                                         ->maxLength(50)
                                         ->placeholder(fn(Get $get) => match ($get('trabajador_documento_tipo')) {
                                             'CC' => 'Ej: 1234567890',
@@ -354,6 +356,9 @@ class SolicitudContratoResource extends Resource
                             Forms\Components\TextInput::make('salario_propuesto')
                                 ->label('Salario Propuesto')
                                 ->numeric()
+                                ->integer()
+                                ->minValue(0)
+                                ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
                                 ->prefix('$')
                                 ->placeholder('Ej: 2500000')
                                 ->helperText('Salario mensual propuesto para el cargo')

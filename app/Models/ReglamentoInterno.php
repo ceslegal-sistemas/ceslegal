@@ -26,12 +26,14 @@ class ReglamentoInterno extends Model
         'reglamento_origen_id',
         'ruta_pdf',
         'progreso_generacion',
+        'tipos_contrato',
     ];
 
     protected $casts = [
         'activo'                 => 'boolean',
         'respuestas_cuestionario' => 'array',
         'sanciones_extraidas'    => 'array',
+        'tipos_contrato'         => 'array',
     ];
 
     public function empresa(): BelongsTo

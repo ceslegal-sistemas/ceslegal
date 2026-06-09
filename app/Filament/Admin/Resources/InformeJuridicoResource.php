@@ -116,7 +116,7 @@ class InformeJuridicoResource extends Resource
                             ->schema([
                                 Forms\Components\Select::make('area_practica_id')
                                     ->label('Área de Práctica')
-                                    ->options(fn () => AreaPractica::activos()->ordenado()->pluck('nombre', 'id'))
+                                    ->options(fn() => AreaPractica::activos()->ordenado()->pluck('nombre', 'id'))
                                     ->required()
                                     ->native(false)
                                     ->searchable()
@@ -146,13 +146,13 @@ class InformeJuridicoResource extends Resource
 
                                 Forms\Components\Select::make('tipo_gestion_id')
                                     ->label('Tipo de Gestión')
-                                    ->options(fn () => TipoGestion::activos()->ordenado()->pluck('nombre', 'id'))
+                                    ->options(fn() => TipoGestion::activos()->ordenado()->pluck('nombre', 'id'))
                                     ->required()
                                     ->native(false)
                                     ->searchable()
                                     ->preload()
                                     ->live()
-                                    ->afterStateUpdated(fn (Set $set) => $set('subtipo_id', null))
+                                    ->afterStateUpdated(fn(Set $set) => $set('subtipo_id', null))
                                     ->createOptionForm([
                                         Forms\Components\TextInput::make('nombre')
                                             ->label('Nombre')
@@ -300,7 +300,6 @@ class InformeJuridicoResource extends Resource
                                                 ->body('Revise y ajuste según sea necesario.')
                                                 ->duration(5000)
                                                 ->send();
-
                                         } catch (\Exception $e) {
                                             \Filament\Notifications\Notification::make()
                                                 ->danger()
@@ -321,8 +320,10 @@ class InformeJuridicoResource extends Resource
                                 Forms\Components\TextInput::make('tiempo_minutos')
                                     ->label('Tiempo dedicado')
                                     ->numeric()
-                                    ->required()
+                                    ->integer()
                                     ->minValue(0)
+                                    ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
+                                    ->required()
                                     ->maxValue(9999)
                                     ->suffix('minutos')
                                     ->placeholder('Ej: 30')
@@ -336,7 +337,7 @@ class InformeJuridicoResource extends Resource
                     ]),
 
                 Forms\Components\Hidden::make('created_by')
-                    ->default(fn () => auth()->id()),
+                    ->default(fn() => auth()->id()),
             ]);
     }
 
@@ -359,7 +360,7 @@ class InformeJuridicoResource extends Resource
 
                 Tables\Columns\TextColumn::make('mes')
                     ->label('Mes')
-                    ->formatStateUsing(fn ($state) => ucfirst($state))
+                    ->formatStateUsing(fn($state) => ucfirst($state))
                     ->sortable()
                     ->badge()
                     ->color('primary'),
@@ -367,7 +368,7 @@ class InformeJuridicoResource extends Resource
                 Tables\Columns\TextColumn::make('areaPractica.nombre')
                     ->label('Área')
                     ->badge()
-                    ->color(fn ($record) => $record->areaPractica?->color ?? 'gray'),
+                    ->color(fn($record) => $record->areaPractica?->color ?? 'gray'),
 
                 Tables\Columns\TextColumn::make('tipoGestion.nombre')
                     ->label('Tipo')
@@ -390,13 +391,13 @@ class InformeJuridicoResource extends Resource
                 Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')
                     ->badge()
-                    ->color(fn ($state) => match ($state) {
+                    ->color(fn($state) => match ($state) {
                         'entregado' => 'success',
                         'pendiente' => 'warning',
                         'en_proceso' => 'info',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn ($state) => match ($state) {
+                    ->formatStateUsing(fn($state) => match ($state) {
                         'entregado' => 'Entregado',
                         'pendiente' => 'Pendiente',
                         'en_proceso' => 'En Proceso',

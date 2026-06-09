@@ -66,7 +66,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                 ->schema([
                     Forms\Components\Placeholder::make('bienvenida_contenido')
                         ->label('')
-                        ->content(fn () => new HtmlString(
+                        ->content(fn() => new HtmlString(
                             view('filament.components.bienvenida-proceso')->render()
                         ))
                         ->columnSpanFull(),
@@ -113,7 +113,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->required()
                                 ->live()
                                 ->searchable()
-                                ->options(fn(Get $get): array =>
+                                ->options(
+                                    fn(Get $get): array =>
                                     Trabajador::query()
                                         ->where('empresa_id', $get('empresa_id'))
                                         ->where('active', true)
@@ -124,9 +125,10 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         ->toArray()
                                 )
                                 ->disabled(fn(Get $get) => !$get('empresa_id'))
-                                ->helperText(fn(Get $get) => $get('empresa_id')
-                                    ? 'Si el trabajador no aparece en la lista, use el botón \'+\' para registrarlo.'
-                                    : 'Primero seleccione la empresa para ver los trabajadores disponibles.'
+                                ->helperText(
+                                    fn(Get $get) => $get('empresa_id')
+                                        ? 'Si el trabajador no aparece en la lista, use el botón \'+\' para registrarlo.'
+                                        : 'Primero seleccione la empresa para ver los trabajadores disponibles.'
                                 )
                                 ->suffixIcon('heroicon-o-user-group')
                                 ->createOptionForm(function (Get $get) {
@@ -135,8 +137,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                                             ->label('')
                                             ->content(new HtmlString(
                                                 '<div style="background:rgba(99,102,241,.06);border-left:3px solid #6366f1;border-radius:.5rem;padding:.75rem 1rem;font-size:.8125rem;color:var(--fi-color-gray-600,#4b5563);line-height:1.6;">'
-                                                . 'Complete los datos básicos del trabajador. El <strong>correo electrónico</strong> es indispensable para enviarle la citación.'
-                                                . '</div>'
+                                                    . 'Complete los datos básicos del trabajador. El <strong>correo electrónico</strong> es indispensable para enviarle la citación.'
+                                                    . '</div>'
                                             )),
 
                                         Forms\Components\Hidden::make('empresa_id')
@@ -159,6 +161,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                                             ->label('Número de Documento')
                                             ->required()
                                             ->numeric()
+                                            ->integer()
+                                            ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
                                             ->maxLength(50)
                                             ->placeholder('Ej: 1234567890'),
 
@@ -271,7 +275,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                             Forms\Components\Placeholder::make('trabajador_confirmado')
                                 ->label('')
                                 ->visible(fn(Get $get) => (bool) $get('trabajador_id'))
-                                ->content(function(Get $get) {
+                                ->content(function (Get $get) {
                                     $t = Trabajador::find($get('trabajador_id'));
                                     if (!$t) return '';
                                     return new HtmlString(
@@ -367,16 +371,35 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         ->rules([
                                             fn() => function (string $attribute, $value, \Closure $fail) {
                                                 $tn = mb_strtolower(strtr($value, [
-                                                    'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u',
-                                                    'Á'=>'a','É'=>'e','Í'=>'i','Ó'=>'o','Ú'=>'u',
-                                                    'ñ'=>'n','Ñ'=>'n','ä'=>'a','ë'=>'e','ï'=>'i','ö'=>'o','ü'=>'u',
+                                                    'á' => 'a',
+                                                    'é' => 'e',
+                                                    'í' => 'i',
+                                                    'ó' => 'o',
+                                                    'ú' => 'u',
+                                                    'Á' => 'a',
+                                                    'É' => 'e',
+                                                    'Í' => 'i',
+                                                    'Ó' => 'o',
+                                                    'Ú' => 'u',
+                                                    'ñ' => 'n',
+                                                    'Ñ' => 'n',
+                                                    'ä' => 'a',
+                                                    'ë' => 'e',
+                                                    'ï' => 'i',
+                                                    'ö' => 'o',
+                                                    'ü' => 'u',
                                                 ]));
                                                 // Bloquear groserías e insultos
                                                 // Pasada 1: raíces siempre vulgares, sin \b (detecta compuestos)
-                                                $raicesV = ['hijueputa','hijueputo','hijuemadre','hijueperra','malparido','malparida','gonorrea','pirobo','piroba','mierda','verga','mamahuevo','mamaguevo','coño','pajuo','pajua','berriondo','berrionda','monda','hp'];
+                                                $raicesV = ['hijueputa', 'hijueputo', 'hijuemadre', 'hijueperra', 'malparido', 'malparida', 'gonorrea', 'pirobo', 'piroba', 'mierda', 'verga', 'mamahuevo', 'mamaguevo', 'coño', 'pajuo', 'pajua', 'berriondo', 'berrionda', 'monda', 'hp'];
                                                 // 'cono' va en pasada 2 con \b para evitar falso positivo en "conocimiento"
                                                 $hayGroseria = false;
-                                                foreach ($raicesV as $r) { if (str_contains($tn, $r)) { $hayGroseria = true; break; } }
+                                                foreach ($raicesV as $r) {
+                                                    if (str_contains($tn, $r)) {
+                                                        $hayGroseria = true;
+                                                        break;
+                                                    }
+                                                }
                                                 // Pasada 2: insultos con límite de palabra
                                                 if (!$hayGroseria) {
                                                     $hayGroseria = (bool) preg_match('/\b(cono|hp|sopenco|lambon|lambona|arrecho|arrecha|marico|marica|maricon|puta|puto|pendejo|pendeja|imbecil|idiota|estupido|estupida|culo|culero|cabron|cabrona|jodido|jodida|bastardo|bastarda|cretino|cretina|guevon|huevon|huebon|carajo|degenerado|degenerada|pervertido|pervertida|mamarracho|mamarracha|baboso|babosa|desgraciado|desgraciada|maldito|maldita|miserable|tonto|tonta|burro|burra|bruto|bruta|vago|vaga|flojo|floja|holgazan|holgazana|inepto|inepta|incapaz|inservible|torpe|zoquete|necio|necia|bobo|boba|bestia|animal)\b/u', $tn);
@@ -401,17 +424,20 @@ class CreateProcesoDisciplinario extends CreateRecord
                                                 }
                                                 // Bloquear lenguaje discriminatorio
                                                 $terminosProtegidos = [
-                                                    'raza o etnia'                         => ['negro','negra','negroto','negrota','negrito','negrita','indio','india','indigena','zambo','zamba','mulato','mulata','afro','afrocolombiano','afrodescendiente','mestizo','mestiza','moreno','morena','trigueño','trigueña','gringo','gringa','cholo','chola','montañero','montañera'],
-                                                    'orientación sexual o identidad de género' => ['gay','lesbiana','bisexual','travesti','travestido','travestida','transexual','transgenero','transgenerista','homosexual','queer','intersexual'],
-                                                    'discapacidad física'                  => ['invalido','invalida','impedido','impedida','lisiado','lisiada','tullido','tullida','cojo','coja','manco','manca','ciego','ciega','sordo','sorda','mudo','muda','jorobado','jorobada','paralitico','paralitica','minusvalido','minusvalida','discapacitado','discapacitada','postrado','postrada','tetraplejico','paraplejico'],
-                                                    'discapacidad cognitiva o mental'      => ['retrasado','retrasada','mongolito','mongolita','mogolico','mogolica','mongol','tarado','tarada','demente','loco','loca','chiflado','chiflada','perturbado','perturbada','anormal','deficiente','autista','esquizofrenico','esquizofrenica'],
-                                                    'religión'                             => ['judio','judia','musulman','musulmana','evangelico','evangelica'],
-                                                    'origen nacional'                      => ['venezolano','venezolana','extranjero','extranjera','clandestino','clandestina','mojado','mojada'],
+                                                    'raza o etnia'                         => ['negro', 'negra', 'negroto', 'negrota', 'negrito', 'negrita', 'indio', 'india', 'indigena', 'zambo', 'zamba', 'mulato', 'mulata', 'afro', 'afrocolombiano', 'afrodescendiente', 'mestizo', 'mestiza', 'moreno', 'morena', 'trigueño', 'trigueña', 'gringo', 'gringa', 'cholo', 'chola', 'montañero', 'montañera'],
+                                                    'orientación sexual o identidad de género' => ['gay', 'lesbiana', 'bisexual', 'travesti', 'travestido', 'travestida', 'transexual', 'transgenero', 'transgenerista', 'homosexual', 'queer', 'intersexual'],
+                                                    'discapacidad física'                  => ['invalido', 'invalida', 'impedido', 'impedida', 'lisiado', 'lisiada', 'tullido', 'tullida', 'cojo', 'coja', 'manco', 'manca', 'ciego', 'ciega', 'sordo', 'sorda', 'mudo', 'muda', 'jorobado', 'jorobada', 'paralitico', 'paralitica', 'minusvalido', 'minusvalida', 'discapacitado', 'discapacitada', 'postrado', 'postrada', 'tetraplejico', 'paraplejico'],
+                                                    'discapacidad cognitiva o mental'      => ['retrasado', 'retrasada', 'mongolito', 'mongolita', 'mogolico', 'mogolica', 'mongol', 'tarado', 'tarada', 'demente', 'loco', 'loca', 'chiflado', 'chiflada', 'perturbado', 'perturbada', 'anormal', 'deficiente', 'autista', 'esquizofrenico', 'esquizofrenica'],
+                                                    'religión'                             => ['judio', 'judia', 'musulman', 'musulmana', 'evangelico', 'evangelica'],
+                                                    'origen nacional'                      => ['venezolano', 'venezolana', 'extranjero', 'extranjera', 'clandestino', 'clandestina', 'mojado', 'mojada'],
                                                 ];
                                                 $catDisc = null;
                                                 foreach ($terminosProtegidos as $cat => $terminos) {
                                                     foreach ($terminos as $t) {
-                                                        if (preg_match('/\b' . preg_quote($t, '/') . '\b/u', $tn)) { $catDisc = $cat; break 2; }
+                                                        if (preg_match('/\b' . preg_quote($t, '/') . '\b/u', $tn)) {
+                                                            $catDisc = $cat;
+                                                            break 2;
+                                                        }
                                                     }
                                                 }
                                                 if ($catDisc) {
@@ -480,7 +506,9 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->directory('evidencias')
                                 ->acceptedFileTypes([
                                     'application/pdf',
-                                    'image/jpeg', 'image/png', 'image/webp',
+                                    'image/jpeg',
+                                    'image/png',
+                                    'image/webp',
                                     'application/msword',
                                     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                                 ])
@@ -711,16 +739,15 @@ class CreateProcesoDisciplinario extends CreateRecord
                     'detalle_notificacion'   => null,
                     'evidencias_disponibles' => !empty($partes) ? implode('. ', $partes) : null,
                 ],
-                empresaId:        (int) $empresaId,
+                empresaId: (int) $empresaId,
                 nombreTrabajador: $trabajador?->nombre_completo ?? 'el trabajador',
-                cargo:            $trabajador?->cargo ?? 'No especificado',
-                trabajadorId:     (int) $trabajadorId,
+                cargo: $trabajador?->cargo ?? 'No especificado',
+                trabajadorId: (int) $trabajadorId,
             );
 
             $this->data['hechos_ia'] = $resultado['hechos'];
             $this->datosExtraidos    = $resultado;
             $this->chatListo         = true;
-
         } catch (\Exception $e) {
             Log::error('Error al generar hechos desde formulario', ['error' => $e->getMessage()]);
             Notification::make()->danger()
@@ -770,7 +797,7 @@ class CreateProcesoDisciplinario extends CreateRecord
         }
         $enHorario = $this->data['en_horario_laboral'] ?? null;
         if ($enHorario) {
-            $contexto['en_horario'] = match($enHorario) {
+            $contexto['en_horario'] = match ($enHorario) {
                 'si'      => 'Sí',
                 'no'      => 'No',
                 'parcial' => 'Parcialmente',
@@ -891,11 +918,30 @@ class CreateProcesoDisciplinario extends CreateRecord
 
         // Texto normalizado: sin tildes ni mayúsculas — tolerante a mala ortografía
         $tn = mb_strtolower(strtr($texto, [
-            'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u',
-            'Á'=>'a','É'=>'e','Í'=>'i','Ó'=>'o','Ú'=>'u',
-            'ä'=>'a','ë'=>'e','ï'=>'i','ö'=>'o','ü'=>'u',
-            'à'=>'a','è'=>'e','ì'=>'i','ò'=>'o','ù'=>'u',
-            'ñ'=>'n','Ñ'=>'n','ç'=>'c','Ç'=>'c',
+            'á' => 'a',
+            'é' => 'e',
+            'í' => 'i',
+            'ó' => 'o',
+            'ú' => 'u',
+            'Á' => 'a',
+            'É' => 'e',
+            'Í' => 'i',
+            'Ó' => 'o',
+            'Ú' => 'u',
+            'ä' => 'a',
+            'ë' => 'e',
+            'ï' => 'i',
+            'ö' => 'o',
+            'ü' => 'u',
+            'à' => 'a',
+            'è' => 'e',
+            'ì' => 'i',
+            'ò' => 'o',
+            'ù' => 'u',
+            'ñ' => 'n',
+            'Ñ' => 'n',
+            'ç' => 'c',
+            'Ç' => 'c',
         ]));
 
         // ── 1. Detectar categoría preliminar de la falta ──────────────────────
@@ -991,8 +1037,8 @@ class CreateProcesoDisciplinario extends CreateRecord
 
         $tienePresuntivo = (bool) preg_match(
             '/\b(presuntamente|presunta\s+conducta|al\s+parecer|supuestamente|'
-            . 'segun\s+(lo\s+)?report[ao]|aparentemente|se\s+alega|se\s+presume|habria|'
-            . 'habria\s+cometido|se\s+le\s+atribuye|se\s+le\s+imputa)\b/u',
+                . 'segun\s+(lo\s+)?report[ao]|aparentemente|se\s+alega|se\s+presume|habria|'
+                . 'habria\s+cometido|se\s+le\s+atribuye|se\s+le\s+imputa)\b/u',
             $tn
         );
 
@@ -1009,82 +1055,176 @@ class CreateProcesoDisciplinario extends CreateRecord
         $categoriasDiscriminacion = [
 
             'raza o etnia' => [
-                'negro','negra','negroto','negrota','negrito','negrita',
-                'indio','india','indigena','indigeno',
-                'zambo','zamba','mulato','mulata','mulatillo','mulatilla',
-                'afro','afrocolombiano','afrodescendiente','afrovenezolano',
-                'mestizo','mestiza',
-                'moreno','morena',               // descriptor racial peyorativo
-                'trigueño','trigueña',
-                'gringo','gringa',               // extranjero/racial
-                'cholo','chola',                 // peyorativo andino
-                'montañero','montañera',         // peyorativo regional colombiano
+                'negro',
+                'negra',
+                'negroto',
+                'negrota',
+                'negrito',
+                'negrita',
+                'indio',
+                'india',
+                'indigena',
+                'indigeno',
+                'zambo',
+                'zamba',
+                'mulato',
+                'mulata',
+                'mulatillo',
+                'mulatilla',
+                'afro',
+                'afrocolombiano',
+                'afrodescendiente',
+                'afrovenezolano',
+                'mestizo',
+                'mestiza',
+                'moreno',
+                'morena',               // descriptor racial peyorativo
+                'trigueño',
+                'trigueña',
+                'gringo',
+                'gringa',               // extranjero/racial
+                'cholo',
+                'chola',                 // peyorativo andino
+                'montañero',
+                'montañera',         // peyorativo regional colombiano
             ],
 
             'orientación sexual o identidad de género' => [
-                'gay','lesbiana','bisexual',
-                'travesti','travestido','travestida',
-                'transexual','transgenero','transgenerista','transgenerismo',
-                'homosexual','heterosexual',
-                'queer','intersexual',
+                'gay',
+                'lesbiana',
+                'bisexual',
+                'travesti',
+                'travestido',
+                'travestida',
+                'transexual',
+                'transgenero',
+                'transgenerista',
+                'transgenerismo',
+                'homosexual',
+                'heterosexual',
+                'queer',
+                'intersexual',
             ],
 
             'discapacidad física' => [
-                'invalido','invalida','inválido','inválida',
-                'impedido','impedida',
-                'lisiado','lisiada',
-                'tullido','tullida',
-                'cojo','coja','cojito','cojita',
-                'manco','manca',
-                'ciego','ciega','ceguito','ceguita',
-                'sordo','sorda','sordito','sordita',
-                'mudo','muda',
-                'jorobado','jorobada',
-                'paralitico','paralitica',
-                'minusvalido','minusvalida',
-                'discapacitado','discapacitada',
-                'postrado','postrada',
-                'tetraplejico','paraplejico',
+                'invalido',
+                'invalida',
+                'inválido',
+                'inválida',
+                'impedido',
+                'impedida',
+                'lisiado',
+                'lisiada',
+                'tullido',
+                'tullida',
+                'cojo',
+                'coja',
+                'cojito',
+                'cojita',
+                'manco',
+                'manca',
+                'ciego',
+                'ciega',
+                'ceguito',
+                'ceguita',
+                'sordo',
+                'sorda',
+                'sordito',
+                'sordita',
+                'mudo',
+                'muda',
+                'jorobado',
+                'jorobada',
+                'paralitico',
+                'paralitica',
+                'minusvalido',
+                'minusvalida',
+                'discapacitado',
+                'discapacitada',
+                'postrado',
+                'postrada',
+                'tetraplejico',
+                'paraplejico',
             ],
 
             'discapacidad cognitiva o mental' => [
-                'retrasado','retrasada','retraso','retrasadito',
-                'mongolito','mongolita','mogolico','mogolica','mongol',
-                'tarado','tarada',
-                'demente','dementado',
-                'loco','loca','locazo','locaza',     // cuando se usa como etiqueta
-                'chiflado','chiflada',
-                'perturbado','perturbada',
+                'retrasado',
+                'retrasada',
+                'retraso',
+                'retrasadito',
+                'mongolito',
+                'mongolita',
+                'mogolico',
+                'mogolica',
+                'mongol',
+                'tarado',
+                'tarada',
+                'demente',
+                'dementado',
+                'loco',
+                'loca',
+                'locazo',
+                'locaza',     // cuando se usa como etiqueta
+                'chiflado',
+                'chiflada',
+                'perturbado',
+                'perturbada',
                 'anormal',
                 'deficiente',                        // deficiencia mental peyorativo
                 'autista',                           // usado peyorativamente
-                'esquizofrenico','esquizofrenica',
+                'esquizofrenico',
+                'esquizofrenica',
             ],
 
             'religión o creencia' => [
-                'judio','judia','judío','judía',
-                'islamico','islamica',
-                'musulman','musulmana',
-                'evangelico','evangelica',           // a veces usado pejorativamen
-                'ateo','atea',
-                'pagano','pagana',
+                'judio',
+                'judia',
+                'judío',
+                'judía',
+                'islamico',
+                'islamica',
+                'musulman',
+                'musulmana',
+                'evangelico',
+                'evangelica',           // a veces usado pejorativamen
+                'ateo',
+                'atea',
+                'pagano',
+                'pagana',
             ],
 
             'origen nacional' => [
-                'venezolano','venezolana',           // usado peyorativamente
-                'extranjero','extranjera',
-                'clandestino','clandestina',         // migrante indocumentado peyorativo
-                'mojado','mojada',                   // migrante peyorativo
-                'veneco','veneca','venecos','venecas',           // peyorativo muy común para migrantes venezolanos en Colombia
-                'beneco','beneca','benecos','benecas',           // variante ortográfica de veneco
-                'chamo','chama','chamos','chamas',               // jerga venezolana usada peyorativamente en Colombia
-                'veneco invasor','veneca invasora',              // frase xenofóbica
+                'venezolano',
+                'venezolana',           // usado peyorativamente
+                'extranjero',
+                'extranjera',
+                'clandestino',
+                'clandestina',         // migrante indocumentado peyorativo
+                'mojado',
+                'mojada',                   // migrante peyorativo
+                'veneco',
+                'veneca',
+                'venecos',
+                'venecas',           // peyorativo muy común para migrantes venezolanos en Colombia
+                'beneco',
+                'beneca',
+                'benecos',
+                'benecas',           // variante ortográfica de veneco
+                'chamo',
+                'chama',
+                'chamos',
+                'chamas',               // jerga venezolana usada peyorativamente en Colombia
+                'veneco invasor',
+                'veneca invasora',              // frase xenofóbica
             ],
 
             'apariencia física' => [
-                'gordo','gorda',                     // cuando se usa como etiqueta insultante
-                'enano','enana',                     // peyorativo para estatura baja
-                'narigon','narigona',                // peyorativo facial
+                'gordo',
+                'gorda',                     // cuando se usa como etiqueta insultante
+                'enano',
+                'enana',                     // peyorativo para estatura baja
+                'narigon',
+                'narigona',                // peyorativo facial
                 'carecuadrado',                      // insulto colombiano de apariencia
             ],
         ];
@@ -1140,7 +1280,7 @@ class CreateProcesoDisciplinario extends CreateRecord
             [
                 'tipo'  => 'discriminacion',
                 'ok'    => !$tieneDiscriminacion && $this->discriminacionIAOk,
-                'texto' => (function() use ($tieneDiscriminacion, $categoriaDiscriminadaEncontrada, $terminoDiscriminatorioEncontrado): string {
+                'texto' => (function () use ($tieneDiscriminacion, $categoriaDiscriminadaEncontrada, $terminoDiscriminatorioEncontrado): string {
                     if ($tieneDiscriminacion) {
                         return "Lenguaje discriminatorio: la palabra \"{$terminoDiscriminatorioEncontrado}\" hace referencia a {$categoriaDiscriminadaEncontrada} — esto no debe incluirse en la descripción del hecho. Viola jurisprudencia antidiscriminatoria y puede invalidar el proceso.";
                     }
@@ -1480,7 +1620,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                     ->toArray();
                 $festivos = array_merge($festivos, $bd);
             }
-        } catch (\Exception) {}
+        } catch (\Exception) {
+        }
 
         return array_unique($festivos);
     }
