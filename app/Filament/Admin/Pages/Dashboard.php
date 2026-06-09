@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
+use AlexSyvolap\FilamentConfetti\Confetti;
 use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
 use App\Filament\Admin\Widgets\StatsOverviewWidget;
 use App\Filament\Admin\Widgets\RecentProcessesWidget;
@@ -23,6 +24,14 @@ class Dashboard extends BaseDashboard
 
     protected static ?string $navigationLabel = 'Inicio';
 
+    public function mount(): void
+    {
+        // Confeti de bienvenida cuando el cliente elige "lo haré después" al registrarse
+        // y aterriza aquí (Panel de control). Flag de un solo uso.
+        if (session()->pull('celebrar_registro_rit')) {
+            Confetti::fireworks()->shoot();
+        }
+    }
 
     protected function getHeaderActions(): array
     {
