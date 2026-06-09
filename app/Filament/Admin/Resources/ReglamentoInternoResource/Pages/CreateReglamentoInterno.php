@@ -233,11 +233,8 @@ class CreateReglamentoInterno extends CreateRecord
                 ->description('Lea antes de empezar')
                 ->icon('heroicon-o-information-circle')
                 ->schema([
-                    Forms\Components\Placeholder::make('bienvenida_contenido')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.bienvenida-rit')->render()
-                        ))
+                    Forms\Components\View::make('filament.components.bienvenida-rit')
+                        ->key('rit_bienvenida_contenido')
                         ->columnSpanFull(),
                 ]),
 
@@ -250,18 +247,16 @@ class CreateReglamentoInterno extends CreateRecord
                 ->icon('heroicon-o-building-office-2')
                 ->schema([
 
-                    Forms\Components\Placeholder::make('step_header_empresa')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.step-header', [
-                                'step' => 1,
-                                'total' => 7,
-                                'title' => 'Empresa',
-                                'accent' => '#60a5fa',
-                                'lord' => 'https://cdn.lordicon.com/moedrfvp.json',
-                                'subtitle' => 'Datos generales de su empresa y su actividad económica.',
-                            ])->render()
-                        ))
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('rit_step_header_empresa')
+                        ->viewData([
+                            'step' => 1,
+                            'total' => 7,
+                            'title' => 'Empresa',
+                            'accent' => '#60a5fa',
+                            'lord' => 'https://cdn.lordicon.com/moedrfvp.json',
+                            'subtitle' => 'Datos generales de su empresa y su actividad económica.',
+                        ])
                         ->columnSpanFull(),
 
                     // Forms\Components\Placeholder::make('info_paso_empresa')
@@ -432,18 +427,16 @@ class CreateReglamentoInterno extends CreateRecord
                 ->icon('heroicon-o-users')
                 ->schema([
 
-                    Forms\Components\Placeholder::make('step_header_estructura')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.step-header', [
-                                'step' => 2,
-                                'total' => 7,
-                                'title' => 'Estructura',
-                                'accent' => '#34d399',
-                                'lord' => 'https://cdn.lordicon.com/jdgfsfzr.json',
-                                'subtitle' => 'Cargos, tipos de contrato y relaciones colectivas.',
-                            ])->render()
-                        ))
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('rit_step_header_estructura')
+                        ->viewData([
+                            'step' => 2,
+                            'total' => 7,
+                            'title' => 'Estructura',
+                            'accent' => '#34d399',
+                            'lord' => 'https://cdn.lordicon.com/jdgfsfzr.json',
+                            'subtitle' => 'Cargos, tipos de contrato y relaciones colectivas.',
+                        ])
                         ->columnSpanFull(),
 
                     // Forms\Components\Placeholder::make('info_paso_estructura')
@@ -613,18 +606,16 @@ class CreateReglamentoInterno extends CreateRecord
                 ->icon('heroicon-o-clock')
                 ->schema([
 
-                    Forms\Components\Placeholder::make('step_header_jornada')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.step-header', [
-                                'step' => 3,
-                                'total' => 7,
-                                'title' => 'Jornada',
-                                'accent' => '#c9a84c',
-                                'lord' => 'https://cdn.lordicon.com/uphbloed.json',
-                                'subtitle' => 'Horarios, turnos, dominicales y control de asistencia.',
-                            ])->render()
-                        ))
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('rit_step_header_jornada')
+                        ->viewData([
+                            'step' => 3,
+                            'total' => 7,
+                            'title' => 'Jornada',
+                            'accent' => '#c9a84c',
+                            'lord' => 'https://cdn.lordicon.com/uphbloed.json',
+                            'subtitle' => 'Horarios, turnos, dominicales y control de asistencia.',
+                        ])
                         ->columnSpanFull(),
 
                     // Forms\Components\Placeholder::make('info_paso_jornada')
@@ -876,18 +867,16 @@ class CreateReglamentoInterno extends CreateRecord
                 ->icon('heroicon-o-banknotes')
                 ->schema([
 
-                    Forms\Components\Placeholder::make('step_header_salario')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.step-header', [
-                                'step' => 4,
-                                'total' => 7,
-                                'title' => 'Salario',
-                                'accent' => '#a78bfa',
-                                'lord' => 'https://cdn.lordicon.com/hmpomorl.json',
-                                'subtitle' => 'Forma de pago, beneficios, permisos e incapacidades.',
-                            ])->render()
-                        ))
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('rit_step_header_salario')
+                        ->viewData([
+                            'step' => 4,
+                            'total' => 7,
+                            'title' => 'Salario',
+                            'accent' => '#a78bfa',
+                            'lord' => 'https://cdn.lordicon.com/hmpomorl.json',
+                            'subtitle' => 'Forma de pago, beneficios, permisos e incapacidades.',
+                        ])
                         ->columnSpanFull(),
 
                     // Forms\Components\Placeholder::make('info_paso_salario')
@@ -1048,18 +1037,16 @@ class CreateReglamentoInterno extends CreateRecord
                 ->icon('heroicon-o-scale')
                 ->schema([
 
-                    Forms\Components\Placeholder::make('step_header_disciplina')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.step-header', [
-                                'step' => 5,
-                                'total' => 7,
-                                'title' => 'Disciplina',
-                                'accent' => '#fb923c',
-                                'lord' => 'https://cdn.lordicon.com/xjsqfzte.json',
-                                'subtitle' => 'Conductas sancionables y medidas disciplinarias.',
-                            ])->render()
-                        ))
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('rit_step_header_disciplina')
+                        ->viewData([
+                            'step' => 5,
+                            'total' => 7,
+                            'title' => 'Disciplina',
+                            'accent' => '#fb923c',
+                            'lord' => 'https://cdn.lordicon.com/xjsqfzte.json',
+                            'subtitle' => 'Conductas sancionables y medidas disciplinarias.',
+                        ])
                         ->columnSpanFull(),
 
                     // Forms\Components\Placeholder::make('info_paso_disciplina')
@@ -1218,18 +1205,16 @@ class CreateReglamentoInterno extends CreateRecord
                 ->icon('heroicon-o-shield-check')
                 ->schema([
 
-                    Forms\Components\Placeholder::make('step_header_sst')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.step-header', [
-                                'step' => 6,
-                                'total' => 7,
-                                'title' => 'SST y Conducta',
-                                'accent' => '#f472b6',
-                                'lord' => 'https://cdn.lordicon.com/edcgvlnw.json',
-                                'subtitle' => 'Seguridad y salud en el trabajo y normas de convivencia.',
-                            ])->render()
-                        ))
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('rit_step_header_sst')
+                        ->viewData([
+                            'step' => 6,
+                            'total' => 7,
+                            'title' => 'SST y Conducta',
+                            'accent' => '#f472b6',
+                            'lord' => 'https://cdn.lordicon.com/edcgvlnw.json',
+                            'subtitle' => 'Seguridad y salud en el trabajo y normas de convivencia.',
+                        ])
                         ->columnSpanFull(),
 
                     // Forms\Components\Placeholder::make('info_paso_sst')
@@ -1439,18 +1424,16 @@ class CreateReglamentoInterno extends CreateRecord
                 ->icon('heroicon-o-cpu-chip')
                 ->schema([
 
-                    Forms\Components\Placeholder::make('step_header_generar')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.step-header', [
-                                'step' => 7,
-                                'total' => 7,
-                                'title' => 'Revisión y generación',
-                                'accent' => '#22d3ee',
-                                'lord' => 'https://cdn.lordicon.com/wpsdctqb.json',
-                                'subtitle' => 'Revise el resumen; la IA redactará su Reglamento.',
-                            ])->render()
-                        ))
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('rit_step_header_generar')
+                        ->viewData([
+                            'step' => 7,
+                            'total' => 7,
+                            'title' => 'Revisión y generación',
+                            'accent' => '#22d3ee',
+                            'lord' => 'https://cdn.lordicon.com/wpsdctqb.json',
+                            'subtitle' => 'Revise el resumen; la IA redactará su Reglamento.',
+                        ])
                         ->columnSpanFull(),
 
                     // Forms\Components\Placeholder::make('info_paso_generar')
@@ -1460,10 +1443,9 @@ class CreateReglamentoInterno extends CreateRecord
                     //     ))
                     //     ->columnSpanFull(),
 
-                    Forms\Components\Placeholder::make('revision_rit')
-                        ->label('')
-                        ->content(fn(Get $get) => new HtmlString(
-                            view('filament.components.rit-revision-resumen', [
+                    Forms\Components\View::make('filament.components.rit-revision-resumen')
+                        ->key('rit_revision_resumen')
+                        ->viewData(fn(Get $get) => [
                                 'empresa'                  => $this->getEmpresa(),
                                 'num_trabajadores'         => $get('num_trabajadores'),
                                 'actividad_economica'      => $get('actividad_economica'),
@@ -1495,8 +1477,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 'sanciones'                => $get('sanciones_contempladas') ?? [],
                                 'tiene_sg_sst'             => $get('tiene_sg_sst'),
                                 'riesgos_principales'      => $get('riesgos_principales') ?? [],
-                            ])->render()
-                        ))
+                        ])
                         ->columnSpanFull(),
                 ]),
         ];
