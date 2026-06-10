@@ -69,6 +69,7 @@
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php -r \"@mkdir('vendor/moataz-01/filament-notification-sound/resources/views', 0755, true);\"",
             "@php artisan package:discover --ansi",
             "@php artisan filament:upgrade"
         ],
