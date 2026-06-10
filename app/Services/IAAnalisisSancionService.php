@@ -393,14 +393,29 @@ class IAAnalisisSancionService
         }
 
         return <<<PROMPT
-Eres un abogado laboralista colombiano con amplia experiencia en procesos disciplinarios. Analiza el siguiente proceso y determina la sanción apropiada basándote EXCLUSIVAMENTE en tres fuentes, en este orden de prioridad:
+Eres un abogado laboralista colombiano experto en procesos disciplinarios. Tu rol es OBJETIVO E IMPARCIAL: tu deber es proteger el debido proceso, no justificar una sanción. NO asumas que el caso debe terminar en sanción. Si los descargos desvirtúan la falta, la prueba es insuficiente o la conducta no está tipificada en el RIT, debes decirlo y recomendar NO sancionar.
 
-1. EL REGLAMENTO INTERNO DE TRABAJO (RIT) DE LA EMPRESA — es la fuente primaria: define qué conductas son faltas leves o graves y qué sanciones contempla.
-2. EL CÓDIGO SUSTANTIVO DEL TRABAJO (CST) — los artículos aplicables se incluyen en el bloque "CONTEXTO LEGAL CST" más abajo. Solo puedes citar artículos que aparezcan en ese bloque; nunca inventes números de artículos.
-3. EL HISTORIAL DISCIPLINARIO DEL TRABAJADOR — determina reincidencia y agravantes.
+Determina la(s) sanción(es) jurídicamente válida(s) basándote EXCLUSIVAMENTE en estas fuentes, en este orden de prioridad:
 
-INSTRUCCIÓN CRÍTICA: No inventes rangos de días ni categorías de faltas. Deriva TODO de lo que el RIT de esta empresa específicamente contempla y de los artículos del CST proporcionados. Si el RIT dice "suspensión hasta 8 días", no puedes sugerir 30 días. Si el RIT no contempla terminación, no la sugieras.
-Analiza el RIT o contexto disponible para identificar quién tiene potestad disciplinaria para cada tipo de sanción. Si el RIT no especifica, indica "No especificado en el RIT".
+1. EL REGLAMENTO INTERNO DE TRABAJO (RIT) DE LA EMPRESA — fuente primaria: define qué conductas son faltas y qué sanciones contempla.
+2. EL CÓDIGO SUSTANTIVO DEL TRABAJO (CST) — solo los artículos del bloque "CONTEXTO LEGAL CST" más abajo. Nunca inventes números de artículos.
+3. EL HISTORIAL DISCIPLINARIO DEL TRABAJADOR — reincidencia, agravantes y atenuantes.
+
+INSTRUCCIÓN CRÍTICA (anti-invención): No inventes rangos de días ni categorías de faltas. Deriva TODO del RIT de esta empresa y de los artículos del CST proporcionados. Si el RIT dice "suspensión hasta 8 días", no sugieras 30. Si el RIT no contempla terminación, no la sugieras.
+
+GARANTISMO (obligatorio antes de recomendar cualquier sanción): evalúa y reporta en "verificacion_garantias":
+- TIPICIDAD/LEGALIDAD: ¿la conducta está tipificada como falta en el RIT? No se sanciona lo que no está tipificado.
+- DEBIDO PROCESO: citación previa, derecho a ser oído y a aportar pruebas (Art. 115 CST si aparece en el contexto). Un defecto de procedimiento anula la sanción.
+- INMEDIATEZ: la sanción debe ser oportuna; advierte si los hechos podrían estar caducos.
+- NON BIS IN IDEM: no sancionar dos veces el mismo hecho.
+- PROPORCIONALIDAD y gradualidad de la medida.
+- SUFICIENCIA PROBATORIA: distingue hechos constatables de opiniones; si la prueba es débil, adviértelo.
+
+FUERO / ESTABILIDAD LABORAL REFORZADA (obligatorio): no dispones de datos del trabajador sobre fuero. Si la información (hechos o descargos) sugiere posible fuero —maternidad/lactancia, sindical, salud o discapacidad, prepensionado, acoso laboral (Ley 1010 de 2006)— ALÉRTALO en "alerta_fuero". Y SIEMPRE que se evalúe TERMINACIÓN, marca requiere_verificacion=true: terminar a un trabajador aforado sin permiso del Ministerio del Trabajo o autorización judicial es NULO (reintegro e indemnización).
+
+LEGALIDAD DE LA MULTA: la multa solo procede para faltas de puntualidad o asistencia y con el tope del Art. 113 CST. NO la sugieras para otras conductas aunque el RIT la mencione.
+
+Identifica quién tiene potestad disciplinaria para cada sanción según el RIT. Si el RIT no especifica, indica "No especificado en el RIT".
 
 INFORMACIÓN DEL PROCESO:
 - Empresa: {$empresa->nombre_completo}
@@ -444,6 +459,19 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
   "dias_suspension_max_rit": null,
   "razonamiento_legal": "Fundamento en el RIT de la empresa y el CST. Citar artículo o capítulo del RIT si aplica",
   "consideraciones_especiales": "Historial, descargos del trabajador, atenuantes o agravantes relevantes",
+  "alerta_fuero": {
+    "requiere_verificacion": true/false,
+    "indicios": "Pistas en los hechos o descargos de un posible fuero (maternidad/lactancia, sindical, salud o discapacidad, prepensionado, acoso Ley 1010 de 2006), o 'Sin indicios en la información disponible'",
+    "recomendacion": "Acción concreta para el empleador, p. ej.: 'Verifique el fuero antes de cualquier terminación; si aplica, requiere permiso del Ministerio del Trabajo o autorización judicial'"
+  },
+  "verificacion_garantias": {
+    "tipicidad": {"estado": "cumple|riesgo|no_determinable", "nota": "¿La conducta está tipificada como falta en el RIT?"},
+    "debido_proceso": {"estado": "cumple|riesgo|no_determinable", "nota": "Citación, derecho a ser oído y a aportar pruebas"},
+    "inmediatez": {"estado": "cumple|riesgo|no_determinable", "nota": "La sanción es oportuna; los hechos no están caducos"},
+    "non_bis_in_idem": {"estado": "cumple|riesgo|no_determinable", "nota": "No se sanciona dos veces el mismo hecho"},
+    "proporcionalidad": {"estado": "cumple|riesgo|no_determinable", "nota": "Sanción proporcional y gradual a la falta"},
+    "suficiencia_probatoria": {"estado": "cumple|riesgo|no_determinable", "nota": "Hechos constatables frente a opiniones"}
+  },
   "motivos_analizados": [
     {
       "motivo": "Nombre del motivo",
@@ -467,6 +495,7 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
     "terminacion": "texto indicando qué cargo/área puede autorizar terminaciones de contrato según el RIT o el CST, o 'No especificado en el RIT' si no está claro"
   },
   "recomendacion_final": {
+    "requiere_sancion": true/false,
     "sanciones_sugeridas": ["llamado_atencion", "suspension"],
     "sancion_principal": "llamado_atencion|suspension|multa|terminacion",
     "dias_suspension": null,
@@ -484,12 +513,12 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
     "suspension": "Solo si suspension NO está en sanciones_sugeridas: explicar concretamente por qué sería desproporcionada o inapropiada para este caso, citando la levedad de la falta o el contexto del trabajador",
     "multa": "Solo si multa está en sanciones_disponibles PERO NO en sanciones_sugeridas: explicar por qué aplicar multa no sería lo más adecuado en este caso concreto",
     "terminacion": "Solo si terminacion NO está en sanciones_sugeridas: explicar concretamente por qué sería excesiva o no configura justa causa según los hechos y el RIT o CST aplicable",
-    "no_sancion": "SIEMPRE incluir este campo: explicar por qué no aplicar ninguna sanción sería un error jurídico y laboral en este caso concreto, qué precedente negativo genera y cómo desconocería la falta según el RIT"
+    "no_sancion": "SIEMPRE incluir este campo: evalúa de forma OBJETIVA si NO sancionar es una opción válida en este caso (descargos que exoneran, prueba insuficiente, falta no tipificada en el RIT o defecto del debido proceso) o, por el contrario, por qué no lo sería. No presupongas que sancionar es lo correcto"
   }
 }
 
 REGLAS ESTRICTAS:
-- sanciones_sugeridas: array con TODOS los tipos de sanción jurídicamente válidos y proporcionales para este caso. Puede ser uno, dos o tres. No incluir "no_sancion". Ejemplo: si tanto llamado_atencion como suspension son proporcionales, incluir ambos.
+- sanciones_sugeridas: array con TODOS los tipos de sanción jurídicamente válidos y proporcionales para este caso. Puede ser uno, dos o tres; o VACÍO [] si lo correcto es NO sancionar (descargos que exoneran, prueba insuficiente o falta no tipificada en el RIT). No incluir "no_sancion". Ejemplo: si tanto llamado_atencion como suspension son proporcionales, incluir ambos.
 - bases_juridicas: incluir SOLO las sanciones que estén en sanciones_sugeridas. Cada texto (máximo 100 palabras) debe argumentar específicamente esa sanción citando el artículo concreto del RIT o del CST que la sustenta. No repetir el contenido de razonamiento_legal; este campo es la base jurídica puntual de cada opción.
 - sancion_principal: el tipo que más se ajusta al caso, debe estar dentro de sanciones_sugeridas.
 - sanciones_disponibles: incluye SOLO las sanciones que el RIT contempla. Sin RIT, aplica lo que permite el CST según la gravedad. "multa" solo si el RIT la define explícitamente con monto o porcentaje; de lo contrario, no la incluyas.
@@ -501,6 +530,10 @@ REGLAS ESTRICTAS:
 - Si hay "otro motivo": analisis_otro_motivo.aplica=true y completa TODOS sus campos.
 - Si NO hay "otro motivo": analisis_otro_motivo.aplica=false y los demás campos son null.
 - razones_no_recomendadas: incluir una clave por CADA sanción que NO esté en sanciones_sugeridas. "no_sancion" SIEMPRE debe aparecer. Para multa: incluir SOLO si está en sanciones_disponibles pero NO en sanciones_sugeridas; si el RIT no contempla multa, no incluir esta clave. Para llamado_atencion, suspension y terminacion: incluir SOLO si NO están en sanciones_sugeridas. Cada texto (máximo 80 palabras), lenguaje claro y directo sin tecnicismos.
+- requiere_sancion (recomendacion_final): false si lo correcto es NO sancionar (en ese caso sanciones_sugeridas va vacío y sancion_principal y dias_suspension van null); true si procede al menos una sanción.
+- alerta_fuero: requiere_verificacion DEBE ser true siempre que "terminacion" esté en sanciones_disponibles o sanciones_sugeridas, o cuando haya indicios de fuero. En "indicios" no afirmes un fuero que no conste; describe solo la pista o pon "Sin indicios en la información disponible".
+- verificacion_garantias: completa SIEMPRE las seis garantías con estado "cumple", "riesgo" o "no_determinable". Usa "no_determinable" cuando la información no permita concluir (no inventes que se cumplió un trámite que no consta). Si alguna está en "riesgo", refléjalo también en consideraciones_especiales.
+- Citas precisas: toda cita debe incluir el localizador exacto — número de artículo del CST (del bloque proporcionado) y, para el RIT, el capítulo/artículo/numeral específico. Si no puedes ubicar el localizador exacto, dilo expresamente ("el RIT no precisa el numeral").
 - Máximo 150 palabras por campo de texto (salvo razones_no_recomendadas: 80 palabras). No uses saltos de línea dentro de strings JSON.
 - Genera SOLO el JSON, sin markdown ni texto fuera del objeto JSON.
 PROMPT;
@@ -637,7 +670,7 @@ PROMPT;
 
             // Rellenar campos opcionales que pueden haberse truncado
             $defaults = $this->obtenerOpcionesPorDefecto();
-            foreach (['sancion_recomendada', 'justificacion', 'razonamiento_legal', 'consideraciones_especiales', 'motivos_analizados', 'analisis_otro_motivo', 'recomendacion_final', 'autoridad_sancion', 'dias_suspension_max_rit', 'es_reincidencia'] as $campo) {
+            foreach (['sancion_recomendada', 'justificacion', 'razonamiento_legal', 'consideraciones_especiales', 'motivos_analizados', 'analisis_otro_motivo', 'recomendacion_final', 'autoridad_sancion', 'dias_suspension_max_rit', 'es_reincidencia', 'alerta_fuero', 'verificacion_garantias'] as $campo) {
                 if (!isset($analisis[$campo])) {
                     $analisis[$campo] = $defaults[$campo] ?? null;
                 }
@@ -790,7 +823,21 @@ PROMPT;
                 'justificacion' => null,
             ],
             'autoridad_sancion' => [],
+            'alerta_fuero' => [
+                'requiere_verificacion' => true,
+                'indicios' => 'No determinado por el análisis automático.',
+                'recomendacion' => 'Verifique si el trabajador tiene fuero o estabilidad laboral reforzada (maternidad, sindical, salud/discapacidad, prepensionado, acoso) antes de imponer cualquier sanción, en especial la terminación.',
+            ],
+            'verificacion_garantias' => [
+                'tipicidad' => ['estado' => 'no_determinable', 'nota' => 'Requiere revisión manual.'],
+                'debido_proceso' => ['estado' => 'no_determinable', 'nota' => 'Requiere revisión manual.'],
+                'inmediatez' => ['estado' => 'no_determinable', 'nota' => 'Requiere revisión manual.'],
+                'non_bis_in_idem' => ['estado' => 'no_determinable', 'nota' => 'Requiere revisión manual.'],
+                'proporcionalidad' => ['estado' => 'no_determinable', 'nota' => 'Requiere revisión manual.'],
+                'suficiencia_probatoria' => ['estado' => 'no_determinable', 'nota' => 'Requiere revisión manual.'],
+            ],
             'recomendacion_final' => [
+                'requiere_sancion' => false,
                 'sanciones_sugeridas' => ['llamado_atencion'],
                 'sancion_principal' => 'llamado_atencion',
                 'dias_suspension' => null,

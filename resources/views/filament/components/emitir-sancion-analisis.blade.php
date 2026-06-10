@@ -9,6 +9,11 @@
     $esReincidencia = $analisis['es_reincidencia'] ?? false;
     $justificacion  = $analisis['justificacion'] ?? '';
 
+    // Fase 1 — garantías y fuero
+    $alertaFuero   = is_array($analisis['alerta_fuero'] ?? null) ? $analisis['alerta_fuero'] : [];
+    $reqVerifFuero = (bool) ($alertaFuero['requiere_verificacion'] ?? false);
+    $garantias     = is_array($analisis['verificacion_garantias'] ?? null) ? $analisis['verificacion_garantias'] : [];
+
     // Multi-recommendation: sanciones_sugeridas[] + sancion_principal
     $sancionPrincipal = $recomendacion['sancion_principal']
         ?? $recomendacion['sancion_sugerida']
@@ -28,6 +33,15 @@
 
     // ── Configuración visual por gravedad ─────────────────────────────────────
     $gc = match(true) {
+        $gravedad === 'muy_grave' => [
+            'label'      => 'Falta Muy Grave',
+            'accent'     => '#f87171',
+            'accentLight'=> '#b91c1c',
+            'glow'       => 'rgba(248,113,113,0.10)',
+            'border'     => 'rgba(248,113,113,0.35)',
+            'lord'       => 'hmpomorl.json',
+            'lordColors' => 'primary:#f87171,secondary:#fca5a5',
+        ],
         $gravedad === 'grave' => [
             'label'      => 'Falta Grave',
             'accent'     => '#fbbf24',
@@ -227,6 +241,37 @@ html.dark .esa-accent-text { color: var(--a-dark); }
         </div>
     </div>
 
+    {{-- ── Alerta de fuero / estabilidad reforzada (Fase 1) ────────────── --}}
+    @if($reqVerifFuero)
+    <div class="esa-card"
+         style="background: linear-gradient(135deg, rgba(251,146,60,0.13) 0%, transparent 100%);
+                border-left: 3px solid #fb923c;">
+        <div style="padding:14px 18px;">
+            <div style="display:flex;align-items:flex-start;gap:11px;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     style="width:26px;height:26px;color:#ea7317;flex-shrink:0;margin-top:1px;">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-2.832-1.5-3.698 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                <div style="flex:1;min-width:0;">
+                    <p class="esa-label" style="color:#b45309;">Verificar fuero / estabilidad laboral reforzada</p>
+                    @if(!empty($alertaFuero['indicios']))
+                        <p style="font-size:12.5px;color:var(--esa-text);line-height:1.6;margin:0 0 5px;">
+                            <strong>Indicios:</strong> {{ $alertaFuero['indicios'] }}
+                        </p>
+                    @endif
+                    @if(!empty($alertaFuero['recomendacion']))
+                        <p style="font-size:12.5px;color:var(--esa-text);line-height:1.6;margin:0;">
+                            {{ $alertaFuero['recomendacion'] }}
+                        </p>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- ── Tarjeta 2: Recomendaciones (una por cada opción válida) ──────── --}}
     @if(!empty($sancionesValidas))
     <div class="esa-card">
@@ -343,6 +388,48 @@ html.dark .esa-accent-text { color: var(--a-dark); }
                 </p>
             </div>
         @endif
+    </div>
+    @endif
+
+    {{-- ── Verificación de garantías (debido proceso) — Fase 1 ──────────── --}}
+    @if(!empty($garantias))
+    <div class="esa-card">
+        <div style="padding:14px 18px;">
+            <p class="esa-label">Verificación de garantías — debido proceso</p>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:9px;">
+                @foreach(['tipicidad' => 'Tipicidad / legalidad', 'debido_proceso' => 'Debido proceso', 'inmediatez' => 'Inmediatez', 'non_bis_in_idem' => 'Non bis in idem', 'proporcionalidad' => 'Proporcionalidad', 'suficiencia_probatoria' => 'Suficiencia probatoria'] as $gk => $glabel)
+                    @php $g = $garantias[$gk] ?? null; @endphp
+                    @if($g)
+                        @php
+                            $estado = $g['estado'] ?? 'no_determinable';
+                            $nota   = $g['nota'] ?? '';
+                            $cfg = match($estado) {
+                                'cumple'    => ['#15803d', '#4ade80', 'rgba(74,222,128,0.12)', 'rgba(74,222,128,0.30)', 'Cumple'],
+                                'riesgo'    => ['#b45309', '#fbbf24', 'rgba(251,191,36,0.13)', 'rgba(251,191,36,0.32)', 'Riesgo'],
+                                'no_cumple' => ['#b91c1c', '#f87171', 'rgba(248,113,113,0.13)', 'rgba(248,113,113,0.32)', 'No cumple'],
+                                default     => ['#6b7280', '#9ca3af', 'rgba(120,120,120,0.10)', 'var(--esa-border)', 'Por verificar'],
+                            };
+                        @endphp
+                        <div style="display:flex;align-items:flex-start;gap:9px;">
+                            <span class="esa-accent-text"
+                                  style="--a-light:{{ $cfg[0] }};--a-dark:{{ $cfg[1] }};
+                                         flex-shrink:0;font-size:10px;font-weight:700;
+                                         padding:2px 8px;border-radius:100px;
+                                         background:{{ $cfg[2] }};border:1px solid {{ $cfg[3] }};
+                                         min-width:80px;text-align:center;">
+                                {{ $cfg[4] }}
+                            </span>
+                            <div style="flex:1;min-width:0;">
+                                <span style="font-size:12.5px;font-weight:600;color:var(--esa-text);">{{ $glabel }}</span>
+                                @if($nota)
+                                    <span style="font-size:12px;color:var(--esa-muted);"> — {{ $nota }}</span>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        </div>
     </div>
     @endif
 
