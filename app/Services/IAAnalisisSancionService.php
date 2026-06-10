@@ -392,6 +392,29 @@ class IAAnalisisSancionService
             $seccionCST .= "═══════════════════════════════════════════════════════════════════\n";
         }
 
+        // Fuero / estabilidad reforzada registrado en la ficha del trabajador
+        $seccionFuero = '';
+        $fueroLabels  = method_exists($trabajador, 'tiposFueroLabels') ? $trabajador->tiposFueroLabels() : [];
+        if (!empty($fueroLabels)) {
+            $seccionFuero  = "\n═══════════════════════════════════════════════════════════════════\n";
+            $seccionFuero .= "FUERO / ESTABILIDAD LABORAL REFORZADA REGISTRADA EN LA FICHA:\n";
+            $seccionFuero .= "═══════════════════════════════════════════════════════════════════\n";
+            foreach ($fueroLabels as $fl) {
+                $seccionFuero .= "  - {$fl}\n";
+            }
+            if (!empty($trabajador->fuero_nota)) {
+                $seccionFuero .= "Nota: {$trabajador->fuero_nota}\n";
+            }
+            $seccionFuero .= "INSTRUCCIÓN: Este trabajador TIENE fuero registrado. En alerta_fuero pon\n";
+            $seccionFuero .= "requiere_verificacion=true, describe el/los fuero(s) en \"indicios\" y advierte que\n";
+            $seccionFuero .= "la terminación exige el procedimiento de levantamiento de fuero (permiso del\n";
+            $seccionFuero .= "Ministerio del Trabajo o autorización judicial, según el caso).\n";
+        } else {
+            $seccionFuero  = "\nFUERO REGISTRADO: ninguno en la ficha del trabajador. Aun así, si los hechos o\n";
+            $seccionFuero .= "descargos sugieren un posible fuero, adviértelo; y ante cualquier TERMINACIÓN marca\n";
+            $seccionFuero .= "alerta_fuero.requiere_verificacion=true por precaución.\n";
+        }
+
         return <<<PROMPT
 Eres un abogado laboralista colombiano experto en procesos disciplinarios. Tu rol es OBJETIVO E IMPARCIAL: tu deber es proteger el debido proceso, no justificar una sanción. NO asumas que el caso debe terminar en sanción. Si los descargos desvirtúan la falta, la prueba es insuficiente o la conducta no está tipificada en el RIT, debes decirlo y recomendar NO sancionar.
 
@@ -421,7 +444,7 @@ INFORMACIÓN DEL PROCESO:
 - Empresa: {$empresa->nombre_completo}
 - Trabajador: {$trabajador->nombre_completo}
 - Cargo: {$trabajador->cargo}
-
+{$seccionFuero}
 HECHOS DEL CASO ACTUAL:
 {$hechosTexto}
 {$seccionRIT}

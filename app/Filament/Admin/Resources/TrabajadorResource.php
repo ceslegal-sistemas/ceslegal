@@ -386,6 +386,28 @@ class TrabajadorResource extends Resource
                             ,
                     ])->columns(2),
 
+                Forms\Components\Section::make('Estabilidad laboral reforzada / fuero')
+                    ->description('Marque si al trabajador le aplica algún fuero o protección especial. El análisis de sanciones con IA usará esto para advertir antes de proponer una terminación. Registre solo la conclusión jurídica, no datos médicos. Dato sensible: úselo con autorización del titular (Ley 1581 de 2012).')
+                    ->icon('heroicon-o-shield-check')
+                    ->collapsible()
+                    ->collapsed(fn ($record) => empty($record?->tipos_fuero))
+                    ->schema([
+                        Forms\Components\CheckboxList::make('tipos_fuero')
+                            ->label('¿Tiene algún fuero o estabilidad reforzada?')
+                            ->options(\App\Models\Trabajador::TIPOS_FUERO)
+                            ->columns(2)
+                            ->columnSpanFull()
+                            ->helperText('Puede marcar varios. Déjelo vacío si no aplica o aún no se ha verificado.'),
+
+                        Forms\Components\Textarea::make('fuero_nota')
+                            ->label('Nota (opcional)')
+                            ->rows(2)
+                            ->maxLength(500)
+                            ->placeholder('Ej: Embarazo informado el 2026-05-10; o directivo sindical desde 2025.')
+                            ->helperText('Breve contexto. Evite incluir diagnósticos u otra información sensible innecesaria.')
+                            ->columnSpanFull(),
+                    ]),
+
                 Forms\Components\Section::make('Foto de referencia')
                     ->description('Suba una foto clara del rostro del trabajador (desde su documento de identidad o una foto reciente). Esta imagen se usará para verificar automáticamente que sea el mismo trabajador al momento de los descargos.')
                     ->icon('heroicon-o-camera')
