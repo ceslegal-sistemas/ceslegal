@@ -427,9 +427,9 @@ html.dark .esa-accent-text { color: var(--a-dark); }
     @if(!empty($garantias))
     <div class="esa-card">
         <div style="padding:14px 18px;">
-            <p class="esa-label">Verificación de garantías — debido proceso</p>
+            <p class="esa-label">¿La sanción se sostiene? — chequeo rápido</p>
             <div style="display:flex;flex-direction:column;gap:8px;margin-top:9px;">
-                @foreach(['tipicidad' => 'Tipicidad / legalidad', 'debido_proceso' => 'Debido proceso', 'inmediatez' => 'Inmediatez', 'non_bis_in_idem' => 'Non bis in idem', 'proporcionalidad' => 'Proporcionalidad', 'suficiencia_probatoria' => 'Suficiencia probatoria'] as $gk => $glabel)
+                @foreach(['tipicidad' => '¿Es una falta del reglamento?', 'debido_proceso' => '¿Se respetó el debido proceso?', 'inmediatez' => '¿Se actuó a tiempo?', 'non_bis_in_idem' => '¿Ya fue sancionado por lo mismo?', 'proporcionalidad' => '¿La sanción es proporcional?', 'suficiencia_probatoria' => '¿Hay pruebas suficientes?'] as $gk => $glabel)
                     @php $g = $garantias[$gk] ?? null; @endphp
                     @if($g)
                         @php
