@@ -14,6 +14,8 @@
     $reqVerifFuero = (bool) ($alertaFuero['requiere_verificacion'] ?? false);
     $garantias     = is_array($analisis['verificacion_garantias'] ?? null) ? $analisis['verificacion_garantias'] : [];
     $noSancionTxt  = $analisis['razones_no_recomendadas']['no_sancion'] ?? '';
+    $estadoRec     = $recomendacion['estado_recomendacion'] ?? ($analisis['recomendacion_final']['estado_recomendacion'] ?? null);
+    $esEsperar     = ($estadoRec === 'esperar_pruebas');
 
     // Multi-recommendation: sanciones_sugeridas[] + sancion_principal
     $sancionPrincipal = $recomendacion['sancion_principal']
@@ -392,21 +394,32 @@ html.dark .esa-accent-text { color: var(--a-dark); }
     </div>
     @endif
 
-    {{-- ── La IA no recomienda sanción (caso exonerante) — Fase 1 ───────── --}}
+    {{-- ── No sancionar / esperar pruebas (sin sanción tentativa) — Fase 1 ─ --}}
     @if(empty($sancionesValidas))
     <div class="esa-card"
-         style="background: linear-gradient(135deg, rgba(74,222,128,0.11) 0%, transparent 100%);
-                border-left: 3px solid #4ade80;">
+         style="background: linear-gradient(135deg, {{ $esEsperar ? 'rgba(251,146,60,0.12)' : 'rgba(74,222,128,0.11)' }} 0%, transparent 100%);
+                border-left: 3px solid {{ $esEsperar ? '#fb923c' : '#4ade80' }};">
         <div style="padding:16px 18px;">
             <div style="display:flex;align-items:flex-start;gap:11px;">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2"
-                     style="width:26px;height:26px;color:#16a34a;flex-shrink:0;margin-top:1px;">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                </svg>
+                @if($esEsperar)
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         style="width:26px;height:26px;color:#ea7317;flex-shrink:0;margin-top:1px;">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                @else
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         style="width:26px;height:26px;color:#16a34a;flex-shrink:0;margin-top:1px;">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                @endif
                 <div style="flex:1;min-width:0;">
-                    <p class="esa-label" style="color:#15803d;">La IA no recomienda sanción</p>
+                    <p class="esa-label" style="color:{{ $esEsperar ? '#b45309' : '#15803d' }};">
+                        {{ $esEsperar ? 'Pendiente: verifique las pruebas antes de decidir' : 'La IA no recomienda sanción' }}
+                    </p>
                     @if($mensaje)
                         <p style="font-size:13px;color:var(--esa-text);line-height:1.6;margin:0 0 6px;">
                             {{ $mensaje }}
