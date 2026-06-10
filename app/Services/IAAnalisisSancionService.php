@@ -554,9 +554,10 @@ REGLAS ESTRICTAS:
 - Si NO hay "otro motivo": analisis_otro_motivo.aplica=false y los demás campos son null.
 - razones_no_recomendadas: incluir una clave por CADA sanción que NO esté en sanciones_sugeridas. "no_sancion" SIEMPRE debe aparecer. Para multa: incluir SOLO si está en sanciones_disponibles pero NO en sanciones_sugeridas; si el RIT no contempla multa, no incluir esta clave. Para llamado_atencion, suspension y terminacion: incluir SOLO si NO están en sanciones_sugeridas. Cada texto (máximo 80 palabras), lenguaje claro y directo sin tecnicismos.
 - requiere_sancion (recomendacion_final): false si lo correcto es NO sancionar (en ese caso sanciones_sugeridas va vacío y sancion_principal y dias_suspension van null); true si procede al menos una sanción.
+- COHERENCIA OBLIGATORIA: el mensaje_para_decision y los campos deben coincidir. Si recomiendas NO sancionar o ESPERAR a evaluar pruebas antes de decidir, entonces requiere_sancion=false, sanciones_sugeridas=[] y sancion_principal=null. NUNCA muestres una sanción "tentativa" cuando el mensaje dice que no se sancione o que se espere.
 - alerta_fuero: requiere_verificacion DEBE ser true siempre que "terminacion" esté en sanciones_disponibles o sanciones_sugeridas, o cuando haya indicios de fuero. En "indicios" no afirmes un fuero que no conste; describe solo la pista o pon "Sin indicios en la información disponible".
 - verificacion_garantias: completa SIEMPRE las seis garantías con estado "cumple", "riesgo" o "no_determinable". Usa "no_determinable" cuando la información no permita concluir (no inventes que se cumplió un trámite que no consta). Si alguna está en "riesgo", refléjalo también en consideraciones_especiales.
-- verificacion_garantias.nota: UNA sola frase corta y clara (MÁXIMO 20 palabras), en lenguaje simple para una persona NO abogada de recursos humanos. PROHIBIDO en estas notas citar números de artículos, listas de normas o tecnicismos: la fundamentación legal va en razonamiento_legal y bases_juridicas, NUNCA en estas notas. Sé consistente: misma extensión y estilo directo en las seis.
+- verificacion_garantias.nota: UNA frase corta y CONCRETA (entre 15 y 30 palabras), en lenguaje simple para una persona NO abogada de recursos humanos. Debe decir algo ÚTIL y específico de ESTE caso: qué se cumplió, qué falta o qué debe hacer la empresa. NO uses definiciones ni principios abstractos (mal: "la proporcionalidad no puede evaluarse sin comprobar la falta"); di la consecuencia práctica (bien: "Aún no se sabe si hubo falta; primero hay que revisar las pruebas que pidió el trabajador"). PROHIBIDO citar números de artículos o tecnicismos (eso va en razonamiento_legal y bases_juridicas). Mismo estilo directo en las seis.
 - Citas precisas: toda cita debe incluir el localizador exacto — número de artículo del CST (del bloque proporcionado) y, para el RIT, el capítulo/artículo/numeral específico. Si no puedes ubicar el localizador exacto, dilo expresamente ("el RIT no precisa el numeral").
 - Máximo 150 palabras por campo de texto (salvo razones_no_recomendadas: 80 palabras). No uses saltos de línea dentro de strings JSON.
 - Genera SOLO el JSON, sin markdown ni texto fuera del objeto JSON.
@@ -705,6 +706,14 @@ PROMPT;
                 ? $analisis['dias_suspension_max_rit']
                 : null;
             $analisis['dias_suspension_sugeridos'] = $maxDias ? range(1, $maxDias) : [];
+
+            // Coherencia: si la IA concluye que NO se debe sancionar, no mostrar ninguna
+            // sanción sugerida (evita la contradicción "no sancionar" + tarjeta de sanción).
+            if (($analisis['recomendacion_final']['requiere_sancion'] ?? null) === false) {
+                $analisis['recomendacion_final']['sanciones_sugeridas'] = [];
+                $analisis['recomendacion_final']['sancion_principal'] = null;
+                $analisis['recomendacion_final']['dias_suspension'] = null;
+            }
 
             return $analisis;
 
