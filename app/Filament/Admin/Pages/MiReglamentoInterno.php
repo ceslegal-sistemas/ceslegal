@@ -55,7 +55,8 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
         }
 
         // Confeti de bienvenida: solo la primera vez tras registrarse (flag de un solo uso).
-        if (session()->pull('celebrar_registro_rit')) {
+        // class_exists evita fatal si el paquete aún no está instalado en vendor/.
+        if (session()->pull('celebrar_registro_rit') && class_exists(Confetti::class)) {
             Confetti::fireworks()->shoot();
         }
     }

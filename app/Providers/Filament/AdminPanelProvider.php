@@ -155,16 +155,20 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-            ->plugins([
+            ->plugins(array_filter([
                 FilamentShieldPlugin::make(),
                 LightSwitchPlugin::make(),
                 FilamentNotificationSoundPlugin::make()
                     ->volume(1.0) // Volume (0.0 to 1.0)
                     ->showAnimation(true) // Show animation on notification badge
                     ->enabled(true),
-                // Confeti (fireworks) tras registrarse, al aterrizar en auditar/generar RIT
-                FilamentConfettiPlugin::make(),
-            ])
+                // Confeti (fireworks) tras registrarse, al aterrizar en auditar/generar RIT.
+                // Cosmético: solo se registra si el paquete está instalado en vendor/,
+                // para que un composer install pendiente no tumbe todo el panel.
+                class_exists(FilamentConfettiPlugin::class)
+                    ? FilamentConfettiPlugin::make()
+                    : null,
+            ]))
             ->authMiddleware([
                 Authenticate::class,
             ]);

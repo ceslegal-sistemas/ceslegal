@@ -28,7 +28,8 @@ class Dashboard extends BaseDashboard
     {
         // Confeti de bienvenida cuando el cliente elige "lo haré después" al registrarse
         // y aterriza aquí (Panel de control). Flag de un solo uso.
-        if (session()->pull('celebrar_registro_rit')) {
+        // class_exists evita fatal si el paquete aún no está instalado en vendor/.
+        if (session()->pull('celebrar_registro_rit') && class_exists(Confetti::class)) {
             Confetti::fireworks()->shoot();
         }
     }
