@@ -1899,14 +1899,16 @@ class ProcesoDisciplinarioResource extends Resource
                         // Cachear el análisis en sesión para evitar re-llamadas a la IA
                         // cuando ->live() en ToggleButtons dispara un re-render de Livewire.
                         // NO se cachea si la IA devolvió datos de fallback (análisis fallido).
-                        // v5: invalida caches anteriores; ahora incluye multa si el RIT la contempla.
-                        $cacheKey = 'emitir_sancion_analisis_v5_' . $record->id;
+                        // v6: invalida caches anteriores; incluye estado_recomendacion,
+                        // verificacion_garantias, alerta_fuero y notas simplificadas (Fase 1).
+                        $cacheKey = 'emitir_sancion_analisis_v6_' . $record->id;
                         $resultado = session($cacheKey);
                         $cacheValido = $resultado
                             && is_array($resultado)
                             && isset($resultado['analisis'])
                             && array_key_exists('razones_no_recomendadas', $resultado['analisis'])
-                            && isset($resultado['analisis']['razones_no_recomendadas']['no_sancion']);
+                            && isset($resultado['analisis']['razones_no_recomendadas']['no_sancion'])
+                            && array_key_exists('estado_recomendacion', $resultado['analisis']['recomendacion_final'] ?? []);
                         if (!$cacheValido) {
                             $iaService = new \App\Services\IAAnalisisSancionService();
                             $resultado = $iaService->analizarYSugerirSanciones($record);

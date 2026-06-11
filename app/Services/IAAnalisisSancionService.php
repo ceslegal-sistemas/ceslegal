@@ -175,6 +175,43 @@ class IAAnalisisSancionService
     }
 
     /**
+     * Recupera jurisprudencia y doctrina relevante de la base de conocimiento
+     * (documentos_legales: sentencias CC/CSJ/CE, leyes y decretos cargados por el
+     * equipo jurídico) mediante búsqueda semántica sobre los hechos del caso.
+     *
+     * La IA SOLO podrá citar lo que aparezca en este bloque. Si la biblioteca aún
+     * no tiene jurisprudencia cargada, retorna '' y el prompt no cita sentencias.
+     */
+    private function obtenerContextoJurisprudencia(ProcesoDisciplinario $proceso): string
+    {
+        try {
+            // Evita la llamada al API de embeddings si la biblioteca está vacía.
+            $hayDocs = \App\Models\FragmentoDocumento::whereNotNull('embedding')
+                ->whereHas('documentoLegal', fn($q) => $q->activos()->procesados())
+                ->exists();
+
+            if (!$hayDocs) {
+                return '';
+            }
+
+            $query = 'sanción disciplinaria debido proceso despido justa causa estabilidad laboral reforzada fuero'
+                . ' proporcionalidad reincidencia descargos'
+                . ' ' . ($proceso->sanciones_laborales_texto ?? '')
+                . ' ' . mb_substr(strip_tags($proceso->hechos ?? ''), 0, 300);
+
+            return app(\App\Services\BibliotecaLegalService::class)
+                ->buscarFragmentos(trim($query), limite: 4, umbral: 0.5);
+
+        } catch (\Throwable $e) {
+            Log::warning('IAAnalisisSancionService: no se pudo obtener jurisprudencia', [
+                'proceso_id' => $proceso->id,
+                'error'      => $e->getMessage(),
+            ]);
+            return '';
+        }
+    }
+
+    /**
      * Construye la query de búsqueda RAG combinando los motivos del proceso con
      * términos disciplinarios clave para maximizar la recuperación de fragmentos relevantes.
      */
