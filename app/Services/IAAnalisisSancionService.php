@@ -463,6 +463,9 @@ Determina la(s) sanción(es) jurídicamente válida(s) basándote EXCLUSIVAMENTE
 
 INSTRUCCIÓN CRÍTICA (anti-invención): No inventes rangos de días ni categorías de faltas. Deriva TODO del RIT de esta empresa y de los artículos del CST proporcionados. Si el RIT dice "suspensión hasta 8 días", no sugieras 30. Si el RIT no contempla terminación, no la sugieras.
 
+RANGO DE OPCIONES (MUY IMPORTANTE): el sistema NO decide por la empresa; le PRESENTA OPCIONES para que ELLA elija. Por regla general ofrece un RANGO de 2 o 3 sanciones jurídicamente defendibles y proporcionales (ordenadas de la más laxa a la más severa), siempre dentro de lo que el RIT y el CST permiten. Da UNA sola opción ÚNICAMENTE en casos extremos donde solo una sea defendible (p. ej. acoso sexual probado → solo terminación; o una falta levísima y aislada → solo llamado).
+La categoría (leve/grave/muy_grave) NO determina mecánicamente la sanción: una falta LEVE especialmente seria puede justificar una suspensión corta (no solo un llamado); una falta GRAVE de primera vez puede ir de suspensión a terminación según su gravedad concreta, el impacto y los agravantes/atenuantes; una falta MUY GRAVE (acoso sexual, violencia, etc.) puede dar lugar a terminación con justa causa aun siendo la primera vez. Sopesa gravedad concreta, impacto, reincidencia, atenuantes y descargos — no solo la etiqueta.
+
 GARANTISMO (obligatorio antes de recomendar cualquier sanción): evalúa y reporta en "verificacion_garantias":
 - TIPICIDAD/LEGALIDAD: ¿la conducta está tipificada como falta en el RIT? No se sanciona lo que no está tipificado.
 - DEBIDO PROCESO: citación previa, derecho a ser oído y a aportar pruebas (Art. 115 CST si aparece en el contexto). Un defecto de procedimiento anula la sanción.
@@ -506,7 +509,7 @@ PROCESO DE ANÁLISIS:
 1. Clasifica la conducta como LEVE GRAVE o MUY GRAVE según lo que el RIT de la empresa define. Si el RIT no tiene esa conducta, usa el CST como referencia.
 2. Verifica si hay reincidencia en el historial — agrava la sanción conforme al RIT y los artículos del CST proporcionados en el bloque CONTEXTO LEGAL CST.
 3. Evalúa los descargos del trabajador — considera atenuantes y argumentos de defensa.
-4. De las sanciones que el RIT contempla, selecciona la apropiada. Si el RIT no aporta datos, aplica solo lo que los artículos del CST proporcionados permiten.
+4. De las sanciones que el RIT contempla, ofrece el RANGO de las que sean jurídicamente defendibles y proporcionales para este caso (normalmente 2 o 3, de la más laxa a la más severa) para que la empresa elija; una sola opción solo en casos extremos. Si el RIT no aporta datos, aplica solo lo que los artículos del CST proporcionados permiten.
 5. Para suspensiones: indica únicamente días dentro del rango que el RIT establece, respetando los límites que establece el bloque CONTEXTO LEGAL CST proporcionado.
 
 Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adicional):
@@ -579,7 +582,7 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
 }
 
 REGLAS ESTRICTAS:
-- sanciones_sugeridas: array con TODOS los tipos de sanción jurídicamente válidos y proporcionales para este caso. Puede ser uno, dos o tres; o VACÍO [] si lo correcto es NO sancionar (descargos que exoneran, prueba insuficiente o falta no tipificada en el RIT). No incluir "no_sancion". Ejemplo: si tanto llamado_atencion como suspension son proporcionales, incluir ambos.
+- sanciones_sugeridas: ofrece un RANGO de opciones jurídicamente válidas y proporcionales para que la empresa decida. POR REGLA GENERAL incluye 2 o 3 (ordenadas de la más laxa a la más severa). Incluye UNA SOLA opción únicamente en casos extremos donde solo esa sea defendible (p. ej. acoso sexual probado → solo terminación; falta levísima aislada → solo llamado). Va VACÍO [] solo si lo correcto es NO sancionar (descargos que exoneran, prueba insuficiente o falta no tipificada). No incluir "no_sancion". Ejemplo: para una falta grave de primera vez sin agravantes extremos, incluir suspension y terminacion (y llamado_atencion si el RIT lo permite para esa falta) para que la empresa elija.
 - bases_juridicas: incluir SOLO las sanciones que estén en sanciones_sugeridas. Cada texto (máximo 100 palabras) debe argumentar específicamente esa sanción citando el artículo concreto del RIT o del CST que la sustenta. No repetir el contenido de razonamiento_legal; este campo es la base jurídica puntual de cada opción.
 - sancion_principal: el tipo que más se ajusta al caso, debe estar dentro de sanciones_sugeridas.
 - sanciones_disponibles: incluye SOLO las sanciones que el RIT contempla. Sin RIT, aplica lo que permite el CST según la gravedad. "multa" solo si el RIT la define explícitamente con monto o porcentaje; de lo contrario, no la incluyas.
