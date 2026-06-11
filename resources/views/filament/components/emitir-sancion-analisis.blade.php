@@ -251,12 +251,13 @@ html.dark .esa-accent-text { color: var(--a-dark); }
                 border-left: 3px solid #fb923c;">
         <div style="padding:14px 18px;">
             <div style="display:flex;align-items:flex-start;gap:11px;">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2"
-                     style="width:26px;height:26px;color:#ea7317;flex-shrink:0;margin-top:1px;">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-2.832-1.5-3.698 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
+                <lord-icon
+                    src="https://cdn.lordicon.com/lltgvngb.json"
+                    trigger="loop"
+                    delay="500"
+                    colors="primary:#ea7317,secondary:#fb923c"
+                    style="width:40px;height:40px;flex-shrink:0;margin-top:-3px;">
+                </lord-icon>
                 <div style="flex:1;min-width:0;">
                     <p class="esa-label" style="color:#b45309;">Verificar fuero / estabilidad laboral reforzada</p>
                     @if(!empty($alertaFuero['indicios']))
