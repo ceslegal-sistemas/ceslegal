@@ -748,11 +748,41 @@ PROMPT;
                 : null;
             $analisis['dias_suspension_sugeridos'] = $maxDias ? range(1, $maxDias) : [];
 
+            $rf = $analisis['recomendacion_final'] ?? [];
+            $estado = $rf['estado_recomendacion'] ?? null;
+
+            // Red de seguridad determinista: a veces el modelo escribe un mensaje
+            // condicional ("verifique las pruebas antes de decidir" / "no procedería
+            // sanción") pero marca incoherentemente estado='sancionar' con una sanción
+            // tentativa. Si el mensaje delata que la decisión está pendiente, forzamos
+            // el estado correcto sin importar lo que dijo el modelo.
+            if ($estado === 'sancionar') {
+                $msg = mb_strtolower($rf['mensaje_para_decision'] ?? '');
+                $frasesPendiente = [
+                    'antes de tomar cualquier decisión sancionatoria',
+                    'antes de tomar cualquier decision sancionatoria',
+                    'no procedería sanción',
+                    'no procederia sancion',
+                    'no procedería ninguna sanción',
+                    'no procede sanción alguna',
+                    'no existe base legal para imponer sanción',
+                    'solo después de esta verificación',
+                    'una vez se verifiquen las pruebas',
+                    'una vez evaluadas estas pruebas',
+                ];
+                foreach ($frasesPendiente as $frase) {
+                    if (mb_strpos($msg, $frase) !== false) {
+                        $mencionaPruebas = preg_match('/prueba|verific|evalu/u', $msg) === 1;
+                        $estado = $mencionaPruebas ? 'esperar_pruebas' : 'no_sancionar';
+                        $analisis['recomendacion_final']['estado_recomendacion'] = $estado;
+                        break;
+                    }
+                }
+            }
+
             // Coherencia: solo "sancionar" muestra sanciones. "no_sancionar" y
             // "esperar_pruebas" (o requiere_sancion=false) limpian cualquier sanción
             // tentativa, para que la UI nunca contradiga el mensaje.
-            $rf = $analisis['recomendacion_final'] ?? [];
-            $estado = $rf['estado_recomendacion'] ?? null;
             $noSanciona = in_array($estado, ['no_sancionar', 'esperar_pruebas'], true)
                 || (($rf['requiere_sancion'] ?? null) === false);
             if ($noSanciona) {
