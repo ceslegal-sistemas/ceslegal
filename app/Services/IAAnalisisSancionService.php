@@ -558,7 +558,7 @@ Responde EXACTAMENTE en este formato JSON (sin código markdown, sin texto adici
     "terminacion": "texto indicando qué cargo/área puede autorizar terminaciones de contrato según el RIT o el CST, o 'No especificado en el RIT' si no está claro"
   },
   "recomendacion_final": {
-    "estado_recomendacion": "sancionar|no_sancionar|esperar_pruebas",
+    "estado_recomendacion": "sancionar|condicionada|no_sancionar",
     "requiere_sancion": true/false,
     "sanciones_sugeridas": ["llamado_atencion", "suspension"],
     "sancion_principal": "llamado_atencion|suspension|multa|terminacion",
@@ -594,8 +594,8 @@ REGLAS ESTRICTAS:
 - Si hay "otro motivo": analisis_otro_motivo.aplica=true y completa TODOS sus campos.
 - Si NO hay "otro motivo": analisis_otro_motivo.aplica=false y los demás campos son null.
 - razones_no_recomendadas: incluir una clave por CADA sanción que NO esté en sanciones_sugeridas. "no_sancion" SIEMPRE debe aparecer. Para multa: incluir SOLO si está en sanciones_disponibles pero NO en sanciones_sugeridas; si el RIT no contempla multa, no incluir esta clave. Para llamado_atencion, suspension y terminacion: incluir SOLO si NO están en sanciones_sugeridas. Cada texto (máximo 80 palabras), lenguaje claro y directo sin tecnicismos.
-- estado_recomendacion (recomendacion_final): elige UNO. "sancionar" = procede aplicar al menos una sanción AHORA. "no_sancionar" = los descargos exoneran o no hubo falta. "esperar_pruebas" = primero hay que verificar/evaluar pruebas (p. ej. una justificación o incapacidad alegada) ANTES de decidir.
-- COHERENCIA OBLIGATORIA: si estado_recomendacion es "no_sancionar" o "esperar_pruebas", entonces requiere_sancion=false, sanciones_sugeridas=[], sancion_principal=null y dias_suspension=null. NUNCA muestres una sanción "tentativa". Si tu mensaje dice "verificar/evaluar las pruebas antes de decidir", el estado es "esperar_pruebas", NO "sancionar". Usa "sancionar" SOLO cuando recomiendes aplicar la sanción ya, sin condicionarla a verificar pruebas.
+- estado_recomendacion (recomendacion_final): elige UNO. "sancionar" = procede aplicar al menos una sanción AHORA (da el rango). "condicionada" = hay una justificación o prueba ALEGADA pero sin verificar (p. ej. un accidente o incapacidad): IGUAL ofrece el RANGO proporcional que aplicaría SI la falta se confirma, y explica la condición en el mensaje. "no_sancionar" = los descargos YA exoneran o no hubo falta (sin opciones).
+- COHERENCIA OBLIGATORIA: "no_sancionar" → sanciones_sugeridas=[], sancion_principal=null, dias_suspension=null. "condicionada" y "sancionar" → SIEMPRE incluye el RANGO proporcional en sanciones_sugeridas (2 o 3 opciones de la más laxa a la más severa; una sola solo en casos extremos). NUNCA pongas un llamado de atención como ÚNICA opción para una falta grave o muy grave reincidente: eso es desproporcionado. Si tu mensaje condiciona la decisión a verificar pruebas, el estado es "condicionada" (con su rango), NO "sancionar" ni "no_sancionar". En "condicionada", mensaje_para_decision debe decir claramente: "estas opciones aplican si, tras verificar las pruebas, la falta se mantiene; si se confirma la justificación, no procede sanción".
 - alerta_fuero: requiere_verificacion DEBE ser true siempre que "terminacion" esté en sanciones_disponibles o sanciones_sugeridas, o cuando haya indicios de fuero. En "indicios" no afirmes un fuero que no conste; describe solo la pista o pon "Sin indicios en la información disponible".
 - verificacion_garantias: completa SIEMPRE las seis garantías con estado "cumple", "riesgo" o "no_determinable". Usa "no_determinable" cuando la información no permita concluir (no inventes que se cumplió un trámite que no consta). Si alguna está en "riesgo", refléjalo también en consideraciones_especiales.
 - verificacion_garantias.nota: UNA frase corta y CONCRETA (entre 15 y 30 palabras), en lenguaje simple para una persona NO abogada de recursos humanos. Debe decir algo ÚTIL y específico de ESTE caso: qué se cumplió, qué falta o qué debe hacer la empresa. NO uses definiciones ni principios abstractos (mal: "la proporcionalidad no puede evaluarse sin comprobar la falta"); di la consecuencia práctica (bien: "Aún no se sabe si hubo falta; primero hay que revisar las pruebas que pidió el trabajador"). PROHIBIDO citar números de artículos o tecnicismos (eso va en razonamiento_legal y bases_juridicas). Mismo estilo directo en las seis.
@@ -751,54 +751,53 @@ PROMPT;
             $rf = $analisis['recomendacion_final'] ?? [];
             $estado = $rf['estado_recomendacion'] ?? null;
 
-            // Red de seguridad determinista: a veces el modelo escribe un mensaje
-            // condicional ("verifique las pruebas antes de decidir" / "no procedería
-            // sanción" / "la falta podría desvirtuarse") pero marca incoherentemente
-            // estado='sancionar' (o no lo marca) con una sanción tentativa. Si el
-            // mensaje delata que la decisión está PENDIENTE, forzamos el estado correcto
-            // sin importar lo que dijo el modelo.
-            // Se normaliza a ASCII (sin acentos) para que el match no falle por
-            // diferencias de codificación de los acentos del texto del modelo.
-            if (!in_array($estado, ['no_sancionar', 'esperar_pruebas'], true)) {
+            // Compatibilidad: el antiguo 'esperar_pruebas' ahora es 'condicionada'.
+            if ($estado === 'esperar_pruebas') {
+                $estado = 'condicionada';
+            }
+
+            // Red de seguridad: si el modelo dice 'sancionar' (o no marca estado) pero
+            // el mensaje condiciona la decisión a verificar pruebas, es 'condicionada'.
+            // NO se ocultan las opciones: se mostrarán como rango proporcional + aviso,
+            // para que la empresa SIEMPRE vea opciones (directriz de dirección).
+            // Se normaliza a ASCII para que los acentos no rompan el match.
+            if (in_array($estado, ['sancionar', null], true)) {
                 $msg = \Illuminate\Support\Str::ascii(mb_strtolower($rf['mensaje_para_decision'] ?? ''));
-                $frasesPendiente = [
+                $frasesCondicional = [
                     'antes de tomar cualquier decision sancionatoria',
                     'antes de tomar una decision sancionatoria',
                     'antes de considerar cualquier sancion',
                     'antes de imponer cualquier sancion',
-                    'no proced', // "no procederia/procede sancion..."
-                    'no existe base legal para imponer sancion',
                     'solo despues de esta verificacion',
                     'solo despues de la verificacion',
                     'una vez se verifiquen las pruebas',
                     'una vez evaluadas estas pruebas',
                     'podria desvirtuarse',
                     'podria atenuarse',
-                    'la falta se desvirtuaria',
+                    'sujeto a verificacion',
+                    'verifique las pruebas',
+                    'verificar las pruebas',
                 ];
-                foreach ($frasesPendiente as $frase) {
+                foreach ($frasesCondicional as $frase) {
                     if (mb_strpos($msg, $frase) !== false) {
-                        $mencionaPruebas = preg_match('/prueba|verific|evalu|acredit/u', $msg) === 1;
-                        $estado = $mencionaPruebas ? 'esperar_pruebas' : 'no_sancionar';
-                        $analisis['recomendacion_final']['estado_recomendacion'] = $estado;
+                        $estado = 'condicionada';
                         break;
                     }
                 }
             }
 
-            // Coherencia: solo "sancionar" muestra sanciones. "no_sancionar" y
-            // "esperar_pruebas" (o requiere_sancion=false) limpian cualquier sanción
-            // tentativa, para que la UI nunca contradiga el mensaje.
-            $noSanciona = in_array($estado, ['no_sancionar', 'esperar_pruebas'], true)
-                || (($rf['requiere_sancion'] ?? null) === false);
-            if ($noSanciona) {
+            $analisis['recomendacion_final']['estado_recomendacion'] = $estado ?: 'sancionar';
+
+            // Solo "no_sancionar" oculta las opciones. "condicionada" y "sancionar"
+            // conservan el RANGO de sanciones (la empresa siempre ve opciones).
+            $ocultarOpciones = ($estado === 'no_sancionar')
+                || (($rf['requiere_sancion'] ?? null) === false && $estado !== 'condicionada');
+            if ($ocultarOpciones) {
+                $analisis['recomendacion_final']['estado_recomendacion'] = 'no_sancionar';
                 $analisis['recomendacion_final']['sanciones_sugeridas'] = [];
                 $analisis['recomendacion_final']['sancion_principal'] = null;
                 $analisis['recomendacion_final']['dias_suspension'] = null;
                 $analisis['recomendacion_final']['requiere_sancion'] = false;
-                if (!$estado) {
-                    $analisis['recomendacion_final']['estado_recomendacion'] = 'no_sancionar';
-                }
             }
 
             return $analisis;
