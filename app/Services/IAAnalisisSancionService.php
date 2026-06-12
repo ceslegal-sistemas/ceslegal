@@ -753,26 +753,32 @@ PROMPT;
 
             // Red de seguridad determinista: a veces el modelo escribe un mensaje
             // condicional ("verifique las pruebas antes de decidir" / "no procedería
-            // sanción") pero marca incoherentemente estado='sancionar' con una sanción
-            // tentativa. Si el mensaje delata que la decisión está pendiente, forzamos
-            // el estado correcto sin importar lo que dijo el modelo.
-            if ($estado === 'sancionar') {
-                $msg = mb_strtolower($rf['mensaje_para_decision'] ?? '');
+            // sanción" / "la falta podría desvirtuarse") pero marca incoherentemente
+            // estado='sancionar' (o no lo marca) con una sanción tentativa. Si el
+            // mensaje delata que la decisión está PENDIENTE, forzamos el estado correcto
+            // sin importar lo que dijo el modelo.
+            // Se normaliza a ASCII (sin acentos) para que el match no falle por
+            // diferencias de codificación de los acentos del texto del modelo.
+            if (!in_array($estado, ['no_sancionar', 'esperar_pruebas'], true)) {
+                $msg = \Illuminate\Support\Str::ascii(mb_strtolower($rf['mensaje_para_decision'] ?? ''));
                 $frasesPendiente = [
-                    'antes de tomar cualquier decisión sancionatoria',
                     'antes de tomar cualquier decision sancionatoria',
-                    'no procedería sanción',
-                    'no procederia sancion',
-                    'no procedería ninguna sanción',
-                    'no procede sanción alguna',
-                    'no existe base legal para imponer sanción',
-                    'solo después de esta verificación',
+                    'antes de tomar una decision sancionatoria',
+                    'antes de considerar cualquier sancion',
+                    'antes de imponer cualquier sancion',
+                    'no proced', // "no procederia/procede sancion..."
+                    'no existe base legal para imponer sancion',
+                    'solo despues de esta verificacion',
+                    'solo despues de la verificacion',
                     'una vez se verifiquen las pruebas',
                     'una vez evaluadas estas pruebas',
+                    'podria desvirtuarse',
+                    'podria atenuarse',
+                    'la falta se desvirtuaria',
                 ];
                 foreach ($frasesPendiente as $frase) {
                     if (mb_strpos($msg, $frase) !== false) {
-                        $mencionaPruebas = preg_match('/prueba|verific|evalu/u', $msg) === 1;
+                        $mencionaPruebas = preg_match('/prueba|verific|evalu|acredit/u', $msg) === 1;
                         $estado = $mencionaPruebas ? 'esperar_pruebas' : 'no_sancionar';
                         $analisis['recomendacion_final']['estado_recomendacion'] = $estado;
                         break;
