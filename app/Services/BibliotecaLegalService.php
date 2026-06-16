@@ -105,6 +105,59 @@ class BibliotecaLegalService
     }
 
     /**
+     * Procesa un DocumentoLegal a partir de texto ya extraído (sin archivo):
+     * fragmenta, genera embeddings y guarda. Lo usa el importador de jurisprudencia
+     * (scraping de páginas estáticas de la Corte Constitucional).
+     */
+    public function procesarTexto(DocumentoLegal $documento, string $texto): void
+    {
+        $documento->update(['estado' => 'procesando', 'error_mensaje' => null]);
+
+        try {
+            $texto = $this->limpiarTexto($texto);
+
+            if (empty(trim($texto))) {
+                throw new \RuntimeException('El texto está vacío después de limpiarlo.');
+            }
+
+            $fragmentos = $this->chunkear($texto);
+
+            if (empty($fragmentos)) {
+                throw new \RuntimeException('El texto no generó fragmentos válidos.');
+            }
+
+            $documento->fragmentos()->delete();
+
+            $guardados = 0;
+            foreach ($fragmentos as $orden => $contenido) {
+                FragmentoDocumento::create([
+                    'documento_legal_id' => $documento->id,
+                    'orden'              => $orden + 1,
+                    'contenido'          => $contenido,
+                    'embedding'          => $this->obtenerEmbedding($contenido),
+                ]);
+                $guardados++;
+            }
+
+            $documento->update([
+                'estado'           => 'procesado',
+                'total_fragmentos' => $guardados,
+                'total_palabras'   => str_word_count($texto),
+                'error_mensaje'    => null,
+            ]);
+
+            Log::info('BibliotecaLegal: documento procesado desde texto', [
+                'id' => $documento->id, 'titulo' => $documento->titulo, 'fragmentos' => $guardados,
+            ]);
+
+        } catch (\Throwable $e) {
+            $documento->update(['estado' => 'error', 'error_mensaje' => $e->getMessage()]);
+            Log::error('BibliotecaLegal: error procesando texto', ['id' => $documento->id, 'error' => $e->getMessage()]);
+            throw $e;
+        }
+    }
+
+    /**
      * Busca los fragmentos más relevantes para un texto dado.
      * Retorna un bloque de texto listo para incluir en el prompt de la IA.
      *
