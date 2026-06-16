@@ -884,15 +884,29 @@ HTML;
                 'gemini-2.5-flash-lite',
             ]));
 
-            // Construir el prompt con principios de lenguaje claro
-            $prompt = $this->construirPromptSancionLenguajeClaro(
-                $proceso,
-                $trabajador,
-                $empresa,
-                $tipoSancion,
-                $contextoDescargos,
-                $trabajadorNoRespondio
-            );
+            // Construir el prompt con principios de lenguaje claro.
+            // Para 'no_sancion' se usa un prompt dedicado (constancia de cierre
+            // sin sanción), porque el prompt de sanción está redactado para
+            // imponer una medida y ofrecer derechos de impugnación, lo cual es
+            // incoherente cuando la decisión favorece al trabajador.
+            if ($tipoSancion === 'no_sancion') {
+                $prompt = $this->construirPromptConstanciaNoSancion(
+                    $proceso,
+                    $trabajador,
+                    $empresa,
+                    $contextoDescargos,
+                    $trabajadorNoRespondio
+                );
+            } else {
+                $prompt = $this->construirPromptSancionLenguajeClaro(
+                    $proceso,
+                    $trabajador,
+                    $empresa,
+                    $tipoSancion,
+                    $contextoDescargos,
+                    $trabajadorNoRespondio
+                );
+            }
 
             // Log para debugging
             \Illuminate\Support\Facades\Log::info('Generando documento de sanción con IA', [
@@ -1251,6 +1265,137 @@ PROMPT;
     }
 
     /**
+     * Construir prompt para la CONSTANCIA DE CIERRE SIN SANCIÓN.
+     *
+     * A diferencia del documento de sanción, este escrito documenta la decisión
+     * de NO sancionar al trabajador. No impone medidas, no ofrece derechos de
+     * impugnación (la decisión favorece al trabajador) y deja constancia del
+     * debido proceso garantizado.
+     */
+    private function construirPromptConstanciaNoSancion(
+        ProcesoDisciplinario $proceso,
+        $trabajador,
+        $empresa,
+        string $contextoDescargos,
+        bool $trabajadorNoRespondio = false
+    ): string {
+        $fechaActual = Carbon::now()->locale('es');
+        $hechosTexto = strip_tags($proceso->hechos);
+
+        // Justificación registrada por la empresa al apartarse de la
+        // recomendación de la IA (si la hubo).
+        $razonDivergencia = trim((string) ($proceso->razon_divergencia ?? ''));
+        $textoMotivacion = $razonDivergencia !== ''
+            ? "MOTIVACIÓN DE LA EMPRESA PARA NO SANCIONAR:\n{$razonDivergencia}\n"
+            : "MOTIVACIÓN DE LA EMPRESA PARA NO SANCIONAR:\nLa empresa, tras valorar los hechos y los descargos, concluyó que no existe mérito para imponer una sanción.\n";
+
+        // Nota sobre la no respuesta del trabajador (se garantizó el debido proceso igual).
+        $textoNoRespondio = '';
+        if ($trabajadorNoRespondio) {
+            $textoNoRespondio = "\n\nNOTA: El trabajador no respondió al formulario de descargos. Aun así, se le garantizó plenamente el derecho de defensa al citarlo a descargos y darle la oportunidad de presentar su versión dentro del plazo. Menciónalo en la sección 3.";
+        }
+
+        return <<<PROMPT
+Genera un documento oficial de CONSTANCIA DE CIERRE DE PROCESO DISCIPLINARIO SIN SANCIÓN para un trabajador en Colombia, usando formato profesional estilo Word.
+
+CONTEXTO IMPORTANTE: La empresa decidió NO imponer ninguna sanción al trabajador. Este documento NO sanciona, NO amonesta y NO impone consecuencias. Es una comunicación que cierra el proceso a favor del trabajador y deja constancia de que se respetó el debido proceso.
+
+INFORMACIÓN DEL CASO:
+- Empresa: {$empresa->nombre_completo} (NIT: {$empresa->nit})
+- Representante: {$empresa->representante_legal}
+- Trabajador: {$trabajador->nombre_completo} ({$trabajador->tipo_documento} {$trabajador->numero_documento})
+- Cargo: {$trabajador->cargo}
+- Fecha: {$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}
+- Proceso: {$proceso->codigo}
+
+HECHOS QUE SE ANALIZARON:
+{$hechosTexto}
+
+DESCARGOS DEL TRABAJADOR:
+{$contextoDescargos}{$textoNoRespondio}
+
+{$textoMotivacion}
+
+INSTRUCCIONES DE REDACCIÓN (LENGUAJE CLARO):
+- Oraciones cortas (máximo 25 palabras)
+- Voz activa ("decidimos" no "fue decidido")
+- Palabras simples (evita jerga legal)
+- Habla directo al trabajador ("usted")
+- Tono respetuoso y neutral; NO uses lenguaje acusatorio ni punitivo
+- Sin frases como "por medio de la presente"
+
+FORMATO REQUERIDO:
+- Fuente: Calibri 11pt
+- Texto justificado
+- Interlineado 1.2 (compacto)
+- Estilo profesional tipo documento Word
+- Solo texto en negro
+- NO USAR EMOJIS EN NINGUNA PARTE DEL DOCUMENTO
+
+ESTRUCTURA DEL DOCUMENTO:
+Genera HTML con exactamente esta estructura:
+
+<div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.2; text-align: justify; color: #000000;">
+
+  <div style="text-align: center; margin-bottom: 15px;">
+    <h1 style="font-family: Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; margin: 5px 0; color: #000000;">{$empresa->nombre_completo}</h1>
+    <p style="font-size: 11pt; margin: 2px 0;">NIT: {$empresa->nit}</p>
+    <h2 style="font-family: Calibri, Arial, sans-serif; font-size: 12pt; font-weight: bold; margin: 8px 0; color: #000000; text-transform: uppercase;">Constancia de Cierre de Proceso Disciplinario Sin Sanción</h2>
+    <p style="font-size: 11pt; margin: 2px 0;">{$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}</p>
+    <p style="font-size: 11pt; margin: 2px 0;">Proceso: {$proceso->codigo}</p>
+  </div>
+
+  <div style="margin: 10px 0;">
+    <p style="margin: 2px 0;"><strong>Señor(a):</strong> {$trabajador->nombre_completo}</p>
+    <p style="margin: 2px 0;"><strong>Cargo:</strong> {$trabajador->cargo}</p>
+    <p style="margin: 2px 0;"><strong>Presente</strong></p>
+  </div>
+
+  <p style="margin: 8px 0;"><strong>Asunto:</strong> Cierre del proceso disciplinario sin sanción</p>
+
+  <p style="margin: 6px 0;">Estimado(a) {$trabajador->nombre_completo}:</p>
+
+  <p style="margin: 6px 0;">Le escribimos para informarle el resultado del proceso disciplinario {$proceso->codigo}. La empresa decidió no aplicarle ninguna sanción.</p>
+
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">1. Hechos que se analizaron</h3>
+  <p style="margin: 4px 0;">[Describe brevemente los hechos que dieron origen al proceso, de forma neutral, sin atribuir culpa. Usa 2-3 oraciones.]</p>
+
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">2. Sus descargos</h3>
+  <p style="margin: 4px 0;">[Si el trabajador respondió: resume sus descargos reconociendo su versión. Si NO respondió: indica que se le citó a descargos y se le dio la oportunidad de presentar su versión dentro del plazo, garantizando su derecho de defensa.]</p>
+
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">3. Nuestra decisión</h3>
+  <p style="margin: 4px 0;">[Explica de forma clara que, tras analizar los hechos y los descargos, la empresa decidió NO imponer ninguna sanción. Desarrolla las razones a partir de la MOTIVACIÓN DE LA EMPRESA indicada arriba. Mantén un tono respetuoso.]</p>
+
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">4. Qué significa esto para usted</h3>
+  <p style="margin: 4px 0;">Este proceso queda cerrado. No se registra ninguna sanción en su contra y su situación laboral continúa normalmente. Esta decisión no afecta su hoja de vida laboral.</p>
+
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">5. Debido proceso</h3>
+  <p style="margin: 4px 0;">Dejamos constancia de que este proceso se adelantó respetando su derecho de defensa y el debido proceso, conforme al Código Sustantivo del Trabajo y al reglamento interno de trabajo.</p>
+
+  <p style="margin: 8px 0;">Si tiene preguntas sobre esta comunicación, puede contactarnos.</p>
+
+  <div style="margin-top: 30px;">
+    <p style="margin: 2px 0;">Cordialmente,</p>
+    <p style="margin-top: 25px; margin-bottom: 2px;"><strong>{$empresa->representante_legal}</strong></p>
+    <p style="margin: 2px 0;">Representante Legal</p>
+    <p style="margin: 2px 0;">{$empresa->nombre_completo}</p>
+    <p style="margin: 2px 0;">NIT: {$empresa->nit}</p>
+  </div>
+
+</div>
+
+IMPORTANTE:
+- Completa TODAS las secciones [entre corchetes] con contenido específico basado en HECHOS, DESCARGOS y la MOTIVACIÓN DE LA EMPRESA
+- NO incluyas ninguna sección de "derechos de impugnación", "sanción", "consecuencias" ni "tabla de sanciones": este documento NO sanciona
+- Mantén el formato exacto (Calibri 11pt, texto justificado, negro, interlineado compacto)
+- NO incluyas bloques de código markdown (```html)
+- Genera SOLO el HTML mostrado, sin texto adicional
+- Sé profesional, claro y respetuoso
+- NUNCA USES EMOJIS en ninguna parte del documento
+PROMPT;
+    }
+
+    /**
      * Construir la tabla de sanciones (Artículo 20) para incluir en el prompt
      */
     private function construirTablaSancionesParaPrompt(ProcesoDisciplinario $proceso, $empresa): string
@@ -1482,6 +1627,54 @@ HTML;
     }
 
     /**
+     * Enviar la constancia de cierre SIN SANCIÓN por correo al trabajador.
+     * Usa una plantilla neutral (no punitiva) distinta a la de sanciones.
+     */
+    public function enviarConstanciaNoSancionPorEmail(ProcesoDisciplinario $proceso, string $documentoPath): void
+    {
+        $trabajador = $proceso->trabajador;
+        $empresa = $proceso->empresa;
+
+        if (empty($trabajador->email)) {
+            throw new \Exception('El trabajador no tiene correo electrónico registrado');
+        }
+
+        // Registro de tracking del correo (hora de Colombia)
+        $tracking = EmailTracking::create([
+            'token' => EmailTracking::generarToken(),
+            'tipo_documento' => 'sancion',
+            'proceso_id' => $proceso->id,
+            'trabajador_id' => $trabajador->id,
+            'email_destinatario' => $trabajador->email,
+            'enviado_en' => Carbon::now('America/Bogota'),
+        ]);
+
+        $extension = pathinfo($documentoPath, PATHINFO_EXTENSION);
+        $mimeType = $extension === 'pdf' ? 'application/pdf' : 'text/html';
+        $nombreArchivo = 'Constancia_No_Sancion_' . $proceso->codigo . '.' . $extension;
+
+        Mail::send('emails.constancia-no-sancion', [
+            'proceso' => $proceso,
+            'trabajador' => $trabajador,
+            'empresa' => $empresa,
+            'trackingToken' => $tracking->token,
+        ], function ($message) use ($trabajador, $proceso, $documentoPath, $nombreArchivo, $mimeType) {
+            $message->to($trabajador->email, $trabajador->nombre_completo)
+                ->subject('Cierre de proceso disciplinario sin sanción - Proceso ' . $proceso->codigo)
+                ->attach($documentoPath, [
+                    'as' => $nombreArchivo,
+                    'mime' => $mimeType,
+                ]);
+        });
+
+        Log::info('Constancia de no sanción enviada con tracking', [
+            'proceso_id' => $proceso->id,
+            'trabajador_email' => $trabajador->email,
+            'tracking_token' => substr($tracking->token, 0, 10) . '...',
+        ]);
+    }
+
+    /**
      * Generar y enviar sanción (proceso completo)
      */
     public function generarYEnviarSancion(ProcesoDisciplinario $proceso, string $tipoSancion): array
@@ -1565,6 +1758,88 @@ HTML;
                 \Illuminate\Support\Facades\Log::error('Error al generar y enviar sanción', [
                     'proceso_id' => $proceso->id,
                     'tipo_sancion' => $tipoSancion,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+
+                // La transacción hará rollback automáticamente al lanzar la excepción
+                throw $e;
+            }
+        });
+    }
+
+    /**
+     * Generar la constancia de cierre SIN SANCIÓN, enviarla al trabajador y
+     * cerrar el proceso. Todo ocurre dentro de una transacción: si algo falla
+     * (generación, guardado o envío), se hace rollback y el proceso conserva su
+     * estado original, evitando que quede "cerrado" sin documento ni correo.
+     */
+    public function generarYEnviarConstanciaNoSancion(ProcesoDisciplinario $proceso): array
+    {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($proceso) {
+            try {
+                // Generar el documento (constancia) con IA
+                $resultado = $this->generarDocumentoSancion($proceso, 'no_sancion');
+
+                if (!$resultado['success']) {
+                    throw new \Exception($resultado['message'] ?? 'Error al generar la constancia de no sanción');
+                }
+
+                $documentoPath = $resultado['documento_path'];
+                $extension = pathinfo($documentoPath, PATHINFO_EXTENSION);
+
+                // Guardar el documento. Se usa tipo 'sancion' para que la acción
+                // "Ver Sanción / Ver Constancia" lo encuentre sin nuevas migraciones.
+                \App\Models\Documento::create([
+                    'documentable_type' => ProcesoDisciplinario::class,
+                    'documentable_id' => $proceso->id,
+                    'tipo_documento' => 'sancion',
+                    'nombre_archivo' => 'Constancia_No_Sancion_' . $proceso->codigo . '.' . $extension,
+                    'ruta_archivo' => $documentoPath,
+                    'formato' => $extension,
+                    'generado_por' => auth()->id() ?? 1,
+                    'version' => 1,
+                    'fecha_generacion' => now(),
+                ]);
+
+                // NO se crea registro en `sanciones`: no hubo sanción (y su columna
+                // tipo_sancion es un ENUM que no admite 'no_sancion').
+
+                // Enviar la constancia por email (si falla, rollback de todo)
+                $this->enviarConstanciaNoSancionPorEmail($proceso, $documentoPath);
+
+                // Cerrar el proceso solo después de que todo lo anterior fue exitoso
+                $proceso->tipo_sancion = 'no_sancion';
+                $proceso->decision_sancion = false;
+                $proceso->fecha_notificacion = now();
+                $proceso->estado = 'cerrado';
+                $proceso->save();
+
+                // Registrar en el timeline
+                $timelineService = app(TimelineService::class);
+
+                $timelineService->registrarDocumentoGenerado(
+                    procesoTipo: 'proceso_disciplinario',
+                    procesoId: $proceso->id,
+                    tipoDocumento: 'Constancia de no sanción',
+                    nombreArchivo: basename($documentoPath)
+                );
+
+                $timelineService->registrarNotificacion(
+                    procesoTipo: 'proceso_disciplinario',
+                    procesoId: $proceso->id,
+                    tipoNotificacion: 'Cierre sin sanción',
+                    destinatario: $proceso->trabajador->email
+                );
+
+                return [
+                    'success' => true,
+                    'message' => 'Constancia de no sanción generada y enviada exitosamente',
+                    'documento_path' => $documentoPath,
+                ];
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Error al generar y enviar constancia de no sanción', [
+                    'proceso_id' => $proceso->id,
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString(),
                 ]);

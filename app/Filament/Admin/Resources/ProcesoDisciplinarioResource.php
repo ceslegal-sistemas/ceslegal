@@ -2299,21 +2299,37 @@ class ProcesoDisciplinarioResource extends Resource
                             return;
                         }
 
-                        // Sin sanción: cerrar proceso sin generar documento
+                        // Sin sanción: generar la constancia de cierre, enviarla al
+                        // trabajador y cerrar el proceso. Es atómico: si falla la
+                        // generación o el envío, el proceso conserva su estado original.
                         if ($data['tipo_sancion'] === 'no_sancion') {
-                            $record->update([
-                                'tipo_sancion' => 'no_sancion',
-                                'estado'       => 'cerrado',
-                            ]);
+                            try {
+                                $service = new \App\Services\DocumentGeneratorService();
+                                $service->generarYEnviarConstanciaNoSancion($record);
 
-                            \Filament\Notifications\Notification::make()
-                                ->success()
-                                ->title('Proceso cerrado — Sin sanción')
-                                ->body('Se decidió no aplicar sanción al trabajador. El proceso quedó registrado y cerrado.')
-                                ->duration(6000)
-                                ->send();
+                                \Filament\Notifications\Notification::make()
+                                    ->success()
+                                    ->title('Proceso cerrado — Sin sanción')
+                                    ->body('Se generó la constancia de no sanción con IA y se envió al trabajador. El proceso quedó registrado y cerrado.')
+                                    ->duration(8000)
+                                    ->send();
 
-                            redirect()->route('filament.admin.resources.proceso-disciplinarios.index');
+                                redirect()->route('filament.admin.resources.proceso-disciplinarios.index');
+                            } catch (\Exception $e) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('Error al cerrar sin sanción')
+                                    ->body('No se pudo generar o enviar la constancia: ' . $e->getMessage() . '. El proceso mantiene su estado original.')
+                                    ->persistent()
+                                    ->send();
+
+                                \Illuminate\Support\Facades\Log::error('Error al cerrar proceso sin sanción', [
+                                    'proceso_id' => $record->id,
+                                    'error' => $e->getMessage(),
+                                    'trace' => $e->getTraceAsString(),
+                                ]);
+                            }
+
                             return;
                         }
 
@@ -2476,7 +2492,10 @@ class ProcesoDisciplinarioResource extends Resource
 
                 // Acción: Ver Sanción (no mostrar si cerrado con impugnación resuelta)
                 Tables\Actions\Action::make('ver_sancion')
-                    ->label('Ver Sanción')
+                    ->label(
+                        fn(ProcesoDisciplinario $record) =>
+                        $record->tipo_sancion === 'no_sancion' ? 'Ver Constancia' : 'Ver Sanción'
+                    )
                     ->icon('heroicon-o-document-text')
                     ->color('warning')
                     ->visible(function (ProcesoDisciplinario $record) {
