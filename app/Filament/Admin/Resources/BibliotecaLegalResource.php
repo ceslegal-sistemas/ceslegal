@@ -155,8 +155,6 @@ class BibliotecaLegalResource extends Resource
                 Tables\Columns\TextColumn::make('total_fragmentos')
                     ->label('Fragmentos')
                     ->numeric()
-                    ->integer()
-                    ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
                     ->sortable()
                     ->placeholder('—')
                     ->alignCenter(),
@@ -333,11 +331,11 @@ class BibliotecaLegalResource extends Resource
         if ($ext === 'pdf') {
             return new HtmlString(
                 $infoBar .
-                    '<iframe src="' . $url . '#toolbar=1&view=FitH" '
-                    . 'style="width:100%;height:78vh;border:none;border-radius:.5rem;background:#f1f5f9">'
-                    . '<p style="padding:2rem;text-align:center">Su navegador no soporta previsualización de PDF. '
-                    . '<a href="' . $url . '" target="_blank">Abrir en nueva pestaña</a></p>'
-                    . '</iframe>'
+                '<iframe src="' . $url . '#toolbar=1&view=FitH" '
+                . 'style="width:100%;height:78vh;border:none;border-radius:.5rem;background:#f1f5f9">'
+                . '<p style="padding:2rem;text-align:center">Su navegador no soporta previsualización de PDF. '
+                . '<a href="' . $url . '" target="_blank">Abrir en nueva pestaña</a></p>'
+                . '</iframe>'
             );
         }
 
@@ -354,13 +352,13 @@ class BibliotecaLegalResource extends Resource
 
         return new HtmlString(
             $infoBar .
-                '<div style="padding:3rem 2rem;text-align:center">'
-                . $iconSvg
-                . '<p style="font-size:1rem;font-weight:600;color:#374151;margin:0">Vista previa no disponible para archivos '
-                . strtoupper($ext) . '</p>'
-                . '<p style="font-size:.875rem;color:#6b7280;margin:.5rem 0 0">Solo los archivos PDF se pueden previsualizar en el navegador.</p>'
-                . $downloadBtn
-                . '</div>'
+            '<div style="padding:3rem 2rem;text-align:center">'
+            . $iconSvg
+            . '<p style="font-size:1rem;font-weight:600;color:#374151;margin:0">Vista previa no disponible para archivos '
+            . strtoupper($ext) . '</p>'
+            . '<p style="font-size:.875rem;color:#6b7280;margin:.5rem 0 0">Solo los archivos PDF se pueden previsualizar en el navegador.</p>'
+            . $downloadBtn
+            . '</div>'
         );
     }
 

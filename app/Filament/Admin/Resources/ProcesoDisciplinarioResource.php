@@ -1998,6 +1998,11 @@ class ProcesoDisciplinarioResource extends Resource
 
                         $labelsMap = ['llamado_atencion' => 'Llamado de Atención', 'suspension' => 'Suspensión Laboral', 'multa' => 'Multa', 'terminacion' => 'Terminación de Contrato', 'no_sancion' => 'No Aplicar Sanción'];
 
+                        // Caso "condicionada": la IA ofrece el rango PERO la decisión está
+                        // sujeta a verificar las pruebas del trabajador. Guiamos al cliente a
+                        // "No Aplicar Sanción" cuando la justificación se confirma.
+                        $esCondicional = (($analisis['recomendacion_final']['estado_recomendacion'] ?? null) === 'condicionada');
+
                         // Se muestran siempre todas las opciones disponibles.
                         // La decisión contraria a la recomendación de la IA se gestiona
                         // mediante la sección de exoneración (más abajo).
@@ -2062,9 +2067,20 @@ class ProcesoDisciplinarioResource extends Resource
                             // ── Decisión de Sanción — botones con color ───────────────────────
                             Forms\Components\ToggleButtons::make('tipo_sancion')
                                 ->label('Decisión de Sanción')
-                                ->helperText(!$esFallback && !empty($iaSancionesRecomendadas)
-                                    ? 'Opciones recomendadas por la IA: ' . implode(', ', array_map(fn($s) => $labelsMap[$s] ?? $s, $iaSancionesRecomendadas)) . '. Elegir una diferente requiere justificación.'
-                                    : null)
+                                ->helperText(function () use ($esFallback, $esCondicional, $iaSancionesRecomendadas, $labelsMap) {
+                                    if ($esFallback || empty($iaSancionesRecomendadas)) {
+                                        return null;
+                                    }
+                                    $lista = implode(', ', array_map(fn($s) => $labelsMap[$s] ?? $s, $iaSancionesRecomendadas));
+                                    if ($esCondicional) {
+                                        return new \Illuminate\Support\HtmlString(
+                                            'Caso condicionado: primero verifique las pruebas del trabajador. '
+                                            . '<strong>Si la justificación es válida, seleccione "No Aplicar Sanción".</strong> '
+                                            . 'Si la falta se mantiene, elija una de las opciones recomendadas (' . e($lista) . ').'
+                                        );
+                                    }
+                                    return 'Opciones recomendadas por la IA: ' . $lista . '. Elegir una diferente requiere justificación.';
+                                })
                                 ->options($opcionesSancion)
                                 ->colors([
                                     'llamado_atencion' => 'info',

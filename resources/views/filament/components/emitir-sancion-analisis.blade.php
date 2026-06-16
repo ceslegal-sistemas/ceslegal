@@ -291,8 +291,16 @@ html.dark .esa-accent-text { color: var(--a-dark); }
                 </svg>
                 <div style="flex:1;min-width:0;">
                     <p class="esa-label" style="color:#b45309;">Opciones sujetas a verificación</p>
-                    <p style="font-size:12.5px;color:var(--esa-text);line-height:1.6;margin:0;">
+                    <p style="font-size:12.5px;color:var(--esa-text);line-height:1.6;margin:0 0 7px;">
                         {{ $mensaje ?: 'Las opciones de abajo aplican solo si, tras verificar las pruebas del trabajador, la falta se mantiene. Si la justificación se confirma, no procede sanción.' }}
+                    </p>
+                    <p style="font-size:12px;line-height:1.55;margin:0;padding:7px 10px;border-radius:8px;
+                              background:rgba(74,222,128,0.10);border:1px solid rgba(74,222,128,0.30);color:var(--esa-text);">
+                        <strong style="color:#15803d;">Cómo proceder:</strong>
+                        verifique primero las pruebas. Si la justificación es válida, en
+                        <strong>“Decisión de Sanción”</strong> marque
+                        <strong style="color:#15803d;">“No Aplicar Sanción”</strong>.
+                        Si la falta se mantiene, elija una de las opciones de arriba.
                     </p>
                 </div>
             </div>
