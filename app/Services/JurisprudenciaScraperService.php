@@ -2,20 +2,18 @@
 
 namespace App\Services;
 
-use App\Models\DocumentoLegal;
+use App\Models\Jurisprudencia;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Importa jurisprudencia de la Corte Constitucional a la biblioteca legal.
+ * Importa jurisprudencia de la Corte Constitucional como unidad discreta y curada.
  *
- * No se scrapea el buscador (es una SPA AJAX). En su lugar se descarga la
- * PÁGINA ESTÁTICA de cada sentencia, cuya URL es predecible:
- *   https://www.corteconstitucional.gov.co/relatoria/{AÑO}/{T|C|SU|A}-{NUMERO}-{AA}.htm
- *
- * Enfoque curado: el equipo jurídico indica el número de sentencia (p. ej.
- * "T-1040/2006") y el sistema baja el texto, lo limpia y lo procesa con
- * embeddings reutilizando BibliotecaLegalService.
+ * No se scrapea el buscador (SPA AJAX): se descarga la PÁGINA ESTÁTICA de cada
+ * sentencia (URL predecible /relatoria/{año}/{T|C|SU|A}-{num}-{aa}.htm), se extrae
+ * el texto completo y luego la IA redacta un EXTRACTO (tema + tesis/sub-regla) que
+ * es lo que se indexa (embedding) y la IA usa entero. El texto completo se conserva
+ * como fuente de verdad. La sentencia queda inactiva hasta que el equipo la cure.
  */
 class JurisprudenciaScraperService
 {
@@ -24,24 +22,19 @@ class JurisprudenciaScraperService
     private const UA = 'Mozilla/5.0 (compatible; CESLegalBot/1.0; +https://ceslegal.com)';
 
     /**
-     * Normaliza y separa una referencia como "T-1040/2006", "T-1040 de 2006",
-     * "c-200/19", "SU-049-2017" en sus partes.
-     *
      * @return array{prefijo:string, numero:string, anio:int, referencia:string}
      */
     public function parsearReferencia(string $ref): array
     {
         $ref = strtoupper(trim($ref));
-        // Captura: prefijo (T, C, SU, A), número, año (2 o 4 dígitos)
         if (! preg_match('/\b(SU|T|C|A)\s*[-\s]?\s*(\d{1,4})\s*(?:\/|-|\s+DE\s+|\s+)\s*(\d{2,4})\b/u', $ref, $m)) {
-            throw new \InvalidArgumentException("No pude entender la referencia \"{$ref}\". Usa un formato como T-1040/2006 o C-200/2019.");
+            throw new \InvalidArgumentException("No pude entender la referencia \"{$ref}\". Usa T-1040/2006, C-200/2019, etc.");
         }
 
         $prefijo = $m[1];
         $numero  = ltrim($m[2], '0') ?: $m[2];
         $anio    = (int) $m[3];
         if ($anio < 100) {
-            // Año de 2 dígitos: 92-99 -> 1900s, resto -> 2000s
             $anio += ($anio >= 92) ? 1900 : 2000;
         }
 
@@ -53,7 +46,6 @@ class JurisprudenciaScraperService
         ];
     }
 
-    /** Construye la URL de la página estática de la sentencia. */
     public function urlSentencia(array $p): string
     {
         $aa = substr((string) $p['anio'], 2, 2);
@@ -61,47 +53,138 @@ class JurisprudenciaScraperService
     }
 
     /**
-     * Importa una sentencia por su referencia. Devuelve el DocumentoLegal.
-     * Si ya existe (misma referencia), lo retorna sin volver a descargar.
+     * Importa una sentencia: descarga, crea la fila, genera extracto + embedding.
+     * Si ya existe (misma referencia), la retorna sin reprocesar.
      */
-    public function importar(string $referencia): DocumentoLegal
+    public function importar(string $referencia): Jurisprudencia
     {
         $p   = $this->parsearReferencia($referencia);
         $ref = $p['referencia'];
 
-        $existente = DocumentoLegal::where('referencia', $ref)->first();
+        $existente = Jurisprudencia::where('referencia', $ref)->first();
         if ($existente) {
             return $existente;
         }
 
-        $url   = $this->urlSentencia($p);
-        $texto = $this->descargarTexto($url);
-
+        $texto = $this->descargarTexto($this->urlSentencia($p));
         if (mb_strlen($texto) < 800) {
-            throw new \RuntimeException("La sentencia {$ref} no se encontró o vino vacía en {$url}.");
+            throw new \RuntimeException("La sentencia {$ref} no se encontró o vino vacía.");
         }
 
-        $documento = DocumentoLegal::create([
-            'titulo'      => "Sentencia {$ref} — Corte Constitucional",
-            'tipo'        => $p['prefijo'] === 'A' ? 'otro' : 'sentencia_cc',
-            'referencia'  => $ref,
-            'descripcion' => mb_substr($texto, 0, 280),
-            'estado'      => 'pendiente',
-            'activo'      => true,
+        $jur = Jurisprudencia::create([
+            'referencia'     => $ref,
+            'tipo'           => $p['prefijo'] === 'A' ? 'auto_cc' : 'sentencia_cc',
+            'corporacion'    => 'Corte Constitucional',
+            'texto_completo' => $texto,
+            'total_palabras' => str_word_count($texto),
+            'estado'         => 'procesando',
+            'activo'         => false,
         ]);
 
-        app(BibliotecaLegalService::class)->procesarTexto($documento, $texto);
+        $this->procesar($jur);
 
-        return $documento->refresh();
+        return $jur->refresh();
     }
 
-    /** Descarga la página de la sentencia y devuelve texto plano (UTF-8). */
+    /** Genera el extracto (IA) y su embedding para una sentencia ya descargada. */
+    public function procesar(Jurisprudencia $jur): void
+    {
+        $jur->update(['estado' => 'procesando', 'error_mensaje' => null]);
+
+        try {
+            $extracto = $this->generarExtracto($jur->texto_completo, $jur->referencia);
+
+            $jur->fill([
+                'tema'       => $extracto['tema'] ?? null,
+                'tesis'      => $extracto['tesis'] ?? null,
+                'fecha'      => $extracto['fecha'] ?? null,
+                'magistrado' => $extracto['magistrado'] ?? null,
+            ]);
+
+            if (empty($jur->tesis)) {
+                throw new \RuntimeException('La IA no devolvió una tesis utilizable.');
+            }
+
+            $embedding = app(BibliotecaLegalService::class)->embedDocumento($jur->textoIndexable());
+            if (empty($embedding)) {
+                throw new \RuntimeException('No se pudo generar el embedding del extracto.');
+            }
+
+            $jur->embedding = $embedding;
+            $jur->estado    = 'procesado';
+            $jur->error_mensaje = null;
+            $jur->save();
+
+            Log::info('Jurisprudencia procesada', ['referencia' => $jur->referencia, 'tema' => $jur->tema]);
+
+        } catch (\Throwable $e) {
+            $jur->update(['estado' => 'error', 'error_mensaje' => $e->getMessage()]);
+            Log::warning('Jurisprudencia: error procesando', ['referencia' => $jur->referencia, 'error' => $e->getMessage()]);
+            throw $e;
+        }
+    }
+
+    /** Pide a la IA el extracto relevante (tema + tesis + metadatos) en JSON. */
+    public function generarExtracto(string $textoCompleto, string $referencia): array
+    {
+        // El núcleo doctrinal suele estar en consideraciones/decisión; enviamos un
+        // bloque amplio pero acotado para no inflar el prompt.
+        $entrada = mb_substr($textoCompleto, 0, 28000);
+
+        // Formato con etiquetas (no JSON): la tesis es texto libre y puede traer
+        // comillas y saltos de línea que romperían un JSON. Parsear etiquetas es robusto.
+        $prompt = <<<PROMPT
+Eres relator de la Corte Constitucional de Colombia. A partir del texto de la sentencia {$referencia}, extrae SOLO lo relevante para procesos disciplinarios laborales (estabilidad laboral reforzada, fuero, debido proceso disciplinario, justa causa de terminación, proporcionalidad, acoso laboral, etc.).
+
+Responde EXACTAMENTE en este formato de TEXTO PLANO (sin markdown, sin JSON), con estas cuatro etiquetas y en este orden. TESIS va de última y puede ocupar varias líneas:
+TEMA: <descriptor del tema, una sola línea>
+FECHA: <fecha de la sentencia en formato AAAA-MM-DD, o NULL>
+MAGISTRADO: <magistrado ponente, o NULL>
+TESIS: <la regla o sub-regla y la ratio decidendi relevante para lo laboral disciplinario, en lenguaje claro y autocontenido, máximo 250 palabras. No cites números de OTRAS sentencias.>
+
+TEXTO DE LA SENTENCIA:
+{$entrada}
+PROMPT;
+
+        $salida = $this->llamarGemini($prompt);
+
+        $tesis = '';
+        if (preg_match('/TESIS\s*:\s*(.+)$/is', $salida, $m)) {
+            $tesis = trim($m[1]);
+        }
+        if ($tesis === '') {
+            throw new \RuntimeException('La IA no devolvió una TESIS utilizable.');
+        }
+
+        $nullable = fn(?string $v) => ($v === null || $v === '' || strtoupper($v) === 'NULL') ? null : $v;
+
+        $fecha = $this->capturarEtiqueta($salida, 'FECHA');
+        if ($fecha) {
+            try { $fecha = \Carbon\Carbon::parse($fecha)->toDateString(); }
+            catch (\Throwable $e) { $fecha = null; }
+        }
+
+        return [
+            'tema'       => $nullable($this->capturarEtiqueta($salida, 'TEMA')),
+            'tesis'      => $tesis,
+            'fecha'      => $fecha,
+            'magistrado' => $nullable($this->capturarEtiqueta($salida, 'MAGISTRADO')),
+        ];
+    }
+
+    /** Captura el valor (una línea) de una etiqueta tipo "ETIQUETA: valor". */
+    private function capturarEtiqueta(string $texto, string $etiqueta): ?string
+    {
+        if (preg_match('/^\s*' . preg_quote($etiqueta, '/') . '\s*:\s*(.+)$/im', $texto, $m)) {
+            return trim($m[1]);
+        }
+        return null;
+    }
+
+    /** Descarga la página de la sentencia y devuelve texto plano UTF-8. */
     public function descargarTexto(string $url): string
     {
-        $resp = Http::withHeaders(['User-Agent' => self::UA])
-            ->timeout(60)
-            ->retry(2, 1500)
-            ->get($url);
+        $resp = Http::withHeaders(['User-Agent' => self::UA])->timeout(60)->retry(2, 1500)->get($url);
 
         if ($resp->status() === 404) {
             throw new \RuntimeException("No existe la página de la sentencia (404): {$url}");
@@ -113,7 +196,6 @@ class JurisprudenciaScraperService
         return $this->htmlATexto($resp->body());
     }
 
-    /** Convierte el HTML (posible ISO-8859-1) a texto plano UTF-8 limpio. */
     public function htmlATexto(string $html): string
     {
         $enc = mb_detect_encoding($html, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true) ?: 'ISO-8859-1';
@@ -121,10 +203,8 @@ class JurisprudenciaScraperService
             $html = mb_convert_encoding($html, 'UTF-8', $enc);
         }
 
-        // Quitar scripts, estilos y comentarios
         $html = preg_replace('#<(script|style)\b[^>]*>.*?</\1>#is', ' ', $html);
         $html = preg_replace('/<!--.*?-->/s', ' ', $html);
-        // Saltos de línea para bloques
         $html = preg_replace('#<(br|/p|/div|/tr|/li|/h[1-6])\s*/?>#i', "\n", $html);
 
         $texto = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -132,5 +212,52 @@ class JurisprudenciaScraperService
         $texto = preg_replace('/\n[ \t]*\n+/', "\n\n", $texto);
 
         return trim($texto);
+    }
+
+    /** Llamada simple a Gemini para generar texto (extracto). */
+    private function llamarGemini(string $prompt): string
+    {
+        $config = config('services.ia.gemini', []);
+        $apiKey = $config['api_key'] ?? null;
+        if (empty($apiKey)) {
+            throw new \RuntimeException('Falta la API key de Gemini.');
+        }
+
+        $modelos = array_values(array_unique(array_filter([
+            $config['model'] ?? 'gemini-2.5-flash',
+            'gemini-2.5-flash',
+            'gemini-2.5-flash-lite',
+        ])));
+
+        $payload = [
+            'contents' => [['parts' => [['text' => $prompt]]]],
+            'generationConfig' => ['temperature' => 0.2, 'maxOutputTokens' => 2048, 'topP' => 0.95],
+        ];
+
+        $resp = null;
+        foreach ($modelos as $modelo) {
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent?key={$apiKey}";
+            try {
+                $resp = Http::withHeaders(['Content-Type' => 'application/json'])->timeout(90)->post($url, $payload);
+            } catch (\Throwable $e) {
+                $resp = null;
+                continue;
+            }
+            if (in_array($resp->status(), [503, 404, 429], true)) {
+                continue;
+            }
+            break;
+        }
+
+        if (! $resp || ! $resp->successful()) {
+            throw new \RuntimeException('Error en la API Gemini al generar el extracto.');
+        }
+
+        $text = $resp->json('candidates.0.content.parts.0.text');
+        if (empty($text)) {
+            throw new \RuntimeException('Gemini no devolvió contenido para el extracto.');
+        }
+
+        return $text;
     }
 }

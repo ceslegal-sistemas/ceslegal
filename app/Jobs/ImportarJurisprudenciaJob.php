@@ -31,8 +31,8 @@ class ImportarJurisprudenciaJob implements ShouldQueue
     public function handle(JurisprudenciaScraperService $scraper): void
     {
         try {
-            $doc = $scraper->importar($this->referencia);
-            $this->notificar(true, "Sentencia {$doc->referencia} importada · {$doc->total_fragmentos} fragmentos.");
+            $jur = $scraper->importar($this->referencia);
+            $this->notificar(true, "Sentencia {$jur->referencia} importada. Tema: " . ($jur->tema ?: 'sin tema') . ". Revísela y actívela en Jurisprudencia.");
         } catch (\Throwable $e) {
             Log::warning('ImportarJurisprudenciaJob: error', [
                 'referencia' => $this->referencia,

@@ -491,6 +491,18 @@ class BibliotecaLegalService
 
     // ─── Embeddings ──────────────────────────────────────────────────────────────
 
+    /** Embedding de un texto para ALMACENAR (RETRIEVAL_DOCUMENT). Reutilizable. */
+    public function embedDocumento(string $texto): ?array
+    {
+        return $this->obtenerEmbedding($texto);
+    }
+
+    /** Embedding de una consulta (RETRIEVAL_QUERY). Reutilizable. */
+    public function embedConsulta(string $texto): ?array
+    {
+        return $this->obtenerEmbeddingQuery($texto);
+    }
+
     protected function obtenerEmbedding(string $texto): ?array
     {
         return $this->llamarEmbeddingApi($texto, 'RETRIEVAL_DOCUMENT');
