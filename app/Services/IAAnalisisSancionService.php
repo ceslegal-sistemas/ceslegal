@@ -33,6 +33,9 @@ class IAAnalisisSancionService
             // Obtener artículos del CST desde la base de datos (evita alucinaciones)
             $contextoCST = $this->obtenerContextoCST($proceso);
 
+            // Obtener jurisprudencia curada relevante (modelo Jurisprudencia)
+            $contextoJurisprudencia = $this->obtenerContextoJurisprudencia($proceso);
+
             // Construir el prompt para la IA
             $prompt = $this->construirPromptAnalisisSancion(
                 $proceso,
@@ -42,7 +45,8 @@ class IAAnalisisSancionService
                 $contextoDescargos,
                 $sancionesRIT,
                 $contextoRITRag,
-                $contextoCST
+                $contextoCST,
+                $contextoJurisprudencia
             );
 
             Log::info('Analizando proceso disciplinario para sugerir sanciones', [
@@ -175,22 +179,22 @@ class IAAnalisisSancionService
     }
 
     /**
-     * Recupera jurisprudencia y doctrina relevante de la base de conocimiento
-     * (documentos_legales: sentencias CC/CSJ/CE, leyes y decretos cargados por el
-     * equipo jurídico) mediante búsqueda semántica sobre los hechos del caso.
+     * Recupera jurisprudencia relevante (modelo Jurisprudencia: unidades curadas
+     * con tesis/sub-regla y embedding del extracto) por similitud semántica sobre
+     * los hechos del caso. Devuelve un bloque con la referencia + tesis de cada una.
      *
-     * La IA SOLO podrá citar lo que aparezca en este bloque. Si la biblioteca aún
-     * no tiene jurisprudencia cargada, retorna '' y el prompt no cita sentencias.
+     * La IA SOLO podrá citar lo que aparezca en este bloque. Si no hay jurisprudencia
+     * activa cargada, retorna '' y el prompt no cita sentencias.
      */
     private function obtenerContextoJurisprudencia(ProcesoDisciplinario $proceso): string
     {
         try {
-            // Evita la llamada al API de embeddings si la biblioteca está vacía.
-            $hayDocs = \App\Models\FragmentoDocumento::whereNotNull('embedding')
-                ->whereHas('documentoLegal', fn($q) => $q->activos()->procesados())
-                ->exists();
+            $sentencias = \App\Models\Jurisprudencia::query()
+                ->activas()->procesadas()
+                ->whereNotNull('embedding')
+                ->get(['referencia', 'tema', 'tesis', 'fecha', 'magistrado', 'embedding']);
 
-            if (!$hayDocs) {
+            if ($sentencias->isEmpty()) {
                 return '';
             }
 
@@ -199,8 +203,35 @@ class IAAnalisisSancionService
                 . ' ' . ($proceso->sanciones_laborales_texto ?? '')
                 . ' ' . mb_substr(strip_tags($proceso->hechos ?? ''), 0, 300);
 
-            return app(\App\Services\BibliotecaLegalService::class)
-                ->buscarFragmentos(trim($query), limite: 4, umbral: 0.5);
+            $queryEmb = app(\App\Services\BibliotecaLegalService::class)->embedConsulta(trim($query));
+            if (empty($queryEmb)) {
+                return '';
+            }
+
+            $scored = $sentencias
+                ->map(function ($s) use ($queryEmb) {
+                    $emb = $s->embedding;
+                    if (empty($emb)) {
+                        return null;
+                    }
+                    return ['s' => $s, 'score' => $this->cosenoSimilitud($queryEmb, $emb)];
+                })
+                ->filter(fn($x) => $x !== null && $x['score'] >= 0.45)
+                ->sortByDesc('score')
+                ->take(3)
+                ->values();
+
+            if ($scored->isEmpty()) {
+                return '';
+            }
+
+            return $scored->map(function ($x) {
+                $s    = $x['s'];
+                $meta = trim(($s->fecha?->toDateString() ? $s->fecha->toDateString() . '; ' : '') . ($s->magistrado ? 'M.P. ' . $s->magistrado : ''));
+                $head = "--- Sentencia {$s->referencia}" . ($meta ? " ({$meta})" : '') . " ---";
+                $tema = $s->tema ? "Tema: {$s->tema}\n" : '';
+                return "{$head}\n{$tema}Tesis: {$s->tesis}";
+            })->implode("\n\n");
 
         } catch (\Throwable $e) {
             Log::warning('IAAnalisisSancionService: no se pudo obtener jurisprudencia', [
@@ -209,6 +240,25 @@ class IAAnalisisSancionService
             ]);
             return '';
         }
+    }
+
+    /** Similitud coseno entre dos vectores. */
+    private function cosenoSimilitud(array $a, array $b): float
+    {
+        $n = min(count($a), count($b));
+        if ($n === 0) {
+            return 0.0;
+        }
+        $dot = $na = $nb = 0.0;
+        for ($i = 0; $i < $n; $i++) {
+            $dot += $a[$i] * $b[$i];
+            $na  += $a[$i] * $a[$i];
+            $nb  += $b[$i] * $b[$i];
+        }
+        if ($na <= 0 || $nb <= 0) {
+            return 0.0;
+        }
+        return $dot / (sqrt($na) * sqrt($nb));
     }
 
     /**
@@ -332,7 +382,8 @@ class IAAnalisisSancionService
         string $contextoDescargos,
         array $sancionesRIT = [],
         string $contextoRITRag = '',
-        string $contextoCST = ''
+        string $contextoCST = '',
+        string $contextoJurisprudencia = ''
     ): string {
         $hechosTexto = strip_tags($proceso->hechos);
         $sancionesLaborales = $proceso->sanciones_laborales_texto ?? 'No especificado';
@@ -429,6 +480,20 @@ class IAAnalisisSancionService
             $seccionCST .= "═══════════════════════════════════════════════════════════════════\n";
         }
 
+        // Construir bloque de jurisprudencia curada (modelo Jurisprudencia)
+        $seccionJurisprudencia = '';
+        if (!empty($contextoJurisprudencia)) {
+            $seccionJurisprudencia  = "\n═══════════════════════════════════════════════════════════════════\n";
+            $seccionJurisprudencia .= "JURISPRUDENCIA APLICABLE (extractos curados por el equipo jurídico):\n";
+            $seccionJurisprudencia .= "═══════════════════════════════════════════════════════════════════\n";
+            $seccionJurisprudencia .= $contextoJurisprudencia . "\n";
+            $seccionJurisprudencia .= "PROHIBICIÓN ABSOLUTA: Solo puedes citar sentencias que aparezcan en este\n";
+            $seccionJurisprudencia .= "bloque, con su referencia EXACTA (ej.: 'Sentencia T-1040/2006'). Nunca cites\n";
+            $seccionJurisprudencia .= "una sentencia que no esté aquí aunque la conozcas de tu entrenamiento. Usa\n";
+            $seccionJurisprudencia .= "estas tesis para reforzar la proporcionalidad, el fuero y el debido proceso.\n";
+            $seccionJurisprudencia .= "═══════════════════════════════════════════════════════════════════\n";
+        }
+
         // Fuero / estabilidad reforzada registrado en la ficha del trabajador
         $seccionFuero = '';
         $fueroLabels  = method_exists($trabajador, 'tiposFueroLabels') ? $trabajador->tiposFueroLabels() : [];
@@ -489,6 +554,7 @@ HECHOS DEL CASO ACTUAL:
 {$hechosTexto}
 {$seccionRIT}
 {$seccionCST}
+{$seccionJurisprudencia}
 ═══════════════════════════════════════════════════════════════════
 MOTIVOS DE LOS DESCARGOS SELECCIONADOS:
 ═══════════════════════════════════════════════════════════════════
