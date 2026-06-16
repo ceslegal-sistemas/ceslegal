@@ -32,7 +32,8 @@ class JurisprudenciaScraperService
         }
 
         $prefijo = $m[1];
-        $numero  = ltrim($m[2], '0') ?: $m[2];
+        // La Corte usa el número con ceros a la izquierda (mín. 3 dígitos): SU-070, C-079, T-025.
+        $numero  = str_pad(ltrim($m[2], '0') ?: '0', 3, '0', STR_PAD_LEFT);
         $anio    = (int) $m[3];
         if ($anio < 100) {
             $anio += ($anio >= 92) ? 1900 : 2000;
@@ -66,10 +67,7 @@ class JurisprudenciaScraperService
             return $existente;
         }
 
-        $texto = $this->descargarTexto($this->urlSentencia($p));
-        if (mb_strlen($texto) < 800) {
-            throw new \RuntimeException("La sentencia {$ref} no se encontró o vino vacía.");
-        }
+        $texto = $this->descargarConVariantes($p);
 
         $jur = Jurisprudencia::create([
             'referencia'     => $ref,
@@ -179,6 +177,40 @@ PROMPT;
             return trim($m[1]);
         }
         return null;
+    }
+
+    /** Prueba variantes del número (con/sin ceros) hasta encontrar la sentencia. */
+    private function descargarConVariantes(array $p): string
+    {
+        $aa = substr((string) $p['anio'], 2, 2);
+        $numeros = array_values(array_unique([
+            $p['numero'],                                                   // 3 dígitos (canónico)
+            ltrim($p['numero'], '0') ?: $p['numero'],                       // sin ceros
+            str_pad(ltrim($p['numero'], '0') ?: '0', 4, '0', STR_PAD_LEFT), // 4 dígitos
+        ]));
+
+        // Formatos de archivo: con guion (T-1040-06) y sin guion (SU070-13).
+        $archivos = [];
+        foreach ($numeros as $num) {
+            $archivos[] = "{$p['prefijo']}-{$num}-{$aa}.htm";
+            $archivos[] = "{$p['prefijo']}{$num}-{$aa}.htm";
+        }
+
+        $ultimo = null;
+        foreach (array_unique($archivos) as $archivo) {
+            $url = self::BASE . "/{$p['anio']}/{$archivo}";
+            try {
+                $texto = $this->descargarTexto($url);
+                // Descartar el cascarón del SPA (solo "CORTE CONSTITUCIONAL DE COLOMBIA").
+                if (mb_strlen($texto) >= 1500) {
+                    return $texto;
+                }
+            } catch (\Throwable $e) {
+                $ultimo = $e;
+            }
+        }
+
+        throw $ultimo ?? new \RuntimeException("La sentencia {$p['referencia']} no se encontró.");
     }
 
     /** Descarga la página de la sentencia y devuelve texto plano UTF-8. */
