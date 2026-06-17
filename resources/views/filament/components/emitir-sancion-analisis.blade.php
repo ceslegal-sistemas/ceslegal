@@ -204,7 +204,7 @@ html.dark .esa-badge-reincidencia {
 html.dark .esa-accent-text { color: var(--a-dark); }
 </style>
 
-<div class="space-y-2">
+<div class="space-y-2" wire:ignore>
 
     {{-- ── Tarjeta 1: Gravedad de la falta ────────────────────────────── --}}
     <div class="esa-card"
