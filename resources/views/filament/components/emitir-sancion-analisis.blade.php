@@ -460,42 +460,54 @@ html.dark .esa-accent-text { color: var(--a-dark); }
 
     {{-- ── Verificación de garantías (debido proceso) — Fase 1 ──────────── --}}
     @if(!empty($garantias))
+    @php
+        $gEtiquetas = ['tipicidad' => '¿Es una falta del reglamento?', 'debido_proceso' => '¿Se respetó el debido proceso?', 'inmediatez' => '¿Se actuó a tiempo?', 'non_bis_in_idem' => '¿Ya fue sancionado por lo mismo?', 'proporcionalidad' => '¿La sanción es proporcional?', 'suficiencia_probatoria' => '¿Hay pruebas suficientes?'];
+        // Solo se muestran las garantías que NO se cumplen (riesgo / por verificar).
+        $gRiesgos = collect($gEtiquetas)->filter(fn($lbl, $k) => isset($garantias[$k]) && ($garantias[$k]['estado'] ?? '') !== 'cumple');
+    @endphp
     <div class="esa-card">
         <div style="padding:14px 18px;">
-            <p class="esa-label">¿La sanción se sostiene? — chequeo rápido</p>
+            <p class="esa-label">¿La sanción se sostiene? — puntos a revisar</p>
+            @if($gRiesgos->isEmpty())
+                <div style="display:flex;align-items:center;gap:9px;margin-top:9px;">
+                    <span class="esa-accent-text"
+                          style="--a-light:#15803d;--a-dark:#4ade80;flex-shrink:0;font-size:10px;font-weight:700;
+                                 padding:2px 8px;border-radius:100px;background:rgba(74,222,128,0.12);
+                                 border:1px solid rgba(74,222,128,0.30);">OK</span>
+                    <span style="font-size:12.5px;color:var(--esa-text);">Todas las garantías se cumplen; sin puntos de riesgo.</span>
+                </div>
+            @else
             <div style="display:flex;flex-direction:column;gap:8px;margin-top:9px;">
-                @foreach(['tipicidad' => '¿Es una falta del reglamento?', 'debido_proceso' => '¿Se respetó el debido proceso?', 'inmediatez' => '¿Se actuó a tiempo?', 'non_bis_in_idem' => '¿Ya fue sancionado por lo mismo?', 'proporcionalidad' => '¿La sanción es proporcional?', 'suficiencia_probatoria' => '¿Hay pruebas suficientes?'] as $gk => $glabel)
-                    @php $g = $garantias[$gk] ?? null; @endphp
-                    @if($g)
-                        @php
-                            $estado = $g['estado'] ?? 'no_determinable';
-                            $nota   = $g['nota'] ?? '';
-                            $cfg = match($estado) {
-                                'cumple'    => ['#15803d', '#4ade80', 'rgba(74,222,128,0.12)', 'rgba(74,222,128,0.30)', 'Cumple'],
-                                'riesgo'    => ['#b45309', '#fbbf24', 'rgba(251,191,36,0.13)', 'rgba(251,191,36,0.32)', 'Riesgo'],
-                                'no_cumple' => ['#b91c1c', '#f87171', 'rgba(248,113,113,0.13)', 'rgba(248,113,113,0.32)', 'No cumple'],
-                                default     => ['#6b7280', '#9ca3af', 'rgba(120,120,120,0.10)', 'var(--esa-border)', 'Por verificar'],
-                            };
-                        @endphp
-                        <div style="display:flex;align-items:flex-start;gap:9px;">
-                            <span class="esa-accent-text"
-                                  style="--a-light:{{ $cfg[0] }};--a-dark:{{ $cfg[1] }};
-                                         flex-shrink:0;font-size:10px;font-weight:700;
-                                         padding:2px 8px;border-radius:100px;
-                                         background:{{ $cfg[2] }};border:1px solid {{ $cfg[3] }};
-                                         min-width:80px;text-align:center;">
-                                {{ $cfg[4] }}
-                            </span>
-                            <div style="flex:1;min-width:0;">
-                                <span style="font-size:12.5px;font-weight:600;color:var(--esa-text);">{{ $glabel }}</span>
-                                @if($nota)
-                                    <span style="font-size:12px;color:var(--esa-muted);"> — {{ $nota }}</span>
-                                @endif
-                            </div>
+                @foreach($gRiesgos as $gk => $glabel)
+                    @php
+                        $g      = $garantias[$gk];
+                        $estado = $g['estado'] ?? 'no_determinable';
+                        $nota   = $g['nota'] ?? '';
+                        $cfg = match($estado) {
+                            'riesgo'    => ['#b45309', '#fbbf24', 'rgba(251,191,36,0.13)', 'rgba(251,191,36,0.32)', 'Riesgo'],
+                            'no_cumple' => ['#b91c1c', '#f87171', 'rgba(248,113,113,0.13)', 'rgba(248,113,113,0.32)', 'No cumple'],
+                            default     => ['#6b7280', '#9ca3af', 'rgba(120,120,120,0.10)', 'var(--esa-border)', 'Por verificar'],
+                        };
+                    @endphp
+                    <div style="display:flex;align-items:flex-start;gap:9px;">
+                        <span class="esa-accent-text"
+                              style="--a-light:{{ $cfg[0] }};--a-dark:{{ $cfg[1] }};
+                                     flex-shrink:0;font-size:10px;font-weight:700;
+                                     padding:2px 8px;border-radius:100px;
+                                     background:{{ $cfg[2] }};border:1px solid {{ $cfg[3] }};
+                                     min-width:80px;text-align:center;">
+                            {{ $cfg[4] }}
+                        </span>
+                        <div style="flex:1;min-width:0;">
+                            <span style="font-size:12.5px;font-weight:600;color:var(--esa-text);">{{ $glabel }}</span>
+                            @if($nota)
+                                <span style="font-size:12px;color:var(--esa-muted);"> — {{ $nota }}</span>
+                            @endif
                         </div>
-                    @endif
+                    </div>
                 @endforeach
             </div>
+            @endif
         </div>
     </div>
     @endif
