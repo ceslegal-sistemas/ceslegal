@@ -36,6 +36,9 @@ class IAAnalisisSancionService
             // Obtener jurisprudencia curada relevante (modelo Jurisprudencia)
             $contextoJurisprudencia = $this->obtenerContextoJurisprudencia($proceso);
 
+            // Analizar (multimodal) las pruebas que el trabajador adjuntó en sus descargos
+            $contextoPruebas = $this->analizarPruebasTrabajador($proceso, strip_tags($proceso->hechos ?? ''));
+
             // Construir el prompt para la IA
             $prompt = $this->construirPromptAnalisisSancion(
                 $proceso,
@@ -46,7 +49,8 @@ class IAAnalisisSancionService
                 $sancionesRIT,
                 $contextoRITRag,
                 $contextoCST,
-                $contextoJurisprudencia
+                $contextoJurisprudencia,
+                $contextoPruebas
             );
 
             Log::info('Analizando proceso disciplinario para sugerir sanciones', [
@@ -59,6 +63,11 @@ class IAAnalisisSancionService
 
             // Parsear la respuesta de la IA
             $analisis = $this->parsearAnalisisIA($analisisTexto);
+
+            // Adjuntar el análisis multimodal de pruebas (para mostrarlo verbatim en la UI)
+            if (!empty($contextoPruebas)) {
+                $analisis['analisis_pruebas'] = $contextoPruebas;
+            }
 
             Log::info('Análisis de sanciones completado', [
                 'proceso_id' => $proceso->id,
@@ -262,6 +271,107 @@ class IAAnalisisSancionService
     }
 
     /**
+     * Analiza (multimodal) las pruebas que el trabajador adjuntó en sus descargos:
+     * lee fotos/PDF, las resume y concluye si SOSTIENEN, CONTRADICEN o son
+     * INSUFICIENTES para su justificación. NUNCA valida autenticidad (lo decide un
+     * humano): siempre recomienda verificar con la fuente. Devuelve texto o ''.
+     */
+    private function analizarPruebasTrabajador(ProcesoDisciplinario $proceso, string $hechosTexto): string
+    {
+        try {
+            $diligencia = $proceso->diligenciaDescargo;
+            if (!$diligencia) {
+                return '';
+            }
+
+            // Recopilar adjuntos: nivel diligencia + por respuesta.
+            $archivos = array_values($diligencia->archivos_evidencia ?? []);
+            foreach ($diligencia->preguntas()->with('respuesta')->get() as $pregunta) {
+                foreach ($pregunta->respuesta?->archivos_adjuntos ?? [] as $adj) {
+                    $archivos[] = $adj;
+                }
+            }
+            if (empty($archivos)) {
+                return '';
+            }
+
+            $mimes = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp', 'gif' => 'image/gif', 'pdf' => 'application/pdf'];
+            $parts = [];
+            $totalBytes = 0;
+
+            foreach (array_slice($archivos, 0, 6) as $a) {
+                $path = $a['path'] ?? null;
+                if (!$path || !\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+                    continue;
+                }
+                $mime = $mimes[strtolower(pathinfo($path, PATHINFO_EXTENSION))] ?? null;
+                if (!$mime) {
+                    continue;
+                }
+                $bytes = \Illuminate\Support\Facades\Storage::disk('public')->get($path);
+                if ($bytes === null) {
+                    continue;
+                }
+                $size = strlen($bytes);
+                if ($size > 7_000_000 || ($totalBytes + $size) > 14_000_000) {
+                    continue; // límite inline de Gemini
+                }
+                $parts[] = ['inline_data' => ['mime_type' => $mime, 'data' => base64_encode($bytes)]];
+                $totalBytes += $size;
+            }
+
+            if (empty($parts)) {
+                return '';
+            }
+
+            $instruccion = "Eres analista jurídico laboral en Colombia. El trabajador aportó las siguientes pruebas en sus descargos.\n"
+                . "HECHOS IMPUTADOS: " . mb_substr($hechosTexto, 0, 600) . "\n\n"
+                . "Analiza CADA prueba adjunta: qué es y qué muestra (fechas, entidad emisora, contenido relevante). "
+                . "Luego concluye en una frase si en conjunto las pruebas SOSTIENEN, CONTRADICEN o son INSUFICIENTES "
+                . "para justificar o explicar la conducta imputada.\n"
+                . "REGLAS ESTRICTAS: NO afirmes que un documento es auténtico (no puedes verificarlo); SIEMPRE recomienda "
+                . "verificar la autenticidad con la fuente (EPS, tránsito, aseguradora, etc.). Texto plano SIN markdown "
+                . "(no uses asteriscos, viñetas con * ni negritas), claro y directo, máximo 180 palabras.";
+
+            array_unshift($parts, ['text' => $instruccion]);
+
+            return trim($this->llamarGeminiMultimodal($parts));
+
+        } catch (\Throwable $e) {
+            Log::warning('IAAnalisisSancionService: error analizando pruebas adjuntas', [
+                'proceso_id' => $proceso->id,
+                'error'      => $e->getMessage(),
+            ]);
+            return '';
+        }
+    }
+
+    /** Llamada multimodal a Gemini (texto + imágenes/PDF inline). */
+    private function llamarGeminiMultimodal(array $parts): string
+    {
+        $config = config('services.ia.gemini', []);
+        $apiKey = $config['api_key'] ?? null;
+        if (empty($apiKey)) {
+            return '';
+        }
+        $modelo = $config['model'] ?? 'gemini-2.5-flash';
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent?key={$apiKey}";
+
+        $resp = Http::withHeaders(['Content-Type' => 'application/json'])
+            ->timeout(120)
+            ->post($url, [
+                'contents'         => [['parts' => $parts]],
+                'generationConfig' => ['temperature' => 0.2, 'maxOutputTokens' => 1024],
+            ]);
+
+        if (!$resp->successful()) {
+            throw new \RuntimeException('Gemini multimodal devolvió ' . $resp->status());
+        }
+
+        return (string) ($resp->json('candidates.0.content.parts.0.text') ?? '');
+    }
+
+    /**
      * Construye la query de búsqueda RAG combinando los motivos del proceso con
      * términos disciplinarios clave para maximizar la recuperación de fragmentos relevantes.
      */
@@ -383,7 +493,8 @@ class IAAnalisisSancionService
         array $sancionesRIT = [],
         string $contextoRITRag = '',
         string $contextoCST = '',
-        string $contextoJurisprudencia = ''
+        string $contextoJurisprudencia = '',
+        string $contextoPruebas = ''
     ): string {
         $hechosTexto = strip_tags($proceso->hechos);
         $sancionesLaborales = $proceso->sanciones_laborales_texto ?? 'No especificado';
@@ -494,6 +605,21 @@ class IAAnalisisSancionService
             $seccionJurisprudencia .= "═══════════════════════════════════════════════════════════════════\n";
         }
 
+        // Análisis multimodal de las pruebas que adjuntó el trabajador
+        $seccionPruebas = '';
+        if (!empty($contextoPruebas)) {
+            $seccionPruebas  = "\n═══════════════════════════════════════════════════════════════════\n";
+            $seccionPruebas .= "ANÁLISIS DE PRUEBAS APORTADAS POR EL TRABAJADOR (lectura de los adjuntos):\n";
+            $seccionPruebas .= "═══════════════════════════════════════════════════════════════════\n";
+            $seccionPruebas .= $contextoPruebas . "\n";
+            $seccionPruebas .= "INSTRUCCIÓN: Toma en cuenta este análisis de pruebas. Si las pruebas SOSTIENEN la\n";
+            $seccionPruebas .= "justificación del trabajador, inclínate a 'no_sancionar' (o 'condicionada' si aún\n";
+            $seccionPruebas .= "falta verificar autenticidad). Si la CONTRADICEN o son INSUFICIENTES, la falta se\n";
+            $seccionPruebas .= "mantiene. RECUERDA SIEMPRE en el mensaje que la autenticidad debe verificarse con\n";
+            $seccionPruebas .= "la fuente (EPS, tránsito, aseguradora). La decisión final es del funcionario.\n";
+            $seccionPruebas .= "═══════════════════════════════════════════════════════════════════\n";
+        }
+
         // Fuero / estabilidad reforzada registrado en la ficha del trabajador
         $seccionFuero = '';
         $fueroLabels  = method_exists($trabajador, 'tiposFueroLabels') ? $trabajador->tiposFueroLabels() : [];
@@ -555,6 +681,7 @@ HECHOS DEL CASO ACTUAL:
 {$seccionRIT}
 {$seccionCST}
 {$seccionJurisprudencia}
+{$seccionPruebas}
 ═══════════════════════════════════════════════════════════════════
 MOTIVOS DE LOS DESCARGOS SELECCIONADOS:
 ═══════════════════════════════════════════════════════════════════

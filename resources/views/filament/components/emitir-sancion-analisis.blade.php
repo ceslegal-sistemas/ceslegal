@@ -16,6 +16,7 @@
     $noSancionTxt  = $analisis['razones_no_recomendadas']['no_sancion'] ?? '';
     $estadoRec     = $recomendacion['estado_recomendacion'] ?? ($analisis['recomendacion_final']['estado_recomendacion'] ?? null);
     $esCondicional = in_array($estadoRec, ['condicionada', 'esperar_pruebas'], true);
+    $analisisPruebas = trim((string) ($analisis['analisis_pruebas'] ?? ''));
 
     // Multi-recommendation: sanciones_sugeridas[] + sancion_principal
     $sancionPrincipal = $recomendacion['sancion_principal']
@@ -270,6 +271,31 @@ html.dark .esa-accent-text { color: var(--a-dark); }
                             {{ $alertaFuero['recomendacion'] }}
                         </p>
                     @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ── Análisis de pruebas aportadas por el trabajador (multimodal) ──── --}}
+    @if($analisisPruebas !== '')
+    <div class="esa-card"
+         style="background: linear-gradient(135deg, rgba(96,165,250,0.10) 0%, transparent 100%);
+                border-left: 3px solid #60a5fa;">
+        <div style="padding:14px 18px;">
+            <div style="display:flex;align-items:flex-start;gap:10px;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     style="width:22px;height:22px;color:#2563eb;flex-shrink:0;margin-top:1px;">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+                <div style="flex:1;min-width:0;">
+                    <p class="esa-label" style="color:#1d4ed8;">Análisis de las pruebas del trabajador (lectura IA)</p>
+                    <p style="font-size:12.5px;color:var(--esa-text);line-height:1.6;margin:0 0 6px;white-space:pre-line;">{{ $analisisPruebas }}</p>
+                    <p style="font-size:11.5px;color:var(--esa-muted);line-height:1.5;margin:0;font-style:italic;">
+                        La IA lee y resume las pruebas, pero no verifica su autenticidad: confirme con la fuente (EPS, tránsito, aseguradora). La decisión es del funcionario.
+                    </p>
                 </div>
             </div>
         </div>

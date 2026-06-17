@@ -1899,9 +1899,9 @@ class ProcesoDisciplinarioResource extends Resource
                         // Cachear el análisis en sesión para evitar re-llamadas a la IA
                         // cuando ->live() en ToggleButtons dispara un re-render de Livewire.
                         // NO se cachea si la IA devolvió datos de fallback (análisis fallido).
-                        // v11: incorpora jurisprudencia curada (modelo Jurisprudencia) al analisis.
+                        // v12: incorpora analisis multimodal de pruebas adjuntas del trabajador.
                         // opciones); solo 'no_sancionar' oculta. Invalida caches anteriores.
-                        $cacheKey = 'emitir_sancion_analisis_v11_' . $record->id;
+                        $cacheKey = 'emitir_sancion_analisis_v12_' . $record->id;
                         $resultado = session($cacheKey);
                         $cacheValido = $resultado
                             && is_array($resultado)
