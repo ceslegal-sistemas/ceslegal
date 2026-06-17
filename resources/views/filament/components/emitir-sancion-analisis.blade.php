@@ -12,6 +12,15 @@
     // Fase 1 — garantías y fuero
     $alertaFuero   = is_array($analisis['alerta_fuero'] ?? null) ? $analisis['alerta_fuero'] : [];
     $reqVerifFuero = (bool) ($alertaFuero['requiere_verificacion'] ?? false);
+    // Solo mostramos la alerta de fuero cuando hay un INDICIO REAL. Si no hay indicios,
+    // el aviso genérico ("Sin indicios...") confunde a la empresa, así que se oculta.
+    $indiciosFuero = trim((string) ($alertaFuero['indicios'] ?? ''));
+    $indiciosNorm  = \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii($indiciosFuero));
+    $sinIndiciosFuero = $indiciosFuero === '' || \Illuminate\Support\Str::contains($indiciosNorm, [
+        'sin indicios', 'no determinado', 'no aplica', 'ninguno',
+        'no se identific', 'no hay indicios', 'no consta', 'no se evidenci',
+    ]);
+    $mostrarFuero = $reqVerifFuero && ! $sinIndiciosFuero;
     $garantias     = is_array($analisis['verificacion_garantias'] ?? null) ? $analisis['verificacion_garantias'] : [];
     $noSancionTxt  = $analisis['razones_no_recomendadas']['no_sancion'] ?? '';
     $estadoRec     = $recomendacion['estado_recomendacion'] ?? ($analisis['recomendacion_final']['estado_recomendacion'] ?? null);
@@ -246,7 +255,7 @@ html.dark .esa-accent-text { color: var(--a-dark); }
     </div>
 
     {{-- ── Alerta de fuero / estabilidad reforzada (Fase 1) ────────────── --}}
-    @if($reqVerifFuero)
+    @if($mostrarFuero)
     <div class="esa-card"
          style="background: linear-gradient(135deg, rgba(251,146,60,0.13) 0%, transparent 100%);
                 border-left: 3px solid #fb923c;">
