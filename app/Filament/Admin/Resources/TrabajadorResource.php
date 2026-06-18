@@ -371,10 +371,14 @@ class TrabajadorResource extends Resource
                         Forms\Components\TextInput::make('telefono')
                             ->label('Teléfono / Celular (Opcional)')
                             ->tel()
-                            ->maxLength(50)
-                            ->placeholder('Ej: +57 300 123 4567')
-                            ->mask('(999) 999-9999')
-                            ->helperText('Número de contacto del trabajador (Opcional)')
+                            ->mask('9999999999')
+                            ->maxLength(10)
+                            ->rules(['nullable', 'regex:/^[0-9]{10}$/'])
+                            ->validationMessages([
+                                'regex' => 'El teléfono debe tener exactamente 10 dígitos numéricos (sin +57, espacios, guiones ni letras).',
+                            ])
+                            ->placeholder('3001234567')
+                            ->helperText('10 dígitos, solo números (sin +57, espacios ni guiones).')
                             ->suffixIcon('heroicon-o-phone'),
 
                         Forms\Components\Textarea::make('direccion')

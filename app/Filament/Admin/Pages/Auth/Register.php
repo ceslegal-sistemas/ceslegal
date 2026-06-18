@@ -104,10 +104,16 @@ class Register extends BaseRegister
                                 ->suffixIcon('heroicon-o-user'),
 
                             Forms\Components\TextInput::make('telefono')
-                                ->label('Teléfono')
+                                ->label('Teléfono / Celular')
                                 ->tel()
-                                ->maxLength(50)
-                                ->placeholder('+57 300 123 4567')
+                                ->mask('9999999999')
+                                ->maxLength(10)
+                                ->rules(['nullable', 'regex:/^[0-9]{10}$/'])
+                                ->validationMessages([
+                                    'regex' => 'El teléfono debe tener exactamente 10 dígitos numéricos (sin +57, espacios, guiones ni letras).',
+                                ])
+                                ->placeholder('3001234567')
+                                ->helperText('10 dígitos, solo números. Se usa para las notificaciones por WhatsApp.')
                                 ->suffixIcon('heroicon-o-phone'),
 
                             Forms\Components\TextInput::make('email_contacto')

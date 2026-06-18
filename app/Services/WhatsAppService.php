@@ -161,6 +161,14 @@ class WhatsAppService
     protected function limpiarNumero(string $numero): string
     {
         // Quita espacios, guiones, paréntesis y '+' inicial
-        return preg_replace('/[^\d]/', '', $numero);
+        $digitos = preg_replace('/[^\d]/', '', $numero);
+
+        // Normaliza a formato internacional Colombia (57). El formulario guarda
+        // 10 dígitos (ej: 3001234567); Meta exige el indicativo país: 573001234567.
+        if (strlen($digitos) === 10) {
+            $digitos = '57' . $digitos;
+        }
+
+        return $digitos;
     }
 }
