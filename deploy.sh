@@ -23,6 +23,9 @@ echo "==> 3/6  migraciones"
 php artisan migrate --force
 
 echo "==> 4/6  limpiar y recachear"
+# Salvaguarda: algunos hosts no ejecutan el hook de composer que crea esta carpeta
+# (el paquete filament-notification-sound la necesita o falla el view:cache).
+mkdir -p vendor/moataz-01/filament-notification-sound/resources/views
 php artisan optimize:clear
 php artisan optimize
 
