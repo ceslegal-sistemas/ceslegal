@@ -70,7 +70,7 @@ class ActaDescargosService
                 ]);
             }
 
-            $urlVerificacion = 'https://ceslegal2.renbel.com.co/verificar/' . $token;
+            $urlVerificacion = rtrim(config('app.url'), '/') . '/verificar/' . $token;
 
             // ── Fechas y textos ──────────────────────────────────────────────
             $horaInicio = $diligencia->primer_acceso_en

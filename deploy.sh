@@ -9,7 +9,9 @@
 
 set -e
 
-APP_URL="https://ceslegal2.renbel.com.co"
+# Lee APP_URL del .env para no atarlo a un dominio concreto (funciona al migrar de hosting).
+APP_URL="$(grep -E '^APP_URL=' .env | head -1 | cut -d= -f2- | tr -d "\"' ")"
+APP_URL="${APP_URL:-http://localhost}"
 
 echo "==> 1/6  git pull"
 git pull
