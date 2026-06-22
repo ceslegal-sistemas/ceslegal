@@ -62,6 +62,9 @@ return [
 
     'ia' => [
         'provider' => env('IA_PROVIDER', 'gemini'),
+        // Registro opt-in de tokens de Gemini (para el reporte de costos).
+        // Activar con IA_TOKEN_LOG=true y luego `php artisan optimize:clear`.
+        'token_log' => env('IA_TOKEN_LOG', false),
         'openai' => [
             'api_key' => env('OPENAI_API_KEY'),
             'model' => env('OPENAI_MODEL', 'gpt-4'),

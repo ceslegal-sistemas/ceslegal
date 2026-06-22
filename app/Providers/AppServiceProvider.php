@@ -45,5 +45,38 @@ class AppServiceProvider extends ServiceProvider
         } catch (\Exception $e) {
             // Ignorar si no se puede establecer
         }
+
+        // Registro opt-in de tokens de Gemini: captura el usageMetadata de TODA
+        // llamada (generateContent/embedContent) sin tocar cada servicio. Se activa
+        // con IA_TOKEN_LOG=true. Lo lee `php artisan ia:reporte-tokens`.
+        if (config('services.ia.token_log')) {
+            \Illuminate\Support\Facades\Event::listen(
+                \Illuminate\Http\Client\Events\ResponseReceived::class,
+                function ($event) {
+                    $url = (string) $event->request->url();
+                    if (! str_contains($url, 'generativelanguage.googleapis.com')) {
+                        return;
+                    }
+                    try {
+                        $usage = $event->response->json('usageMetadata') ?? [];
+                        preg_match('#/models/([^:/]+):(\w+)#', $url, $m);
+                        $prompt = (int) ($usage['promptTokenCount'] ?? 0);
+                        $salida = (int) ($usage['candidatesTokenCount'] ?? 0);
+                        $linea  = json_encode([
+                            'ts'     => now()->toIso8601String(),
+                            'modelo' => $m[1] ?? 'desconocido',
+                            'metodo' => $m[2] ?? '',
+                            'prompt' => $prompt,
+                            'salida' => $salida,
+                            'total'  => (int) ($usage['totalTokenCount'] ?? ($prompt + $salida)),
+                            'ruta'   => request() ? request()->path() : 'cli',
+                        ], JSON_UNESCAPED_UNICODE);
+                        @file_put_contents(storage_path('logs/ia-tokens.jsonl'), $linea . PHP_EOL, FILE_APPEND);
+                    } catch (\Throwable $e) {
+                        // El log de tokens nunca debe romper la app.
+                    }
+                }
+            );
+        }
     }
 }
