@@ -223,12 +223,18 @@ html.dark .esa-badge-reincidencia {
    Cada elemento define --a-light y --a-dark inline según su sanción/gravedad. */
 .esa-accent-text { color: var(--a-light); }
 html.dark .esa-accent-text { color: var(--a-dark); }
-/* Botones "Aplicar esta sanción" / "Otras sanciones" */
-.esa-apply-btn { transition: filter .15s, background .15s, transform .05s; }
-.esa-apply-btn:hover { filter: brightness(0.96); }
-html.dark .esa-apply-btn:hover { filter: brightness(1.12); }
-.esa-apply-btn:active { transform: translateY(1px); }
-.esa-otra-btn:hover { background: var(--esa-row-alt) !important; }
+/* Botones tipo badge: "Aplicar esta sanción" / "Otras sanciones" — mismo look que
+   los botones de "Decisión de Sanción" (color + ícono por tipo de sanción). */
+.esa-badge-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 13px; border-radius: 9px; cursor: pointer;
+    font-size: 12.5px; font-weight: 600; line-height: 1;
+    border: 1px solid transparent;
+    transition: filter .15s, background .15s, transform .05s;
+}
+.esa-badge-btn:hover { filter: brightness(0.97); }
+html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
+.esa-badge-btn:active { transform: translateY(1px); }
 </style>
 
 <div class="space-y-2" wire:ignore x-data="{ sancionSel: @js($sancionPrincipal) }">
@@ -435,20 +441,17 @@ html.dark .esa-apply-btn:hover { filter: brightness(1.12); }
                             </div>
                         </div>
 
-                        {{-- Botón: aplicar esta sanción --}}
+                        {{-- Botón badge: aplicar esta sanción --}}
+                        @php $m = $sancionMeta[$s] ?? ['icon' => 'heroicon-o-scale', 'c' => '#6b7280']; @endphp
                         <button type="button"
                             x-on:click="sancionSel = @js($s); $wire.$set('mountedTableActionsData.0.tipo_sancion', @js($s))"
-                            class="esa-accent-text esa-apply-btn"
-                            :style="sancionSel === @js($s) ? 'box-shadow:0 0 0 2px {{ $sc['accent'] }};' : ''"
-                            style="--a-light:{{ $sc['accentLight'] }};--a-dark:{{ $sc['accent'] }};
-                                   flex-shrink:0;display:inline-flex;align-items:center;gap:5px;
-                                   padding:7px 13px;border-radius:9px;cursor:pointer;
-                                   font-size:12px;font-weight:700;line-height:1;
-                                   background:{{ $sc['glow'] }};border:1px solid {{ $sc['border'] }};">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px;flex-shrink:0;">
-                                <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/>
-                            </svg>
-                            <span x-text="sancionSel === @js($s) ? 'Sanción seleccionada' : 'Aplicar esta sanción'">Aplicar esta sanción</span>
+                            class="esa-badge-btn"
+                            :style="sancionSel === @js($s)
+                                ? 'background:{{ $m['c'] }};border-color:{{ $m['c'] }};color:#fff;'
+                                : 'background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
+                            style="flex-shrink:0;background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
+                            @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
+                            Aplicar esta sanción
                         </button>
                     </div>
 
@@ -520,14 +523,13 @@ html.dark .esa-apply-btn:hover { filter: brightness(1.12); }
                 @php $m = $sancionMeta[$val] ?? ['icon' => 'heroicon-o-scale', 'c' => '#6b7280']; @endphp
                 <button type="button"
                     x-on:click="sancionSel = @js($val); $wire.$set('mountedTableActionsData.0.tipo_sancion', @js($val))"
-                    class="esa-apply-btn esa-otra-btn"
-                    :style="sancionSel === @js($val) ? 'border-color:{{ $m['c'] }};box-shadow:0 0 0 1.5px {{ $m['c'] }};color:{{ $m['c'] }};' : ''"
-                    style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;
-                           border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:600;
-                           color:var(--esa-text);background:transparent;
-                           border:1px solid var(--esa-divider);">
-                    @svg($m['icon'], '', ['style' => "width:16px;height:16px;flex-shrink:0;color:{$m['c']};"])
-                    <span>{{ $val === 'no_sancion' ? $label : 'Aplicar: ' . $label }}</span>
+                    class="esa-badge-btn"
+                    :style="sancionSel === @js($val)
+                        ? 'background:{{ $m['c'] }};border-color:{{ $m['c'] }};color:#fff;'
+                        : 'background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
+                    style="background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
+                    @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
+                    {{ $val === 'no_sancion' ? $label : 'Aplicar: ' . $label }}
                 </button>
             @endforeach
         </div>
@@ -564,13 +566,13 @@ html.dark .esa-apply-btn:hover { filter: brightness(1.12); }
                     @if(array_key_exists('no_sancion', $opcionesSancion))
                         <button type="button"
                             x-on:click="sancionSel = 'no_sancion'; $wire.$set('mountedTableActionsData.0.tipo_sancion', 'no_sancion')"
-                            class="esa-apply-btn"
-                            :style="sancionSel === 'no_sancion' ? 'box-shadow:0 0 0 2px #16a34a;' : ''"
-                            style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;
-                                   border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:700;line-height:1;
-                                   color:#15803d;background:rgba(74,222,128,0.13);border:1px solid rgba(74,222,128,0.40);">
-                            @svg('heroicon-o-check-circle', '', ['style' => 'width:16px;height:16px;flex-shrink:0;color:#16a34a;'])
-                            <span x-text="sancionSel === 'no_sancion' ? 'Decisión seleccionada' : 'Aplicar: No Aplicar Sanción'">Aplicar: No Aplicar Sanción</span>
+                            class="esa-badge-btn"
+                            :style="sancionSel === 'no_sancion'
+                                ? 'background:#16a34a;border-color:#16a34a;color:#fff;'
+                                : 'background:#16a34a14;border-color:#16a34a59;color:#15803d;'"
+                            style="background:#16a34a14;border-color:#16a34a59;color:#15803d;">
+                            @svg('heroicon-o-check-circle', '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
+                            Aplicar: No Aplicar Sanción
                         </button>
                     @endif
                 </div>
