@@ -5,6 +5,10 @@
 @php
     $analisis       = $analisis ?? [];
     $recomendacion  = $recomendacion ?? [];
+    // Opciones disponibles (value => label) y las recomendadas por la IA, para los
+    // botones "Aplicar esta sanción" y la tarjeta de "Otras sanciones".
+    $opcionesSancion         = $opcionesSancion ?? [];
+    $iaSancionesRecomendadas = $iaSancionesRecomendadas ?? [];
     $gravedad       = $analisis['gravedad'] ?? 'leve';
     $esReincidencia = $analisis['es_reincidencia'] ?? false;
     $justificacion  = $analisis['justificacion'] ?? '';
@@ -211,6 +215,12 @@ html.dark .esa-badge-reincidencia {
    Cada elemento define --a-light y --a-dark inline según su sanción/gravedad. */
 .esa-accent-text { color: var(--a-light); }
 html.dark .esa-accent-text { color: var(--a-dark); }
+/* Botones "Aplicar esta sanción" / "Otras sanciones" */
+.esa-apply-btn { transition: filter .15s, background .15s, transform .05s; }
+.esa-apply-btn:hover { filter: brightness(0.96); }
+html.dark .esa-apply-btn:hover { filter: brightness(1.12); }
+.esa-apply-btn:active { transform: translateY(1px); }
+.esa-otra-btn:hover { background: var(--esa-row-alt) !important; }
 </style>
 
 <div class="space-y-2" wire:ignore>
@@ -416,6 +426,21 @@ html.dark .esa-accent-text { color: var(--a-dark); }
                                 @endif
                             </div>
                         </div>
+
+                        {{-- Botón: aplicar esta sanción --}}
+                        <button type="button" x-data
+                            x-on:click="$wire.$set('mountedTableActionsData.0.tipo_sancion', @js($s))"
+                            class="esa-accent-text esa-apply-btn"
+                            style="--a-light:{{ $sc['accentLight'] }};--a-dark:{{ $sc['accent'] }};
+                                   flex-shrink:0;display:inline-flex;align-items:center;gap:5px;
+                                   padding:7px 13px;border-radius:9px;cursor:pointer;
+                                   font-size:12px;font-weight:700;line-height:1;
+                                   background:{{ $sc['glow'] }};border:1px solid {{ $sc['border'] }};">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px;flex-shrink:0;">
+                                <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/>
+                            </svg>
+                            Aplicar esta sanción
+                        </button>
                     </div>
 
                     {{-- Desplegable: base jurídica argumentada --}}
@@ -459,6 +484,39 @@ html.dark .esa-accent-text { color: var(--a-dark); }
                 </p>
             </div>
         @endif
+    </div>
+    @endif
+
+    {{-- ── Otras sanciones (no recomendadas por la IA) ──────────────────── --}}
+    @php
+        $otrasSanciones = collect($opcionesSancion)
+            ->reject(fn($label, $val) => $val === 'no_sancion' || in_array($val, $sancionesValidas, true))
+            ->all();
+    @endphp
+    @if(!empty($sancionesValidas) && !empty($otrasSanciones))
+    <div class="esa-card">
+        <div style="padding:14px 18px 2px;">
+            <p class="esa-label">Otras sanciones — no recomendadas por la IA</p>
+            <p style="font-size:11.5px;color:var(--esa-muted);line-height:1.55;margin:5px 0 0;">
+                Puede aplicar una de estas, pero al apartarse de la recomendación deberá justificar el motivo y aceptar la responsabilidad.
+            </p>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;padding:11px 18px 16px;">
+            @foreach($otrasSanciones as $val => $label)
+                <button type="button" x-data
+                    x-on:click="$wire.$set('mountedTableActionsData.0.tipo_sancion', @js($val))"
+                    class="esa-apply-btn esa-otra-btn"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:8px 13px;
+                           border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:600;
+                           color:var(--esa-text);background:transparent;
+                           border:1px solid var(--esa-divider);">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="width:13px;height:13px;flex-shrink:0;opacity:.55;">
+                        <path fill-rule="evenodd" d="M10 5a.75.75 0 01.75.75v3.5h3.5a.75.75 0 010 1.5h-3.5v3.5a.75.75 0 01-1.5 0v-3.5h-3.5a.75.75 0 010-1.5h3.5v-3.5A.75.75 0 0110 5z" clip-rule="evenodd"/>
+                    </svg>
+                    Aplicar: {{ $label }}
+                </button>
+            @endforeach
+        </div>
     </div>
     @endif
 

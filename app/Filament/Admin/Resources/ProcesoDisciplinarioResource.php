@@ -2014,8 +2014,10 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->content(fn() => $esFallback
                                     ? view('filament.components.emitir-sancion-ia-error')
                                     : view('filament.components.emitir-sancion-analisis', [
-                                        'analisis'      => $analisis,
-                                        'recomendacion' => $recomendacionFinal,
+                                        'analisis'                => $analisis,
+                                        'recomendacion'           => $recomendacionFinal,
+                                        'opcionesSancion'         => $opcionesSancion,
+                                        'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
                                     ])),
 
                             // ── Aviso sin RIT ─────────────────────────────────────────────────
