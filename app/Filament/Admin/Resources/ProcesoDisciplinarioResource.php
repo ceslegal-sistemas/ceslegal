@@ -2066,39 +2066,12 @@ class ProcesoDisciplinarioResource extends Resource
                             Forms\Components\Hidden::make('razones_no_recomendadas_json')
                                 ->default(json_encode($iaRazonesNoRecomendadas)),
 
-                            // ── Decisión de Sanción — botones con color ───────────────────────
-                            Forms\Components\ToggleButtons::make('tipo_sancion')
-                                ->label('Decisión de Sanción')
-                                ->helperText(function () use ($esFallback, $esCondicional, $iaSancionesRecomendadas, $labelsMap) {
-                                    if ($esFallback || empty($iaSancionesRecomendadas)) {
-                                        return null;
-                                    }
-                                    $lista = implode(', ', array_map(fn($s) => $labelsMap[$s] ?? $s, $iaSancionesRecomendadas));
-                                    if ($esCondicional) {
-                                        return new \Illuminate\Support\HtmlString(
-                                            'Caso condicionado: primero verifique las pruebas del trabajador. '
-                                            . '<strong>Si la justificación es válida, seleccione "No Aplicar Sanción".</strong> '
-                                            . 'Si la falta se mantiene, elija una de las opciones recomendadas (' . e($lista) . ').'
-                                        );
-                                    }
-                                    return 'Opciones recomendadas por la IA: ' . $lista . '. Elegir una diferente requiere justificación.';
-                                })
-                                ->options($opcionesSancion)
-                                ->colors([
-                                    'llamado_atencion' => 'info',
-                                    'suspension'       => 'warning',
-                                    'multa'            => 'gray',
-                                    'terminacion'      => 'danger',
-                                    'no_sancion'       => 'success',
-                                ])
-                                ->icons([
-                                    'llamado_atencion' => 'heroicon-o-chat-bubble-bottom-center-text',
-                                    'suspension'       => 'heroicon-o-clock',
-                                    'multa'            => 'heroicon-o-banknotes',
-                                    'terminacion'      => 'heroicon-o-x-circle',
-                                    'no_sancion'       => 'heroicon-o-check-circle',
-                                ])
-                                ->columns(['default' => 1, 'sm' => 3])
+                            // ── Decisión de Sanción ───────────────────────────────────────────
+                            //    La elige el usuario con los botones badge de las tarjetas de
+                            //    análisis ("Aplicar esta sanción" / "Otras sanciones"). El campo
+                            //    queda oculto para conservar estado y validación (lo setean los
+                            //    badges vía $wire.$set('mountedTableActionsData.0.tipo_sancion')).
+                            Forms\Components\Hidden::make('tipo_sancion')
                                 ->default($iaRecomendada)
                                 ->live()
                                 ->required(),
