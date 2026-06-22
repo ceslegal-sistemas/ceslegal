@@ -2195,7 +2195,11 @@ class ProcesoDisciplinarioResource extends Resource
                                         ->label('Foto de verificación del autorizador')
                                         ->content(fn() => view('filament.components.webcam-autorizador')),
 
-                                    Forms\Components\Hidden::make('foto_autorizador_base64'),
+                                    Forms\Components\Hidden::make('foto_autorizador_base64')
+                                        ->required()
+                                        ->validationMessages([
+                                            'required' => 'Debe tomar la foto de verificación del autorizador antes de continuar.',
+                                        ]),
                                 ]),
                         ];
                     })
