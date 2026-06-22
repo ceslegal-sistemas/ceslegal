@@ -2066,42 +2066,37 @@ class ProcesoDisciplinarioResource extends Resource
                             Forms\Components\Hidden::make('razones_no_recomendadas_json')
                                 ->default(json_encode($iaRazonesNoRecomendadas)),
 
-                            // ── Decisión de Sanción — botones con color ───────────────────────
-                            Forms\Components\ToggleButtons::make('tipo_sancion')
-                                ->label('Decisión de Sanción')
-                                ->helperText(function () use ($esFallback, $esCondicional, $iaSancionesRecomendadas, $labelsMap) {
-                                    if ($esFallback || empty($iaSancionesRecomendadas)) {
-                                        return null;
-                                    }
-                                    $lista = implode(', ', array_map(fn($s) => $labelsMap[$s] ?? $s, $iaSancionesRecomendadas));
-                                    if ($esCondicional) {
-                                        return new \Illuminate\Support\HtmlString(
-                                            'Caso condicionado: primero verifique las pruebas del trabajador. '
-                                            . '<strong>Si la justificación es válida, seleccione "No Aplicar Sanción".</strong> '
-                                            . 'Si la falta se mantiene, elija una de las opciones recomendadas (' . e($lista) . ').'
-                                        );
-                                    }
-                                    return 'Opciones recomendadas por la IA: ' . $lista . '. Elegir una diferente requiere justificación.';
-                                })
-                                ->options($opcionesSancion)
-                                ->colors([
-                                    'llamado_atencion' => 'info',
-                                    'suspension'       => 'warning',
-                                    'multa'            => 'gray',
-                                    'terminacion'      => 'danger',
-                                    'no_sancion'       => 'success',
-                                ])
-                                ->icons([
-                                    'llamado_atencion' => 'heroicon-o-chat-bubble-bottom-center-text',
-                                    'suspension'       => 'heroicon-o-clock',
-                                    'multa'            => 'heroicon-o-banknotes',
-                                    'terminacion'      => 'heroicon-o-x-circle',
-                                    'no_sancion'       => 'heroicon-o-check-circle',
-                                ])
-                                ->columns(['default' => 1, 'sm' => 3])
+                            // ── Decisión de Sanción ───────────────────────────────────────────
+                            //    La decisión la toma el usuario con los botones "Aplicar esta
+                            //    sanción" / "Otras sanciones" de las tarjetas de análisis. El
+                            //    campo se conserva oculto para que el estado y la validación
+                            //    sigan funcionando (lo setean los botones vía $wire.$set).
+                            Forms\Components\Hidden::make('tipo_sancion')
                                 ->default($iaRecomendada)
                                 ->live()
                                 ->required(),
+
+                            // Confirmación reactiva de lo seleccionado (las tarjetas están en
+                            // wire:ignore, así que este aviso da el feedback del lado servidor).
+                            Forms\Components\Placeholder::make('decision_seleccionada')
+                                ->hiddenLabel()
+                                ->content(function (Get $get) use ($labelsMap) {
+                                    $sel = $get('tipo_sancion');
+                                    if (empty($sel)) {
+                                        return new \Illuminate\Support\HtmlString(
+                                            '<div style="padding:11px 15px;border-radius:10px;background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.32);font-size:13px;color:#b45309;font-weight:600;">'
+                                            . 'Seleccione una sanción con los botones de arriba para continuar.'
+                                            . '</div>'
+                                        );
+                                    }
+                                    $label = $labelsMap[$sel] ?? ucfirst(str_replace('_', ' ', $sel));
+                                    return new \Illuminate\Support\HtmlString(
+                                        '<div style="padding:11px 15px;border-radius:10px;background:rgba(99,102,241,0.10);border:1px solid rgba(99,102,241,0.30);font-size:13px;font-weight:600;color:#4338ca;display:flex;align-items:center;gap:8px;">'
+                                        . '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="width:18px;height:18px;flex-shrink:0;"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg>'
+                                        . 'Decisión seleccionada: ' . e($label)
+                                        . '</div>'
+                                    );
+                                }),
 
                             // ── Potestad Disciplinaria según el RIT ───────────────────────────
                             Forms\Components\Placeholder::make('potestad_card')
