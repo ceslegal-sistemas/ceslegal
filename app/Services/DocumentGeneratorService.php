@@ -1431,45 +1431,23 @@ PROMPT;
         $otroMotivo = trim((string) $proceso->otro_motivo_descargos);
         $filasTabla = '';
 
-        // ── Faltas del RIT DEL CLIENTE (verbatim, sin IA) ────────────────────────
+        // ── Faltas del RIT DEL CLIENTE por gravedad EXACTA (leve/grave/muy grave) ─
         $rit = $empresa->reglamentoInterno;
         if ($rit) {
             try {
-                $datos = app(\App\Services\ReglamentoInternoService::class)->extraerSancionesParaEmail($rit);
+                $filas = app(\App\Services\ReglamentoInternoService::class)->filasTablaSanciones($rit);
             } catch (\Throwable $e) {
-                $datos = [];
+                $filas = [];
             }
-            $faltasLeves  = $datos['faltas_leves']  ?? [];
-            $faltasGraves = $datos['faltas_graves'] ?? [];
-            $sanciones    = $datos['sanciones']     ?? [];
-
-            // La sanción por gravedad se toma de las sanciones del PROPIO RIT.
-            $sancionLeve = collect($sanciones)
-                ->filter(fn($s) => preg_match('/llamado|atenci[oó]n|advertencia|verbal|escrito/i', (string) $s))
-                ->join(' / ') ?: 'Llamado de Atención';
-            $sancionGrave = collect($sanciones)
-                ->filter(fn($s) => preg_match('/suspensi[oó]n|terminaci[oó]n|despido/i', (string) $s))
-                ->join(' / ') ?: 'Suspensión / Terminación del contrato';
-
-            if (!empty($faltasLeves)) {
-                $items = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $faltasLeves));
-                $sl = e($sancionLeve);
+            foreach ($filas as $fila) {
+                $grav    = e($fila['gravedad']);
+                $items   = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $fila['conductas']));
+                $sancion = e($fila['sancion']);
                 $filasTabla .= <<<HTML
     <tr>
-      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">Leve</td>
+      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">{$grav}</td>
       <td style="border: 1px solid #000; padding: 4px 6px;"><ul style="margin:0;padding-left:16px;">{$items}</ul></td>
-      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center;">{$sl}</td>
-    </tr>
-HTML;
-            }
-            if (!empty($faltasGraves)) {
-                $items = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $faltasGraves));
-                $sg = e($sancionGrave);
-                $filasTabla .= <<<HTML
-    <tr>
-      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">Grave</td>
-      <td style="border: 1px solid #000; padding: 4px 6px;"><ul style="margin:0;padding-left:16px;">{$items}</ul></td>
-      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center;">{$sg}</td>
+      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center;">{$sancion}</td>
     </tr>
 HTML;
             }

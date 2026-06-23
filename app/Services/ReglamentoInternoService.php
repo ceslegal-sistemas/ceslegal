@@ -132,6 +132,82 @@ class ReglamentoInternoService
     }
 
     /**
+     * Devuelve las filas EXACTAS de la tabla de sanciones por gravedad (leve/grave/muy grave),
+     * con la conducta y la sanción tal como las define el RIT del cliente — sin heurística cuando
+     * el dato existe. Normaliza ambas fuentes:
+     *   - Wizard: respuestas_cuestionario.sanciones_configuradas (conducta + gravedad + sanción).
+     *   - Subido: faltas + sanción por gravedad extraídas por IA (o heurística si es dato viejo).
+     *
+     * @return array<int, array{gravedad:string, conductas:array<string>, sancion:string}>
+     */
+    public function filasTablaSanciones(ReglamentoInterno $rit): array
+    {
+        $etiqueta = ['leve' => 'Leve', 'grave' => 'Grave', 'muy_grave' => 'Muy grave'];
+
+        // ── Fuente exacta del wizard: sanciones_configuradas ─────────────────────
+        $config = ($rit->fuente !== 'subido')
+            ? ($rit->respuestas_cuestionario['sanciones_configuradas'] ?? [])
+            : [];
+
+        if (!empty($config) && is_array($config)) {
+            $fmt = fn(array $s): string => match ($s['tipo_sancion'] ?? '') {
+                'llamado_atencion' => 'Llamado de atención',
+                'suspension'       => 'Suspensión' . (!empty($s['dias_suspension']) ? ' hasta ' . $s['dias_suspension'] . ' día(s)' : ''),
+                'terminacion'      => 'Terminación del contrato con justa causa',
+                'no_sancion'       => 'No aplica sanción',
+                default            => ucfirst(str_replace('_', ' ', (string) ($s['tipo_sancion'] ?? ''))),
+            };
+
+            $grupos = ['leve' => ['c' => [], 's' => []], 'grave' => ['c' => [], 's' => []], 'muy_grave' => ['c' => [], 's' => []]];
+            foreach ($config as $s) {
+                $g = $s['tipo_falta'] ?? '';
+                if (!isset($grupos[$g])) continue;
+                if (!empty($s['nombre'])) $grupos[$g]['c'][] = $s['nombre'];
+                $grupos[$g]['s'][] = $fmt($s);
+            }
+
+            $filas = [];
+            foreach (['leve', 'grave', 'muy_grave'] as $g) {
+                if (empty($grupos[$g]['c'])) continue;
+                $filas[] = [
+                    'gravedad'  => $etiqueta[$g],
+                    'conductas' => array_values(array_unique($grupos[$g]['c'])),
+                    'sancion'   => implode(' / ', array_values(array_unique(array_filter($grupos[$g]['s'])))),
+                ];
+            }
+            if (!empty($filas)) return $filas;
+        }
+
+        // ── Fuente subida/extraída: faltas + sanción por gravedad (IA o heurística)
+        $datos = $this->extraerSancionesParaEmail($rit);
+        $heuristica = function (bool $esLeve) use ($datos): string {
+            $sanciones = $datos['sanciones'] ?? [];
+            if ($esLeve) {
+                return collect($sanciones)->filter(fn($s) => preg_match('/llamado|atenci[oó]n|advertencia|verbal|escrito/i', (string) $s))->join(' / ') ?: 'Llamado de Atención';
+            }
+            return collect($sanciones)->filter(fn($s) => preg_match('/suspensi[oó]n|terminaci[oó]n|despido/i', (string) $s))->join(' / ') ?: 'Suspensión / Terminación del contrato';
+        };
+
+        $mapa = [
+            'leve'      => [$etiqueta['leve'],      $datos['faltas_leves']      ?? [], $datos['sancion_leve']      ?? null, true],
+            'grave'     => [$etiqueta['grave'],     $datos['faltas_graves']     ?? [], $datos['sancion_grave']     ?? null, false],
+            'muy_grave' => [$etiqueta['muy_grave'], $datos['faltas_muy_graves'] ?? [], $datos['sancion_muy_grave'] ?? null, false],
+        ];
+
+        $filas = [];
+        foreach ($mapa as [$label, $faltas, $sancionExacta, $esLeve]) {
+            if (empty($faltas)) continue;
+            $filas[] = [
+                'gravedad'  => $label,
+                'conductas' => array_values($faltas),
+                'sancion'   => $sancionExacta ?: $heuristica($esLeve),
+            ];
+        }
+
+        return $filas;
+    }
+
+    /**
      * Extrae sanciones con IA y las guarda en reglamentos_internos.sanciones_extraidas.
      * Retorna el array resultante (vacío si falla).
      */
@@ -169,12 +245,19 @@ Responde ÚNICAMENTE con un JSON válido, sin texto adicional, con esta estructu
 {
   "faltas_leves": ["descripción concreta de falta 1", "descripción concreta de falta 2"],
   "faltas_graves": ["descripción concreta de falta 1", "descripción concreta de falta 2"],
+  "faltas_muy_graves": ["descripción concreta de falta 1"],
+  "sancion_leve": "la sanción EXACTA que el RIT asigna a las faltas LEVES",
+  "sancion_grave": "la sanción EXACTA que el RIT asigna a las faltas GRAVES",
+  "sancion_muy_grave": "la sanción EXACTA que el RIT asigna a las faltas MUY GRAVES (o '' si no las distingue)",
   "sanciones": ["Llamado de Atención Verbal", "Suspensión hasta X días", "Terminación del Contrato"]
 }
 
 Reglas:
-- faltas_leves y faltas_graves: máximo 8 items cada uno, máximo 100 caracteres por item
-- sanciones: texto legible en español, no claves técnicas; incluye solo las sanciones que menciona el RIT
+- faltas_leves, faltas_graves y faltas_muy_graves: máximo 8 items cada uno, máximo 100 caracteres por item
+- sancion_leve / sancion_grave / sancion_muy_grave: copia EXACTA (textual) de la sanción que el RIT
+  asigna a cada nivel de gravedad. Si el RIT no separa "muy graves", deja faltas_muy_graves vacío y
+  sancion_muy_grave en "". NO inventes la sanción: si no está clara, deja la cadena vacía.
+- sanciones: lista legible de TODAS las sanciones que menciona el RIT (respaldo)
 - Si el texto no tiene información clara de faltas, devuelve arrays vacíos
 - No listes artículos del CST genéricos; solo lo que describe concretamente este RIT
 PROMPT;
@@ -183,10 +266,16 @@ PROMPT;
             $respuesta = $this->llamarGeminiJSON($prompt);
             $datos     = $this->parsearJSON($respuesta);
 
+            $nz = fn($v) => (is_string($v) && trim($v) !== '') ? trim($v) : null;
+
             return [
-                'faltas_leves'  => array_slice($datos['faltas_leves']  ?? [], 0, 10),
-                'faltas_graves' => array_slice($datos['faltas_graves'] ?? [], 0, 10),
-                'sanciones'     => $datos['sanciones'] ?? [],
+                'faltas_leves'      => array_slice($datos['faltas_leves']  ?? [], 0, 10),
+                'faltas_graves'     => array_slice($datos['faltas_graves'] ?? [], 0, 10),
+                'faltas_muy_graves' => array_slice($datos['faltas_muy_graves'] ?? [], 0, 10),
+                'sancion_leve'      => $nz($datos['sancion_leve'] ?? null),
+                'sancion_grave'     => $nz($datos['sancion_grave'] ?? null),
+                'sancion_muy_grave' => $nz($datos['sancion_muy_grave'] ?? null),
+                'sanciones'         => $datos['sanciones'] ?? [],
             ];
         } catch (\Throwable $e) {
             Log::warning('ReglamentoInternoService: error extrayendo sanciones con IA', [
