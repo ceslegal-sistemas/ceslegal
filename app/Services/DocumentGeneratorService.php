@@ -1421,30 +1421,58 @@ PROMPT;
 
     /**
      * Construye la TABLA DE SANCIONES de forma DETERMINÍSTICA (verbatim), sin IA.
-     * Cada falta del RIT usa los datos exactos de SancionLaboral; un "otro motivo"
-     * no tipificado se ancla a un artículo del CST citado textualmente (nunca se
-     * inventa la sanción).
+     * Las faltas salen del RIT DEL CLIENTE (generado por IA o subido manualmente),
+     * vía ReglamentoInternoService::extraerSancionesParaEmail — NO de las sanciones
+     * genéricas. Un "otro motivo" no tipificado se ancla a un artículo del CST
+     * citado textualmente (nunca se inventa la sanción).
      */
     private function construirTablaSancionesDeterministica(ProcesoDisciplinario $proceso, $empresa): string
     {
-        $sancionesLaborales = $proceso->sancionesLaborales;
         $otroMotivo = trim((string) $proceso->otro_motivo_descargos);
-
         $filasTabla = '';
 
-        // Filas exactas del RIT (datos de la BD, sin IA).
-        foreach ($sancionesLaborales as $sancion) {
-            $tipoFalta = e(ucfirst($sancion->tipo_falta));
-            $descripcion = e($sancion->descripcion ?? $sancion->nombre_claro);
-            $tipoSancionTexto = e($sancion->tipo_sancion_texto);
+        // ── Faltas del RIT DEL CLIENTE (verbatim, sin IA) ────────────────────────
+        $rit = $empresa->reglamentoInterno;
+        if ($rit) {
+            try {
+                $datos = app(\App\Services\ReglamentoInternoService::class)->extraerSancionesParaEmail($rit);
+            } catch (\Throwable $e) {
+                $datos = [];
+            }
+            $faltasLeves  = $datos['faltas_leves']  ?? [];
+            $faltasGraves = $datos['faltas_graves'] ?? [];
+            $sanciones    = $datos['sanciones']     ?? [];
 
-            $filasTabla .= <<<HTML
+            // La sanción por gravedad se toma de las sanciones del PROPIO RIT.
+            $sancionLeve = collect($sanciones)
+                ->filter(fn($s) => preg_match('/llamado|atenci[oó]n|advertencia|verbal|escrito/i', (string) $s))
+                ->join(' / ') ?: 'Llamado de Atención';
+            $sancionGrave = collect($sanciones)
+                ->filter(fn($s) => preg_match('/suspensi[oó]n|terminaci[oó]n|despido/i', (string) $s))
+                ->join(' / ') ?: 'Suspensión / Terminación del contrato';
+
+            if (!empty($faltasLeves)) {
+                $items = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $faltasLeves));
+                $sl = e($sancionLeve);
+                $filasTabla .= <<<HTML
     <tr>
-      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">{$tipoFalta}</td>
-      <td style="border: 1px solid #000; padding: 4px 6px;">{$descripcion}</td>
-      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center;">{$tipoSancionTexto}</td>
+      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">Leve</td>
+      <td style="border: 1px solid #000; padding: 4px 6px;"><ul style="margin:0;padding-left:16px;">{$items}</ul></td>
+      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center;">{$sl}</td>
     </tr>
 HTML;
+            }
+            if (!empty($faltasGraves)) {
+                $items = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $faltasGraves));
+                $sg = e($sancionGrave);
+                $filasTabla .= <<<HTML
+    <tr>
+      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">Grave</td>
+      <td style="border: 1px solid #000; padding: 4px 6px;"><ul style="margin:0;padding-left:16px;">{$items}</ul></td>
+      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center;">{$sg}</td>
+    </tr>
+HTML;
+            }
         }
 
         // "Otro motivo" no tipificado en el RIT -> se ancla a un artículo del CST,
@@ -1472,7 +1500,7 @@ HTML;
         }
 
         if ($filasTabla === '') {
-            $filasTabla = '<tr><td colspan="3" style="border: 1px solid #000; padding: 6px; text-align: center;">No se registraron faltas tipificadas para este proceso.</td></tr>';
+            $filasTabla = '<tr><td colspan="3" style="border: 1px solid #000; padding: 6px; text-align: center;">No se encontró el cuadro de faltas en el Reglamento Interno de Trabajo de esta empresa.</td></tr>';
         }
 
         // Construir la tabla completa
