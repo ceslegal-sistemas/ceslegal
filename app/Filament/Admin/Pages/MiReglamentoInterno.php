@@ -85,6 +85,50 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
         $this->reglamento = $this->reglamento->fresh();
     }
 
+    /**
+     * Re-extrae las faltas y su sanción EXACTA por gravedad (leve/grave/muy grave)
+     * del RIT, releyendo el texto con IA. Útil para RIT subidos antes de esta mejora,
+     * cuya extracción guardada no separaba la sanción por gravedad.
+     */
+    public function reextraerSancionesAction(): Action
+    {
+        return Action::make('reextraerSanciones')
+            ->label('Re-extraer sanciones')
+            ->icon('heroicon-o-arrow-path')
+            ->color('gray')
+            ->visible(fn() => $this->reglamento && !empty($this->reglamento->texto_completo))
+            ->requiresConfirmation()
+            ->modalHeading('Re-extraer la tabla de sanciones')
+            ->modalDescription('Vuelve a leer el Reglamento con IA para extraer las faltas y su sanción exacta por gravedad (leve, grave, muy grave). Úselo si la tabla de sanciones de los documentos no coincide con su RIT.')
+            ->modalSubmitActionLabel('Re-extraer')
+            ->action(function (): void {
+                if (!$this->reglamento) {
+                    Notification::make()->danger()->title('No hay Reglamento activo')->send();
+                    return;
+                }
+                try {
+                    $datos = app(ReglamentoInternoService::class)->extraerYPersistirSanciones($this->reglamento);
+                    if (empty($datos)) {
+                        Notification::make()->warning()
+                            ->title('No se pudieron extraer sanciones')
+                            ->body('La IA no encontró un cuadro de faltas claro en el texto del Reglamento.')
+                            ->send();
+                        return;
+                    }
+                    Notification::make()->success()
+                        ->title('Sanciones re-extraídas')
+                        ->body('La tabla de sanciones de los documentos ahora usará los datos actualizados del RIT.')
+                        ->send();
+                    $this->reglamento = $this->reglamento->fresh();
+                } catch (\Throwable $e) {
+                    Notification::make()->danger()
+                        ->title('Error al re-extraer')
+                        ->body($e->getMessage())
+                        ->send();
+                }
+            });
+    }
+
     /** Abre el modal para subir un RIT manualmente. */
     public function subirRITAction(): Action
     {

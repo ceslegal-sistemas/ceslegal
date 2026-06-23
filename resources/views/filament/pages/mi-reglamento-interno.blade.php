@@ -153,6 +153,12 @@ html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(99,102,2
             <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
             Subir RIT
           </button>
+          @if($tiene)
+            <button wire:click="mountAction('reextraerSanciones')" class="rit-btn rit-btn-secondary">
+              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+              Re-extraer sanciones
+            </button>
+          @endif
         @endif
       </div>
 
