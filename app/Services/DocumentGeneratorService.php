@@ -201,40 +201,24 @@ class DocumentGeneratorService
             </ul>';
         }
 
-        // ── Tabla de sanciones del RIT (Artículo 20) ─────────────────────────
+        // ── Tabla de sanciones del RIT (Artículo 20) — por gravedad EXACTA ───────
         $tablaSancionesHTML = '';
         $rit = $empresa->reglamentoInterno;
         if ($rit) {
             try {
-                $sancionesRIT  = app(ReglamentoInternoService::class)->extraerSancionesParaEmail($rit);
-                $faltasLeves   = $sancionesRIT['faltas_leves']  ?? [];
-                $faltasGraves  = $sancionesRIT['faltas_graves'] ?? [];
-                $sancionesData = $sancionesRIT['sanciones']     ?? [];
+                $filas = app(ReglamentoInternoService::class)->filasTablaSanciones($rit);
 
-                if (!empty($faltasLeves) || !empty($faltasGraves)) {
-                    $sancionLeve = collect($sancionesData)
-                        ->filter(fn($s) => preg_match('/llamado|atenci[oó]n|advertencia|verbal|escrito/i', $s))
-                        ->join(' / ') ?: 'Llamado de Atención';
-                    $sancionGrave = collect($sancionesData)
-                        ->filter(fn($s) => preg_match('/suspensi[oó]n|terminaci[oó]n|despido/i', $s))
-                        ->join(' / ') ?: 'Suspensión / Terminación';
+                if (!empty($filas)) {
+                    $colorGrav = ['Leve' => '#15803d', 'Grave' => '#b91c1c', 'Muy grave' => '#7f1d1d'];
 
-                    $filaLeves = '';
-                    if (!empty($faltasLeves)) {
-                        $itemsLeves = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $faltasLeves));
-                        $filaLeves = '<tr>
-                            <td class="tabla-rit-tipo" style="color:#15803d;">LEVE</td>
-                            <td class="tabla-rit-conductas"><ul>' . $itemsLeves . '</ul></td>
-                            <td class="tabla-rit-sancion">' . e($sancionLeve) . '</td>
-                        </tr>';
-                    }
-                    $filaGraves = '';
-                    if (!empty($faltasGraves)) {
-                        $itemsGraves = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $faltasGraves));
-                        $filaGraves = '<tr>
-                            <td class="tabla-rit-tipo" style="color:#b91c1c;">GRAVE</td>
-                            <td class="tabla-rit-conductas"><ul>' . $itemsGraves . '</ul></td>
-                            <td class="tabla-rit-sancion">' . e($sancionGrave) . '</td>
+                    $filasHTML = '';
+                    foreach ($filas as $fila) {
+                        $color = $colorGrav[$fila['gravedad']] ?? '#374151';
+                        $items = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $fila['conductas']));
+                        $filasHTML .= '<tr>
+                            <td class="tabla-rit-tipo" style="color:' . $color . ';">' . e(mb_strtoupper($fila['gravedad'])) . '</td>
+                            <td class="tabla-rit-conductas"><ul>' . $items . '</ul></td>
+                            <td class="tabla-rit-sancion">' . e($fila['sancion']) . '</td>
                         </tr>';
                     }
 
@@ -253,7 +237,7 @@ class DocumentGeneratorService
                             <th style="width:57%;">Conductas reguladas por el Reglamento Interno</th>
                             <th style="width:28%;">Sanción aplicable</th>
                         </tr>
-                        ' . $filaLeves . $filaGraves . '
+                        ' . $filasHTML . '
                     </table>
                     <p class="tabla-rit-pie">Tabla conforme al Reglamento Interno de Trabajo de ' . e($empresa->nombre_completo) . ', de conformidad con la Ley 2466 de 2025. Toda sanción se aplicará previa garantía del debido proceso.</p>';
                 }
