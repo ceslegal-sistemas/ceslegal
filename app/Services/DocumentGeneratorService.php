@@ -984,6 +984,12 @@ HTML;
             // Limpiar el contenido (remover bloques de código markdown si existen)
             $documentoSancion = $this->limpiarContenidoHTML($documentoSancion);
 
+            // Insertar la TABLA DE SANCIONES de forma determinística (verbatim del
+            // RIT y, para "otro motivo", del CST citado textual). La IA nunca la toca.
+            if ($tipoSancion !== 'no_sancion') {
+                $documentoSancion = $this->inyectarTablaSanciones($documentoSancion, $proceso, $empresa);
+            }
+
             // Guardar el documento generado como HTML temporal
             $htmlPath = $this->guardarDocumentoSancionHTML($documentoSancion, $proceso->codigo, $tipoSancion);
 
@@ -1121,8 +1127,9 @@ HTML;
         $sancionesLaborales = trim(preg_replace('/\s+/', ' ', $sancionesLaborales));
         $hechosTexto = strip_tags($proceso->hechos);
 
-        // Construir la tabla de sanciones (Artículo 20)
-        $tablaSanciones = $this->construirTablaSancionesParaPrompt($proceso, $empresa);
+        // La tabla de sanciones NO la genera la IA (riesgo de parafraseo/invención).
+        // Se deja un marcador y se inserta verbatim (RIT/CST) después de la respuesta.
+        $tablaSanciones = '<!--TABLA_SANCIONES-->';
 
         // Incluir días de suspensión en el nombre si aplica
         $diasSuspension = $proceso->dias_suspension;
@@ -1255,12 +1262,9 @@ IMPORTANTE:
 - Sé profesional pero claro y accesible
 - NUNCA USES EMOJIS en ninguna parte del documento
 - TABLA DE SANCIONES (Artículo 20):
-  * Incluye la tabla EXACTAMENTE como se proporciona en el HTML
-  * Si hay filas con "[ANALIZA...]", reemplaza ese texto con tu análisis:
-    - Determina si la conducta es LEVE o GRAVE según su impacto
-    - Redacta una descripción clara de la conducta
-    - Determina la sanción apropiada (Llamado de Atención para leves, Suspensión o Terminación para graves)
-  * NO elimines la tabla, es parte oficial del documento
+  * En el lugar de la tabla verás el comentario <!--TABLA_SANCIONES-->.
+  * DÉJALO EXACTAMENTE ASÍ, en su misma posición, SIN modificarlo, traducirlo ni eliminarlo.
+  * NO generes ninguna tabla de sanciones por tu cuenta: el sistema insertará la tabla oficial (textual del RIT/CST) en ese punto.
 PROMPT;
     }
 
@@ -1398,19 +1402,41 @@ PROMPT;
     /**
      * Construir la tabla de sanciones (Artículo 20) para incluir en el prompt
      */
-    private function construirTablaSancionesParaPrompt(ProcesoDisciplinario $proceso, $empresa): string
+    /**
+     * Inserta la tabla de sanciones determinística donde quedó el marcador,
+     * o tras el encabezado "Artículo 20. Tabla de sanciones" si la IA lo quitó.
+     */
+    private function inyectarTablaSanciones(string $html, ProcesoDisciplinario $proceso, $empresa): string
+    {
+        $tabla = $this->construirTablaSancionesDeterministica($proceso, $empresa);
+
+        if (str_contains($html, '<!--TABLA_SANCIONES-->')) {
+            return str_replace('<!--TABLA_SANCIONES-->', $tabla, $html);
+        }
+        if (preg_match('/Art[íi]culo\s*20\.?\s*Tabla de sanciones.*?<\/h3>/is', $html, $m)) {
+            return str_replace($m[0], $m[0] . $tabla, $html);
+        }
+        return $html . $tabla; // último recurso: anexar al final
+    }
+
+    /**
+     * Construye la TABLA DE SANCIONES de forma DETERMINÍSTICA (verbatim), sin IA.
+     * Cada falta del RIT usa los datos exactos de SancionLaboral; un "otro motivo"
+     * no tipificado se ancla a un artículo del CST citado textualmente (nunca se
+     * inventa la sanción).
+     */
+    private function construirTablaSancionesDeterministica(ProcesoDisciplinario $proceso, $empresa): string
     {
         $sancionesLaborales = $proceso->sancionesLaborales;
-        $otroMotivo = $proceso->otro_motivo_descargos;
+        $otroMotivo = trim((string) $proceso->otro_motivo_descargos);
 
-        // Construir filas de la tabla
         $filasTabla = '';
 
-        // Agregar sanciones laborales seleccionadas
+        // Filas exactas del RIT (datos de la BD, sin IA).
         foreach ($sancionesLaborales as $sancion) {
-            $tipoFalta = ucfirst($sancion->tipo_falta); // "Leve" o "Grave"
-            $descripcion = $sancion->descripcion ?? $sancion->nombre_claro;
-            $tipoSancionTexto = $sancion->tipo_sancion_texto;
+            $tipoFalta = e(ucfirst($sancion->tipo_falta));
+            $descripcion = e($sancion->descripcion ?? $sancion->nombre_claro);
+            $tipoSancionTexto = e($sancion->tipo_sancion_texto);
 
             $filasTabla .= <<<HTML
     <tr>
@@ -1421,17 +1447,32 @@ PROMPT;
 HTML;
         }
 
-        // Si hay "Otro motivo", agregar instrucción para que la IA lo analice
-        $instruccionOtro = '';
-        if (!empty($otroMotivo)) {
-            $instruccionOtro = <<<HTML
+        // "Otro motivo" no tipificado en el RIT -> se ancla a un artículo del CST,
+        // citado textualmente. NUNCA se inventa la sanción.
+        if ($otroMotivo !== '') {
+            $articulo = $this->buscarArticuloCstParaTexto($otroMotivo, $empresa->id ?? null);
+            $conducta = e($otroMotivo);
+            if ($articulo) {
+                $ref = e(trim(($articulo->codigo ? $articulo->codigo . ' — ' : '') . ($articulo->titulo ?? '')));
+                $extracto = e(\Illuminate\Support\Str::limit(trim(preg_replace('/\s+/', ' ', (string) ($articulo->texto_completo ?? $articulo->descripcion ?? ''))), 320));
+                $fundamentoCol = "Fundamento legal: <strong>{$ref}</strong>. <em>{$extracto}</em>";
+                $tipoCol = 'Conforme al CST';
+            } else {
+                $fundamentoCol = 'Requiere calificación conforme al RIT/CST. No se identificó un artículo aplicable en la base legal cargada.';
+                $tipoCol = 'Por calificar';
+            }
+
+            $filasTabla .= <<<HTML
     <tr>
-      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">[ANALIZA Y DETERMINA: ¿Esta conducta es LEVE o GRAVE según su gravedad?]</td>
-      <td style="border: 1px solid #000; padding: 4px 6px;">[ANALIZA EL SIGUIENTE MOTIVO Y REDACTA UNA DESCRIPCIÓN CLARA: {$otroMotivo}]</td>
-      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center;">[DETERMINA LA SANCIÓN APROPIADA SEGÚN LA GRAVEDAD]</td>
+      <td style="border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">{$tipoCol}</td>
+      <td style="border: 1px solid #000; padding: 4px 6px;">{$conducta}</td>
+      <td style="border: 1px solid #000; padding: 4px 6px;">{$fundamentoCol}</td>
     </tr>
 HTML;
-            $filasTabla .= $instruccionOtro;
+        }
+
+        if ($filasTabla === '') {
+            $filasTabla = '<tr><td colspan="3" style="border: 1px solid #000; padding: 6px; text-align: center;">No se registraron faltas tipificadas para este proceso.</td></tr>';
         }
 
         // Construir la tabla completa
@@ -1457,6 +1498,64 @@ HTML;
     {$filasTabla}
   </table>
 HTML;
+    }
+
+    /**
+     * Busca el artículo del CST más relevante para un texto (p. ej. un "otro motivo"
+     * no tipificado), por similitud coseno sobre los embeddings de ArticuloLegal.
+     * Devuelve el artículo para citarlo TEXTUAL, sin que la IA invente la sanción.
+     */
+    private function buscarArticuloCstParaTexto(string $texto, ?int $empresaId): ?\App\Models\ArticuloLegal
+    {
+        try {
+            $emb = app(\App\Services\BibliotecaLegalService::class)->embedConsulta($texto);
+            if (empty($emb) || !is_array($emb)) {
+                return null;
+            }
+
+            $articulos = \App\Models\ArticuloLegal::query()
+                ->paraEmpresa($empresaId)
+                ->activos()
+                ->whereNotNull('embedding')
+                ->get();
+
+            $mejor = null;
+            $mejorScore = 0.40; // umbral mínimo de relevancia
+            foreach ($articulos as $a) {
+                $e = $a->embedding;
+                if (!is_array($e) || count($e) !== count($emb)) {
+                    continue;
+                }
+                $score = $this->cosenoSimilitud($emb, $e);
+                if ($score > $mejorScore) {
+                    $mejorScore = $score;
+                    $mejor = $a;
+                }
+            }
+
+            return $mejor;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('No se pudo anclar "otro motivo" al CST', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /** Similitud coseno entre dos vectores de la misma dimensión. */
+    private function cosenoSimilitud(array $a, array $b): float
+    {
+        $dot = 0.0; $na = 0.0; $nb = 0.0;
+        $n = min(count($a), count($b));
+        for ($i = 0; $i < $n; $i++) {
+            $dot += $a[$i] * $b[$i];
+            $na  += $a[$i] * $a[$i];
+            $nb  += $b[$i] * $b[$i];
+        }
+        if ($na == 0.0 || $nb == 0.0) {
+            return 0.0;
+        }
+        return $dot / (sqrt($na) * sqrt($nb));
     }
 
     /**
