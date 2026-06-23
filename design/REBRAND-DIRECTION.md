@@ -1,125 +1,139 @@
-# CES Legal — Dirección de rebrand del panel
+# CES Legal — Dirección de rebrand del panel (alineada a la marca)
 
-Guía para **diseñar en Figma** y luego implementar en el **theming de Filament**.
-Concepto: **"Trust & Authority"** — autoridad legal, confianza, serio pero moderno,
-coherente con el diferencial garantista (Constitución + jurisprudencia + CST).
+Marca: **CES + Legal Digital**. Identidad = **gradiente rojo→naranja** (crimson → naranja),
+moderna, legal-**tech** (no bufete tradicional). Guía para **diseñar en Figma** y luego
+implementar en el **theming de Filament**.
 
-> Sin emojis en la UI. Íconos: Lordicon / Heroicons.
+> Sin emojis. Íconos: Lordicon / Heroicons.
+> Los hex de marca son aproximados del logo — **muestréalos exactos con el eyedropper / MCP de Figma**.
 
 ---
 
-## 1. Paleta de color
+## 1. Color de marca (del logo)
+
+| Rol | Hex aprox. | Uso |
+|---|---|---|
+| **Marca rojo (crimson)** | `#E11D48` | Ancla primary: botones, nav activo, enlaces, foco |
+| **Marca naranja** | `#F97316` | Fin del gradiente, acentos cálidos |
+| **Gradiente de marca** | `linear-gradient(135deg, #E11D48, #F97316)` | Login, logo, CTA hero, indicador de nav activo |
+| Texto "Legal Digital" | `#6B7280` | Subtítulo/marca secundaria |
+
+**Regla de oro de usabilidad:** el rojo/naranja es **enérgico** → úsalo para **identidad y
+acciones clave**, NO para "pintar todo". La UI densa (tablas/formularios) va **neutra** (grises)
+para que no se sienta "alarma" y para que la marca **resalte** donde importa.
+
+---
+
+## 2. Neutros (la base de la UI densa)
 
 ### Modo claro
-| Rol | Hex | Uso |
-|---|---|---|
-| **Primary (navy)** | `#1E3A8A` | Botones primarios, estados activos, focus, enlaces |
-| Primary hover | `#172554` | Hover de primary |
-| **Accent / CTA (dorado legal)** | `#B45309` | Acción clave (ej. "Emitir Sanción"), resaltados |
-| Accent hover | `#92400E` | Hover del CTA |
-| Fondo app | `#F8FAFC` | Lienzo general |
-| Superficie / card | `#FFFFFF` | Tarjetas, modales, tablas |
-| **Sidebar** | `#0F1B3D` | Barra lateral navy oscuro (contraste con contenido claro) |
-| Texto principal | `#0F172A` | Títulos y cuerpo |
-| Texto atenuado | `#475569` | Secundario, helper text |
-| Borde | `#E2E8F0` | Bordes, divisores |
+| Rol | Hex |
+|---|---|
+| Fondo app | `#FAFAF9` (stone-50, cálido) |
+| Superficie / card | `#FFFFFF` |
+| Sidebar | `#FFFFFF` con borde, o **charcoal `#1C1917`** (alternativa de contraste) |
+| Texto principal | `#1C1917` |
+| Texto atenuado | `#57534E` |
+| Borde | `#E7E5E4` |
 
 ### Modo oscuro
 | Rol | Hex |
 |---|---|
-| Fondo app | `#0B1220` |
-| Superficie / card | `#111A2E` |
-| Sidebar | `#0A0F1C` |
-| Primary (acciones/enlaces) | `#3B82F6` (hover `#60A5FA`) |
-| Accent / CTA | `#F59E0B` |
-| Texto principal | `#E2E8F0` |
-| Texto atenuado | `#94A3B8` |
+| Fondo app | `#0C0A09` |
+| Superficie / card | `#1C1917` |
+| Sidebar | `#0A0908` |
+| Texto principal | `#E7E5E4` · atenuado `#A8A29E` |
 | Borde | `rgba(255,255,255,0.10)` |
+| Marca (más brillante) | rojo `#FB7185` · naranja `#FB923C` |
 
-### Semánticos (light / dark) — para badges y estados
-| Estado | Light | Dark |
-|---|---|---|
-| Éxito (No sancionar / OK) | `#15803D` | `#22C55E` |
-| Advertencia (Grave / suspensión) | `#B45309` | `#F59E0B` |
-| Peligro (Muy grave / terminación) | `#B91C1C` | `#F87171` |
-| Info (Leve / llamado) | `#1E40AF` | `#60A5FA` |
-
-> Los badges de sanción ya usan estos colores → el rebrand queda consistente con lo construido.
+> Neutros **cálidos (stone)**, no fríos (slate), para armonizar con el rojo/naranja.
 
 ---
 
-## 2. Tipografía
+## 3. Semánticos — OJO con la usabilidad
+
+El rojo/naranja de marca **colisiona** con los colores de estado. Para no confundir:
+
+| Estado | Light | Nota |
+|---|---|---|
+| Info (leve / informativo) | `#2563EB` azul | **Frío**, contrasta con la marca cálida |
+| Éxito (no sancionar / ok) | `#16A34A` verde | — |
+| Advertencia (grave / suspensión) | `#F59E0B` ámbar | Cercano a la marca → **acompañar con ícono + texto** |
+| Peligro (muy grave / terminación) | `#DC2626` rojo | Cercano a la marca → **reservar a acciones destructivas**, con ícono |
+
+**Principio:** como advertencia/peligro quedan cerca del rojo de marca, el estado **nunca** se
+comunica solo por color → siempre **ícono + etiqueta** (también es buena práctica de accesibilidad).
+Los badges de gravedad ya construidos (leve=azul, grave=ámbar, muy grave=rojo, no sancionar=verde)
+ya siguen esto → el rebrand queda consistente.
+
+---
+
+## 4. Tipografía (legal-tech, moderna)
 
 | Rol | Fuente | Dónde |
 |---|---|---|
-| **Display / Marca** | **EB Garamond** (serif) | Título del login "CES Legal", marca del sidebar, H1 de páginas clave |
-| **UI / Cuerpo** | **Lato** (sans) | Tablas, formularios, labels, botones, casi todo el panel |
-| Código de proceso | tabular / mono opcional | `PD-2026-0039` con números tabulares |
+| **Display / Marca / Títulos** | **Space Grotesk** (o Sora) | Login, H1/H2, marca del sidebar |
+| **UI / Cuerpo** | **Inter** | Tablas, formularios, labels, botones (denso y legible) |
+| Código de proceso | números tabulares | `PD-2026-0039` |
 
-Import:
 ```css
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500;600;700&family=Lato:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 ```
-
-Regla: el **serif es acento de autoridad** (marca, login, encabezados), no para tablas/formularios
-densos (ahí Lato, más legible). Interlineado cuerpo 1.5–1.6; línea 65–75 caracteres.
+> Se descarta el serif (EB Garamond): la marca es **"Legal Digital"**, moderna. Una sans
+> geométrica comunica mejor el posicionamiento tech sin perder seriedad.
 
 ---
 
-## 3. Estilo de componentes
+## 5. Estilo de componentes
 
-- **Sidebar:** navy oscuro, ítem activo con **barra dorada a la izquierda** + texto/ícono claro;
-  íconos Lordicon/Heroicons consistentes (24×24). Agrupar por: Operación, Configuración, Empresa.
-- **Topbar:** clara, borde sutil inferior, breadcrumbs, menú de usuario a la derecha.
+- **Sidebar:** blanco (o charcoal). Ítem activo: **barra/realce con gradiente de marca** + ícono.
+  Agrupar por: Operación · Configuración · Empresa.
+- **Topbar:** clara, borde inferior sutil, breadcrumbs, menú de usuario.
 - **Botones:** radio 8–10px, transición 150–200ms.
-  - Primary = navy sólido · **CTA = dorado** (solo acciones clave) · Secundario = outline slate · Peligro = rojo.
-- **Cards:** blanco, borde `#E2E8F0`, sombra suave, radio 12–14px. Dark: superficie + borde tenue.
-- **Badges:** pill con fondo tintado suave + texto del color (leve/grave/muy grave, estados). Ya definidos.
-- **Tablas:** header fijo, hover de fila, filas cómodas (44px+), estados como badges, acciones a la derecha.
-- **Formularios:** secciones en cards, label claro, helper atenuado, **focus ring navy**, validación cerca del campo.
+  - **Primary = rojo de marca sólido** · **CTA hero = gradiente** (solo acción estrella, ej. "Emitir Sanción")
+    · Secundario = outline neutro · **Peligro = `#DC2626`** (destructivo).
+- **Cards:** blanco, borde `#E7E5E4`, sombra suave, radio 12–14px.
+- **Badges:** pill tintado suave + texto del color (gravedad/estado). Ya definidos.
+- **Tablas:** header fijo, hover de fila, filas 44px+, estados como badges, acciones a la derecha.
+- **Formularios:** secciones en cards, label claro, helper atenuado, **focus ring rojo de marca**.
+- **Toques de marca:** una línea/acento con el **gradiente** en headers de página o el login —
+  con moderación, para identidad sin saturar.
 
 ---
 
-## 4. Pantallas a diseñar en Figma (frames)
+## 6. Pantallas a diseñar en Figma (1440px + 375px)
 
-Diseña a **1440px** (desktop) y **375px** (responsive). Prioridad:
-
-1. **Login** — split: panel izquierdo navy con "CES Legal" en EB Garamond + tagline
-   (*"Procesos disciplinarios con respaldo constitucional"*); derecha, formulario limpio.
-2. **Dashboard** — tarjetas de indicadores (Procesos activos, En descargos, Sanciones emitidas,
-   RIT vigentes), actividad reciente, accesos rápidos.
-3. **Listado de recurso** (Procesos Disciplinarios) — tabla con badges de estado + acciones.
-4. **Formulario / wizard** (crear proceso / emitir sanción) — secciones, badges de sanción.
+1. **Login** — split: panel con **gradiente de marca** + logo CES, derecha formulario limpio.
+2. **Dashboard** — tarjetas de indicadores (Procesos activos, En descargos, Sanciones, RIT), actividad.
+3. **Listado** (Procesos Disciplinarios) — tabla con badges + acciones.
+4. **Formulario / wizard** (emitir sanción) — secciones, badges de sanción.
 5. **Estados** — vacío, cargando (skeleton), error.
 
 ---
 
-## 5. Tokens en Figma (para que la implementación sea directa)
+## 7. Tokens en Figma (para mapear 1:1 a Filament)
 
-- **Color styles:** crea los hex de arriba como estilos, nombrados por rol
-  (`primary/600`, `accent/cta`, `surface`, `text/strong`, `text/muted`, `border`, `success`…),
-  con su variante **light** y **dark**.
-- **Text styles:** Display, H1, H2, H3, Body, Label, Caption (con EB Garamond / Lato).
+- **Color styles** por **rol** (no por color): `brand/red`, `brand/orange`, `brand/gradient`,
+  `surface`, `text/strong`, `text/muted`, `border`, `info`, `success`, `warning`, `danger` —
+  con variante **light** y **dark**.
+- **Text styles:** Display, H1, H2, H3, Body, Label, Caption (Space Grotesk / Inter).
 - **Componentes:** Button (variants), Badge (variants), Card, Sidebar item, Input, Table row.
 
-> Mantener nombres por **rol** (no por color) facilita mapearlos 1:1 al tema de Filament.
+---
+
+## 8. Implementación en Filament (lo hago yo después)
+
+- `AdminPanelProvider`: `->colors(['primary' => Color::hex('#E11D48'), 'danger' => Color::hex('#DC2626'),
+  'warning' => …, 'info' => …, 'gray' => Color::Stone])`, `->brandName('CES Legal')`,
+  `->brandLogo(...)`, `->font('Inter')`.
+- **Custom theme** (Tailwind/CSS): Space Grotesk en marca/títulos, gradiente de marca en login y
+  nav activo, radios/sombras/badges, neutros stone.
+- **Login** y **dashboard** con branding personalizado. Dark mode con la sección 2.
 
 ---
 
-## 6. Cómo se implementa después en Filament (referencia)
-
-Cuando el diseño esté listo, yo lo aplico así (no necesitas hacerlo tú):
-
-- `AdminPanelProvider`: `->colors(['primary' => Color::hex('#1E3A8A'), 'warning' => …])`,
-  `->brandName('CES Legal')`, `->brandLogo(...)`, `->font('Lato')`.
-- **Custom theme** de Filament (Tailwind/CSS) para: EB Garamond en marca/login, sidebar navy,
-  radios, sombras, badges y ajustes finos.
-- **Login** y **dashboard** vía vistas/branding personalizados.
-- Dark mode con las variables de la sección 1.
-
----
-
-### Anti-patrones a evitar (del análisis)
-- Diseño anticuado o recargado.
-- Gradientes morado/rosa tipo "IA genérica" (rompen la seriedad legal).
-- Esconder el respaldo jurídico: el branding debe **reforzar** "anclado en la ley".
+### Anti-patrones a evitar
+- Pintar la UI entera de rojo/naranja (fatiga visual + parece "todo error").
+- Gradientes morado/rosa "IA genérica" ajenos a la marca.
+- Comunicar estados **solo con color** (chocan con el rojo de marca) → usar ícono + etiqueta.
+- Tipografía o estilo anticuado que contradiga el posicionamiento "digital".
