@@ -60,6 +60,13 @@ return [
         'api_version'          => env('WHATSAPP_API_VERSION', 'v20.0'),
     ],
 
+    // Ruta de prueba de carga /__cap-test (oculta). Apagada salvo en el entorno de
+    // pruebas: CAP_TEST_ENABLED=true + CAP_TEST_TOKEN=<secreto>  → optimize:clear.
+    'cap_test' => [
+        'enabled' => env('CAP_TEST_ENABLED', false),
+        'token'   => env('CAP_TEST_TOKEN', ''),
+    ],
+
     'ia' => [
         'provider' => env('IA_PROVIDER', 'gemini'),
         // Registro opt-in de tokens de Gemini (para el reporte de costos).

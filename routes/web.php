@@ -14,6 +14,21 @@ Route::get('/', function () {
     return view('landing');
 });
 
+// ── Ruta de PRUEBA DE CARGA (oculta) ─────────────────────────────────────────
+// Simula la ocupación de proceso de un envío de descargos (usleep ~3.2s) SIN
+// llamar a Gemini, para medir el tope real de peticiones pesadas concurrentes.
+// Apagada por defecto: requiere CAP_TEST_ENABLED=true y el token correcto.
+Route::get('/__cap-test', function (\Illuminate\Http\Request $request) {
+    abort_unless((bool) config('services.cap_test.enabled'), 404);
+    abort_unless(
+        hash_equals((string) config('services.cap_test.token'), (string) $request->query('token')),
+        403
+    );
+    $ms = min(10000, max(0, (int) $request->query('ms', 3200)));
+    usleep($ms * 1000);
+    return response()->json(['ok' => true, 'slept_ms' => $ms, 'pid' => getmypid()]);
+});
+
 // PayU — URL de confirmación server-to-server (sin CSRF, sin auth)
 Route::post('/payu/confirmacion', [PayUConfirmationController::class, 'handle'])
     ->name('payu.confirmacion')
