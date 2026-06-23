@@ -62,6 +62,17 @@ class AppServiceProvider extends ServiceProvider
                         preg_match('#/models/([^:/]+):(\w+)#', $url, $m);
                         $prompt = (int) ($usage['promptTokenCount'] ?? 0);
                         $salida = (int) ($usage['candidatesTokenCount'] ?? 0);
+
+                        // Servicio/Job que originó la llamada (para etiquetar el paso del flujo).
+                        $fuente = null;
+                        foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 40) as $frame) {
+                            $cls = $frame['class'] ?? '';
+                            if (str_starts_with($cls, 'App\\Services\\') || str_starts_with($cls, 'App\\Jobs\\')) {
+                                $fuente = class_basename($cls);
+                                break;
+                            }
+                        }
+
                         $linea  = json_encode([
                             'ts'     => now()->toIso8601String(),
                             'modelo' => $m[1] ?? 'desconocido',
@@ -69,6 +80,7 @@ class AppServiceProvider extends ServiceProvider
                             'prompt' => $prompt,
                             'salida' => $salida,
                             'total'  => (int) ($usage['totalTokenCount'] ?? ($prompt + $salida)),
+                            'fuente' => $fuente,
                             'ruta'   => request() ? request()->path() : 'cli',
                         ], JSON_UNESCAPED_UNICODE);
                         @file_put_contents(storage_path('logs/ia-tokens.jsonl'), $linea . PHP_EOL, FILE_APPEND);

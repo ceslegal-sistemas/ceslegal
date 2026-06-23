@@ -74,6 +74,7 @@ class ReporteTokens extends Command
         $filasDetalle = [];
         $totIn = 0; $totOut = 0; $totCost = 0.0;
         $porModelo = [];
+        $porPaso = [];
 
         foreach ($registros as $r) {
             $modelo = $r['modelo'] ?? 'desconocido';
@@ -81,6 +82,7 @@ class ReporteTokens extends Command
             $out = (int) ($r['salida'] ?? 0);
             $p = $precio[$modelo] ?? null;
             $costo = $p ? ($in / 1e6 * $p['in']) + ($out / 1e6 * $p['out']) : 0.0;
+            $paso = $this->paso($r);
 
             $totIn += $in; $totOut += $out; $totCost += $costo;
 
@@ -90,19 +92,40 @@ class ReporteTokens extends Command
             $porModelo[$modelo]['costo'] += $costo;
             $porModelo[$modelo]['n']++;
 
+            $porPaso[$paso] ??= ['in' => 0, 'out' => 0, 'costo' => 0.0, 'n' => 0];
+            $porPaso[$paso]['in']  += $in;
+            $porPaso[$paso]['out'] += $out;
+            $porPaso[$paso]['costo'] += $costo;
+            $porPaso[$paso]['n']++;
+
             $filasDetalle[] = [
                 substr($r['ts'] ?? '', 11, 8),
                 $modelo . ($r['metodo'] === 'embedContent' ? ' (emb)' : ''),
                 number_format($in),
                 number_format($out),
                 $p ? '$' . number_format($costo, 5) : 'n/d',
-                \Illuminate\Support\Str::limit($r['ruta'] ?? '', 28),
+                $paso,
             ];
         }
 
         $this->newLine();
         $this->info('DETALLE POR LLAMADA (orden cronológico = pasos del flujo)');
-        $this->table(['Hora', 'Modelo', 'Entrada', 'Salida', 'Costo USD', 'Ruta'], $filasDetalle);
+        $this->table(['Hora', 'Modelo', 'Entrada', 'Salida', 'Costo USD', 'Paso'], $filasDetalle);
+
+        // ── Resumen por paso del flujo ─────────────────────────────────────────
+        $filasPaso = [];
+        foreach ($porPaso as $paso => $d) {
+            $filasPaso[] = [
+                $paso,
+                $d['n'],
+                number_format($d['in']),
+                number_format($d['out']),
+                '$' . number_format($d['costo'], 5),
+            ];
+        }
+        $this->newLine();
+        $this->info('RESUMEN POR PASO DEL FLUJO');
+        $this->table(['Paso', 'Llamadas', 'Tokens entrada', 'Tokens salida', 'Costo USD'], $filasPaso);
 
         // ── Resumen por modelo ─────────────────────────────────────────────────
         $filasModelo = [];
@@ -137,5 +160,46 @@ class ReporteTokens extends Command
             . ' · lite in ' . $this->option('in-lite') . ' / out ' . $this->option('out-lite') . '. Verifícalos en ai.google.dev/pricing.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Etiqueta del paso del flujo. Usa la fuente (servicio/Job) si el registro la
+     * tiene; para registros viejos sin fuente, infiere por tamaño de tokens (≈).
+     */
+    private function paso(array $r): string
+    {
+        $mapa = [
+            'EvaluacionHechosService'      => 'Análisis de hechos',
+            'IADescargoService'            => 'Descargos (preguntas/feedback)',
+            'GenerarPreguntasDinamicasJob' => 'Preguntas de descargos',
+            'IAAnalisisSancionService'     => 'Análisis de sanción',
+            'DocumentGeneratorService'     => 'Documento de sanción',
+            'RITGeneratorService'          => 'Generación de RIT',
+            'RITMejoradoService'           => 'Generación de RIT',
+            'GenerarTextoRITJob'           => 'Generación de RIT',
+            'GenerarRITMejoradoJob'        => 'Generación de RIT',
+            'AuditoriaRITService'          => 'Auditoría de RIT',
+            'BibliotecaLegalService'       => 'Embedding / RAG',
+            'JurisprudenciaScraperService' => 'Jurisprudencia (extracto)',
+        ];
+
+        $fuente = $r['fuente'] ?? null;
+        if ($fuente) {
+            return $mapa[$fuente] ?? $fuente;
+        }
+
+        // Heurística para registros sin fuente (capturados antes de esta mejora).
+        if (($r['metodo'] ?? '') === 'embedContent') {
+            return 'Embedding ≈';
+        }
+        $in  = (int) ($r['prompt'] ?? 0);
+        $out = (int) ($r['salida'] ?? 0);
+        return match (true) {
+            $out >= 9000 => 'Generación de RIT ≈',
+            $in  >= 8000 => 'Análisis de sanción ≈',
+            $out >= 3000 => 'Documento de sanción ≈',
+            $out >= 1200 => 'Preguntas/hechos ≈',
+            default      => 'Otro ≈',
+        };
     }
 }
