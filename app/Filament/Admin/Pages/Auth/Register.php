@@ -30,6 +30,8 @@ use Illuminate\Support\HtmlString;
  */
 class Register extends BaseRegister
 {
+    protected static string $view = 'filament.admin.pages.auth.register';
+
     protected ?string $maxWidth = '4xl';
 
     /** URL de checkout PayU; vacía = ir al panel admin. */

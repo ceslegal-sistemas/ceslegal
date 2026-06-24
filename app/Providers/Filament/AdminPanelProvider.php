@@ -90,8 +90,9 @@ class AdminPanelProvider extends PanelProvider
             .ces-auth-sub{ font-weight:600; letter-spacing:5px; font-size:16px; opacity:.92; margin-top:6px; }
             .ces-auth-tag{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:30px; line-height:1.25; margin:0 0 14px; }
             .ces-auth-cap{ font-size:15px; line-height:1.55; opacity:.85; margin:0; max-width:34ch; }
-            .ces-auth-main{ flex:1; display:flex; align-items:center; justify-content:center; overflow:auto; padding:40px; }
-            .ces-auth-card{ width:100%; max-width:400px; }
+            .ces-auth-main{ flex:1; display:flex; overflow:auto; padding:48px 40px; }
+            .ces-auth-card{ width:100%; max-width:400px; margin:auto; }
+            .ces-auth-card--wide{ max-width:640px; }
             .ces-auth-logo-img{ height:44px; width:auto; margin-bottom:28px; display:block; }
             .ces-auth-title{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:30px; color:#1C1917; margin:0 0 6px; }
             html.dark .ces-auth-title{ color:#E7E5E4; }
