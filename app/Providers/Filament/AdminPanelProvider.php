@@ -76,6 +76,27 @@ class AdminPanelProvider extends PanelProvider
             /* Login con fondo cálido (stone) */
             .fi-simple-layout{ background:#FAFAF9; }
             html.dark .fi-simple-layout{ background:#0C0A09; }
+
+            /* ── Login split-screen CES Legal ── */
+            .ces-auth-root{ position:fixed; inset:0; display:flex; background:#FAFAF9; z-index:10; }
+            html.dark .ces-auth-root{ background:#0C0A09; }
+            .ces-auth-brand{
+                width:42%; max-width:640px; flex-shrink:0; color:#fff;
+                background-image:var(--ces-grad);
+                display:flex; flex-direction:column; justify-content:space-between;
+                padding:72px 64px;
+            }
+            .ces-auth-logo{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:64px; line-height:1; }
+            .ces-auth-sub{ font-weight:600; letter-spacing:5px; font-size:16px; opacity:.92; margin-top:6px; }
+            .ces-auth-tag{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:30px; line-height:1.25; margin:0 0 14px; }
+            .ces-auth-cap{ font-size:15px; line-height:1.55; opacity:.85; margin:0; max-width:34ch; }
+            .ces-auth-main{ flex:1; display:flex; align-items:center; justify-content:center; overflow:auto; padding:40px; }
+            .ces-auth-card{ width:100%; max-width:400px; }
+            .ces-auth-title{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:30px; color:#1C1917; margin:0 0 6px; }
+            html.dark .ces-auth-title{ color:#E7E5E4; }
+            .ces-auth-lead{ color:#78716C; font-size:15px; margin:0 0 26px; }
+            .ces-auth-foot{ margin-top:18px; font-size:13.5px; color:#78716C; }
+            @media (max-width:900px){ .ces-auth-brand{ display:none; } .ces-auth-main{ padding:24px; } }
             </style>
             HTML,
         );
@@ -138,7 +159,7 @@ class AdminPanelProvider extends PanelProvider
             ->font('Inter')
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(\App\Filament\Admin\Pages\Auth\Login::class)
             ->registration(\App\Filament\Admin\Pages\Auth\Register::class)
             ->passwordReset()
             // Rebrand CES Legal — rojo de marca + neutros cálidos (stone) + semánticos
