@@ -73,6 +73,16 @@ class AdminPanelProvider extends PanelProvider
             .fi-sidebar-item-active > .fi-sidebar-item-button .fi-sidebar-item-label,
             .fi-sidebar-item-active > .fi-sidebar-item-button .fi-sidebar-item-icon{ color:#fff !important; }
             .fi-sidebar-item-active > .fi-sidebar-item-button:hover{ filter:brightness(1.04); }
+            /* Tarjetas de indicadores del dashboard — polish de marca */
+            .fi-wi-stats-overview-stat{
+                border-radius:16px;
+                transition:transform .15s ease, box-shadow .15s ease;
+            }
+            .fi-wi-stats-overview-stat:hover{
+                transform:translateY(-2px);
+                box-shadow:0 10px 28px rgba(28,25,23,0.07);
+            }
+
             /* Login con fondo cálido (stone) */
             .fi-simple-layout{ background:#FAFAF9; }
             html.dark .fi-simple-layout{ background:#0C0A09; }
