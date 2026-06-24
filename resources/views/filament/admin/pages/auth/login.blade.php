@@ -14,6 +14,7 @@
 
     <main class="ces-auth-main">
         <div class="ces-auth-card">
+            <img src="{{ asset('images/ces-legal-logo.png') }}" alt="CES Legal" class="ces-auth-logo-img">
             <h1 class="ces-auth-title">Bienvenido de vuelta</h1>
             <p class="ces-auth-lead">Ingrese a su panel de CES Legal.</p>
 
