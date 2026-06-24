@@ -303,7 +303,7 @@
                 'info': '#3b82f6',
                 'warning': '#eab308',
                 'success': '#22c55e',
-                'primary': '#6366f1',
+                'primary': '#f97316',
                 'gray': '#6b7280',
             };
 

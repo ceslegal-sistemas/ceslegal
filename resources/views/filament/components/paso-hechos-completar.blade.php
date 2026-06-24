@@ -5,14 +5,14 @@
 <style>
     .phc-wrap {
         border-radius: .75rem;
-        background: rgba(99,102,241,.05);
-        border: 1px solid rgba(99,102,241,.18);
+        background: rgba(251,113,133,.05);
+        border: 1px solid rgba(251,113,133,.18);
         margin-top: .375rem;
         overflow: hidden;
     }
     html:not(.dark) .phc-wrap {
-        background: rgba(79,70,229,.04);
-        border-color: rgba(79,70,229,.15);
+        background: rgba(225,29,72,.04);
+        border-color: rgba(225,29,72,.15);
     }
 
     /* Header */
@@ -21,7 +21,7 @@
         align-items: center;
         justify-content: space-between;
         padding: .5rem .875rem;
-        border-bottom: 1px solid rgba(99,102,241,.12);
+        border-bottom: 1px solid rgba(251,113,133,.12);
         gap: .5rem;
     }
     .phc-header-left {
@@ -34,7 +34,7 @@
         text-transform: uppercase;
         color: #818cf8;
     }
-    html:not(.dark) .phc-header-left { color: #4f46e5; }
+    html:not(.dark) .phc-header-left { color: #e11d48; }
     .phc-badge {
         display: inline-flex;
         align-items: center;
@@ -45,10 +45,10 @@
         padding: 0 5px;
         font-size: .65rem;
         font-weight: 700;
-        background: rgba(99,102,241,.18);
+        background: rgba(251,113,133,.18);
         color: #a5b4fc;
     }
-    html:not(.dark) .phc-badge { background: rgba(79,70,229,.12); color: #4338ca; }
+    html:not(.dark) .phc-badge { background: rgba(225,29,72,.12); color: #be123c; }
 
     /* Nav buttons */
     .phc-nav { display: flex; align-items: center; gap: .25rem; }
@@ -58,15 +58,15 @@
         justify-content: center;
         width: 22px; height: 22px;
         border-radius: .35rem;
-        border: 1px solid rgba(99,102,241,.25);
+        border: 1px solid rgba(251,113,133,.25);
         background: transparent;
         color: #818cf8;
         cursor: pointer;
         transition: background .12s;
     }
     .phc-nav-btn:disabled { opacity: .3; cursor: default; }
-    .phc-nav-btn:not(:disabled):hover { background: rgba(99,102,241,.14); }
-    html:not(.dark) .phc-nav-btn { color: #4f46e5; border-color: rgba(79,70,229,.2); }
+    .phc-nav-btn:not(:disabled):hover { background: rgba(251,113,133,.14); }
+    html:not(.dark) .phc-nav-btn { color: #e11d48; border-color: rgba(225,29,72,.2); }
     .phc-nav-pos { font-size: .7rem; color: #64748b; min-width: 28px; text-align: center; }
 
     /* Body */
@@ -90,16 +90,16 @@
         border-radius: 2rem;
         font-size: .78rem; font-weight: 500;
         cursor: pointer;
-        border: 1px solid rgba(99,102,241,.3);
-        background: rgba(99,102,241,.08);
+        border: 1px solid rgba(251,113,133,.3);
+        background: rgba(251,113,133,.08);
         color: #a5b4fc;
         transition: background .12s, border-color .12s, color .12s, transform .08s;
         user-select: none;
     }
-    .phc-chip:hover { background: rgba(99,102,241,.18); border-color: rgba(99,102,241,.55); color: #c7d2fe; transform: translateY(-1px); }
+    .phc-chip:hover { background: rgba(251,113,133,.18); border-color: rgba(251,113,133,.55); color: #fecdd3; transform: translateY(-1px); }
     .phc-chip:active { transform: scale(.96); }
-    html:not(.dark) .phc-chip { border-color: rgba(79,70,229,.25); background: rgba(79,70,229,.07); color: #4338ca; }
-    html:not(.dark) .phc-chip:hover { background: rgba(79,70,229,.14); border-color: rgba(79,70,229,.5); color: #3730a3; }
+    html:not(.dark) .phc-chip { border-color: rgba(225,29,72,.25); background: rgba(225,29,72,.07); color: #be123c; }
+    html:not(.dark) .phc-chip:hover { background: rgba(225,29,72,.14); border-color: rgba(225,29,72,.5); color: #3730a3; }
 
     /* Otra opción */
     .phc-btn-otra {
@@ -120,22 +120,22 @@
         flex: 1; min-width: 150px;
         padding: .3rem .65rem; border-radius: .4rem;
         font-size: .8125rem;
-        border: 1px solid rgba(99,102,241,.35);
-        background: rgba(99,102,241,.06); color: #e2e8f0;
+        border: 1px solid rgba(251,113,133,.35);
+        background: rgba(251,113,133,.06); color: #e2e8f0;
         outline: none; transition: border-color .12s;
     }
-    .phc-custom-input:focus { border-color: rgba(99,102,241,.7); }
-    html:not(.dark) .phc-custom-input { background: #fff; border-color: rgba(79,70,229,.3); color: #0f172a; }
+    .phc-custom-input:focus { border-color: rgba(251,113,133,.7); }
+    html:not(.dark) .phc-custom-input { background: #fff; border-color: rgba(225,29,72,.3); color: #0f172a; }
     .phc-btn-aplicar {
         display: inline-flex; align-items: center; gap: .25rem;
         padding: .3rem .7rem; border-radius: .4rem;
         font-size: .75rem; font-weight: 600; cursor: pointer;
-        border: 1px solid rgba(99,102,241,.5);
-        background: rgba(99,102,241,.15); color: #a5b4fc;
+        border: 1px solid rgba(251,113,133,.5);
+        background: rgba(251,113,133,.15); color: #a5b4fc;
         transition: background .12s; white-space: nowrap;
     }
-    .phc-btn-aplicar:hover { background: rgba(99,102,241,.28); }
-    html:not(.dark) .phc-btn-aplicar { background: rgba(79,70,229,.1); color: #4338ca; border-color: rgba(79,70,229,.4); }
+    .phc-btn-aplicar:hover { background: rgba(251,113,133,.28); }
+    html:not(.dark) .phc-btn-aplicar { background: rgba(225,29,72,.1); color: #be123c; border-color: rgba(225,29,72,.4); }
 
     [x-cloak] { display: none !important; }
 </style>

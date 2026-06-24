@@ -26,19 +26,19 @@ html:not(.dark) .rit-hero{background:#fff;border:1px solid rgba(0,0,0,.07);box-s
 .rit-orb-g{position:absolute;width:200px;height:200px;bottom:-60px;left:-40px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.2),transparent 70%);filter:blur(24px);pointer-events:none;animation:rit-fg 18s ease-in-out infinite}
 @keyframes rit-fb{0%,100%{transform:translate(0,0)}40%{transform:translate(-18px,14px)}70%{transform:translate(12px,-10px)}}
 @keyframes rit-fg{0%,100%{transform:translate(0,0)}35%{transform:translate(14px,-16px)}65%{transform:translate(-10px,8px)}}
-html:not(.dark) .rit-orb-b{background:radial-gradient(circle,rgba(99,102,241,.15),transparent 70%)!important}
+html:not(.dark) .rit-orb-b{background:radial-gradient(circle,rgba(251,113,133,.15),transparent 70%)!important}
 html:not(.dark) .rit-orb-g{background:radial-gradient(circle,rgba(201,168,76,.18),transparent 70%)!important}
 .rit-overlay{position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 80% 90% at 50% 50%,rgba(3,8,20,.75) 0%,rgba(3,8,20,.4) 55%,transparent 100%)}
 html:not(.dark) .rit-overlay{background:radial-gradient(ellipse 75% 85% at 50% 40%,rgba(255,255,255,.75) 0%,rgba(255,255,255,.35) 55%,transparent 100%)}
 .rit-badge{display:inline-flex;align-items:center;gap:.4rem;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.35rem .9rem;border-radius:2rem;border:1px solid}
-.rit-badge-ia{background:rgba(99,102,241,.13);border-color:rgba(99,102,241,.3);color:#a5b4fc}
-html:not(.dark) .rit-badge-ia{background:rgba(79,70,229,.08);border-color:rgba(79,70,229,.2);color:#4338ca}
+.rit-badge-ia{background:rgba(251,113,133,.13);border-color:rgba(251,113,133,.3);color:#a5b4fc}
+html:not(.dark) .rit-badge-ia{background:rgba(225,29,72,.08);border-color:rgba(225,29,72,.2);color:#be123c}
 .rit-badge-sub{background:rgba(34,197,94,.11);border-color:rgba(34,197,94,.28);color:#86efac}
 html:not(.dark) .rit-badge-sub{background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.22);color:#166534}
 .rit-badge-none{background:rgba(100,116,139,.1);border-color:rgba(100,116,139,.25);color:#94a3b8}
 html:not(.dark) .rit-badge-none{background:rgba(100,116,139,.07);border-color:rgba(100,116,139,.2);color:#475569}
-.rit-badge-gen{background:rgba(99,102,241,.13);border-color:rgba(99,102,241,.3);color:#a5b4fc}
-html:not(.dark) .rit-badge-gen{background:rgba(79,70,229,.08);border-color:rgba(79,70,229,.2);color:#4338ca}
+.rit-badge-gen{background:rgba(251,113,133,.13);border-color:rgba(251,113,133,.3);color:#a5b4fc}
+html:not(.dark) .rit-badge-gen{background:rgba(225,29,72,.08);border-color:rgba(225,29,72,.2);color:#be123c}
 .rit-title{font-size:1.25rem;font-weight:700;color:#f1f5f9;margin:.5rem 0 .25rem;letter-spacing:-.015em}
 html:not(.dark) .rit-title{color:#0f172a}
 .rit-sub{font-size:.8125rem;color:#94a3b8;margin:0}
@@ -46,8 +46,8 @@ html:not(.dark) .rit-sub{color:#475569}
 .rit-actions{display:flex;flex-wrap:wrap;gap:.625rem;margin-top:1.25rem;position:relative;z-index:2}
 .rit-btn{display:inline-flex;align-items:center;gap:.5rem;font-size:.8125rem;font-weight:600;padding:.55rem 1.125rem;border-radius:.625rem;border:1px solid;cursor:pointer;text-decoration:none;transition:opacity .15s}
 .rit-btn:hover{opacity:.85}
-.rit-btn-primary{background:rgba(99,102,241,.18);border-color:rgba(99,102,241,.35);color:#c7d2fe}
-html:not(.dark) .rit-btn-primary{background:rgba(79,70,229,.1);border-color:rgba(79,70,229,.25);color:#4338ca}
+.rit-btn-primary{background:rgba(251,113,133,.18);border-color:rgba(251,113,133,.35);color:#fecdd3}
+html:not(.dark) .rit-btn-primary{background:rgba(225,29,72,.1);border-color:rgba(225,29,72,.25);color:#be123c}
 .rit-btn-secondary{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15);color:#e2e8f0}
 html:not(.dark) .rit-btn-secondary{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1);color:#374151}
 .rit-btn-success{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.28);color:#86efac}
@@ -64,14 +64,14 @@ html:not(.dark) .rit-viewer-body{background:#fafafa}
 .rit-text{white-space:normal;font-family:'Georgia','Times New Roman',serif;font-size:.875rem;line-height:1.9;color:#cbd5e1;word-break:break-word}
 html:not(.dark) .rit-text{color:#1e293b}
 .rit-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3.5rem 2rem;text-align:center}
-.rit-empty-icon{width:56px;height:56px;border-radius:50%;background:rgba(99,102,241,.12);border:1.5px solid rgba(99,102,241,.25);display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
+.rit-empty-icon{width:56px;height:56px;border-radius:50%;background:rgba(251,113,133,.12);border:1.5px solid rgba(251,113,133,.25);display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
 .rit-empty-title{font-size:1.0625rem;font-weight:700;color:#f1f5f9;margin:0 0 .4rem}
 html:not(.dark) .rit-empty-title{color:#0f172a}
 .rit-empty-sub{font-size:.825rem;color:#64748b;margin:0 0 1.5rem;max-width:380px}
 /* Shimmer generando */
 @keyframes rit-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.rit-shimmer-line{border-radius:6px;background:linear-gradient(90deg,rgba(99,102,241,.08) 25%,rgba(99,102,241,.18) 50%,rgba(99,102,241,.08) 75%);background-size:200% 100%;animation:rit-shimmer 2.2s ease-in-out infinite}
-html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(99,102,241,.06) 25%,rgba(99,102,241,.14) 50%,rgba(99,102,241,.06) 75%);background-size:200% 100%;animation:rit-shimmer 2.2s ease-in-out infinite}
+.rit-shimmer-line{border-radius:6px;background:linear-gradient(90deg,rgba(251,113,133,.08) 25%,rgba(251,113,133,.18) 50%,rgba(251,113,133,.08) 75%);background-size:200% 100%;animation:rit-shimmer 2.2s ease-in-out infinite}
+html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(251,113,133,.06) 25%,rgba(251,113,133,.14) 50%,rgba(251,113,133,.06) 75%);background-size:200% 100%;animation:rit-shimmer 2.2s ease-in-out infinite}
 @keyframes rit-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 </style>
 

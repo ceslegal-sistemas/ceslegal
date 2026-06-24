@@ -688,7 +688,7 @@
                 <lord-icon src="{{ $heroIcon }}" trigger="loop" delay="500" stroke="bold"
                     colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
                     data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                    data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                    data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                     style="width:50px;height:50px;flex-shrink:0">
                 </lord-icon>
             </div>
@@ -735,7 +735,7 @@
             <lord-icon src="https://cdn.lordicon.com/moedrfvp.json" trigger="loop" delay="500" stroke="bold"
                 colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
                 data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                 style="width:28px;height:28px;flex-shrink:0">
             </lord-icon>
             <span class="bv-next-hint-text">

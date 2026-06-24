@@ -385,11 +385,11 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                     $sc = $scMap[$s] ?? [
                         'label'      => ucfirst(str_replace('_', ' ', $s)),
                         'accent'     => '#818cf8',
-                        'accentLight'=> '#4338ca',
+                        'accentLight'=> '#be123c',
                         'glow'       => 'rgba(129,140,248,0.08)',
                         'border'     => 'rgba(129,140,248,0.28)',
                         'lord'       => 'edcgvlnw.json',
-                        'lordColors' => 'primary:#818cf8,secondary:#c7d2fe',
+                        'lordColors' => 'primary:#818cf8,secondary:#fecdd3',
                     ];
                     $esPrincipal  = ($s === $sancionPrincipal);
                     $delay        = 1000 + ($loop->index * 250);

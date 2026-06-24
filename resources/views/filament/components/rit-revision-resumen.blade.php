@@ -340,8 +340,8 @@
         }
 
         html:not(.dark) .rr-bullet {
-            background: rgba(79, 70, 229, .04);
-            border-color: rgba(79, 70, 229, .12);
+            background: rgba(225,29,72, .04);
+            border-color: rgba(225,29,72, .12);
             color: #374151
         }
 
@@ -378,8 +378,8 @@
         }
 
         html:not(.dark) .rr-stat {
-            background: rgba(79, 70, 229, .05);
-            border-color: rgba(79, 70, 229, .14)
+            background: rgba(225,29,72, .05);
+            border-color: rgba(225,29,72, .14)
         }
 
         .rr-stat-num {
@@ -493,7 +493,7 @@
         }
 
         .rr-section[data-color] {
-            border-left: 3px solid var(--sc, rgba(99, 102, 241, .5))
+            border-left: 3px solid var(--sc, rgba(251,113,133, .5))
         }
 
         .rr-sec-header {
@@ -563,13 +563,13 @@
             border-radius: .3rem;
             padding: .1rem .45rem;
             margin: .15rem .15rem 0 0;
-            background: rgba(99, 102, 241, .14);
+            background: rgba(251,113,133, .14);
             color: #a5b4fc;
         }
 
         html:not(.dark) .rr-tag {
-            background: rgba(79, 70, 229, .09);
-            color: #4338ca
+            background: rgba(225,29,72, .09);
+            color: #be123c
         }
 
         .rr-tag.leve {

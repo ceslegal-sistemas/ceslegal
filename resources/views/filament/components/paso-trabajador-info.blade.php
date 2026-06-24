@@ -6,7 +6,7 @@
         <lord-icon src="https://cdn.lordicon.com/bushiqea.json" trigger="loop" delay="500" stroke="bold"
             colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
             data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-            data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+            data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
             style="width:32px;height:32px;flex-shrink:0">
         </lord-icon>
         <p class="pt-title">Datos del empleado</p>
@@ -26,7 +26,7 @@
             <lord-icon src="https://cdn.lordicon.com/okqjaags.json" trigger="loop" delay="500" stroke="bold"
                 colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
                 data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                 style="width:20px;height:20px;flex-shrink:0">
             </lord-icon>
             <span>El empleado completará el formulario virtual durante la audiencia.</span>
@@ -36,7 +36,7 @@
             <lord-icon src="https://cdn.lordicon.com/jqqjtvlf.json" trigger="loop" delay="500" stroke="bold"
                 colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
                 data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                 style="width:20px;height:20px;flex-shrink:0">
             </lord-icon>
             <span>Sus respuestas quedarán <strong>registradas automáticamente</strong> en el sistema.</span>

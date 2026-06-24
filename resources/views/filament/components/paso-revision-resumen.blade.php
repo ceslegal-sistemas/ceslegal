@@ -255,8 +255,8 @@
         }
 
         html:not(.dark) .er-bullet {
-            background: rgba(79, 70, 229, .04);
-            border-color: rgba(79, 70, 229, .12);
+            background: rgba(225,29,72, .04);
+            border-color: rgba(225,29,72, .12);
             color: #374151;
         }
 
@@ -291,8 +291,8 @@
         }
 
         html:not(.dark) .er-worker {
-            background: rgba(99, 102, 241, .05);
-            border-color: rgba(99, 102, 241, .18);
+            background: rgba(251,113,133, .05);
+            border-color: rgba(251,113,133, .18);
         }
 
         .er-worker-ico {
@@ -300,8 +300,8 @@
             height: 38px;
             border-radius: 50%;
             flex-shrink: 0;
-            background: rgba(99, 102, 241, .15);
-            border: 1px solid rgba(99, 102, 241, .28);
+            background: rgba(251,113,133, .15);
+            border: 1px solid rgba(251,113,133, .28);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -309,9 +309,9 @@
         }
 
         html:not(.dark) .er-worker-ico {
-            background: rgba(79, 70, 229, .1);
-            border-color: rgba(79, 70, 229, .2);
-            color: #4f46e5;
+            background: rgba(225,29,72, .1);
+            border-color: rgba(225,29,72, .2);
+            color: #e11d48;
         }
 
         .er-worker-name {
@@ -545,18 +545,18 @@
             border-radius: .3rem;
             padding: .1rem .45rem;
             margin: .15rem .15rem 0 0;
-            background: rgba(99, 102, 241, .14);
+            background: rgba(251,113,133, .14);
             color: #a5b4fc;
         }
 
         html:not(.dark) .er-tag {
-            background: rgba(79, 70, 229, .09);
-            color: #4338ca
+            background: rgba(225,29,72, .09);
+            color: #be123c
         }
 
         /* Color accent bar por sección (borde izquierdo) */
         .er-section[data-color] {
-            border-left: 3px solid var(--sc, rgba(99, 102, 241, .5));
+            border-left: 3px solid var(--sc, rgba(251,113,133, .5));
         }
     </style>
 @endverbatim
@@ -604,7 +604,7 @@
                         colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
                         data-pt-icon
                         data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                        data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                        data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:20px;height:20px;flex-shrink:0;margin-top:1px">
                     </lord-icon>
                     <span>Revise que los datos del resumen sean <strong>correctos y completos</strong> antes de continuar.</span>
@@ -615,7 +615,7 @@
                         colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
                         data-pt-icon
                         data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                        data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                        data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:20px;height:20px;flex-shrink:0;margin-top:1px">
                     </lord-icon>
                     <span>La <strong>descripción jurídica</strong> la redacta la IA — puede editarla antes de crear el proceso.</span>
@@ -626,7 +626,7 @@
                         colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
                         data-pt-icon
                         data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                        data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                        data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:20px;height:20px;flex-shrink:0;margin-top:1px">
                     </lord-icon>
                     <span>Al crear el proceso se enviará <strong>automáticamente la citación</strong> al correo del trabajador con el enlace de la audiencia virtual.</span>
@@ -644,7 +644,7 @@
                     <lord-icon src="https://cdn.lordicon.com/kdduutaw.json" trigger="loop" delay="500" stroke="bold"
                         state="hover-looking-around" colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
                         data-pt-icon data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                        data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                        data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:25px;height:25px;flex-shrink:0">
                     </lord-icon>
                     <div style="min-width:0;flex:1">

@@ -41,7 +41,7 @@ html:not(.dark) .norit-cta:hover { background: #92400e; }
                     <lord-icon src="https://cdn.lordicon.com/jqqjtvlf.json" trigger="loop" delay="500" stroke="bold"
                         colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
                         data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                        data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                        data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:20px;height:20px;flex-shrink:0">
                     </lord-icon>
                     <span>Con RIT puede <strong>llamar la atención, suspender o terminar</strong> el contrato según la gravedad de la falta.</span>
@@ -51,7 +51,7 @@ html:not(.dark) .norit-cta:hover { background: #92400e; }
                     <lord-icon src="https://cdn.lordicon.com/jqqjtvlf.json" trigger="loop" delay="800" stroke="bold"
                         colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
                         data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                        data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                        data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:20px;height:20px;flex-shrink:0">
                     </lord-icon>
                     <span>Nuestro asistente de IA construye el RIT completo con <strong>16 capítulos</strong> en minutos, listo para presentar al Ministerio.</span>
