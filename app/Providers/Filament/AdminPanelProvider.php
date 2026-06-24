@@ -53,6 +53,33 @@ class AdminPanelProvider extends PanelProvider
             fn(): string => '<style>.rit-hide-wizard-steps .fi-fo-wizard-header{display:none}</style>',
         );
 
+        // ── Rebrand CES Legal ────────────────────────────────────────────────
+        // Gradiente de marca (rojo→naranja), Space Grotesk en títulos y el ítem
+        // de sidebar activo en gradiente. Inyectado por render hook → no requiere
+        // build de npm (clave para el despliegue en Hostinger).
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            fn(): string => <<<'HTML'
+            <style>
+            @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
+            :root{ --ces-grad: linear-gradient(135deg,#E11D48 0%,#F97316 100%); }
+            .fi-header-heading,.fi-section-header-heading,.fi-modal-heading,
+            .fi-ta-header-heading,.fi-simple-header-heading{
+                font-family:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;
+                letter-spacing:-0.01em;
+            }
+            /* Sidebar: el ítem activo usa el gradiente de marca */
+            .fi-sidebar-item-active > .fi-sidebar-item-button{ background-image:var(--ces-grad); }
+            .fi-sidebar-item-active > .fi-sidebar-item-button .fi-sidebar-item-label,
+            .fi-sidebar-item-active > .fi-sidebar-item-button .fi-sidebar-item-icon{ color:#fff !important; }
+            .fi-sidebar-item-active > .fi-sidebar-item-button:hover{ filter:brightness(1.04); }
+            /* Login con fondo cálido (stone) */
+            .fi-simple-layout{ background:#FAFAF9; }
+            html.dark .fi-simple-layout{ background:#0C0A09; }
+            </style>
+            HTML,
+        );
+
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_END,
             fn(): string => '<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script><script src="' . asset('js/tour-descargos.js') . '"></script>',
@@ -104,16 +131,24 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->default()
-            // ->brandName('CES Legal')
-            // ->brandLogo(asset('storage/logo_3.png'))
+            ->brandName('CES Legal')
+            ->brandLogo(asset('images/ces-legal-logo.png'))
+            ->brandLogoHeight('2.2rem')
             ->favicon(asset('images/ces-legal-favicon.png'))
+            ->font('Inter')
             ->id('admin')
             ->path('admin')
             ->login()
             ->registration(\App\Filament\Admin\Pages\Auth\Register::class)
             ->passwordReset()
+            // Rebrand CES Legal — rojo de marca + neutros cálidos (stone) + semánticos
             ->colors([
-                'primary' => Color::Blue,
+                'primary' => Color::hex('#E11D48'),
+                'gray'    => Color::Stone,
+                'danger'  => Color::Red,
+                'warning' => Color::Amber,
+                'success' => Color::Green,
+                'info'    => Color::Blue,
             ])
             // ->theme() removido — se usa el tema por defecto de Filament que incluye todos los estilos fi-*
             ->sidebarCollapsibleOnDesktop()
