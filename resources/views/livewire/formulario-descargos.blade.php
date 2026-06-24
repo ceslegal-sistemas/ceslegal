@@ -1058,7 +1058,7 @@
                                     text: 'Sus respuestas se guardarán automáticamente. Puede tomarse el tiempo que necesite.',
                                     icon: 'question',
                                     showCancelButton: true,
-                                    confirmButtonColor: '#4f46e5',
+                                    confirmButtonColor: '#e11d48',
                                     cancelButtonColor: '#6b7280',
                                     confirmButtonText: 'Sí, iniciar',
                                     cancelButtonText: 'Cancelar',

@@ -49,7 +49,7 @@ html:not(.dark) .rit-orb-g{background:radial-gradient(circle,rgba(201,168,76,.18
 .rit-overlay{position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 80% 90% at 50% 50%,rgba(3,8,20,.75) 0%,rgba(3,8,20,.4) 55%,transparent 100%)}
 html:not(.dark) .rit-overlay{background:radial-gradient(ellipse 75% 85% at 50% 40%,rgba(255,255,255,.75) 0%,rgba(255,255,255,.35) 55%,transparent 100%)}
 .rit-badge{display:inline-flex;align-items:center;gap:.4rem;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.35rem .9rem;border-radius:2rem;border:1px solid}
-.rit-badge-ia{background:rgba(251,113,133,.13);border-color:rgba(251,113,133,.3);color:#a5b4fc}
+.rit-badge-ia{background:rgba(251,113,133,.13);border-color:rgba(251,113,133,.3);color:#fb7185}
 html:not(.dark) .rit-badge-ia{background:rgba(225,29,72,.08);border-color:rgba(225,29,72,.2);color:#be123c}
 .rit-badge-ok{background:rgba(34,197,94,.11);border-color:rgba(34,197,94,.28);color:#86efac}
 html:not(.dark) .rit-badge-ok{background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.22);color:#166534}
@@ -86,7 +86,7 @@ html:not(.dark) .rit-empty-title{color:#0f172a}
 /* ── Específicos de auditoría ── */
 .audit-progress-track{width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin:.75rem 0}
 html:not(.dark) .audit-progress-track{background:rgba(0,0,0,.08)}
-.audit-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#f97316,#818cf8);transition:width .6s cubic-bezier(.4,0,.2,1)}
+.audit-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#f97316,#fb7185);transition:width .6s cubic-bezier(.4,0,.2,1)}
 .audit-step{display:flex;align-items:center;gap:.625rem;padding:.3rem 0;border-radius:.5rem;transition:background .2s}
 .audit-step-active{background:rgba(251,113,133,.08);padding-left:.5rem;padding-right:.5rem;margin-left:-.5rem;margin-right:-.5rem}
 html:not(.dark) .audit-step-active{background:rgba(225,29,72,.06)}
@@ -95,10 +95,10 @@ html:not(.dark) .audit-step-active{background:rgba(225,29,72,.06)}
 .audit-dot-pending{background:rgba(255,255,255,.18)}
 html:not(.dark) .audit-dot-pending{background:rgba(0,0,0,.12)}
 /* Spinner SVG para la sección activa */
-.audit-spinner{width:14px;height:14px;flex-shrink:0;animation:aspin .8s linear infinite;color:#818cf8}
+.audit-spinner{width:14px;height:14px;flex-shrink:0;animation:aspin .8s linear infinite;color:#fb7185}
 html:not(.dark) .audit-spinner{color:#e11d48}
 @keyframes aspin{to{transform:rotate(360deg)}}
-.audit-step-active-label{color:#a5b4fc;font-weight:600}
+.audit-step-active-label{color:#fb7185;font-weight:600}
 html:not(.dark) .audit-step-active-label{color:#be123c}
 .audit-sec{border-radius:.875rem;padding:1.125rem 1.25rem;border-left:3px solid;margin-bottom:.625rem;background:rgba(255,255,255,.03)}
 html:not(.dark) .audit-sec{background:#fff}
@@ -116,7 +116,7 @@ html:not(.dark) .audit-tag-warn{background:rgba(217,119,6,.1);color:#92400e}
 html:not(.dark) .audit-tag-danger{background:rgba(220,38,38,.1);color:#991b1b}
 .audit-list-item{display:flex;gap:.5rem;font-size:.8rem;color:#94a3b8;line-height:1.5;margin:.2rem 0}
 html:not(.dark) .audit-list-item{color:#475569}
-.audit-art{font-size:.7rem;font-family:ui-monospace,monospace;padding:.15rem .5rem;border-radius:.3rem;background:rgba(251,113,133,.1);color:#a5b4fc;display:inline-block;margin:.125rem}
+.audit-art{font-size:.7rem;font-family:ui-monospace,monospace;padding:.15rem .5rem;border-radius:.3rem;background:rgba(251,113,133,.1);color:#fb7185;display:inline-block;margin:.125rem}
 html:not(.dark) .audit-art{background:rgba(225,29,72,.08);color:#be123c}
 .audit-score-ring{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.25rem;font-weight:800;border:5px solid;flex-shrink:0}
 .audit-sub-label{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#64748b;margin-bottom:.375rem}
@@ -124,7 +124,7 @@ html:not(.dark) .audit-art{background:rgba(225,29,72,.08);color:#be123c}
 html:not(.dark) .audit-result-title{color:#0f172a}
 
 /* ── RIT Mejorado ── */
-.mejora-shimmer{border-radius:1rem;overflow:hidden;border:1px solid rgba(251,113,133,.25);background:linear-gradient(135deg,rgba(251,113,133,.06) 0%,rgba(129,140,248,.04) 50%,rgba(251,113,133,.06) 100%);background-size:200% 200%;animation:mejora-shine 2.4s ease-in-out infinite}
+.mejora-shimmer{border-radius:1rem;overflow:hidden;border:1px solid rgba(251,113,133,.25);background:linear-gradient(135deg,rgba(251,113,133,.06) 0%,rgba(251,113,133,.04) 50%,rgba(251,113,133,.06) 100%);background-size:200% 200%;animation:mejora-shine 2.4s ease-in-out infinite}
 html:not(.dark) .mejora-shimmer{border-color:rgba(225,29,72,.18);background:linear-gradient(135deg,rgba(225,29,72,.06) 0%,rgba(251,113,133,.03) 50%,rgba(225,29,72,.06) 100%);background-size:200% 200%}
 @keyframes mejora-shine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 .mejora-card{border-radius:1rem;overflow:hidden;border:1.5px solid rgba(251,113,133,.3);background:rgba(255,255,255,.03)}
@@ -132,7 +132,7 @@ html:not(.dark) .mejora-card{background:#fff;border-color:rgba(225,29,72,.2);box
 .mejora-header{padding:1rem 1.25rem;background:linear-gradient(135deg,rgba(251,113,133,.12) 0%,rgba(225,29,72,.06) 100%);border-bottom:1px solid rgba(251,113,133,.15);display:flex;align-items:center;gap:.75rem}
 html:not(.dark) .mejora-header{background:linear-gradient(135deg,rgba(225,29,72,.07) 0%,rgba(251,113,133,.03) 100%);border-bottom-color:rgba(225,29,72,.12)}
 .mejora-badge{display:inline-flex;align-items:center;gap:.35rem;font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:.3rem .75rem;border-radius:2rem}
-.mejora-badge-version{background:rgba(251,113,133,.18);border:1px solid rgba(251,113,133,.35);color:#a5b4fc}
+.mejora-badge-version{background:rgba(251,113,133,.18);border:1px solid rgba(251,113,133,.35);color:#fb7185}
 html:not(.dark) .mejora-badge-version{background:rgba(225,29,72,.1);border-color:rgba(225,29,72,.25);color:#be123c}
 .mejora-badge-ok{background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.28);color:#86efac}
 html:not(.dark) .mejora-badge-ok{background:rgba(22,163,74,.09);border-color:rgba(22,163,74,.22);color:#166534}
@@ -195,7 +195,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
         <span class="rit-badge rit-badge-ia" style="gap:.5rem">
           <lord-icon src="https://cdn.lordicon.com/xjsqfzte.json"
             trigger="loop" delay="0" stroke="bold"
-            colors="primary:#a5b4fc,secondary:#818cf8"
+            colors="primary:#fb7185,secondary:#fb7185"
             style="width:14px;height:14px;margin-top:-1px">
           </lord-icon>
           Analizando con IA
@@ -204,7 +204,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
         <span class="rit-badge rit-badge-ia" style="gap:.5rem">
           <lord-icon src="https://cdn.lordicon.com/xjsqfzte.json"
             trigger="loop" delay="800" stroke="bold"
-            colors="primary:#a5b4fc,secondary:#818cf8"
+            colors="primary:#fb7185,secondary:#fb7185"
             style="width:14px;height:14px;margin-top:-1px">
           </lord-icon>
           Servicio de auditoría
@@ -289,7 +289,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
               {{ $titulo }}
               @if($done)   <span style="color:#22c55e;font-size:.7rem;margin-left:.25rem">✓</span>  @endif
               @if($error)  <span style="color:#f87171;font-size:.7rem;margin-left:.25rem">✗ reintentando</span> @endif
-              @if($active) <span style="font-size:.7rem;color:#818cf8;margin-left:.35rem">analizando…</span> @endif
+              @if($active) <span style="font-size:.7rem;color:#fb7185;margin-left:.35rem">analizando…</span> @endif
             </span>
           </div>
         @endforeach
@@ -389,9 +389,9 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
     {{-- ── INFO: RIT generado por el sistema (no aplica versión mejorada) ── --}}
     @if($auditoria?->estado === 'completado' && !$esExterno)
     <div style="padding:1rem 1.25rem;border-radius:.875rem;border:1px solid rgba(251,113,133,.2);background:rgba(251,113,133,.05);display:flex;align-items:flex-start;gap:.875rem">
-      <svg style="width:18px;height:18px;color:#818cf8;flex-shrink:0;margin-top:.1rem" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
+      <svg style="width:18px;height:18px;color:#fb7185;flex-shrink:0;margin-top:.1rem" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
       <div>
-        <p style="font-size:.8125rem;font-weight:600;color:#a5b4fc;margin:0 0 .2rem">RIT generado por el sistema</p>
+        <p style="font-size:.8125rem;font-weight:600;color:#fb7185;margin:0 0 .2rem">RIT generado por el sistema</p>
         <p style="font-size:.775rem;color:#64748b;margin:0;line-height:1.6">
           Este reglamento fue creado por la IA del sistema siguiendo los estándares del CST. Los hallazgos de la auditoría son informativos; no se genera una versión mejorada (v+1) para RITs producidos por el sistema.
         </p>
@@ -417,22 +417,22 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
         <div style="width:52px;height:52px;border-radius:50%;background:rgba(251,113,133,.15);border:2px solid rgba(251,113,133,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0">
           <lord-icon src="https://cdn.lordicon.com/xjsqfzte.json"
             trigger="loop" delay="0" stroke="bold"
-            colors="primary:#a5b4fc,secondary:#818cf8"
+            colors="primary:#fb7185,secondary:#fb7185"
             data-pt-icon
-            data-pt-dark="primary:#a5b4fc,secondary:#818cf8"
+            data-pt-dark="primary:#fb7185,secondary:#fb7185"
             data-pt-light="primary:#e11d48,secondary:#f97316"
             style="width:32px;height:32px">
           </lord-icon>
         </div>
         <div style="flex:1;min-width:0">
-          <p style="font-size:1rem;font-weight:700;color:#a5b4fc;margin:0 0 .2rem">Generando RIT Mejorado con IA</p>
+          <p style="font-size:1rem;font-weight:700;color:#fb7185;margin:0 0 .2rem">Generando RIT Mejorado con IA</p>
           <p style="font-size:.8125rem;color:#64748b;margin:0;line-height:1.5">
             {{ $progresoTexto ?: 'Iniciando mejora capítulo por capítulo...' }}
           </p>
         </div>
         @if($capActual > 0)
           <div style="text-align:right;flex-shrink:0">
-            <span style="font-size:1.25rem;font-weight:800;color:#818cf8;line-height:1">{{ $capActual }}</span>
+            <span style="font-size:1.25rem;font-weight:800;color:#fb7185;line-height:1">{{ $capActual }}</span>
             <span style="font-size:.75rem;color:#475569"> / {{ $capTotal }}</span>
             <p style="font-size:.65rem;color:#64748b;margin:.15rem 0 0;text-transform:uppercase;letter-spacing:.06em">capítulos</p>
           </div>
@@ -441,7 +441,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
 
       {{-- Barra de progreso --}}
       <div style="width:100%;height:8px;border-radius:4px;background:rgba(251,113,133,.12);overflow:hidden;margin-bottom:.875rem">
-        <div style="height:100%;border-radius:4px;background:linear-gradient(90deg,#f97316,#818cf8);width:{{ $pct }}%;transition:width .6s ease"></div>
+        <div style="height:100%;border-radius:4px;background:linear-gradient(90deg,#f97316,#fb7185);width:{{ $pct }}%;transition:width .6s ease"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#475569;margin-bottom:1rem">
         <span>Progreso de mejora</span>
@@ -450,7 +450,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
 
       {{-- Aviso: proceso continúa en segundo plano --}}
       <div style="display:flex;align-items:center;gap:.6rem;padding:.65rem 1rem;border-radius:.625rem;background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.18)">
-        <svg style="width:14px;height:14px;color:#818cf8;flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
+        <svg style="width:14px;height:14px;color:#fb7185;flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
         <p style="font-size:.75rem;color:#94a3b8;margin:0;line-height:1.4">
           Puede salir de esta página sin problema — el proceso continúa en segundo plano y recibirá una notificación cuando el RIT mejorado esté listo.
         </p>
@@ -463,7 +463,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
     <div class="mejora-card">
       <div class="mejora-header">
         <div style="width:36px;height:36px;border-radius:.5rem;background:rgba(251,113,133,.18);border:1px solid rgba(251,113,133,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <svg style="width:18px;height:18px;color:#a5b4fc" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
+          <svg style="width:18px;height:18px;color:#fb7185" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
         </div>
         <div style="flex:1;min-width:0">
           <p style="font-size:.875rem;font-weight:700;color:#f1f5f9;margin:0 0 .2rem">RIT Mejorado Generado</p>
@@ -510,7 +510,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
         {{-- ── DECISIÓN DEL CLIENTE ── --}}
         @if($mejoraPendiente)
           <div style="border-top:1px dashed rgba(251,113,133,.25);padding-top:1.125rem">
-            <p style="font-size:.8125rem;font-weight:600;color:#a5b4fc;margin:0 0 .35rem">¿Desea utilizar este RIT mejorado?</p>
+            <p style="font-size:.8125rem;font-weight:600;color:#fb7185;margin:0 0 .35rem">¿Desea utilizar este RIT mejorado?</p>
             <p style="font-size:.8rem;color:#64748b;line-height:1.6;margin:0 0 1rem">
               Revise el documento descargado. Si lo aprueba, reemplazará su Reglamento Interno actual como
               versión vigente. Si prefiere conservar el que subió manualmente, puede mantenerlo y la versión
@@ -543,7 +543,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
             </p>
             <button wire:click="adoptarRITMejorado"
                     wire:confirm="¿Confirma usar el RIT mejorado como su Reglamento Interno vigente? Esto reemplazará el actual."
-                    style="font-size:.775rem;font-weight:600;color:#a5b4fc;background:none;border:none;cursor:pointer;text-decoration:underline;white-space:nowrap">
+                    style="font-size:.775rem;font-weight:600;color:#fb7185;background:none;border:none;cursor:pointer;text-decoration:underline;white-space:nowrap">
               Usar mejorado
             </button>
           </div>
@@ -661,7 +661,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
     <div class="rit-viewer-body">
       <div class="rit-empty">
         <div class="rit-empty-icon">
-          <svg style="width:26px;height:26px;color:#818cf8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+          <svg style="width:26px;height:26px;color:#fb7185" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
         </div>
         <p class="rit-empty-title">Sin Reglamento Interno</p>
         <p class="rit-empty-sub">Aún no tiene un Reglamento Interno en el sistema. Genérelo desde el módulo correspondiente para poder auditarlo.</p>

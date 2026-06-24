@@ -305,7 +305,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #a5b4fc;
+            color: #fb7185;
         }
 
         html:not(.dark) .er-worker-ico {
@@ -546,7 +546,7 @@
             padding: .1rem .45rem;
             margin: .15rem .15rem 0 0;
             background: rgba(251,113,133, .14);
-            color: #a5b4fc;
+            color: #fb7185;
         }
 
         html:not(.dark) .er-tag {
@@ -601,9 +601,9 @@
                 <div class="er-bullet">
                     <lord-icon src="https://cdn.lordicon.com/fikcyfpp.json"
                         trigger="loop" delay="500" stroke="bold"
-                        colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                        colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                         data-pt-icon
-                        data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                        data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                         data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:20px;height:20px;flex-shrink:0;margin-top:1px">
                     </lord-icon>
@@ -612,9 +612,9 @@
                 <div class="er-bullet">
                     <lord-icon src="https://cdn.lordicon.com/vgwutnhw.json"
                         trigger="loop" delay="500" stroke="bold"
-                        colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                        colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                         data-pt-icon
-                        data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                        data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                         data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:20px;height:20px;flex-shrink:0;margin-top:1px">
                     </lord-icon>
@@ -623,9 +623,9 @@
                 <div class="er-bullet">
                     <lord-icon src="https://cdn.lordicon.com/wpsdctqb.json"
                         trigger="loop" delay="500" stroke="bold"
-                        colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                        colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                         data-pt-icon
-                        data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                        data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                         data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:20px;height:20px;flex-shrink:0;margin-top:1px">
                     </lord-icon>
@@ -642,8 +642,8 @@
                     </svg>
                 </div> --}}
                     <lord-icon src="https://cdn.lordicon.com/kdduutaw.json" trigger="loop" delay="500" stroke="bold"
-                        state="hover-looking-around" colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                        data-pt-icon data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                        state="hover-looking-around" colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
+                        data-pt-icon data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                         data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:25px;height:25px;flex-shrink:0">
                     </lord-icon>
@@ -689,9 +689,9 @@
         <div class="er-doc">
 
             {{-- Hechos --}}
-            <div class="er-section" data-color style="--sc:#a78bfa;background:rgba(167,139,250,.04)">
+            <div class="er-section" data-color style="--sc:#fb7185;background:rgba(251,113,133,.04)">
                 <div class="er-sec-header">
-                    <svg class="er-sec-ico" style="color:#a78bfa" fill="none" viewBox="0 0 24 24"
+                    <svg class="er-sec-ico" style="color:#fb7185" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />

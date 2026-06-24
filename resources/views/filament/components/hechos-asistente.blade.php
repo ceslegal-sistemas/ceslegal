@@ -15,14 +15,14 @@
         line-height: 1;
     }
     .hca-btn:disabled { opacity: .5; cursor: default; }
-    .hca-btn:not(:disabled):hover { color: #a5b4fc; border-color: rgba(251,113,133,.5); }
+    .hca-btn:not(:disabled):hover { color: #fb7185; border-color: rgba(251,113,133,.5); }
     .hca-btn.hca-recording {
         color: #f87171;
         border-color: rgba(239,68,68,.4);
         background: rgba(239,68,68,.07);
     }
     .hca-btn.hca-transcribing {
-        color: #a78bfa;
+        color: #fb7185;
         border-color: rgba(139,92,246,.35);
         background: rgba(139,92,246,.07);
     }
@@ -41,7 +41,7 @@
     html:not(.dark) .hca-btn       { color: #6b7280; border-color: rgba(251,113,133,.2); }
     html:not(.dark) .hca-btn:not(:disabled):hover { color: #e11d48; border-color: rgba(251,113,133,.45); }
     html:not(.dark) .hca-btn.hca-recording { color: #dc2626; border-color: rgba(220,38,38,.4); background: rgba(220,38,38,.05); }
-    html:not(.dark) .hca-btn.hca-transcribing { color: #7c3aed; border-color: rgba(124,58,237,.35); background: rgba(124,58,237,.05); }
+    html:not(.dark) .hca-btn.hca-transcribing { color: #be123c; border-color: rgba(190,18,60,.35); background: rgba(190,18,60,.05); }
 </style>
 
 <script>

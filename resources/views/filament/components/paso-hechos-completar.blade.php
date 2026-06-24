@@ -32,7 +32,7 @@
         font-weight: 700;
         letter-spacing: .08em;
         text-transform: uppercase;
-        color: #818cf8;
+        color: #fb7185;
     }
     html:not(.dark) .phc-header-left { color: #e11d48; }
     .phc-badge {
@@ -46,7 +46,7 @@
         font-size: .65rem;
         font-weight: 700;
         background: rgba(251,113,133,.18);
-        color: #a5b4fc;
+        color: #fb7185;
     }
     html:not(.dark) .phc-badge { background: rgba(225,29,72,.12); color: #be123c; }
 
@@ -60,7 +60,7 @@
         border-radius: .35rem;
         border: 1px solid rgba(251,113,133,.25);
         background: transparent;
-        color: #818cf8;
+        color: #fb7185;
         cursor: pointer;
         transition: background .12s;
     }
@@ -92,14 +92,14 @@
         cursor: pointer;
         border: 1px solid rgba(251,113,133,.3);
         background: rgba(251,113,133,.08);
-        color: #a5b4fc;
+        color: #fb7185;
         transition: background .12s, border-color .12s, color .12s, transform .08s;
         user-select: none;
     }
     .phc-chip:hover { background: rgba(251,113,133,.18); border-color: rgba(251,113,133,.55); color: #fecdd3; transform: translateY(-1px); }
     .phc-chip:active { transform: scale(.96); }
     html:not(.dark) .phc-chip { border-color: rgba(225,29,72,.25); background: rgba(225,29,72,.07); color: #be123c; }
-    html:not(.dark) .phc-chip:hover { background: rgba(225,29,72,.14); border-color: rgba(225,29,72,.5); color: #3730a3; }
+    html:not(.dark) .phc-chip:hover { background: rgba(225,29,72,.14); border-color: rgba(225,29,72,.5); color: #be123c; }
 
     /* Otra opción */
     .phc-btn-otra {
@@ -131,7 +131,7 @@
         padding: .3rem .7rem; border-radius: .4rem;
         font-size: .75rem; font-weight: 600; cursor: pointer;
         border: 1px solid rgba(251,113,133,.5);
-        background: rgba(251,113,133,.15); color: #a5b4fc;
+        background: rgba(251,113,133,.15); color: #fb7185;
         transition: background .12s; white-space: nowrap;
     }
     .phc-btn-aplicar:hover { background: rgba(251,113,133,.28); }

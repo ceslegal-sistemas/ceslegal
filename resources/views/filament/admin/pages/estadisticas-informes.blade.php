@@ -380,7 +380,7 @@
                         datasets: [{
                             label: 'Horas',
                             data: datosHorasMes.map(d => d.horas),
-                            borderColor: '#8b5cf6',
+                            borderColor: '#e11d48',
                             backgroundColor: 'rgba(139, 92, 246, 0.1)',
                             tension: 0.3,
                             fill: true,
@@ -448,7 +448,7 @@
                         datasets: [{
                             label: 'Informes',
                             data: datosTipos.map(d => d.total),
-                            backgroundColor: '#8b5cf6',
+                            backgroundColor: '#e11d48',
                             borderRadius: 4,
                         }]
                     },

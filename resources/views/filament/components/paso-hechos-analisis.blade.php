@@ -13,7 +13,7 @@
         font-weight: 700;
         letter-spacing: .04em;
         text-transform: uppercase;
-        color: #a5b4fc;
+        color: #fb7185;
     }
     .pha-row {
         display: flex;
@@ -41,7 +41,7 @@
         letter-spacing: .04em;
         text-transform: uppercase;
         background: rgba(251,113,133,.2);
-        color: #a5b4fc;
+        color: #fb7185;
         border: 1px solid rgba(251,113,133,.35);
         border-radius: .3rem;
         padding: .1rem .45rem;
@@ -81,15 +81,15 @@
         border: 1px solid rgba(139,92,246,.25);
         border-radius: .5rem;
         font-size: .775rem;
-        color: #c4b5fd;
+        color: #fb7185;
         line-height: 1.55;
         display: flex;
         gap: .375rem;
         align-items: flex-start;
     }
-    .pha-feedback svg { width: 13px; height: 13px; flex-shrink: 0; margin-top: 1px; color: #a78bfa; }
-    html:not(.dark) .pha-feedback       { background: rgba(139,92,246,.07); border-color: rgba(139,92,246,.2); color: #6d28d9; }
-    html:not(.dark) .pha-feedback svg   { color: #7c3aed; }
+    .pha-feedback svg { width: 13px; height: 13px; flex-shrink: 0; margin-top: 1px; color: #fb7185; }
+    html:not(.dark) .pha-feedback       { background: rgba(139,92,246,.07); border-color: rgba(139,92,246,.2); color: #be123c; }
+    html:not(.dark) .pha-feedback svg   { color: #be123c; }
 </style>
 
 @php $feedbackVoz = $feedbackVoz ?? ''; @endphp
@@ -158,8 +158,8 @@
 @else
 <div class="pha-empty">
     <lord-icon src="https://cdn.lordicon.com/vgwutnhw.json" trigger="loop" delay="500" stroke="bold"
-        colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
-        data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+        colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
+        data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
         data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
         style="width:50px;height:50px;flex-shrink:0;margin-top:1px">
     </lord-icon>

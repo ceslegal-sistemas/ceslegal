@@ -686,8 +686,8 @@
             <div class="bv-icon-ring"
                 style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;background:rgba(201,168,76,.12);border:1.5px solid rgba(201,168,76,.35);margin-bottom:1.125rem;">
                 <lord-icon src="{{ $heroIcon }}" trigger="loop" delay="500" stroke="bold"
-                    colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
-                    data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                    colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
+                    data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                     data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                     style="width:50px;height:50px;flex-shrink:0">
                 </lord-icon>
@@ -733,8 +733,8 @@
 
         <div class="bv-next-hint bv-a3">
             <lord-icon src="https://cdn.lordicon.com/moedrfvp.json" trigger="loop" delay="500" stroke="bold"
-                colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
-                data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
+                data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                 data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                 style="width:28px;height:28px;flex-shrink:0">
             </lord-icon>

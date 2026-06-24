@@ -136,7 +136,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         Forms\Components\Placeholder::make('info_nuevo_trabajador')
                                             ->label('')
                                             ->content(new HtmlString(
-                                                '<div style="background:rgba(99,102,241,.06);border-left:3px solid #6366f1;border-radius:.5rem;padding:.75rem 1rem;font-size:.8125rem;color:var(--fi-color-gray-600,#4b5563);line-height:1.6;">'
+                                                '<div style="background:rgba(225,29,72,.06);border-left:3px solid #e11d48;border-radius:.5rem;padding:.75rem 1rem;font-size:.8125rem;color:var(--fi-color-gray-600,#4b5563);line-height:1.6;">'
                                                     . 'Complete los datos básicos del trabajador. El <strong>correo electrónico</strong> es indispensable para enviarle la citación.'
                                                     . '</div>'
                                             )),

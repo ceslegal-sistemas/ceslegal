@@ -51,7 +51,7 @@ html:not(.dark) .ce-badge-none{background:rgba(100,116,139,.07);border-color:rgb
 html:not(.dark) .ce-badge-danger{background:rgba(220,38,38,.07);border-color:rgba(220,38,38,.2);color:#991b1b}
 .ce-badge-warning{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#fcd34d}
 html:not(.dark) .ce-badge-warning{background:rgba(217,119,6,.08);border-color:rgba(217,119,6,.22);color:#92400e}
-.ce-badge-indigo{background:rgba(251,113,133,.12);border-color:rgba(251,113,133,.28);color:#a5b4fc}
+.ce-badge-indigo{background:rgba(251,113,133,.12);border-color:rgba(251,113,133,.28);color:#fb7185}
 html:not(.dark) .ce-badge-indigo{background:rgba(225,29,72,.08);border-color:rgba(225,29,72,.22);color:#be123c}
 
 /* ── Títulos hero ────────────────────────────────────────────────────────── */
@@ -101,7 +101,7 @@ html:not(.dark) .ce-content-body h3{color:#1e293b}
 .ce-content-body p{margin-bottom:.75rem}
 .ce-content-body ul,.ce-content-body ol{padding-left:1.25rem;margin-bottom:.75rem}
 .ce-content-body li{margin-bottom:.25rem}
-.ce-content-body a{color:#818cf8;text-decoration:underline}
+.ce-content-body a{color:#fb7185;text-decoration:underline}
 html:not(.dark) .ce-content-body a{color:#be123c}
 .ce-content-body strong{color:#f1f5f9;font-weight:600}
 html:not(.dark) .ce-content-body strong{color:#0f172a}
@@ -247,7 +247,7 @@ html:not(.dark) .ce-adjunto{background:#fff;border-color:rgba(0,0,0,.08);color:#
         <p class="ce-meta-label" style="margin-bottom:.4rem">Con copia (CC)</p>
         <div style="display:flex;flex-wrap:wrap;gap:.375rem">
           @foreach($correo->email_cc as $cc)
-            <span style="font-size:.775rem;padding:.2rem .65rem;border-radius:2rem;background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.2);color:#a5b4fc">{{ $cc }}</span>
+            <span style="font-size:.775rem;padding:.2rem .65rem;border-radius:2rem;background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.2);color:#fb7185">{{ $cc }}</span>
           @endforeach
         </div>
       </div>

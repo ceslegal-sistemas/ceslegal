@@ -873,7 +873,7 @@ class CreateReglamentoInterno extends CreateRecord
                             'step' => 4,
                             'total' => 7,
                             'title' => 'Salario',
-                            'accent' => '#a78bfa',
+                            'accent' => '#e11d48',
                             'lord' => 'https://cdn.lordicon.com/hmpomorl.json',
                             'subtitle' => 'Forma de pago, beneficios, permisos e incapacidades.',
                         ])
