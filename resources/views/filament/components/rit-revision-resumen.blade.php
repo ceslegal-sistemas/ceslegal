@@ -493,21 +493,31 @@
         }
 
         .rr-section[data-color] {
-            border-left: 3px solid var(--sc, rgba(251,113,133, .5))
+            border-left: 3px solid #e11d48
         }
 
         .rr-sec-header {
             display: flex;
             align-items: center;
-            gap: .4rem;
-            margin-bottom: .5rem
+            gap: .55rem;
+            margin-bottom: .55rem
         }
 
         .rr-sec-ico {
-            width: 13px;
-            height: 13px;
+            width: 28px !important;
+            height: 28px !important;
             flex-shrink: 0;
-            opacity: .6
+            opacity: 1;
+            padding: 6px;
+            border-radius: .5rem;
+            box-sizing: border-box;
+            background: rgba(225, 29, 72, .14);
+            color: #fb7185 !important;
+        }
+
+        html:not(.dark) .rr-sec-ico {
+            background: rgba(225, 29, 72, .09);
+            color: #e11d48 !important;
         }
 
         .rr-sec-label {
