@@ -38,9 +38,9 @@
 
 <style>
 /* ── Heredados de mi-reglamento-interno ── */
-.rit-hero{position:relative;overflow:hidden;border-radius:1.25rem;padding:2rem 1.75rem;background:linear-gradient(150deg,#060f22 0%,#0d1f3c 55%,#060e20 100%)}
+.rit-hero{position:relative;overflow:hidden;border-radius:1.25rem;padding:2rem 1.75rem;background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%)}
 html:not(.dark) .rit-hero{background:#fff;border:1px solid rgba(0,0,0,.07);box-shadow:0 4px 28px rgba(0,0,0,.08)}
-.rit-orb-b{position:absolute;width:280px;height:280px;top:-80px;right:-60px;border-radius:50%;background:radial-gradient(circle,rgba(30,58,138,.45),transparent 70%);filter:blur(28px);pointer-events:none;animation:rit-fb 14s ease-in-out infinite}
+.rit-orb-b{position:absolute;width:280px;height:280px;top:-80px;right:-60px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.45),transparent 70%);filter:blur(28px);pointer-events:none;animation:rit-fb 14s ease-in-out infinite}
 .rit-orb-g{position:absolute;width:200px;height:200px;bottom:-60px;left:-40px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.2),transparent 70%);filter:blur(24px);pointer-events:none;animation:rit-fg 18s ease-in-out infinite}
 @keyframes rit-fb{0%,100%{transform:translate(0,0)}40%{transform:translate(-18px,14px)}70%{transform:translate(12px,-10px)}}
 @keyframes rit-fg{0%,100%{transform:translate(0,0)}35%{transform:translate(14px,-16px)}65%{transform:translate(-10px,8px)}}
@@ -58,7 +58,7 @@ html:not(.dark) .rit-badge-warn{background:rgba(217,119,6,.08);border-color:rgba
 .rit-badge-none{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25);color:#fca5a5}
 html:not(.dark) .rit-badge-none{background:rgba(220,38,38,.07);border-color:rgba(220,38,38,.2);color:#991b1b}
 .rit-title{font-size:1.25rem;font-weight:700;color:#f1f5f9;margin:.5rem 0 .25rem;letter-spacing:-.015em}
-html:not(.dark) .rit-title{color:#0f172a}
+html:not(.dark) .rit-title{color:#1c1917}
 .rit-sub{font-size:.8125rem;color:#94a3b8;margin:0}
 html:not(.dark) .rit-sub{color:#475569}
 .rit-actions{display:flex;flex-wrap:wrap;gap:.625rem;margin-top:1.25rem;position:relative;z-index:2}
@@ -80,7 +80,7 @@ html:not(.dark) .rit-viewer-body{background:#fafafa}
 .rit-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3.5rem 2rem;text-align:center}
 .rit-empty-icon{width:56px;height:56px;border-radius:50%;background:rgba(251,113,133,.12);border:1.5px solid rgba(251,113,133,.25);display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
 .rit-empty-title{font-size:1.0625rem;font-weight:700;color:#f1f5f9;margin:0 0 .4rem}
-html:not(.dark) .rit-empty-title{color:#0f172a}
+html:not(.dark) .rit-empty-title{color:#1c1917}
 .rit-empty-sub{font-size:.825rem;color:#64748b;margin:0 0 1.5rem;max-width:380px}
 
 /* ── Específicos de auditoría ── */
@@ -106,7 +106,7 @@ html:not(.dark) .audit-sec{background:#fff}
 .audit-sec-warn{border-color:#f59e0b}
 .audit-sec-danger{border-color:#ef4444}
 .audit-sec-title{font-size:.875rem;font-weight:600;color:#f1f5f9}
-html:not(.dark) .audit-sec-title{color:#0f172a}
+html:not(.dark) .audit-sec-title{color:#1c1917}
 .audit-tag{display:inline-flex;font-size:.65rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:.2rem .6rem;border-radius:.375rem}
 .audit-tag-ok{background:rgba(34,197,94,.13);color:#86efac}
 html:not(.dark) .audit-tag-ok{background:rgba(22,163,74,.1);color:#166534}
@@ -121,7 +121,7 @@ html:not(.dark) .audit-art{background:rgba(225,29,72,.08);color:#be123c}
 .audit-score-ring{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.25rem;font-weight:800;border:5px solid;flex-shrink:0}
 .audit-sub-label{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#64748b;margin-bottom:.375rem}
 .audit-result-title{font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 .25rem}
-html:not(.dark) .audit-result-title{color:#0f172a}
+html:not(.dark) .audit-result-title{color:#1c1917}
 
 /* ── RIT Mejorado ── */
 .mejora-shimmer{border-radius:1rem;overflow:hidden;border:1px solid rgba(251,113,133,.25);background:linear-gradient(135deg,rgba(251,113,133,.06) 0%,rgba(251,113,133,.04) 50%,rgba(251,113,133,.06) 100%);background-size:200% 200%;animation:mejora-shine 2.4s ease-in-out infinite}

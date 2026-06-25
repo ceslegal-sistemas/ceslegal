@@ -20,9 +20,9 @@
 @endif
 
 <style>
-.rit-hero{position:relative;overflow:hidden;border-radius:1.25rem;padding:2rem 1.75rem;background:linear-gradient(150deg,#060f22 0%,#0d1f3c 55%,#060e20 100%)}
+.rit-hero{position:relative;overflow:hidden;border-radius:1.25rem;padding:2rem 1.75rem;background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%)}
 html:not(.dark) .rit-hero{background:#fff;border:1px solid rgba(0,0,0,.07);box-shadow:0 4px 28px rgba(0,0,0,.08)}
-.rit-orb-b{position:absolute;width:280px;height:280px;top:-80px;right:-60px;border-radius:50%;background:radial-gradient(circle,rgba(30,58,138,.45),transparent 70%);filter:blur(28px);pointer-events:none;animation:rit-fb 14s ease-in-out infinite}
+.rit-orb-b{position:absolute;width:280px;height:280px;top:-80px;right:-60px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.45),transparent 70%);filter:blur(28px);pointer-events:none;animation:rit-fb 14s ease-in-out infinite}
 .rit-orb-g{position:absolute;width:200px;height:200px;bottom:-60px;left:-40px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.2),transparent 70%);filter:blur(24px);pointer-events:none;animation:rit-fg 18s ease-in-out infinite}
 @keyframes rit-fb{0%,100%{transform:translate(0,0)}40%{transform:translate(-18px,14px)}70%{transform:translate(12px,-10px)}}
 @keyframes rit-fg{0%,100%{transform:translate(0,0)}35%{transform:translate(14px,-16px)}65%{transform:translate(-10px,8px)}}
@@ -40,7 +40,7 @@ html:not(.dark) .rit-badge-none{background:rgba(100,116,139,.07);border-color:rg
 .rit-badge-gen{background:rgba(251,113,133,.13);border-color:rgba(251,113,133,.3);color:#fb7185}
 html:not(.dark) .rit-badge-gen{background:rgba(225,29,72,.08);border-color:rgba(225,29,72,.2);color:#be123c}
 .rit-title{font-size:1.25rem;font-weight:700;color:#f1f5f9;margin:.5rem 0 .25rem;letter-spacing:-.015em}
-html:not(.dark) .rit-title{color:#0f172a}
+html:not(.dark) .rit-title{color:#1c1917}
 .rit-sub{font-size:.8125rem;color:#94a3b8;margin:0}
 html:not(.dark) .rit-sub{color:#475569}
 .rit-actions{display:flex;flex-wrap:wrap;gap:.625rem;margin-top:1.25rem;position:relative;z-index:2}
@@ -62,11 +62,11 @@ html:not(.dark) .rit-viewer-header{background:rgba(0,0,0,.03);border-bottom-colo
 .rit-viewer-body{max-height:65vh;overflow-y:auto;padding:1.5rem 1.75rem;background:rgba(0,0,0,.15)}
 html:not(.dark) .rit-viewer-body{background:#fafafa}
 .rit-text{white-space:normal;font-family:'Georgia','Times New Roman',serif;font-size:.875rem;line-height:1.9;color:#cbd5e1;word-break:break-word}
-html:not(.dark) .rit-text{color:#1e293b}
+html:not(.dark) .rit-text{color:#292524}
 .rit-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3.5rem 2rem;text-align:center}
 .rit-empty-icon{width:56px;height:56px;border-radius:50%;background:rgba(251,113,133,.12);border:1.5px solid rgba(251,113,133,.25);display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
 .rit-empty-title{font-size:1.0625rem;font-weight:700;color:#f1f5f9;margin:0 0 .4rem}
-html:not(.dark) .rit-empty-title{color:#0f172a}
+html:not(.dark) .rit-empty-title{color:#1c1917}
 .rit-empty-sub{font-size:.825rem;color:#64748b;margin:0 0 1.5rem;max-width:380px}
 /* Shimmer generando */
 @keyframes rit-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}

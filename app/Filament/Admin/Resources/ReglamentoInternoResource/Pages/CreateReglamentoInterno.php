@@ -253,7 +253,7 @@ class CreateReglamentoInterno extends CreateRecord
                             'step' => 1,
                             'total' => 7,
                             'title' => 'Empresa',
-                            'accent' => '#60a5fa',
+                            'accent' => '#f97316',
                             'lord' => 'https://cdn.lordicon.com/moedrfvp.json',
                             'subtitle' => 'Datos generales de su empresa y su actividad económica.',
                         ])
@@ -1430,7 +1430,7 @@ class CreateReglamentoInterno extends CreateRecord
                             'step' => 7,
                             'total' => 7,
                             'title' => 'Revisión y generación',
-                            'accent' => '#22d3ee',
+                            'accent' => '#fb7185',
                             'lord' => 'https://cdn.lordicon.com/wpsdctqb.json',
                             'subtitle' => 'Revise el resumen; la IA redactará su Reglamento.',
                         ])

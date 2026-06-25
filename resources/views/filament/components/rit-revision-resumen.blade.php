@@ -221,7 +221,7 @@
             overflow: hidden;
             border-radius: 1.25rem;
             padding: 1.75rem 1.5rem 1.625rem;
-            background: linear-gradient(150deg, #060f22 0%, #0d1f3c 55%, #060e20 100%);
+            background: linear-gradient(150deg, #1a0f0c 0%, #241319 55%, #170d0a 100%);
         }
 
         @media(min-width:540px) {
@@ -302,7 +302,7 @@
         }
 
         html:not(.dark) .rr-hero-title {
-            color: #0f172a;
+            color: #1c1917;
             text-shadow: none
         }
 
@@ -390,7 +390,7 @@
         }
 
         html:not(.dark) .rr-stat-num {
-            color: #0f172a
+            color: #1c1917
         }
 
         .rr-stat-lbl {
@@ -658,7 +658,7 @@
     <div class="rr-hero rr-a1" style="text-align:center;">
         <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
             <div class="rr-orb-b"
-                style="position:absolute;width:240px;height:240px;top:-60px;right:-40px;border-radius:50%;background:radial-gradient(circle,rgba(30,58,138,.5),transparent 70%);filter:blur(24px);">
+                style="position:absolute;width:240px;height:240px;top:-60px;right:-40px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.5),transparent 70%);filter:blur(24px);">
             </div>
             <div class="rr-orb-g"
                 style="position:absolute;width:180px;height:180px;bottom:-45px;left:-35px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.22),transparent 70%);filter:blur(22px);">
@@ -703,7 +703,7 @@
                         ventana.</span>
                 </div>
                 <div class="rr-bullet">
-                    <svg style="width:16px;height:16px;flex-shrink:0;margin-top:1px;color:#93c5fd" fill="none"
+                    <svg style="width:16px;height:16px;flex-shrink:0;margin-top:1px;color:#fdba74" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
@@ -747,9 +747,9 @@
         <div class="rr-doc">
 
             {{-- Empresa --}}
-            <div class="rr-section" data-color style="--sc:#60a5fa">
+            <div class="rr-section" data-color style="--sc:#f97316">
                 <div class="rr-sec-header">
-                    <svg class="rr-sec-ico" style="color:#60a5fa" fill="none" viewBox="0 0 24 24"
+                    <svg class="rr-sec-ico" style="color:#f97316" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
@@ -849,9 +849,9 @@
                     @endif --}}
                 </div>
 
-                <div class="rr-section" data-color style="--sc:#67e8f9">
+                <div class="rr-section" data-color style="--sc:#fda4af">
                     <div class="rr-sec-header">
-                        <svg class="rr-sec-ico" style="color:#67e8f9" fill="none" viewBox="0 0 24 24"
+                        <svg class="rr-sec-ico" style="color:#fda4af" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M7.864 4.243A7.5 7.5 0 0119.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 004.5 10.5a7.464 7.464 0 01-1.15 3.993m1.989 3.559A11.209 11.209 0 008.25 10.5a3.75 3.75 0 117.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 01-3.6 9.75m6.633-4.596a18.666 18.666 0 01-2.485 5.33" />
