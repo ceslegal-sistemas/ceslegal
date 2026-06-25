@@ -119,8 +119,12 @@
     @keyframes rg-fb   { 0%,100%{transform:translate(0,0)} 50%{transform:translate(14px,-14px)} }
 
     /* Tipografía: Space Grotesk para display, Inter (heredado del panel) para cuerpo */
-    .rg-wrap{ position:relative; max-width:560px; margin:0 auto; display:flex; flex-direction:column; gap:14px; padding:.25rem 0; }
+    .rg-wrap{ position:relative; max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:18px; padding:.25rem 0; }
     .rg-disp{ font-family:'Space Grotesk', ui-sans-serif, system-ui, sans-serif; letter-spacing:-.02em; }
+
+    /* Grilla de tarjetas (web): 3 columnas que se adaptan */
+    .rg-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; }
+    .rg-col-full{ grid-column:1/-1; }
 
     /* Fondo con wash de marca (da profundidad al vidrio) */
     .rg-bg{ position:absolute; inset:-60px -20px; z-index:0; pointer-events:none; overflow:hidden; }
@@ -137,8 +141,8 @@
         -webkit-backdrop-filter:blur(20px) saturate(150%);
         backdrop-filter:blur(20px) saturate(150%);
         border:1px solid rgba(255,255,255,.72);
-        border-radius:22px;
-        box-shadow:0 10px 30px rgba(28,25,23,.08), inset 0 1px 0 rgba(255,255,255,.6);
+        border-radius:26px;
+        box-shadow:0 10px 30px rgba(28,25,23,.07), inset 0 1px 0 rgba(255,255,255,.6);
     }
     html.dark .rg-glass{
         background:rgba(38,34,32,.52);
@@ -167,7 +171,8 @@
     html.dark .rg-stat b{ color:#f5f5f4 }
     .rg-stat span{ font-size:.55rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#a8a29e;margin-top:4px;display:block }
 
-    .rg-notes{ display:flex;flex-direction:column;gap:8px;margin-top:16px;text-align:left }
+    .rg-notes{ display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px;text-align:left }
+    @media(max-width:720px){ .rg-notes{ grid-template-columns:1fr } }
     .rg-note{ display:flex;gap:10px;align-items:flex-start;background:rgba(255,255,255,.42);border:1px solid rgba(255,255,255,.55);
         border-radius:13px;padding:10px 12px;font-size:.78rem;line-height:1.45;color:#57534e }
     html.dark .rg-note{ background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.07);color:#d6d3d1 }
@@ -181,10 +186,10 @@
     html.dark .rg-seclabel::after{ background:rgba(255,255,255,.1) }
 
     /* Data card */
-    .rg-card{ padding:15px 17px;overflow:hidden }
-    .rg-card::before{ content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#e11d48,#f97316) }
-    .rg-lbl{ font-size:.61rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#a8a29e;margin:0 0 5px }
-    .rg-val{ font-size:1rem;font-weight:600;margin:0;line-height:1.35;color:#1c1917 }
+    .rg-card{ padding:20px 22px;overflow:hidden }
+    .rg-lbl{ font-size:.64rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:#be123c;margin:0 0 7px }
+    html.dark .rg-lbl{ color:#fb7185 }
+    .rg-val{ font-size:1.05rem;font-weight:600;margin:0;line-height:1.35;color:#1c1917 }
     html.dark .rg-val{ color:#f5f5f4 }
     .rg-val.empty{ color:#a8a29e;font-weight:400;font-style:italic;font-size:.9rem }
     .rg-sub{ font-size:.8rem;color:#78716c;margin:4px 0 0;line-height:1.45 }
@@ -211,8 +216,7 @@
     html.dark .rg-caps-count{ color:#fda4af;background:rgba(251,113,133,.16) }
     .rg-chev{ transition:transform .25s;color:#a8a29e;flex-shrink:0 }
     details.rg-caps[open] .rg-chev{ transform:rotate(180deg) }
-    .rg-caps-body{ padding:0 13px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px }
-    @media(max-width:460px){ .rg-caps-body{ grid-template-columns:1fr } }
+    .rg-caps-body{ padding:0 14px 12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px }
     .rg-cap{ display:flex;align-items:center;gap:9px;font-size:.75rem;color:#44403c;
         background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.6);border-radius:12px;padding:9px 11px }
     html.dark .rg-cap{ color:#d6d3d1;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.07) }
@@ -267,88 +271,59 @@
 
     <div class="rg-seclabel rg-a2">Resumen de sus respuestas</div>
 
-    {{-- Empresa --}}
-    <div class="rg-glass rg-card rg-a2">
-        <p class="rg-lbl">Empresa</p>
-        <p class="rg-val">{{ $empresa?->razon_social ?? '—' }}</p>
-        <p class="rg-sub">
-            NIT {{ $empresa?->nit ?? '—' }}@if ($empresa?->ciudad) &nbsp;·&nbsp; {{ $empresa->ciudad }}@if ($empresa->departamento), {{ $empresa->departamento }}@endif @endif
-        </p>
-        @if (!empty($actividad_economica))
-            <p class="rg-sub" style="margin-top:.3rem"><span style="opacity:.75">Actividad:</span> {{ $actividad_economica }}</p>
-        @endif
-        @if (($tiene_sucursales ?? null) === 'si')
-            <p class="rg-sub" style="margin-top:.3rem">{{ count($sucursales ?? []) }} sucursal(es) registrada(s)</p>
-        @endif
-    </div>
+    {{-- Tarjetas (grilla web, se adaptan a 3/2/1 columnas) --}}
+    <div class="rg-grid rg-a2">
 
-    {{-- Jornada + Pago --}}
-    <div class="rg-grid2 rg-a2">
+        <div class="rg-glass rg-card">
+            <p class="rg-lbl">Empresa</p>
+            <p class="rg-val">{{ $empresa?->razon_social ?? '—' }}</p>
+            <p class="rg-sub">NIT {{ $empresa?->nit ?? '—' }}@if ($empresa?->ciudad) &nbsp;·&nbsp; {{ $empresa->ciudad }}@if ($empresa->departamento), {{ $empresa->departamento }}@endif @endif</p>
+            @if (!empty($actividad_economica))<p class="rg-sub" style="margin-top:.3rem"><span style="opacity:.75">Actividad:</span> {{ $actividad_economica }}</p>@endif
+            @if (($tiene_sucursales ?? null) === 'si')<p class="rg-sub" style="margin-top:.3rem">{{ count($sucursales ?? []) }} sucursal(es) registrada(s)</p>@endif
+        </div>
+
         <div class="rg-glass rg-card">
             <p class="rg-lbl">Jornada</p>
             <p class="rg-val {{ !$horario_entrada ? 'empty' : '' }}">{{ $horario_entrada ?? '—' }} → {{ $horario_salida ?? '—' }}</p>
             <p class="rg-sub">Sáb: {{ $jornadaSabadoLabel }} &nbsp;·&nbsp; Dom: {{ $dominicalesLabels[$trabaja_dominicales ?? 'no'] ?? 'No' }}</p>
-            @if (!empty($modalidades_jornada))
-                <div class="rg-pills">@foreach ($modalidades_jornada as $mj)<span class="rg-pill">{{ $modalidadesJornadaLabels[$mj] ?? $mj }}</span>@endforeach</div>
-            @endif
+            @if (!empty($modalidades_jornada))<div class="rg-pills">@foreach ($modalidades_jornada as $mj)<span class="rg-pill">{{ $modalidadesJornadaLabels[$mj] ?? $mj }}</span>@endforeach</div>@endif
         </div>
+
         <div class="rg-glass rg-card">
             <p class="rg-lbl">Pago</p>
             <p class="rg-val {{ !$forma_pago ? 'empty' : '' }}">{{ $formaPagoLabels[$forma_pago ?? ''] ?? ($forma_pago ?: '—') }}</p>
             <p class="rg-sub">{{ $periodicidadTexto }}</p>
         </div>
-    </div>
 
-    {{-- Contratos + Control --}}
-    <div class="rg-grid2 rg-a3">
         <div class="rg-glass rg-card">
             <p class="rg-lbl">Tipos de contrato</p>
-            @if (is_array($tipos_contrato) && !empty($tipos_contrato))
-                <div class="rg-pills">@foreach ($tipos_contrato as $tc)<span class="rg-pill">{{ $tiposContratoLabels[$tc] ?? $tc }}</span>@endforeach</div>
-            @else
-                <p class="rg-val empty">No indicado</p>
-            @endif
+            @if (is_array($tipos_contrato) && !empty($tipos_contrato))<div class="rg-pills">@foreach ($tipos_contrato as $tc)<span class="rg-pill">{{ $tiposContratoLabels[$tc] ?? $tc }}</span>@endforeach</div>@else<p class="rg-val empty">No indicado</p>@endif
         </div>
+
         <div class="rg-glass rg-card">
             <p class="rg-lbl">Control asistencia</p>
-            <p class="rg-val {{ !$control_asistencia ? 'empty' : '' }}" style="font-size:.95rem">{{ $controlLabels[$control_asistencia ?? ''] ?? ($control_asistencia ?: '—') }}</p>
+            <p class="rg-val {{ !$control_asistencia ? 'empty' : '' }}">{{ $controlLabels[$control_asistencia ?? ''] ?? ($control_asistencia ?: '—') }}</p>
         </div>
-    </div>
 
-    {{-- Faltas (full) --}}
-    <div class="rg-glass rg-card rg-a3">
-        <p class="rg-lbl">Régimen disciplinario</p>
-        @if (!empty($faltas_leves))
-            <p class="rg-pill-h" style="color:#854d0e">Leves</p>
-            <div class="rg-pills">@foreach ($faltas_leves as $f)<span class="rg-pill amber">{{ $f }}</span>@endforeach</div>
-        @endif
-        @if (!empty($faltas_graves))
-            <p class="rg-pill-h" style="color:#9a3412">Graves</p>
-            <div class="rg-pills">@foreach ($faltas_graves as $f)<span class="rg-pill orange">{{ $f }}</span>@endforeach</div>
-        @endif
-        @if (empty($faltas_leves) && empty($faltas_graves))
-            <p class="rg-val empty">Sin faltas registradas</p>
-        @endif
-        @if (!empty($sanciones))
-            <p class="rg-pill-h">Sanciones habilitadas</p>
-            <div class="rg-pills">@foreach ($sanciones as $s)<span class="rg-pill">{{ $sancionesLabels[$s] ?? $s }}</span>@endforeach</div>
-        @endif
-    </div>
-
-    {{-- SST + Riesgos --}}
-    <div class="rg-grid2 rg-a3">
         <div class="rg-glass rg-card">
             <p class="rg-lbl">SG-SST</p>
-            <p class="rg-val {{ !$tiene_sg_sst ? 'empty' : '' }}" style="font-size:.95rem">{{ $sgSstLabels[$tiene_sg_sst ?? ''] ?? ($tiene_sg_sst ?: '—') }}</p>
+            <p class="rg-val {{ !$tiene_sg_sst ? 'empty' : '' }}">{{ $sgSstLabels[$tiene_sg_sst ?? ''] ?? ($tiene_sg_sst ?: '—') }}</p>
         </div>
+
         <div class="rg-glass rg-card">
             <p class="rg-lbl">Riesgos principales</p>
-            @if (!empty($riesgos_principales))
-                <div class="rg-pills">@foreach ($riesgos_principales as $r)<span class="rg-pill">{{ $riesgosLabels[$r] ?? $r }}</span>@endforeach</div>
-            @else
-                <p class="rg-val empty">No indicados</p>
-            @endif
+            @if (!empty($riesgos_principales))<div class="rg-pills">@foreach ($riesgos_principales as $r)<span class="rg-pill">{{ $riesgosLabels[$r] ?? $r }}</span>@endforeach</div>@else<p class="rg-val empty">No indicados</p>@endif
         </div>
+
+        {{-- Régimen disciplinario (ancho completo) --}}
+        <div class="rg-glass rg-card rg-col-full">
+            <p class="rg-lbl">Régimen disciplinario</p>
+            @if (!empty($faltas_leves))<p class="rg-pill-h" style="color:#854d0e">Leves</p><div class="rg-pills">@foreach ($faltas_leves as $f)<span class="rg-pill amber">{{ $f }}</span>@endforeach</div>@endif
+            @if (!empty($faltas_graves))<p class="rg-pill-h" style="color:#9a3412">Graves</p><div class="rg-pills">@foreach ($faltas_graves as $f)<span class="rg-pill orange">{{ $f }}</span>@endforeach</div>@endif
+            @if (empty($faltas_leves) && empty($faltas_graves))<p class="rg-val empty">Sin faltas registradas</p>@endif
+            @if (!empty($sanciones))<p class="rg-pill-h">Sanciones habilitadas</p><div class="rg-pills">@foreach ($sanciones as $s)<span class="rg-pill">{{ $sancionesLabels[$s] ?? $s }}</span>@endforeach</div>@endif
+        </div>
+
     </div>
 
     {{-- Capítulos (colapsable) --}}
