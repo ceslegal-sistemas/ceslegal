@@ -24,7 +24,6 @@
         'diario' => 'Diario / jornaleros',
         'destajo' => 'Por obra / destajo',
     ];
-    // Normalizar: puede llegar como array (CheckboxList) o string (datos anteriores)
     $periodicidadTexto = is_array($periodicidad_pago ?? null)
         ? implode(' · ', array_filter(array_map(fn($p) => $periodicidadLabels[$p] ?? $p, $periodicidad_pago)))
         : $periodicidadLabels[$periodicidad_pago ?? ''] ?? ($periodicidad_pago ?: '—');
@@ -81,7 +80,6 @@
         'aprendizaje' => 'Aprendizaje SENA',
     ];
     $totalCargos = count($cargos ?? []);
-    $totalFaltas = count($faltas_leves ?? []) + count($faltas_graves ?? []);
 
     $modalidadesJornadaLabels = [
         'jornada_fija_diurna' => 'Jornada fija diurna',
@@ -114,859 +112,260 @@
 @endphp
 
 @verbatim
-    <style>
-        /* ── Keyframes ─────────────────────────────── */
-        @keyframes rr-up {
-            from {
-                opacity: 0;
-                transform: translateY(14px)
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0)
-            }
-        }
-
-        @keyframes rr-pop {
-            from {
-                opacity: 0;
-                transform: scale(.6)
-            }
-
-            to {
-                opacity: 1;
-                transform: scale(1)
-            }
-        }
-
-        @keyframes rr-fb {
-
-            0%,
-            100% {
-                transform: translate(0, 0)
-            }
-
-            40% {
-                transform: translate(-16px, 12px)
-            }
-
-            70% {
-                transform: translate(10px, -9px)
-            }
-        }
-
-        @keyframes rr-fg {
-
-            0%,
-            100% {
-                transform: translate(0, 0)
-            }
-
-            35% {
-                transform: translate(13px, -15px)
-            }
-
-            65% {
-                transform: translate(-9px, 7px)
-            }
-        }
-
-        .rr-a1 {
-            animation: rr-up .55s cubic-bezier(.16, 1, .3, 1) both
-        }
-
-        .rr-a2 {
-            animation: rr-up .55s .1s cubic-bezier(.16, 1, .3, 1) both
-        }
-
-        .rr-a3 {
-            animation: rr-up .55s .2s cubic-bezier(.16, 1, .3, 1) both
-        }
-
-        .rr-a4 {
-            animation: rr-up .55s .3s cubic-bezier(.16, 1, .3, 1) both
-        }
-
-        .rr-icon-pop {
-            animation: rr-pop .6s .05s cubic-bezier(.34, 1.56, .64, 1) both
-        }
-
-        .rr-orb-b {
-            animation: rr-fb 13s ease-in-out infinite
-        }
-
-        .rr-orb-g {
-            animation: rr-fg 16s ease-in-out infinite
-        }
-
-        @media(prefers-reduced-motion:reduce) {
-
-            .rr-a1,
-            .rr-a2,
-            .rr-a3,
-            .rr-a4,
-            .rr-icon-pop,
-            .rr-orb-b,
-            .rr-orb-g {
-                animation: none;
-                opacity: .7;
-                transform: none
-            }
-        }
-
-        /* ── Hero ──────────────────────────────────── */
-        .rr-hero {
-            position: relative;
-            overflow: hidden;
-            border-radius: 1.25rem;
-            padding: 1.75rem 1.5rem 1.625rem;
-            background: linear-gradient(150deg, #1a0f0c 0%, #241319 55%, #170d0a 100%);
-        }
-
-        @media(min-width:540px) {
-            .rr-hero {
-                padding: 2.25rem 2rem 2rem
-            }
-        }
-
-        html:not(.dark) .rr-hero {
-            background: #fff;
-            border: 1px solid rgba(0, 0, 0, .07);
-            box-shadow: 0 4px 28px rgba(0, 0, 0, .07)
-        }
-
-        html:not(.dark) .rr-orb-b {
-            background: radial-gradient(circle, rgba(225, 29, 72, .18), transparent 70%) !important
-        }
-
-        html:not(.dark) .rr-orb-g {
-            background: radial-gradient(circle, rgba(249, 115, 22, .20), transparent 70%) !important
-        }
-
-        .rr-overlay {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            z-index: 1;
-            background: radial-gradient(ellipse 80% 90% at 50% 50%, rgba(3, 8, 20, .80) 0%, rgba(3, 8, 20, .45) 55%, transparent 100%);
-        }
-
-        html:not(.dark) .rr-overlay {
-            background: radial-gradient(ellipse 75% 85% at 50% 40%, rgba(255, 255, 255, .72) 0%, rgba(255, 255, 255, .38) 55%, transparent 100%);
-        }
-
-        /* ── Hero icon ring ────────────────────────── */
-        .rr-icon-ring {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 56px;
-            height: 56px;
-            border-radius: 1rem;
-            margin-bottom: .875rem;
-            background: linear-gradient(135deg, #e11d48 0%, #f97316 100%);
-            box-shadow: 0 8px 22px rgba(225, 29, 72, .35);
-        }
-
-        /* ── Hero typography ───────────────────────── */
-        .rr-hero-label {
-            font-size: .65rem;
-            font-weight: 700;
-            letter-spacing: .16em;
-            text-transform: uppercase;
-            margin: 0 0 .35rem;
-            color: #fb7185;
-            text-shadow: 0 0 16px rgba(225, 29, 72, .5)
-        }
-
-        html:not(.dark) .rr-hero-label {
-            color: #be123c;
-            text-shadow: none
-        }
-
-        .rr-hero-title {
-            font-size: 1.1875rem;
-            font-weight: 700;
-            letter-spacing: -.015em;
-            line-height: 1.25;
-            margin: 0 0 .5rem;
-            color: #f1f5f9;
-            text-shadow: 0 2px 20px rgba(0, 0, 0, .8)
-        }
-
-        @media(min-width:540px) {
-            .rr-hero-title {
-                font-size: 1.375rem
-            }
-        }
-
-        html:not(.dark) .rr-hero-title {
-            color: #1c1917;
-            text-shadow: none
-        }
-
-        .rr-hero-sub {
-            font-size: .8125rem;
-            line-height: 1.6;
-            color: #94a3b8;
-            margin: 0 0 1.25rem
-        }
-
-        html:not(.dark) .rr-hero-sub {
-            color: #475569
-        }
-
-        .rr-em {
-            color: #fda4af;
-            font-weight: 600
-        }
-
-        html:not(.dark) .rr-em {
-            color: #be123c
-        }
-
-        /* ── Bullets ───────────────────────────────── */
-        .rr-bullets {
-            display: flex;
-            flex-direction: column;
-            gap: .5rem;
-            margin-bottom: 1.25rem;
-            text-align: left
-        }
-
-        .rr-bullet {
-            display: flex;
-            align-items: flex-start;
-            gap: .625rem;
-            background: rgba(255, 255, 255, .06);
-            border: 1px solid rgba(255, 255, 255, .09);
-            border-radius: .625rem;
-            padding: .6rem .875rem;
-            font-size: .8rem;
-            color: #cbd5e1;
-            line-height: 1.5;
-        }
-
-        html:not(.dark) .rr-bullet {
-            background: rgba(225,29,72, .04);
-            border-color: rgba(225,29,72, .12);
-            color: #374151
-        }
-
-        .rr-bullet strong {
-            color: #e2e8f0;
-            font-weight: 600
-        }
-
-        html:not(.dark) .rr-bullet strong {
-            color: #111827
-        }
-
-        /* ── Stats strip ───────────────────────────── */
-        .rr-stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: .5rem;
-            max-width: 480px;
-            margin: 0 auto .875rem;
-        }
-
-        @media(min-width:420px) {
-            .rr-stats {
-                grid-template-columns: repeat(4, 1fr)
-            }
-        }
-
-        .rr-stat {
-            background: rgba(255, 255, 255, .07);
-            border: 1px solid rgba(255, 255, 255, .11);
-            border-radius: .75rem;
-            padding: .6rem .5rem;
-            text-align: center;
-        }
-
-        html:not(.dark) .rr-stat {
-            background: rgba(225,29,72, .05);
-            border-color: rgba(225,29,72, .14)
-        }
-
-        .rr-stat-num {
-            font-size: 1.3rem;
-            font-weight: 800;
-            color: #f1f5f9;
-            line-height: 1
-        }
-
-        html:not(.dark) .rr-stat-num {
-            color: #1c1917
-        }
-
-        .rr-stat-lbl {
-            font-size: .58rem;
-            font-weight: 600;
-            letter-spacing: .06em;
-            text-transform: uppercase;
-            color: #64748b;
-            margin-top: .25rem
-        }
-
-        /* ── Section divider ───────────────────────── */
-        .rr-rule {
-            display: flex;
-            align-items: center;
-            gap: .75rem;
-            margin-bottom: 1rem
-        }
-
-        .rr-rule-line {
-            flex: 1;
-            height: 1px;
-            background: rgba(255, 255, 255, .08)
-        }
-
-        html:not(.dark) .rr-rule-line {
-            background: #e5e7eb
-        }
-
-        .rr-rule-txt {
-            font-size: .6rem;
-            font-weight: 700;
-            letter-spacing: .14em;
-            text-transform: uppercase;
-            white-space: nowrap;
-            color: #475569
-        }
-
-        html:not(.dark) .rr-rule-txt {
-            color: #9ca3af
-        }
-
-        /* ── Doc card ──────────────────────────────── */
-        .rr-doc {
-            border-radius: 1rem;
-            border: 1px solid rgba(255, 255, 255, .09);
-            overflow: hidden
-        }
-
-        html:not(.dark) .rr-doc {
-            border-color: rgba(0, 0, 0, .08);
-            box-shadow: 0 1px 6px rgba(0, 0, 0, .05)
-        }
-
-        .rr-section {
-            padding: 1rem 1.125rem;
-            border-bottom: 1px solid rgba(255, 255, 255, .07)
-        }
-
-        .rr-section:last-child {
-            border-bottom: none
-        }
-
-        html:not(.dark) .rr-section {
-            border-bottom-color: rgba(0, 0, 0, .06)
-        }
-
-        .rr-sec-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0
-        }
-
-        .rr-sec-grid .rr-section {
-            border-bottom: none;
-            border-right: 1px solid rgba(255, 255, 255, .07)
-        }
-
-        .rr-sec-grid .rr-section:last-child {
-            border-right: none
-        }
-
-        html:not(.dark) .rr-sec-grid .rr-section {
-            border-right-color: rgba(0, 0, 0, .06)
-        }
-
-        @media(max-width:500px) {
-            .rr-sec-grid {
-                grid-template-columns: 1fr
-            }
-
-            .rr-sec-grid .rr-section {
-                border-right: none;
-                border-bottom: 1px solid rgba(255, 255, 255, .07)
-            }
-
-            .rr-sec-grid .rr-section:last-child {
-                border-bottom: none
-            }
-        }
-
-        .rr-section[data-color] {
-            border-left: 3px solid #e11d48
-        }
-
-        .rr-sec-header {
-            display: flex;
-            align-items: center;
-            gap: .55rem;
-            margin-bottom: .55rem
-        }
-
-        .rr-sec-ico {
-            display: none;
-        }
-
-        .rr-sec-label {
-            font-size: .6rem;
-            font-weight: 700;
-            letter-spacing: .1em;
-            text-transform: uppercase;
-            color: #64748b;
-            margin: 0
-        }
-
-        html:not(.dark) .rr-sec-label {
-            color: #9ca3af
-        }
-
-        .rr-sec-val {
-            font-size: .9rem;
-            font-weight: 500;
-            color: #e2e8f0;
-            margin: 0;
-            line-height: 1.55
-        }
-
-        .rr-sec-val.empty {
-            color: #475569;
-            font-style: italic;
-            font-weight: 400
-        }
-
-        html:not(.dark) .rr-sec-val {
-            color: #111827
-        }
-
-        html:not(.dark) .rr-sec-val.empty {
-            color: #9ca3af
-        }
-
-        .rr-sec-sub {
-            font-size: .775rem;
-            color: #64748b;
-            margin: .25rem 0 0;
-            line-height: 1.4
-        }
-
-        html:not(.dark) .rr-sec-sub {
-            color: #6b7280
-        }
-
-        .rr-tag {
-            display: inline-block;
-            font-size: .72rem;
-            font-weight: 600;
-            border-radius: 99px;
-            padding: .22rem .7rem;
-            margin: .28rem .28rem 0 0;
-            background: rgba(251,113,133, .16);
-            color: #fb7185;
-        }
-
-        html:not(.dark) .rr-tag {
-            background: rgba(225,29,72, .09);
-            color: #be123c
-        }
-
-        .rr-tag.leve {
-            background: rgba(250, 204, 21, .12);
-            color: #fde047
-        }
-
-        html:not(.dark) .rr-tag.leve {
-            background: rgba(234, 179, 8, .09);
-            color: #854d0e
-        }
-
-        .rr-tag.grave {
-            background: rgba(249, 115, 22, .13);
-            color: #fb923c
-        }
-
-        html:not(.dark) .rr-tag.grave {
-            background: rgba(234, 88, 12, .09);
-            color: #9a3412
-        }
-
-        .rr-tag.muy-grave {
-            background: rgba(239, 68, 68, .13);
-            color: #f87171
-        }
-
-        html:not(.dark) .rr-tag.muy-grave {
-            background: rgba(220, 38, 38, .09);
-            color: #991b1b
-        }
-    </style>
+<style>
+    @keyframes rg-up   { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+    @keyframes rg-pop  { from{opacity:0;transform:scale(.6)}       to{opacity:1;transform:none} }
+    @keyframes rg-fa   { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-16px,12px)} }
+    @keyframes rg-fb   { 0%,100%{transform:translate(0,0)} 50%{transform:translate(14px,-14px)} }
+
+    /* Tipografía: Space Grotesk para display, Inter (heredado del panel) para cuerpo */
+    .rg-wrap{ position:relative; max-width:560px; margin:0 auto; display:flex; flex-direction:column; gap:14px; padding:.25rem 0; }
+    .rg-disp{ font-family:'Space Grotesk', ui-sans-serif, system-ui, sans-serif; letter-spacing:-.02em; }
+
+    /* Fondo con wash de marca (da profundidad al vidrio) */
+    .rg-bg{ position:absolute; inset:-60px -20px; z-index:0; pointer-events:none; overflow:hidden; }
+    .rg-orb{ position:absolute; border-radius:50%; filter:blur(46px); }
+    .rg-orb.a{ width:300px;height:300px; top:-40px; right:-30px; background:radial-gradient(circle, rgba(225,29,72,.20), transparent 70%); animation:rg-fa 16s ease-in-out infinite; }
+    .rg-orb.b{ width:260px;height:260px; top:38%; left:-50px; background:radial-gradient(circle, rgba(249,115,22,.18), transparent 70%); animation:rg-fb 19s ease-in-out infinite; }
+    .rg-orb.c{ width:240px;height:240px; bottom:-40px; right:0; background:radial-gradient(circle, rgba(225,29,72,.12), transparent 70%); animation:rg-fa 22s ease-in-out infinite; }
+    @media(prefers-reduced-motion:reduce){ .rg-orb{ animation:none } }
+
+    /* ── Liquid glass card ── */
+    .rg-glass{
+        position:relative; z-index:1;
+        background:rgba(255,255,255,.60);
+        -webkit-backdrop-filter:blur(20px) saturate(150%);
+        backdrop-filter:blur(20px) saturate(150%);
+        border:1px solid rgba(255,255,255,.72);
+        border-radius:22px;
+        box-shadow:0 10px 30px rgba(28,25,23,.08), inset 0 1px 0 rgba(255,255,255,.6);
+    }
+    html.dark .rg-glass{
+        background:rgba(38,34,32,.52);
+        border-color:rgba(255,255,255,.09);
+        box-shadow:0 12px 34px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.06);
+    }
+
+    /* ── Hero ── */
+    .rg-hero{ padding:26px 22px; text-align:center; }
+    .rg-ring{ width:58px;height:58px;border-radius:18px;display:inline-flex;align-items:center;justify-content:center;
+        background:linear-gradient(135deg,#e11d48,#f97316); box-shadow:0 10px 24px rgba(225,29,72,.35); margin-bottom:12px; animation:rg-pop .6s .05s cubic-bezier(.34,1.56,.64,1) both; }
+    .rg-ring svg{ width:29px;height:29px;color:#fff }
+    .rg-kicker{ font-size:.66rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#be123c;margin:0 0 6px }
+    html.dark .rg-kicker{ color:#fb7185 }
+    .rg-title{ font-size:1.35rem;font-weight:700;line-height:1.2;margin:0 0 8px;color:#1c1917 }
+    html.dark .rg-title{ color:#f5f5f4 }
+    .rg-lead{ font-size:.85rem;line-height:1.55;color:#78716c;margin:0 auto;max-width:36ch }
+    html.dark .rg-lead{ color:#a8a29e }
+    .rg-em{ color:#be123c;font-weight:600 }
+    html.dark .rg-em{ color:#fda4af }
+
+    .rg-stats{ display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px }
+    .rg-stat{ background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.6);border-radius:14px;padding:10px 4px;text-align:center }
+    html.dark .rg-stat{ background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.08) }
+    .rg-stat b{ display:block;font-family:'Space Grotesk';font-size:1.25rem;font-weight:700;line-height:1;color:#1c1917 }
+    html.dark .rg-stat b{ color:#f5f5f4 }
+    .rg-stat span{ font-size:.55rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#a8a29e;margin-top:4px;display:block }
+
+    .rg-notes{ display:flex;flex-direction:column;gap:8px;margin-top:16px;text-align:left }
+    .rg-note{ display:flex;gap:10px;align-items:flex-start;background:rgba(255,255,255,.42);border:1px solid rgba(255,255,255,.55);
+        border-radius:13px;padding:10px 12px;font-size:.78rem;line-height:1.45;color:#57534e }
+    html.dark .rg-note{ background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.07);color:#d6d3d1 }
+    .rg-note b{ color:#1c1917 } html.dark .rg-note b{ color:#f5f5f4 }
+    .rg-note .ic{ width:18px;height:18px;flex-shrink:0;margin-top:1px }
+
+    /* Section label divider */
+    .rg-seclabel{ font-size:.66rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#a8a29e;
+        margin:8px 4px 0;display:flex;align-items:center;gap:10px }
+    .rg-seclabel::after{ content:"";flex:1;height:1px;background:rgba(28,25,23,.1) }
+    html.dark .rg-seclabel::after{ background:rgba(255,255,255,.1) }
+
+    /* Data card */
+    .rg-card{ padding:15px 17px;overflow:hidden }
+    .rg-card::before{ content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#e11d48,#f97316) }
+    .rg-lbl{ font-size:.61rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#a8a29e;margin:0 0 5px }
+    .rg-val{ font-size:1rem;font-weight:600;margin:0;line-height:1.35;color:#1c1917 }
+    html.dark .rg-val{ color:#f5f5f4 }
+    .rg-val.empty{ color:#a8a29e;font-weight:400;font-style:italic;font-size:.9rem }
+    .rg-sub{ font-size:.8rem;color:#78716c;margin:4px 0 0;line-height:1.45 }
+    html.dark .rg-sub{ color:#a8a29e }
+    .rg-grid2{ display:grid;grid-template-columns:1fr 1fr;gap:14px }
+    @media(max-width:460px){ .rg-grid2{ grid-template-columns:1fr } }
+
+    /* Pills */
+    .rg-pills{ display:flex;flex-wrap:wrap;gap:6px;margin-top:8px }
+    .rg-pill{ font-size:.72rem;font-weight:600;border-radius:999px;padding:.24rem .7rem;background:rgba(225,29,72,.1);color:#be123c }
+    html.dark .rg-pill{ background:rgba(251,113,133,.16);color:#fda4af }
+    .rg-pill.amber{ background:rgba(234,179,8,.15);color:#854d0e } html.dark .rg-pill.amber{ background:rgba(250,204,21,.13);color:#fde047 }
+    .rg-pill.orange{ background:rgba(234,88,12,.13);color:#9a3412 } html.dark .rg-pill.orange{ background:rgba(249,115,22,.15);color:#fdba74 }
+    .rg-pill.red{ background:rgba(220,38,38,.12);color:#991b1b } html.dark .rg-pill.red{ background:rgba(239,68,68,.15);color:#fca5a5 }
+    .rg-pill-h{ font-size:.7rem;font-weight:700;letter-spacing:.04em;margin:.5rem 0 .1rem }
+
+    /* Capítulos disclosure */
+    details.rg-caps{ padding:0;overflow:hidden }
+    details.rg-caps>summary{ list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+        padding:15px 18px;font-weight:600;color:#1c1917 }
+    html.dark details.rg-caps>summary{ color:#f5f5f4 }
+    details.rg-caps>summary::-webkit-details-marker{ display:none }
+    .rg-caps-count{ font-size:.7rem;font-weight:700;color:#be123c;background:rgba(225,29,72,.1);border-radius:999px;padding:.16rem .6rem;margin-left:.4rem }
+    html.dark .rg-caps-count{ color:#fda4af;background:rgba(251,113,133,.16) }
+    .rg-chev{ transition:transform .25s;color:#a8a29e;flex-shrink:0 }
+    details.rg-caps[open] .rg-chev{ transform:rotate(180deg) }
+    .rg-caps-body{ padding:0 13px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px }
+    @media(max-width:460px){ .rg-caps-body{ grid-template-columns:1fr } }
+    .rg-cap{ display:flex;align-items:center;gap:9px;font-size:.75rem;color:#44403c;
+        background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.6);border-radius:12px;padding:9px 11px }
+    html.dark .rg-cap{ color:#d6d3d1;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.07) }
+    .rg-cap svg{ width:14px;height:14px;color:#e11d48;flex-shrink:0 }
+    .rg-cap b{ font-weight:700 }
+    .rg-foot{ font-size:.72rem;color:#a8a29e;text-align:center;line-height:1.5;padding:2px 18px 14px }
+
+    .rg-a1{ animation:rg-up .5s cubic-bezier(.16,1,.3,1) both }
+    .rg-a2{ animation:rg-up .5s .08s cubic-bezier(.16,1,.3,1) both }
+    .rg-a3{ animation:rg-up .5s .16s cubic-bezier(.16,1,.3,1) both }
+    @media(prefers-reduced-motion:reduce){ .rg-a1,.rg-a2,.rg-a3{ animation:none } }
+</style>
 @endverbatim
 
-<style>
-    .rr-caps-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: .5rem;
-    }
-
-    @media(max-width:480px) {
-        .rr-caps-grid {
-            grid-template-columns: 1fr
-        }
-    }
-
-    .rr-cap-item {
-        display: flex;
-        align-items: center;
-        gap: .55rem;
-        font-size: .76rem;
-        color: #cbd5e1;
-        line-height: 1.35;
-        padding: .55rem .7rem;
-        background: rgba(255, 255, 255, .04);
-        border: 1px solid rgba(255, 255, 255, .08);
-        border-radius: .6rem;
-    }
-
-    html:not(.dark) .rr-cap-item {
-        color: #374151;
-        background: #fff;
-        border-color: rgba(0, 0, 0, .07);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, .03);
-    }
-
-    .rr-cap-item strong {
-        color: #e2e8f0;
-        font-weight: 600
-    }
-
-    html:not(.dark) .rr-cap-item strong {
-        color: #111827
-    }
-
-    .rr-caps-container {
-        padding: .25rem 0 0;
-    }
-</style>
-
-<div style="display:flex;flex-direction:column;gap:1.125rem;padding:.25rem 0;">
+<div class="rg-wrap">
+    <div class="rg-bg"><div class="rg-orb a"></div><div class="rg-orb b"></div><div class="rg-orb c"></div></div>
 
     {{-- ══ HERO ══ --}}
-    <div class="rr-hero rr-a1" style="text-align:center;">
-        <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
-            <div class="rr-orb-b"
-                style="position:absolute;width:240px;height:240px;top:-60px;right:-40px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.5),transparent 70%);filter:blur(24px);">
-            </div>
-            <div class="rr-orb-g"
-                style="position:absolute;width:180px;height:180px;bottom:-45px;left:-35px;border-radius:50%;background:radial-gradient(circle,rgba(249,115,22,.22),transparent 70%);filter:blur(22px);">
-            </div>
+    <div class="rg-glass rg-hero rg-a1">
+        <div class="rg-ring">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
         </div>
-        <div class="rr-overlay"></div>
-        <div style="position:relative;z-index:2;">
+        <p class="rg-kicker">Resumen de su información</p>
+        <h2 class="rg-title rg-disp">Reglamento Interno de Trabajo</h2>
+        <p class="rg-lead">
+            Verifique que todo sea correcto. Use <span class="rg-em">Anterior</span> para cambiar algo;
+            al pulsar <span class="rg-em">Crear</span>, la IA redactará los 16 capítulos conforme al Art. 105 CST.
+        </p>
 
-            <div class="rr-icon-ring rr-icon-pop">
-                <svg style="width:27px;height:27px;color:#fff" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="1.75">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                </svg>
+        <div class="rg-stats">
+            <div class="rg-stat"><b>{{ $num_trabajadores ?: '?' }}</b><span>Trabaj.</span></div>
+            <div class="rg-stat"><b>{{ $totalCargos ?: '—' }}</b><span>Cargos</span></div>
+            <div class="rg-stat"><b>16</b><span>Capít.</span></div>
+            <div class="rg-stat"><b>~80</b><span>Artíc.</span></div>
+        </div>
+
+        <div class="rg-notes">
+            <div class="rg-note">
+                <svg class="ic" fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>Verifique que el resumen sea <b>correcto y completo</b> antes de continuar.</span>
             </div>
-
-            <p class="rr-hero-label">Resumen de su información</p>
-            <h2 class="rr-hero-title">Reglamento Interno de Trabajo</h2>
-            <p class="rr-hero-sub">
-                Verifique que todo sea correcto. Si necesita cambiar algo, use el botón <strong class="rr-em">"Anterior"</strong>.
-                Al hacer clic en <strong class="rr-em">"Crear"</strong>, la IA redactará
-                los 16 capítulos con cumplimiento del Art. 105 CST y la Ley 2365/2024.
-            </p>
-
-            <div class="rr-bullets rr-a2" style="max-width:500px;margin-left:auto;margin-right:auto;">
-                <div class="rr-bullet">
-                    <svg style="width:16px;height:16px;flex-shrink:0;margin-top:1px;color:#86efac" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Verifique que el resumen sea <strong>correcto y completo</strong> antes de continuar.</span>
-                </div>
-                <div class="rr-bullet">
-                    <svg style="width:16px;height:16px;flex-shrink:0;margin-top:1px;color:#fde68a" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                    </svg>
-                    <span>El proceso puede tardar hasta <strong>60 segundos</strong> — no cierre ni recargue la
-                        ventana.</span>
-                </div>
-                <div class="rr-bullet">
-                    <svg style="width:16px;height:16px;flex-shrink:0;margin-top:1px;color:#fdba74" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-                    </svg>
-                    <span>El documento debe ser <strong>revisado por un abogado</strong> antes de presentarlo al
-                        Ministerio del Trabajo.</span>
-                </div>
+            <div class="rg-note">
+                <svg class="ic" fill="none" viewBox="0 0 24 24" stroke="#d97706" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                <span>Puede tardar hasta <b>60 segundos</b> — no cierre ni recargue la ventana.</span>
             </div>
-
-            {{-- Stats --}}
-            <div class="rr-stats rr-a3">
-                <div class="rr-stat">
-                    <div class="rr-stat-num">{{ $num_trabajadores ?: '?' }}</div>
-                    <div class="rr-stat-lbl">Trabajadores</div>
-                </div>
-                <div class="rr-stat">
-                    <div class="rr-stat-num">{{ $totalCargos ?: '—' }}</div>
-                    <div class="rr-stat-lbl">Cargos</div>
-                </div>
-                <div class="rr-stat">
-                    <div class="rr-stat-num">16</div>
-                    <div class="rr-stat-lbl">Capítulos</div>
-                </div>
-                <div class="rr-stat">
-                    <div class="rr-stat-num">~80</div>
-                    <div class="rr-stat-lbl">Artículos</div>
-                </div>
+            <div class="rg-note">
+                <svg class="ic" fill="none" viewBox="0 0 24 24" stroke="#ea580c" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
+                <span>Revíselo con un <b>abogado</b> antes de presentarlo al Ministerio del Trabajo.</span>
             </div>
-
         </div>
     </div>
 
-    {{-- ══ RESUMEN ══ --}}
-    <div class="rr-a4">
-        <div class="rr-rule">
-            <div class="rr-rule-line"></div>
-            <span class="rr-rule-txt">Resumen de sus respuestas</span>
-            <div class="rr-rule-line"></div>
-        </div>
+    <div class="rg-seclabel rg-a2">Resumen de sus respuestas</div>
 
-        <div class="rr-doc">
-
-            {{-- Empresa --}}
-            <div class="rr-section" data-color style="--sc:#f97316">
-                <div class="rr-sec-header">
-                    <svg class="rr-sec-ico" style="color:#f97316" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-                    </svg>
-                    <p class="rr-sec-label">Empresa</p>
-                </div>
-                <p class="rr-sec-val">{{ $empresa?->razon_social ?? '—' }}</p>
-                <p class="rr-sec-sub">
-                    NIT {{ $empresa?->nit ?? '—' }}
-                    @if ($empresa?->ciudad) &nbsp;·&nbsp;
-                        {{ $empresa->ciudad }}@if ($empresa->departamento)
-                            , {{ $empresa->departamento }}
-                        @endif
-                    @endif
-                </p>
-                @if (!empty($actividad_economica))
-                    <p class="rr-sec-sub" style="margin-top:.3rem;color:#94a3b8">
-                        <span style="color:#64748b">Actividad:</span> {{ $actividad_economica }}
-                    </p>
-                @endif
-                @if ($tiene_sucursales === 'si')
-                    <p class="rr-sec-sub" style="margin-top:.35rem">{{ count($sucursales ?? []) }} sucursal(es)
-                        registrada(s)</p>
-                @endif
-            </div>
-
-            {{-- Jornada --}}
-            <div class="rr-sec-grid" style="border-bottom:1px solid rgba(255,255,255,.07)">
-                <div class="rr-section" data-color style="--sc:#34d399">
-                    <div class="rr-sec-header">
-                        <svg class="rr-sec-ico" style="color:#34d399" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p class="rr-sec-label">Jornada</p>
-                    </div>
-                    <p class="rr-sec-val {{ !$horario_entrada ? 'empty' : '' }}">
-                        {{ $horario_entrada ?? '—' }} → {{ $horario_salida ?? '—' }}
-                    </p>
-                    <p class="rr-sec-sub">
-                        Sáb: {{ $jornadaSabadoLabel }}
-                        &nbsp;·&nbsp; Dom: {{ $dominicalesLabels[$trabaja_dominicales ?? 'no'] ?? 'No' }}
-                    </p>
-                    @if (!empty($modalidades_jornada))
-                        <div style="margin-top:.35rem">
-                            @foreach ($modalidades_jornada as $mj)
-                                <span class="rr-tag">{{ $modalidadesJornadaLabels[$mj] ?? $mj }}</span>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-
-                <div class="rr-section" data-color style="--sc:#f59e0b">
-                    <div class="rr-sec-header">
-                        <svg class="rr-sec-ico" style="color:#f59e0b" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-                        </svg>
-                        <p class="rr-sec-label">Pago</p>
-                    </div>
-                    <p class="rr-sec-val {{ !$forma_pago ? 'empty' : '' }}">
-                        {{ $formaPagoLabels[$forma_pago ?? ''] ?? ($forma_pago ?: '—') }}
-                    </p>
-                    <p class="rr-sec-sub">{{ $periodicidadTexto }}</p>
-                </div>
-            </div>
-
-            {{-- Contratos + Control asistencia --}}
-            <div class="rr-sec-grid" style="border-bottom:1px solid rgba(255,255,255,.07)">
-                <div class="rr-section" data-color style="--sc:#fb7185">
-                    <div class="rr-sec-header">
-                        <svg class="rr-sec-ico" style="color:#fb7185" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                        </svg>
-                        <p class="rr-sec-label">Tipos de contrato</p>
-                    </div>
-
-                    {{-- Validamos estrictamente que sea un array y que no esté vacío --}}
-                    @if (is_array($tipos_contrato) && !empty($tipos_contrato))
-                        @foreach ($tipos_contrato as $tc)
-                            <span class="rr-tag">{{ $tiposContratoLabels[$tc] ?? $tc }}</span>
-                        @endforeach
-                    @else
-                        <p class="rr-sec-val empty">No indicado</p>
-                    @endif
-
-                    {{-- @if (!empty($tipos_contrato))
-                        @foreach ($tipos_contrato as $tc)
-                            <span class="rr-tag">{{ $tiposContratoLabels[$tc] ?? $tc }}</span>
-                        @endforeach
-                    @else
-                        <p class="rr-sec-val empty">No indicado</p>
-                    @endif --}}
-                </div>
-
-                <div class="rr-section" data-color style="--sc:#fda4af">
-                    <div class="rr-sec-header">
-                        <svg class="rr-sec-ico" style="color:#fda4af" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M7.864 4.243A7.5 7.5 0 0119.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 004.5 10.5a7.464 7.464 0 01-1.15 3.993m1.989 3.559A11.209 11.209 0 008.25 10.5a3.75 3.75 0 117.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 01-3.6 9.75m6.633-4.596a18.666 18.666 0 01-2.485 5.33" />
-                        </svg>
-                        <p class="rr-sec-label">Control asistencia</p>
-                    </div>
-                    <p class="rr-sec-val {{ !$control_asistencia ? 'empty' : '' }}">
-                        {{ $controlLabels[$control_asistencia ?? ''] ?? ($control_asistencia ?: '—') }}
-                    </p>
-                </div>
-            </div>
-
-            {{-- Faltas --}}
-            <div class="rr-section" data-color style="--sc:#f87171;background:rgba(239,68,68,.03)">
-                <div class="rr-sec-header">
-                    <svg class="rr-sec-ico" style="color:#f87171" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                    </svg>
-                    <p class="rr-sec-label">Régimen disciplinario</p>
-                </div>
-                <div>
-                    @if (!empty($faltas_leves))
-                        <p class="rr-sec-sub" style="margin-bottom:.25rem;color:#fbbf24">Leves</p>
-                        @foreach ($faltas_leves as $f)
-                            <span class="rr-tag leve">{{ $f }}</span>
-                        @endforeach
-                    @endif
-                    @if (!empty($faltas_graves))
-                        <p class="rr-sec-sub" style="margin:.5rem 0 .25rem;color:#fb923c">Graves</p>
-                        @foreach ($faltas_graves as $f)
-                            <span class="rr-tag grave">{{ $f }}</span>
-                        @endforeach
-                    @endif
-                    @if (empty($faltas_leves) && empty($faltas_graves))
-                        <p class="rr-sec-val empty">Sin faltas registradas</p>
-                    @endif
-                </div>
-                @if (!empty($sanciones))
-                    <p class="rr-sec-sub" style="margin-top:.75rem;margin-bottom:.25rem">Sanciones habilitadas:</p>
-                    @foreach ($sanciones as $s)
-                        <span class="rr-tag">{{ $sancionesLabels[$s] ?? $s }}</span>
-                    @endforeach
-                @endif
-            </div>
-
-            {{-- SST --}}
-            <div class="rr-sec-grid">
-                <div class="rr-section" data-color style="--sc:#4ade80">
-                    <div class="rr-sec-header">
-                        <svg class="rr-sec-ico" style="color:#4ade80" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                        </svg>
-                        <p class="rr-sec-label">SG-SST</p>
-                    </div>
-                    <p class="rr-sec-val {{ !$tiene_sg_sst ? 'empty' : '' }}">
-                        {{ $sgSstLabels[$tiene_sg_sst ?? ''] ?? ($tiene_sg_sst ?: '—') }}
-                    </p>
-                </div>
-
-                <div class="rr-section" data-color style="--sc:#fb7185">
-                    <div class="rr-sec-header">
-                        <svg class="rr-sec-ico" style="color:#fb7185" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                        </svg>
-                        <p class="rr-sec-label">Riesgos principales</p>
-                    </div>
-                    @if (!empty($riesgos_principales))
-                        @foreach ($riesgos_principales as $r)
-                            <span class="rr-tag">{{ $riesgosLabels[$r] ?? $r }}</span>
-                        @endforeach
-                    @else
-                        <p class="rr-sec-val empty">No indicados</p>
-                    @endif
-                </div>
-            </div>
-
-        </div>{{-- /rr-doc --}}
-
-        {{-- ── CAPÍTULOS DEL RIT ── --}}
-        <div style="margin-top:1.25rem">
-            <div class="rr-rule">
-                <div class="rr-rule-line"></div>
-                <span class="rr-rule-txt">Capítulos que generará la IA</span>
-                <div class="rr-rule-line"></div>
-            </div>
-            <div class="rr-caps-container">
-                <div class="rr-caps-grid">
-                    @foreach ($capitulosRIT as $num => $titulo)
-                        <div class="rr-cap-item">
-                            <svg style="width:15px;height:15px;color:#e11d48;flex-shrink:0"
-                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                            </svg>
-                            <span><strong>Cap. {{ $num }}</strong>&nbsp;— {{ $titulo }}</span>
-                        </div>
-                    @endforeach
-                </div>
-                <p
-                    style="font-size:.68rem;color:#475569;margin-top:.875rem;text-align:center;border-top:1px solid rgba(255,255,255,.07);padding-top:.625rem">
-                    Todos los capítulos son obligatorios según el Art. 105 CST. La IA los redacta artículo por artículo
-                    basándose en la información que usted proporcionó.
-                </p>
-            </div>
-        </div>
-
+    {{-- Empresa --}}
+    <div class="rg-glass rg-card rg-a2">
+        <p class="rg-lbl">Empresa</p>
+        <p class="rg-val">{{ $empresa?->razon_social ?? '—' }}</p>
+        <p class="rg-sub">
+            NIT {{ $empresa?->nit ?? '—' }}@if ($empresa?->ciudad) &nbsp;·&nbsp; {{ $empresa->ciudad }}@if ($empresa->departamento), {{ $empresa->departamento }}@endif @endif
+        </p>
+        @if (!empty($actividad_economica))
+            <p class="rg-sub" style="margin-top:.3rem"><span style="opacity:.75">Actividad:</span> {{ $actividad_economica }}</p>
+        @endif
+        @if (($tiene_sucursales ?? null) === 'si')
+            <p class="rg-sub" style="margin-top:.3rem">{{ count($sucursales ?? []) }} sucursal(es) registrada(s)</p>
+        @endif
     </div>
+
+    {{-- Jornada + Pago --}}
+    <div class="rg-grid2 rg-a2">
+        <div class="rg-glass rg-card">
+            <p class="rg-lbl">Jornada</p>
+            <p class="rg-val {{ !$horario_entrada ? 'empty' : '' }}">{{ $horario_entrada ?? '—' }} → {{ $horario_salida ?? '—' }}</p>
+            <p class="rg-sub">Sáb: {{ $jornadaSabadoLabel }} &nbsp;·&nbsp; Dom: {{ $dominicalesLabels[$trabaja_dominicales ?? 'no'] ?? 'No' }}</p>
+            @if (!empty($modalidades_jornada))
+                <div class="rg-pills">@foreach ($modalidades_jornada as $mj)<span class="rg-pill">{{ $modalidadesJornadaLabels[$mj] ?? $mj }}</span>@endforeach</div>
+            @endif
+        </div>
+        <div class="rg-glass rg-card">
+            <p class="rg-lbl">Pago</p>
+            <p class="rg-val {{ !$forma_pago ? 'empty' : '' }}">{{ $formaPagoLabels[$forma_pago ?? ''] ?? ($forma_pago ?: '—') }}</p>
+            <p class="rg-sub">{{ $periodicidadTexto }}</p>
+        </div>
+    </div>
+
+    {{-- Contratos + Control --}}
+    <div class="rg-grid2 rg-a3">
+        <div class="rg-glass rg-card">
+            <p class="rg-lbl">Tipos de contrato</p>
+            @if (is_array($tipos_contrato) && !empty($tipos_contrato))
+                <div class="rg-pills">@foreach ($tipos_contrato as $tc)<span class="rg-pill">{{ $tiposContratoLabels[$tc] ?? $tc }}</span>@endforeach</div>
+            @else
+                <p class="rg-val empty">No indicado</p>
+            @endif
+        </div>
+        <div class="rg-glass rg-card">
+            <p class="rg-lbl">Control asistencia</p>
+            <p class="rg-val {{ !$control_asistencia ? 'empty' : '' }}" style="font-size:.95rem">{{ $controlLabels[$control_asistencia ?? ''] ?? ($control_asistencia ?: '—') }}</p>
+        </div>
+    </div>
+
+    {{-- Faltas (full) --}}
+    <div class="rg-glass rg-card rg-a3">
+        <p class="rg-lbl">Régimen disciplinario</p>
+        @if (!empty($faltas_leves))
+            <p class="rg-pill-h" style="color:#854d0e">Leves</p>
+            <div class="rg-pills">@foreach ($faltas_leves as $f)<span class="rg-pill amber">{{ $f }}</span>@endforeach</div>
+        @endif
+        @if (!empty($faltas_graves))
+            <p class="rg-pill-h" style="color:#9a3412">Graves</p>
+            <div class="rg-pills">@foreach ($faltas_graves as $f)<span class="rg-pill orange">{{ $f }}</span>@endforeach</div>
+        @endif
+        @if (empty($faltas_leves) && empty($faltas_graves))
+            <p class="rg-val empty">Sin faltas registradas</p>
+        @endif
+        @if (!empty($sanciones))
+            <p class="rg-pill-h">Sanciones habilitadas</p>
+            <div class="rg-pills">@foreach ($sanciones as $s)<span class="rg-pill">{{ $sancionesLabels[$s] ?? $s }}</span>@endforeach</div>
+        @endif
+    </div>
+
+    {{-- SST + Riesgos --}}
+    <div class="rg-grid2 rg-a3">
+        <div class="rg-glass rg-card">
+            <p class="rg-lbl">SG-SST</p>
+            <p class="rg-val {{ !$tiene_sg_sst ? 'empty' : '' }}" style="font-size:.95rem">{{ $sgSstLabels[$tiene_sg_sst ?? ''] ?? ($tiene_sg_sst ?: '—') }}</p>
+        </div>
+        <div class="rg-glass rg-card">
+            <p class="rg-lbl">Riesgos principales</p>
+            @if (!empty($riesgos_principales))
+                <div class="rg-pills">@foreach ($riesgos_principales as $r)<span class="rg-pill">{{ $riesgosLabels[$r] ?? $r }}</span>@endforeach</div>
+            @else
+                <p class="rg-val empty">No indicados</p>
+            @endif
+        </div>
+    </div>
+
+    {{-- Capítulos (colapsable) --}}
+    <details class="rg-glass rg-caps rg-a3">
+        <summary>
+            <span class="rg-disp">Capítulos que generará la IA <span class="rg-caps-count">16</span></span>
+            <svg class="rg-chev" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+        </summary>
+        <div class="rg-caps-body">
+            @foreach ($capitulosRIT as $num => $titulo)
+                <div class="rg-cap">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                    <span><b>{{ $num }}</b>&nbsp;· {{ $titulo }}</span>
+                </div>
+            @endforeach
+        </div>
+        <p class="rg-foot">Todos obligatorios según el Art. 105 CST. La IA los redacta artículo por artículo con la información que usted proporcionó.</p>
+    </details>
 
 </div>
