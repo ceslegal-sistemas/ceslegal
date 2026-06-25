@@ -134,7 +134,7 @@
             overflow: hidden;
             border-radius: 1.25rem;
             padding: 1.75rem 1.5rem 1.625rem;
-            background: linear-gradient(150deg, #060f22 0%, #0d1f3c 55%, #060e20 100%);
+            background: linear-gradient(150deg, #1a0f0c 0%, #241319 55%, #170d0a 100%);
         }
 
         @media(min-width:540px) {
@@ -569,7 +569,7 @@
         {{-- Orbs CSS only — sin canvas ni luciérnagas --}}
         <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
             <div class="er-orb-b"
-                style="position:absolute;width:240px;height:240px;top:-60px;right:-40px;border-radius:50%;background:radial-gradient(circle,rgba(30,58,138,.5),transparent 70%);filter:blur(24px);">
+                style="position:absolute;width:240px;height:240px;top:-60px;right:-40px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.45),transparent 70%);filter:blur(24px);">
             </div>
             <div class="er-orb-g"
                 style="position:absolute;width:180px;height:180px;bottom:-45px;left:-35px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.22),transparent 70%);filter:blur(22px);">

@@ -113,7 +113,7 @@
             border-radius: 1.125rem;
             padding: 2rem 1.25rem 1.75rem;
             text-align: center;
-            background: linear-gradient(155deg, #060f22 0%, #091830 50%, #060e20 100%);
+            background: linear-gradient(155deg, #1a0f0c 0%, #241319 50%, #170d0a 100%);
         }
 
         @media(min-width:540px) {
@@ -633,13 +633,13 @@
 
         <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
             <div class="bv-hero-orb-blue"
-                style="position:absolute;width:280px;height:280px;top:-70px;right:-50px;border-radius:50%;background:radial-gradient(circle,rgba(30,58,138,.55),transparent 70%);filter:blur(28px);transition:background .4s;">
+                style="position:absolute;width:280px;height:280px;top:-70px;right:-50px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.5),transparent 70%);filter:blur(28px);transition:background .4s;">
             </div>
             <div class="bv-hero-orb-gold"
                 style="position:absolute;width:200px;height:200px;bottom:-50px;left:-40px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.25),transparent 70%);filter:blur(26px);transition:background .4s;">
             </div>
             <div class="bv-hero-orb-extra"
-                style="position:absolute;width:180px;height:180px;top:30%;left:20%;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.22),transparent 70%);filter:blur(32px);">
+                style="position:absolute;width:180px;height:180px;top:30%;left:20%;border-radius:50%;background:radial-gradient(circle,rgba(249,115,22,.2),transparent 70%);filter:blur(32px);">
             </div>
 
             {{-- ── Embers (light mode) ── --}}

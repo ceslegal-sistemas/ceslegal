@@ -23,8 +23,8 @@
     }
     .hca-btn.hca-transcribing {
         color: #fb7185;
-        border-color: rgba(139,92,246,.35);
-        background: rgba(139,92,246,.07);
+        border-color: rgba(251,113,133,.35);
+        background: rgba(251,113,133,.07);
     }
     .hca-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
     .hca-pulse {

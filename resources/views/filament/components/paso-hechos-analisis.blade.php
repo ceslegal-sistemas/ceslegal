@@ -77,8 +77,8 @@
     .pha-feedback {
         margin-top: .5rem;
         padding: .5rem .625rem;
-        background: rgba(139,92,246,.1);
-        border: 1px solid rgba(139,92,246,.25);
+        background: rgba(251,113,133,.1);
+        border: 1px solid rgba(251,113,133,.25);
         border-radius: .5rem;
         font-size: .775rem;
         color: #fb7185;
@@ -88,7 +88,7 @@
         align-items: flex-start;
     }
     .pha-feedback svg { width: 13px; height: 13px; flex-shrink: 0; margin-top: 1px; color: #fb7185; }
-    html:not(.dark) .pha-feedback       { background: rgba(139,92,246,.07); border-color: rgba(139,92,246,.2); color: #be123c; }
+    html:not(.dark) .pha-feedback       { background: rgba(225,29,72,.07); border-color: rgba(225,29,72,.2); color: #be123c; }
     html:not(.dark) .pha-feedback svg   { color: #be123c; }
 </style>
 

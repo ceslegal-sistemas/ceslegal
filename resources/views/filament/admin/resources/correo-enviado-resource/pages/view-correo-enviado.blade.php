@@ -28,9 +28,9 @@
 
 <style>
 /* ── Base — hereda patrón rit-hero / rit-viewer ─────────────────────────── */
-.ce-hero{position:relative;overflow:hidden;border-radius:1.25rem;padding:2rem 1.75rem;background:linear-gradient(150deg,#060f22 0%,#0d1f3c 55%,#060e20 100%)}
+.ce-hero{position:relative;overflow:hidden;border-radius:1.25rem;padding:2rem 1.75rem;background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%)}
 html:not(.dark) .ce-hero{background:#fff;border:1px solid rgba(0,0,0,.07);box-shadow:0 4px 28px rgba(0,0,0,.08)}
-.ce-orb-b{position:absolute;width:260px;height:260px;top:-70px;right:-50px;border-radius:50%;background:radial-gradient(circle,rgba(30,58,138,.4),transparent 70%);filter:blur(28px);pointer-events:none;animation:ce-fb 14s ease-in-out infinite}
+.ce-orb-b{position:absolute;width:260px;height:260px;top:-70px;right:-50px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.42),transparent 70%);filter:blur(28px);pointer-events:none;animation:ce-fb 14s ease-in-out infinite}
 .ce-orb-g{position:absolute;width:180px;height:180px;bottom:-55px;left:-35px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.18),transparent 70%);filter:blur(24px);pointer-events:none;animation:ce-fg 18s ease-in-out infinite}
 @keyframes ce-fb{0%,100%{transform:translate(0,0)}40%{transform:translate(-16px,12px)}70%{transform:translate(10px,-8px)}}
 @keyframes ce-fg{0%,100%{transform:translate(0,0)}35%{transform:translate(12px,-14px)}65%{transform:translate(-8px,7px)}}
