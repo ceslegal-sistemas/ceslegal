@@ -504,20 +504,7 @@
         }
 
         .rr-sec-ico {
-            width: 28px !important;
-            height: 28px !important;
-            flex-shrink: 0;
-            opacity: 1;
-            padding: 6px;
-            border-radius: .5rem;
-            box-sizing: border-box;
-            background: rgba(225, 29, 72, .14);
-            color: #fb7185 !important;
-        }
-
-        html:not(.dark) .rr-sec-ico {
-            background: rgba(225, 29, 72, .09);
-            color: #e11d48 !important;
+            display: none;
         }
 
         .rr-sec-label {
@@ -568,12 +555,12 @@
 
         .rr-tag {
             display: inline-block;
-            font-size: .7rem;
-            font-weight: 500;
-            border-radius: .3rem;
-            padding: .1rem .45rem;
-            margin: .15rem .15rem 0 0;
-            background: rgba(251,113,133, .14);
+            font-size: .72rem;
+            font-weight: 600;
+            border-radius: 99px;
+            padding: .22rem .7rem;
+            margin: .28rem .28rem 0 0;
+            background: rgba(251,113,133, .16);
             color: #fb7185;
         }
 
@@ -618,7 +605,7 @@
     .rr-caps-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: .35rem;
+        gap: .5rem;
     }
 
     @media(max-width:480px) {
@@ -629,16 +616,22 @@
 
     .rr-cap-item {
         display: flex;
-        align-items: flex-start;
-        gap: .4rem;
-        font-size: .75rem;
-        color: #94a3b8;
-        line-height: 1.4;
-        padding: .3rem .25rem;
+        align-items: center;
+        gap: .55rem;
+        font-size: .76rem;
+        color: #cbd5e1;
+        line-height: 1.35;
+        padding: .55rem .7rem;
+        background: rgba(255, 255, 255, .04);
+        border: 1px solid rgba(255, 255, 255, .08);
+        border-radius: .6rem;
     }
 
     html:not(.dark) .rr-cap-item {
-        color: #4b5563
+        color: #374151;
+        background: #fff;
+        border-color: rgba(0, 0, 0, .07);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .03);
     }
 
     .rr-cap-item strong {
@@ -651,14 +644,7 @@
     }
 
     .rr-caps-container {
-        border: 1px solid rgba(255, 255, 255, .09);
-        border-radius: .875rem;
-        padding: 1rem 1.125rem;
-    }
-
-    html:not(.dark) .rr-caps-container {
-        border-color: rgba(0, 0, 0, .08);
-        background: rgba(0, 0, 0, .02);
+        padding: .25rem 0 0;
     }
 </style>
 
@@ -957,7 +943,7 @@
                 <div class="rr-caps-grid">
                     @foreach ($capitulosRIT as $num => $titulo)
                         <div class="rr-cap-item">
-                            <svg style="width:13px;height:13px;color:#22c55e;flex-shrink:0;margin-top:1px"
+                            <svg style="width:15px;height:15px;color:#e11d48;flex-shrink:0"
                                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                             </svg>
