@@ -126,32 +126,26 @@
     .rg-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; }
     .rg-col-full{ grid-column:1/-1; }
 
-    /* Fondo con wash de marca (da profundidad al vidrio) */
-    .rg-bg{ position:absolute; inset:-60px -20px; z-index:0; pointer-events:none; overflow:hidden; }
-    .rg-orb{ position:absolute; border-radius:50%; filter:blur(46px); }
-    .rg-orb.a{ width:300px;height:300px; top:-40px; right:-30px; background:radial-gradient(circle, rgba(225,29,72,.20), transparent 70%); animation:rg-fa 16s ease-in-out infinite; }
-    .rg-orb.b{ width:260px;height:260px; top:38%; left:-50px; background:radial-gradient(circle, rgba(249,115,22,.18), transparent 70%); animation:rg-fb 19s ease-in-out infinite; }
-    .rg-orb.c{ width:240px;height:240px; bottom:-40px; right:0; background:radial-gradient(circle, rgba(225,29,72,.12), transparent 70%); animation:rg-fa 22s ease-in-out infinite; }
-    @media(prefers-reduced-motion:reduce){ .rg-orb{ animation:none } }
-
-    /* ── Liquid glass card ── */
+    /* ── Tarjeta sólida con levitación (claro/oscuro, igual que Auditar RIT) ── */
     .rg-glass{
         position:relative; z-index:1;
-        background:rgba(255,255,255,.60);
-        -webkit-backdrop-filter:blur(20px) saturate(150%);
-        backdrop-filter:blur(20px) saturate(150%);
-        border:1px solid rgba(255,255,255,.72);
-        border-radius:26px;
-        box-shadow:0 10px 30px rgba(28,25,23,.07), inset 0 1px 0 rgba(255,255,255,.6);
+        background:#fff;
+        border:1px solid rgba(0,0,0,.07);
+        border-radius:24px;
+        box-shadow:0 6px 26px rgba(28,25,23,.08);
+        transition:box-shadow .2s ease, transform .2s ease;
     }
     html.dark .rg-glass{
-        background:rgba(38,34,32,.52);
-        border-color:rgba(255,255,255,.09);
-        box-shadow:0 12px 34px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.06);
+        background:rgba(255,255,255,.03);
+        border-color:rgba(255,255,255,.08);
+        box-shadow:0 10px 30px rgba(0,0,0,.28);
     }
+    .rg-card:hover{ box-shadow:0 14px 36px rgba(28,25,23,.12); transform:translateY(-2px) }
+    html.dark .rg-card:hover{ box-shadow:0 16px 38px rgba(0,0,0,.36) }
 
     /* ── Hero ── */
-    .rg-hero{ padding:26px 22px; text-align:center; }
+    .rg-hero{ padding:30px 24px; text-align:center; overflow:hidden; }
+    html.dark .rg-hero{ background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%); border-color:rgba(255,255,255,.06); }
     .rg-ring{ width:58px;height:58px;border-radius:18px;display:inline-flex;align-items:center;justify-content:center;
         background:linear-gradient(135deg,#e11d48,#f97316); box-shadow:0 10px 24px rgba(225,29,72,.35); margin-bottom:12px; animation:rg-pop .6s .05s cubic-bezier(.34,1.56,.64,1) both; }
     .rg-ring svg{ width:29px;height:29px;color:#fff }
@@ -165,7 +159,7 @@
     html.dark .rg-em{ color:#fda4af }
 
     .rg-stats{ display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px }
-    .rg-stat{ background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.6);border-radius:14px;padding:10px 4px;text-align:center }
+    .rg-stat{ background:rgba(0,0,0,.025);border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:10px 4px;text-align:center }
     html.dark .rg-stat{ background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.08) }
     .rg-stat b{ display:block;font-family:'Space Grotesk';font-size:1.25rem;font-weight:700;line-height:1;color:#1c1917 }
     html.dark .rg-stat b{ color:#f5f5f4 }
@@ -173,7 +167,7 @@
 
     .rg-notes{ display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px;text-align:left }
     @media(max-width:720px){ .rg-notes{ grid-template-columns:1fr } }
-    .rg-note{ display:flex;gap:10px;align-items:flex-start;background:rgba(255,255,255,.42);border:1px solid rgba(255,255,255,.55);
+    .rg-note{ display:flex;gap:10px;align-items:flex-start;background:rgba(0,0,0,.025);border:1px solid rgba(0,0,0,.06);
         border-radius:13px;padding:10px 12px;font-size:.78rem;line-height:1.45;color:#57534e }
     html.dark .rg-note{ background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.07);color:#d6d3d1 }
     .rg-note b{ color:#1c1917 } html.dark .rg-note b{ color:#f5f5f4 }
@@ -218,7 +212,7 @@
     details.rg-caps[open] .rg-chev{ transform:rotate(180deg) }
     .rg-caps-body{ padding:0 14px 12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px }
     .rg-cap{ display:flex;align-items:center;gap:9px;font-size:.75rem;color:#44403c;
-        background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.6);border-radius:12px;padding:9px 11px }
+        background:rgba(0,0,0,.025);border:1px solid rgba(0,0,0,.06);border-radius:12px;padding:9px 11px }
     html.dark .rg-cap{ color:#d6d3d1;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.07) }
     .rg-cap svg{ width:14px;height:14px;color:#e11d48;flex-shrink:0 }
     .rg-cap b{ font-weight:700 }
@@ -232,7 +226,6 @@
 @endverbatim
 
 <div class="rg-wrap">
-    <div class="rg-bg"><div class="rg-orb a"></div><div class="rg-orb b"></div><div class="rg-orb c"></div></div>
 
     {{-- ══ HERO ══ --}}
     <div class="rg-glass rg-hero rg-a1">
