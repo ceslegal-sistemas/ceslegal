@@ -78,6 +78,18 @@ class CreateProcesoDisciplinario extends CreateRecord
                 ->description('¿Con qué trabajador?')
                 ->icon('heroicon-o-user')
                 ->schema([
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('proc_step_header_trabajador')
+                        ->viewData([
+                            'step' => 1,
+                            'total' => 5,
+                            'title' => 'Trabajador',
+                            'accent' => '#f97316',
+                            'lord' => 'https://cdn.lordicon.com/bushiqea.json',
+                            'subtitle' => 'Empresa y datos del trabajador involucrado.',
+                        ])
+                        ->columnSpanFull(),
+
                     Forms\Components\Section::make()
                         ->schema([
                             Forms\Components\Placeholder::make('info_paso_trabajador')
@@ -292,6 +304,18 @@ class CreateProcesoDisciplinario extends CreateRecord
                 ->description('Fecha y hora del hecho')
                 ->icon('heroicon-o-clock')
                 ->schema([
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('proc_step_header_cuando')
+                        ->viewData([
+                            'step' => 2,
+                            'total' => 5,
+                            'title' => 'Cuándo',
+                            'accent' => '#c9a84c',
+                            'lord' => 'https://cdn.lordicon.com/uphbloed.json',
+                            'subtitle' => 'Fecha, hora y contexto del incidente.',
+                        ])
+                        ->columnSpanFull(),
+
                     Forms\Components\Section::make()
                         ->schema([
                             Forms\Components\Placeholder::make('info_paso_cuando')
@@ -329,6 +353,18 @@ class CreateProcesoDisciplinario extends CreateRecord
                 ->description('¿Qué ocurrió?')
                 ->icon('heroicon-o-document-text')
                 ->schema([
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('proc_step_header_hechos')
+                        ->viewData([
+                            'step' => 3,
+                            'total' => 5,
+                            'title' => 'Hechos',
+                            'accent' => '#e11d48',
+                            'lord' => 'https://cdn.lordicon.com/bpptgtfr.json',
+                            'subtitle' => 'Descripción objetiva y verificable de lo ocurrido.',
+                        ])
+                        ->columnSpanFull(),
+
                     Forms\Components\Section::make()
                         ->schema([
                             Forms\Components\Placeholder::make('info_paso_hechos')
@@ -479,6 +515,18 @@ class CreateProcesoDisciplinario extends CreateRecord
                 ->description('Evidencias y testigos del hecho')
                 ->icon('heroicon-o-paper-clip')
                 ->schema([
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('proc_step_header_pruebas')
+                        ->viewData([
+                            'step' => 4,
+                            'total' => 5,
+                            'title' => 'Pruebas',
+                            'accent' => '#fb923c',
+                            'lord' => 'https://cdn.lordicon.com/fqbvgezn.json',
+                            'subtitle' => 'Evidencias, archivos y testigos del hecho.',
+                        ])
+                        ->columnSpanFull(),
+
                     Forms\Components\Section::make()
                         ->schema([
                             Forms\Components\Placeholder::make('info_paso_pruebas')
@@ -548,6 +596,18 @@ class CreateProcesoDisciplinario extends CreateRecord
                 ->description('Confirme y genere la citación')
                 ->icon('heroicon-o-check-circle')
                 ->schema([
+
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('proc_step_header_revision')
+                        ->viewData([
+                            'step' => 5,
+                            'total' => 5,
+                            'title' => 'Revisión',
+                            'accent' => '#fb7185',
+                            'lord' => 'https://cdn.lordicon.com/fikcyfpp.json',
+                            'subtitle' => 'Revise la información y programe la audiencia de descargos.',
+                        ])
+                        ->columnSpanFull(),
 
                     // ── Resumen del expediente ────────────────────────────────
                     Forms\Components\Section::make()
