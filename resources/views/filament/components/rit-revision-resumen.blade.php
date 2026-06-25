@@ -237,11 +237,11 @@
         }
 
         html:not(.dark) .rr-orb-b {
-            background: radial-gradient(circle, rgba(215, 75, 10, .22), transparent 70%) !important
+            background: radial-gradient(circle, rgba(225, 29, 72, .18), transparent 70%) !important
         }
 
         html:not(.dark) .rr-orb-g {
-            background: radial-gradient(circle, rgba(190, 130, 10, .26), transparent 70%) !important
+            background: radial-gradient(circle, rgba(249, 115, 22, .20), transparent 70%) !important
         }
 
         .rr-overlay {
@@ -261,12 +261,12 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            border-radius: 1rem;
             margin-bottom: .875rem;
-            background: rgba(201, 168, 76, .13);
-            border: 1.5px solid rgba(201, 168, 76, .38);
+            background: linear-gradient(135deg, #e11d48 0%, #f97316 100%);
+            box-shadow: 0 8px 22px rgba(225, 29, 72, .35);
         }
 
         /* ── Hero typography ───────────────────────── */
@@ -276,12 +276,12 @@
             letter-spacing: .16em;
             text-transform: uppercase;
             margin: 0 0 .35rem;
-            color: #c9a84c;
-            text-shadow: 0 0 16px rgba(201, 168, 76, .6)
+            color: #fb7185;
+            text-shadow: 0 0 16px rgba(225, 29, 72, .5)
         }
 
         html:not(.dark) .rr-hero-label {
-            color: #92710d;
+            color: #be123c;
             text-shadow: none
         }
 
@@ -661,14 +661,14 @@
                 style="position:absolute;width:240px;height:240px;top:-60px;right:-40px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.5),transparent 70%);filter:blur(24px);">
             </div>
             <div class="rr-orb-g"
-                style="position:absolute;width:180px;height:180px;bottom:-45px;left:-35px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.22),transparent 70%);filter:blur(22px);">
+                style="position:absolute;width:180px;height:180px;bottom:-45px;left:-35px;border-radius:50%;background:radial-gradient(circle,rgba(249,115,22,.22),transparent 70%);filter:blur(22px);">
             </div>
         </div>
         <div class="rr-overlay"></div>
         <div style="position:relative;z-index:2;">
 
             <div class="rr-icon-ring rr-icon-pop">
-                <svg style="width:26px;height:26px;color:#c9a84c" fill="none" viewBox="0 0 24 24"
+                <svg style="width:27px;height:27px;color:#fff" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="1.75">
                     <path stroke-linecap="round" stroke-linejoin="round"
                         d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
