@@ -113,6 +113,43 @@ class AdminPanelProvider extends PanelProvider
             HTML,
         );
 
+        // ── Skeleton de carga (shimmer de marca) ─────────────────────────────
+        // Sistema global de placeholders de carga: una base gris neutra con un
+        // brillo rojo→naranja recorriendo. Disponible en TODO el panel vía render
+        // hook (sin build de npm). Lo usan: el overlay de navegación (BODY_END),
+        // el componente <x-ces-skeleton> y los estados async de los componentes.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            fn(): string => <<<'HTML'
+            <style>
+            @keyframes ces-sk-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+            .ces-sk{position:relative;overflow:hidden;background-color:#e7e5e4;border-radius:.5rem;
+                background-image:linear-gradient(90deg,transparent 0%,rgba(225,29,72,.12) 45%,rgba(249,115,22,.16) 55%,transparent 100%);
+                background-size:200% 100%;background-repeat:no-repeat;animation:ces-sk-shimmer 1.5s ease-in-out infinite}
+            html.dark .ces-sk{background-color:rgba(255,255,255,.07);
+                background-image:linear-gradient(90deg,transparent 0%,rgba(251,113,133,.14) 45%,rgba(249,115,22,.16) 55%,transparent 100%)}
+            .ces-sk-line{height:.7rem;border-radius:.375rem}
+            .ces-sk-line.sm{height:.5rem}
+            .ces-sk-title{height:1.25rem;border-radius:.45rem}
+            .ces-sk-btn{height:2.25rem;width:9rem;border-radius:.65rem}
+            .ces-sk-circle{border-radius:50%}
+            .ces-sk-card{border-radius:1rem;height:6.5rem}
+            .ces-sk-w-25{width:25%}.ces-sk-w-30{width:30%}.ces-sk-w-40{width:40%}.ces-sk-w-55{width:55%}.ces-sk-w-70{width:70%}.ces-sk-w-85{width:85%}
+            @media(prefers-reduced-motion:reduce){.ces-sk{animation:none}}
+            /* Overlay de navegación entre páginas */
+            .ces-sk-overlay{position:fixed;z-index:30;bottom:0;overflow:hidden;background:#fafaf9;padding:1.5rem 2rem;animation:ces-sk-fade .12s ease both}
+            html.dark .ces-sk-overlay{background:#0c0a09}
+            @keyframes ces-sk-fade{from{opacity:0}to{opacity:1}}
+            .ces-sk-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;margin:0 0 1.5rem}
+            .ces-sk-panel{border-radius:1rem;border:1px solid rgba(0,0,0,.06);padding:1.25rem 1.5rem;background:#fff}
+            html.dark .ces-sk-panel{background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.06)}
+            .ces-sk-row{display:flex;gap:1rem;align-items:center;padding:.8rem 0;border-bottom:1px solid rgba(0,0,0,.05)}
+            html.dark .ces-sk-row{border-color:rgba(255,255,255,.05)}
+            .ces-sk-row:last-child{border-bottom:0}
+            </style>
+            HTML,
+        );
+
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_END,
             fn(): string => '<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script><script src="' . asset('js/tour-descargos.js') . '"></script>',
@@ -154,6 +191,68 @@ class AdminPanelProvider extends PanelProvider
                     e.preventDefault();
                     e.stopImmediatePropagation();
                 }, true);
+            })();
+            </script>
+            HTML,
+        );
+
+        // ── Skeleton de navegación entre páginas ─────────────────────────────
+        // Al hacer click en un enlace interno (sidebar, tablas, breadcrumbs…) se
+        // muestra de inmediato un skeleton de página sobre el área de contenido.
+        // En MPA el overlay desaparece solo cuando el navegador reemplaza el
+        // documento por la página nueva; si en el futuro se activa ->spa(), los
+        // listeners livewire:navigating/navigated lo manejan también. No toca los
+        // nodos de Livewire (es un overlay fixed e independiente).
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            fn(): string => <<<'HTML'
+            <script>
+            (function () {
+                var overlay = null;
+                function cards(n){var s='';for(var i=0;i<n;i++){s+='<div class="ces-sk ces-sk-card"></div>';}return s;}
+                function rows(n){var s='';for(var i=0;i<n;i++){s+='<div class="ces-sk-row">'
+                    +'<div class="ces-sk ces-sk-circle" style="width:2rem;height:2rem;flex:0 0 auto"></div>'
+                    +'<div class="ces-sk ces-sk-line ces-sk-w-30"></div>'
+                    +'<div class="ces-sk ces-sk-line ces-sk-w-40"></div>'
+                    +'<div class="ces-sk ces-sk-line ces-sk-w-25" style="margin-left:auto"></div></div>';}return s;}
+                function scaffold(){
+                    return '<div class="ces-sk ces-sk-title ces-sk-w-40" style="margin-bottom:1.5rem"></div>'
+                        + '<div class="ces-sk-stats">' + cards(4) + '</div>'
+                        + '<div class="ces-sk-panel"><div class="ces-sk ces-sk-line ces-sk-w-30" style="margin-bottom:1.1rem"></div>'
+                        + rows(7) + '</div>';
+                }
+                function show(){
+                    if (overlay) return;
+                    var main = document.querySelector('.fi-main') || document.querySelector('.fi-main-ctn') || document.querySelector('main');
+                    if (!main) return;
+                    var r = main.getBoundingClientRect();
+                    overlay = document.createElement('div');
+                    overlay.className = 'ces-sk-overlay';
+                    overlay.style.top = Math.max(0, r.top) + 'px';
+                    overlay.style.left = r.left + 'px';
+                    overlay.style.width = r.width + 'px';
+                    var w = Math.min(r.width - 64, 1100);
+                    overlay.innerHTML = '<div style="max-width:' + w + 'px;margin:0 auto">' + scaffold() + '</div>';
+                    document.body.appendChild(overlay);
+                }
+                function hide(){ if (overlay) { overlay.remove(); overlay = null; } }
+                document.addEventListener('click', function (e) {
+                    var a = e.target.closest ? e.target.closest('a[href]') : null;
+                    if (!a) return;
+                    if (a.target === '_blank' || a.hasAttribute('download')) return;
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                    var href = a.getAttribute('href') || '';
+                    if (!href || href.charAt(0) === '#') return;
+                    if (href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
+                    if (a.hostname && a.hostname !== location.hostname) return;
+                    if (a.href === location.href) return;
+                    show();
+                }, true);
+                // SPA hooks (por si se activa ->spa() más adelante)
+                document.addEventListener('livewire:navigating', show);
+                document.addEventListener('livewire:navigated', hide);
+                // bfcache: al volver con el botón atrás, el documento se restaura — limpia el overlay
+                window.addEventListener('pageshow', hide);
             })();
             </script>
             HTML,

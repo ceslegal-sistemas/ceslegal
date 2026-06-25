@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es" class="">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CES Legal · Skeleton de carga — preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,sans-serif;background:#fafaf9;color:#1c1917;padding:24px;min-height:100vh}
+  html.dark body{background:#0c0a09;color:#f5f5f4}
+  .bar{display:flex;gap:10px;align-items:center;margin-bottom:22px}
+  .bar h1{font-family:'Space Grotesk';font-size:1.1rem;margin:0;flex:1}
+  .bar button{font:inherit;font-size:.8rem;font-weight:600;border:1px solid rgba(0,0,0,.12);background:#fff;color:#1c1917;border-radius:.6rem;padding:.5rem .9rem;cursor:pointer}
+  html.dark .bar button{background:rgba(255,255,255,.06);color:#f5f5f4;border-color:rgba(255,255,255,.14)}
+
+  /* ── Sistema de skeleton (idéntico al inyectado en el panel) ── */
+  @keyframes ces-sk-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .ces-sk{position:relative;overflow:hidden;background-color:#e7e5e4;border-radius:.5rem;
+      background-image:linear-gradient(90deg,transparent 0%,rgba(225,29,72,.12) 45%,rgba(249,115,22,.16) 55%,transparent 100%);
+      background-size:200% 100%;background-repeat:no-repeat;animation:ces-sk-shimmer 1.5s ease-in-out infinite}
+  html.dark .ces-sk{background-color:rgba(255,255,255,.07);
+      background-image:linear-gradient(90deg,transparent 0%,rgba(251,113,133,.14) 45%,rgba(249,115,22,.16) 55%,transparent 100%)}
+  .ces-sk-line{height:.7rem;border-radius:.375rem}
+  .ces-sk-line.sm{height:.5rem}
+  .ces-sk-title{height:1.25rem;border-radius:.45rem}
+  .ces-sk-btn{height:2.25rem;width:9rem;border-radius:.65rem}
+  .ces-sk-circle{border-radius:50%}
+  .ces-sk-card{border-radius:1rem;height:6.5rem}
+  .ces-sk-w-25{width:25%}.ces-sk-w-30{width:30%}.ces-sk-w-40{width:40%}.ces-sk-w-55{width:55%}.ces-sk-w-70{width:70%}.ces-sk-w-85{width:85%}
+  .ces-sk-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;margin:0 0 1.5rem}
+  .ces-sk-panel{border-radius:1rem;border:1px solid rgba(0,0,0,.06);padding:1.25rem 1.5rem;background:#fff}
+  html.dark .ces-sk-panel{background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.06)}
+  .ces-sk-row{display:flex;gap:1rem;align-items:center;padding:.8rem 0;border-bottom:1px solid rgba(0,0,0,.05)}
+  html.dark .ces-sk-row{border-color:rgba(255,255,255,.05)}
+  .ces-sk-row:last-child{border-bottom:0}
+  .wrap{max-width:1100px;margin:0 auto}
+</style>
+</head>
+<body>
+  <div class="bar">
+    <h1>Skeleton de carga — shimmer de marca</h1>
+    <button onclick="document.documentElement.classList.toggle('dark')">Alternar claro/oscuro</button>
+  </div>
+  <div class="wrap" id="page"></div>
+
+<script>
+  function cards(n){var s='';for(var i=0;i<n;i++){s+='<div class="ces-sk ces-sk-card"></div>';}return s;}
+  function rows(n){var s='';for(var i=0;i<n;i++){s+='<div class="ces-sk-row">'
+      +'<div class="ces-sk ces-sk-circle" style="width:2rem;height:2rem;flex:0 0 auto"></div>'
+      +'<div class="ces-sk ces-sk-line ces-sk-w-30"></div>'
+      +'<div class="ces-sk ces-sk-line ces-sk-w-40"></div>'
+      +'<div class="ces-sk ces-sk-line ces-sk-w-25" style="margin-left:auto"></div></div>';}return s;}
+  document.getElementById('page').innerHTML =
+      '<div class="ces-sk ces-sk-title ces-sk-w-40" style="margin-bottom:1.5rem"></div>'
+    + '<div class="ces-sk-stats">' + cards(4) + '</div>'
+    + '<div class="ces-sk-panel"><div class="ces-sk ces-sk-line ces-sk-w-30" style="margin-bottom:1.1rem"></div>'
+    + rows(7) + '</div>';
+</script>
+</body>
+</html>
