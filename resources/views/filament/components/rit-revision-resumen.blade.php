@@ -317,6 +317,15 @@
             color: #475569
         }
 
+        .rr-em {
+            color: #fda4af;
+            font-weight: 600
+        }
+
+        html:not(.dark) .rr-em {
+            color: #be123c
+        }
+
         /* ── Bullets ───────────────────────────────── */
         .rr-bullets {
             display: flex;
@@ -674,9 +683,8 @@
             <p class="rr-hero-label">Resumen de su información</p>
             <h2 class="rr-hero-title">Reglamento Interno de Trabajo</h2>
             <p class="rr-hero-sub">
-                Verifique que todo sea correcto. Si necesita cambiar algo, use el botón <strong
-                    style="color:#f1f5f9">"Anterior"</strong>.
-                Al hacer clic en <strong style="color:#f1f5f9">"Crear"</strong>, la IA redactará
+                Verifique que todo sea correcto. Si necesita cambiar algo, use el botón <strong class="rr-em">"Anterior"</strong>.
+                Al hacer clic en <strong class="rr-em">"Crear"</strong>, la IA redactará
                 los 16 capítulos con cumplimiento del Art. 105 CST y la Ley 2365/2024.
             </p>
 
