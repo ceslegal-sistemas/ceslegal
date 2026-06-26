@@ -168,6 +168,13 @@ class AdminPanelProvider extends PanelProvider
             @media(min-width:1280px){.ces-ssk-grid.c4{grid-template-columns:repeat(4,1fr)}}
             .ces-ssk-card{border:1px solid rgba(0,0,0,.07);border-radius:.75rem;padding:1rem 1.25rem;background:#fff;display:flex;flex-direction:column;gap:.7rem}
             html.dark .ces-ssk-card{background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.06)}
+            /* Loader de marca "Cargando" (páginas custom, no-resources) */
+            .ces-pl{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;min-height:55vh;text-align:center}
+            .ces-pl lord-icon{width:150px;height:150px}
+            .ces-pl-txt{font-size:1rem;font-weight:600;letter-spacing:.02em;color:#78716c}
+            html.dark .ces-pl-txt{color:#a8a29e}
+            .ces-pl-txt::after{content:'';animation:ces-pl-dots 1.4s steps(4,end) infinite;}
+            @keyframes ces-pl-dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}100%{content:''}}
             </style>
             HTML,
         );
@@ -276,13 +283,32 @@ class AdminPanelProvider extends PanelProvider
                     s += '</div><div class="ces-sk-grid2">' + sk('ces-sk-chart') + sk('ces-sk-chart') + '</div>';
                     return s;
                 }
-                function scaffold(v){ return v === 'form' ? formScaffold() : v === 'dash' ? dashScaffold() : tableScaffold(); }
-                // Elige el scaffold según a dónde apunta el enlace (create/edit→form, dashboard→dash, resto→tabla).
+                // Páginas custom (no-resources): se muestran con el loader de marca
+                // (Lordicon "Cargando") en vez de un skeleton de tabla/formulario.
+                var PAGE_SLUGS = ['auditar-r-i-t', 'mi-reglamento-interno', 'estadisticas-informes',
+                    'configuracion-whatsapp', 'exportar-informes-juridicos', 'cambiar-password'];
+                function pageLoader(){
+                    return '<div class="ces-pl">'
+                        + '<lord-icon src="https://cdn.lordicon.com/fikcyfpp.json" trigger="loop" delay="500" '
+                        + 'colors="primary:#e11d48,secondary:#f97316"></lord-icon>'
+                        + '<div class="ces-pl-txt">Cargando</div></div>';
+                }
+                function scaffold(v){
+                    return v === 'form' ? formScaffold()
+                        : v === 'dash' ? dashScaffold()
+                        : v === 'page' ? pageLoader()
+                        : tableScaffold();
+                }
+                // Elige el scaffold según a dónde apunta el enlace (create/edit→form,
+                // página custom→loader Lordicon, dashboard→dash, resto→tabla).
                 function variantFor(a){
                     var p = (a.pathname || '').toLowerCase();
                     var t = (a.textContent || '').toLowerCase().trim();
                     if (/\/create(\/|$)/.test(p) || /\/edit(\/|$)/.test(p) || /\/\d+\/edit/.test(p)
-                        || /\b(crear|nuevo|nueva|editar|registrar|generar)\b/.test(t)) return 'form';
+                        || /\b(crear|nuevo|nueva|editar|registrar)\b/.test(t)) return 'form';
+                    for (var i = 0; i < PAGE_SLUGS.length; i++) {
+                        if (p.indexOf('/' + PAGE_SLUGS[i]) !== -1) return 'page';
+                    }
                     if (/\/admin\/?$/.test(p) || /\/dashboard\/?$/.test(p)
                         || /\b(panel|inicio|dashboard|tablero|escritorio)\b/.test(t)) return 'dash';
                     return 'table';
