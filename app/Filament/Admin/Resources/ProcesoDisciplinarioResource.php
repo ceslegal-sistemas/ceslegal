@@ -2215,9 +2215,16 @@ class ProcesoDisciplinarioResource extends Resource
                     ->modalWidth('2xl')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
-                        in_array($record->estado, ['descargos_realizados', 'descargos_no_realizados']) &&
-                            !empty($record->trabajador->email) &&
-                            \Carbon\Carbon::parse($record->fecha_descargos_programada)->isPast()
+                        !empty($record->trabajador?->email) && (
+                            // Descargos ya realizados: la diligencia ocurrió, puede emitir de
+                            // inmediato SIN esperar la fecha programada (válido también sin RIT,
+                            // donde solo aplica terminación con justa causa).
+                            $record->estado === 'descargos_realizados'
+                            // No asistió: solo tras pasar la fecha de descargos programada, para
+                            // no concluir la inasistencia antes de tiempo.
+                            || ($record->estado === 'descargos_no_realizados'
+                                && \Carbon\Carbon::parse($record->fecha_descargos_programada)->isPast())
+                        )
                     )
                     ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
                         // 1. Procesar foto si existe
@@ -3329,9 +3336,10 @@ class ProcesoDisciplinarioResource extends Resource
                         ->modalWidth('2xl')
                         ->visible(
                             fn(ProcesoDisciplinario $record) =>
+                            // Ya hay sanción emitida: la diligencia ocurrió, se puede
+                            // re-generar sin condicionar a la fecha de descargos.
                             $record->estado === 'sancion_emitida' &&
-                                !empty($record->trabajador->email) &&
-                                \Carbon\Carbon::parse($record->fecha_descargos_programada)->isPast()
+                                !empty($record->trabajador?->email)
                         )
                         ->action(function (ProcesoDisciplinario $record, array $data) {
                             if ($data['tipo_sancion'] === 'suspension') {
