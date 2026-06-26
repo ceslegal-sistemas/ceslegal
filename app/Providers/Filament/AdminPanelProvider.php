@@ -338,10 +338,14 @@ class AdminPanelProvider extends PanelProvider
                     if (href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
                     if (a.hostname && a.hostname !== location.hostname) return;
                     if (a.href === location.href) return;
-                    show(variantFor(a));
+                    // Solo páginas custom (no-resources) usan el overlay (loader Lordicon).
+                    // Los resources se cubren con su propio skeleton: tabla (deferLoading)
+                    // y stats (lazy). Así no se ve el genérico encima del skeleton real.
+                    var v = variantFor(a);
+                    if (v !== 'page') return;
+                    show(v);
                 }, true);
-                // SPA hooks (por si se activa ->spa() más adelante)
-                document.addEventListener('livewire:navigating', function(){ show('table'); });
+                // SPA hook (por si se activa ->spa() más adelante): solo limpia al terminar.
                 document.addEventListener('livewire:navigated', hide);
                 // bfcache: al volver con el botón atrás, el documento se restaura — limpia el overlay
                 window.addEventListener('pageshow', hide);
