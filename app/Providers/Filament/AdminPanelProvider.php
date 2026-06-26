@@ -50,7 +50,7 @@ class AdminPanelProvider extends PanelProvider
         // <style> inline en la vista de la página rompe el wizard).
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
-            fn(): string => '<style>.rit-hide-wizard-steps .fi-fo-wizard-header{display:none}</style>',
+            fn(): string => '<style>.rit-hide-wizard-steps .fi-fo-wizard-header,.ces-hide-wizard-steps .fi-fo-wizard-header{display:none}</style>',
         );
 
         // ── Rebrand CES Legal ────────────────────────────────────────────────
@@ -146,6 +146,15 @@ class AdminPanelProvider extends PanelProvider
             .ces-sk-row{display:flex;gap:1rem;align-items:center;padding:.8rem 0;border-bottom:1px solid rgba(0,0,0,.05)}
             html.dark .ces-sk-row{border-color:rgba(255,255,255,.05)}
             .ces-sk-row:last-child{border-bottom:0}
+            /* Scaffolds conscientes del componente (tabla / formulario / dashboard) */
+            .ces-sk-hd{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.5rem}
+            .ces-sk-hd-actions{display:flex;gap:.6rem;flex-shrink:0}
+            .ces-sk-tb{display:flex;gap:.6rem;margin-bottom:1rem;align-items:center}
+            .ces-sk-grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+            @media(max-width:720px){.ces-sk-grid2{grid-template-columns:1fr}}
+            .ces-sk-input{height:2.6rem;border-radius:.6rem;margin-top:.5rem}
+            .ces-sk-foot{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.5rem}
+            .ces-sk-chart{height:16rem;border-radius:1rem}
             </style>
             HTML,
         );
@@ -209,19 +218,63 @@ class AdminPanelProvider extends PanelProvider
             <script>
             (function () {
                 var overlay = null;
-                function cards(n){var s='';for(var i=0;i<n;i++){s+='<div class="ces-sk ces-sk-card"></div>';}return s;}
-                function rows(n){var s='';for(var i=0;i<n;i++){s+='<div class="ces-sk-row">'
-                    +'<div class="ces-sk ces-sk-circle" style="width:2rem;height:2rem;flex:0 0 auto"></div>'
-                    +'<div class="ces-sk ces-sk-line ces-sk-w-30"></div>'
-                    +'<div class="ces-sk ces-sk-line ces-sk-w-40"></div>'
-                    +'<div class="ces-sk ces-sk-line ces-sk-w-25" style="margin-left:auto"></div></div>';}return s;}
-                function scaffold(){
-                    return '<div class="ces-sk ces-sk-title ces-sk-w-40" style="margin-bottom:1.5rem"></div>'
-                        + '<div class="ces-sk-stats">' + cards(4) + '</div>'
-                        + '<div class="ces-sk-panel"><div class="ces-sk ces-sk-line ces-sk-w-30" style="margin-bottom:1.1rem"></div>'
-                        + rows(7) + '</div>';
+                function sk(extra, style){ return '<div class="ces-sk ' + (extra || '') + '"' + (style ? ' style="' + style + '"' : '') + '></div>'; }
+                // Encabezado de página: título + botones de acción (donde van los botones).
+                function header(withCreate){
+                    var actions = withCreate
+                        ? sk('ces-sk-btn', 'width:6.5rem;height:2.1rem') + sk('ces-sk-btn', 'width:10rem;height:2.1rem')
+                        : sk('ces-sk-btn', 'width:6rem;height:2.1rem');
+                    return '<div class="ces-sk-hd">' + sk('ces-sk-title ces-sk-w-30')
+                        + '<div class="ces-sk-hd-actions">' + actions + '</div></div>';
                 }
-                function show(){
+                // Lista/tabla: header + toolbar (búsqueda + filtros) + filas con acción por fila.
+                function tableScaffold(){
+                    var s = header(true);
+                    s += '<div class="ces-sk-tb">' + sk('', 'flex:1;height:2.4rem;border-radius:.6rem')
+                        + sk('ces-sk-btn', 'width:6rem;height:2.4rem') + sk('ces-sk-btn', 'width:6rem;height:2.4rem') + '</div>';
+                    s += '<div class="ces-sk-panel">';
+                    s += '<div class="ces-sk-row">' + sk('ces-sk-line ces-sk-w-25') + sk('ces-sk-line ces-sk-w-25')
+                        + sk('ces-sk-line ces-sk-w-25') + sk('ces-sk-line', 'width:3rem;margin-left:auto') + '</div>';
+                    for (var i = 0; i < 8; i++) {
+                        s += '<div class="ces-sk-row">' + sk('ces-sk-circle', 'width:2.1rem;height:2.1rem;flex:0 0 auto')
+                            + sk('ces-sk-line ces-sk-w-25') + sk('ces-sk-line ces-sk-w-25') + sk('ces-sk-line ces-sk-w-25')
+                            + sk('ces-sk-btn', 'width:4.5rem;height:1.8rem;margin-left:auto') + '</div>';
+                    }
+                    return s + '</div>';
+                }
+                // Formulario / wizard: header + campos en 2 columnas + textarea + botones Guardar/Cancelar.
+                function formScaffold(){
+                    var s = header(false);
+                    s += '<div class="ces-sk-panel">' + sk('ces-sk-line ces-sk-w-25', 'height:1rem;margin-bottom:1.25rem')
+                        + '<div class="ces-sk-grid2">';
+                    for (var i = 0; i < 6; i++) {
+                        s += '<div>' + sk('ces-sk-line ces-sk-w-40 sm') + sk('ces-sk-input') + '</div>';
+                    }
+                    s += '</div>';
+                    s += '<div style="margin-top:1.25rem">' + sk('ces-sk-line ces-sk-w-25 sm') + sk('', 'height:6rem;border-radius:.6rem;margin-top:.5rem') + '</div>';
+                    s += '</div>';
+                    s += '<div class="ces-sk-foot">' + sk('ces-sk-btn', 'width:6rem') + sk('ces-sk-btn', 'width:9rem') + '</div>';
+                    return s;
+                }
+                // Dashboard: header + tarjetas de stats + 2 paneles de gráfico.
+                function dashScaffold(){
+                    var s = header(false) + '<div class="ces-sk-stats">';
+                    for (var i = 0; i < 4; i++) { s += sk('ces-sk-card'); }
+                    s += '</div><div class="ces-sk-grid2">' + sk('ces-sk-chart') + sk('ces-sk-chart') + '</div>';
+                    return s;
+                }
+                function scaffold(v){ return v === 'form' ? formScaffold() : v === 'dash' ? dashScaffold() : tableScaffold(); }
+                // Elige el scaffold según a dónde apunta el enlace (create/edit→form, dashboard→dash, resto→tabla).
+                function variantFor(a){
+                    var p = (a.pathname || '').toLowerCase();
+                    var t = (a.textContent || '').toLowerCase().trim();
+                    if (/\/create(\/|$)/.test(p) || /\/edit(\/|$)/.test(p) || /\/\d+\/edit/.test(p)
+                        || /\b(crear|nuevo|nueva|editar|registrar|generar)\b/.test(t)) return 'form';
+                    if (/\/admin\/?$/.test(p) || /\/dashboard\/?$/.test(p)
+                        || /\b(panel|inicio|dashboard|tablero|escritorio)\b/.test(t)) return 'dash';
+                    return 'table';
+                }
+                function show(v){
                     if (overlay) return;
                     var main = document.querySelector('.fi-main') || document.querySelector('.fi-main-ctn') || document.querySelector('main');
                     if (!main) return;
@@ -232,7 +285,7 @@ class AdminPanelProvider extends PanelProvider
                     overlay.style.left = r.left + 'px';
                     overlay.style.width = r.width + 'px';
                     var w = Math.min(r.width - 64, 1100);
-                    overlay.innerHTML = '<div style="max-width:' + w + 'px;margin:0 auto">' + scaffold() + '</div>';
+                    overlay.innerHTML = '<div style="max-width:' + w + 'px;margin:0 auto">' + scaffold(v) + '</div>';
                     document.body.appendChild(overlay);
                 }
                 function hide(){ if (overlay) { overlay.remove(); overlay = null; } }
@@ -246,10 +299,10 @@ class AdminPanelProvider extends PanelProvider
                     if (href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
                     if (a.hostname && a.hostname !== location.hostname) return;
                     if (a.href === location.href) return;
-                    show();
+                    show(variantFor(a));
                 }, true);
                 // SPA hooks (por si se activa ->spa() más adelante)
-                document.addEventListener('livewire:navigating', show);
+                document.addEventListener('livewire:navigating', function(){ show('table'); });
                 document.addEventListener('livewire:navigated', hide);
                 // bfcache: al volver con el botón atrás, el documento se restaura — limpia el overlay
                 window.addEventListener('pageshow', hide);

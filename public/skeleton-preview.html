@@ -9,10 +9,11 @@
   *{box-sizing:border-box}
   body{margin:0;font-family:Inter,system-ui,sans-serif;background:#fafaf9;color:#1c1917;padding:24px;min-height:100vh}
   html.dark body{background:#0c0a09;color:#f5f5f4}
-  .bar{display:flex;gap:10px;align-items:center;margin-bottom:22px}
-  .bar h1{font-family:'Space Grotesk';font-size:1.1rem;margin:0;flex:1}
+  .bar{display:flex;gap:8px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
+  .bar h1{font-family:'Space Grotesk';font-size:1.05rem;margin:0 12px 0 0;flex:1 0 100%}
   .bar button{font:inherit;font-size:.8rem;font-weight:600;border:1px solid rgba(0,0,0,.12);background:#fff;color:#1c1917;border-radius:.6rem;padding:.5rem .9rem;cursor:pointer}
   html.dark .bar button{background:rgba(255,255,255,.06);color:#f5f5f4;border-color:rgba(255,255,255,.14)}
+  .bar button.on{background:linear-gradient(135deg,#e11d48,#f97316);color:#fff;border-color:transparent}
 
   /* ── Sistema de skeleton (idéntico al inyectado en el panel) ── */
   @keyframes ces-sk-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -34,28 +35,58 @@
   .ces-sk-row{display:flex;gap:1rem;align-items:center;padding:.8rem 0;border-bottom:1px solid rgba(0,0,0,.05)}
   html.dark .ces-sk-row{border-color:rgba(255,255,255,.05)}
   .ces-sk-row:last-child{border-bottom:0}
+  .ces-sk-hd{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.5rem}
+  .ces-sk-hd-actions{display:flex;gap:.6rem;flex-shrink:0}
+  .ces-sk-tb{display:flex;gap:.6rem;margin-bottom:1rem;align-items:center}
+  .ces-sk-grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+  @media(max-width:720px){.ces-sk-grid2{grid-template-columns:1fr}}
+  .ces-sk-input{height:2.6rem;border-radius:.6rem;margin-top:.5rem}
+  .ces-sk-foot{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.5rem}
+  .ces-sk-chart{height:16rem;border-radius:1rem}
   .wrap{max-width:1100px;margin:0 auto}
 </style>
 </head>
 <body>
   <div class="bar">
-    <h1>Skeleton de carga — shimmer de marca</h1>
-    <button onclick="document.documentElement.classList.toggle('dark')">Alternar claro/oscuro</button>
+    <h1>Skeleton de carga — consciente del componente (tabla / formulario / dashboard)</h1>
+    <button data-v="table" class="on" onclick="setV('table')">Lista / tabla</button>
+    <button data-v="form" onclick="setV('form')">Formulario / wizard</button>
+    <button data-v="dash" onclick="setV('dash')">Dashboard</button>
+    <button onclick="document.documentElement.classList.toggle('dark')">Claro/oscuro</button>
   </div>
   <div class="wrap" id="page"></div>
 
 <script>
-  function cards(n){var s='';for(var i=0;i<n;i++){s+='<div class="ces-sk ces-sk-card"></div>';}return s;}
-  function rows(n){var s='';for(var i=0;i<n;i++){s+='<div class="ces-sk-row">'
-      +'<div class="ces-sk ces-sk-circle" style="width:2rem;height:2rem;flex:0 0 auto"></div>'
-      +'<div class="ces-sk ces-sk-line ces-sk-w-30"></div>'
-      +'<div class="ces-sk ces-sk-line ces-sk-w-40"></div>'
-      +'<div class="ces-sk ces-sk-line ces-sk-w-25" style="margin-left:auto"></div></div>';}return s;}
-  document.getElementById('page').innerHTML =
-      '<div class="ces-sk ces-sk-title ces-sk-w-40" style="margin-bottom:1.5rem"></div>'
-    + '<div class="ces-sk-stats">' + cards(4) + '</div>'
-    + '<div class="ces-sk-panel"><div class="ces-sk ces-sk-line ces-sk-w-30" style="margin-bottom:1.1rem"></div>'
-    + rows(7) + '</div>';
+  function sk(extra, style){ return '<div class="ces-sk ' + (extra||'') + '"' + (style?' style="'+style+'"':'') + '></div>'; }
+  function header(withCreate){
+      var a = withCreate ? sk('ces-sk-btn','width:6.5rem;height:2.1rem')+sk('ces-sk-btn','width:10rem;height:2.1rem')
+                         : sk('ces-sk-btn','width:6rem;height:2.1rem');
+      return '<div class="ces-sk-hd">'+sk('ces-sk-title ces-sk-w-30')+'<div class="ces-sk-hd-actions">'+a+'</div></div>';
+  }
+  function tableScaffold(){
+      var s=header(true);
+      s+='<div class="ces-sk-tb">'+sk('','flex:1;height:2.4rem;border-radius:.6rem')+sk('ces-sk-btn','width:6rem;height:2.4rem')+sk('ces-sk-btn','width:6rem;height:2.4rem')+'</div>';
+      s+='<div class="ces-sk-panel"><div class="ces-sk-row">'+sk('ces-sk-line ces-sk-w-25')+sk('ces-sk-line ces-sk-w-25')+sk('ces-sk-line ces-sk-w-25')+sk('ces-sk-line','width:3rem;margin-left:auto')+'</div>';
+      for(var i=0;i<8;i++){s+='<div class="ces-sk-row">'+sk('ces-sk-circle','width:2.1rem;height:2.1rem;flex:0 0 auto')+sk('ces-sk-line ces-sk-w-25')+sk('ces-sk-line ces-sk-w-25')+sk('ces-sk-line ces-sk-w-25')+sk('ces-sk-btn','width:4.5rem;height:1.8rem;margin-left:auto')+'</div>';}
+      return s+'</div>';
+  }
+  function formScaffold(){
+      var s=header(false)+'<div class="ces-sk-panel">'+sk('ces-sk-line ces-sk-w-25','height:1rem;margin-bottom:1.25rem')+'<div class="ces-sk-grid2">';
+      for(var i=0;i<6;i++){s+='<div>'+sk('ces-sk-line ces-sk-w-40 sm')+sk('ces-sk-input')+'</div>';}
+      s+='</div><div style="margin-top:1.25rem">'+sk('ces-sk-line ces-sk-w-25 sm')+sk('','height:6rem;border-radius:.6rem;margin-top:.5rem')+'</div></div>';
+      s+='<div class="ces-sk-foot">'+sk('ces-sk-btn','width:6rem')+sk('ces-sk-btn','width:9rem')+'</div>';
+      return s;
+  }
+  function dashScaffold(){
+      var s=header(false)+'<div class="ces-sk-stats">';
+      for(var i=0;i<4;i++){s+=sk('ces-sk-card');}
+      return s+'</div><div class="ces-sk-grid2">'+sk('ces-sk-chart')+sk('ces-sk-chart')+'</div>';
+  }
+  function setV(v){
+      document.getElementById('page').innerHTML = v==='form'?formScaffold():v==='dash'?dashScaffold():tableScaffold();
+      document.querySelectorAll('.bar button[data-v]').forEach(function(b){ b.classList.toggle('on', b.dataset.v===v); });
+  }
+  setV('table');
 </script>
 </body>
 </html>

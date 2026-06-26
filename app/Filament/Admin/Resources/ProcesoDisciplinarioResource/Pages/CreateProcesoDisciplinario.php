@@ -28,6 +28,10 @@ class CreateProcesoDisciplinario extends CreateRecord
 
     protected static string $resource = ProcesoDisciplinarioResource::class;
 
+    // Vista custom: oculta el stepper nativo de Filament (el wizard usa su propio
+    // encabezado de paso con barra de progreso), igual que en el wizard de RIT.
+    protected static string $view = 'filament.admin.resources.proceso-disciplinarios.pages.create-proceso-disciplinario';
+
     // ──────────────────────────────────────────────────────────────────────────
     // Estado del formulario de hechos
     // ──────────────────────────────────────────────────────────────────────────
@@ -84,7 +88,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                             'step' => 1,
                             'total' => 5,
                             'title' => 'Trabajador',
-                            'accent' => '#f97316',
+                            'accent' => '#e11d48',
                             'lord' => 'https://cdn.lordicon.com/bushiqea.json',
                             'subtitle' => 'Empresa y datos del trabajador involucrado.',
                         ])
@@ -310,7 +314,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                             'step' => 2,
                             'total' => 5,
                             'title' => 'Cuándo',
-                            'accent' => '#c9a84c',
+                            'accent' => '#f97316',
                             'lord' => 'https://cdn.lordicon.com/uphbloed.json',
                             'subtitle' => 'Fecha, hora y contexto del incidente.',
                         ])
@@ -359,7 +363,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                             'step' => 3,
                             'total' => 5,
                             'title' => 'Hechos',
-                            'accent' => '#e11d48',
+                            'accent' => '#eab308',
                             'lord' => 'https://cdn.lordicon.com/bpptgtfr.json',
                             'subtitle' => 'Descripción objetiva y verificable de lo ocurrido.',
                         ])
@@ -521,7 +525,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                             'step' => 4,
                             'total' => 5,
                             'title' => 'Pruebas',
-                            'accent' => '#fb923c',
+                            'accent' => '#84cc16',
                             'lord' => 'https://cdn.lordicon.com/fqbvgezn.json',
                             'subtitle' => 'Evidencias, archivos y testigos del hecho.',
                         ])
@@ -603,7 +607,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                             'step' => 5,
                             'total' => 5,
                             'title' => 'Revisión',
-                            'accent' => '#fb7185',
+                            'accent' => '#22c55e',
                             'lord' => 'https://cdn.lordicon.com/fikcyfpp.json',
                             'subtitle' => 'Revise la información y programe la audiencia de descargos.',
                         ])

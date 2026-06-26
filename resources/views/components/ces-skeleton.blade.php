@@ -40,26 +40,44 @@
             @break
 
         @case('table')
+            <div class="ces-sk-tb">
+                <div class="ces-sk" style="flex:1;height:2.4rem;border-radius:.6rem"></div>
+                <div class="ces-sk ces-sk-btn" style="width:6rem;height:2.4rem"></div>
+                <div class="ces-sk ces-sk-btn" style="width:6rem;height:2.4rem"></div>
+            </div>
             <div class="ces-sk-panel">
+                <div class="ces-sk-row">
+                    <div class="ces-sk ces-sk-line ces-sk-w-25"></div>
+                    <div class="ces-sk ces-sk-line ces-sk-w-25"></div>
+                    <div class="ces-sk ces-sk-line ces-sk-w-25"></div>
+                    <div class="ces-sk ces-sk-line" style="width:3rem;margin-left:auto"></div>
+                </div>
                 @for ($i = 0; $i < $rows; $i++)
                     <div class="ces-sk-row">
-                        <div class="ces-sk ces-sk-line ces-sk-w-30"></div>
-                        <div class="ces-sk ces-sk-line ces-sk-w-40"></div>
-                        <div class="ces-sk ces-sk-line ces-sk-w-25" style="margin-left:auto"></div>
+                        <div class="ces-sk ces-sk-circle" style="width:2.1rem;height:2.1rem;flex:0 0 auto"></div>
+                        <div class="ces-sk ces-sk-line ces-sk-w-25"></div>
+                        <div class="ces-sk ces-sk-line ces-sk-w-25"></div>
+                        <div class="ces-sk ces-sk-line ces-sk-w-25"></div>
+                        <div class="ces-sk ces-sk-btn" style="width:4.5rem;height:1.8rem;margin-left:auto"></div>
                     </div>
                 @endfor
             </div>
             @break
 
         @case('form')
-            <div style="display:flex;flex-direction:column;gap:1.1rem">
-                @for ($i = 0; $i < $rows; $i++)
-                    <div>
-                        <div class="ces-sk ces-sk-line ces-sk-w-25 sm" style="margin-bottom:.5rem"></div>
-                        <div class="ces-sk" style="height:2.6rem;border-radius:.6rem"></div>
-                    </div>
-                @endfor
-                <div class="ces-sk ces-sk-btn" style="margin-top:.25rem"></div>
+            <div class="ces-sk-panel">
+                <div class="ces-sk-grid2">
+                    @for ($i = 0; $i < $rows; $i++)
+                        <div>
+                            <div class="ces-sk ces-sk-line ces-sk-w-40 sm" style="margin-bottom:.5rem"></div>
+                            <div class="ces-sk ces-sk-input"></div>
+                        </div>
+                    @endfor
+                </div>
+            </div>
+            <div class="ces-sk-foot">
+                <div class="ces-sk ces-sk-btn" style="width:6rem"></div>
+                <div class="ces-sk ces-sk-btn" style="width:9rem"></div>
             </div>
             @break
 
