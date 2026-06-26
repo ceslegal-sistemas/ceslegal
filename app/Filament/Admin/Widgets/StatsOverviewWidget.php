@@ -8,12 +8,15 @@ use App\Models\TerminoLegal;
 use App\Services\TerminoLegalService;
 use App\Services\EstadoProcesoService;
 use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
+use App\Filament\Admin\Widgets\Concerns\HasStatsSkeleton;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
 
 class StatsOverviewWidget extends BaseWidget
 {
+    use HasStatsSkeleton;
+
     protected static ?int $sort = 1;
 
     /**

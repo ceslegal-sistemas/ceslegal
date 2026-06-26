@@ -43,6 +43,16 @@
   .ces-sk-input{height:2.6rem;border-radius:.6rem;margin-top:.5rem}
   .ces-sk-foot{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.5rem}
   .ces-sk-chart{height:16rem;border-radius:1rem}
+  .ces-tsk-box{width:100%}
+  .ces-tsk-row{display:flex;align-items:center;gap:1.25rem;padding:.85rem 1.25rem;border-bottom:1px solid rgba(0,0,0,.05)}
+  html.dark .ces-tsk-row{border-color:rgba(255,255,255,.05)}
+  .ces-tsk-row.head{padding-top:.6rem;padding-bottom:.6rem}
+  .ces-tsk-row:last-child{border-bottom:0}
+  .ces-ssk-grid{display:grid;gap:1.5rem}
+  @media(min-width:768px){.ces-ssk-grid.c4{grid-template-columns:repeat(2,1fr)}}
+  @media(min-width:1280px){.ces-ssk-grid.c4{grid-template-columns:repeat(4,1fr)}}
+  .ces-ssk-card{border:1px solid rgba(0,0,0,.07);border-radius:.75rem;padding:1rem 1.25rem;background:#fff;display:flex;flex-direction:column;gap:.7rem}
+  html.dark .ces-ssk-card{background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.06)}
   .wrap{max-width:1100px;margin:0 auto}
 </style>
 </head>
@@ -52,6 +62,8 @@
     <button data-v="table" class="on" onclick="setV('table')">Lista / tabla</button>
     <button data-v="form" onclick="setV('form')">Formulario / wizard</button>
     <button data-v="dash" onclick="setV('dash')">Dashboard</button>
+    <button data-v="tload" onclick="setV('tload')">Tabla deferLoading</button>
+    <button data-v="stats" onclick="setV('stats')">Stats overview</button>
     <button onclick="document.documentElement.classList.toggle('dark')">Claro/oscuro</button>
   </div>
   <div class="wrap" id="page"></div>
@@ -82,11 +94,33 @@
       for(var i=0;i<4;i++){s+=sk('ces-sk-card');}
       return s+'</div><div class="ces-sk-grid2">'+sk('ces-sk-chart')+sk('ces-sk-chart')+'</div>';
   }
+  // Skeleton real de tabla (reemplaza el spinner de deferLoading)
+  function tloadScaffold(){
+      var COLS=5;
+      function row(head){
+          var s='<div class="ces-tsk-row'+(head?' head':'')+'">';
+          s+=sk('','flex:0 0 1.1rem;height:1.1rem;border-radius:.25rem');
+          if(!head) s+=sk('','flex:0 0 2rem;height:2rem;border-radius:50%');
+          for(var i=0;i<COLS;i++){var w=head?'5.5rem':(42+((i*19)%46))+'%';s+=sk('','flex:1;height:.7rem;border-radius:.375rem;max-width:'+(head?'5.5rem':w));}
+          s+=sk('','flex:0 0 1.6rem;height:1.3rem;border-radius:.35rem');
+          return s+'</div>';
+      }
+      var h='<div class="ces-sk-panel" style="padding:0"><div class="ces-tsk-box">'+row(true);
+      for(var r=0;r<7;r++) h+=row(false);
+      return h+'</div></div>';
+  }
+  // Skeleton de stats overview (placeholder del widget lazy)
+  function statsScaffold(){
+      var s='<div class="ces-ssk-grid c4">';
+      for(var i=0;i<4;i++){s+='<div class="ces-ssk-card">'+sk('','height:.6rem;border-radius:.375rem;width:45%')+sk('','height:1.6rem;border-radius:.45rem;width:60%')+sk('','height:.55rem;border-radius:.375rem;width:80%')+'</div>';}
+      return s+'</div>';
+  }
   function setV(v){
-      document.getElementById('page').innerHTML = v==='form'?formScaffold():v==='dash'?dashScaffold():tableScaffold();
+      var html = v==='form'?formScaffold():v==='dash'?dashScaffold():v==='tload'?tloadScaffold():v==='stats'?statsScaffold():tableScaffold();
+      document.getElementById('page').innerHTML = html;
       document.querySelectorAll('.bar button[data-v]').forEach(function(b){ b.classList.toggle('on', b.dataset.v===v); });
   }
-  setV('table');
+  setV('tload');
 </script>
 </body>
 </html>

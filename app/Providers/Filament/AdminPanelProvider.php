@@ -155,6 +155,19 @@ class AdminPanelProvider extends PanelProvider
             .ces-sk-input{height:2.6rem;border-radius:.6rem;margin-top:.5rem}
             .ces-sk-foot{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.5rem}
             .ces-sk-chart{height:16rem;border-radius:1rem}
+            /* Skeleton de TABLA (reemplaza el spinner de deferLoading) */
+            .ces-tsk-box{width:100%}
+            .ces-tsk-row{display:flex;align-items:center;gap:1.25rem;padding:.85rem 1.25rem;border-bottom:1px solid rgba(0,0,0,.05)}
+            html.dark .ces-tsk-row{border-color:rgba(255,255,255,.05)}
+            .ces-tsk-row.head{padding-top:.6rem;padding-bottom:.6rem}
+            .ces-tsk-row:last-child{border-bottom:0}
+            /* Skeleton de STATS OVERVIEW (placeholder del widget lazy) */
+            .ces-ssk-grid{display:grid;gap:1.5rem}
+            .ces-ssk-grid.c1{grid-template-columns:1fr}
+            @media(min-width:768px){.ces-ssk-grid.c2{grid-template-columns:repeat(2,1fr)}.ces-ssk-grid.c3{grid-template-columns:repeat(3,1fr)}.ces-ssk-grid.c4{grid-template-columns:repeat(2,1fr)}}
+            @media(min-width:1280px){.ces-ssk-grid.c4{grid-template-columns:repeat(4,1fr)}}
+            .ces-ssk-card{border:1px solid rgba(0,0,0,.07);border-radius:.75rem;padding:1rem 1.25rem;background:#fff;display:flex;flex-direction:column;gap:.7rem}
+            html.dark .ces-ssk-card{background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.06)}
             </style>
             HTML,
         );
@@ -310,6 +323,68 @@ class AdminPanelProvider extends PanelProvider
             </script>
             HTML,
         );
+
+        // ── Skeleton de TABLA (reemplaza el spinner de deferLoading) ──────────
+        // Cuando una tabla usa ->deferLoading(), Filament muestra un spinner
+        // centrado (contenedor .h-32) mientras carga. Lo cambiamos por un skeleton
+        // con forma de tabla (cabecera + filas con barras shimmer). Fail-safe: si
+        // el DOM cambia y no engancha, simplemente queda el spinner por defecto.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            fn(): string => <<<'HTML'
+            <script>
+            (function () {
+                var COLS = 5, BODY_ROWS = 7;
+                function bar(style){ return '<div class="ces-sk" style="' + style + '"></div>'; }
+                function row(head) {
+                    var s = '<div class="ces-tsk-row' + (head ? ' head' : '') + '">';
+                    s += bar('flex:0 0 1.1rem;height:1.1rem;border-radius:.25rem');               // checkbox
+                    if (!head) s += bar('flex:0 0 2rem;height:2rem;border-radius:50%');            // avatar
+                    for (var i = 0; i < COLS; i++) {
+                        var w = head ? '4.5rem' : (42 + ((i * 19) % 46)) + '%';
+                        s += bar('flex:1;height:.7rem;border-radius:.375rem;max-width:' + (head ? '5.5rem' : w));
+                    }
+                    s += bar('flex:0 0 1.6rem;height:1.3rem;border-radius:.35rem');                // acciones
+                    return s + '</div>';
+                }
+                function skeleton() {
+                    var html = '<div class="ces-tsk-box">' + row(true);
+                    for (var r = 0; r < BODY_ROWS; r++) html += row(false);
+                    return html + '</div>';
+                }
+                function enhance(scope) {
+                    var inds = (scope || document).querySelectorAll('.fi-ta-ctn .fi-loading-indicator, .fi-ta .fi-loading-indicator');
+                    for (var i = 0; i < inds.length; i++) {
+                        var box = inds[i].closest('div');
+                        if (!box || box.dataset.cesTsk) continue;
+                        // Solo el spinner de deferLoading: su contenedor es el centrado h-32.
+                        if ((box.className || '').indexOf('h-32') === -1) continue;
+                        box.dataset.cesTsk = '1';
+                        box.className = 'ces-tsk-box';
+                        box.innerHTML = skeleton();
+                    }
+                }
+                document.addEventListener('DOMContentLoaded', function(){ enhance(); });
+                document.addEventListener('livewire:navigated', function(){ enhance(); });
+                if (window.MutationObserver) {
+                    new MutationObserver(function (muts) {
+                        for (var i = 0; i < muts.length; i++) {
+                            if (muts[i].addedNodes.length) { enhance(); break; }
+                        }
+                    }).observe(document.body, { childList: true, subtree: true });
+                }
+                enhance();
+            })();
+            </script>
+            HTML,
+        );
+
+        // Carga diferida en TODAS las tablas del panel → muestran el skeleton de
+        // tabla mientras cargan (y mejora el primer pintado). Una tabla concreta
+        // puede desactivarlo con ->deferLoading(false).
+        \Filament\Tables\Table::configureUsing(function (\Filament\Tables\Table $table): void {
+            $table->deferLoading();
+        });
     }
 
     public function panel(Panel $panel): Panel
