@@ -1548,7 +1548,7 @@ class CreateProcesoDisciplinario extends CreateRecord
 
         if (
             !empty($proceso->fecha_descargos_programada) &&
-            !empty($proceso->trabajador->email) &&
+            !empty($proceso->trabajador?->email) &&
             $proceso->modalidad_descargos === 'virtual'
         ) {
             try {
