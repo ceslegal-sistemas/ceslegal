@@ -2253,12 +2253,14 @@ class ProcesoDisciplinarioResource extends Resource
                             'foto_autorizador_en'     => $fotoPath ? now() : null,
                         ]);
 
-                        // Limpiar cache de análisis (próxima apertura del modal recalculará)
-                        session()->forget('emitir_sancion_analisis_' . $record->id);
+                        // Limpiar cache de análisis (próxima apertura del modal recalculará).
+                        // Debe coincidir con la clave usada al cachear (_v12_), de lo
+                        // contrario "Re-generar Sanción" reusaría un análisis IA obsoleto.
+                        session()->forget('emitir_sancion_analisis_v12_' . $record->id);
 
                         // 4. Continuar con el flujo existente
                         if ($data['tipo_sancion'] === 'suspension') {
-                            $analisis = json_decode($data['analisis_cache'], true);
+                            $analisis = json_decode($data['analisis_cache'] ?? '{}', true) ?: [];
 
                             $opcionesDiasSuspension = [];
                             if (isset($analisis['dias_suspension_sugeridos'])) {
