@@ -353,11 +353,14 @@ class AdminPanelProvider extends PanelProvider
                     return html + '</div>';
                 }
                 function enhance(scope) {
-                    var inds = (scope || document).querySelectorAll('.fi-ta-ctn .fi-loading-indicator, .fi-ta .fi-loading-indicator');
-                    for (var i = 0; i < inds.length; i++) {
-                        var box = inds[i].closest('div');
+                    // El loading-indicator de Filament es un <svg class="animate-spin">.
+                    // El placeholder de deferLoading lo monta centrado en un <div class="... h-32 ...">.
+                    var spinners = (scope || document).querySelectorAll('svg.animate-spin');
+                    for (var i = 0; i < spinners.length; i++) {
+                        var box = spinners[i].parentElement;
                         if (!box || box.dataset.cesTsk) continue;
-                        // Solo el spinner de deferLoading: su contenedor es el centrado h-32.
+                        // Solo el placeholder de deferLoading (contenedor h-32), no los
+                        // spinners de filtros/reorden/paginación.
                         if ((box.className || '').indexOf('h-32') === -1) continue;
                         box.dataset.cesTsk = '1';
                         box.className = 'ces-tsk-box';
