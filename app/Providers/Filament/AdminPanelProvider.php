@@ -179,6 +179,59 @@ class AdminPanelProvider extends PanelProvider
             HTML,
         );
 
+        // ── Pulido UI/UX global ──────────────────────────────────────────────
+        // Accesibilidad (focus visible de marca, contraste), lectura de documentos
+        // legales, microinteracciones consistentes y ajustes de dark mode. Todo por
+        // render hook (sin npm).
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            fn(): string => <<<'HTML'
+            <style>
+            /* (1) Accesibilidad — focus visible de marca en elementos interactivos */
+            .fi-btn:focus-visible,.fi-icon-btn:focus-visible,.fi-link:focus-visible,
+            .fi-sidebar-item-button:focus-visible,.fi-ta-record a:focus-visible,
+            .fi-dropdown-list-item:focus-visible,.fi-tabs-item:focus-visible,
+            .fi-pagination-item:focus-visible{
+                outline:2px solid #e11d48 !important;outline-offset:2px;border-radius:8px;
+            }
+            html.dark .fi-btn:focus-visible,html.dark .fi-icon-btn:focus-visible,
+            html.dark .fi-link:focus-visible,html.dark .fi-sidebar-item-button:focus-visible,
+            html.dark .fi-ta-record a:focus-visible,html.dark .fi-dropdown-list-item:focus-visible,
+            html.dark .fi-tabs-item:focus-visible,html.dark .fi-pagination-item:focus-visible{
+                outline-color:#fb7185 !important;
+            }
+            /* (1) Contraste — subir textos secundarios muy claros en modo claro */
+            html:not(.dark) .fi-ta-empty-state-description,
+            html:not(.dark) .fi-in-entry-wrp-hint,
+            html:not(.dark) .fi-fo-field-wrp-hint{ color:#57534e; }
+            /* (5) Números y fechas alineables en tablas */
+            .fi-ta-cell,.fi-ta-text-item-label,.fi-ta-text{ font-variant-numeric:tabular-nums; }
+            /* (8) Lectura de documentos legales largos (RIT / correos / informe) */
+            .rit-viewer-body,.ce-content-body,.fi-prose{ line-height:1.7; }
+            .rit-viewer-body p,.ce-content-body p,.fi-prose p{ max-width:74ch; }
+            /* (10) Microinteracciones consistentes (150–300ms, solo color/opacidad/sombra) */
+            .fi-btn,.fi-icon-btn,.fi-ta-record,.fi-dropdown-list-item,.fi-sidebar-item-button{
+                transition:background-color .2s ease,color .2s ease,box-shadow .2s ease,border-color .2s ease;
+            }
+            .fi-ta-record:hover{ background-color:rgba(225,29,72,.03); }
+            html.dark .fi-ta-record:hover{ background-color:rgba(251,113,133,.05); }
+            /* (4) Breadcrumb actual con acento de marca */
+            .fi-breadcrumbs-item:last-child .fi-breadcrumbs-item-label{ color:#be123c;font-weight:600; }
+            html.dark .fi-breadcrumbs-item:last-child .fi-breadcrumbs-item-label{ color:#fb7185; }
+            /* (9) Dark mode — bordes/superficies con contraste suficiente */
+            html.dark .fi-section,html.dark .fi-wi-stats-overview-stat,html.dark .fi-ta-ctn{
+                border-color:rgba(255,255,255,.08);
+            }
+            /* (10) Respeta prefers-reduced-motion en microinteracciones y animaciones decorativas */
+            @media (prefers-reduced-motion: reduce){
+                .fi-btn,.fi-icon-btn,.fi-ta-record,.fi-dropdown-list-item,.fi-sidebar-item-button,
+                .fi-wi-stats-overview-stat{ transition:none !important; }
+                .ces-sk,.ces-pl-txt::after{ animation:none !important; }
+            }
+            </style>
+            HTML,
+        );
+
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_END,
             fn(): string => '<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script><script src="' . asset('js/tour-descargos.js') . '"></script>',

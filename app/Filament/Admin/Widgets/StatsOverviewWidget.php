@@ -92,41 +92,59 @@ class StatsOverviewWidget extends BaseWidget
         $terminosVencidos = TerminoLegal::where('estado', 'vencido')->count();
         $terminosProximos = $terminoService->getTerminosProximosVencer(2)->count();
 
+        // (#7) Tendencia REAL: procesos creados en los últimos 7 meses (sparkline)
+        // y variación de este mes vs. el anterior (▲/▼). Los estados no tienen
+        // histórico, así que la tendencia se basa en la creación de procesos.
+        $serieNuevos = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $mes = now()->subMonths($i);
+            $serieNuevos[] = (clone $procesosQuery)
+                ->whereYear('created_at', $mes->year)
+                ->whereMonth('created_at', $mes->month)
+                ->count();
+        }
+        $nuevosEsteMes   = end($serieNuevos) ?: 0;
+        $nuevosMesAnt    = $serieNuevos[count($serieNuevos) - 2] ?? 0;
+        $delta           = $nuevosEsteMes - $nuevosMesAnt;
+        $deltaDesc       = $delta > 0
+            ? "▲ {$delta} vs. mes anterior"
+            : ($delta < 0 ? "▼ " . abs($delta) . " vs. mes anterior" : 'Sin cambios vs. mes anterior');
+        $deltaIcon       = $delta > 0
+            ? 'heroicon-m-arrow-trending-up'
+            : ($delta < 0 ? 'heroicon-m-arrow-trending-down' : 'heroicon-m-minus-small');
+        $deltaColor      = $delta > 0 ? 'danger' : ($delta < 0 ? 'success' : 'gray');
+
         return [
             Stat::make('Procesos Activos', $procesosActivos)
-                ->description($totalProcesos . ' procesos en total')
-                ->descriptionIcon('heroicon-m-shield-exclamation')
-                ->color('primary')
+                ->description("{$totalProcesos} en total · {$deltaDesc}")
+                ->descriptionIcon($deltaIcon)
+                ->color($deltaColor)
                 ->url($this->getActiveProcessesUrl())
-                ->chart([7, 12, 8, 15, 18, 12, $procesosActivos]),
+                ->chart($serieNuevos),
 
             Stat::make('En Apertura', $procesosApertura)
                 ->description('Procesos iniciados')
                 ->descriptionIcon('heroicon-m-folder-open')
                 ->color('gray')
-                ->url($this->getFilterUrl('apertura'))
-                ->chart([2, 3, 2, 1, 2, 3, $procesosApertura]),
+                ->url($this->getFilterUrl('apertura')),
 
             Stat::make('En Descargos', $procesosDescargos)
                 ->description('Pendientes o realizados')
                 ->descriptionIcon('heroicon-m-document-text')
                 ->color('warning')
-                ->url($this->getFilterUrl(['descargos_pendientes', 'descargos_realizados']))
-                ->chart([3, 5, 4, 3, 2, 4, $procesosDescargos]),
+                ->url($this->getFilterUrl(['descargos_pendientes', 'descargos_realizados'])),
 
             Stat::make('Sanción Emitida', $procesosSancionEmitida)
                 ->description('Esperando cierre o impugnación')
                 ->descriptionIcon('heroicon-m-scale')
                 ->color('info')
-                ->url($this->getFilterUrl('sancion_emitida'))
-                ->chart([2, 3, 4, 2, 3, 4, $procesosSancionEmitida]),
+                ->url($this->getFilterUrl('sancion_emitida')),
 
             Stat::make('Impugnados', $procesosImpugnados)
-                ->description('Requieren revisión urgente')
+                ->description($procesosImpugnados > 0 ? 'Requieren revisión urgente' : 'Sin impugnaciones')
                 ->descriptionIcon('heroicon-m-arrow-path')
-                ->color('danger')
-                ->url($this->getFilterUrl('impugnacion_realizada'))
-                ->chart([0, 1, 0, 1, 2, 1, $procesosImpugnados]),
+                ->color($procesosImpugnados > 0 ? 'danger' : 'gray')
+                ->url($this->getFilterUrl('impugnacion_realizada')),
         ];
     }
 }
