@@ -50,6 +50,11 @@ Route::post('/transcribir', \App\Http\Controllers\TranscribeController::class)
 Route::get('/descargos/{token}', [DescargoPublicoController::class, 'mostrarAcceso'])
     ->name('descargos.acceso');
 
+// Aceptación de invitación de un bufete a una empresa (enlace por token)
+Route::get('/bufete/invitacion/{token}', [\App\Http\Controllers\BufeteInvitacionController::class, 'aceptar'])
+    ->name('bufete.invitacion.aceptar')
+    ->where('token', '[a-zA-Z0-9]+');
+
 // Verificación pública de documentos generados por CES Legal
 Route::get('/verificar/{token}', [VerificacionDocumentoController::class, 'verificar'])
     ->name('verificacion.documento')

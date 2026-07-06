@@ -15,6 +15,36 @@ class ListEmpresas extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+
+            // Invitar una empresa ya registrada a ser gestionada por el bufete.
+            Actions\Action::make('invitar_empresa')
+                ->label('Invitar empresa')
+                ->icon('heroicon-o-envelope')
+                ->color('gray')
+                ->visible(fn() => auth()->user()?->esAbogadoDeBufete())
+                ->form([
+                    \Filament\Forms\Components\TextInput::make('nit')
+                        ->label('NIT de la empresa')
+                        ->required()
+                        ->helperText('La empresa debe estar registrada en la plataforma y no pertenecer a otro bufete.'),
+                ])
+                ->action(function (array $data) {
+                    try {
+                        $inv = \App\Models\BufeteInvitacion::crearPara(auth()->user()->bufete, $data['nit']);
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Invitación creada')
+                            ->body('Comparta este enlace con la empresa para que la acepte: ' . route('bufete.invitacion.aceptar', $inv->token))
+                            ->persistent()
+                            ->send();
+                    } catch (\RuntimeException $e) {
+                        \Filament\Notifications\Notification::make()
+                            ->danger()
+                            ->title('No se pudo crear la invitación')
+                            ->body($e->getMessage())
+                            ->send();
+                    }
+                }),
         ];
     }
 
