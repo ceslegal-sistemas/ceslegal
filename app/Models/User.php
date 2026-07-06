@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -60,9 +61,29 @@ class User extends Authenticatable implements FilamentUser
         return in_array($this->role, ['super_admin', 'abogado', 'cliente']);
     }
 
-    public function empresa()
+    public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class);
+    }
+
+    public function bufete(): BelongsTo
+    {
+        return $this->belongsTo(Bufete::class);
+    }
+
+    public function esAbogadoDeBufete(): bool
+    {
+        return $this->role === 'abogado' && $this->bufete_id !== null;
+    }
+
+    public function empresasGestionadas(): \Illuminate\Database\Eloquent\Builder
+    {
+        return \App\Models\Empresa::query()
+            ->withoutGlobalScope('bufeteOrEmpresa')
+            ->when(
+                $this->esAbogadoDeBufete(),
+                fn ($q) => $q->where('bufete_id', $this->bufete_id)
+            );
     }
 
     public function procesosDisciplinariosAsignados()
