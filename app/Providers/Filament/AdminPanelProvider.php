@@ -98,6 +98,14 @@ class AdminPanelProvider extends PanelProvider
             </script>
             HTML,
         );
+
+        // Selector de "empresa activa" en el topbar — solo para abogados de bufete.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::TOPBAR_END,
+            fn(): string => auth()->user()?->esAbogadoDeBufete()
+                ? \Illuminate\Support\Facades\Blade::render('@livewire(\'selector-empresa\')')
+                : '',
+        );
     }
 
     public function panel(Panel $panel): Panel
