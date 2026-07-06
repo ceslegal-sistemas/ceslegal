@@ -12,6 +12,19 @@ class CreateEmpresa extends CreateRecord
 {
     protected static string $resource = EmpresaResource::class;
 
+    /**
+     * Multi-tenant: si un abogado de bufete crea la empresa, queda vinculada a su
+     * bufete automáticamente (no elige bufete a mano).
+     */
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        if (auth()->user()?->esAbogadoDeBufete()) {
+            $data['bufete_id'] = auth()->user()->bufete_id;
+        }
+
+        return $data;
+    }
+
     protected function afterCreate(): void
     {
         $path = $this->data['reglamento_docx_temp'] ?? null;
