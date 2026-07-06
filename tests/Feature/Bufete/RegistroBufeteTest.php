@@ -17,7 +17,7 @@ class RegistroBufeteTest extends TestCase
         parent::setUp();
         // Los métodos de registro llaman a assignRole(), que requiere que el rol
         // exista en la BD (Spatie). Se crean aquí para no depender del seeder.
-        Role::firstOrCreate(['name' => 'abogado', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'bufete', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'cliente', 'guard_name' => 'web']);
     }
 
@@ -33,10 +33,10 @@ class RegistroBufeteTest extends TestCase
             'password'       => 'secret123',
         ]);
 
-        $this->assertSame('abogado', $user->role);
+        $this->assertSame('bufete', $user->role);
         $this->assertNotNull($user->bufete_id);
         $this->assertNull($user->empresa_id);
         $this->assertDatabaseHas('bufetes', ['nombre' => 'Rendón & Asociados', 'nit' => '900111222-3']);
-        $this->assertDatabaseHas('users', ['email' => 'juan@bufete.co', 'role' => 'abogado']);
+        $this->assertDatabaseHas('users', ['email' => 'juan@bufete.co', 'role' => 'bufete']);
     }
 }

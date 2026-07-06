@@ -58,7 +58,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return in_array($this->role, ['super_admin', 'abogado', 'cliente']);
+        return in_array($this->role, ['super_admin', 'abogado', 'cliente', 'bufete']);
     }
 
     public function empresa(): BelongsTo
@@ -73,7 +73,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function esAbogadoDeBufete(): bool
     {
-        return $this->role === 'abogado' && $this->bufete_id !== null;
+        return $this->role === 'bufete' && $this->bufete_id !== null;
     }
 
     public function empresasGestionadas(): \Illuminate\Database\Eloquent\Builder
@@ -94,7 +94,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function puedeGestionarRit(): bool
     {
-        if (in_array($this->role, ['super_admin', 'abogado'], true)) {
+        if (in_array($this->role, ['super_admin', 'abogado', 'bufete'], true)) {
             return true;
         }
         if ($this->role === 'cliente') {

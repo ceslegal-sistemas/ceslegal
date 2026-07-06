@@ -21,7 +21,7 @@ class ScopeAccesoTest extends TestCase
         $ajena = Empresa::factory()->create();
 
         $cliente = User::factory()->create(['role' => 'cliente', 'empresa_id' => $e1->id]);
-        $abogado = User::factory()->create(['role' => 'abogado', 'bufete_id' => $bufete->id]);
+        $abogado = User::factory()->create(['role' => 'bufete', 'bufete_id' => $bufete->id]);
         $super   = User::factory()->create(['role' => 'super_admin']);
 
         $this->actingAs($cliente);
@@ -41,7 +41,7 @@ class ScopeAccesoTest extends TestCase
     public function test_abogado_de_bufete_helper(): void
     {
         $bufete = Bufete::factory()->create();
-        $abogado = User::factory()->create(['role' => 'abogado', 'bufete_id' => $bufete->id]);
+        $abogado = User::factory()->create(['role' => 'bufete', 'bufete_id' => $bufete->id]);
         Empresa::factory()->count(3)->create(['bufete_id' => $bufete->id]);
         Empresa::factory()->create();
         $this->assertTrue($abogado->esAbogadoDeBufete());

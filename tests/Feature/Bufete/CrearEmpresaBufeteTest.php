@@ -24,7 +24,7 @@ class CrearEmpresaBufeteTest extends TestCase
     public function test_abogado_de_bufete_asigna_bufete_id(): void
     {
         $bufete = Bufete::factory()->create();
-        $abogado = User::factory()->create(['role' => 'abogado', 'bufete_id' => $bufete->id]);
+        $abogado = User::factory()->create(['role' => 'bufete', 'bufete_id' => $bufete->id]);
         $this->actingAs($abogado);
 
         $data = $this->mutate(new CreateEmpresa(), ['razon_social' => 'Empresa X']);

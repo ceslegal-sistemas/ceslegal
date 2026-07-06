@@ -18,7 +18,7 @@ class PermisosYFlujoTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Role::firstOrCreate(['name' => 'abogado', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'bufete', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'cliente', 'guard_name' => 'web']);
     }
 
@@ -29,7 +29,7 @@ class PermisosYFlujoTest extends TestCase
         $empresaConBufete = Empresa::factory()->create(['bufete_id' => $bufete->id]);
 
         $super = User::factory()->create(['role' => 'super_admin']);
-        $abogado = User::factory()->create(['role' => 'abogado', 'bufete_id' => $bufete->id]);
+        $abogado = User::factory()->create(['role' => 'bufete', 'bufete_id' => $bufete->id]);
         $clienteLibre = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresaLibre->id]);
         $clienteConBufete = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresaConBufete->id]);
 

@@ -283,7 +283,7 @@ class Register extends BaseRegister
                                 ->live(onBlur: true)
                                 ->mask('999999999-9')
                                 ->placeholder('Ej: 900111222-3')
-                                ->helperText('Solo números: 9 dígitos y el dígito de verificación (el guion se agrega solo).')
+                                // ->helperText('Solo números: 9 dígitos y el dígito de verificación (el guion se agrega solo).')
                                 ->extraInputAttributes(['inputmode' => 'numeric'])
                                 ->rule('regex:/^\d{9}-\d$/')
                                 ->validationMessages([
@@ -488,13 +488,13 @@ class Register extends BaseRegister
                 'name'       => $data['name'],
                 'email'      => $data['email'],
                 'password'   => $data['password'],
-                'role'       => 'abogado',
+                'role'       => 'bufete',
                 'bufete_id'  => $bufete->id,
                 'empresa_id' => null,
                 'active'     => true,
             ]);
 
-            $user->assignRole('abogado');
+            $user->assignRole('bufete');
 
             return $user;
         });

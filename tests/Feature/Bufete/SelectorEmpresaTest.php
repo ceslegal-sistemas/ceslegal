@@ -20,7 +20,7 @@ class SelectorEmpresaTest extends TestCase
         $bufete = Bufete::factory()->create();
         $e = Empresa::factory()->create(['bufete_id' => $bufete->id]);
         $ajena = Empresa::factory()->create();
-        $abogado = User::factory()->create(['role' => 'abogado', 'bufete_id' => $bufete->id]);
+        $abogado = User::factory()->create(['role' => 'bufete', 'bufete_id' => $bufete->id]);
         $this->actingAs($abogado);
 
         Livewire::test(SelectorEmpresa::class)->call('seleccionar', $e->id);

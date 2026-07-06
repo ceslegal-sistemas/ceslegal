@@ -20,12 +20,9 @@ trait ScopedToBufeteOrEmpresa
                 ? $model->getQualifiedKeyName()
                 : $model->qualifyColumn('empresa_id');
 
-            if ($user->role === 'super_admin') {
-                return; // ve todo
-            }
-
-            if ($user->role === 'abogado' && $user->bufete_id === null) {
-                return; // staff interno sin bufete: ve todo
+            // super_admin y abogado interno (staff CES Legal) ven todo.
+            if ($user->role === 'super_admin' || $user->role === 'abogado') {
+                return;
             }
 
             if ($user->role === 'cliente') {
@@ -33,7 +30,8 @@ trait ScopedToBufeteOrEmpresa
                 return;
             }
 
-            if ($user->role === 'abogado' && $user->bufete_id) {
+            // Bufete: solo las empresas de su bufete, acotadas por el selector.
+            if ($user->role === 'bufete' && $user->bufete_id) {
                 $ids = \App\Models\Empresa::query()
                     ->withoutGlobalScope('bufeteOrEmpresa')
                     ->where('bufete_id', $user->bufete_id)
