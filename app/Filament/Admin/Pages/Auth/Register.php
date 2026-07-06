@@ -170,16 +170,10 @@ class Register extends BaseRegister
                                 ->placeholder('Calle 123 # 45-67, Edificio ABC, Piso 3')
                                 ->columnSpanFull(),
 
-                            Forms\Components\Select::make('dias_laborales')
-                                ->label('Días Laborales')
-                                ->options([
-                                    'lunes_viernes' => 'Lunes a Viernes',
-                                    'lunes_sabado'  => 'Lunes a Sábado',
-                                ])
-                                ->default('lunes_viernes')
-                                ->required()
-                                ->native(false)
-                                ->helperText('Días que opera normalmente la empresa'),
+                            // Los días laborales ahora se toman del Reglamento Interno.
+                            // Se conserva como valor oculto (respaldo) por defecto.
+                            Forms\Components\Hidden::make('dias_laborales')
+                                ->default('lunes_viernes'),
                         ])->columns(['default' => 1, 'sm' => 2]),
 
                     // ── Paso 3: Actividad Económica CIIU ──────────────────────────

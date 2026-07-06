@@ -103,16 +103,10 @@ class EmpresaResource extends Resource
                             ->helperText('Desactive si la empresa ya no está en servicio')
                             ->inline(false),
 
-                        Forms\Components\Select::make('dias_laborales')
-                            ->label('Días Laborales')
-                            ->options([
-                                'lunes_viernes' => 'Lunes a Viernes',
-                                'lunes_sabado' => 'Lunes a Sábado',
-                            ])
-                            ->default('lunes_viernes')
-                            ->required()
-                            ->native(false)
-                            ->helperText('Seleccione los días que la empresa opera normalmente'),
+                        // Los días laborales ahora provienen del Reglamento Interno.
+                        // Se mantiene oculto como respaldo (empresas sin RIT).
+                        Forms\Components\Hidden::make('dias_laborales')
+                            ->default('lunes_viernes'),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Información de Contacto')

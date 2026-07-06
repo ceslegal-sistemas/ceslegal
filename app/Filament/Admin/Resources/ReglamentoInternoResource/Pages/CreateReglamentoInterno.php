@@ -628,6 +628,18 @@ class CreateReglamentoInterno extends CreateRecord
                     Forms\Components\Section::make('¿Cómo trabajan sus empleados?')
                         ->description('Seleccione todo lo que aplique a su empresa. Si es oficina pura, solo marque "Jornada fija diurna".')
                         ->schema([
+                            Forms\Components\Select::make('dias_laborales')
+                                ->label('Días laborales de la empresa')
+                                ->options([
+                                    'lunes_viernes' => 'Lunes a Viernes',
+                                    'lunes_sabado'  => 'Lunes a Sábado',
+                                ])
+                                ->default('lunes_viernes')
+                                ->required()
+                                ->native(false)
+                                ->helperText('Determina los días hábiles para los plazos (descargos, términos legales).')
+                                ->columnSpanFull(),
+
                             Forms\Components\ToggleButtons::make('modalidades_jornada')
                                 ->label('Tipos de jornada en su empresa')
                                 ->options([
@@ -1545,6 +1557,7 @@ class CreateReglamentoInterno extends CreateRecord
                 'activo'                  => false,
                 'respuestas_cuestionario' => $data,
                 'fuente'                  => 'construido_ia',
+                'dias_laborales'          => $data['dias_laborales'] ?? null,
                 'estado_generacion'       => 'generando',
                 'mensaje_error_ia'        => null,
             ]

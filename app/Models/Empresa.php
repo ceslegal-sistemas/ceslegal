@@ -91,19 +91,30 @@ class Empresa extends Model
     ];
 
     /**
-     * Verifica si la empresa trabaja los sábados
+     * Días laborales EFECTIVOS: se toman del RIT activo si los define; si no,
+     * se usa el campo de la empresa como respaldo; por defecto Lunes a Viernes.
      */
-    public function trabajaSabados(): bool
+    public function diasLaboralesEfectivos(): string
     {
-        return $this->dias_laborales === 'lunes_sabado';
+        $ritDias = $this->reglamentoInterno?->dias_laborales;
+
+        return $ritDias ?: ($this->dias_laborales ?: 'lunes_viernes');
     }
 
     /**
-     * Obtiene el texto de los días laborales
+     * Verifica si la empresa trabaja los sábados (según días laborales efectivos).
+     */
+    public function trabajaSabados(): bool
+    {
+        return $this->diasLaboralesEfectivos() === 'lunes_sabado';
+    }
+
+    /**
+     * Obtiene el texto de los días laborales (efectivos).
      */
     public function getDiasLaboralesTextoAttribute(): string
     {
-        return match ($this->dias_laborales) {
+        return match ($this->diasLaboralesEfectivos()) {
             'lunes_sabado' => 'Lunes a Sábado',
             default => 'Lunes a Viernes',
         };

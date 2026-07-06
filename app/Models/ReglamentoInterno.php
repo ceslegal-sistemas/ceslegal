@@ -20,6 +20,7 @@ class ReglamentoInterno extends Model
         'activo',
         'respuestas_cuestionario',
         'fuente',
+        'dias_laborales',
         'estado_generacion',
         'mensaje_error_ia',
         'sanciones_extraidas',
