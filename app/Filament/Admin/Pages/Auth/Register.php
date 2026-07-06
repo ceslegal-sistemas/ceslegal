@@ -281,10 +281,11 @@ class Register extends BaseRegister
                                 ->nullable()
                                 ->maxLength(50)
                                 ->live(onBlur: true)
+                                ->mask('999999999-9')
                                 ->placeholder('Ej: 900111222-3')
-                                ->helperText('Solo números, con el dígito de verificación separado por guion (ej: 900111222-3).')
+                                ->helperText('Solo números: 9 dígitos y el dígito de verificación (el guion se agrega solo).')
                                 ->extraInputAttributes(['inputmode' => 'numeric'])
-                                ->rule('regex:/^\d{6,12}-\d$/')
+                                ->rule('regex:/^\d{9}-\d$/')
                                 ->validationMessages([
                                     'regex' => 'El NIT debe ser solo números con el dígito de verificación separado por un guion (ej: 900111222-3).',
                                 ])
