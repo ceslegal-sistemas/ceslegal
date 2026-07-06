@@ -19,7 +19,7 @@ class BufeteRoleSeeder extends Seeder
     {
         $role = Role::firstOrCreate(['name' => 'bufete', 'guard_name' => 'web']);
 
-        $recursos = ['empresa', 'trabajador', 'proceso::disciplinario', 'diligencia::descargo', 'reglamento::interno'];
+        $recursos = ['empresa', 'trabajador', 'proceso::disciplinario', 'reglamento::interno'];
         $acciones = ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'];
 
         $permisos = [];
