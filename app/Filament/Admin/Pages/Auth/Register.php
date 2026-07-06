@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Pages\Auth;
 
 use App\Filament\Admin\Resources\EmpresaResource;
 use App\Models\ActividadEconomica;
+use App\Models\Bufete;
 use App\Models\Empresa;
 use App\Models\Suscripcion;
 use App\Models\User;
@@ -14,6 +15,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Pages\Auth\Register as BaseRegister;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
@@ -41,6 +43,28 @@ class Register extends BaseRegister
             ->schema([
                 Forms\Components\Wizard::make([
 
+                    // ── Paso 0: Tipo de cuenta ────────────────────────────────────
+                    Forms\Components\Wizard\Step::make('TipoCuenta')
+                        ->label('Tipo de cuenta')
+                        ->icon('heroicon-o-identification')
+                        ->description('Seleccione cómo usará la plataforma')
+                        ->schema([
+                            Forms\Components\Radio::make('tipo_cuenta')
+                                ->label('¿Qué tipo de cuenta desea crear?')
+                                ->options([
+                                    'empresa' => 'Soy una empresa',
+                                    'bufete'  => 'Soy un bufete de abogados',
+                                ])
+                                ->descriptions([
+                                    'empresa' => 'Gestione sus propios procesos disciplinarios laborales.',
+                                    'bufete'  => 'Administre procesos disciplinarios de múltiples empresas clientes.',
+                                ])
+                                ->default('empresa')
+                                ->live()
+                                ->required()
+                                ->columnSpanFull(),
+                        ]),
+
                     // ── Paso 1: Cuenta ────────────────────────────────────────────
                     Forms\Components\Wizard\Step::make('Cuenta')
                         ->label('Cuenta de acceso')
@@ -58,6 +82,7 @@ class Register extends BaseRegister
                         ->label('Datos de la empresa')
                         ->icon('heroicon-o-building-office-2')
                         ->description('Información legal y de contacto')
+                        ->visible(fn (Forms\Get $get) => ($get('tipo_cuenta') ?? 'empresa') === 'empresa')
                         ->schema([
                             Forms\Components\TextInput::make('razon_social')
                                 ->label('Razón Social')
@@ -162,6 +187,7 @@ class Register extends BaseRegister
                         ->label('Actividad Económica')
                         ->icon('heroicon-o-chart-bar')
                         ->description('Clasificación Industrial Internacional Uniforme')
+                        ->visible(fn (Forms\Get $get) => ($get('tipo_cuenta') ?? 'empresa') === 'empresa')
                         ->schema([
                             Forms\Components\Placeholder::make('ciiu_aviso')
                                 ->label('')
@@ -238,11 +264,57 @@ class Register extends BaseRegister
                         ]),
                     */
 
+                    // ── Paso 4: Bufete de abogados ────────────────────────────────
+                    Forms\Components\Wizard\Step::make('Bufete')
+                        ->label('Datos del bufete')
+                        ->icon('heroicon-o-briefcase')
+                        ->description('Información del bufete de abogados')
+                        ->visible(fn (Forms\Get $get) => ($get('tipo_cuenta') ?? 'empresa') === 'bufete')
+                        ->schema([
+                            Forms\Components\TextInput::make('bufete_nombre')
+                                ->label('Nombre del Bufete')
+                                ->required(fn (Forms\Get $get) => ($get('tipo_cuenta') ?? 'empresa') === 'bufete')
+                                ->maxLength(255)
+                                ->placeholder('Ej: Rendón & Asociados')
+                                ->columnSpan(2),
+
+                            Forms\Components\TextInput::make('bufete_nit')
+                                ->label('NIT del Bufete')
+                                ->nullable()
+                                ->maxLength(50)
+                                ->placeholder('Ej: 900111222-3')
+                                ->suffixIcon('heroicon-o-identification'),
+
+                            Forms\Components\TextInput::make('bufete_representante')
+                                ->label('Representante Legal')
+                                ->nullable()
+                                ->maxLength(255)
+                                ->placeholder('Ej: Ana García López')
+                                ->suffixIcon('heroicon-o-user'),
+
+                            Forms\Components\TextInput::make('bufete_email_contacto')
+                                ->label('Email de Contacto')
+                                ->email()
+                                ->nullable()
+                                ->maxLength(255)
+                                ->placeholder('contacto@bufete.co')
+                                ->suffixIcon('heroicon-o-envelope'),
+
+                            Forms\Components\TextInput::make('bufete_telefono')
+                                ->label('Teléfono / Celular')
+                                ->tel()
+                                ->nullable()
+                                ->maxLength(20)
+                                ->placeholder('3001234567')
+                                ->suffixIcon('heroicon-o-phone'),
+                        ])->columns(['default' => 1, 'sm' => 2]),
+
                     // ── Paso 5: Reglamento Interno ────────────────────────────────
                     Forms\Components\Wizard\Step::make('RIT')
                         ->label('Reglamento Interno')
                         ->icon('heroicon-o-document-text')
                         ->description('Reglamento Interno de Trabajo')
+                        ->visible(fn (Forms\Get $get) => ($get('tipo_cuenta') ?? 'empresa') === 'empresa')
                         ->schema([
                             Forms\Components\Placeholder::make('rit_info')
                                 ->label('')
@@ -305,6 +377,15 @@ class Register extends BaseRegister
     }
 
     protected function handleRegistration(array $data): User
+    {
+        if (($data['tipo_cuenta'] ?? 'empresa') === 'bufete') {
+            return $this->crearCuentaBufete($data);
+        }
+
+        return $this->crearCuentaEmpresa($data);
+    }
+
+    public function crearCuentaEmpresa(array $data): User
     {
         $empresa = Empresa::create([
             'razon_social'           => $data['razon_social'],
@@ -382,6 +463,34 @@ class Register extends BaseRegister
         $user->assignRole('cliente');
 
         return $user;
+    }
+
+    public function crearCuentaBufete(array $data): User
+    {
+        return DB::transaction(function () use ($data) {
+            $bufete = Bufete::create([
+                'nombre'          => $data['bufete_nombre'],
+                'nit'             => $data['bufete_nit'] ?? null,
+                'representante'   => $data['bufete_representante'] ?? null,
+                'email_contacto'  => $data['bufete_email_contacto'] ?? null,
+                'telefono'        => $data['bufete_telefono'] ?? null,
+                'active'          => true,
+            ]);
+
+            $user = User::create([
+                'name'       => $data['name'],
+                'email'      => $data['email'],
+                'password'   => $data['password'],
+                'role'       => 'abogado',
+                'bufete_id'  => $bufete->id,
+                'empresa_id' => null,
+                'active'     => true,
+            ]);
+
+            $user->assignRole('abogado');
+
+            return $user;
+        });
     }
 
     private function crearSuscripcion(Empresa $empresa, string $plan, string $ciclo, string $buyerEmail): void
