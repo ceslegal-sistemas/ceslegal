@@ -5,6 +5,8 @@
 
 @once
 <style>
+    .rtc-question{color:#0f172a}
+    html.dark .rtc-question{color:#ffffff}
     .rtc-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.25rem}
     @media(max-width:640px){.rtc-grid{grid-template-columns:1fr}}
     .rtc-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.4rem;

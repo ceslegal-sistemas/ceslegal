@@ -51,7 +51,7 @@ class Register extends BaseRegister
                         ->schema([
                             Forms\Components\Placeholder::make('tipo_cuenta_label')
                                 ->label('')
-                                ->content(new HtmlString('<p style="font-size:.95rem;font-weight:600;color:#ffffff;margin:0 0 .25rem">¿Qué tipo de cuenta desea crear?</p>'))
+                                ->content(new HtmlString('<p class="rtc-question" style="font-size:.95rem;font-weight:600;margin:0 0 .25rem">¿Qué tipo de cuenta desea crear?</p>'))
                                 ->columnSpanFull(),
 
                             // Estado del selector: lo escribe la vista de cards (Alpine $wire.entangle).
