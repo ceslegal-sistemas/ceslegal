@@ -49,19 +49,17 @@ class Register extends BaseRegister
                         ->icon('heroicon-o-identification')
                         ->description('Seleccione cómo usará la plataforma')
                         ->schema([
-                            Forms\Components\Radio::make('tipo_cuenta')
-                                ->label('¿Qué tipo de cuenta desea crear?')
-                                ->options([
-                                    'empresa' => 'Soy una empresa',
-                                    'bufete'  => 'Soy un bufete de abogados',
-                                ])
-                                ->descriptions([
-                                    'empresa' => 'Gestione sus propios procesos disciplinarios laborales.',
-                                    'bufete'  => 'Administre procesos disciplinarios de múltiples empresas clientes.',
-                                ])
+                            Forms\Components\Placeholder::make('tipo_cuenta_label')
+                                ->label('')
+                                ->content(new HtmlString('<p style="font-size:.95rem;font-weight:600;color:#334155;margin:0 0 .25rem">¿Qué tipo de cuenta desea crear?</p>'))
+                                ->columnSpanFull(),
+
+                            // Estado del selector: lo escribe la vista de cards (Alpine $wire.entangle).
+                            Forms\Components\Hidden::make('tipo_cuenta')
                                 ->default('empresa')
-                                ->live()
-                                ->required()
+                                ->live(),
+
+                            Forms\Components\View::make('filament.components.register-tipo-cuenta')
                                 ->columnSpanFull(),
                         ]),
 
