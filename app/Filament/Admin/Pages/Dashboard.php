@@ -38,6 +38,14 @@ class Dashboard extends BaseDashboard
     protected function getHeaderActions(): array
     {
         return [
+            // Bufete sin empresa: guía a crear la primera empresa.
+            Actions\Action::make('empezar_bufete')
+                ->label('Comenzar: cree su empresa')
+                ->icon('heroicon-o-building-office-2')
+                ->color('primary')
+                ->url(\App\Filament\Admin\Resources\EmpresaResource::getUrl('create'))
+                ->visible(fn() => auth()->user()?->bufeteNecesitaEmpresa() ?? false),
+
             Actions\Action::make('tutorial')
                 ->label('¿Necesitas ayuda?')
                 ->icon('heroicon-o-question-mark-circle')
@@ -45,12 +53,16 @@ class Dashboard extends BaseDashboard
                 ->extraAttributes([
                     'data-tour' => 'help-button-dashboard',
                     'onclick' => 'window.iniciarTour(); return false;',
-                ]),
+                ])
+                // El tour es del flujo de descargos: no aplica al bufete.
+                ->visible(fn() => ! (auth()->user()?->esAbogadoDeBufete() ?? false)),
 
             Actions\Action::make('Crear Descargos')
                 ->label('Crear Descargos')
                 ->icon('heroicon-o-plus-circle')
                 ->color('primary')
+                // Oculto para el bufete hasta seleccionar una empresa específica.
+                ->visible(fn() => ! (auth()->user()?->bufeteSinEmpresaActiva() ?? false))
                 ->url(ProcesoDisciplinarioResource::getUrl('create')),
 
             Actions\Action::make('conectar_gmail')

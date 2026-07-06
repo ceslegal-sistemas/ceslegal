@@ -27,6 +27,12 @@ class CreateEmpresa extends CreateRecord
 
     protected function afterCreate(): void
     {
+        // Si un bufete crea la empresa, se selecciona de una vez en el topbar para
+        // que se desbloqueen trabajadores/descargos/auditoría sin pasos extra.
+        if (auth()->user()?->esAbogadoDeBufete()) {
+            \App\Support\EmpresaActiva::set($this->record->id);
+        }
+
         $path = $this->data['reglamento_docx_temp'] ?? null;
         if ($path) {
             try {

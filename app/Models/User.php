@@ -84,6 +84,16 @@ class User extends Authenticatable implements FilamentUser
                 ->where('bufete_id', $this->bufete_id)->exists();
     }
 
+    /**
+     * Bufete sin una empresa ESPECÍFICA activa en el topbar (o sin empresas).
+     * Mientras esto sea true, se ocultan trabajadores/descargos/auditoría para no
+     * confundir: primero debe crear/seleccionar una empresa (no "Todas").
+     */
+    public function bufeteSinEmpresaActiva(): bool
+    {
+        return $this->esAbogadoDeBufete() && \App\Support\EmpresaActiva::id() === null;
+    }
+
     public function empresasGestionadas(): \Illuminate\Database\Eloquent\Builder
     {
         return \App\Models\Empresa::query()

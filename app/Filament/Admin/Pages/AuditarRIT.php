@@ -39,8 +39,8 @@ class AuditarRIT extends Page implements HasForms
      */
     public static function shouldRegisterNavigation(): bool
     {
-        // Bufete sin empresa: primero debe crear una empresa.
-        if (Auth::user()?->bufeteNecesitaEmpresa()) {
+        // Bufete: oculto hasta seleccionar una empresa específica en el topbar.
+        if (Auth::user()?->bufeteSinEmpresaActiva()) {
             return false;
         }
 

@@ -42,8 +42,8 @@ class ProcesoDisciplinarioResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        // Bufete sin empresa: primero debe crear una empresa.
-        if (auth()->user()?->bufeteNecesitaEmpresa()) {
+        // Bufete: oculto hasta seleccionar una empresa específica en el topbar.
+        if (auth()->user()?->bufeteSinEmpresaActiva()) {
             return false;
         }
 
