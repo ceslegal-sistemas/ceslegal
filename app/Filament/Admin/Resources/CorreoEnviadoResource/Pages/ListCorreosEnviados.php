@@ -27,10 +27,7 @@ class ListCorreosEnviados extends ListRecords
                     $user = Auth::user();
                     return app(GoogleOAuthService::class)->buildAuthUrl($user?->id);
                 })
-                ->visible(function () {
-                    $user = Auth::user();
-                    return !($user?->google_oauth_tokens ?? null);
-                }),
+                ->visible(false), // Oculto por ahora.
 
             Actions\Action::make('desconectar_gmail')
                 ->label(function () {
@@ -53,10 +50,7 @@ class ListCorreosEnviados extends ListRecords
                         ->body('La cuenta ha sido desvinculada. Los correos futuros se enviarán por SMTP.')
                         ->send();
                 })
-                ->visible(function () {
-                    $user = Auth::user();
-                    return (bool) ($user?->google_oauth_tokens ?? null);
-                }),
+                ->visible(false), // Oculto por ahora.
         ];
     }
 

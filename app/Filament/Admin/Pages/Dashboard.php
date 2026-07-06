@@ -73,10 +73,8 @@ class Dashboard extends BaseDashboard
                     $user = Auth::user();
                     return app(GoogleOAuthService::class)->buildAuthUrl($user?->id);
                 })
-                ->visible(function() {
-                    $user = Auth::user();
-                    return !($user?->google_oauth_tokens ?? null);
-                }),
+                // Oculto por ahora.
+                ->visible(false),
 
             Actions\Action::make('desconectar_gmail')
                 ->label(function() {
@@ -99,10 +97,8 @@ class Dashboard extends BaseDashboard
                         ->body('La cuenta ha sido desvinculada. Los correos futuros se enviarán por SMTP.')
                         ->send();
                 })
-                ->visible(function() {
-                    $user = Auth::user();
-                    return (bool) ($user?->google_oauth_tokens ?? null);
-                }),
+                // Oculto por ahora.
+                ->visible(false),
         ];
     }
 

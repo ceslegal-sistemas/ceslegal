@@ -22,7 +22,7 @@ class ViewEmpresa extends ViewRecord
                 ->icon('heroicon-o-envelope')
                 ->color('success')
                 ->url(fn () => app(GoogleOAuthService::class)->buildAuthUrl($this->record->id))
-                ->visible(fn () => !$this->record->tieneGmailConectado()),
+                ->visible(false), // Oculto por ahora.
 
             Actions\Action::make('desconectar_gmail')
                 ->label(fn () => 'Desconecta tu Gmail: ' . $this->record->google_oauth_email)
@@ -41,7 +41,7 @@ class ViewEmpresa extends ViewRecord
                         ->body('La cuenta ha sido desvinculada. Los correos futuros se enviarán por SMTP.')
                         ->send();
                 })
-                ->visible(fn () => $this->record->tieneGmailConectado()),
+                ->visible(false), // Oculto por ahora.
         ];
     }
 }
