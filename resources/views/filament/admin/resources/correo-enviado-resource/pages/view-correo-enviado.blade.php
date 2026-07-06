@@ -28,13 +28,13 @@
 
 <style>
 /* ── Base — hereda patrón rit-hero / rit-viewer ─────────────────────────── */
-.ce-hero{position:relative;overflow:hidden;border-radius:1.25rem;padding:2rem 1.75rem;background:linear-gradient(150deg,#060f22 0%,#0d1f3c 55%,#060e20 100%)}
+.ce-hero{position:relative;overflow:hidden;border-radius:1.25rem;padding:2rem 1.75rem;background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%)}
 html:not(.dark) .ce-hero{background:#fff;border:1px solid rgba(0,0,0,.07);box-shadow:0 4px 28px rgba(0,0,0,.08)}
-.ce-orb-b{position:absolute;width:260px;height:260px;top:-70px;right:-50px;border-radius:50%;background:radial-gradient(circle,rgba(30,58,138,.4),transparent 70%);filter:blur(28px);pointer-events:none;animation:ce-fb 14s ease-in-out infinite}
+.ce-orb-b{position:absolute;width:260px;height:260px;top:-70px;right:-50px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.42),transparent 70%);filter:blur(28px);pointer-events:none;animation:ce-fb 14s ease-in-out infinite}
 .ce-orb-g{position:absolute;width:180px;height:180px;bottom:-55px;left:-35px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.18),transparent 70%);filter:blur(24px);pointer-events:none;animation:ce-fg 18s ease-in-out infinite}
 @keyframes ce-fb{0%,100%{transform:translate(0,0)}40%{transform:translate(-16px,12px)}70%{transform:translate(10px,-8px)}}
 @keyframes ce-fg{0%,100%{transform:translate(0,0)}35%{transform:translate(12px,-14px)}65%{transform:translate(-8px,7px)}}
-html:not(.dark) .ce-orb-b{background:radial-gradient(circle,rgba(99,102,241,.14),transparent 70%)!important}
+html:not(.dark) .ce-orb-b{background:radial-gradient(circle,rgba(251,113,133,.14),transparent 70%)!important}
 html:not(.dark) .ce-orb-g{background:radial-gradient(circle,rgba(201,168,76,.16),transparent 70%)!important}
 .ce-overlay{position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 80% 90% at 50% 50%,rgba(3,8,20,.72) 0%,rgba(3,8,20,.35) 55%,transparent 100%)}
 html:not(.dark) .ce-overlay{background:radial-gradient(ellipse 75% 85% at 50% 40%,rgba(255,255,255,.72) 0%,rgba(255,255,255,.32) 55%,transparent 100%)}
@@ -51,8 +51,8 @@ html:not(.dark) .ce-badge-none{background:rgba(100,116,139,.07);border-color:rgb
 html:not(.dark) .ce-badge-danger{background:rgba(220,38,38,.07);border-color:rgba(220,38,38,.2);color:#991b1b}
 .ce-badge-warning{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#fcd34d}
 html:not(.dark) .ce-badge-warning{background:rgba(217,119,6,.08);border-color:rgba(217,119,6,.22);color:#92400e}
-.ce-badge-indigo{background:rgba(99,102,241,.12);border-color:rgba(99,102,241,.28);color:#a5b4fc}
-html:not(.dark) .ce-badge-indigo{background:rgba(79,70,229,.08);border-color:rgba(79,70,229,.22);color:#4338ca}
+.ce-badge-indigo{background:rgba(251,113,133,.12);border-color:rgba(251,113,133,.28);color:#fb7185}
+html:not(.dark) .ce-badge-indigo{background:rgba(225,29,72,.08);border-color:rgba(225,29,72,.22);color:#be123c}
 
 /* ── Títulos hero ────────────────────────────────────────────────────────── */
 .ce-title{font-size:1.2rem;font-weight:700;color:#f1f5f9;margin:.5rem 0 .2rem;letter-spacing:-.015em}
@@ -101,11 +101,11 @@ html:not(.dark) .ce-content-body h3{color:#1e293b}
 .ce-content-body p{margin-bottom:.75rem}
 .ce-content-body ul,.ce-content-body ol{padding-left:1.25rem;margin-bottom:.75rem}
 .ce-content-body li{margin-bottom:.25rem}
-.ce-content-body a{color:#818cf8;text-decoration:underline}
-html:not(.dark) .ce-content-body a{color:#4338ca}
+.ce-content-body a{color:#fb7185;text-decoration:underline}
+html:not(.dark) .ce-content-body a{color:#be123c}
 .ce-content-body strong{color:#f1f5f9;font-weight:600}
 html:not(.dark) .ce-content-body strong{color:#0f172a}
-.ce-content-body blockquote{border-left:3px solid rgba(99,102,241,.5);padding:.5rem 1rem;color:#94a3b8;background:rgba(99,102,241,.06);border-radius:0 .375rem .375rem 0;margin:.75rem 0}
+.ce-content-body blockquote{border-left:3px solid rgba(251,113,133,.5);padding:.5rem 1rem;color:#94a3b8;background:rgba(251,113,133,.06);border-radius:0 .375rem .375rem 0;margin:.75rem 0}
 
 /* ── Adjunto item ────────────────────────────────────────────────────────── */
 .ce-adjunto{display:flex;align-items:center;gap:.625rem;padding:.625rem .875rem;border-radius:.5rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);font-size:.8125rem;color:#cbd5e1}
@@ -247,7 +247,7 @@ html:not(.dark) .ce-adjunto{background:#fff;border-color:rgba(0,0,0,.08);color:#
         <p class="ce-meta-label" style="margin-bottom:.4rem">Con copia (CC)</p>
         <div style="display:flex;flex-wrap:wrap;gap:.375rem">
           @foreach($correo->email_cc as $cc)
-            <span style="font-size:.775rem;padding:.2rem .65rem;border-radius:2rem;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);color:#a5b4fc">{{ $cc }}</span>
+            <span style="font-size:.775rem;padding:.2rem .65rem;border-radius:2rem;background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.2);color:#fb7185">{{ $cc }}</span>
           @endforeach
         </div>
       </div>

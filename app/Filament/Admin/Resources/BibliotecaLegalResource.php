@@ -322,7 +322,7 @@ class BibliotecaLegalResource extends Resource
         $infoBar = '';
         if ($ref || $desc) {
             $infoBar = '<div style="padding:.625rem 1rem;background:rgba(99,102,241,.07);border-radius:.5rem;margin-bottom:.75rem;font-size:.8125rem;color:#64748b">'
-                . ($ref  ? '<span style="font-weight:600;color:#4338ca">' . $ref . '</span>' : '')
+                . ($ref  ? '<span style="font-weight:600;color:#be123c">' . $ref . '</span>' : '')
                 . ($ref && $desc ? ' — ' : '')
                 . $desc
                 . '</div>';
@@ -345,7 +345,7 @@ class BibliotecaLegalResource extends Resource
 
         $downloadBtn = '<a href="' . route('biblioteca.descargar', $record) . '" '
             . 'style="display:inline-flex;align-items:center;gap:.5rem;margin-top:1.25rem;padding:.6rem 1.25rem;'
-            . 'background:#4f46e5;color:#fff;border-radius:.5rem;font-size:.875rem;font-weight:600;text-decoration:none">'
+            . 'background:#e11d48;color:#fff;border-radius:.5rem;font-size:.875rem;font-weight:600;text-decoration:none">'
             . '<svg style="width:16px;height:16px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">'
             . '<path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>'
             . '</svg>Descargar ' . strtoupper($ext) . '</a>';

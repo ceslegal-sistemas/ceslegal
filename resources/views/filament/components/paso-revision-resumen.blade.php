@@ -134,7 +134,7 @@
             overflow: hidden;
             border-radius: 1.25rem;
             padding: 1.75rem 1.5rem 1.625rem;
-            background: linear-gradient(150deg, #060f22 0%, #0d1f3c 55%, #060e20 100%);
+            background: linear-gradient(150deg, #1a0f0c 0%, #241319 55%, #170d0a 100%);
         }
 
         @media(min-width:540px) {
@@ -255,8 +255,8 @@
         }
 
         html:not(.dark) .er-bullet {
-            background: rgba(79, 70, 229, .04);
-            border-color: rgba(79, 70, 229, .12);
+            background: rgba(225,29,72, .04);
+            border-color: rgba(225,29,72, .12);
             color: #374151;
         }
 
@@ -291,8 +291,8 @@
         }
 
         html:not(.dark) .er-worker {
-            background: rgba(99, 102, 241, .05);
-            border-color: rgba(99, 102, 241, .18);
+            background: rgba(251,113,133, .05);
+            border-color: rgba(251,113,133, .18);
         }
 
         .er-worker-ico {
@@ -300,18 +300,18 @@
             height: 38px;
             border-radius: 50%;
             flex-shrink: 0;
-            background: rgba(99, 102, 241, .15);
-            border: 1px solid rgba(99, 102, 241, .28);
+            background: rgba(251,113,133, .15);
+            border: 1px solid rgba(251,113,133, .28);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #a5b4fc;
+            color: #fb7185;
         }
 
         html:not(.dark) .er-worker-ico {
-            background: rgba(79, 70, 229, .1);
-            border-color: rgba(79, 70, 229, .2);
-            color: #4f46e5;
+            background: rgba(225,29,72, .1);
+            border-color: rgba(225,29,72, .2);
+            color: #e11d48;
         }
 
         .er-worker-name {
@@ -545,18 +545,18 @@
             border-radius: .3rem;
             padding: .1rem .45rem;
             margin: .15rem .15rem 0 0;
-            background: rgba(99, 102, 241, .14);
-            color: #a5b4fc;
+            background: rgba(251,113,133, .14);
+            color: #fb7185;
         }
 
         html:not(.dark) .er-tag {
-            background: rgba(79, 70, 229, .09);
-            color: #4338ca
+            background: rgba(225,29,72, .09);
+            color: #be123c
         }
 
         /* Color accent bar por sección (borde izquierdo) */
         .er-section[data-color] {
-            border-left: 3px solid var(--sc, rgba(99, 102, 241, .5));
+            border-left: 3px solid var(--sc, rgba(251,113,133, .5));
         }
     </style>
 @endverbatim
@@ -569,7 +569,7 @@
         {{-- Orbs CSS only — sin canvas ni luciérnagas --}}
         <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
             <div class="er-orb-b"
-                style="position:absolute;width:240px;height:240px;top:-60px;right:-40px;border-radius:50%;background:radial-gradient(circle,rgba(30,58,138,.5),transparent 70%);filter:blur(24px);">
+                style="position:absolute;width:240px;height:240px;top:-60px;right:-40px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.45),transparent 70%);filter:blur(24px);">
             </div>
             <div class="er-orb-g"
                 style="position:absolute;width:180px;height:180px;bottom:-45px;left:-35px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.22),transparent 70%);filter:blur(22px);">
@@ -601,10 +601,10 @@
                 <div class="er-bullet">
                     <lord-icon src="https://cdn.lordicon.com/fikcyfpp.json"
                         trigger="loop" delay="500" stroke="bold"
-                        colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                        colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                         data-pt-icon
-                        data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                        data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                        data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
+                        data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:20px;height:20px;flex-shrink:0;margin-top:1px">
                     </lord-icon>
                     <span>Revise que los datos del resumen sean <strong>correctos y completos</strong> antes de continuar.</span>
@@ -612,10 +612,10 @@
                 <div class="er-bullet">
                     <lord-icon src="https://cdn.lordicon.com/vgwutnhw.json"
                         trigger="loop" delay="500" stroke="bold"
-                        colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                        colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                         data-pt-icon
-                        data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                        data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                        data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
+                        data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:20px;height:20px;flex-shrink:0;margin-top:1px">
                     </lord-icon>
                     <span>La <strong>descripción jurídica</strong> la redacta la IA — puede editarla antes de crear el proceso.</span>
@@ -623,10 +623,10 @@
                 <div class="er-bullet">
                     <lord-icon src="https://cdn.lordicon.com/wpsdctqb.json"
                         trigger="loop" delay="500" stroke="bold"
-                        colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
+                        colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                         data-pt-icon
-                        data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                        data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                        data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
+                        data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:20px;height:20px;flex-shrink:0;margin-top:1px">
                     </lord-icon>
                     <span>Al crear el proceso se enviará <strong>automáticamente la citación</strong> al correo del trabajador con el enlace de la audiencia virtual.</span>
@@ -642,9 +642,9 @@
                     </svg>
                 </div> --}}
                     <lord-icon src="https://cdn.lordicon.com/kdduutaw.json" trigger="loop" delay="500" stroke="bold"
-                        state="hover-looking-around" colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                        data-pt-icon data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-                        data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                        state="hover-looking-around" colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
+                        data-pt-icon data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
+                        data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:25px;height:25px;flex-shrink:0">
                     </lord-icon>
                     <div style="min-width:0;flex:1">
@@ -689,9 +689,9 @@
         <div class="er-doc">
 
             {{-- Hechos --}}
-            <div class="er-section" data-color style="--sc:#a78bfa;background:rgba(167,139,250,.04)">
+            <div class="er-section" data-color style="--sc:#fb7185;background:rgba(251,113,133,.04)">
                 <div class="er-sec-header">
-                    <svg class="er-sec-ico" style="color:#a78bfa" fill="none" viewBox="0 0 24 24"
+                    <svg class="er-sec-ico" style="color:#fb7185" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />

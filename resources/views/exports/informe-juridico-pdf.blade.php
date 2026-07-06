@@ -29,7 +29,7 @@
 
         /* Header profesional */
         .header {
-            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            background: linear-gradient(135deg, #e11d48 0%, #e11d48 100%);
             color: white;
             padding: 20px 25px;
             margin: -20px -15px 20px -15px;
@@ -92,7 +92,7 @@
             color: #1e293b;
             margin-bottom: 10px;
             padding-bottom: 8px;
-            border-bottom: 2px solid #4f46e5;
+            border-bottom: 2px solid #e11d48;
         }
 
         .empresa-info-grid {
@@ -122,16 +122,16 @@
         /* Periodo badge */
         .periodo-badge {
             display: inline-block;
-            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-            border: 1px solid #c7d2fe;
-            border-left: 4px solid #4f46e5;
+            background: linear-gradient(135deg, #fecdd3 0%, #fecdd3 100%);
+            border: 1px solid #fecdd3;
+            border-left: 4px solid #e11d48;
             padding: 10px 15px;
             border-radius: 6px;
             margin-bottom: 20px;
         }
 
         .periodo-badge strong {
-            color: #4f46e5;
+            color: #e11d48;
         }
 
         /* KPI Cards */
@@ -157,7 +157,7 @@
         }
 
         .kpi-card.primary {
-            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            background: linear-gradient(135deg, #e11d48 0%, #e11d48 100%);
             color: white;
             border: none;
         }
@@ -190,7 +190,7 @@
             margin: 20px 0 10px 0;
             padding: 8px 12px;
             background: linear-gradient(90deg, #f1f5f9 0%, transparent 100%);
-            border-left: 4px solid #4f46e5;
+            border-left: 4px solid #e11d48;
             border-radius: 0 4px 4px 0;
         }
 
@@ -276,7 +276,7 @@
         .summary-table .number {
             text-align: center;
             font-weight: 600;
-            color: #4f46e5;
+            color: #e11d48;
         }
 
         .summary-table .time {
@@ -355,7 +355,7 @@
 
         .footer-logo {
             font-weight: 700;
-            color: #4f46e5;
+            color: #e11d48;
             font-size: 10px;
             margin-bottom: 5px;
         }
@@ -422,7 +422,7 @@
             content: "→";
             position: absolute;
             left: 0;
-            color: #4f46e5;
+            color: #e11d48;
             font-weight: bold;
         }
 

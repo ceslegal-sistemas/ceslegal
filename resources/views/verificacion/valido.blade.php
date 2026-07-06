@@ -33,16 +33,16 @@
                 extend: {
                     colors: {
                         primary: {
-                            50:  '#eef2ff',
-                            100: '#e0e7ff',
-                            200: '#c7d2fe',
-                            300: '#a5b4fc',
-                            400: '#818cf8',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
-                            800: '#3730a3',
-                            900: '#312e81',
+                            50:  '#fecdd3',
+                            100: '#fecdd3',
+                            200: '#fecdd3',
+                            300: '#fb7185',
+                            400: '#fb7185',
+                            500: '#e11d48',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#be123c',
+                            900: '#be123c',
                         },
                         warning: {
                             50:  '#fffbeb',
@@ -183,7 +183,7 @@
             position: absolute;
             top: 0; left: 0; right: 0;
             height: 2.5px;
-            background: var(--card-accent, #4f46e5);
+            background: var(--card-accent, #e11d48);
             transform: scaleX(0);
             transform-origin: left;
             transition: transform .28s ease;
@@ -215,7 +215,7 @@
         .section-head-label {
             font-size: .575rem;
             font-weight: 700;
-            color: #4f46e5;
+            color: #e11d48;
             text-transform: uppercase;
             letter-spacing: .12em;
             opacity: .85;
@@ -301,7 +301,7 @@
                     <lord-icon
                         src="https://cdn.lordicon.com/xjsqfzte.json"
                         trigger="loop" delay="500" stroke="bold"
-                        colors="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                        colors="primary:#e11d48,secondary:#e11d48,tertiary:#fecdd3"
                         style="width:50px;height:50px;">
                     </lord-icon>
                 </div>
@@ -355,12 +355,12 @@
         </div>
 
         {{-- ── Proceso Disciplinario ── --}}
-        <div class="section-card" style="--card-accent:#4f46e5;">
+        <div class="section-card" style="--card-accent:#e11d48;">
             <div class="section-head">
                 <lord-icon
                     src="https://cdn.lordicon.com/hmpomorl.json"
                     trigger="loop" delay="2000" stroke="bold"
-                    colors="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                    colors="primary:#e11d48,secondary:#e11d48,tertiary:#fecdd3"
                     style="width:20px;height:20px;flex-shrink:0;">
                 </lord-icon>
                 <span class="section-head-label">Proceso Disciplinario</span>
@@ -392,12 +392,12 @@
         </div>
 
         {{-- ── Participante ── --}}
-        <div class="section-card" style="--card-accent:#6366f1;">
+        <div class="section-card" style="--card-accent:#e11d48;">
             <div class="section-head">
                 <lord-icon
                     src="https://cdn.lordicon.com/bushiqea.json"
                     trigger="loop" delay="2000" stroke="bold"
-                    colors="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                    colors="primary:#e11d48,secondary:#e11d48,tertiary:#fecdd3"
                     style="width:20px;height:20px;flex-shrink:0;">
                 </lord-icon>
                 <span class="section-head-label">Participante</span>
@@ -426,12 +426,12 @@
 
         {{-- ── Fotos de verificación biométrica ── --}}
         @if($fotoInicioUrl || $fotoFinUrl)
-        <div class="section-card" style="--card-accent:#a78bfa;">
+        <div class="section-card" style="--card-accent:#fb7185;">
             <div class="section-head">
                 <lord-icon
                     src="https://cdn.lordicon.com/ocylgmkg.json"
                     trigger="loop" delay="2000" stroke="bold"
-                    colors="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                    colors="primary:#e11d48,secondary:#e11d48,tertiary:#fecdd3"
                     style="width:20px;height:20px;flex-shrink:0;">
                 </lord-icon>
                 <span class="section-head-label">Verificación Biométrica Facial</span>
@@ -479,7 +479,7 @@
                 <lord-icon
                     src="https://cdn.lordicon.com/dxjqoygy.json"
                     trigger="loop" delay="2000" stroke="bold"
-                    colors="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                    colors="primary:#e11d48,secondary:#e11d48,tertiary:#fecdd3"
                     style="width:20px;height:20px;flex-shrink:0;">
                 </lord-icon>
                 <span class="section-head-label">Cadena de Autenticación Digital</span>
@@ -518,7 +518,7 @@
                 <lord-icon
                     src="https://cdn.lordicon.com/fihkmkwt.json"
                     trigger="loop" delay="2000" stroke="bold"
-                    colors="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+                    colors="primary:#e11d48,secondary:#e11d48,tertiary:#fecdd3"
                     style="width:20px;height:20px;flex-shrink:0;">
                 </lord-icon>
                 <span class="section-head-label">Integridad del Documento</span>

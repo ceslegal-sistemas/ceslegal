@@ -40,7 +40,7 @@ html.dark {
     border: none; transition: opacity 0.15s;
 }
 .wca-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
-.wca-btn-on  { background: #6366f1; color: white; }
+.wca-btn-on  { background: #f97316; color: white; }
 .wca-btn-off { background: var(--wca-btn-dis-bg); color: var(--wca-btn-dis-fg); }
 button.wca-btn-secondary,
 button.wca-btn-secondary:hover {

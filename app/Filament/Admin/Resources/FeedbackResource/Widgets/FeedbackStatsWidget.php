@@ -2,12 +2,15 @@
 
 namespace App\Filament\Admin\Resources\FeedbackResource\Widgets;
 
+use App\Filament\Admin\Widgets\Concerns\HasStatsSkeleton;
 use App\Models\Feedback;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class FeedbackStatsWidget extends BaseWidget
 {
+    use HasStatsSkeleton;
+
     protected function getStats(): array
     {
         $total          = Feedback::count();

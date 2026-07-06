@@ -7,12 +7,12 @@
     <style>
         body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; color: #333; }
         .container { max-width: 480px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; }
-        .header { background: #4f46e5; padding: 24px; text-align: center; }
+        .header { background: #e11d48; padding: 24px; text-align: center; }
         .header h2 { color: #fff; margin: 0; font-size: 18px; }
         .body { padding: 32px 24px; }
         .greeting { font-size: 15px; margin-bottom: 16px; }
-        .code-box { background: #f0f0ff; border: 2px dashed #4f46e5; border-radius: 8px; text-align: center; padding: 20px; margin: 24px 0; }
-        .code-box h1 { font-size: 40px; letter-spacing: 12px; color: #4f46e5; margin: 0; font-family: monospace; }
+        .code-box { background: #f0f0ff; border: 2px dashed #e11d48; border-radius: 8px; text-align: center; padding: 20px; margin: 24px 0; }
+        .code-box h1 { font-size: 40px; letter-spacing: 12px; color: #e11d48; margin: 0; font-family: monospace; }
         .expiry { font-size: 13px; color: #666; text-align: center; margin-bottom: 24px; }
         .instructions { font-size: 13px; color: #555; line-height: 1.6; background: #f9f9f9; border-radius: 6px; padding: 12px 16px; }
         .footer { font-size: 11px; color: #999; text-align: center; padding: 16px; border-top: 1px solid #eee; }

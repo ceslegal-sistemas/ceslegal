@@ -265,6 +265,7 @@ class ArticuloLegalResource extends Resource
                         ->label('Eliminar seleccionados'),
                 ]),
             ])
+            ->deferLoading()
             ->defaultSort('codigo', 'asc')
             ->striped()
             ->emptyStateHeading('No hay artículos legales registrados')
@@ -276,6 +277,7 @@ class ArticuloLegalResource extends Resource
                     ->icon('heroicon-o-plus'),
             ]);
     }
+    
 
     public static function getRelations(): array
     {

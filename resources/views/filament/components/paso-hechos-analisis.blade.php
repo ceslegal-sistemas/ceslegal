@@ -1,7 +1,7 @@
 <style>
     .pha-card {
-        background: rgba(99, 102, 241, .06);
-        border: 1px solid rgba(99, 102, 241, .18);
+        background: rgba(251,113,133, .06);
+        border: 1px solid rgba(251,113,133, .18);
         border-radius: .75rem;
         padding: .875rem 1rem;
         height: 100%;
@@ -13,7 +13,7 @@
         font-weight: 700;
         letter-spacing: .04em;
         text-transform: uppercase;
-        color: #a5b4fc;
+        color: #fb7185;
     }
     .pha-row {
         display: flex;
@@ -23,7 +23,7 @@
         line-height: 1.5;
         padding: .3rem 0;
         color: #94a3b8;
-        border-bottom: 1px solid rgba(99,102,241,.1);
+        border-bottom: 1px solid rgba(251,113,133,.1);
     }
     .pha-row:last-child { border-bottom: none; }
     .pha-row.pha-ok    { color: #86efac; }
@@ -40,9 +40,9 @@
         font-weight: 700;
         letter-spacing: .04em;
         text-transform: uppercase;
-        background: rgba(99,102,241,.2);
-        color: #a5b4fc;
-        border: 1px solid rgba(99,102,241,.35);
+        background: rgba(251,113,133,.2);
+        color: #fb7185;
+        border: 1px solid rgba(251,113,133,.35);
         border-radius: .3rem;
         padding: .1rem .45rem;
         margin-top: .15rem;
@@ -60,36 +60,36 @@
         font-size: .8125rem;
         line-height: 1.6;
         padding: 1rem;
-        border: 1px dashed rgba(99,102,241,.2);
+        border: 1px dashed rgba(251,113,133,.2);
         border-radius: .75rem;
     }
 
-    html:not(.dark) .pha-card        { background: rgba(99,102,241,.04); border-color: rgba(99,102,241,.15); }
-    html:not(.dark) .pha-title       { color: #4f46e5; }
-    html:not(.dark) .pha-row         { color: #6b7280; border-bottom-color: rgba(99,102,241,.08); }
+    html:not(.dark) .pha-card        { background: rgba(251,113,133,.04); border-color: rgba(251,113,133,.15); }
+    html:not(.dark) .pha-title       { color: #e11d48; }
+    html:not(.dark) .pha-row         { color: #6b7280; border-bottom-color: rgba(251,113,133,.08); }
     html:not(.dark) .pha-row.pha-ok   { color: #15803d; }
     html:not(.dark) .pha-row.pha-warn { color: #b45309; }
     html:not(.dark) .pha-row.pha-error{ color: #dc2626; }
-    html:not(.dark) .pha-badge       { background: rgba(99,102,241,.1); color: #4f46e5; border-color: rgba(99,102,241,.3); }
-    html:not(.dark) .pha-empty       { color: #9ca3af; border-color: rgba(99,102,241,.15); }
+    html:not(.dark) .pha-badge       { background: rgba(251,113,133,.1); color: #e11d48; border-color: rgba(251,113,133,.3); }
+    html:not(.dark) .pha-empty       { color: #9ca3af; border-color: rgba(251,113,133,.15); }
 
     /* Feedback de voz IA */
     .pha-feedback {
         margin-top: .5rem;
         padding: .5rem .625rem;
-        background: rgba(139,92,246,.1);
-        border: 1px solid rgba(139,92,246,.25);
+        background: rgba(251,113,133,.1);
+        border: 1px solid rgba(251,113,133,.25);
         border-radius: .5rem;
         font-size: .775rem;
-        color: #c4b5fd;
+        color: #fb7185;
         line-height: 1.55;
         display: flex;
         gap: .375rem;
         align-items: flex-start;
     }
-    .pha-feedback svg { width: 13px; height: 13px; flex-shrink: 0; margin-top: 1px; color: #a78bfa; }
-    html:not(.dark) .pha-feedback       { background: rgba(139,92,246,.07); border-color: rgba(139,92,246,.2); color: #6d28d9; }
-    html:not(.dark) .pha-feedback svg   { color: #7c3aed; }
+    .pha-feedback svg { width: 13px; height: 13px; flex-shrink: 0; margin-top: 1px; color: #fb7185; }
+    html:not(.dark) .pha-feedback       { background: rgba(225,29,72,.07); border-color: rgba(225,29,72,.2); color: #be123c; }
+    html:not(.dark) .pha-feedback svg   { color: #be123c; }
 </style>
 
 @php $feedbackVoz = $feedbackVoz ?? ''; @endphp
@@ -158,9 +158,9 @@
 @else
 <div class="pha-empty">
     <lord-icon src="https://cdn.lordicon.com/vgwutnhw.json" trigger="loop" delay="500" stroke="bold"
-        colors="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0" data-pt-icon
-        data-pt-dark="primary:#a5b4fc,secondary:#818cf8,tertiary:#e2e8f0"
-        data-pt-light="primary:#4f46e5,secondary:#6366f1,tertiary:#c7d2fe"
+        colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
+        data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
+        data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
         style="width:50px;height:50px;flex-shrink:0;margin-top:1px">
     </lord-icon>
     <span>Empiece a escribir<br>para ver el análisis.</span>

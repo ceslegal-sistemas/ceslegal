@@ -1193,6 +1193,18 @@ class ProcesoDisciplinarioResource extends Resource
                         'cerrado' => 'success',
                         'archivado' => 'secondary',
                     })
+                    // (#3) Ícono por estado: distinguible por forma además del color (a11y).
+                    ->icon(fn(string $state): string => match ($state) {
+                        'apertura' => 'heroicon-m-folder-open',
+                        'descargos_pendientes' => 'heroicon-m-clock',
+                        'descargos_realizados' => 'heroicon-m-document-check',
+                        'descargos_no_realizados' => 'heroicon-m-document-minus',
+                        'impugnacion_realizada' => 'heroicon-m-arrow-path',
+                        'sancion_emitida' => 'heroicon-m-scale',
+                        'cerrado' => 'heroicon-m-check-circle',
+                        'archivado' => 'heroicon-m-archive-box',
+                        default => 'heroicon-m-tag',
+                    })
                     // ->colors([
                     //     'gray' => 'apertura',
                     //     'warning' => ['descargos_pendientes'],

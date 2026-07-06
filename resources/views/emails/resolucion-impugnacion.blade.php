@@ -16,7 +16,7 @@
         }
 
         .header {
-            background-color: #7c3aed;
+            background-color: #be123c;
             color: white;
             padding: 20px;
             text-align: center;
@@ -33,7 +33,7 @@
             background-color: white;
             padding: 15px;
             margin: 15px 0;
-            border-left: 4px solid #7c3aed;
+            border-left: 4px solid #be123c;
             border-radius: 4px;
         }
 
@@ -83,7 +83,7 @@
 
         .highlight {
             font-weight: bold;
-            color: #7c3aed;
+            color: #be123c;
         }
 
         .decision-title {
