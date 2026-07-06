@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,7 +12,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Empresa extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
+        'bufete_id',
         'razon_social',
         'tipo_societario',
         'nit',
@@ -102,6 +106,11 @@ class Empresa extends Model
             'lunes_sabado' => 'Lunes a Sábado',
             default => 'Lunes a Viernes',
         };
+    }
+
+    public function bufete(): BelongsTo
+    {
+        return $this->belongsTo(Bufete::class);
     }
 
     public function actividadEconomica(): BelongsTo
