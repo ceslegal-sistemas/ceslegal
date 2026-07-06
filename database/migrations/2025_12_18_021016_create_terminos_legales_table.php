@@ -31,8 +31,8 @@ return new class extends Migration
             $table->text('observaciones')->nullable();
             $table->timestamps();
 
-            $table->index(['proceso_tipo', 'proceso_id'], 'idx_proceso');
-            $table->index('estado', 'idx_estado');
+            $table->index(['proceso_tipo', 'proceso_id'], 'idx_terminos_proceso');
+            $table->index('estado', 'idx_terminos_estado');
             $table->index('fecha_vencimiento', 'idx_vencimiento');
         });
     }

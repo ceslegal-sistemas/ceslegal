@@ -50,10 +50,10 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index('empresa_id', 'idx_empresa');
-            $table->index('trabajador_id', 'idx_trabajador');
-            $table->index('estado', 'idx_estado');
-            $table->index('abogado_id', 'idx_abogado');
+            $table->index('empresa_id', 'idx_procesos_empresa');
+            $table->index('trabajador_id', 'idx_procesos_trabajador');
+            $table->index('estado', 'idx_procesos_estado');
+            $table->index('abogado_id', 'idx_procesos_abogado');
         });
     }
 

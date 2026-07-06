@@ -27,7 +27,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['tipo_documento', 'numero_documento']);
-            $table->index('empresa_id', 'idx_empresa');
+            $table->index('empresa_id', 'idx_trabajadores_empresa');
         });
     }
 

@@ -12,8 +12,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Cambiar la columna role de ENUM a VARCHAR para mayor flexibilidad
-        DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(50) DEFAULT 'abogado'");
+        // SQLite ya almacena el enum como text; solo aplicar en MySQL
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(50) DEFAULT 'abogado'");
+        } else {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('role', 50)->default('abogado')->change();
+            });
+        }
     }
 
     /**
@@ -21,7 +27,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Volver al ENUM original (solo si es necesario revertir)
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'abogado', 'cliente', 'rrhh') DEFAULT 'abogado'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'abogado', 'cliente', 'rrhh') DEFAULT 'abogado'");
+        }
     }
 };

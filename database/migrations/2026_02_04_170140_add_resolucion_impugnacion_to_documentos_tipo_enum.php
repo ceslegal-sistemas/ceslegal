@@ -7,6 +7,9 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
         DB::statement("ALTER TABLE documentos MODIFY COLUMN tipo_documento ENUM(
             'apertura_proceso',
             'citacion_descargos',
@@ -24,6 +27,9 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
         DB::statement("ALTER TABLE documentos MODIFY COLUMN tipo_documento ENUM(
             'apertura_proceso',
             'citacion_descargos',

@@ -12,6 +12,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
         // Agregar 'citacion_descargos' al ENUM de tipo_documento
         DB::statement("ALTER TABLE documentos MODIFY COLUMN tipo_documento ENUM(
             'apertura_proceso',
@@ -31,6 +34,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
         // Volver al ENUM original (sin 'citacion_descargos')
         DB::statement("ALTER TABLE documentos MODIFY COLUMN tipo_documento ENUM(
             'apertura_proceso',

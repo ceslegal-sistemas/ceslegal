@@ -12,6 +12,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
         // Modificar el ENUM para incluir los tipos faltantes
         DB::statement("ALTER TABLE notificaciones MODIFY COLUMN tipo ENUM(
             'apertura',
@@ -30,6 +33,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
         // Volver al ENUM original
         DB::statement("ALTER TABLE notificaciones MODIFY COLUMN tipo ENUM(
             'apertura',

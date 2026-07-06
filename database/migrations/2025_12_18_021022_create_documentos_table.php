@@ -36,7 +36,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['documentable_type', 'documentable_id'], 'idx_documentable');
-            $table->index('tipo_documento', 'idx_tipo');
+            $table->index('tipo_documento', 'idx_documentos_tipo');
         });
     }
 

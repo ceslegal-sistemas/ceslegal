@@ -25,7 +25,7 @@ return new class extends Migration
             $table->text('user_agent')->nullable();
             $table->timestamp('created_at')->useCurrent();
 
-            $table->index(['proceso_tipo', 'proceso_id'], 'idx_proceso');
+            $table->index(['proceso_tipo', 'proceso_id'], 'idx_timeline_proceso');
             $table->index('user_id', 'idx_user');
             $table->index('created_at', 'idx_created');
         });

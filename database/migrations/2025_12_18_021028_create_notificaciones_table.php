@@ -34,7 +34,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['user_id', 'leida'], 'idx_user_leida');
-            $table->index('tipo', 'idx_tipo');
+            $table->index('tipo', 'idx_notificaciones_tipo');
         });
     }
 

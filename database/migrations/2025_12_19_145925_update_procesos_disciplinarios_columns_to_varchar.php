@@ -12,11 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Cambiar estado de ENUM a VARCHAR para mayor flexibilidad
-        DB::statement("ALTER TABLE procesos_disciplinarios MODIFY COLUMN estado VARCHAR(50) DEFAULT 'apertura'");
-
-        // Cambiar tipo_sancion de ENUM a VARCHAR para mayor flexibilidad
-        DB::statement("ALTER TABLE procesos_disciplinarios MODIFY COLUMN tipo_sancion VARCHAR(50) NULL");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE procesos_disciplinarios MODIFY COLUMN estado VARCHAR(50) DEFAULT 'apertura'");
+            DB::statement("ALTER TABLE procesos_disciplinarios MODIFY COLUMN tipo_sancion VARCHAR(50) NULL");
+        }
     }
 
     /**
@@ -24,8 +23,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Volver a los ENUMs originales
-        DB::statement("ALTER TABLE procesos_disciplinarios MODIFY COLUMN estado ENUM('apertura', 'traslado', 'descargos_pendientes', 'descargos_realizados', 'analisis_juridico', 'pendiente_gerencia', 'sancion_definida', 'notificado', 'impugnado', 'cerrado', 'archivado') DEFAULT 'apertura'");
-        DB::statement("ALTER TABLE procesos_disciplinarios MODIFY COLUMN tipo_sancion ENUM('llamado_atencion', 'suspension', 'terminacion') NULL");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE procesos_disciplinarios MODIFY COLUMN estado ENUM('apertura', 'traslado', 'descargos_pendientes', 'descargos_realizados', 'analisis_juridico', 'pendiente_gerencia', 'sancion_definida', 'notificado', 'impugnado', 'cerrado', 'archivado') DEFAULT 'apertura'");
+            DB::statement("ALTER TABLE procesos_disciplinarios MODIFY COLUMN tipo_sancion ENUM('llamado_atencion', 'suspension', 'terminacion') NULL");
+        }
     }
 };
