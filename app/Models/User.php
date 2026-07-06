@@ -86,6 +86,23 @@ class User extends Authenticatable implements FilamentUser
             );
     }
 
+    /**
+     * ¿Puede generar/auditar RIT (acción jurídica pesada)?
+     * - super_admin / abogado: sí.
+     * - cliente: solo si su empresa NO está gestionada por un bufete (si un bufete
+     *   la gestiona, el RIT lo controla el bufete). Emitir sanción NO se restringe aquí.
+     */
+    public function puedeGestionarRit(): bool
+    {
+        if (in_array($this->role, ['super_admin', 'abogado'], true)) {
+            return true;
+        }
+        if ($this->role === 'cliente') {
+            return $this->empresa && $this->empresa->bufete_id === null;
+        }
+        return false;
+    }
+
     public function procesosDisciplinariosAsignados()
     {
         return $this->hasMany(ProcesoDisciplinario::class, 'abogado_id');

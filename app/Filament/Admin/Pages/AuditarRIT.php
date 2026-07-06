@@ -451,7 +451,9 @@ class AuditarRIT extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return Auth::check();
+        // El bufete controla la auditoría de RIT: un cliente cuya empresa es
+        // gestionada por un bufete no audita (lo hace el bufete). Ver User::puedeGestionarRit().
+        return Auth::check() && Auth::user()->puedeGestionarRit();
     }
 
     public function getNumSecciones(): int
