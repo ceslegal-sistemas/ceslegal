@@ -280,6 +280,7 @@ class Register extends BaseRegister
                                 ->label('NIT del Bufete')
                                 ->nullable()
                                 ->maxLength(50)
+                                ->live(onBlur: true)
                                 ->placeholder('Ej: 900111222-3')
                                 ->helperText('Solo números, con el dígito de verificación separado por guion (ej: 900111222-3).')
                                 ->extraInputAttributes(['inputmode' => 'numeric'])
