@@ -55,13 +55,26 @@ class AuditarRIT extends Page implements HasForms
         $user    = Auth::user();
         $esAdmin = $this->esAdmin();
 
-        $this->empresa = $esAdmin
-            ? Empresa::first()
-            : $user->empresa ?? null;
+        if ($user->esAbogadoDeBufete()) {
+            // Bufete: audita la empresa elegida en el selector del topbar.
+            $activaId = \App\Support\EmpresaActiva::id();
+            $this->empresa = $activaId ? Empresa::find($activaId) : null;
+            if (! $this->empresa) {
+                \Filament\Notifications\Notification::make()
+                    ->warning()
+                    ->title('Seleccione una empresa')
+                    ->body('Elija la empresa en el selector de la barra superior para auditar su Reglamento Interno.')
+                    ->send();
+            }
+        } else {
+            $this->empresa = $esAdmin
+                ? Empresa::first()
+                : $user->empresa ?? null;
 
-        // Seguridad: cliente solo puede ver su propia empresa
-        if (!$esAdmin && $this->empresa && $this->empresa->id !== ($user->empresa_id ?? null)) {
-            abort(403);
+            // Seguridad: cliente solo puede ver su propia empresa
+            if (!$esAdmin && $this->empresa && $this->empresa->id !== ($user->empresa_id ?? null)) {
+                abort(403);
+            }
         }
 
         if ($this->empresa) {
@@ -480,6 +493,15 @@ class AuditarRIT extends Page implements HasForms
         }
 
         $user = Auth::user();
+
+        // Bufete: acceso a las empresas de su bufete.
+        if ($user->esAbogadoDeBufete()) {
+            if (!$this->empresa || $this->empresa->bufete_id !== $user->bufete_id) {
+                abort(403, 'No tiene acceso a los datos de esta empresa.');
+            }
+            return;
+        }
+
         if (!$this->empresa || $this->empresa->id !== ($user->empresa_id ?? null)) {
             abort(403, 'No tiene acceso a los datos de esta empresa.');
         }

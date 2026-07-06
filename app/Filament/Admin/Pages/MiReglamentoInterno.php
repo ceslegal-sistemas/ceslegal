@@ -39,9 +39,22 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             return;
         }
 
-        $this->empresa = ($user->hasRole('super_admin') || $user->hasRole('abogado'))
-            ? Empresa::first()
-            : ($user->empresa ?? null);
+        if ($user->esAbogadoDeBufete()) {
+            // Bufete: opera sobre la empresa elegida en el selector del topbar.
+            $activaId = \App\Support\EmpresaActiva::id();
+            $this->empresa = $activaId ? Empresa::find($activaId) : null;
+            if (! $this->empresa) {
+                \Filament\Notifications\Notification::make()
+                    ->warning()
+                    ->title('Seleccione una empresa')
+                    ->body('Elija la empresa en el selector de la barra superior para ver o construir su Reglamento Interno.')
+                    ->send();
+            }
+        } else {
+            $this->empresa = ($user->hasRole('super_admin') || $user->hasRole('abogado'))
+                ? Empresa::first()
+                : ($user->empresa ?? null);
+        }
 
         if ($this->empresa) {
             // Prioridad: RIT activo (completado) ó el más reciente en estado generando/error
