@@ -40,6 +40,16 @@ class ProcesoDisciplinarioResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Historial de Descargos';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Bufete sin empresa: primero debe crear una empresa.
+        if (auth()->user()?->bufeteNecesitaEmpresa()) {
+            return false;
+        }
+
+        return parent::shouldRegisterNavigation();
+    }
+
     // protected static ?string $navigationGroup = 'Gestión Laboral';
 
     protected static ?int $navigationSort = 1;

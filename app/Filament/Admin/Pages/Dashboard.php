@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Pages;
 
 use AlexSyvolap\FilamentConfetti\Confetti;
 use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
+use App\Filament\Admin\Widgets\ProcesoGuiaWidget;
 use App\Filament\Admin\Widgets\StatsOverviewWidget;
 use App\Filament\Admin\Widgets\RecentProcessesWidget;
 use App\Filament\Admin\Widgets\ProcessesByStatusChart;
@@ -96,6 +97,7 @@ class Dashboard extends BaseDashboard
     public function getWidgets(): array
     {
         return [
+            ProcesoGuiaWidget::class,
             StatsOverviewWidget::class,
             ProcessesByStatusChart::class,
             RecentProcessesWidget::class,

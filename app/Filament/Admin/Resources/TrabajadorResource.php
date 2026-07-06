@@ -31,6 +31,16 @@ class TrabajadorResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Bufete sin empresa: primero debe crear una empresa.
+        if (auth()->user()?->bufeteNecesitaEmpresa()) {
+            return false;
+        }
+
+        return parent::shouldRegisterNavigation();
+    }
+
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();

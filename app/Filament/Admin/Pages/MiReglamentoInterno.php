@@ -211,4 +211,14 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
     {
         return Auth::check();
     }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Bufete sin empresa: primero debe crear una empresa.
+        if (Auth::user()?->bufeteNecesitaEmpresa()) {
+            return false;
+        }
+
+        return parent::shouldRegisterNavigation();
+    }
 }

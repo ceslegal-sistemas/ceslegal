@@ -39,6 +39,11 @@ class AuditarRIT extends Page implements HasForms
      */
     public static function shouldRegisterNavigation(): bool
     {
+        // Bufete sin empresa: primero debe crear una empresa.
+        if (Auth::user()?->bufeteNecesitaEmpresa()) {
+            return false;
+        }
+
         return Auth::check();
     }
 

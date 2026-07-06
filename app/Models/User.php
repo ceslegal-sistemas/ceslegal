@@ -76,6 +76,14 @@ class User extends Authenticatable implements FilamentUser
         return $this->role === 'bufete' && $this->bufete_id !== null;
     }
 
+    /** Bufete que todavía no tiene ninguna empresa: solo puede crear empresa. */
+    public function bufeteNecesitaEmpresa(): bool
+    {
+        return $this->esAbogadoDeBufete()
+            && ! \App\Models\Empresa::query()->withoutGlobalScope('bufeteOrEmpresa')
+                ->where('bufete_id', $this->bufete_id)->exists();
+    }
+
     public function empresasGestionadas(): \Illuminate\Database\Eloquent\Builder
     {
         return \App\Models\Empresa::query()
