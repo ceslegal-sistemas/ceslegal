@@ -281,6 +281,13 @@ class Register extends BaseRegister
                                 ->nullable()
                                 ->maxLength(50)
                                 ->placeholder('Ej: 900111222-3')
+                                ->helperText('Solo números, con el dígito de verificación separado por guion (ej: 900111222-3).')
+                                ->extraInputAttributes(['inputmode' => 'numeric'])
+                                ->rule('regex:/^\d{6,12}-\d$/')
+                                ->validationMessages([
+                                    'regex' => 'El NIT debe ser solo números con el dígito de verificación separado por un guion (ej: 900111222-3).',
+                                ])
+                                ->unique('bufetes', 'nit')
                                 ->suffixIcon('heroicon-o-identification'),
 
                             Forms\Components\TextInput::make('bufete_representante')
