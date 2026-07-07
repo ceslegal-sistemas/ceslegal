@@ -342,18 +342,24 @@ class Register extends BaseRegister
                                 ->live()
                                 ->columnSpanFull(),
 
-                            Forms\Components\FileUpload::make('reglamento_docx_temp')
-                                ->label('Subir Reglamento Interno (.docx o .pdf)')
-                                ->helperText('Formatos aceptados: .docx y .pdf — máx. 10 MB.')
-                                ->acceptedFileTypes([
-                                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                                    'application/pdf',
-                                ])
-                                ->disk('local')
-                                ->directory('reglamentos-temp')
-                                ->visibility('private')
-                                ->maxSize(10240)
-                                ->nullable()
+                            // El toggle de visibilidad va en el Group (contenedor), no
+                            // sobre el FileUpload directo: togglear un FileUpload dentro de
+                            // un wizard no re-renderiza de forma confiable.
+                            Forms\Components\Group::make([
+                                Forms\Components\FileUpload::make('reglamento_docx_temp')
+                                    ->label('Subir Reglamento Interno (.docx o .pdf)')
+                                    ->helperText('Formatos aceptados: .docx y .pdf — máx. 10 MB.')
+                                    ->acceptedFileTypes([
+                                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                        'application/pdf',
+                                    ])
+                                    ->disk('local')
+                                    ->directory('reglamentos-temp')
+                                    ->visibility('private')
+                                    ->maxSize(10240)
+                                    ->nullable()
+                                    ->columnSpanFull(),
+                            ])
                                 ->visible(fn (Forms\Get $get) => $get('rit_opcion') === 'tiene')
                                 ->columnSpanFull(),
                         ]),
