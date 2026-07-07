@@ -114,9 +114,24 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->live()
                                 ->default(function () {
                                     $user = auth()->user();
-                                    return $user && $user->isCliente() ? $user->empresa_id : null;
+                                    if ($user?->isCliente()) {
+                                        return $user->empresa_id;
+                                    }
+                                    // Bufete: usa la empresa seleccionada en el topbar.
+                                    if ($user?->esAbogadoDeBufete()) {
+                                        return \App\Support\EmpresaActiva::id();
+                                    }
+                                    return null;
                                 })
-                                ->hidden(fn() => auth()->user()?->isCliente() ?? false)
+                                ->hidden(function () {
+                                    $user = auth()->user();
+                                    if ($user?->isCliente()) {
+                                        return true;
+                                    }
+                                    // Bufete con empresa activa: se oculta y se toma la del topbar.
+                                    return ($user?->esAbogadoDeBufete() ?? false)
+                                        && \App\Support\EmpresaActiva::id() !== null;
+                                })
                                 // ->disabled(fn() => auth()->user()?->isCliente() ?? false)
                                 ->dehydrated()
                                 ->afterStateUpdated(fn(Forms\Set $set) => $set('trabajador_id', null))
