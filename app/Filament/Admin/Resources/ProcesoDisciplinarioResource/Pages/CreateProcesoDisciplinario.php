@@ -257,6 +257,20 @@ class CreateProcesoDisciplinario extends CreateRecord
                                             ->required()
                                             ->maxLength(255)
                                             ->placeholder('Ej: juan.perez@empresa.com'),
+
+                                        Forms\Components\TextInput::make('telefono')
+                                            ->label('Teléfono / Celular (WhatsApp)')
+                                            ->tel()
+                                            ->mask('9999999999')
+                                            ->maxLength(10)
+                                            ->extraInputAttributes(['inputmode' => 'numeric'])
+                                            ->rules(['nullable', 'regex:/^[0-9]{10}$/'])
+                                            ->validationMessages([
+                                                'regex' => 'El teléfono debe tener exactamente 10 dígitos numéricos (sin +57, espacios, guiones ni letras).',
+                                            ])
+                                            ->placeholder('3001234567')
+                                            ->helperText('10 dígitos, solo números. Para notificaciones por WhatsApp.')
+                                            ->suffixIcon('heroicon-o-phone'),
                                     ];
                                 })
                                 ->createOptionUsing(function (array $data, Get $get) {
@@ -281,6 +295,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                             'nombres'   => $data['nombres'],
                                             'apellidos' => $data['apellidos'],
                                             'email'     => $data['email'],
+                                            'telefono'  => $data['telefono'] ?? $existente->telefono,
                                             'cargo'     => $data['cargo'],
                                             'genero'    => $data['genero'],
                                             'active'    => true,
