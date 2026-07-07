@@ -41,7 +41,7 @@ class TerminoLegalService
     /**
      * Calcula la fecha de vencimiento sumando días hábiles a una fecha inicial
      */
-    public function calcularFechaVencimiento(Carbon $fechaInicio, int $diasHabiles): Carbon
+    public function calcularFechaVencimiento(Carbon $fechaInicio, int $diasHabiles, bool $trabajaSabados = false): Carbon
     {
         $fechaActual = $fechaInicio->copy();
         $diasSumados = 0;
@@ -49,7 +49,7 @@ class TerminoLegalService
         while ($diasSumados < $diasHabiles) {
             $fechaActual->addDay();
 
-            if ($this->esDiaHabil($fechaActual)) {
+            if ($this->esDiaHabil($fechaActual, $trabajaSabados)) {
                 $diasSumados++;
             }
         }
@@ -58,12 +58,15 @@ class TerminoLegalService
     }
 
     /**
-     * Verifica si una fecha es día hábil (no es fin de semana ni festivo)
+     * Verifica si una fecha es día hábil. El sábado es hábil solo si la empresa
+     * trabaja los sábados (días laborales del RIT / empresa).
      */
-    public function esDiaHabil(Carbon $fecha): bool
+    public function esDiaHabil(Carbon $fecha, bool $trabajaSabados = false): bool
     {
-        // Verificar si es fin de semana
-        if ($fecha->isWeekend()) {
+        if ($fecha->isSunday()) {
+            return false;
+        }
+        if ($fecha->isSaturday() && ! $trabajaSabados) {
             return false;
         }
 
@@ -75,13 +78,13 @@ class TerminoLegalService
     /**
      * Calcula los días hábiles transcurridos entre dos fechas
      */
-    public function calcularDiasHabilesTranscurridos(Carbon $fechaInicio, Carbon $fechaFin): int
+    public function calcularDiasHabilesTranscurridos(Carbon $fechaInicio, Carbon $fechaFin, bool $trabajaSabados = false): int
     {
         $fechaActual = $fechaInicio->copy();
         $diasHabiles = 0;
 
         while ($fechaActual->lte($fechaFin)) {
-            if ($this->esDiaHabil($fechaActual)) {
+            if ($this->esDiaHabil($fechaActual, $trabajaSabados)) {
                 $diasHabiles++;
             }
             $fechaActual->addDay();

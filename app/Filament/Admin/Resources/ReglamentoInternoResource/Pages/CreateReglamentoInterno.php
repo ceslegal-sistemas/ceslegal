@@ -1594,6 +1594,11 @@ class CreateReglamentoInterno extends CreateRecord
     {
         $user = Auth::user();
         if (!$user) return null;
+        // Bufete: construye el RIT de la empresa seleccionada en el topbar.
+        if ($user->esAbogadoDeBufete()) {
+            $id = \App\Support\EmpresaActiva::id();
+            return $id ? Empresa::find($id) : null;
+        }
         if ($user->hasRole('super_admin') || $user->hasRole('abogado')) {
             return Empresa::first();
         }

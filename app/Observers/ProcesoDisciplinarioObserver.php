@@ -349,9 +349,10 @@ class ProcesoDisciplinarioObserver
                     $proceso->fecha_notificacion = now();
                 }
 
-                // Calcular fecha límite de impugnación (3 días hábiles)
+                // Calcular fecha límite de impugnación (3 días hábiles, según días laborales)
                 if (empty($proceso->fecha_limite_impugnacion)) {
-                    $fechaLimite = $this->terminoLegalService->calcularFechaVencimiento(now(), 3);
+                    $trabajaSabados = $proceso->empresa?->trabajaSabados() ?? false;
+                    $fechaLimite = $this->terminoLegalService->calcularFechaVencimiento(now(), 3, $trabajaSabados);
                     $proceso->fecha_limite_impugnacion = $fechaLimite;
 
                     // Crear término legal para impugnación

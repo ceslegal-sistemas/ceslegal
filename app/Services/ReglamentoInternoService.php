@@ -56,6 +56,8 @@ class ReglamentoInternoService
             'texto_completo' => $texto ?: null,
             'activo'         => true,
             'fuente'         => 'subido',
+            // Días laborales inferidos del RIT subido (null si no se detecta → fallback empresa).
+            'dias_laborales' => $this->detectarDiasLaborales($texto),
         ];
 
         // Si se proporciona una ruta permanente, guardarla para descarga directa
@@ -86,6 +88,28 @@ class ReglamentoInternoService
         }
 
         return $reglamento;
+    }
+
+    /**
+     * Detecta los días laborales a partir del texto del RIT subido.
+     * Devuelve 'lunes_sabado' | 'lunes_viernes' | null (no detectado → fallback empresa).
+     */
+    private function detectarDiasLaborales(?string $texto): ?string
+    {
+        if (! $texto) {
+            return null;
+        }
+
+        $t = \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii($texto));
+
+        if (preg_match('/lunes\s+a\s+sabado|hasta\s+el\s+sabado|inclu[ií]d[oa]s?\s+(el\s+|los\s+)?sabado|seis\s*\(?\s*6\s*\)?\s*d[ií]as/u', $t)) {
+            return 'lunes_sabado';
+        }
+        if (preg_match('/lunes\s+a\s+viernes|cinco\s*\(?\s*5\s*\)?\s*d[ií]as/u', $t)) {
+            return 'lunes_viernes';
+        }
+
+        return null;
     }
 
     /**

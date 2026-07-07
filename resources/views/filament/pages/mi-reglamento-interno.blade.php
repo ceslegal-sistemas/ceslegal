@@ -7,6 +7,8 @@
     $fecha = $reglamento?->updated_at?->format('d/m/Y \a \l\a\s g:i A');
     $wizardUrl  = route('filament.admin.resources.reglamento-internos.create');
     $esAdmin = auth()->user()?->hasRole('super_admin') || auth()->user()?->hasRole('abogado');
+    // Bufete sin empresa seleccionada: no puede subir/construir hasta elegir una.
+    $necesitaSeleccion = (auth()->user()?->esAbogadoDeBufete() ?? false) && ! $empresa;
     // Descarga disponible para CUALQUIER RIT vigente (subido manualmente o generado por IA).
     // Las rutas resuelven la prioridad: archivo físico (ruta_docx) → texto del RIT base.
     $descargaUrl = $tiene
@@ -74,6 +76,23 @@ html:not(.dark) .rit-empty-title{color:#1c1917}
 html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(251,113,133,.06) 25%,rgba(251,113,133,.14) 50%,rgba(251,113,133,.06) 75%);background-size:200% 100%;animation:rit-shimmer 2.2s ease-in-out infinite}
 @keyframes rit-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 </style>
+
+@if($necesitaSeleccion)
+  {{-- Bufete sin empresa seleccionada: primero debe elegir una en el topbar. --}}
+  <div style="max-width:900px;margin:0 auto">
+    <div class="rit-hero" style="text-align:center">
+      <div style="position:relative;z-index:2;padding:1rem 0">
+        <lord-icon src="https://cdn.lordicon.com/fikcyfpp.json" trigger="loop" delay="600"
+            colors="primary:#e11d48,secondary:#fb923c" style="width:120px;height:120px"></lord-icon>
+        <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:700;margin:.5rem 0 .35rem">Seleccione una empresa</h2>
+        <p style="opacity:.8;max-width:44ch;margin:0 auto;line-height:1.55">
+          Para subir o construir un Reglamento Interno, primero elija la empresa en el
+          selector de la barra superior (no "Todas las empresas").
+        </p>
+      </div>
+    </div>
+  </div>
+@else
 
 <div style="display:flex;flex-direction:column;gap:1.25rem;max-width:900px;margin:0 auto">
 
@@ -261,4 +280,5 @@ html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(251,113,
   @endif
 
 </div>
+@endif
 </x-filament-panels::page>

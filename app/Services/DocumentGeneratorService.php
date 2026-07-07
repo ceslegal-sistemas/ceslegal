@@ -246,8 +246,16 @@ class DocumentGeneratorService
             }
         }
 
-        // ── Fecha disponibilidad pruebas (día hábil siguiente) ───────────────
-        $fechaDisponibilidadPruebas = Carbon::now()->addWeekday()->locale('es');
+        // ── Fecha disponibilidad pruebas (día hábil siguiente, según días laborales) ──
+        $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+        $fechaDisponibilidadPruebas = Carbon::now()->copy();
+        do {
+            $fechaDisponibilidadPruebas->addDay();
+        } while (
+            $fechaDisponibilidadPruebas->isSunday()
+            || ($fechaDisponibilidadPruebas->isSaturday() && ! $trabajaSabados)
+        );
+        $fechaDisponibilidadPruebas->locale('es');
         $fechaDispTexto = $fechaDisponibilidadPruebas->isoFormat('D [de] MMMM [de] YYYY');
 
         // ── Fragmentos HTML condicionales (no se pueden usar ternarios en heredoc) ─
