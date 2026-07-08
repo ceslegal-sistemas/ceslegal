@@ -243,6 +243,8 @@ class EmpresaResource extends Resource
                 Forms\Components\Section::make('Reglamento Interno')
                     ->description('Documento normativo interno de la empresa')
                     ->icon('heroicon-o-document-text')
+                    // Al crear la empresa aún no hay RIT que gestionar; se administra al editar.
+                    ->hiddenOn('create')
                     ->schema([
 
                         // ── Visor / descarga cuando existe RIT ───────────────────────
