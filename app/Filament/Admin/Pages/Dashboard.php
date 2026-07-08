@@ -54,8 +54,9 @@ class Dashboard extends BaseDashboard
                     'data-tour' => 'help-button-dashboard',
                     'onclick' => 'window.iniciarTour(); return false;',
                 ])
-                // El tour es del flujo de descargos: no aplica al bufete.
-                ->visible(fn() => ! (auth()->user()?->esAbogadoDeBufete() ?? false)),
+                // La guía interactiva se adapta al rol (cliente, bufete, super_admin);
+                // el abogado interno no la usa.
+                ->visible(fn() => in_array(auth()->user()?->role, ['cliente', 'bufete', 'super_admin'], true)),
 
             Actions\Action::make('Crear Descargos')
                 ->label('Crear Descargos')

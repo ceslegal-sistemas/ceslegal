@@ -1,623 +1,229 @@
 /**
- * Tour de onboarding para el módulo de Descargos
- * Usa Driver.js - https://driverjs.com
+ * Guías interactivas de CES Legal (Driver.js — https://driverjs.com)
+ *
+ * Las guías se adaptan al ROL del usuario autenticado, que llega en
+ * window.CES_USER = { role, esBufete, empresaActiva, nombre } (inyectado por
+ * AdminPanelProvider). Roles con guía: 'cliente', 'bufete', 'super_admin'.
+ * El texto va en español colombiano (usted).
  */
-
 document.addEventListener("DOMContentLoaded", function () {
     const pathname = window.location.pathname;
 
-    // Determinar en qué página estamos
+    const CES = window.CES_USER || {
+        role: "cliente",
+        esBufete: false,
+        empresaActiva: false,
+        nombre: "",
+    };
+    const role = CES.role || "cliente";
+
+    // ── Página actual ────────────────────────────────────────────────────────
     const isAdminDashboard = pathname === "/admin" || pathname === "/admin/";
-    const isProcesoDisciplinarios = pathname.includes("proceso-disciplinarios");
+    const isProceso = pathname.includes("proceso-disciplinarios");
+    const isProcesoList =
+        pathname.endsWith("proceso-disciplinarios") ||
+        pathname.endsWith("proceso-disciplinarios/");
     const isTrabajadores = pathname.includes("trabajadors");
+    const isTrabajadoresList =
+        pathname.endsWith("trabajadors") || pathname.endsWith("trabajadors/");
+    const isTrabajadorCreate = pathname.includes("trabajadors/create");
 
-    // Solo ejecutar en las páginas del dashboard o proceso-disciplinarios
-    if (!isAdminDashboard && !isProcesoDisciplinarios && !isTrabajadores) {
-        return;
-    }
-
-    // Driver.js se carga via CDN, acceder desde window
+    if (!isAdminDashboard && !isProceso && !isTrabajadores) return;
+    if (!window.driver || !window.driver.js) return;
     const driverFn = window.driver.js.driver;
 
-    // Marcar dinámicamente el elemento del menú para el tour del dashboard
-    if (isAdminDashboard) {
-        // Buscar el enlace del menú "Historial de Descargos" y agregar el atributo data-tour
-        const menuLinks = document.querySelectorAll(".fi-sidebar-nav a");
-        menuLinks.forEach(function (link) {
-            if (
-                link.textContent.includes("Historial de Descargos") ||
-                link.href.includes("proceso-disciplinarios")
-            ) {
-                link.setAttribute(
-                    "data-tour",
-                    "menu-historial-proceso-disciplinario",
-                );
-            }
-
-            if (
-                link.textContent.includes("Crear Descargos") ||
-                link.href.includes("proceso-disciplinarios/create")
-            ) {
-                link.setAttribute(
-                    "data-tour",
-                    "menu-crear-proceso-disciplinario",
-                );
-            }
-        });
-
-        // Buscar el enlace del menú "Trabajadores" y agregar el atributo data-tour
-        const menuLinksTrabajadores =
-            document.querySelectorAll(".fi-sidebar-nav a");
-        menuLinksTrabajadores.forEach(function (link) {
-            if (
-                link.textContent.includes("Trabajadores") ||
-                link.href.includes("trabajadors")
-            ) {
-                link.setAttribute("data-tour", "menu-trabajadores");
-            }
-        });
-    }
-
-    // ========== TOUR PARA INICIO (DASHBOARD) ==========
-    if (isAdminDashboard) {
-        const tourInicio = driverFn({
-            showProgress: true,
-            nextBtnText: "Siguiente",
-            prevBtnText: "Anterior",
-            doneBtnText: "Entendido",
-            progressText: "Paso {{current}} de {{total}}",
-            steps: [
-                {
-                    popover: {
-                        title: "Bienvenido al Sistema de Descargos",
-                        description:
-                            "Aquí gestionas todo el proceso de descargos: desde la citación hasta la sanción.",
-                    },
-                },
-                {
-                    element:
-                        "[data-tour='menu-crear-proceso-disciplinario']",
-                    popover: {
-                        title: "Accede Crear de Descargos",
-                        description: "Aquí puedes crear los descargos.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: "[data-tour='menu-historial-proceso-disciplinario']",
-                    popover: {
-                        title: "Accede al Historial de Descargos",
-                        description:
-                            "Aquí puedes ver y gestionar los procesos disciplinarios.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: "[data-tour='menu-trabajadores']",
-                    popover: {
-                        title: "Gestiona los Trabajadores",
-                        description:
-                            "Aquí puedes ver y administrar tus trabajadores.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: "[data-tour='help-button-dashboard']",
-                    popover: {
-                        title: "¿Necesitas ayuda?",
-                        description:
-                            "Puedes ver este tutorial de nuevo en cualquier momento.",
-                        side: "bottom",
-                    },
-                },
-                {
-                    popover: {
-                        title: "¡Listo para comenzar!",
-                        description:
-                            "Ya conoces lo básico. Dirígete a los Descargos para gestionar el proceso.",
-                    },
-                },
-            ],
-        });
-
-        // Guardar referencia global
-        window.tourDescargosInicio = tourInicio;
-
-        // Iniciar tour automáticamente si es primera vez
-        const tourInicioShown = localStorage.getItem(
-            "tourDescargosInicioShown",
-        );
-
-        if (!tourInicioShown) {
-            setTimeout(function () {
-                tourInicio.drive();
-                localStorage.setItem("tourDescargosInicioShown", "true");
-            }, 1000);
-        }
-    }
-
-    // ========== TOUR PARA LISTA DE TRABAJADORES ==========
-    if (pathname.endsWith("trabajadors") || pathname.endsWith("trabajadors/")) {
-        const tourTrabajadores = driverFn({
-            showProgress: true,
-            nextBtnText: "Siguiente",
-            prevBtnText: "Anterior",
-            doneBtnText: "Entendido",
-            progressText: "Paso {{current}} de {{total}}",
-            steps: [
-                {
-                    popover: {
-                        title: "Bienvenido a la Gestión de Trabajadores",
-                        description:
-                            "Aquí puedes ver y administrar todos los trabajadores registrados en el sistema.",
-                    },
-                },
-                {
-                    element: ".fi-ta-table",
-                    popover: {
-                        title: "Tu lista de trabajadores",
-                        description:
-                            "Cada fila muestra información clave del trabajador y acciones disponibles.",
-                        side: "top",
-                    },
-                },
-                {
-                    element: ".fi-ta-header-ctn",
-                    popover: {
-                        title: "Busca y filtra",
-                        description:
-                            "Usa los filtros para encontrar trabajadores por nombre o área.",
-                        side: "bottom",
-                    },
-                },
-                // {
-                //     element: "[data-tour='create-button-trabajadores']",
-                //     popover: {
-                //         title: "Añadir nuevo trabajador",
-                //         description:
-                //             "Aquí puedes registrar un nuevo trabajador en el sistema.",
-                //         side: "bottom",
-                //     },
-                // },
-                {
-                    element: "[data-tour='help-button-trabajadores']",
-                    popover: {
-                        title: "¿Necesitas ayuda?",
-                        description:
-                            "Puedes ver este tutorial de nuevo en cualquier momento.",
-                        side: "bottom",
-                    },
-                },
-                {
-                    popover: {
-                        title: "¡Listo para comenzar!",
-                        description:
-                            "Ya conoces lo básico. Explora los trabajadores registrados o añade nuevos en el modulo crear Descargos.",
-                    },
-                },
-            ],
-        });
-
-        // Guardar referencia global
-        window.tourTrabajadores = tourTrabajadores;
-
-        // Iniciar tour automáticamente si es primera vez
-        const tourTrabajadoresShown = localStorage.getItem(
-            "tourTrabajadoresShown",
-        );
-        if (!tourTrabajadoresShown) {
-            setTimeout(function () {
-                tourTrabajadores.drive();
-                localStorage.setItem("tourTrabajadoresShown", "true");
-            }, 1000);
-        }
-    }
-
-    // ========== TOUR PARA CREAR TRABAJADOR ==========
-    if (pathname.includes("trabajadors/create")) {
-        const tourCreateTrabajador = driverFn({
-            showProgress: true,
-            nextBtnText: "Siguiente",
-            prevBtnText: "Anterior",
-            doneBtnText: "Entendido",
-            progressText: "Paso {{current}} de {{total}}",
-            steps: [
-                {
-                    popover: {
-                        title: "Registrar nuevo trabajador",
-                        description:
-                            "Completa este formulario para añadir un trabajador al sistema. Sus datos serán usados en los procesos de descargos.",
-                    },
-                },
-                {
-                    element: '[data-tour="trabajador-empresa"]',
-                    popover: {
-                        title: "Paso 1: Empresa",
-                        description:
-                            "Selecciona la empresa a la que pertenece el trabajador. Si eres cliente, ya está seleccionada.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="trabajador-tipo-doc"]',
-                    popover: {
-                        title: "Paso 2: Tipo de documento",
-                        description:
-                            "Selecciona el tipo de documento de identidad: Cédula, Cédula de Extranjería, etc.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="trabajador-numero-doc"]',
-                    popover: {
-                        title: "Paso 3: Número de documento",
-                        description:
-                            "Ingresa el número de documento. Este debe ser único en el sistema.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="trabajador-genero"]',
-                    popover: {
-                        title: "Paso 4: Género",
-                        description: "Selecciona el género del trabajador.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="trabajador-nombres"]',
-                    popover: {
-                        title: "Paso 5: Nombres",
-                        description:
-                            "Escribe los nombres completos del trabajador.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="trabajador-apellidos"]',
-                    popover: {
-                        title: "Paso 6: Apellidos",
-                        description:
-                            "Escribe los apellidos completos del trabajador.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="trabajador-departamento-nacimiento"]',
-                    popover: {
-                        title: "Departamento de Nacimiento (Opcional)",
-                        description:
-                            "Selecciona el departamento donde nació el trabajador.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="trabajador-ciudad-nacimiento"]',
-                    popover: {
-                        title: "Ciudad / Municipio de Nacimiento (Opcional)",
-                        description:
-                            "Selecciona la ciudad o municipio donde nació el trabajador.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="trabajador-email"]',
-                    popover: {
-                        title: "Paso 7: Correo electrónico",
-                        description:
-                            "El correo es importante porque aquí se enviarán las citaciones a descargos.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="trabajador-cargo"]',
-                    popover: {
-                        title: "Paso 8: Cargo",
-                        description:
-                            "Selecciona el cargo del trabajador o elige 'Otro' para personalizarlo.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: '[data-tour="trabajador-cargo-otro"]',
-                    popover: {
-                        title: "Otro Cargo",
-                        description:
-                            "Si seleccionaste 'Otro' en el paso anterior, escribe el cargo específico.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: "[data-tour='trabajador-area']",
-                    popover: {
-                        title: "Área (Opcional)",
-                        description:
-                            "Puedes especificar el área o departamento donde trabaja el empleado.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: "[data-tour='trabajador-area-otro']",
-                    popover: {
-                        title: "Otra Área (Opcional)",
-                        description:
-                            "Si seleccionaste 'Otro' en el paso anterior, escribe el área específica.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: "[data-tour='trabajador-activo']",
-                    popover: {
-                        title: "Estado del trabajador",
-                        description:
-                            "Asegúrate de que 'Activo' esté seleccionado si el trabajador aún labora en la empresa.",
-                        side: "right",
-                    },
-                },
-                {
-                    element: ".fi-form-actions",
-                    popover: {
-                        title: "Paso 9: Crear trabajador",
-                        description:
-                            "Al hacer clic en 'Crear', el trabajador quedará registrado y podrás citarlo a descargos.",
-                        side: "top",
-                    },
-                },
-                {
-                    popover: {
-                        title: "¡Listo!",
-                        description:
-                            "Completa los datos y el trabajador será añadido al sistema.",
-                    },
-                },
-            ],
-        });
-
-        window.tourCreateTrabajador = tourCreateTrabajador;
-
-        // Iniciar tour automáticamente si es primera vez
-        const tourCreateTrabajadorShown = localStorage.getItem(
-            "tourCreateTrabajadorShown",
-        );
-        if (!tourCreateTrabajadorShown) {
-            setTimeout(function () {
-                tourCreateTrabajador.drive();
-                localStorage.setItem("tourCreateTrabajadorShown", "true");
-            }, 1000);
-        }
-    }
-
-    // ========== TOUR PARA LISTA DE PROCESOS DISCIPLINARIOS ==========
-    if (
-        pathname.endsWith("proceso-disciplinarios") ||
-        pathname.endsWith("proceso-disciplinarios/")
-    ) {
-        const tourList = driverFn({
-            showProgress: true,
-            nextBtnText: "Siguiente",
-            prevBtnText: "Anterior",
-            doneBtnText: "Entendido",
-            progressText: "Paso {{current}} de {{total}}",
-            steps: [
-                {
-                    popover: {
-                        title: "Bienvenido al Sistema de Descargos",
-                        description:
-                            "Aquí gestionas todo el proceso de descargos: desde la citación hasta la sanción.",
-                    },
-                },
-                {
-                    element: ".fi-ta-table",
-                    popover: {
-                        title: "Tu lista de procesos",
-                        description:
-                            "Cada fila muestra el trabajador, estado del proceso y acciones disponibles.",
-                        side: "top",
-                    },
-                },
-                {
-                    element: ".fi-ta-header-ctn",
-                    popover: {
-                        title: "Busca y filtra",
-                        description:
-                            "Usa los filtros para encontrar procesos por estado, modalidad o empresa.",
-                        side: "bottom",
-                    },
-                },
-                {
-                    element: "[data-tour='create-button']",
-                    popover: {
-                        title: "Crear nuevo descargo",
-                        description:
-                            "Aquí puedes citar a un trabajador a descargos.",
-                        side: "bottom",
-                    },
-                },
-                {
-                    element: "[data-tour='help-button']",
-                    popover: {
-                        title: "¿Necesitas ayuda?",
-                        description:
-                            "Puedes ver este tutorial de nuevo en cualquier momento.",
-                        side: "bottom",
-                    },
-                },
-                {
-                    popover: {
-                        title: "¡Listo para comenzar!",
-                        description:
-                            "Ya conoces lo básico. Crea tu primer proceso o explora los existentes.",
-                    },
-                },
-            ],
-        });
-
-        // Guardar referencia global
-        window.tourDescargos = tourList;
-
-        // Iniciar tour automáticamente si es primera vez
-        const tourShown = localStorage.getItem("tourDescargosListShown");
-        if (!tourShown) {
-            setTimeout(function () {
-                tourList.drive();
-                localStorage.setItem("tourDescargosListShown", "true");
-            }, 1000);
-        }
-    }
-
-    // ========== TOUR PARA CREAR ==========
-    // if (pathname.includes("proceso-disciplinarios/create")) {
-    //     const tourCreate = driverFn({
-    //         showProgress: true,
-    //         nextBtnText: "Siguiente",
-    //         prevBtnText: "Anterior",
-    //         doneBtnText: "Entendido",
-    //         progressText: "Paso {{current}} de {{total}}",
-    //         steps: [
-    //             {
-    //                 popover: {
-    //                     title: "Crear un proceso de descargos",
-    //                     description:
-    //                         "Completa este formulario para citar a un trabajador. Al guardar, el sistema enviará la citación por correo.",
-    //                 },
-    //             },
-    //             {
-    //                 element: '[data-tour="empresa-select"]',
-    //                 popover: {
-    //                     title: "Paso 1: Empresa",
-    //                     description:
-    //                         "Tu empresa ya está seleccionada automáticamente. Continúa al siguiente paso.",
-    //                     side: "right",
-    //                 },
-    //             },
-    //             {
-    //                 element: '[data-tour="trabajador-select"]',
-    //                 popover: {
-    //                     title: "Paso 2: Trabajador",
-    //                     description:
-    //                         "Busca y selecciona al trabajador. Escribe el nombre para encontrarlo más rápido.",
-    //                     side: "right",
-    //                 },
-    //             },
-    //             {
-    //                 element: '[data-tour="trabajador-create"]',
-    //                 popover: {
-    //                     title: "¿No lo encuentras?",
-    //                     description:
-    //                         "Haz clic en '+' para registrar un trabajador nuevo.",
-    //                     side: "left",
-    //                 },
-    //             },
-    //             {
-    //                 element: '[data-tour="modalidad-select"]',
-    //                 popover: {
-    //                     title: "Paso 3: Modalidad",
-    //                     description:
-    //                         "Elige cómo será la audiencia: presencial, virtual o telefónica.",
-    //                     side: "right",
-    //                 },
-    //             },
-    //             {
-    //                 element: '[data-tour="abogado-select"]',
-    //                 popover: {
-    //                     title: "Asignación de Abogado",
-    //                     description:
-    //                         "Si seleccionas Presencial o Telefónico, podrás seleccionar el abogado y su disponibilidad que atenderá la diligencia.",
-    //                     side: "right",
-    //                 },
-    //             },
-    //             {
-    //                 element: '[data-tour="motivos-select"]',
-    //                 popover: {
-    //                     title: "Paso 4: Motivos",
-    //                     description:
-    //                         "Elige uno o más motivos que justifican la citación.",
-    //                     side: "top",
-    //                 },
-    //             },
-    //             {
-    //                 element: '[data-tour="fecha-ocurrencia"]',
-    //                 popover: {
-    //                     title: "Paso 5: Fecha de los hechos",
-    //                     description:
-    //                         "Indica cuándo ocurrieron los hechos que motivan el proceso.",
-    //                     side: "right",
-    //                 },
-    //             },
-    //             {
-    //                 element: '[data-tour="hechos-editor"]',
-    //                 popover: {
-    //                     title: "Paso 6: Descripción de los hechos",
-    //                     description:
-    //                         "Explica qué pasó, dónde y quiénes estuvieron involucrados.",
-    //                     side: "top",
-    //                 },
-    //             },
-    //             {
-    //                 element: '[data-tour="ia-button"]',
-    //                 popover: {
-    //                     title: "Asistente con IA",
-    //                     description:
-    //                         "¿No sabes cómo redactarlo? La IA mejora tu texto automáticamente.",
-    //                     side: "left",
-    //                 },
-    //             },
-    //             {
-    //                 element: ".fi-form-actions",
-    //                 popover: {
-    //                     title: "Paso 7: Guardar",
-    //                     description:
-    //                         "Al hacer clic en 'Crear', se generará la citación y se enviará al trabajador.",
-    //                     side: "top",
-    //                 },
-    //             },
-    //             {
-    //                 popover: {
-    //                     title: "¡Ya estás listo!",
-    //                     description:
-    //                         "Completa el formulario y el sistema se encargará del resto.",
-    //                 },
-    //             },
-    //         ],
-    //     });
-
-    //     window.tourDescargosCreate = tourCreate;
-
-    //     // Iniciar tour automáticamente si es primera vez
-    //     const tourCreateShown = localStorage.getItem(
-    //         "tourDescargosCreateShown",
-    //     );
-    //     if (!tourCreateShown) {
-    //         setTimeout(function () {
-    //             tourCreate.drive();
-    //             localStorage.setItem("tourDescargosCreateShown", "true");
-    //         }, 1000);
-    //     }
-    // }
-
-    // ========== FUNCIONES GLOBALES ==========
-    // Permitir reiniciar el tour manualmente
-    window.reiniciarTourDescargos = function () {
-        localStorage.removeItem("tourDescargosListShown");
-        localStorage.removeItem("tourDescargosCreateShown");
-        localStorage.removeItem("tourDescargosInicioShown");
-        localStorage.removeItem("tourTrabajadoresShown");
-        localStorage.removeItem("tourCreateTrabajadorShown");
-        location.reload();
+    // ── Utilidades ───────────────────────────────────────────────────────────
+    const base = {
+        showProgress: true,
+        nextBtnText: "Siguiente",
+        prevBtnText: "Anterior",
+        doneBtnText: "Entendido",
+        progressText: "Paso {{current}} de {{total}}",
     };
 
-    // Iniciar tour manualmente
-    window.iniciarTour = function () {
-        if (window.tourDescargos) {
-            window.tourDescargos.drive();
-        } else if (window.tourDescargosCreate) {
-            window.tourDescargosCreate.drive();
-        } else if (window.tourDescargosInicio) {
-            window.tourDescargosInicio.drive();
-        } else if (window.tourTrabajadores) {
-            window.tourTrabajadores.drive();
-        } else if (window.tourCreateTrabajador) {
-            window.tourCreateTrabajador.drive();
+    // Etiqueta cada enlace del menú lateral con un data-tour estable, según su
+    // texto/href, para poder apuntarle desde los pasos sin acoplarse al orden.
+    function tagSidebar() {
+        function tag(el, name) {
+            if (el && !el.getAttribute("data-tour")) {
+                el.setAttribute("data-tour", name);
+            }
         }
+        document.querySelectorAll(".fi-sidebar-nav a").forEach(function (link) {
+            const t = link.textContent || "";
+            const h = link.getAttribute("href") || "";
+            if (h.includes("proceso-disciplinarios/create") || t.includes("Crear Descargos"))
+                tag(link, "menu-crear");
+            else if (h.includes("proceso-disciplinarios") || t.includes("Historial de Descargos"))
+                tag(link, "menu-historial");
+            if (h.includes("trabajadors") || t.includes("Trabajadores"))
+                tag(link, "menu-trabajadores");
+            if (h.includes("reglamento") || t.includes("Reglamento"))
+                tag(link, "menu-reglamento");
+            if (/\/empresas(\b|\/|\?)/.test(h) || t.trim() === "Empresas")
+                tag(link, "menu-empresas");
+            if (h.includes("users") || t.includes("Usuarios"))
+                tag(link, "menu-usuarios");
+            if (h.includes("roles") || h.includes("shield") || t.trim() === "Roles")
+                tag(link, "menu-roles");
+        });
+    }
+
+    // Conserva solo los pasos cuyo elemento existe en la página (o sin elemento),
+    // para que la guía no falle si un ítem no aplica a este rol.
+    function present(steps) {
+        return steps.filter(function (s) {
+            return !s.element || !!document.querySelector(s.element);
+        });
+    }
+
+    function build(steps) {
+        const clean = present(steps);
+        if (!clean.length) return null;
+        return driverFn(Object.assign({}, base, { steps: clean }));
+    }
+
+    // Guarda la instancia activa para el botón "¿Necesita ayuda?" / "¿Cómo funciona?".
+    let activeTour = null;
+    function autoStart(tour, storageKey) {
+        if (!tour) return;
+        activeTour = tour;
+        if (!localStorage.getItem(storageKey)) {
+            setTimeout(function () {
+                tour.drive();
+                localStorage.setItem(storageKey, "true");
+            }, 1200);
+        }
+    }
+
+    const hola = CES.nombre ? "Hola, " + CES.nombre + ". " : "";
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // INICIO (Dashboard) — guía por rol
+    // ══════════════════════════════════════════════════════════════════════════
+    if (isAdminDashboard) {
+        tagSidebar();
+
+        let steps;
+        if (role === "super_admin") {
+            steps = [
+                { popover: { title: "Panel de administración", description: hola + "Desde aquí supervisa las empresas, los usuarios y todos los procesos del sistema." } },
+                { element: "[data-tour='menu-empresas']", popover: { title: "Empresas", description: "Cree y administre las empresas clientes.", side: "right" } },
+                { element: "[data-tour='menu-usuarios']", popover: { title: "Usuarios", description: "Gestione las cuentas y sus accesos al sistema.", side: "right" } },
+                { element: "[data-tour='menu-roles']", popover: { title: "Roles y permisos", description: "Defina qué puede hacer cada rol.", side: "right" } },
+                { element: "[data-tour='menu-historial']", popover: { title: "Historial de Descargos", description: "Supervise todos los procesos disciplinarios del sistema.", side: "right" } },
+                { element: "[data-tour='help-button-dashboard']", popover: { title: "¿Necesita ayuda?", description: "Puede reabrir esta guía cuando quiera.", side: "bottom" } },
+                { popover: { title: "Listo", description: "Ya conoce el panel de administración." } },
+            ];
+        } else if (role === "bufete") {
+            steps = [
+                { popover: { title: "Bienvenido a CES Legal", description: hola + "Como bufete, gestiona los procesos disciplinarios de varias empresas desde un mismo lugar." } },
+                { element: ".se-wrap", popover: { title: "Primero elija la empresa", description: "En la barra superior seleccione la empresa sobre la que va a trabajar. Todo lo que haga aplicará a esa empresa.", side: "bottom" } },
+                { element: "[data-tour='menu-empresas']", popover: { title: "Sus empresas", description: "Cree y administre las empresas que representa.", side: "right" } },
+                { element: ".pg-wrap", popover: { title: "El proceso paso a paso", description: "Esta guía le muestra en qué punto va la empresa seleccionada y cuál es el siguiente paso.", side: "top" } },
+                { element: "[data-tour='menu-reglamento']", popover: { title: "Reglamento Interno", description: "Suba o construya el RIT de la empresa seleccionada. Es la base para poder sancionar.", side: "right" } },
+                { element: "[data-tour='menu-crear']", popover: { title: "Crear Descargos", description: "Inicie un proceso disciplinario citando a un trabajador.", side: "right" } },
+                { element: "[data-tour='menu-historial']", popover: { title: "Historial de Descargos", description: "Revise y continúe los procesos en curso, y emita la sanción cuando corresponda.", side: "right" } },
+                { element: "[data-tour='menu-trabajadores']", popover: { title: "Trabajadores", description: "Administre los trabajadores de la empresa seleccionada.", side: "right" } },
+                { element: "[data-tour='help-button-dashboard']", popover: { title: "¿Necesita ayuda?", description: "Puede reabrir esta guía cuando quiera.", side: "bottom" } },
+                { popover: { title: "Listo para comenzar", description: "Seleccione una empresa y siga la guía de su proceso." } },
+            ];
+        } else {
+            // cliente
+            steps = [
+                { popover: { title: "Bienvenido a CES Legal", description: hola + "Aquí gestiona todo el proceso disciplinario de su empresa: desde el reglamento hasta la sanción." } },
+                { element: ".pg-wrap", popover: { title: "Su proceso paso a paso", description: "Esta guía le indica en qué punto va y cuál es el siguiente paso a seguir.", side: "top" } },
+                { element: "[data-tour='menu-reglamento']", popover: { title: "Reglamento Interno", description: "Suba o construya el RIT de su empresa. Es la base para poder aplicar sanciones.", side: "right" } },
+                { element: "[data-tour='menu-crear']", popover: { title: "Crear Descargos", description: "Cite a un trabajador a descargos por un hecho ocurrido.", side: "right" } },
+                { element: "[data-tour='menu-historial']", popover: { title: "Historial de Descargos", description: "Revise el estado de cada proceso y emita la sanción cuando corresponda.", side: "right" } },
+                { element: "[data-tour='menu-trabajadores']", popover: { title: "Trabajadores", description: "Administre los trabajadores de su empresa.", side: "right" } },
+                { element: "[data-tour='help-button-dashboard']", popover: { title: "¿Necesita ayuda?", description: "Puede reabrir esta guía cuando quiera.", side: "bottom" } },
+                { popover: { title: "Listo para comenzar", description: "Siga la guía de su proceso para avanzar paso a paso." } },
+            ];
+        }
+
+        autoStart(build(steps), "cesTourInicio_" + role);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // LISTA DE PROCESOS (Historial de Descargos)
+    // ══════════════════════════════════════════════════════════════════════════
+    if (isProcesoList) {
+        const esBufeteSinEmpresa = role === "bufete" && !CES.empresaActiva;
+        const introDesc = esBufeteSinEmpresa
+            ? "Aquí verá los procesos de la empresa que seleccione en la barra superior."
+            : "Aquí gestiona todo el proceso: desde la citación hasta la sanción.";
+
+        const steps = [
+            { popover: { title: "Historial de Descargos", description: introDesc } },
+            { element: ".fi-ta-table", popover: { title: "Su lista de procesos", description: "Cada fila muestra el trabajador, el estado del proceso y las acciones disponibles.", side: "top" } },
+            { element: ".fi-ta-header-ctn", popover: { title: "Busque y filtre", description: "Use los filtros para encontrar procesos por estado, modalidad o empresa.", side: "bottom" } },
+            { element: "[data-tour='create-button']", popover: { title: "Crear un descargo", description: "Cite a un trabajador a descargos para iniciar un proceso.", side: "bottom" } },
+            { element: "[data-tour='help-button']", popover: { title: "¿Necesita ayuda?", description: "Puede reabrir esta guía cuando quiera.", side: "bottom" } },
+            { popover: { title: "Listo", description: "Cree un proceso nuevo o continúe con los existentes." } },
+        ];
+
+        autoStart(build(steps), "cesTourProcesoList_" + role);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // LISTA DE TRABAJADORES
+    // ══════════════════════════════════════════════════════════════════════════
+    if (isTrabajadoresList) {
+        const steps = [
+            { popover: { title: "Trabajadores", description: "Aquí ve y administra los trabajadores registrados." } },
+            { element: ".fi-ta-table", popover: { title: "Su lista de trabajadores", description: "Cada fila muestra la información clave del trabajador y sus acciones.", side: "top" } },
+            { element: ".fi-ta-header-ctn", popover: { title: "Busque y filtre", description: "Use los filtros para encontrar trabajadores por nombre o área.", side: "bottom" } },
+            { element: "[data-tour='help-button-trabajadores']", popover: { title: "¿Necesita ayuda?", description: "Puede reabrir esta guía cuando quiera.", side: "bottom" } },
+            { popover: { title: "Listo", description: "Los trabajadores también se pueden crear al momento de citar a descargos." } },
+        ];
+
+        autoStart(build(steps), "cesTourTrabajadoresList_" + role);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // CREAR TRABAJADOR
+    // ══════════════════════════════════════════════════════════════════════════
+    if (isTrabajadorCreate) {
+        const empresaDesc =
+            role === "bufete"
+                ? "Seleccione la empresa a la que pertenece el trabajador."
+                : "La empresa ya está seleccionada automáticamente.";
+
+        const steps = [
+            { popover: { title: "Registrar un trabajador", description: "Complete este formulario para añadir un trabajador. Sus datos se usan en los procesos de descargos." } },
+            { element: '[data-tour="trabajador-empresa"]', popover: { title: "Empresa", description: empresaDesc, side: "right" } },
+            { element: '[data-tour="trabajador-tipo-doc"]', popover: { title: "Tipo de documento", description: "Seleccione el tipo de documento de identidad.", side: "right" } },
+            { element: '[data-tour="trabajador-numero-doc"]', popover: { title: "Número de documento", description: "Ingrese el número de documento. Debe ser único en el sistema.", side: "right" } },
+            { element: '[data-tour="trabajador-genero"]', popover: { title: "Género", description: "Seleccione el género del trabajador.", side: "right" } },
+            { element: '[data-tour="trabajador-nombres"]', popover: { title: "Nombres", description: "Escriba los nombres completos del trabajador.", side: "right" } },
+            { element: '[data-tour="trabajador-apellidos"]', popover: { title: "Apellidos", description: "Escriba los apellidos completos del trabajador.", side: "right" } },
+            { element: '[data-tour="trabajador-email"]', popover: { title: "Correo electrónico", description: "Aquí se enviarán las citaciones a descargos, así que es importante.", side: "right" } },
+            { element: '[data-tour="trabajador-cargo"]', popover: { title: "Cargo", description: "Seleccione el cargo del trabajador o elija 'Otro' para escribirlo.", side: "right" } },
+            { element: "[data-tour='trabajador-area']", popover: { title: "Área (opcional)", description: "Puede indicar el área o departamento del trabajador.", side: "right" } },
+            { element: "[data-tour='trabajador-activo']", popover: { title: "Estado", description: "Deje 'Activo' si el trabajador aún labora en la empresa.", side: "right" } },
+            { element: ".fi-form-actions", popover: { title: "Guardar", description: "Al hacer clic en 'Crear', el trabajador queda registrado y podrá citarlo a descargos.", side: "top" } },
+            { popover: { title: "Listo", description: "Complete los datos y el trabajador quedará añadido." } },
+        ];
+
+        autoStart(build(steps), "cesTourTrabajadorCreate_" + role);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // Funciones globales
+    // ══════════════════════════════════════════════════════════════════════════
+    window.iniciarTour = function () {
+        if (activeTour) activeTour.drive();
+    };
+
+    window.reiniciarTourDescargos = function () {
+        Object.keys(localStorage)
+            .filter(function (k) {
+                return k.indexOf("cesTour") === 0;
+            })
+            .forEach(function (k) {
+                localStorage.removeItem(k);
+            });
+        location.reload();
     };
 });

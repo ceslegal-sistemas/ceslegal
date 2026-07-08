@@ -43,6 +43,27 @@ class AdminPanelProvider extends PanelProvider
             fn(): string => '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>',
         );
 
+        // Contexto del usuario autenticado para las guías interactivas (tour-descargos.js).
+        // Permite que la guía se adapte al rol (cliente, bufete, super_admin) sin build.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            function (): string {
+                $user = auth()->user();
+                if (! $user) {
+                    return '';
+                }
+
+                $ctx = [
+                    'role'          => $user->role,
+                    'esBufete'      => $user->esAbogadoDeBufete(),
+                    'empresaActiva' => \App\Support\EmpresaActiva::id() !== null,
+                    'nombre'        => $user->name,
+                ];
+
+                return '<script>window.CES_USER = ' . json_encode($ctx, JSON_UNESCAPED_UNICODE) . ';</script>';
+            },
+        );
+
         // Oculta el stepper nativo de Filament SOLO donde exista la clase
         // `rit-hide-wizard-steps` (la añade la página CreateReglamentoInterno, que
         // usa su propio encabezado de paso). El CSS va en el <head> via render hook,
