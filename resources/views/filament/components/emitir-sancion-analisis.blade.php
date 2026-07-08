@@ -113,7 +113,7 @@
             'accentLight'=> '#6d28d9',
             'glow'       => 'rgba(167,139,250,0.09)',
             'border'     => 'rgba(167,139,250,0.28)',
-            'lord'       => 'lupugrca.json',
+            'lord'       => 'eaegfqtv.json',
             'lordColors' => 'primary:#a78bfa,secondary:#ddd6fe',
         ],
         'terminacion' => [
