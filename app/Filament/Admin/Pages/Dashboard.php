@@ -105,7 +105,7 @@ class Dashboard extends BaseDashboard
     public function getWidgets(): array
     {
         return [
-            ProcesoGuiaWidget::class,
+            // ProcesoGuiaWidget se renderiza aparte (full-width) en la vista del dashboard.
             StatsOverviewWidget::class,
             ProcessesByStatusChart::class,
             RecentProcessesWidget::class,
