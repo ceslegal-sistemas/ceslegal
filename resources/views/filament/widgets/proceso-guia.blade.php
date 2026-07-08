@@ -104,14 +104,18 @@
         .pg-lead{font-size:.85rem;line-height:1.5;color:#78716c;margin:.35rem 0 .9rem;max-width:60ch}
         html.dark .pg-lead{color:#a8a29e}
         .pg-head{margin-bottom:1.1rem}
-        /* pasos */
-        .pg-steps{display:flex;flex-wrap:wrap;gap:.25rem 0;align-items:flex-start;margin-bottom:1.1rem}
-        .pg-step{position:relative;display:flex;flex-direction:column;align-items:center;flex:1;min-width:72px;gap:.4rem}
-        .pg-node{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+        /* pasos — una sola fila en escritorio, scroll horizontal en móvil (nunca se corta) */
+        .pg-steps{display:flex;flex-wrap:nowrap;gap:0;align-items:flex-start;margin-bottom:1.1rem}
+        .pg-step{position:relative;display:flex;flex-direction:column;align-items:center;flex:1 1 0;min-width:0;gap:.4rem;padding:0 .15rem}
+        .pg-node{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;
             background:#f5f5f4;border:2px solid #e7e5e4;color:#a8a29e;z-index:1}
         html.dark .pg-node{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}
         .pg-node-ico{width:19px;height:19px}
-        .pg-step-label{font-size:.68rem;font-weight:600;text-align:center;color:#78716c;line-height:1.25;max-width:10ch}
+        .pg-step-label{font-size:.72rem;font-weight:600;text-align:center;color:#78716c;line-height:1.25;max-width:13ch}
+        @media(max-width:768px){
+            .pg-steps{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:.4rem}
+            .pg-step{flex:0 0 5.5rem}
+        }
         html.dark .pg-step-label{color:#a8a29e}
         .pg-line{position:absolute;top:18px;left:50%;width:100%;height:2px;background:#e7e5e4;z-index:0}
         html.dark .pg-line{background:rgba(255,255,255,.1)}
