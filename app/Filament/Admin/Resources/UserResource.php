@@ -72,12 +72,7 @@ class UserResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('role')
                             ->label('Rol del Usuario')
-                            ->options([
-                                'super_admin' => 'Administrador - Acceso total al sistema',
-                                'abogado' => 'Abogado - Gestiona procesos disciplinarios y contratos',
-                                'cliente' => 'Cliente - Visualiza procesos de su empresa y gestiona personal',
-                                'bufete' => 'Bufete - Gestiona los procesos de varias empresas clientes',
-                            ])
+                            ->options(fn() => static::roleOptions())
                             ->required()
                             ->default('abogado')
                             ->live()
@@ -156,6 +151,55 @@ class UserResource extends Resource
             ]);
     }
 
+    /** Etiqueta legible por rol (descripción larga para los roles conocidos). */
+    protected static function descripcionesRoles(): array
+    {
+        return [
+            'super_admin' => 'Administrador - Acceso total al sistema',
+            'abogado'     => 'Abogado - Gestiona procesos disciplinarios y contratos',
+            'cliente'     => 'Cliente - Visualiza procesos de su empresa y gestiona personal',
+            'bufete'      => 'Bufete - Gestiona los procesos de varias empresas clientes',
+        ];
+    }
+
+    /** Nombre corto por rol (para tabla y filtros). */
+    protected static function etiquetasRoles(): array
+    {
+        return [
+            'super_admin' => 'Administrador',
+            'abogado'     => 'Abogado',
+            'cliente'     => 'Cliente',
+            'bufete'      => 'Bufete',
+        ];
+    }
+
+    /**
+     * Opciones de rol para el formulario: se leen dinámicamente de los roles de
+     * Shield/Spatie, así cualquier rol nuevo aparece sin tocar este código.
+     */
+    public static function roleOptions(): array
+    {
+        $desc = static::descripcionesRoles();
+
+        return \Spatie\Permission\Models\Role::query()
+            ->orderBy('name')
+            ->pluck('name')
+            ->mapWithKeys(fn($name) => [$name => $desc[$name] ?? \Illuminate\Support\Str::headline($name)])
+            ->toArray();
+    }
+
+    /** Opciones de rol (nombre corto) para tabla/filtros, también dinámicas. */
+    public static function roleFilterOptions(): array
+    {
+        $cortas = static::etiquetasRoles();
+
+        return \Spatie\Permission\Models\Role::query()
+            ->orderBy('name')
+            ->pluck('name')
+            ->mapWithKeys(fn($name) => [$name => $cortas[$name] ?? \Illuminate\Support\Str::headline($name)])
+            ->toArray();
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -188,13 +232,7 @@ class UserResource extends Resource
                         'heroicon-o-building-office' => 'cliente',
                         'heroicon-o-briefcase' => 'bufete',
                     ])
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'super_admin' => 'Administrador',
-                        'abogado' => 'Abogado',
-                        'cliente' => 'Cliente',
-                        'bufete' => 'Bufete',
-                        default => $state,
-                    })
+                    ->formatStateUsing(fn(string $state): string => static::etiquetasRoles()[$state] ?? \Illuminate\Support\Str::headline($state))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('empresa.razon_social')
@@ -220,12 +258,7 @@ class UserResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('role')
                     ->label('Rol')
-                    ->options([
-                        'super_admin' => 'Administrador',
-                        'abogado' => 'Abogado',
-                        'cliente' => 'Cliente',
-                        'bufete' => 'Bufete',
-                    ])
+                    ->options(fn() => static::roleFilterOptions())
                     ->multiple(),
 
                 Tables\Filters\SelectFilter::make('empresa')
