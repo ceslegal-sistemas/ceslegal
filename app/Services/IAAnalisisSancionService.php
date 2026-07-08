@@ -939,6 +939,17 @@ PROMPT;
             $maxDias = is_int($analisis['dias_suspension_max_rit']) && $analisis['dias_suspension_max_rit'] > 0
                 ? $analisis['dias_suspension_max_rit']
                 : null;
+
+            // Topar el rango sugerido al máximo PROPORCIONAL que la IA recomienda para
+            // ESTE caso (recomendacion_final.dias_suspension), sin exceder el máximo del
+            // RIT. Así el selector de días no ofrece más de lo recomendado (p. ej. la IA
+            // recomienda hasta 5 días: el selector muestra 1..5, no 1..8 del tope del RIT).
+            $recProporcional = $analisis['recomendacion_final']['dias_suspension'] ?? null;
+            $recProporcional = is_numeric($recProporcional) ? (int) $recProporcional : null;
+            if ($recProporcional && $recProporcional > 0) {
+                $maxDias = $maxDias ? min($maxDias, $recProporcional) : $recProporcional;
+            }
+
             $analisis['dias_suspension_sugeridos'] = $maxDias ? range(1, $maxDias) : [];
 
             $rf = $analisis['recomendacion_final'] ?? [];
