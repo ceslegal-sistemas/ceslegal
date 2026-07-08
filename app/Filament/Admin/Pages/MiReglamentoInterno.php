@@ -195,19 +195,20 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                     ->first();
 
                 // Si no se pudo extraer texto, el RIT queda guardado pero sin sanciones
-                // detectables. Se avisa con un mensaje según el motivo real: PDF protegido
-                // (p. ej. un RIT generado por el propio sistema, que sale con protección) o
-                // PDF sin texto seleccionable (escaneado como imagen).
+                // detectables. Se identifica el motivo real y se da una acción concreta.
                 if (empty($ritCreado->texto_completo)) {
-                    $protegido = app(ReglamentoInternoService::class)
-                        ->motivoTextoVacio($rutaAbsoluta) === 'protegido';
+                    $motivo = app(ReglamentoInternoService::class)->motivoTextoVacio($rutaAbsoluta);
+
+                    $cuerpo = match ($motivo) {
+                        'protegido' => 'El PDF está protegido o cifrado (tiene restricciones), por eso no se puede leer su contenido para detectar las faltas y sanciones. Vuelva a subirlo en Word (.docx) o exporte el PDF sin protección.',
+                        'corrupto'  => 'No se pudo leer el archivo: puede estar dañado o en un formato no compatible. Verifíquelo y vuelva a subirlo en Word (.docx) o en un PDF con texto seleccionable.',
+                        default     => 'El PDF no tiene texto seleccionable (parece escaneado como imagen), por eso no se puede leer su contenido para detectar las faltas y sanciones. Vuelva a subirlo en Word (.docx) o en un PDF con texto seleccionable.',
+                    };
 
                     Notification::make()
                         ->warning()
-                        ->title('RIT guardado, pero no se pudo leer el texto')
-                        ->body($protegido
-                            ? 'El PDF está protegido (con restricciones de edición), por eso el sistema no pudo leer su contenido para detectar faltas y sanciones. Si este reglamento lo generó con nuestro constructor, ya está guardado y no necesita volver a subirlo. Si desea reemplazarlo, suba el archivo en Word o un PDF sin protección.'
-                            : 'El archivo parece ser un PDF escaneado (imagen), sin texto seleccionable. Se guardó como versión vigente, pero el sistema no podrá detectar las faltas y sanciones automáticamente. Le recomendamos subir el reglamento en Word o en un PDF con texto seleccionable.')
+                        ->title('No se pudo leer el contenido del reglamento')
+                        ->body($cuerpo)
                         ->persistent()
                         ->send();
 

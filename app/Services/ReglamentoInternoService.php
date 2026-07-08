@@ -91,22 +91,45 @@ class ReglamentoInternoService
     }
 
     /**
-     * Explica por qué no se pudo extraer texto de un documento subido, para dar un
-     * mensaje preciso al usuario. Devuelve:
-     *   'protegido' → PDF cifrado/con restricciones (p. ej. un RIT que el propio
-     *                 sistema generó, que sale con protección de edición).
-     *   'ilegible'  → PDF sin texto seleccionable (escaneado como imagen) u otro caso.
+     * Identifica el motivo real por el que no se pudo extraer texto de un documento,
+     * para dar un aviso preciso al usuario. Intenta leer el archivo y clasifica:
+     *   'protegido' → PDF cifrado o con restricciones (no se puede leer su contenido).
+     *   'ilegible'  → se leyó pero no hay texto seleccionable (escaneado como imagen).
+     *   'corrupto'  → el archivo está dañado o en un formato no compatible.
      */
     public function motivoTextoVacio(string $rutaArchivo): string
     {
-        if (strtolower(pathinfo($rutaArchivo, PATHINFO_EXTENSION)) === 'pdf'
-            && is_file($rutaArchivo)
-            && str_contains((string) file_get_contents($rutaArchivo, false, null, 0, 4096) . $this->colaArchivo($rutaArchivo), '/Encrypt')
-        ) {
+        if (! is_file($rutaArchivo)) {
+            return 'corrupto';
+        }
+
+        $extension = strtolower(pathinfo($rutaArchivo, PATHINFO_EXTENSION));
+
+        if ($extension === 'pdf' && $this->pdfEstaCifrado($rutaArchivo)) {
             return 'protegido';
         }
 
-        return 'ilegible';
+        try {
+            $extension === 'pdf'
+                ? $this->extraerTextoPdf($rutaArchivo)
+                : $this->extraerTextoDocx($rutaArchivo);
+
+            // Se pudo leer el archivo pero no arrojó texto → sin texto seleccionable.
+            return 'ilegible';
+        } catch (\Throwable $e) {
+            // pdfparser lanza "Secured pdf file are currently not supported" en cifrados.
+            return str_contains(strtolower($e->getMessage()), 'secured')
+                ? 'protegido'
+                : 'corrupto';
+        }
+    }
+
+    /** ¿El PDF tiene diccionario /Encrypt (cifrado o con restricciones)? */
+    private function pdfEstaCifrado(string $rutaArchivo): bool
+    {
+        $cabeza = (string) file_get_contents($rutaArchivo, false, null, 0, 4096);
+
+        return str_contains($cabeza . $this->colaArchivo($rutaArchivo), '/Encrypt');
     }
 
     /** Últimos bytes del archivo (el diccionario /Encrypt suele ir cerca del trailer). */
