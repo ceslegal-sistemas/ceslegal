@@ -178,7 +178,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
 
                 $rutaAbsoluta = Storage::disk('local')->path($rutaPermanente);
 
-                app(ReglamentoInternoService::class)->procesarDocumento(
+                $ritCreado = app(ReglamentoInternoService::class)->procesarDocumento(
                     $rutaAbsoluta,
                     $this->empresa->id,
                     $nombreArchivo,
@@ -193,6 +193,20 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                     })
                     ->orderByDesc('updated_at')
                     ->first();
+
+                // Si no se pudo extraer texto (p. ej. un PDF escaneado como imagen),
+                // el RIT queda guardado pero sin sanciones detectables. Se avisa para
+                // que el cliente suba una versión con texto seleccionable (Word o PDF real).
+                if (empty($ritCreado->texto_completo)) {
+                    Notification::make()
+                        ->warning()
+                        ->title('RIT guardado, pero no se pudo leer el texto')
+                        ->body('El archivo parece ser un PDF escaneado (imagen). Se guardó como versión vigente, pero el sistema no podrá detectar las faltas y sanciones automáticamente. Le recomendamos subir el reglamento en Word o en un PDF con texto seleccionable.')
+                        ->persistent()
+                        ->send();
+
+                    return;
+                }
 
                 Notification::make()
                     ->success()
