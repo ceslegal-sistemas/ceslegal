@@ -365,17 +365,28 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->native(false)
                                 ->displayFormat('d/m/Y')
                                 ->maxDate(now())
-                                ->helperText('Fecha en que ocurrió el hecho'),
+                                ->disabledDates(fn(Get $get) => self::fechasInhabilesHecho($get('empresa_id')))
+                                ->helperText(fn(Get $get) => self::textoDiasHabilesHecho($get('empresa_id'))),
 
                             TimePickerField::make('hora_aproximada_hecho')
                                 ->label('Hora aproximada (opcional)')
                                 ->helperText('Horario Colombia (UTC-5)'),
 
-                            Forms\Components\Radio::make('en_horario_laboral')
-                                ->label('¿Ocurrió en horario laboral?')
-                                ->options(['si' => 'Sí', 'no' => 'No'])
-                                ->required()
-                                ->inline()
+                            // Varias fechas: el hecho pudo ocurrir en más de un día laboral.
+                            Forms\Components\Repeater::make('fechas_ocurrencia_adicionales')
+                                ->label('¿Ocurrió en más de un día? Agregue las fechas adicionales')
+                                ->schema([
+                                    Forms\Components\DatePicker::make('fecha')
+                                        ->label('Fecha adicional')
+                                        ->required()
+                                        ->native(false)
+                                        ->displayFormat('d/m/Y')
+                                        ->maxDate(now())
+                                        ->disabledDates(fn(Get $get) => self::fechasInhabilesHecho($get('../../empresa_id'))),
+                                ])
+                                ->addActionLabel('Agregar otra fecha')
+                                ->defaultItems(0)
+                                ->reorderable(false)
                                 ->columnSpanFull(),
                         ])
                         ->columns(2),
@@ -1626,6 +1637,37 @@ class CreateProcesoDisciplinario extends CreateRecord
         );
 
         return $data;
+    }
+
+    /**
+     * Fechas (Y-m-d) que NO son día laboral de la empresa, para deshabilitar en los
+     * date pickers de "cuándo ocurrió". Los días laborales salen del RIT (o su
+     * respaldo). Así el hecho solo puede fecharse en un día laboral y se omite la
+     * pregunta de "¿ocurrió en horario laboral?".
+     */
+    public static function fechasInhabilesHecho($empresaId, int $mesesAtras = 18): array
+    {
+        $empresa = $empresaId ? \App\Models\Empresa::find($empresaId) : null;
+        $set     = $empresa?->diasHabilesSet() ?? \App\Support\DiasHabiles::DEFECTO;
+
+        $disabled = [];
+        $fin      = now()->endOfDay();
+        for ($d = now()->copy()->subMonths($mesesAtras)->startOfDay(); $d->lte($fin); $d->addDay()) {
+            if (! in_array($d->dayOfWeekIso, $set, true)) {
+                $disabled[] = $d->format('Y-m-d');
+            }
+        }
+
+        return $disabled;
+    }
+
+    /** Texto de ayuda con los días laborales de la empresa para el picker de "cuándo ocurrió". */
+    public static function textoDiasHabilesHecho($empresaId): string
+    {
+        $empresa = $empresaId ? \App\Models\Empresa::find($empresaId) : null;
+        $texto   = $empresa ? \App\Support\DiasHabiles::texto($empresa->diasHabilesSet()) : 'Lunes a Viernes';
+
+        return "Solo días laborales de la empresa ({$texto}); el hecho debió ocurrir en un día laboral.";
     }
 
     protected function afterCreate(): void
