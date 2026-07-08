@@ -2208,11 +2208,10 @@ class ProcesoDisciplinarioResource extends Resource
                                         ->label('Foto de verificación del autorizador')
                                         ->content(fn() => view('filament.components.webcam-autorizador')),
 
-                                    Forms\Components\Hidden::make('foto_autorizador_base64')
-                                        ->required()
-                                        ->validationMessages([
-                                            'required' => 'Debe tomar la foto de verificación del autorizador antes de continuar.',
-                                        ]),
+                                    // La obligatoriedad se valida en ->action() con una
+                                    // notificación visible: al ser un campo oculto (base64),
+                                    // el error de "requerido" no se mostraría al usuario.
+                                    Forms\Components\Hidden::make('foto_autorizador_base64'),
                                 ]),
                             ])->columnSpan(['default' => 1, 'lg' => 5]),
 
@@ -2265,6 +2264,20 @@ class ProcesoDisciplinarioResource extends Resource
                         )
                     )
                     ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
+                        // Validación visible de la foto del autorizador (campo oculto). Si no
+                        // se tomó, avisamos con un mensaje claro y detenemos, sin dejar al
+                        // usuario con la duda de qué falta.
+                        if (empty($data['foto_autorizador_base64'])) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Falta la verificación fotográfica')
+                                ->body('Debe tomar la foto de verificación del autorizador antes de continuar.')
+                                ->persistent()
+                                ->send();
+
+                            $action->halt();
+                        }
+
                         // 1. Procesar foto si existe
                         $fotoPath = null;
                         if (!empty($data['foto_autorizador_base64'])) {
