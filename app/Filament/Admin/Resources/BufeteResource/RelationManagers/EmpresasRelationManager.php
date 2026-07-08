@@ -4,7 +4,9 @@ namespace App\Filament\Admin\Resources\BufeteResource\RelationManagers;
 
 use App\Filament\Admin\Resources\EmpresaResource;
 use App\Models\Empresa;
+use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -46,7 +48,49 @@ class EmpresasRelationManager extends RelationManager
                     ->label('Activa')
                     ->boolean(),
             ])
-            ->headerActions([])
+            ->headerActions([
+                // Vincular una empresa existente = asignarle el bufete_id de este bufete.
+                Tables\Actions\Action::make('vincular')
+                    ->label('Vincular empresa')
+                    ->icon('heroicon-o-link')
+                    ->modalHeading('Vincular una empresa a este bufete')
+                    ->modalSubmitActionLabel('Vincular')
+                    ->form([
+                        Forms\Components\Select::make('empresa_id')
+                            ->label('Empresa')
+                            ->options(function () {
+                                $bufeteId = $this->getOwnerRecord()->getKey();
+
+                                return Empresa::query()
+                                    ->withoutGlobalScope('bufeteOrEmpresa')
+                                    ->where(fn($q) => $q->whereNull('bufete_id')->orWhere('bufete_id', '!=', $bufeteId))
+                                    ->orderBy('razon_social')
+                                    ->get()
+                                    ->mapWithKeys(fn(Empresa $e) => [
+                                        $e->id => $e->razon_social . ($e->nit ? " — {$e->nit}" : '') . ($e->bufete_id ? ' (ya en otro bufete)' : ''),
+                                    ])
+                                    ->toArray();
+                            })
+                            ->searchable()
+                            ->required()
+                            ->helperText('Solo se listan empresas que no están en este bufete. Si la empresa ya pertenece a otro bufete, se reasignará a este.'),
+                    ])
+                    ->action(function (array $data) {
+                        $empresa = Empresa::withoutGlobalScope('bufeteOrEmpresa')->find($data['empresa_id']);
+                        if (! $empresa) {
+                            return;
+                        }
+
+                        $empresa->bufete_id = $this->getOwnerRecord()->getKey();
+                        $empresa->save();
+
+                        Notification::make()
+                            ->success()
+                            ->title('Empresa vinculada')
+                            ->body("«{$empresa->razon_social}» ahora pertenece a este bufete.")
+                            ->send();
+                    }),
+            ])
             ->actions([
                 Tables\Actions\Action::make('abrir')
                     ->label('Abrir')
@@ -54,6 +98,26 @@ class EmpresasRelationManager extends RelationManager
                     ->color('gray')
                     ->url(fn(Empresa $record) => EmpresaResource::getUrl('edit', ['record' => $record]))
                     ->openUrlInNewTab(),
+
+                // Desvincular = quitar el bufete_id (la empresa no se elimina).
+                Tables\Actions\Action::make('desvincular')
+                    ->label('Desvincular')
+                    ->icon('heroicon-o-link-slash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Desvincular empresa')
+                    ->modalDescription('La empresa dejará de pertenecer a este bufete. No se elimina ni se pierde su información.')
+                    ->modalSubmitActionLabel('Sí, desvincular')
+                    ->action(function (Empresa $record) {
+                        $record->bufete_id = null;
+                        $record->save();
+
+                        Notification::make()
+                            ->success()
+                            ->title('Empresa desvinculada')
+                            ->body("«{$record->razon_social}» ya no pertenece a este bufete.")
+                            ->send();
+                    }),
             ])
             ->bulkActions([])
             ->emptyStateHeading('Sin empresas asociadas')
