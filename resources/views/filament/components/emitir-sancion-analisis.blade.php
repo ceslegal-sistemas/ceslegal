@@ -238,6 +238,14 @@ html.dark .esa-accent-text { color: var(--a-dark); }
 .esa-badge-btn:hover { filter: brightness(0.97); }
 html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
 .esa-badge-btn:active { transform: translateY(1px); }
+/* Las etiquetas pastilla nunca se parten en dos líneas (evita que se vean como círculos) */
+.esa-badge-principal, .esa-badge-valido, .esa-badge-reincidencia { white-space: nowrap; }
+/* ── Responsive (celular) ── En pantallas angostas, la fila de cada recomendación
+   se apila: ícono + texto arriba y el botón "Aplicar" ocupa todo el ancho debajo. */
+@media (max-width: 640px) {
+    .esa-rec-row { flex-wrap: wrap; row-gap: 10px; }
+    .esa-rec-row > .esa-badge-btn { flex: 1 0 100%; justify-content: center; }
+}
 </style>
 
 <div class="space-y-2" wire:ignore x-data="{ sancionSel: @js($sancionPrincipal) }">
@@ -406,7 +414,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                             border-left:3px solid {{ $esPrincipal ? $sc['accent'] : 'transparent' }};">
 
                     {{-- Fila principal --}}
-                    <div style="display:flex;align-items:center;gap:12px;
+                    <div class="esa-rec-row" style="display:flex;align-items:center;gap:12px;
                                 padding:{{ $esPrincipal ? '12px' : '9px' }} 18px;">
 
                         <lord-icon
