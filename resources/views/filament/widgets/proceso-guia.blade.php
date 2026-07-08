@@ -30,13 +30,17 @@
     @else
         {{-- estado ok: roadmap --}}
         @php
-            $iconos = [
-                'cuenta' => 'heroicon-o-user-circle',
-                'rit' => 'heroicon-o-document-text',
-                'descargo' => 'heroicon-o-clipboard-document-list',
-                'diligencia' => 'heroicon-o-clock',
-                'sancion' => 'heroicon-o-scale',
+            // Iconos lordicon por paso (animan con loop al pasar el mouse). El estado
+            // 'done' usa el icono de check. Los colores se ajustan según el estado del
+            // nodo (blanco sobre fondo de color; gris cuando está pendiente).
+            $lord = [
+                'cuenta'     => ['src' => 'kdduutaw.json', 'state' => 'hover-looking-around'],
+                'rit'        => ['src' => 'fikcyfpp.json', 'state' => null],
+                'descargo'   => ['src' => 'exymduqj.json', 'state' => 'hover-line'],
+                'diligencia' => ['src' => 'warimioc.json', 'state' => null],
+                'sancion'    => ['src' => 'bduzytli.json', 'state' => null],
             ];
+            $lordCheck = ['src' => 'lvrxlmju.json', 'state' => 'hover-loading'];
         @endphp
         <div class="pg-card">
             <div class="pg-head">
@@ -49,12 +53,24 @@
             {{-- Fila de pasos --}}
             <div class="pg-steps">
                 @foreach($g['pasos'] as $i => $paso)
+                    @php
+                        $ic = $paso['estado'] === 'done' ? $lordCheck : ($lord[$paso['clave']] ?? null);
+                        // Color del icono según el estado del nodo (fondo de color -> blanco).
+                        $icColor = $paso['estado'] === 'pending'
+                            ? 'primary:#a8a29e,secondary:#a8a29e'
+                            : 'primary:#ffffff,secondary:#ffffff';
+                    @endphp
                     <div class="pg-step pg-{{ $paso['estado'] }}">
                         <span class="pg-node">
-                            @if($paso['estado'] === 'done')
-                                @svg('heroicon-s-check', 'pg-node-ico')
+                            @if($ic)
+                                <lord-icon
+                                    src="https://cdn.lordicon.com/{{ $ic['src'] }}"
+                                    trigger="loop-on-hover"
+                                    @if(!empty($ic['state'])) state="{{ $ic['state'] }}" @endif
+                                    colors="{{ $icColor }}"
+                                    class="pg-node-lord"></lord-icon>
                             @else
-                                @svg($iconos[$paso['clave']] ?? 'heroicon-o-minus', 'pg-node-ico')
+                                @svg('heroicon-o-minus', 'pg-node-ico')
                             @endif
                         </span>
                         <span class="pg-step-label">{{ $paso['label'] }}</span>
@@ -111,6 +127,7 @@
             background:#f5f5f4;border:2px solid #e7e5e4;color:#a8a29e;z-index:1}
         html.dark .pg-node{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}
         .pg-node-ico{width:19px;height:19px}
+        .pg-node-lord{width:22px;height:22px;display:block}
         .pg-step-label{font-size:.72rem;font-weight:600;text-align:center;color:#78716c;line-height:1.25;max-width:13ch}
         @media(max-width:768px){
             .pg-steps{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:.4rem}
