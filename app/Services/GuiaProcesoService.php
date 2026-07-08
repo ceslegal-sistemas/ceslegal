@@ -152,7 +152,7 @@ class GuiaProcesoService
                 'tipo' => 'primary',
                 'label' => 'Construir o subir mi Reglamento Interno',
                 'url' => route('filament.admin.pages.mi-reglamento-interno'),
-                'nota' => 'Si lo subís, se audita automáticamente. Si lo construís con IA, no requiere auditoría.',
+                'nota' => 'Si sube su reglamento, el sistema lo audita automáticamente. Si lo construye con IA, no necesita auditoría.',
             ];
         }
 
@@ -161,7 +161,7 @@ class GuiaProcesoService
                 'tipo' => 'primary',
                 'label' => 'Crear el primer descargo',
                 'url' => \App\Filament\Admin\Resources\ProcesoDisciplinarioResource::getUrl('create'),
-                'nota' => 'Si el trabajador no existe, lo creás en el mismo formulario.',
+                'nota' => 'Si el trabajador no existe, puede crearlo en el mismo formulario.',
             ];
         }
 
@@ -172,7 +172,7 @@ class GuiaProcesoService
                 'tipo' => 'sancion',
                 'label' => $n === 1 ? 'Emitir la sanción' : "Emitir sanciones ({$n})",
                 'url' => \App\Filament\Admin\Resources\ProcesoDisciplinarioResource::getUrl('index'),
-                'nota' => 'En el listado, usá el botón "Emitir Sanción" de cada descargo.',
+                'nota' => 'En el listado, use el botón "Emitir Sanción" de cada descargo.',
             ];
         }
 
