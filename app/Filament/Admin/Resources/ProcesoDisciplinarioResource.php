@@ -2320,12 +2320,7 @@ class ProcesoDisciplinarioResource extends Resource
                         if ($data['tipo_sancion'] === 'suspension') {
                             $analisis = json_decode($data['analisis_cache'] ?? '{}', true) ?: [];
 
-                            $opcionesDiasSuspension = [];
-                            if (isset($analisis['dias_suspension_sugeridos'])) {
-                                foreach ($analisis['dias_suspension_sugeridos'] as $dias) {
-                                    $opcionesDiasSuspension[$dias] = "{$dias} día" . ($dias > 1 ? 's' : '');
-                                }
-                            }
+                            $opcionesDiasSuspension = self::opcionesDiasSuspension($analisis);
 
                             session(['tipo_sancion_pendiente_' . $record->id => 'suspension']);
                             session(['opciones_dias_' . $record->id => $opcionesDiasSuspension]);
@@ -2417,11 +2412,7 @@ class ProcesoDisciplinarioResource extends Resource
                             $resultado = $iaService->analizarYSugerirSanciones($record);
                             $analisis = $resultado['analisis'];
 
-                            if (isset($analisis['dias_suspension_sugeridos'])) {
-                                foreach ($analisis['dias_suspension_sugeridos'] as $dias) {
-                                    $opcionesDias[$dias] = "{$dias} día" . ($dias > 1 ? 's' : '');
-                                }
-                            }
+                            $opcionesDias = self::opcionesDiasSuspension($analisis);
                         }
 
                         return [
@@ -3395,12 +3386,7 @@ class ProcesoDisciplinarioResource extends Resource
                         ->action(function (ProcesoDisciplinario $record, array $data) {
                             if ($data['tipo_sancion'] === 'suspension') {
                                 $analisis = json_decode($data['analisis_cache'], true);
-                                $opcionesDiasSuspension = [];
-                                if (isset($analisis['dias_suspension_sugeridos'])) {
-                                    foreach ($analisis['dias_suspension_sugeridos'] as $dias) {
-                                        $opcionesDiasSuspension[$dias] = "{$dias} día" . ($dias > 1 ? 's' : '');
-                                    }
-                                }
+                                $opcionesDiasSuspension = self::opcionesDiasSuspension($analisis);
                                 session(['tipo_sancion_pendiente_' . $record->id => 'suspension']);
                                 session(['opciones_dias_' . $record->id => $opcionesDiasSuspension]);
 
@@ -3819,6 +3805,30 @@ class ProcesoDisciplinarioResource extends Resource
             'view'   => Pages\ViewProcesoDisciplinario::route('/{record}'),
             'edit'   => Pages\EditProcesoDisciplinario::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Opciones de días de suspensión para el selector, topadas al máximo proporcional
+     * que la IA recomienda para el caso (recomendacion_final.dias_suspension), sin
+     * exceder lo que arrojó el análisis. Evita ofrecer más días de los recomendados
+     * aunque el rango sugerido venga sin topar (p. ej. desde un análisis en caché).
+     */
+    protected static function opcionesDiasSuspension(array $analisis): array
+    {
+        $dias = $analisis['dias_suspension_sugeridos'] ?? [];
+
+        $rec = $analisis['recomendacion_final']['dias_suspension'] ?? null;
+        $rec = is_numeric($rec) ? (int) $rec : null;
+        if ($rec && $rec > 0) {
+            $dias = array_filter($dias, fn ($d) => (int) $d <= $rec);
+        }
+
+        $opciones = [];
+        foreach ($dias as $d) {
+            $opciones[$d] = "{$d} día" . ($d > 1 ? 's' : '');
+        }
+
+        return $opciones;
     }
 
     protected static function getCargos(): array
