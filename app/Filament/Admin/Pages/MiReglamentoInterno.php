@@ -194,14 +194,20 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                     ->orderByDesc('updated_at')
                     ->first();
 
-                // Si no se pudo extraer texto (p. ej. un PDF escaneado como imagen),
-                // el RIT queda guardado pero sin sanciones detectables. Se avisa para
-                // que el cliente suba una versión con texto seleccionable (Word o PDF real).
+                // Si no se pudo extraer texto, el RIT queda guardado pero sin sanciones
+                // detectables. Se avisa con un mensaje según el motivo real: PDF protegido
+                // (p. ej. un RIT generado por el propio sistema, que sale con protección) o
+                // PDF sin texto seleccionable (escaneado como imagen).
                 if (empty($ritCreado->texto_completo)) {
+                    $protegido = app(ReglamentoInternoService::class)
+                        ->motivoTextoVacio($rutaAbsoluta) === 'protegido';
+
                     Notification::make()
                         ->warning()
                         ->title('RIT guardado, pero no se pudo leer el texto')
-                        ->body('El archivo parece ser un PDF escaneado (imagen). Se guardó como versión vigente, pero el sistema no podrá detectar las faltas y sanciones automáticamente. Le recomendamos subir el reglamento en Word o en un PDF con texto seleccionable.')
+                        ->body($protegido
+                            ? 'El PDF está protegido (con restricciones de edición), por eso el sistema no pudo leer su contenido para detectar faltas y sanciones. Si este reglamento lo generó con nuestro constructor, ya está guardado y no necesita volver a subirlo. Si desea reemplazarlo, suba el archivo en Word o un PDF sin protección.'
+                            : 'El archivo parece ser un PDF escaneado (imagen), sin texto seleccionable. Se guardó como versión vigente, pero el sistema no podrá detectar las faltas y sanciones automáticamente. Le recomendamos subir el reglamento en Word o en un PDF con texto seleccionable.')
                         ->persistent()
                         ->send();
 

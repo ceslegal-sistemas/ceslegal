@@ -91,6 +91,36 @@ class ReglamentoInternoService
     }
 
     /**
+     * Explica por qué no se pudo extraer texto de un documento subido, para dar un
+     * mensaje preciso al usuario. Devuelve:
+     *   'protegido' → PDF cifrado/con restricciones (p. ej. un RIT que el propio
+     *                 sistema generó, que sale con protección de edición).
+     *   'ilegible'  → PDF sin texto seleccionable (escaneado como imagen) u otro caso.
+     */
+    public function motivoTextoVacio(string $rutaArchivo): string
+    {
+        if (strtolower(pathinfo($rutaArchivo, PATHINFO_EXTENSION)) === 'pdf'
+            && is_file($rutaArchivo)
+            && str_contains((string) file_get_contents($rutaArchivo, false, null, 0, 4096) . $this->colaArchivo($rutaArchivo), '/Encrypt')
+        ) {
+            return 'protegido';
+        }
+
+        return 'ilegible';
+    }
+
+    /** Últimos bytes del archivo (el diccionario /Encrypt suele ir cerca del trailer). */
+    private function colaArchivo(string $ruta): string
+    {
+        $tam = @filesize($ruta) ?: 0;
+        if ($tam <= 4096) {
+            return '';
+        }
+
+        return (string) file_get_contents($ruta, false, null, max(0, $tam - 4096), 4096);
+    }
+
+    /**
      * Detecta los días laborales a partir del texto del RIT subido.
      * Devuelve 'lunes_sabado' | 'lunes_viernes' | null (no detectado → fallback empresa).
      */
