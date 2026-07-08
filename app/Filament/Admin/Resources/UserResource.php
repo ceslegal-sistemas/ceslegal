@@ -103,17 +103,38 @@ class UserResource extends Resource
                             ])
                             ->createOptionModalHeading('Crear Nueva Empresa'),
 
-                        // Bufete (abogado externo que gestiona varias empresas).
+                        // Bufete = firma de abogados externa que gestiona los procesos
+                        // disciplinarios de VARIAS empresas clientes. Este usuario es un
+                        // abogado de esa firma; aquí se indica a qué firma pertenece.
                         Forms\Components\Select::make('bufete_id')
-                            ->label('Bufete Asignado')
+                            ->label('Bufete (firma de abogados)')
                             ->relationship('bufete', 'nombre')
                             ->searchable()
                             ->preload()
                             ->required(fn(Get $get) => $get('role') === 'bufete')
                             ->visible(fn(Get $get) => $get('role') === 'bufete')
-                            ->helperText('Seleccione el bufete al que pertenece este abogado externo')
-                            ->placeholder('Seleccione un bufete...')
-                            ->suffixIcon('heroicon-o-briefcase'),
+                            ->helperText('Firma de abogados externa que atiende a varias empresas. Si no está en la lista, créela con el botón +.')
+                            ->placeholder('Seleccione o cree un bufete...')
+                            ->suffixIcon('heroicon-o-briefcase')
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('nombre')
+                                    ->label('Nombre del bufete')
+                                    ->required()
+                                    ->placeholder('Ej: Abogados Asociados S.A.S'),
+                                Forms\Components\TextInput::make('nit')
+                                    ->label('NIT')
+                                    ->placeholder('Ej: 900123456-7'),
+                                Forms\Components\TextInput::make('representante')
+                                    ->label('Representante')
+                                    ->placeholder('Nombre del representante'),
+                                Forms\Components\TextInput::make('email_contacto')
+                                    ->label('Correo de contacto')
+                                    ->email(),
+                                Forms\Components\TextInput::make('telefono')
+                                    ->label('Teléfono')
+                                    ->tel(),
+                            ])
+                            ->createOptionModalHeading('Crear nuevo bufete'),
 
                         Forms\Components\Toggle::make('active')
                             ->label('Usuario Activo')
