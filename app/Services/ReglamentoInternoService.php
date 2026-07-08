@@ -51,13 +51,18 @@ class ReglamentoInternoService
             ]);
         }
 
+        // Conjunto de días hábiles detectado del RIT (soporta domingo y 24/7).
+        $diasHabiles = \App\Support\DiasHabiles::detectar($texto);
+
         $campos = [
             'nombre'         => $nombreOriginal,
             'texto_completo' => $texto ?: null,
             'activo'         => true,
             'fuente'         => 'subido',
-            // Días laborales inferidos del RIT subido (null si no se detecta → fallback empresa).
+            // Legado (binario) — se conserva por compatibilidad; null si no se detecta.
             'dias_laborales' => $this->detectarDiasLaborales($texto),
+            // Nuevo: conjunto de días ISO (null si no se detecta → se confirma luego).
+            'dias_habiles'   => $diasHabiles,
         ];
 
         // Si se proporciona una ruta permanente, guardarla para descarga directa

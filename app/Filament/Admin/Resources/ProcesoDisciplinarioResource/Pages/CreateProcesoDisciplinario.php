@@ -706,20 +706,18 @@ class CreateProcesoDisciplinario extends CreateRecord
                                     $festivos       = self::getFestivosDatepicker();
                                     $empresaId      = $get('empresa_id');
                                     $empresa        = $empresaId ? Empresa::find($empresaId) : null;
-                                    $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+                                    $diasHabiles    = $empresa?->diasHabilesSet() ?? \App\Support\DiasHabiles::DEFECTO;
 
-                                    // Contar 6 días hábiles según jornada de la empresa
+                                    // Contar 6 días hábiles según la jornada real de la empresa
                                     $fecha    = now()->copy();
                                     $contados = 0;
 
                                     while ($contados < 6) {
                                         $fecha->addDay();
-                                        $esFestivo  = in_array($fecha->format('Y-m-d'), $festivos);
-                                        $esInhabil  = $trabajaSabados
-                                            ? $fecha->isSunday()
-                                            : $fecha->isWeekend();
+                                        $esFestivo = in_array($fecha->format('Y-m-d'), $festivos);
+                                        $esHabil   = in_array($fecha->dayOfWeekIso, $diasHabiles, true);
 
-                                        if (!$esInhabil && !$esFestivo) {
+                                        if ($esHabil && !$esFestivo) {
                                             $contados++;
                                         }
                                     }
@@ -728,9 +726,9 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 })
                                 ->maxDate(fn() => now()->addMonths(3)->endOfDay())
                                 ->disabledDates(function (Get $get) {
-                                    $empresaId      = $get('empresa_id');
-                                    $empresa        = $empresaId ? Empresa::find($empresaId) : null;
-                                    $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+                                    $empresaId   = $get('empresa_id');
+                                    $empresa     = $empresaId ? Empresa::find($empresaId) : null;
+                                    $diasHabiles = $empresa?->diasHabilesSet() ?? \App\Support\DiasHabiles::DEFECTO;
 
                                     $festivos = self::getFestivosDatepicker();
 
@@ -740,11 +738,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                     $fin            = now()->addMonths(3);
 
                                     for ($d = $inicio->copy(); $d->lte($fin); $d->addDay()) {
-                                        $esInhabil = $trabajaSabados
-                                            ? $d->isSunday()
-                                            : $d->isWeekend();
-
-                                        if ($esInhabil) {
+                                        if (! in_array($d->dayOfWeekIso, $diasHabiles, true)) {
                                             $deshabilitadas[] = $d->format('Y-m-d');
                                         }
                                     }
@@ -752,13 +746,13 @@ class CreateProcesoDisciplinario extends CreateRecord
                                     return array_unique(array_merge($deshabilitadas, $festivos));
                                 })
                                 ->helperText(function (Get $get) {
-                                    $empresaId      = $get('empresa_id');
-                                    $empresa        = $empresaId ? Empresa::find($empresaId) : null;
-                                    $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+                                    $empresaId = $get('empresa_id');
+                                    $empresa   = $empresaId ? Empresa::find($empresaId) : null;
+                                    $texto     = $empresa
+                                        ? \App\Support\DiasHabiles::texto($empresa->diasHabilesSet())
+                                        : 'Lunes a Viernes';
 
-                                    return $trabajaSabados
-                                        ? 'Domingos y festivos no disponibles (mínimo 6 días hábiles)'
-                                        : 'Fines de semana y festivos no disponibles (mínimo 6 días hábiles)';
+                                    return "Días hábiles: {$texto}. Festivos no disponibles (mínimo 6 días hábiles).";
                                 }),
 
                             TimePickerField::make('hora_descargos_programada')

@@ -246,15 +246,12 @@ class DocumentGeneratorService
             }
         }
 
-        // ── Fecha disponibilidad pruebas (día hábil siguiente, según días laborales) ──
-        $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+        // ── Fecha disponibilidad pruebas (día hábil siguiente, según la jornada) ──
+        $diasHabiles = $empresa?->diasHabilesSet() ?? \App\Support\DiasHabiles::DEFECTO;
         $fechaDisponibilidadPruebas = Carbon::now()->copy();
         do {
             $fechaDisponibilidadPruebas->addDay();
-        } while (
-            $fechaDisponibilidadPruebas->isSunday()
-            || ($fechaDisponibilidadPruebas->isSaturday() && ! $trabajaSabados)
-        );
+        } while (! in_array($fechaDisponibilidadPruebas->dayOfWeekIso, $diasHabiles, true));
         $fechaDisponibilidadPruebas->locale('es');
         $fechaDispTexto = $fechaDisponibilidadPruebas->isoFormat('D [de] MMMM [de] YYYY');
 

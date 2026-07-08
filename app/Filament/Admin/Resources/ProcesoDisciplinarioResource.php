@@ -507,41 +507,15 @@ class ProcesoDisciplinarioResource extends Resource
                                     return now()->startOfDay();
                                 }
 
-                                // Obtener la empresa para verificar si trabajan sábados
+                                // Empresa para conocer su jornada real (conjunto de días hábiles)
                                 $empresaId = $get('empresa_id');
                                 $empresa = $empresaId ? Empresa::find($empresaId) : null;
-                                $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+                                $diasHabiles = $empresa?->diasHabilesSet() ?? \App\Support\DiasHabiles::DEFECTO;
 
-                                // Calcular 6 días HÁBILES desde hoy
-                                // Si la empresa trabaja sábados, usar lógica personalizada
-                                if ($trabajaSabados) {
-                                    $fecha = now()->copy();
-                                    $diasContados = 0;
-
-                                    // Obtener festivos
-                                    $festivos = [];
-                                    try {
-                                        if (\Illuminate\Support\Facades\Schema::hasTable('dias_no_habiles')) {
-                                            $festivos = \App\Models\DiaNoHabil::pluck('fecha')
-                                                ->map(fn($f) => \Carbon\Carbon::parse($f)->format('Y-m-d'))
-                                                ->toArray();
-                                        }
-                                    } catch (\Exception $e) {
-                                    }
-
-                                    while ($diasContados < 6) {
-                                        $fecha->addDay();
-                                        // Solo domingo es no laborable + festivos
-                                        if (!$fecha->isSunday() && !in_array($fecha->format('Y-m-d'), $festivos)) {
-                                            $diasContados++;
-                                        }
-                                    }
-                                    return $fecha->startOfDay();
-                                }
-
-                                // Para empresas que trabajan Lunes a Viernes, usar el servicio estándar
-                                $terminoService = app(\App\Services\TerminoLegalService::class);
-                                return $terminoService->calcularFechaVencimiento(now(), 6)->startOfDay();
+                                // 6 días hábiles desde hoy, respetando la jornada y los festivos
+                                return app(\App\Services\TerminoLegalService::class)
+                                    ->calcularFechaVencimiento(now(), 6, $diasHabiles)
+                                    ->startOfDay();
                             })
                             ->maxDate(fn() => now()->addMonth()->endOfDay())
                             ->native(false)
@@ -551,12 +525,11 @@ class ProcesoDisciplinarioResource extends Resource
                                 $inicio = now()->startOfDay();
                                 $fin = now()->addYears(1);
 
-                                // Obtener la empresa para verificar si trabajan sábados
                                 $empresaId = $get('empresa_id');
                                 $empresa = $empresaId ? Empresa::find($empresaId) : null;
-                                $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+                                $diasHabiles = $empresa?->diasHabilesSet() ?? \App\Support\DiasHabiles::DEFECTO;
 
-                                // Obtener festivos de la base de datos
+                                // Festivos registrados
                                 $festivos = [];
                                 try {
                                     if (\Illuminate\Support\Facades\Schema::hasTable('dias_no_habiles')) {
@@ -568,36 +541,24 @@ class ProcesoDisciplinarioResource extends Resource
                                     // Si hay error, continuar sin festivos
                                 }
 
-                                // Generar días no laborables
+                                // Deshabilitar los días que no son hábiles según la jornada
                                 for ($fecha = $inicio->copy(); $fecha->lte($fin); $fecha->addDay()) {
-                                    if ($trabajaSabados) {
-                                        // Solo deshabilitar domingos si trabajan sábados
-                                        if ($fecha->isSunday()) {
-                                            $fechasDeshabilitadas[] = $fecha->format('Y-m-d');
-                                        }
-                                    } else {
-                                        // Deshabilitar sábados y domingos
-                                        if ($fecha->isWeekend()) {
-                                            $fechasDeshabilitadas[] = $fecha->format('Y-m-d');
-                                        }
+                                    if (! in_array($fecha->dayOfWeekIso, $diasHabiles, true)) {
+                                        $fechasDeshabilitadas[] = $fecha->format('Y-m-d');
                                     }
                                 }
 
-                                // Agregar festivos
-                                $fechasDeshabilitadas = array_merge($fechasDeshabilitadas, $festivos);
-
-                                return array_unique($fechasDeshabilitadas);
+                                return array_unique(array_merge($fechasDeshabilitadas, $festivos));
                             })
                             ->visible(fn(Get $get) => $get('modalidad_descargos') === 'virtual')
                             ->helperText(function (Get $get) {
                                 $empresaId = $get('empresa_id');
                                 $empresa = $empresaId ? Empresa::find($empresaId) : null;
-                                $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+                                $texto = $empresa
+                                    ? \App\Support\DiasHabiles::texto($empresa->diasHabilesSet())
+                                    : 'Lunes a Viernes';
 
-                                if ($trabajaSabados) {
-                                    return 'Seleccione la fecha para la audiencia virtual (domingos y festivos no disponibles)';
-                                }
-                                return 'Seleccione la fecha para la audiencia virtual (fines de semana y festivos no disponibles)';
+                                return "Audiencia virtual — días hábiles: {$texto}. Festivos no disponibles.";
                             }),
 
 
@@ -1700,8 +1661,8 @@ class ProcesoDisciplinarioResource extends Resource
                                         $inicio = now()->startOfDay();
                                         $fin    = now()->addMonth();
 
-                                        $empresa        = $record->empresa;
-                                        $trabajaSabados = $empresa?->trabajaSabados() ?? false;
+                                        $empresa     = $record->empresa;
+                                        $diasHabiles = $empresa?->diasHabilesSet() ?? \App\Support\DiasHabiles::DEFECTO;
 
                                         $festivos = [];
                                         try {
@@ -1714,14 +1675,8 @@ class ProcesoDisciplinarioResource extends Resource
                                         }
 
                                         for ($fecha = $inicio->copy(); $fecha->lte($fin); $fecha->addDay()) {
-                                            if ($trabajaSabados) {
-                                                if ($fecha->isSunday()) {
-                                                    $fechasDeshabilitadas[] = $fecha->format('Y-m-d');
-                                                }
-                                            } else {
-                                                if ($fecha->isWeekend()) {
-                                                    $fechasDeshabilitadas[] = $fecha->format('Y-m-d');
-                                                }
+                                            if (! in_array($fecha->dayOfWeekIso, $diasHabiles, true)) {
+                                                $fechasDeshabilitadas[] = $fecha->format('Y-m-d');
                                             }
                                         }
 
