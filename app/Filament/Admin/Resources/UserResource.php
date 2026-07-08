@@ -76,6 +76,7 @@ class UserResource extends Resource
                                 'super_admin' => 'Administrador - Acceso total al sistema',
                                 'abogado' => 'Abogado - Gestiona procesos disciplinarios y contratos',
                                 'cliente' => 'Cliente - Visualiza procesos de su empresa y gestiona personal',
+                                'bufete' => 'Bufete - Gestiona los procesos de varias empresas clientes',
                             ])
                             ->required()
                             ->default('abogado')
@@ -90,13 +91,9 @@ class UserResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(fn(Get $get) => in_array($get('role'), ['cliente']))
-                            ->hidden(fn(Get $get) => $get('role') === 'super_admin' || $get('role') === 'abogado')
-                            ->helperText(
-                                fn(Get $get) =>
-                                $get('role') === 'super_admin' || $get('role') === 'abogado'
-                                    ? 'Los administradores y abogados tienen acceso a todas las empresas'
-                                    : 'Seleccione la empresa a la que pertenece el usuario'
-                            )
+                            // Solo el cliente pertenece a una empresa concreta.
+                            ->hidden(fn(Get $get) => $get('role') !== 'cliente')
+                            ->helperText('Seleccione la empresa a la que pertenece el usuario')
                             ->placeholder('Seleccione una empresa...')
                             ->suffixIcon('heroicon-o-building-office')
                             ->createOptionForm([
@@ -110,6 +107,18 @@ class UserResource extends Resource
                                     ->placeholder('Ej: 900123456-7'),
                             ])
                             ->createOptionModalHeading('Crear Nueva Empresa'),
+
+                        // Bufete (abogado externo que gestiona varias empresas).
+                        Forms\Components\Select::make('bufete_id')
+                            ->label('Bufete Asignado')
+                            ->relationship('bufete', 'nombre')
+                            ->searchable()
+                            ->preload()
+                            ->required(fn(Get $get) => $get('role') === 'bufete')
+                            ->visible(fn(Get $get) => $get('role') === 'bufete')
+                            ->helperText('Seleccione el bufete al que pertenece este abogado externo')
+                            ->placeholder('Seleccione un bufete...')
+                            ->suffixIcon('heroicon-o-briefcase'),
 
                         Forms\Components\Toggle::make('active')
                             ->label('Usuario Activo')
@@ -171,16 +180,19 @@ class UserResource extends Resource
                         'danger' => 'super_admin',
                         'primary' => 'abogado',
                         'success' => 'cliente',
+                        'warning' => 'bufete',
                     ])
                     ->icons([
                         'heroicon-o-shield-check' => 'super_admin',
                         'heroicon-o-scale' => 'abogado',
                         'heroicon-o-building-office' => 'cliente',
+                        'heroicon-o-briefcase' => 'bufete',
                     ])
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'super_admin' => 'Administrador',
                         'abogado' => 'Abogado',
                         'cliente' => 'Cliente',
+                        'bufete' => 'Bufete',
                         default => $state,
                     })
                     ->sortable(),
@@ -212,6 +224,7 @@ class UserResource extends Resource
                         'super_admin' => 'Administrador',
                         'abogado' => 'Abogado',
                         'cliente' => 'Cliente',
+                        'bufete' => 'Bufete',
                     ])
                     ->multiple(),
 

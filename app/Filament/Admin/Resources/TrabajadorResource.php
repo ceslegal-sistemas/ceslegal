@@ -120,9 +120,16 @@ class TrabajadorResource extends Resource
                         Forms\Components\TextInput::make('numero_documento')
                             ->label('Número de Documento')
                             ->required()
+                            // Único por (tipo_documento, número) DENTRO de la misma empresa:
+                            // la misma persona (cédula) puede existir en distintas empresas.
                             ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule, Get $get) {
-                                return $rule->where('tipo_documento', $get('tipo_documento'));
+                                $rule->where('tipo_documento', $get('tipo_documento'));
+                                if ($get('empresa_id')) {
+                                    $rule->where('empresa_id', $get('empresa_id'));
+                                }
+                                return $rule;
                             })
+                            ->validationMessages(['unique' => 'Ya existe un trabajador con este documento en la empresa.'])
                             ->maxLength(50)
                             ->placeholder(fn(Get $get) => match ($get('tipo_documento')) {
                                 'CC' => 'Ej: 1234567890',
