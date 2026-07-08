@@ -184,7 +184,7 @@ class UserResource extends Resource
     }
 
     /** Nombre corto por rol (para tabla y filtros). */
-    protected static function etiquetasRoles(): array
+    public static function etiquetasRoles(): array
     {
         return [
             'super_admin' => 'Administrador',

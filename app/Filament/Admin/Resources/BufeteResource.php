@@ -3,6 +3,8 @@
 namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\BufeteResource\Pages;
+use App\Filament\Admin\Resources\BufeteResource\RelationManagers\AbogadosRelationManager;
+use App\Filament\Admin\Resources\BufeteResource\RelationManagers\EmpresasRelationManager;
 use App\Models\Bufete;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -133,6 +135,14 @@ class BufeteResource extends Resource
             ])
             ->bulkActions([])
             ->defaultSort('nombre');
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            EmpresasRelationManager::class,
+            AbogadosRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
