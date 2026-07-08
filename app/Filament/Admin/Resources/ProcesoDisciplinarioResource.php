@@ -2045,6 +2045,7 @@ class ProcesoDisciplinarioResource extends Resource
                             // ── Aviso sin RIT ─────────────────────────────────────────────────
                             Forms\Components\Section::make('Empresa sin Reglamento Interno de Trabajo')
                                 ->icon('heroicon-o-exclamation-triangle')
+                                ->iconColor('warning')
                                 ->schema([
                                     Forms\Components\Placeholder::make('aviso_sin_rit')
                                         ->hiddenLabel()
@@ -2110,6 +2111,7 @@ class ProcesoDisciplinarioResource extends Resource
                             // ── Sección de Exoneración ─────────────────────────────────────────
                             Forms\Components\Section::make('Decisión Contraria a la Recomendación Jurídica')
                                 ->icon('heroicon-o-exclamation-triangle')
+                                ->iconColor('danger')
                                 ->schema([
                                     Forms\Components\Placeholder::make('exoneracion_aviso')
                                         ->hiddenLabel()
@@ -2162,6 +2164,7 @@ class ProcesoDisciplinarioResource extends Resource
                             // ── Verificación del Autorizador ──────────────────────────────────
                             Forms\Components\Section::make('Verificación del Autorizador')
                                 ->icon('heroicon-o-user-circle')
+                                ->iconColor('primary')
                                 ->description('Registre los datos de quien autoriza esta sanción y tome una foto de verificación.')
                                 ->schema([
                                     Forms\Components\Grid::make(2)->schema([
