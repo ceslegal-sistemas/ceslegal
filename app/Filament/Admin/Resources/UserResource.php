@@ -120,19 +120,37 @@ class UserResource extends Resource
                                 Forms\Components\TextInput::make('nombre')
                                     ->label('Nombre del bufete')
                                     ->required()
-                                    ->placeholder('Ej: Abogados Asociados S.A.S'),
+                                    ->maxLength(255)
+                                    ->placeholder('Ej: Abogados Asociados S.A.S')
+                                    ->helperText('Nombre legal de la firma de abogados'),
                                 Forms\Components\TextInput::make('nit')
                                     ->label('NIT')
-                                    ->placeholder('Ej: 900123456-7'),
+                                    ->required()
+                                    ->unique(table: 'bufetes', column: 'nit')
+                                    ->maxLength(50)
+                                    ->mask('999999999-9')
+                                    ->placeholder('Ej: 900123456-7')
+                                    ->helperText('Incluya el dígito de verificación')
+                                    ->rules(['regex:/^\d{6,12}-\d$/'])
+                                    ->validationMessages([
+                                        'regex'  => 'El NIT debe incluir el dígito de verificación (ej: 900123456-7).',
+                                        'unique' => 'Ya existe un bufete con este NIT.',
+                                    ]),
                                 Forms\Components\TextInput::make('representante')
                                     ->label('Representante')
-                                    ->placeholder('Nombre del representante'),
+                                    ->maxLength(255)
+                                    ->placeholder('Ej: Juan Pérez García'),
                                 Forms\Components\TextInput::make('email_contacto')
                                     ->label('Correo de contacto')
-                                    ->email(),
+                                    ->email()
+                                    ->maxLength(255)
+                                    ->placeholder('contacto@bufete.com'),
                                 Forms\Components\TextInput::make('telefono')
                                     ->label('Teléfono')
-                                    ->tel(),
+                                    ->tel()
+                                    ->mask('9999999999')
+                                    ->maxLength(10)
+                                    ->placeholder('3001234567'),
                             ])
                             ->createOptionModalHeading('Crear nuevo bufete'),
 

@@ -50,27 +50,50 @@ class BufeteResource extends Resource
                         ->required()
                         ->maxLength(255)
                         ->placeholder('Ej: Abogados Asociados S.A.S')
+                        ->helperText('Nombre legal de la firma de abogados')
+                        ->suffixIcon('heroicon-o-briefcase')
                         ->columnSpanFull(),
 
                     Forms\Components\TextInput::make('nit')
                         ->label('NIT')
+                        ->required()
+                        ->unique(ignoreRecord: true)
                         ->maxLength(50)
-                        ->placeholder('Ej: 900123456-7'),
+                        ->mask('999999999-9')
+                        ->placeholder('Ej: 900123456-7')
+                        ->helperText('Incluya el dígito de verificación separado por guion')
+                        ->rules(['regex:/^\d{6,12}-\d$/'])
+                        ->validationMessages([
+                            'regex'  => 'El NIT debe incluir el dígito de verificación (ej: 900123456-7).',
+                            'unique' => 'Ya existe un bufete con este NIT.',
+                        ])
+                        ->suffixIcon('heroicon-o-identification'),
 
                     Forms\Components\TextInput::make('representante')
                         ->label('Representante')
                         ->maxLength(255)
-                        ->placeholder('Nombre del representante'),
+                        ->placeholder('Ej: Juan Pérez García')
+                        ->helperText('Nombre del representante de la firma')
+                        ->suffixIcon('heroicon-o-user'),
 
                     Forms\Components\TextInput::make('email_contacto')
                         ->label('Correo de contacto')
                         ->email()
-                        ->maxLength(255),
+                        ->maxLength(255)
+                        ->placeholder('contacto@bufete.com')
+                        ->helperText('Correo electrónico principal de la firma')
+                        ->suffixIcon('heroicon-o-envelope'),
 
                     Forms\Components\TextInput::make('telefono')
                         ->label('Teléfono')
                         ->tel()
-                        ->maxLength(30),
+                        ->mask('9999999999')
+                        ->maxLength(10)
+                        ->rules(['regex:/^\d{7,10}$/'])
+                        ->validationMessages(['regex' => 'Ingrese un teléfono válido (solo números, hasta 10 dígitos).'])
+                        ->placeholder('3001234567')
+                        ->helperText('Solo números, hasta 10 dígitos')
+                        ->suffixIcon('heroicon-o-phone'),
 
                     Forms\Components\Toggle::make('active')
                         ->label('Bufete activo')
