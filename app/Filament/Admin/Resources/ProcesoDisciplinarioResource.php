@@ -2030,6 +2030,13 @@ class ProcesoDisciplinarioResource extends Resource
                         // mediante la sección de exoneración (más abajo).
 
                         return [
+                          // Estructura de dos columnas en computador (análisis | decisión);
+                          // en celular se apila en una sola columna (responsive).
+                          Forms\Components\Grid::make(['default' => 1, 'lg' => 12])
+                            ->schema([
+
+                            // ══ Columna izquierda — Análisis de la IA ════════════════════════
+                            Forms\Components\Group::make([
                             // ── Tarjetas: Análisis + Recomendación (o error IA) ──────────────
                             Forms\Components\Placeholder::make('analisis_recomendacion_cards')
                                 ->hiddenLabel()
@@ -2041,7 +2048,10 @@ class ProcesoDisciplinarioResource extends Resource
                                         'opcionesSancion'         => $opcionesSancion,
                                         'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
                                     ])),
+                            ])->columnSpan(['default' => 1, 'lg' => 7]),
 
+                            // ══ Columna derecha — Decisión y verificación ════════════════════
+                            Forms\Components\Group::make([
                             // ── Aviso sin RIT ─────────────────────────────────────────────────
                             Forms\Components\Section::make('Empresa sin Reglamento Interno de Trabajo')
                                 ->icon('heroicon-o-exclamation-triangle')
@@ -2204,6 +2214,9 @@ class ProcesoDisciplinarioResource extends Resource
                                             'required' => 'Debe tomar la foto de verificación del autorizador antes de continuar.',
                                         ]),
                                 ]),
+                            ])->columnSpan(['default' => 1, 'lg' => 5]),
+
+                            ]), // fin Grid de dos columnas
                         ];
                     })
                     ->requiresConfirmation()
@@ -2237,7 +2250,7 @@ class ProcesoDisciplinarioResource extends Resource
                     )
                     ->modalSubmitActionLabel('Continuar')
                     ->modalCancelActionLabel('Cancelar')
-                    ->modalWidth('2xl')
+                    ->modalWidth('6xl')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
                         !empty($record->trabajador?->email) && (

@@ -165,6 +165,7 @@ html.dark {
     background: linear-gradient(90deg, transparent, var(--esa-shimmer), transparent);
 }
 .esa-label {
+    font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
@@ -172,6 +173,8 @@ html.dark {
     color: var(--esa-label);
     margin: 0 0 6px;
 }
+/* Títulos destacados (gravedad, nombre de la sanción) con la tipografía de marca */
+.esa-accent-text { font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; }
 .esa-divider {
     border: none;
     border-top: 1px solid var(--esa-divider);
