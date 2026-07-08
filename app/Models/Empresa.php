@@ -28,6 +28,7 @@ class Empresa extends Model
         'representante_legal',
         'active',
         'dias_laborales',
+        'dias_habiles',
         'actividad_economica_id',
         'google_oauth_email',
         'google_oauth_tokens',
@@ -88,11 +89,13 @@ class Empresa extends Model
     protected $casts = [
         'active' => 'boolean',
         'google_oauth_tokens' => 'encrypted',
+        'dias_habiles' => 'array',
     ];
 
     /**
-     * Días laborales EFECTIVOS: se toman del RIT activo si los define; si no,
-     * se usa el campo de la empresa como respaldo; por defecto Lunes a Viernes.
+     * Días laborales EFECTIVOS (valor legado 'lunes_viernes'|'lunes_sabado'|...):
+     * se toman del RIT activo si los define; si no, del campo de la empresa; por
+     * defecto Lunes a Viernes. Se conserva para compatibilidad con el esquema binario.
      */
     public function diasLaboralesEfectivos(): string
     {
@@ -102,22 +105,43 @@ class Empresa extends Model
     }
 
     /**
-     * Verifica si la empresa trabaja los sábados (según días laborales efectivos).
+     * Conjunto EFECTIVO de días hábiles como días ISO (1 = lunes … 7 = domingo).
+     * Prioridad: dias_habiles del RIT activo → dias_habiles de la empresa → mapeo
+     * del valor legado. Soporta cualquier combinación, incluido domingo y 24/7.
      */
-    public function trabajaSabados(): bool
+    public function diasHabilesSet(): array
     {
-        return $this->diasLaboralesEfectivos() === 'lunes_sabado';
+        $ritSet = $this->reglamentoInterno?->dias_habiles;
+        if (is_array($ritSet) && ! empty($ritSet)) {
+            return \App\Support\DiasHabiles::normalizar($ritSet);
+        }
+
+        if (is_array($this->dias_habiles) && ! empty($this->dias_habiles)) {
+            return \App\Support\DiasHabiles::normalizar($this->dias_habiles);
+        }
+
+        return \App\Support\DiasHabiles::desdeLegado($this->diasLaboralesEfectivos());
+    }
+
+    /** ¿La fecha dada cae en un día hábil de la semana según la jornada de la empresa? */
+    public function esDiaHabilSemana(\Carbon\Carbon $fecha): bool
+    {
+        return in_array($fecha->dayOfWeekIso, $this->diasHabilesSet(), true);
     }
 
     /**
-     * Obtiene el texto de los días laborales (efectivos).
+     * Verifica si la empresa trabaja los sábados (según el conjunto efectivo).
+     * Se mantiene por compatibilidad con el código que aún razona en binario.
      */
+    public function trabajaSabados(): bool
+    {
+        return in_array(6, $this->diasHabilesSet(), true);
+    }
+
+    /** Texto legible de los días hábiles efectivos. */
     public function getDiasLaboralesTextoAttribute(): string
     {
-        return match ($this->diasLaboralesEfectivos()) {
-            'lunes_sabado' => 'Lunes a Sábado',
-            default => 'Lunes a Viernes',
-        };
+        return \App\Support\DiasHabiles::texto($this->diasHabilesSet());
     }
 
     public function bufete(): BelongsTo

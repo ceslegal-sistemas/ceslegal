@@ -41,7 +41,7 @@ class TerminoLegalService
     /**
      * Calcula la fecha de vencimiento sumando días hábiles a una fecha inicial
      */
-    public function calcularFechaVencimiento(Carbon $fechaInicio, int $diasHabiles, bool $trabajaSabados = false): Carbon
+    public function calcularFechaVencimiento(Carbon $fechaInicio, int $diasHabiles, bool|array $jornada = false): Carbon
     {
         $fechaActual = $fechaInicio->copy();
         $diasSumados = 0;
@@ -49,7 +49,7 @@ class TerminoLegalService
         while ($diasSumados < $diasHabiles) {
             $fechaActual->addDay();
 
-            if ($this->esDiaHabil($fechaActual, $trabajaSabados)) {
+            if ($this->esDiaHabil($fechaActual, $jornada)) {
                 $diasSumados++;
             }
         }
@@ -58,33 +58,45 @@ class TerminoLegalService
     }
 
     /**
-     * Verifica si una fecha es día hábil. El sábado es hábil solo si la empresa
-     * trabaja los sábados (días laborales del RIT / empresa).
+     * Verifica si una fecha es día hábil según la jornada de la empresa.
+     *
+     * $jornada puede ser:
+     *  - array: conjunto de días ISO hábiles (1 = lunes … 7 = domingo). Modo nuevo,
+     *    soporta cualquier combinación (incluido domingo y 24/7).
+     *  - bool:  modo legado — false = lunes a viernes; true = lunes a sábado.
+     *
+     * En ambos casos, los festivos registrados nunca son hábiles.
      */
-    public function esDiaHabil(Carbon $fecha, bool $trabajaSabados = false): bool
+    public function esDiaHabil(Carbon $fecha, bool|array $jornada = false): bool
     {
-        if ($fecha->isSunday()) {
-            return false;
-        }
-        if ($fecha->isSaturday() && ! $trabajaSabados) {
-            return false;
+        if (is_array($jornada)) {
+            $set = \App\Support\DiasHabiles::normalizar($jornada);
+            if (! in_array($fecha->dayOfWeekIso, $set, true)) {
+                return false;
+            }
+        } else {
+            if ($fecha->isSunday()) {
+                return false;
+            }
+            if ($fecha->isSaturday() && ! $jornada) {
+                return false;
+            }
         }
 
-        // Verificar si es día no hábil (festivo)
-        $fechaStr = $fecha->format('Y-m-d');
-        return !$this->getDiasNoHabiles()->contains($fechaStr);
+        // Los festivos registrados nunca son hábiles.
+        return ! $this->getDiasNoHabiles()->contains($fecha->format('Y-m-d'));
     }
 
     /**
      * Calcula los días hábiles transcurridos entre dos fechas
      */
-    public function calcularDiasHabilesTranscurridos(Carbon $fechaInicio, Carbon $fechaFin, bool $trabajaSabados = false): int
+    public function calcularDiasHabilesTranscurridos(Carbon $fechaInicio, Carbon $fechaFin, bool|array $jornada = false): int
     {
         $fechaActual = $fechaInicio->copy();
         $diasHabiles = 0;
 
         while ($fechaActual->lte($fechaFin)) {
-            if ($this->esDiaHabil($fechaActual, $trabajaSabados)) {
+            if ($this->esDiaHabil($fechaActual, $jornada)) {
                 $diasHabiles++;
             }
             $fechaActual->addDay();

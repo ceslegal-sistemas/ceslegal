@@ -21,6 +21,7 @@ class ReglamentoInterno extends Model
         'respuestas_cuestionario',
         'fuente',
         'dias_laborales',
+        'dias_habiles',
         'estado_generacion',
         'mensaje_error_ia',
         'sanciones_extraidas',
@@ -37,6 +38,7 @@ class ReglamentoInterno extends Model
         'respuestas_cuestionario' => 'array',
         'sanciones_extraidas'    => 'array',
         'tipos_contrato'         => 'array',
+        'dias_habiles'           => 'array',
     ];
 
     public function empresa(): BelongsTo
