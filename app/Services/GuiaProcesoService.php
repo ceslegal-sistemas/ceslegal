@@ -152,7 +152,7 @@ class GuiaProcesoService
                 'tipo' => 'primary',
                 'label' => 'Construir o subir mi Reglamento Interno',
                 'url' => route('filament.admin.pages.mi-reglamento-interno'),
-                'nota' => 'Si sube su reglamento, el sistema lo audita automáticamente. Si lo construye con IA, no necesita auditoría.',
+                'nota' => 'Con su Reglamento Interno podrá aplicar distintos tipos de sanciones según lo que este contemple. Sin reglamento, solo podrá terminar el contrato con justa causa.',
             ];
         }
 
