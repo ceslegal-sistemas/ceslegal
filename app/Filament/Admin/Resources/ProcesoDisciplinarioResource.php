@@ -3537,6 +3537,7 @@ class ProcesoDisciplinarioResource extends Resource
             ->schema([
                 Infolists\Components\Section::make('Proceso Disciplinario')
                     ->icon('heroicon-o-document-text')
+                    ->iconColor('primary')
                     ->schema([
                         Infolists\Components\TextEntry::make('codigo')
                             ->label('Código')
@@ -3580,6 +3581,7 @@ class ProcesoDisciplinarioResource extends Resource
 
                 Infolists\Components\Section::make('Detalles del Proceso')
                     ->icon('heroicon-o-clipboard-document-list')
+                    ->iconColor('primary')
                     ->schema([
                         Infolists\Components\TextEntry::make('fecha_ocurrencia')
                             ->label('Fecha de los Hechos')
@@ -3624,6 +3626,7 @@ class ProcesoDisciplinarioResource extends Resource
 
                 Infolists\Components\Section::make('Evidencias del trabajador')
                     ->icon('heroicon-o-paper-clip')
+                    ->iconColor('primary')
                     ->description('Archivos adjuntados por el trabajador durante los descargos')
                     ->schema(function ($record) {
                         $archivos = [];
@@ -3666,6 +3669,7 @@ class ProcesoDisciplinarioResource extends Resource
                 // ── Evidencia de la Decisión Disciplinaria ────────────────────────
                 Infolists\Components\Section::make('Evidencia de la Decisión Disciplinaria')
                     ->icon('heroicon-o-shield-check')
+                    ->iconColor('primary')
                     ->schema([
                         Infolists\Components\TextEntry::make('sancion_ia_recomendada')
                             ->label('Recomendación IA')
@@ -3760,6 +3764,7 @@ class ProcesoDisciplinarioResource extends Resource
                 // ── Señales de Comportamiento — Capa 2 ───────────────────────────
                 Infolists\Components\Section::make('Señales de Comportamiento durante los Descargos')
                     ->icon('heroicon-o-eye')
+                    ->iconColor('primary')
                     ->description('Indicios técnicos captados automáticamente durante el formulario del trabajador. Son señales de apoyo, no prueba definitiva.')
                     ->schema([
                         Infolists\Components\TextEntry::make('comportamiento_card')
