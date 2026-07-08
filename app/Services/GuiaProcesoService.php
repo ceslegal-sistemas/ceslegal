@@ -88,6 +88,13 @@ class GuiaProcesoService
         $total = (clone $base)->count();
         $esperando = (clone $base)->where('estado', 'descargos_pendientes')->count();
 
+        // Procesos que ya llegaron a la decisión disciplinaria (sanción emitida o más
+        // allá). Con estos, los pasos "Descargos del trabajador" y "Emitir sanción" del
+        // roadmap deben quedar en 'done' (antes se veían pendientes tras sancionar).
+        $sancionados = (clone $base)
+            ->whereIn('estado', ['sancion_emitida', 'impugnado', 'cerrado', 'archivado'])
+            ->count();
+
         // ── Listos para sancionar (mismo criterio que la acción "Emitir sanción") ──
         $listos = (clone $base)
             ->whereIn('estado', ['descargos_realizados', 'descargos_no_realizados'])
@@ -116,8 +123,8 @@ class GuiaProcesoService
             ['clave' => 'cuenta', 'label' => 'Cuenta creada', 'estado' => 'done'],
             ['clave' => 'rit', 'label' => 'Reglamento Interno', 'estado' => $tieneRit ? 'done' : 'current'],
             ['clave' => 'descargo', 'label' => 'Crear descargo', 'estado' => $total > 0 ? 'done' : ($tieneRit ? 'current' : 'pending')],
-            ['clave' => 'diligencia', 'label' => 'Descargos del trabajador', 'estado' => $this->estadoDiligencia($total, $esperando, count($listos))],
-            ['clave' => 'sancion', 'label' => 'Emitir sanción', 'estado' => count($listos) > 0 ? 'current' : 'pending'],
+            ['clave' => 'diligencia', 'label' => 'Descargos del trabajador', 'estado' => $this->estadoDiligencia($total, $esperando, count($listos), $sancionados)],
+            ['clave' => 'sancion', 'label' => 'Emitir sanción', 'estado' => $sancionados > 0 ? 'done' : (count($listos) > 0 ? 'current' : 'pending')],
         ];
 
         // ── Acción siguiente ──
@@ -133,9 +140,9 @@ class GuiaProcesoService
         ];
     }
 
-    private function estadoDiligencia(int $total, int $esperando, int $listos): string
+    private function estadoDiligencia(int $total, int $esperando, int $listos, int $sancionados = 0): string
     {
-        if ($listos > 0) {
+        if ($listos > 0 || $sancionados > 0) {
             return 'done';
         }
         if ($esperando > 0) {
