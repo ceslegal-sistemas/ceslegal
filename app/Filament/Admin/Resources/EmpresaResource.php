@@ -103,8 +103,22 @@ class EmpresaResource extends Resource
                             ->helperText('Desactive si la empresa ya no está en servicio')
                             ->inline(false),
 
-                        // Los días laborales ahora provienen del Reglamento Interno.
-                        // Se mantiene oculto como respaldo (empresas sin RIT).
+                        // Días laborales de la empresa (conjunto). Se toman del RIT
+                        // cuando este los define; aquí se fijan/ajustan como respaldo.
+                        Forms\Components\CheckboxList::make('dias_habiles')
+                            ->label('Días laborales')
+                            ->options(\App\Support\DiasHabiles::opciones())
+                            ->columns(4)
+                            ->default(\App\Support\DiasHabiles::DEFECTO)
+                            ->afterStateHydrated(function ($component, $state, ?\App\Models\Empresa $record) {
+                                if (empty($state) && $record) {
+                                    $component->state($record->diasHabilesSet());
+                                }
+                            })
+                            ->helperText('Se toman del Reglamento Interno cuando lo define. Márquelos todos para 24/7.')
+                            ->columnSpanFull(),
+
+                        // Legado (binario) — respaldo para código antiguo.
                         Forms\Components\Hidden::make('dias_laborales')
                             ->default('lunes_viernes'),
                     ])->columns(2),
@@ -366,14 +380,11 @@ class EmpresaResource extends Resource
                     ->boolean()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('dias_laborales')
+                Tables\Columns\TextColumn::make('dias_laborales_texto')
                     ->label('Días Laborales')
-                    ->formatStateUsing(fn($state) => match ($state) {
-                        'lunes_sabado' => 'Lun - Sáb',
-                        default => 'Lun - Vie',
-                    })
+                    ->state(fn(Empresa $record) => $record->dias_laborales_texto)
                     ->badge()
-                    ->color(fn($state) => $state === 'lunes_sabado' ? 'warning' : 'success')
+                    ->color(fn(Empresa $record) => count($record->diasHabilesSet()) >= 6 ? 'warning' : 'success')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('actividadEconomica.codigo')

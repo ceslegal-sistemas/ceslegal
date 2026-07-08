@@ -628,16 +628,13 @@ class CreateReglamentoInterno extends CreateRecord
                     Forms\Components\Section::make('¿Cómo trabajan sus empleados?')
                         ->description('Seleccione todo lo que aplique a su empresa. Si es oficina pura, solo marque "Jornada fija diurna".')
                         ->schema([
-                            Forms\Components\Select::make('dias_laborales')
+                            Forms\Components\CheckboxList::make('dias_habiles')
                                 ->label('Días laborales de la empresa')
-                                ->options([
-                                    'lunes_viernes' => 'Lunes a Viernes',
-                                    'lunes_sabado'  => 'Lunes a Sábado',
-                                ])
-                                ->default('lunes_viernes')
+                                ->options(\App\Support\DiasHabiles::opciones())
+                                ->columns(4)
+                                ->default(\App\Support\DiasHabiles::DEFECTO)
                                 ->required()
-                                ->native(false)
-                                ->helperText('Determina los días hábiles para los plazos (descargos, términos legales).')
+                                ->helperText('Marque los días en que la empresa labora. Determinan los días hábiles para los plazos (descargos, términos legales). Márquelos todos para 24/7.')
                                 ->columnSpanFull(),
 
                             Forms\Components\ToggleButtons::make('modalidades_jornada')
@@ -1557,7 +1554,8 @@ class CreateReglamentoInterno extends CreateRecord
                 'activo'                  => false,
                 'respuestas_cuestionario' => $data,
                 'fuente'                  => 'construido_ia',
-                'dias_laborales'          => $data['dias_laborales'] ?? null,
+                'dias_habiles'            => \App\Support\DiasHabiles::normalizar($data['dias_habiles'] ?? []),
+                'dias_laborales'          => \App\Support\DiasHabiles::aLegado($data['dias_habiles'] ?? []),
                 'estado_generacion'       => 'generando',
                 'mensaje_error_ia'        => null,
             ]
