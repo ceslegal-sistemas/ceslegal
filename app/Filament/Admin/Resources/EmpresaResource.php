@@ -103,22 +103,8 @@ class EmpresaResource extends Resource
                             ->helperText('Desactive si la empresa ya no está en servicio')
                             ->inline(false),
 
-                        // Días laborales de la empresa (conjunto). Se toman del RIT
-                        // cuando este los define; aquí se fijan/ajustan como respaldo.
-                        Forms\Components\CheckboxList::make('dias_habiles')
-                            ->label('Días laborales')
-                            ->options(\App\Support\DiasHabiles::opciones())
-                            ->columns(4)
-                            ->default(\App\Support\DiasHabiles::DEFECTO)
-                            ->afterStateHydrated(function ($component, $state, ?\App\Models\Empresa $record) {
-                                if (empty($state) && $record) {
-                                    $component->state($record->diasHabilesSet());
-                                }
-                            })
-                            ->helperText('Se toman del Reglamento Interno cuando lo define. Márquelos todos para 24/7.')
-                            ->columnSpanFull(),
-
-                        // Legado (binario) — respaldo para código antiguo.
+                        // Los días laborales se definen en el Reglamento Interno (no aquí).
+                        // Se conserva el campo legado oculto como respaldo por defecto.
                         Forms\Components\Hidden::make('dias_laborales')
                             ->default('lunes_viernes'),
                     ])->columns(2),
