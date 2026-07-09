@@ -142,6 +142,50 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             });
     }
 
+    /** Genera (o regenera) el listado de conductas sancionables del RIT con IA. */
+    public function generarConductasAction(): Action
+    {
+        return Action::make('generarConductas')
+            ->label('Generar conductas sancionables')
+            ->icon('heroicon-o-sparkles')
+            ->color('primary')
+            ->visible(fn() => $this->reglamento && (
+                !empty($this->reglamento->texto_completo)
+                || !empty($this->reglamento->respuestas_cuestionario['sanciones_configuradas'])
+            ))
+            ->requiresConfirmation()
+            ->modalHeading('Generar conductas sancionables')
+            ->modalDescription('La IA construye el listado de conductas sancionables por gravedad (leve, grave, gravísima) con su medida disciplinaria, conforme al CST. Este contenido es público dentro del RIT. Si ya existe, se reemplaza.')
+            ->modalSubmitActionLabel('Generar')
+            ->action(function (): void {
+                if (!$this->reglamento) {
+                    Notification::make()->danger()->title('No hay Reglamento activo')->send();
+                    return;
+                }
+                try {
+                    $conductas = app(ReglamentoInternoService::class)->generarConductasSancionables($this->reglamento);
+                    $total = count($conductas['leve'] ?? []) + count($conductas['grave'] ?? []) + count($conductas['gravisima'] ?? []);
+                    if ($total === 0) {
+                        Notification::make()->warning()
+                            ->title('No se pudieron generar conductas')
+                            ->body('La IA no devolvió un listado válido. Intente de nuevo o verifique el contenido del RIT.')
+                            ->send();
+                        return;
+                    }
+                    Notification::make()->success()
+                        ->title('Conductas sancionables generadas')
+                        ->body("Se generaron {$total} conductas por gravedad, conforme al CST.")
+                        ->send();
+                    $this->reglamento = $this->reglamento->fresh();
+                } catch (\Throwable $e) {
+                    Notification::make()->danger()
+                        ->title('Error al generar conductas')
+                        ->body($e->getMessage())
+                        ->send();
+                }
+            });
+    }
+
     /** Abre el modal para subir un RIT manualmente. */
     public function subirRITAction(): Action
     {

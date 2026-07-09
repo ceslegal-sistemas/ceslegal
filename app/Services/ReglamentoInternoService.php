@@ -87,9 +87,10 @@ class ReglamentoInternoService
             'chars'      => strlen($texto),
         ]);
 
-        // Extraer sanciones inmediatamente si hay texto disponible
+        // Extraer sanciones y generar las conductas sancionables si hay texto.
         if (!empty($texto)) {
             $this->extraerYPersistirSanciones($reglamento);
+            $this->generarConductasSancionables($reglamento);
         }
 
         return $reglamento;
@@ -303,6 +304,139 @@ class ReglamentoInternoService
         }
 
         return $datos;
+    }
+
+    /**
+     * Genera con IA el LISTADO DE CONDUCTAS SANCIONABLES del RIT por gravedad
+     * (leve, grave, gravísima), con su medida disciplinaria y base legal, conforme
+     * al CST. Reemplaza el catálogo estático como fuente de conductas por empresa.
+     * Persiste el resultado en $rit->conductas_sancionables y lo devuelve.
+     */
+    public function generarConductasSancionables(ReglamentoInterno $rit): array
+    {
+        $contexto = '';
+        if (!empty($rit->texto_completo)) {
+            $contexto = "RÉGIMEN DISCIPLINARIO DEL RIT DE LA EMPRESA:\n"
+                . $this->extraerCapituloDisciplinario($rit->texto_completo);
+        } elseif (!empty($rit->respuestas_cuestionario['sanciones_configuradas'])) {
+            $contexto = "SANCIONES CONFIGURADAS EN EL RIT:\n"
+                . json_encode($rit->respuestas_cuestionario['sanciones_configuradas'], JSON_UNESCAPED_UNICODE);
+        }
+
+        $prompt = <<<PROMPT
+Eres un abogado laboralista colombiano. Genera el LISTADO DE CONDUCTAS SANCIONABLES para el Reglamento Interno de Trabajo (RIT) de una empresa, clasificadas por gravedad (leve, grave, gravísima), conforme al Código Sustantivo del Trabajo (CST) y a la legislación laboral colombiana. Este contenido será PÚBLICO dentro del RIT: debe ser claro, concreto y jurídicamente correcto.
+
+{$contexto}
+
+Responde ÚNICAMENTE con un JSON válido, sin texto adicional, con esta estructura exacta:
+{
+  "leve":      [{"conducta": "descripción concreta", "medida": "medida disciplinaria legible", "tipo": "llamado_atencion|suspension|multa|terminacion", "dias_suspension": null, "base_legal": "artículo del CST o del RIT que la sustenta"}],
+  "grave":     [{"conducta": "...", "medida": "...", "tipo": "...", "dias_suspension": null, "base_legal": "..."}],
+  "gravisima": [{"conducta": "...", "medida": "...", "tipo": "...", "dias_suspension": null, "base_legal": "..."}]
+}
+
+Reglas:
+- Cada gravedad: entre 5 y 12 conductas CONCRETAS (no genéricas ni repetidas).
+- Proporcionalidad y gradualidad: leve → llamado de atención; grave → suspensión; gravísima → terminación del contrato con justa causa. Respeta lo que el RIT contemple si el contexto lo indica.
+- dias_suspension: entero SOLO cuando el tipo es "suspension"; en los demás casos null.
+- base_legal: cita el artículo del CST (p. ej. Art. 58, 60, 62 CST) o del RIT. NO inventes normas.
+- No incluyas conductas discriminatorias ni que violen derechos fundamentales.
+- Español colombiano, claro y sin tecnicismos innecesarios.
+PROMPT;
+
+        try {
+            $datos     = $this->parsearJSON($this->llamarGeminiJSON($prompt));
+            $conductas = $this->normalizarConductas($datos);
+        } catch (\Throwable $e) {
+            Log::warning('ReglamentoInternoService: error generando conductas sancionables', [
+                'reglamento_id' => $rit->id,
+                'error'         => $e->getMessage(),
+            ]);
+            $conductas = [];
+        }
+
+        if (!empty($conductas['leve']) || !empty($conductas['grave']) || !empty($conductas['gravisima'])) {
+            $rit->conductas_sancionables = $conductas;
+            $rit->saveQuietly();
+        }
+
+        return $conductas;
+    }
+
+    /** Sanea y limita la estructura de conductas por gravedad devuelta por la IA. */
+    private function normalizarConductas(array $datos): array
+    {
+        $tiposValidos = ['llamado_atencion', 'suspension', 'multa', 'terminacion'];
+
+        $limpiar = function ($item) use ($tiposValidos) {
+            $tipo = in_array($item['tipo'] ?? null, $tiposValidos, true) ? $item['tipo'] : 'llamado_atencion';
+            $dias = ($tipo === 'suspension' && is_numeric($item['dias_suspension'] ?? null))
+                ? (int) $item['dias_suspension']
+                : null;
+
+            return [
+                'conducta'        => trim((string) ($item['conducta'] ?? '')),
+                'medida'          => trim((string) ($item['medida'] ?? '')),
+                'tipo'            => $tipo,
+                'dias_suspension' => $dias,
+                'base_legal'      => trim((string) ($item['base_legal'] ?? '')),
+            ];
+        };
+
+        $out = [];
+        foreach (['leve', 'grave', 'gravisima'] as $g) {
+            $items   = array_slice(is_array($datos[$g] ?? null) ? $datos[$g] : [], 0, 12);
+            $out[$g] = array_values(array_filter(array_map($limpiar, $items), fn($i) => $i['conducta'] !== ''));
+        }
+
+        return $out;
+    }
+
+    /**
+     * Listado base de conductas sancionables derivadas del CST, para empresas que NO
+     * están obligadas a tener RIT (o aún no lo tienen). Es un respaldo razonable, no
+     * sustituye el análisis del caso concreto.
+     */
+    public function conductasCstBase(): array
+    {
+        return [
+            'leve' => [
+                ['conducta' => 'Llegadas tarde reiteradas sin justificación',        'medida' => 'Llamado de atención escrito', 'tipo' => 'llamado_atencion', 'dias_suspension' => null, 'base_legal' => 'Art. 58 CST'],
+                ['conducta' => 'Ausentarse del puesto por corto tiempo sin permiso',  'medida' => 'Llamado de atención escrito', 'tipo' => 'llamado_atencion', 'dias_suspension' => null, 'base_legal' => 'Art. 58 CST'],
+                ['conducta' => 'Descuido leve en el uso de herramientas o elementos',  'medida' => 'Llamado de atención escrito', 'tipo' => 'llamado_atencion', 'dias_suspension' => null, 'base_legal' => 'Art. 58 CST'],
+            ],
+            'grave' => [
+                ['conducta' => 'Faltar un día al trabajo sin justa causa ni aviso',    'medida' => 'Suspensión hasta 8 días',      'tipo' => 'suspension',       'dias_suspension' => 8,    'base_legal' => 'Art. 60 CST'],
+                ['conducta' => 'Incumplir órdenes legítimas relacionadas con el cargo', 'medida' => 'Suspensión hasta 8 días',      'tipo' => 'suspension',       'dias_suspension' => 8,    'base_legal' => 'Art. 58 y 60 CST'],
+                ['conducta' => 'Reincidir en faltas leves ya sancionadas',             'medida' => 'Suspensión laboral',           'tipo' => 'suspension',       'dias_suspension' => 5,    'base_legal' => 'Art. 60 CST'],
+            ],
+            'gravisima' => [
+                ['conducta' => 'Agresión física a un compañero o superior en el trabajo', 'medida' => 'Terminación del contrato con justa causa', 'tipo' => 'terminacion', 'dias_suspension' => null, 'base_legal' => 'Art. 62 CST'],
+                ['conducta' => 'Grave violación de las obligaciones o prohibiciones',     'medida' => 'Terminación del contrato con justa causa', 'tipo' => 'terminacion', 'dias_suspension' => null, 'base_legal' => 'Art. 62 CST'],
+                ['conducta' => 'Daño material grave e intencional a bienes de la empresa', 'medida' => 'Terminación del contrato con justa causa', 'tipo' => 'terminacion', 'dias_suspension' => null, 'base_legal' => 'Art. 62 CST'],
+            ],
+        ];
+    }
+
+    /**
+     * Conductas sancionables EFECTIVAS de una empresa: del RIT activo si existen; si no,
+     * el respaldo base del CST. Fuente única para el flujo de descargos y análisis.
+     */
+    public function conductasSancionablesDeEmpresa(int $empresaId): array
+    {
+        $rit = ReglamentoInterno::where('empresa_id', $empresaId)
+            ->where('fuente', '!=', 'mejora_ia')
+            ->orderByDesc('activo')
+            ->orderByDesc('updated_at')
+            ->first();
+
+        $conductas = $rit?->conductas_sancionables;
+
+        if (is_array($conductas) && (!empty($conductas['leve']) || !empty($conductas['grave']) || !empty($conductas['gravisima']))) {
+            return $conductas;
+        }
+
+        return $this->conductasCstBase();
     }
 
     /**

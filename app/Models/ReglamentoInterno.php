@@ -25,6 +25,7 @@ class ReglamentoInterno extends Model
         'estado_generacion',
         'mensaje_error_ia',
         'sanciones_extraidas',
+        'conductas_sancionables',
         'version',
         'auditoria_origen_id',
         'reglamento_origen_id',
@@ -37,6 +38,7 @@ class ReglamentoInterno extends Model
         'activo'                 => 'boolean',
         'respuestas_cuestionario' => 'array',
         'sanciones_extraidas'    => 'array',
+        'conductas_sancionables' => 'array',
         'tipos_contrato'         => 'array',
         'dias_habiles'           => 'array',
     ];
