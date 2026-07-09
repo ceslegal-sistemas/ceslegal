@@ -233,8 +233,32 @@ class EmpresaResource extends Resource
                             ->searchable(['codigo', 'nombre'])
                             ->preload(false)
                             ->nullable()
+                            ->live()
                             ->placeholder('Buscar por código o nombre...')
                             ->helperText('Actividad principal según el RUT de la empresa')
+                            ->columnSpanFull(),
+
+                        // Nº de empleados → determina la obligación de RIT (Art. 105 CST).
+                        Forms\Components\TextInput::make('numero_empleados')
+                            ->label('Número de empleados')
+                            ->numeric()
+                            ->minValue(0)
+                            ->live(onBlur: true)
+                            ->placeholder('Ej: 12')
+                            ->helperText('Empleados permanentes. Determina si la empresa está obligada a tener RIT.')
+                            ->suffixIcon('heroicon-o-user-group'),
+
+                        Forms\Components\Placeholder::make('obligacion_rit')
+                            ->label('Obligación de Reglamento Interno')
+                            ->content(function (Get $get) {
+                                $seccion = $get('actividad_economica_id')
+                                    ? ActividadEconomica::find($get('actividad_economica_id'))?->seccion
+                                    : null;
+                                $n = $get('numero_empleados');
+                                $n = is_numeric($n) ? (int) $n : null;
+
+                                return \App\Support\ObligacionRit::explicacion($n, $seccion);
+                            })
                             ->columnSpanFull(),
 
                         Forms\Components\Select::make('actividadesSecundarias')

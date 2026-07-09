@@ -209,6 +209,29 @@ class Register extends BaseRegister
                                 })
                                 ->placeholder('Buscar por código o nombre CIIU...')
                                 ->helperText('Actividad principal registrada en el RUT de la empresa')
+                                ->live()
+                                ->columnSpanFull(),
+
+                            // Nº de empleados → determina la obligación de RIT (Art. 105 CST).
+                            Forms\Components\TextInput::make('numero_empleados')
+                                ->label('Número de empleados')
+                                ->numeric()
+                                ->minValue(0)
+                                ->live(onBlur: true)
+                                ->placeholder('Ej: 12')
+                                ->helperText('Empleados permanentes. Determina si la empresa está obligada a tener RIT.'),
+
+                            Forms\Components\Placeholder::make('obligacion_rit')
+                                ->label('Obligación de Reglamento Interno')
+                                ->content(function (Forms\Get $get) {
+                                    $seccion = $get('actividad_economica_id')
+                                        ? ActividadEconomica::find($get('actividad_economica_id'))?->seccion
+                                        : null;
+                                    $n = $get('numero_empleados');
+                                    $n = is_numeric($n) ? (int) $n : null;
+
+                                    return \App\Support\ObligacionRit::explicacion($n, $seccion);
+                                })
                                 ->columnSpanFull(),
 
                             Forms\Components\Select::make('actividades_secundarias_ids')
@@ -407,6 +430,7 @@ class Register extends BaseRegister
             'departamento'           => $data['departamento'] ?? null,
             'ciudad'                 => $data['ciudad'] ?? null,
             'actividad_economica_id' => $data['actividad_economica_id'] ?? null,
+            'numero_empleados'       => $data['numero_empleados'] ?? null,
             'dias_laborales'         => $data['dias_laborales'] ?? 'lunes_viernes',
             'active'                 => true,
         ]);

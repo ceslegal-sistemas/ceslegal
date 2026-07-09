@@ -30,6 +30,7 @@ class Empresa extends Model
         'dias_laborales',
         'dias_habiles',
         'actividad_economica_id',
+        'numero_empleados',
         'google_oauth_email',
         'google_oauth_tokens',
     ];
@@ -90,7 +91,20 @@ class Empresa extends Model
         'active' => 'boolean',
         'google_oauth_tokens' => 'encrypted',
         'dias_habiles' => 'array',
+        'numero_empleados' => 'integer',
     ];
+
+    /**
+     * ¿La empresa está obligada a tener RIT? (Art. 105 CST, según nº de empleados y
+     * actividad económica). Devuelve null si aún no se registró el nº de empleados.
+     */
+    public function requiereRit(): ?bool
+    {
+        return \App\Support\ObligacionRit::requiere(
+            $this->numero_empleados,
+            $this->actividadEconomica?->seccion,
+        );
+    }
 
     /**
      * Días laborales EFECTIVOS (valor legado 'lunes_viernes'|'lunes_sabado'|...):
