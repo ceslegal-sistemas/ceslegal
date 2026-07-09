@@ -141,6 +141,74 @@ class CreateReglamentoInterno extends CreateRecord
     }
 
     /**
+     * A partir de la jornada PERSONALIZADA (turnos con días + horario), deriva los
+     * días hábiles y sintetiza los campos que consume la generación del RIT (horario,
+     * turnos, nocturnos, sábados/dominicales), para no romper el prompt al haber
+     * reemplazado las antiguas preguntas de horario/turnos/sábados por el repeater.
+     */
+    public static function sintetizarJornada(array $data): array
+    {
+        $rows = is_array($data['jornada_personalizada'] ?? null) ? $data['jornada_personalizada'] : [];
+
+        // Días hábiles = unión de los días de todos los turnos.
+        $dias = [];
+        foreach ($rows as $r) {
+            foreach ((array) ($r['dias'] ?? []) as $d) {
+                if (is_numeric($d)) {
+                    $dias[(int) $d] = true;
+                }
+            }
+        }
+        $diasSet = array_keys($dias);
+        sort($diasSet);
+
+        // Respaldo si no hay turnos: 24/7 si la modalidad lo indica; si no, Lunes a Viernes.
+        if (empty($diasSet)) {
+            $mod = (array) ($data['modalidades_jornada'] ?? []);
+            $diasSet = in_array('operacion_continua_247', $mod, true)
+                ? [1, 2, 3, 4, 5, 6, 7]
+                : \App\Support\DiasHabiles::DEFECTO;
+        }
+
+        $out = ['dias_habiles' => $diasSet];
+
+        if (!empty($rows)) {
+            $primero = $rows[0];
+            $out['horario_entrada'] = $primero['hora_inicio'] ?? '';
+            $out['horario_salida']  = $primero['hora_fin'] ?? '';
+            $out['opera_en_turnos'] = count($rows) > 1 ? 'Sí (' . count($rows) . ' turnos)' : 'No';
+
+            // Cargos con trabajo nocturno (turnos que inician >=21h o terminan hasta las 6h).
+            $nocturnos = [];
+            foreach ($rows as $r) {
+                $ini = (int) substr((string) ($r['hora_inicio'] ?? ''), 0, 2);
+                $fin = (int) substr((string) ($r['hora_fin'] ?? ''), 0, 2);
+                if (($ini >= 21 || $ini < 6 || ($fin > 0 && $fin <= 6)) && !empty($r['cargos'])) {
+                    $nocturnos[] = $r['cargos'];
+                }
+            }
+            $out['cargos_nocturnos'] = implode(', ', array_filter($nocturnos));
+
+            // Resumen textual de los turnos (para prompt/documento).
+            $out['descripcion_turnos'] = collect($rows)->map(function ($r) {
+                $nom = trim((string) ($r['nombre'] ?? '')) ?: 'Turno';
+                $d   = collect((array) ($r['dias'] ?? []))
+                    ->map(fn($x) => \App\Support\DiasHabiles::LABELS[(int) $x] ?? '')
+                    ->filter()->join(', ');
+                return "{$nom}: {$d} de " . ($r['hora_inicio'] ?? '?') . ' a ' . ($r['hora_fin'] ?? '?')
+                    . (!empty($r['cargos']) ? " ({$r['cargos']})" : '');
+            })->join(' | ');
+        }
+
+        // Sábados / domingos según los días marcados (para los recargos del RIT).
+        $out['trabaja_sabados']     = in_array(6, $diasSet, true) ? 'dia_completo' : 'no';
+        $out['jornada_sabado']      = $out['trabaja_sabados'];
+        $out['trabaja_dominicales'] = in_array(7, $diasSet, true) ? 'regularmente' : 'no';
+
+        return $out;
+    }
+
+    /**
      * Infiere los riesgos SST probables a partir de la(s) actividad(es)
      * económica(s) seleccionada(s): primero por sección CIIU (A–U) y luego
      * con un refuerzo por palabras clave del nombre de la actividad.
@@ -640,15 +708,6 @@ class CreateReglamentoInterno extends CreateRecord
                     Forms\Components\Section::make('¿Cómo trabajan sus empleados?')
                         ->description('Seleccione todo lo que aplique a su empresa. Si es oficina pura, solo marque "Jornada fija diurna".')
                         ->schema([
-                            Forms\Components\CheckboxList::make('dias_habiles')
-                                ->label('Días laborales de la empresa')
-                                ->options(\App\Support\DiasHabiles::opciones())
-                                ->columns(4)
-                                ->default(\App\Support\DiasHabiles::DEFECTO)
-                                ->required()
-                                ->helperText('Marque los días en que la empresa labora. Determinan los días hábiles para los plazos (descargos, términos legales). Márquelos todos para 24/7.')
-                                ->columnSpanFull(),
-
                             Forms\Components\ToggleButtons::make('modalidades_jornada')
                                 ->label('Tipos de jornada en su empresa')
                                 ->options([
@@ -659,6 +718,7 @@ class CreateReglamentoInterno extends CreateRecord
                                     'jornada_flexible'        => 'Horario flexible o variable',
                                     'teletrabajo'             => 'Teletrabajo / trabajo desde casa',
                                     'vigilancia_guardias'     => 'Vigilancia / guardias de seguridad',
+                                    'personalizado'           => 'Personalizado (defina días y horarios)',
                                 ])
                                 ->colors([
                                     'jornada_fija_diurna'     => 'primary',
@@ -668,6 +728,7 @@ class CreateReglamentoInterno extends CreateRecord
                                     'jornada_flexible'        => 'success',
                                     'teletrabajo'             => 'info',
                                     'vigilancia_guardias'     => 'gray',
+                                    'personalizado'           => 'primary',
                                 ])
                                 ->icons([
                                     'jornada_fija_diurna'     => 'heroicon-o-building-office',
@@ -677,6 +738,7 @@ class CreateReglamentoInterno extends CreateRecord
                                     'jornada_flexible'        => 'heroicon-o-adjustments-horizontal',
                                     'teletrabajo'             => 'heroicon-o-computer-desktop',
                                     'vigilancia_guardias'     => 'heroicon-o-shield-check',
+                                    'personalizado'           => 'heroicon-o-clock',
                                 ])
                                 ->live()
                                 ->multiple()
@@ -686,142 +748,54 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->hintIcon('heroicon-m-information-circle', tooltip: 'La jornada máxima ordinaria se reduce gradualmente a 42 horas semanales, sin disminuir el salario ni los derechos del trabajador (Ley 2101 de 2021).')
                                 ->columns(['default' => 1, 'sm' => 2])
                                 ->columnSpanFull(),
-                        ]),
 
-                    Forms\Components\Section::make('¿A qué hora entran y salen? (horario habitual)')
-                        ->description('Si todos sus empleados trabajan el mismo horario, regístrelo aquí. Si tiene turnos variables, puede dejar esto en blanco y usar la sección de turnos más abajo.')
-                        ->schema([
-                            TimePickerField::make('horario_entrada')
-                                ->label('Hora de entrada')
-                                ->id('rit_horario_entrada')
-                                ->okLabel('Aceptar')
-                                ->cancelLabel('Cancelar')
-                                ->helperText('Ej: 8:00 AM para jornada de oficina estándar'),
-
-                            TimePickerField::make('horario_salida')
-                                ->label('Hora de salida (lunes a viernes)')
-                                ->id('rit_horario_salida')
-                                ->okLabel('Aceptar')
-                                ->cancelLabel('Cancelar')
-                                ->helperText('Ej: 5:30 PM (incluye pausa de almuerzo)'),
-                        ])
-                        ->columns(['default' => 1, 'sm' => 2]),
-
-                    Forms\Components\Section::make('¿Tiene turnos o rotaciones?')
-                        ->description('Solo si tiene empleados con horarios diferentes: mañana, tarde, noche u operación continua.')
-                        ->schema([
-                            Forms\Components\Select::make('opera_en_turnos')
-                                ->label('¿Opera en múltiples turnos?')
-                                ->options([
-                                    'no'           => 'No — todos trabajan el mismo horario',
-                                    '2_turnos'     => 'Sí — 2 turnos (ej: mañana y tarde)',
-                                    '3_turnos'     => 'Sí — 3 turnos (ej: mañana, tarde y noche)',
-                                    '4_mas_turnos' => 'Sí — 4 o más turnos',
-                                    'continuo_247' => 'Operación continua 24/7 (sin parar)',
-                                ])
-                                ->default('no')
-                                ->native(false),
-
-                            Forms\Components\Select::make('rotacion_turnos')
-                                ->label('¿Cómo cambia el turno de cada empleado?')
-                                ->options([
-                                    'turno_fijo'          => 'No rota — cada cargo tiene su turno fijo',
-                                    'rotacion_semanal'    => 'Rotación semanal (cambia cada semana)',
-                                    'rotacion_quincenal'  => 'Rotación quincenal (cada 15 días)',
-                                    'rotacion_mensual'    => 'Rotación mensual',
-                                    'por_programacion'    => 'Según programación del jefe',
-                                ])
-                                ->default('turno_fijo')
-                                ->native(false),
-
-                            Forms\Components\Repeater::make('turnos_definidos')
-                                ->label('Defina sus turnos (uno por fila)')
+                            // Jornada PERSONALIZADA: define día(s) + horario por turno. Reemplaza
+                            // las antiguas preguntas de horario, turnos y sábados/domingos. Los días
+                            // marcados aquí determinan los días hábiles para los plazos.
+                            Forms\Components\Repeater::make('jornada_personalizada')
+                                ->label('Turnos y horarios de la empresa')
                                 ->schema([
-                                    Forms\Components\TextInput::make('nombre_turno')
-                                        ->label('Nombre del turno')
-                                        ->placeholder('Ej: Turno A, Turno noche, Administrativo'),
+                                    Forms\Components\TextInput::make('nombre')
+                                        ->label('Nombre del turno (opcional)')
+                                        ->placeholder('Ej: Administrativo, Turno noche')
+                                        ->columnSpanFull(),
 
-                                    Forms\Components\TextInput::make('hora_inicio')
-                                        ->label('Hora inicio')
-                                        ->placeholder('06:00')
-                                        ->helperText('Formato 24h'),
+                                    Forms\Components\CheckboxList::make('dias')
+                                        ->label('Días')
+                                        ->options(\App\Support\DiasHabiles::opciones())
+                                        ->columns(['default' => 2, 'sm' => 4])
+                                        ->required()
+                                        ->columnSpanFull(),
 
-                                    Forms\Components\TextInput::make('hora_fin')
-                                        ->label('Hora fin')
-                                        ->placeholder('14:00')
-                                        ->helperText('Formato 24h'),
+                                    TimePickerField::make('hora_inicio')
+                                        ->label('Hora de inicio')
+                                        ->okLabel('Aceptar')
+                                        ->cancelLabel('Cancelar'),
 
-                                    Forms\Components\TextInput::make('cargos_asignados')
-                                        ->label('Cargos en este turno')
-                                        ->placeholder('Ej: Operarios planta, Conductores')
+                                    TimePickerField::make('hora_fin')
+                                        ->label('Hora de fin')
+                                        ->okLabel('Aceptar')
+                                        ->cancelLabel('Cancelar'),
+
+                                    Forms\Components\TextInput::make('cargos')
+                                        ->label('Cargos en este turno (opcional)')
+                                        ->placeholder('Ej: Operarios, Vigilantes')
                                         ->columnSpanFull(),
                                 ])
-                                ->columns(['default' => 1, 'sm' => 2, 'md' => 3])
-                                ->addActionLabel('Agregar otro turno')
-                                ->visible(fn(Get $get) => $get('opera_en_turnos') !== 'no' && $get('opera_en_turnos') !== null)
+                                ->columns(['default' => 1, 'sm' => 2])
+                                ->addActionLabel('Agregar turno')
+                                ->defaultItems(1)
+                                ->reorderable(false)
+                                ->visible(fn(Get $get) => in_array('personalizado', (array) $get('modalidades_jornada'), true))
+                                ->helperText('Agregue un turno por cada horario distinto. Los días marcados determinan los días hábiles de la empresa (para descargos y términos legales).')
                                 ->columnSpanFull(),
-
-                            Forms\Components\Textarea::make('descripcion_turnos')
-                                ->label('Notas adicionales sobre los turnos (opcional)')
-                                ->rows(2)
-                                ->placeholder('Ej: Los turnos rotan semanalmente. El turno nocturno incluye bono de compensación. Los administrativos no rotan.')
-                                ->helperText('Información adicional que no cabe en la tabla de turnos.')
-                                ->columnSpanFull(),
-
-                            Forms\Components\TextInput::make('cargos_nocturnos')
-                                ->label('¿Qué cargos trabajan regularmente de noche (después de las 9 PM)?')
-                                ->placeholder('Ej: Vigilantes, operadores planta turno C, conductores de larga distancia')
-                                ->helperText('El trabajo nocturno tiene recargo del 35% según el Art. 168 CST.')
-                                ->columnSpanFull(),
-                        ])
-                        ->columns(['default' => 1, 'sm' => 2]),
-
-                    Forms\Components\Section::make('¿Trabaja sábados, domingos o festivos?')
-                        ->description('Esto determina si el RIT debe incluir los artículos de recargos dominicales y compensatorios.')
-                        ->schema([
-                            Forms\Components\Radio::make('jornada_sabado')
-                                ->label('¿Trabaja los sábados?')
-                                ->options([
-                                    'no'             => 'No',
-                                    'media_jornada'  => 'Media jornada',
-                                    'dia_completo'   => 'Día completo',
-                                    'algunos_cargos' => 'Solo algunos cargos',
-                                    'en_turnos'      => 'Incluido en turnos',
-                                ])
-                                ->descriptions([
-                                    'no'             => 'No se labora los sábados.',
-                                    'media_jornada'  => 'Hasta el mediodía.',
-                                    'dia_completo'   => 'Jornada completa el sábado.',
-                                    'algunos_cargos' => 'Operativos, guardia u otros.',
-                                    'en_turnos'      => 'Cubierto por la rotación de turnos.',
-                                ])
-                                ->default($empresa?->dias_laborales === 'lunes_sabado' ? 'media_jornada' : 'no'),
-
-                            Forms\Components\Radio::make('trabaja_dominicales')
-                                ->label('¿Trabaja domingos o festivos?')
-                                ->options([
-                                    'no'             => 'No',
-                                    'ocasionalmente' => 'Ocasionalmente',
-                                    'algunos_cargos' => 'Algunos cargos',
-                                    'regularmente'   => 'Toda la operación',
-                                    'en_turnos'      => 'Incluido en turnos',
-                                ])
-                                ->descriptions([
-                                    'no'             => 'No se labora domingos ni festivos.',
-                                    'ocasionalmente' => 'Con día compensatorio.',
-                                    'algunos_cargos' => 'Regularmente, solo ciertos cargos.',
-                                    'regularmente'   => 'Recargo dominical del 75%.',
-                                    'en_turnos'      => 'Cubierto por la rotación de turnos.',
-                                ])
-                                ->default('no'),
 
                             Forms\Components\TextInput::make('cargos_exentos_jornada')
                                 ->label('¿Tiene cargos de confianza sin horario fijo? (Gerentes, directores, jefes)')
                                 ->placeholder('Ej: Gerente General, Director Financiero, Jefe de Operaciones')
                                 ->helperText('Estos cargos están exentos del límite de 8 horas diarias (Art. 162 CST). Déjelo en blanco si no aplica.')
                                 ->columnSpanFull(),
-                        ])
-                        ->columns(['default' => 1, 'sm' => 2]),
+                        ]),
 
                     Forms\Components\Section::make('Control de asistencia y horas extras')
                         ->description('¿Cómo sabe quién llegó y a qué hora? ¿Qué pasa si alguien trabaja tiempo adicional?')
@@ -1549,6 +1523,10 @@ class CreateReglamentoInterno extends CreateRecord
         if (! empty($data['periodicidad_diferenciada'])) {
             $data['periodicidad_detalle'] = self::componerPeriodicidadDetalle($data['periodicidad_diferenciada']);
         }
+
+        // Derivar días hábiles y sintetizar los campos de jornada desde el repeater
+        // personalizado (reemplaza las antiguas preguntas de horario/turnos/sábados).
+        $data = array_merge($data, self::sintetizarJornada($data));
 
         $empresa = $this->getEmpresa();
 
