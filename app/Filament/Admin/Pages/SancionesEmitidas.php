@@ -54,12 +54,16 @@ class SancionesEmitidas extends Page implements HasTable
             ->query($query)
             ->defaultSort('updated_at', 'desc')
             ->groups([
-                Tables\Grouping\Group::make('trabajador.nombre_completo')
-                    ->label('Trabajador'),
+                // Se agrupa por la columna real trabajador_id (nombre_completo es un
+                // accessor, no una columna; ordenar por él rompe el SQL). El título
+                // del grupo muestra el nombre completo del trabajador.
+                Tables\Grouping\Group::make('trabajador_id')
+                    ->label('Trabajador')
+                    ->getTitleFromRecordUsing(fn(ProcesoDisciplinario $record) => $record->trabajador?->nombre_completo ?? 'Trabajador'),
                 Tables\Grouping\Group::make('empresa.razon_social')
                     ->label('Empresa'),
             ])
-            ->defaultGroup('trabajador.nombre_completo')
+            ->defaultGroup('trabajador_id')
             ->columns([
                 Tables\Columns\TextColumn::make('codigo')
                     ->label('Código')
@@ -69,8 +73,13 @@ class SancionesEmitidas extends Page implements HasTable
 
                 Tables\Columns\TextColumn::make('trabajador.nombre_completo')
                     ->label('Trabajador')
-                    ->searchable()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    // nombre_completo es accessor: se busca por las columnas reales.
+                    ->searchable(query: function (\Illuminate\Database\Eloquent\Builder $query, string $search) {
+                        $query->whereHas('trabajador', fn($q) => $q
+                            ->where('nombres', 'like', "%{$search}%")
+                            ->orWhere('apellidos', 'like', "%{$search}%"));
+                    }),
 
                 Tables\Columns\TextColumn::make('trabajador.numero_documento')
                     ->label('Documento')
