@@ -197,6 +197,7 @@ class ListProcesoDisciplinarios extends ListRecords
                 ]),
 
             Actions\CreateAction::make()
+                ->label('Crear Citación de Descargos')
                 ->icon('heroicon-o-plus-circle')
                 ->extraAttributes([
                     'data-tour' => 'create-button',

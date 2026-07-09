@@ -59,7 +59,7 @@ class Dashboard extends BaseDashboard
                 ->visible(fn() => in_array(auth()->user()?->role, ['cliente', 'bufete', 'super_admin'], true)),
 
             Actions\Action::make('Crear Descargos')
-                ->label('Crear Descargos')
+                ->label('Crear Citación de Descargos')
                 ->icon('heroicon-o-plus-circle')
                 ->color('primary')
                 // Oculto para el bufete hasta seleccionar una empresa específica.

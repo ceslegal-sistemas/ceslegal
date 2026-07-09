@@ -60,7 +60,7 @@ class ProcesoDisciplinarioResource extends Resource
     public static function getNavigationItems(): array
     {
         return [
-            NavigationItem::make('Crear Descargos')
+            NavigationItem::make('Crear Citación de Descargos')
                 ->icon('heroicon-o-plus-circle')
                 ->url(static::getUrl('create'))
                 // ->color('success')

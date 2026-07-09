@@ -28,6 +28,11 @@ class CreateProcesoDisciplinario extends CreateRecord
 
     protected static string $resource = ProcesoDisciplinarioResource::class;
 
+    public function getTitle(): string
+    {
+        return 'Crear Citación de Descargos';
+    }
+
     // Vista custom: oculta el stepper nativo de Filament (el wizard usa su propio
     // encabezado de paso con barra de progreso), igual que en el wizard de RIT.
     protected static string $view = 'filament.admin.resources.proceso-disciplinarios.pages.create-proceso-disciplinario';
