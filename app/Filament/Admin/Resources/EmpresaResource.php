@@ -235,7 +235,7 @@ class EmpresaResource extends Resource
                             ->suffixIcon('heroicon-o-user-group'),
 
                         Forms\Components\Placeholder::make('obligacion_rit')
-                            ->label('Obligación de Reglamento Interno')
+                            ->hiddenLabel()
                             ->content(function (Get $get) {
                                 $seccion = $get('actividad_economica_id')
                                     ? ActividadEconomica::find($get('actividad_economica_id'))?->seccion
@@ -243,7 +243,9 @@ class EmpresaResource extends Resource
                                 $n = $get('numero_empleados');
                                 $n = is_numeric($n) ? (int) $n : null;
 
-                                return \App\Support\ObligacionRit::explicacion($n, $seccion);
+                                return new \Illuminate\Support\HtmlString(
+                                    \App\Support\ObligacionRit::avisoHtml($n, $seccion)
+                                );
                             })
                             ->columnSpanFull(),
 

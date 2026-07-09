@@ -222,7 +222,7 @@ class Register extends BaseRegister
                                 ->helperText('Empleados permanentes. Determina si la empresa está obligada a tener RIT.'),
 
                             Forms\Components\Placeholder::make('obligacion_rit')
-                                ->label('Obligación de Reglamento Interno')
+                                ->hiddenLabel()
                                 ->content(function (Forms\Get $get) {
                                     $seccion = $get('actividad_economica_id')
                                         ? ActividadEconomica::find($get('actividad_economica_id'))?->seccion
@@ -230,7 +230,9 @@ class Register extends BaseRegister
                                     $n = $get('numero_empleados');
                                     $n = is_numeric($n) ? (int) $n : null;
 
-                                    return \App\Support\ObligacionRit::explicacion($n, $seccion);
+                                    return new \Illuminate\Support\HtmlString(
+                                        \App\Support\ObligacionRit::avisoHtml($n, $seccion)
+                                    );
                                 })
                                 ->columnSpanFull(),
 
