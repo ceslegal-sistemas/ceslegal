@@ -1555,6 +1555,25 @@ class CreateProcesoDisciplinario extends CreateRecord
     {
         parent::mount();
 
+        // Bloqueo temprano para cliente/bufete (su empresa se conoce de entrada): si el
+        // RIT es obligatorio y falta, se redirige a configurarlo antes de continuar.
+        $user = auth()->user();
+        if (in_array($user?->role, ['cliente', 'bufete'], true)) {
+            $empresa = app(\App\Services\GuiaProcesoService::class)->empresaObjetivo($user);
+            if ($empresa && $empresa->requiereRit() === true && ! $this->empresaTieneRit($empresa)) {
+                Notification::make()
+                    ->warning()
+                    ->title('Primero configure el Reglamento Interno')
+                    ->body('Su empresa está obligada a tener RIT (Art. 105 CST) y aún no lo ha cargado ni construido. No puede crear citaciones de descargos hasta configurarlo.')
+                    ->persistent()
+                    ->send();
+
+                $this->redirect(route('filament.admin.pages.mi-reglamento-interno'));
+
+                return;
+            }
+        }
+
         try {
             $draft = session($this->getDraftKey());
             if ($draft && is_array($draft) && !empty($draft)) {
@@ -1580,8 +1599,31 @@ class CreateProcesoDisciplinario extends CreateRecord
     // Lifecycle hooks
     // ──────────────────────────────────────────────────────────────────────────
 
+    /** ¿La empresa tiene un RIT cargado o construido? (misma noción que la guía). */
+    protected function empresaTieneRit(\App\Models\Empresa $empresa): bool
+    {
+        return \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
+            ->where('fuente', '!=', 'mejora_ia')
+            ->exists();
+    }
+
     protected function beforeCreate(): void
     {
+        // Bloqueo legal: si la empresa está obligada a tener RIT (Art. 105 CST) y aún
+        // no lo ha cargado ni construido, no se puede crear la citación de descargos.
+        $empresaId = $this->data['empresa_id'] ?? auth()->user()?->empresa_id;
+        $empresa   = $empresaId ? \App\Models\Empresa::find($empresaId) : null;
+        if ($empresa && $empresa->requiereRit() === true && ! $this->empresaTieneRit($empresa)) {
+            Notification::make()
+                ->warning()
+                ->title('Reglamento Interno de Trabajo obligatorio')
+                ->body('Esta empresa está obligada a tener RIT (Art. 105 CST) y aún no lo ha cargado ni construido. Configúrelo antes de crear citaciones de descargos.')
+                ->persistent()
+                ->send();
+
+            $this->halt();
+        }
+
         if (!$this->chatListo || empty($this->datosExtraidos['hechos'])) {
             Notification::make()
                 ->warning()
