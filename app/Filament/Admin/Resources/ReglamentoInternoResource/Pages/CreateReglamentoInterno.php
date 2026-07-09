@@ -129,6 +129,18 @@ class CreateReglamentoInterno extends CreateRecord
     }
 
     /**
+     * Compone el texto legible 'periodicidad_detalle' (el que consume la generación
+     * del RIT) a partir de las filas cargo+periodicidad elegidas en el wizard.
+     */
+    public static function componerPeriodicidadDetalle($filas): string
+    {
+        return collect($filas ?? [])
+            ->filter(fn($f) => ! empty($f['cargo']) && ! empty($f['periodicidad']))
+            ->map(fn($f) => $f['cargo'] . ': ' . ucfirst((string) $f['periodicidad']))
+            ->implode(' / ');
+    }
+
+    /**
      * Infiere los riesgos SST probables a partir de la(s) actividad(es)
      * económica(s) seleccionada(s): primero por sección CIIU (A–U) y luego
      * con un refuerzo por palabras clave del nombre de la actividad.
@@ -946,12 +958,46 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->columnSpanFull()
                                 ->live(),
 
-                            Forms\Components\Textarea::make('periodicidad_detalle')
-                                ->label('¿A quiénes paga diferente? Indique el cargo y su periodicidad')
-                                ->rows(2)
-                                ->placeholder('Ej: Conductores y operativos: semanal (viernes) / Personal administrativo: quincenal (15 y último día hábil)')
+                            // Muestra los cargos ya registrados en el wizard para asignarles
+                            // su periodicidad (antes era texto libre). Se compone el texto
+                            // 'periodicidad_detalle' que consume la generación del RIT.
+                            Forms\Components\Repeater::make('periodicidad_diferenciada')
+                                ->label('¿A quiénes paga diferente? Elija el cargo y su periodicidad')
+                                ->schema([
+                                    Forms\Components\Select::make('cargo')
+                                        ->label('Cargo')
+                                        ->options(fn(Get $get) => collect($get('../../cargos') ?? [])
+                                            ->pluck('nombre_cargo')
+                                            ->filter()
+                                            ->mapWithKeys(fn($c) => [$c => $c])
+                                            ->toArray())
+                                        ->searchable()
+                                        ->required()
+                                        ->native(false)
+                                        ->placeholder('Seleccione un cargo registrado'),
+                                    Forms\Components\Select::make('periodicidad')
+                                        ->label('Periodicidad')
+                                        ->options([
+                                            'mensual'   => 'Mensual',
+                                            'quincenal' => 'Quincenal',
+                                            'semanal'   => 'Semanal',
+                                            'diario'    => 'Diario',
+                                            'destajo'   => 'Por destajo',
+                                        ])
+                                        ->required()
+                                        ->native(false),
+                                ])
+                                ->columns(2)
+                                ->defaultItems(0)
+                                ->addActionLabel('Agregar cargo con pago diferente')
                                 ->visible(fn(Get $get) => count((array) $get('periodicidad_pago')) > 1)
+                                ->live()
+                                ->afterStateUpdated(fn(Get $get, Set $set) => $set('periodicidad_detalle', self::componerPeriodicidadDetalle($get('periodicidad_diferenciada'))))
+                                ->helperText('Los cargos provienen de los que registró antes en el asistente.')
                                 ->columnSpanFull(),
+
+                            // Texto compuesto (respaldo para la generación del RIT).
+                            Forms\Components\Hidden::make('periodicidad_detalle'),
                         ])
                         ->columns(['default' => 1, 'sm' => 2]),
 
@@ -1498,6 +1544,12 @@ class CreateReglamentoInterno extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
+        // Componer el texto de periodicidad a partir de las filas cargo+periodicidad
+        // elegidas (garantiza el valor que consume la generación del RIT).
+        if (! empty($data['periodicidad_diferenciada'])) {
+            $data['periodicidad_detalle'] = self::componerPeriodicidadDetalle($data['periodicidad_diferenciada']);
+        }
+
         $empresa = $this->getEmpresa();
 
         if (!$empresa) {
