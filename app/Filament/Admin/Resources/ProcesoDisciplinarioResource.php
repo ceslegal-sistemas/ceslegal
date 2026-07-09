@@ -3763,23 +3763,14 @@ class ProcesoDisciplinarioResource extends Resource
     }
 
     /**
-     * Opciones de días de suspensión para el selector, topadas al máximo proporcional
-     * que la IA recomienda para el caso (recomendacion_final.dias_suspension), sin
-     * exceder lo que arrojó el análisis. Evita ofrecer más días de los recomendados
-     * aunque el rango sugerido venga sin topar (p. ej. desde un análisis en caché).
+     * Opciones de días de suspensión para el selector: todo el rango que contempla el
+     * RIT de la empresa (dias_suspension_sugeridos = 1..máximo del RIT). La empresa
+     * elige dentro de ese rango permitido.
      */
     protected static function opcionesDiasSuspension(array $analisis): array
     {
-        $dias = $analisis['dias_suspension_sugeridos'] ?? [];
-
-        $rec = $analisis['recomendacion_final']['dias_suspension'] ?? null;
-        $rec = is_numeric($rec) ? (int) $rec : null;
-        if ($rec && $rec > 0) {
-            $dias = array_filter($dias, fn ($d) => (int) $d <= $rec);
-        }
-
         $opciones = [];
-        foreach ($dias as $d) {
+        foreach ($analisis['dias_suspension_sugeridos'] ?? [] as $d) {
             $opciones[$d] = "{$d} día" . ($d > 1 ? 's' : '');
         }
 
