@@ -84,21 +84,8 @@ class CreateReglamentoInterno extends CreateRecord
                 $saved['cargos'] = [['nombre_cargo' => '', 'instancia_sancionatoria' => 'ninguna']];
             }
 
-            // Pre-cargar sanciones estándar si el cliente aún no ha configurado ninguna
-            if (empty($saved['sanciones_configuradas'])) {
-                $saved['sanciones_configuradas'] = SancionLaboral::where('activa', true)
-                    ->whereNull('sancion_padre_id')
-                    ->orderBy('tipo_falta')
-                    ->orderBy('orden')
-                    ->get()
-                    ->map(fn($s) => [
-                        'nombre'          => $s->nombre_claro,
-                        'tipo_falta'      => $s->tipo_falta,
-                        'tipo_sancion'    => $s->tipo_sancion,
-                        'dias_suspension' => $s->dias_suspension_max,
-                    ])
-                    ->toArray();
-            }
+            // Las conductas ya NO se precargan del catálogo estático: se generan con IA
+            // desde el botón "Generar conductas con IA" del régimen disciplinario.
         }
 
         $this->form->fill($saved);
@@ -785,8 +772,11 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->columns(['default' => 1, 'sm' => 2])
                                 ->addActionLabel('Agregar turno')
                                 ->defaultItems(1)
+                                ->minItems(1)
                                 ->reorderable(false)
+                                ->required(fn(Get $get) => in_array('personalizado', (array) $get('modalidades_jornada'), true))
                                 ->visible(fn(Get $get) => in_array('personalizado', (array) $get('modalidades_jornada'), true))
+                                ->validationMessages(['required' => 'Agregue al menos un turno con sus días y horario.', 'min' => 'Agregue al menos un turno.'])
                                 ->helperText('Agregue un turno por cada horario distinto. Los días marcados determinan los días hábiles de la empresa (para descargos y términos legales).')
                                 ->columnSpanFull(),
 
@@ -1086,11 +1076,44 @@ class CreateReglamentoInterno extends CreateRecord
                     //     ->columnSpanFull(),
 
                     Forms\Components\Section::make('Conductas sancionables y medidas disciplinarias')
-                        ->description('Las conductas vienen pre-cargadas del catálogo estándar de Sanciones Laborales. Puede eliminar las que no apliquen, cambiar el tipo de falta o ajustar la sanción de cada conducta. También puede agregar conductas propias de su sector.')
+                        ->description('Genere el régimen disciplinario con IA según la actividad y los cargos de su empresa (conforme al CST). Luego puede eliminar las que no apliquen, cambiar el tipo de falta, ajustar la sanción o agregar conductas propias de su sector.')
                         ->schema([
+                            Forms\Components\Actions::make([
+                                Forms\Components\Actions\Action::make('generar_conductas_ia')
+                                    ->label('Generar conductas con IA')
+                                    ->icon('heroicon-o-sparkles')
+                                    ->color('primary')
+                                    ->requiresConfirmation()
+                                    ->modalHeading('Generar conductas con IA')
+                                    ->modalDescription('La IA generará el régimen disciplinario según la actividad y los cargos de su empresa, conforme al CST. Reemplazará las conductas actuales del listado.')
+                                    ->modalSubmitActionLabel('Generar')
+                                    ->action(function (Get $get, Set $set) {
+                                        $actividadId = $get('actividad_economica_id');
+                                        $actividad   = $actividadId ? optional(ActividadEconomica::find($actividadId))->nombre : '';
+                                        $cargos      = collect($get('cargos') ?? [])->pluck('nombre_cargo')->filter()->join(', ');
+
+                                        $rows = app(\App\Services\ReglamentoInternoService::class)
+                                            ->generarConductasParaWizard(['actividad' => $actividad, 'cargos' => $cargos]);
+
+                                        if (empty($rows)) {
+                                            Notification::make()->warning()
+                                                ->title('No se pudieron generar las conductas')
+                                                ->body('La IA no devolvió un listado válido. Intente de nuevo.')
+                                                ->send();
+                                            return;
+                                        }
+
+                                        $set('sanciones_configuradas', $rows);
+                                        Notification::make()->success()
+                                            ->title('Conductas generadas')
+                                            ->body(count($rows) . ' conductas generadas con IA. Revíselas y ajústelas según su empresa.')
+                                            ->send();
+                                    }),
+                            ])->columnSpanFull(),
+
                             Forms\Components\Repeater::make('sanciones_configuradas')
                                 ->label('Régimen disciplinario')
-                                ->helperText('Haga clic en una conducta para expandirla y modificarla. Elimine con el ícono de basura. Agregue conductas adicionales al final.')
+                                ->helperText('Genere las conductas con IA (botón de arriba) y luego edítelas. Haga clic en una conducta para expandirla; elimine con el ícono de basura; agregue conductas al final.')
                                 ->schema([
                                     Forms\Components\TextInput::make('nombre')
                                         ->label('Conducta sancionable')
@@ -1189,20 +1212,7 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->columnSpan(['default' => 1, 'sm' => 4]),
                                 ])
                                 ->columns(['default' => 1, 'sm' => 12])
-                                ->default(
-                                    fn() => SancionLaboral::where('activa', true)
-                                        ->whereNull('sancion_padre_id')
-                                        ->orderBy('tipo_falta')
-                                        ->orderBy('orden')
-                                        ->get()
-                                        ->map(fn($s) => [
-                                            'nombre'          => $s->nombre_claro,
-                                            'tipo_falta'      => $s->tipo_falta,
-                                            'tipo_sancion'    => $s->tipo_sancion,
-                                            'dias_suspension' => $s->dias_suspension_max,
-                                        ])
-                                        ->toArray()
-                                )
+                                ->defaultItems(0)
                                 ->reorderable(false)
                                 ->collapsible()
                                 ->collapsed()

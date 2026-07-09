@@ -440,6 +440,96 @@ PROMPT;
     }
 
     /**
+     * Genera con IA el régimen disciplinario para el CONSTRUCTOR de RIT (wizard), a
+     * partir del contexto de la empresa (actividad, cargos). Devuelve filas con la
+     * forma del repeater 'sanciones_configuradas' (nombre, tipo_falta, tipo_sancion,
+     * dias_suspension). Reemplaza el catálogo estático de Sanciones Laborales.
+     */
+    public function generarConductasParaWizard(array $contexto): array
+    {
+        $actividad = trim((string) ($contexto['actividad'] ?? ''));
+        $cargos    = trim((string) ($contexto['cargos'] ?? ''));
+
+        $ctx = '';
+        if ($actividad !== '') {
+            $ctx .= "- Actividad económica: {$actividad}\n";
+        }
+        if ($cargos !== '') {
+            $ctx .= "- Cargos de la empresa: {$cargos}\n";
+        }
+
+        $prompt = <<<PROMPT
+Eres un abogado laboralista colombiano. Genera el RÉGIMEN DISCIPLINARIO (conductas sancionables y su medida) para el Reglamento Interno de Trabajo de una empresa colombiana, conforme al Código Sustantivo del Trabajo (CST). Este contenido será PÚBLICO dentro del RIT.
+
+CONTEXTO DE LA EMPRESA:
+{$ctx}
+Responde ÚNICAMENTE con un JSON válido: un arreglo de conductas con esta estructura exacta:
+[
+  {"nombre": "descripción concreta de la conducta", "tipo_falta": "leve|grave|muy_grave", "tipo_sancion": "llamado_atencion|suspension|terminacion", "dias_suspension": null}
+]
+
+Reglas:
+- Entre 15 y 30 conductas en total, repartidas entre leve, grave y muy_grave.
+- Proporcionalidad y gradualidad: leve → llamado_atencion; grave → suspension; muy_grave → terminacion.
+- dias_suspension: entero SOLO cuando tipo_sancion es "suspension" (máximo 8 días la primera vez); en los demás casos null.
+- Incluye conductas propias del sector/actividad y de los cargos indicados.
+- No inventes normas ni incluyas conductas discriminatorias. Español colombiano, claro y concreto.
+PROMPT;
+
+        try {
+            $datos = $this->parsearJSON($this->llamarGeminiJSON($prompt));
+            $lista = array_is_list($datos) ? $datos : ($datos['conductas'] ?? $datos['regimen'] ?? []);
+
+            return $this->normalizarConductasWizard(is_array($lista) ? $lista : []);
+        } catch (\Throwable $e) {
+            Log::warning('ReglamentoInternoService: error generando conductas para el wizard', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
+    }
+
+    /** Sanea el listado de conductas a la forma del repeater del wizard. */
+    private function normalizarConductasWizard(array $lista): array
+    {
+        $faltas    = ['leve', 'grave', 'muy_grave'];
+        $sanciones = ['llamado_atencion', 'suspension', 'terminacion'];
+
+        $out = [];
+        foreach (array_slice($lista, 0, 40) as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $nombre = trim((string) ($item['nombre'] ?? ''));
+            if ($nombre === '') {
+                continue;
+            }
+
+            $falta   = in_array($item['tipo_falta'] ?? null, $faltas, true) ? $item['tipo_falta'] : 'leve';
+            $sancion = in_array($item['tipo_sancion'] ?? null, $sanciones, true)
+                ? $item['tipo_sancion']
+                : match ($falta) {
+                    'muy_grave' => 'terminacion',
+                    'grave'     => 'suspension',
+                    default     => 'llamado_atencion',
+                };
+            $dias = ($sancion === 'suspension' && is_numeric($item['dias_suspension'] ?? null))
+                ? min(8, max(1, (int) $item['dias_suspension']))
+                : null;
+
+            $out[] = [
+                'nombre'          => $nombre,
+                'tipo_falta'      => $falta,
+                'tipo_sancion'    => $sancion,
+                'dias_suspension' => $dias,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * Extrae el capítulo disciplinario del texto y solicita a Gemini la estructura de faltas.
      */
     private function extraerSancionesConIA(string $textoRIT): array
