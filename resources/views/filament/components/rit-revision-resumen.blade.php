@@ -90,6 +90,7 @@
         'teletrabajo' => 'Teletrabajo',
         'trabajo_campo_obra' => 'Trabajo en campo/obra',
         'vigilancia_guardias' => 'Vigilancia / guardias',
+        'personalizado' => 'Personalizado',
     ];
     $capitulosRIT = [
         'I' => 'Denominación y Objeto',
@@ -277,8 +278,25 @@
 
         <div class="rg-glass rg-card">
             <p class="rg-lbl">Jornada</p>
-            <p class="rg-val {{ !$horario_entrada ? 'empty' : '' }}">{{ $horario_entrada ?? '—' }} → {{ $horario_salida ?? '—' }}</p>
-            <p class="rg-sub">Sáb: {{ $jornadaSabadoLabel }} &nbsp;·&nbsp; Dom: {{ $dominicalesLabels[$trabaja_dominicales ?? 'no'] ?? 'No' }}</p>
+            @php
+                $labelsDia = \App\Support\DiasHabiles::LABELS;
+                $jp = is_array($jornada_personalizada ?? null) ? $jornada_personalizada : [];
+                $diasIso = [];
+                foreach ($jp as $t) {
+                    foreach ((array) ($t['dias'] ?? []) as $d) {
+                        if (is_numeric($d)) { $diasIso[(int) $d] = true; }
+                    }
+                }
+                ksort($diasIso);
+                $diasTexto = collect(array_keys($diasIso))->map(fn($d) => $labelsDia[$d] ?? '')->filter()->join(', ');
+            @endphp
+            <p class="rg-val {{ empty($jp) ? 'empty' : '' }}">{{ $diasTexto ?: 'Sin turnos definidos aún' }}</p>
+            @foreach ($jp as $t)
+                @php
+                    $dt = collect((array) ($t['dias'] ?? []))->map(fn($d) => $labelsDia[(int) $d] ?? '')->filter()->join(', ');
+                @endphp
+                <p class="rg-sub"><b>{{ $t['nombre'] ?: 'Turno' }}:</b> {{ $dt ?: '—' }} · {{ $fmtHora($t['hora_inicio'] ?? null) ?? '?' }} a {{ $fmtHora($t['hora_fin'] ?? null) ?? '?' }}{{ !empty($t['cargos']) ? ' ('.$t['cargos'].')' : '' }}</p>
+            @endforeach
             @if (!empty($modalidades_jornada))<div class="rg-pills">@foreach ($modalidades_jornada as $mj)<span class="rg-pill">{{ $modalidadesJornadaLabels[$mj] ?? $mj }}</span>@endforeach</div>@endif
         </div>
 

@@ -1497,6 +1497,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 'tiene_convencion_colectiva' => $get('tiene_convencion_colectiva'),
                                 'tiene_pacto_colectivo'    => $get('tiene_pacto_colectivo'),
                                 'modalidades_jornada'      => $get('modalidades_jornada') ?? [],
+                                'jornada_personalizada'    => $get('jornada_personalizada') ?? [],
                                 'horario_entrada'          => $get('horario_entrada'),
                                 'horario_salida'           => $get('horario_salida'),
                                 'opera_en_turnos'          => $get('opera_en_turnos'),
