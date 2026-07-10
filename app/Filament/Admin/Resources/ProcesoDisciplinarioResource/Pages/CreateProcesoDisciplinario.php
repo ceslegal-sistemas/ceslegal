@@ -1602,8 +1602,12 @@ class CreateProcesoDisciplinario extends CreateRecord
     /** ¿La empresa tiene un RIT cargado o construido? (misma noción que la guía). */
     protected function empresaTieneRit(\App\Models\Empresa $empresa): bool
     {
+        // RIT vigente: activo y con contenido (coincide con la guía y Mi Reglamento).
         return \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
             ->where('fuente', '!=', 'mejora_ia')
+            ->where('activo', true)
+            ->whereNotNull('texto_completo')
+            ->where('texto_completo', '!=', '')
             ->exists();
     }
 

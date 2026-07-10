@@ -73,10 +73,15 @@ class GuiaProcesoService
     public function paraEmpresa(Empresa $empresa): array
     {
         // ── RIT (base: no la versión mejora_ia) ──
+        // "Tiene RIT" solo si hay uno VIGENTE: activo y con contenido (no uno a medio
+        // generar, con error o sin texto). Debe coincidir con "Mi Reglamento Interno",
+        // que exige texto_completo + no generando + sin error.
         $rit = ReglamentoInterno::query()
             ->where('empresa_id', $empresa->id)
             ->where('fuente', '!=', 'mejora_ia')
-            ->orderByDesc('activo')
+            ->where('activo', true)
+            ->whereNotNull('texto_completo')
+            ->where('texto_completo', '!=', '')
             ->orderByDesc('updated_at')
             ->first();
         $tieneRit = $rit !== null;
