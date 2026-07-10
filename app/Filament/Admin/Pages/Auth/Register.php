@@ -351,19 +351,47 @@ class Register extends BaseRegister
                                 ))
                                 ->columnSpanFull(),
 
+                            // Recuadro de obligación (según nº de empleados y actividad).
+                            Forms\Components\Placeholder::make('rit_obligacion')
+                                ->hiddenLabel()
+                                ->content(function (Forms\Get $get) {
+                                    $seccion = $get('actividad_economica_id')
+                                        ? ActividadEconomica::find($get('actividad_economica_id'))?->seccion
+                                        : null;
+                                    $n = $get('numero_empleados');
+                                    $n = is_numeric($n) ? (int) $n : null;
+
+                                    return new HtmlString(\App\Support\ObligacionRit::avisoHtml($n, $seccion));
+                                })
+                                ->columnSpanFull(),
+
                             Forms\Components\Radio::make('rit_opcion')
                                 ->label('¿Su empresa tiene Reglamento Interno de Trabajo (RIT)?')
-                                ->options([
-                                    'tiene'     => 'Sí, ya lo tengo — lo subo ahora',
-                                    'construir' => 'No lo tengo — quiero construirlo con IA (recomendado)',
-                                    'despues'   => 'Lo haré después (solo podré aplicar terminación de contrato)',
-                                ])
-                                ->descriptions([
-                                    'tiene'     => 'Suba el archivo .docx o .pdf de su RIT aprobado por el Ministerio del Trabajo.',
-                                    'construir' => 'Al crear la cuenta, lo redirigiremos a un cuestionario guiado. La IA redactará su RIT completo.',
-                                    'despues'   => 'Puede subir o construir el RIT más adelante desde el panel de administración.',
-                                ])
-                                ->default('despues')
+                                // Las opciones dependen de si la empresa está obligada:
+                                // obligada → subir (con auditoría) o construir; NO se permite "después".
+                                // no obligada → subir, construir, o regirse por el CST.
+                                ->options(fn (Forms\Get $get) => $this->esObligadaRit($get)
+                                    ? [
+                                        'tiene'     => 'Sí, ya lo tengo — lo subo ahora',
+                                        'construir' => 'No lo tengo — construirlo con IA',
+                                    ]
+                                    : [
+                                        'tiene'     => 'Sí, ya lo tengo — lo subo ahora',
+                                        'construir' => 'No lo tengo — construirlo con IA (recomendado)',
+                                        'despues'   => 'No lo tengo — me regiré por el Código Sustantivo del Trabajo (CST)',
+                                    ])
+                                ->descriptions(fn (Forms\Get $get) => $this->esObligadaRit($get)
+                                    ? [
+                                        'tiene'     => 'Suba el .docx o .pdf de su RIT. Se auditará automáticamente (obligatorio para su empresa).',
+                                        'construir' => 'Su empresa está OBLIGADA a tener RIT (Art. 105 CST). Lo llevamos al constructor guiado con IA.',
+                                    ]
+                                    : [
+                                        'tiene'     => 'Suba el archivo .docx o .pdf de su RIT aprobado por el Ministerio del Trabajo.',
+                                        'construir' => 'Lo llevamos a un cuestionario guiado; la IA redactará su RIT completo.',
+                                        'despues'   => 'No está obligada a tener RIT. Podrá regirse por el CST y construirlo o subirlo más adelante.',
+                                    ])
+                                ->default(fn (Forms\Get $get) => $this->esObligadaRit($get) ? 'construir' : 'despues')
+                                ->required()
                                 ->live()
                                 ->columnSpanFull(),
 
@@ -410,6 +438,18 @@ class Register extends BaseRegister
         return [];
     }
 
+    /** ¿La empresa que se está registrando está obligada a tener RIT? (Art. 105 CST) */
+    protected function esObligadaRit(Forms\Get $get): bool
+    {
+        $seccion = $get('actividad_economica_id')
+            ? ActividadEconomica::find($get('actividad_economica_id'))?->seccion
+            : null;
+        $n = $get('numero_empleados');
+        $n = is_numeric($n) ? (int) $n : null;
+
+        return \App\Support\ObligacionRit::requiere($n, $seccion) === true;
+    }
+
     protected function handleRegistration(array $data): User
     {
         if (($data['tipo_cuenta'] ?? 'empresa') === 'bufete') {
@@ -449,6 +489,16 @@ class Register extends BaseRegister
 
         $ritOpcion = $data['rit_opcion'] ?? 'despues';
         $rutaDocx  = $data['reglamento_docx_temp'] ?? null;
+
+        // Empresa OBLIGADA a tener RIT que no lo cargó → forzar el constructor:
+        // no puede quedarse sin Reglamento Interno.
+        if ($ritOpcion === 'despues') {
+            $seccion = optional(ActividadEconomica::find($data['actividad_economica_id'] ?? null))->seccion;
+            $n = is_numeric($data['numero_empleados'] ?? null) ? (int) $data['numero_empleados'] : null;
+            if (\App\Support\ObligacionRit::requiere($n, $seccion) === true) {
+                $ritOpcion = 'construir';
+            }
+        }
 
         // Celebrar con confeti al aterrizar tras el registro (un solo uso). Aplica a
         // los tres casos: 'tiene' (Auditar RIT), 'construir' (Mi/Generar RIT) y
