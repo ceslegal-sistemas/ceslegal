@@ -52,7 +52,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             }
         } else {
             $this->empresa = ($user->hasRole('super_admin') || $user->hasRole('abogado'))
-                ? Empresa::first()
+                ? (($aid = \App\Support\EmpresaActiva::id()) ? Empresa::find($aid) : Empresa::first())
                 : ($user->empresa ?? null);
         }
 

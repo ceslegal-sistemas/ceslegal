@@ -1639,7 +1639,9 @@ class CreateReglamentoInterno extends CreateRecord
             return $id ? Empresa::find($id) : null;
         }
         if ($user->hasRole('super_admin') || $user->hasRole('abogado')) {
-            return Empresa::first();
+            // Respeta la empresa activa (p. ej. la recién creada) si está seleccionada.
+            $id = \App\Support\EmpresaActiva::id();
+            return $id ? Empresa::find($id) : Empresa::first();
         }
         return $user->empresa ?? null;
     }

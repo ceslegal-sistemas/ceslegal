@@ -73,7 +73,7 @@ class AuditarRIT extends Page implements HasForms
             }
         } else {
             $this->empresa = $esAdmin
-                ? Empresa::first()
+                ? (($aid = \App\Support\EmpresaActiva::id()) ? Empresa::find($aid) : Empresa::first())
                 : $user->empresa ?? null;
 
             // Seguridad: cliente solo puede ver su propia empresa

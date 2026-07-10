@@ -44,6 +44,18 @@ class EmpresaResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    /** ¿La empresa que se está creando está obligada a tener RIT? (Art. 105 CST) */
+    public static function esObligadaRit(Get $get): bool
+    {
+        $seccion = $get('actividad_economica_id')
+            ? ActividadEconomica::find($get('actividad_economica_id'))?->seccion
+            : null;
+        $n = $get('numero_empleados');
+        $n = is_numeric($n) ? (int) $n : null;
+
+        return \App\Support\ObligacionRit::requiere($n, $seccion) === true;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -269,9 +281,49 @@ class EmpresaResource extends Resource
                 Forms\Components\Section::make('Reglamento Interno')
                     ->description('Documento normativo interno de la empresa')
                     ->icon('heroicon-o-document-text')
-                    // Al crear la empresa aún no hay RIT que gestionar; se administra al editar.
-                    ->hiddenOn('create')
                     ->schema([
+
+                        // ── Al CREAR: rama según obligación (¿tiene RIT?) ────────────
+                        Forms\Components\Placeholder::make('rit_obligacion_crear')
+                            ->hiddenLabel()
+                            ->visibleOn('create')
+                            ->content(function (Get $get) {
+                                $seccion = $get('actividad_economica_id')
+                                    ? ActividadEconomica::find($get('actividad_economica_id'))?->seccion
+                                    : null;
+                                $n = $get('numero_empleados');
+                                $n = is_numeric($n) ? (int) $n : null;
+
+                                return new HtmlString(\App\Support\ObligacionRit::avisoHtml($n, $seccion));
+                            })
+                            ->columnSpanFull(),
+
+                        Forms\Components\Radio::make('rit_opcion')
+                            ->label('¿Su empresa tiene Reglamento Interno de Trabajo (RIT)?')
+                            ->visibleOn('create')
+                            ->live()
+                            ->options(fn (Get $get) => static::esObligadaRit($get)
+                                ? [
+                                    'tiene'     => 'Sí, ya lo tengo — lo subo ahora',
+                                    'construir' => 'No lo tengo — construirlo con IA',
+                                ]
+                                : [
+                                    'tiene'     => 'Sí, ya lo tengo — lo subo ahora',
+                                    'construir' => 'No lo tengo — construirlo con IA (recomendado)',
+                                    'despues'   => 'No lo tengo — se regirá por el Código Sustantivo del Trabajo (CST)',
+                                ])
+                            ->descriptions(fn (Get $get) => static::esObligadaRit($get)
+                                ? [
+                                    'tiene'     => 'Suba el .docx o .pdf. Se auditará automáticamente (obligatorio para esta empresa).',
+                                    'construir' => 'Esta empresa está OBLIGADA a tener RIT (Art. 105 CST). Se abrirá el constructor guiado con IA.',
+                                ]
+                                : [
+                                    'tiene'     => 'Suba el archivo .docx o .pdf del RIT aprobado.',
+                                    'construir' => 'Cuestionario guiado; la IA redactará el RIT completo.',
+                                    'despues'   => 'No está obligada; puede regirse por el CST y subir o construir el RIT más adelante.',
+                                ])
+                            ->default(fn (Get $get) => static::esObligadaRit($get) ? 'construir' : 'despues')
+                            ->columnSpanFull(),
 
                         // ── Visor / descarga cuando existe RIT ───────────────────────
                         Forms\Components\Placeholder::make('rit_visor')
@@ -327,8 +379,9 @@ class EmpresaResource extends Resource
                             ->columnSpanFull(),
 
                         // ── Upload para agregar / reemplazar RIT ─────────────────────
+                        //   Al editar: siempre visible. Al crear: solo si eligió "tiene".
                         Forms\Components\FileUpload::make('reglamento_docx_temp')
-                            ->label('Subir / Reemplazar Reglamento Interno (.docx o .pdf)')
+                            ->label('Subir Reglamento Interno (.docx o .pdf)')
                             ->helperText('Formatos aceptados: .docx y .pdf — máx. 10 MB.')
                             ->acceptedFileTypes([
                                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -338,7 +391,8 @@ class EmpresaResource extends Resource
                             ->directory('reglamentos-temp')
                             ->visibility('private')
                             ->maxSize(10240)
-                            ->visibleOn('edit'),
+                            ->visible(fn (string $operation, Get $get): bool =>
+                                $operation === 'edit' || $get('rit_opcion') === 'tiene'),
                     ]),
             ]);
     }

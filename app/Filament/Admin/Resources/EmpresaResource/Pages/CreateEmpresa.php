@@ -27,11 +27,10 @@ class CreateEmpresa extends CreateRecord
 
     protected function afterCreate(): void
     {
-        // Si un bufete crea la empresa, se selecciona de una vez en el topbar para
-        // que se desbloqueen trabajadores/descargos/auditoría sin pasos extra.
-        if (auth()->user()?->esAbogadoDeBufete()) {
-            \App\Support\EmpresaActiva::set($this->record->id);
-        }
+        // La empresa recién creada queda seleccionada como activa (bufete y admin),
+        // para que las herramientas de RIT (construir/auditar/mi reglamento) operen
+        // sobre ella tras redirigir.
+        \App\Support\EmpresaActiva::set($this->record->id);
 
         $path = $this->data['reglamento_docx_temp'] ?? null;
         if ($path) {
@@ -54,5 +53,20 @@ class CreateEmpresa extends CreateRecord
                 ]);
             }
         }
+    }
+
+    /**
+     * Redirección según la rama de RIT elegida al crear:
+     *  - 'tiene'     → Auditar RIT (el reglamento subido se audita).
+     *  - 'construir' → Mi Reglamento Interno (desde donde se construye con IA).
+     *  - otro/CST    → listado de empresas.
+     */
+    protected function getRedirectUrl(): string
+    {
+        return match ($this->data['rit_opcion'] ?? null) {
+            'tiene'     => route('filament.admin.pages.auditar-r-i-t'),
+            'construir' => route('filament.admin.pages.mi-reglamento-interno'),
+            default     => $this->getResource()::getUrl('index'),
+        };
     }
 }
