@@ -114,7 +114,7 @@ class Register extends BaseRegister
                                     : 'Ej: 1023456789')
                                 ->helperText(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
                                     ? 'Incluya el dígito de verificación separado por guion'
-                                    : 'Número de cédula de ciudadanía')
+                                    : '')
                                 ->rules(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
                                     ? ['regex:/^\d{6,12}-\d$/']
                                     : [])
@@ -138,7 +138,7 @@ class Register extends BaseRegister
                                     'regex' => 'El teléfono debe tener exactamente 10 dígitos numéricos (sin +57, espacios, guiones ni letras).',
                                 ])
                                 ->placeholder('3001234567')
-                                ->helperText('10 dígitos, solo números. Se usa para las notificaciones por WhatsApp.')
+                                // ->helperText('10 dígitos, solo números. Se usa para las notificaciones por WhatsApp.')
                                 ->suffixIcon('heroicon-o-phone'),
 
                             Forms\Components\TextInput::make('email_contacto')
@@ -166,9 +166,7 @@ class Register extends BaseRegister
 
                             Forms\Components\Textarea::make('direccion')
                                 ->label('Dirección')
-                                ->rows(2)
-                                ->placeholder('Calle 123 # 45-67, Edificio ABC, Piso 3')
-                                ->columnSpanFull(),
+                                ->placeholder('Calle 123 # 45-67, Edificio ABC, Piso 3'),
 
                             // Los días laborales ahora se toman del Reglamento Interno.
                             // Se conserva como valor oculto (respaldo) por defecto.
@@ -365,34 +363,14 @@ class Register extends BaseRegister
                                 })
                                 ->columnSpanFull(),
 
-                            Forms\Components\Radio::make('rit_opcion')
-                                ->label('¿Su empresa tiene Reglamento Interno de Trabajo (RIT)?')
-                                // Las opciones dependen de si la empresa está obligada:
-                                // obligada → subir (con auditoría) o construir; NO se permite "después".
-                                // no obligada → subir, construir, o regirse por el CST.
-                                ->options(fn (Forms\Get $get) => $this->esObligadaRit($get)
-                                    ? [
-                                        'tiene'     => 'Sí, ya lo tengo — lo subo ahora',
-                                        'construir' => 'No lo tengo — construirlo con IA',
-                                    ]
-                                    : [
-                                        'tiene'     => 'Sí, ya lo tengo — lo subo ahora',
-                                        'construir' => 'No lo tengo — construirlo con IA (recomendado)',
-                                        'despues'   => 'No lo tengo — me regiré por el Código Sustantivo del Trabajo (CST)',
-                                    ])
-                                ->descriptions(fn (Forms\Get $get) => $this->esObligadaRit($get)
-                                    ? [
-                                        'tiene'     => 'Suba el .docx o .pdf de su RIT. Se auditará automáticamente (obligatorio para su empresa).',
-                                        'construir' => 'Su empresa está OBLIGADA a tener RIT (Art. 105 CST). Lo llevamos al constructor guiado con IA.',
-                                    ]
-                                    : [
-                                        'tiene'     => 'Suba el archivo .docx o .pdf de su RIT aprobado por el Ministerio del Trabajo.',
-                                        'construir' => 'Lo llevamos a un cuestionario guiado; la IA redactará su RIT completo.',
-                                        'despues'   => 'No está obligada a tener RIT. Podrá regirse por el CST y construirlo o subirlo más adelante.',
-                                    ])
+                            // Campo oculto que guarda la elección; las cards lo escriben.
+                            Forms\Components\Hidden::make('rit_opcion')
                                 ->default(fn (Forms\Get $get) => $this->esObligadaRit($get) ? 'construir' : 'despues')
-                                ->required()
-                                ->live()
+                                ->live(),
+
+                            // Selector en cards con Lordicon (loop), estilo "tipo de cuenta".
+                            Forms\Components\View::make('filament.components.rit-opcion-cards')
+                                ->viewData(fn (Forms\Get $get) => ['esObligada' => $this->esObligadaRit($get)])
                                 ->columnSpanFull(),
 
                             // El toggle de visibilidad va en el Group (contenedor), no
