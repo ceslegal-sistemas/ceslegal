@@ -283,6 +283,13 @@ html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(251,113,
     </div>
   @endif
 
+  {{-- Salud legal / Auditoría del RIT (vista unificada del cliente) --}}
+  @if($tiene && ($reglamento?->fuente === 'subido' || $auditoria))
+    <div style="margin-top:1.25rem">
+      @include('filament.components.rit-auditoria-panel', ['auditoria' => $auditoria])
+    </div>
+  @endif
+
 </div>
 @endif
 </x-filament-panels::page>

@@ -665,6 +665,4 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
   @endif
 
 </div>
-
-<x-filament-actions::modals />
 </x-filament-panels::page>

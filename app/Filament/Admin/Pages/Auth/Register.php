@@ -502,9 +502,10 @@ class Register extends BaseRegister
                 $rutaPermanente,
             );
 
-            // Redirigir a la auditoría para que se ejecute automáticamente al ingresar
+            // Redirigir a la vista unificada "Mi Reglamento Interno", donde el RIT subido
+            // se audita automáticamente y se muestra su salud legal en la misma página.
             if (empty($this->redirectUrl)) {
-                $this->redirectUrl = route('filament.admin.pages.auditar-r-i-t');
+                $this->redirectUrl = route('filament.admin.pages.mi-reglamento-interno');
             }
         } elseif ($ritOpcion === 'construir') {
             // Tras el registro, redirigir a Mi Reglamento Interno

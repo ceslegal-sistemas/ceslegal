@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Storage;
 class MiReglamentoInterno extends Page implements HasForms, HasActions
 {
     use InteractsWithForms, InteractsWithActions;
+    use \App\Filament\Concerns\InteractsConAceptacionMejoraRIT;
 
     protected static ?string $navigationIcon  = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'Mi Reglamento Interno';
@@ -30,6 +31,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
 
     public ?ReglamentoInterno $reglamento = null;
     public ?Empresa $empresa = null;
+    public ?\App\Models\AuditoriaRIT $auditoria = null;
 
     public function mount(): void
     {
@@ -65,12 +67,65 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                 })
                 ->orderByDesc('updated_at')
                 ->first();
+
+            // Auditoría más reciente de la empresa (vista unificada RIT + salud legal).
+            $this->auditoria = \App\Models\AuditoriaRIT::where('empresa_id', $this->empresa->id)
+                ->latest()
+                ->first();
+
+            // Auto-auditar: cliente con RIT subido que aún no tiene auditoría
+            // (p. ej. justo después de registrarse subiendo su RIT).
+            if (Auth::user()?->hasRole('cliente')
+                && ! $this->auditoria
+                && $this->reglamento
+                && $this->reglamento->fuente === 'subido'
+                && ! empty($this->reglamento->texto_completo)
+            ) {
+                $this->auditoria = app(\App\Services\AuditoriaRITService::class)->iniciar($this->empresa, null);
+                \App\Jobs\ProcesarAuditoriaRIT::dispatch($this->auditoria, (int) Auth::id());
+            }
         }
 
         // Confeti de bienvenida: solo la primera vez tras registrarse (flag de un solo uso).
         // class_exists evita fatal si el paquete aún no está instalado en vendor/.
         if (session()->pull('celebrar_registro_rit') && class_exists(Confetti::class)) {
             Confetti::fireworks()->shoot();
+        }
+    }
+
+    /** Polling de la auditoría/mejora en la vista unificada. */
+    public function refrescarAuditoria(): void
+    {
+        if ($this->auditoria) {
+            $this->auditoria = $this->auditoria->fresh();
+        }
+    }
+
+    /** Lanza manualmente la auditoría del RIT vigente (si aún no hay ninguna). */
+    public function iniciarAuditoriaManual(): void
+    {
+        if (! $this->empresa || ! $this->reglamento || empty($this->reglamento->texto_completo)) {
+            Notification::make()->warning()->title('No hay un RIT para auditar')->send();
+            return;
+        }
+
+        $this->auditoria = app(\App\Services\AuditoriaRITService::class)->iniciar($this->empresa, null);
+        \App\Jobs\ProcesarAuditoriaRIT::dispatch($this->auditoria, (int) Auth::id());
+
+        Notification::make()
+            ->info()
+            ->title('Auditoría iniciada')
+            ->body('Estamos revisando su Reglamento Interno contra la normativa vigente. Verá el resultado en unos segundos.')
+            ->send();
+    }
+
+    /** El responsable decide mantener su RIT actual (la mejora queda archivada). */
+    public function mantenerRITActual(): void
+    {
+        if ($this->auditoria) {
+            app(\App\Services\AceptacionMejoraRITService::class)->mantenerActual($this->auditoria);
+            $this->auditoria = $this->auditoria->fresh();
+            Notification::make()->info()->title('Conservó su RIT actual')->send();
         }
     }
 
@@ -260,18 +315,16 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                 }
 
                 // Auto-auditar el RIT recién subido (consistencia con el registro):
-                // subir siempre dispara la auditoría automática.
-                $auditoria = app(\App\Services\AuditoriaRITService::class)->iniciar($this->empresa, null);
-                \App\Jobs\ProcesarAuditoriaRIT::dispatch($auditoria, (int) Auth::id());
+                // subir siempre dispara la auditoría automática, que se muestra en el
+                // panel de esta misma página (vista unificada).
+                $this->auditoria = app(\App\Services\AuditoriaRITService::class)->iniciar($this->empresa, null);
+                \App\Jobs\ProcesarAuditoriaRIT::dispatch($this->auditoria, (int) Auth::id());
 
                 Notification::make()
                     ->success()
                     ->title('RIT subido — auditando')
-                    ->body('El documento se guardó como versión vigente y estamos auditándolo contra la normativa. Verá el resultado en unos segundos.')
+                    ->body('El documento se guardó como versión vigente y estamos auditándolo contra la normativa. Verá el resultado aquí mismo en unos segundos.')
                     ->send();
-
-                // Redirigir a la auditoría para ver el progreso (auto-audita al entrar).
-                $this->redirect(route('filament.admin.pages.auditar-r-i-t'));
             });
     }
 
