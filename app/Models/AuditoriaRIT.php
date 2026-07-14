@@ -24,12 +24,32 @@ class AuditoriaRIT extends Model
         'decision_mejora',
         'texto_auditado',
         'progreso_mejora',
+        'razon_social_snapshot',
+        'iniciado_por_user_id',
+        'responsable_nombre',
+        'responsable_documento',
+        'responsable_cargo',
+        'autoridad_declarada',
+        'autoridad_declarada_at',
     ];
 
     protected $casts = [
-        'secciones' => 'array',
-        'score'     => 'integer',
+        'secciones'              => 'array',
+        'score'                  => 'integer',
+        'autoridad_declarada'    => 'boolean',
+        'autoridad_declarada_at' => 'datetime',
     ];
+
+    /**
+     * Razón social a usar en la auditoría: la de la empresa si ya está enlazada,
+     * o el snapshot capturado cuando la auditoría se creó desde el wizard (sin empresa).
+     */
+    public function razonSocialParaAuditoria(): string
+    {
+        return $this->empresa?->nombre_completo
+            ?? $this->razon_social_snapshot
+            ?? 'La empresa';
+    }
 
     public function empresa(): BelongsTo
     {

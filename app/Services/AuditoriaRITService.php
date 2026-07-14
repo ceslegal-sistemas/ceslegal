@@ -130,6 +130,44 @@ class AuditoriaRITService
     }
 
     /**
+     * Crea una auditoría TEMPORAL (sin empresa) a partir del texto de un RIT.
+     * Se usa en el wizard de registro de empresa: se audita el RIT subido ANTES de que
+     * la empresa exista; al crearla, se enlaza con enlazarConEmpresa().
+     */
+    public function iniciarDesdeTexto(string $texto, string $razonSocial, ?int $userId = null): AuditoriaRIT
+    {
+        $auditoria = AuditoriaRIT::create([
+            'empresa_id'            => null,
+            'estado'                => 'pendiente',
+            'fuente'                => 'externo',
+            'texto_auditado'        => $texto,
+            'razon_social_snapshot' => $razonSocial,
+            'iniciado_por_user_id'  => $userId,
+        ]);
+
+        cache()->put("auditoria_rit_texto_{$auditoria->id}", $texto, now()->addHours(2));
+
+        return $auditoria;
+    }
+
+    /**
+     * Enlaza una auditoría temporal (empresa_id null) con la empresa recién creada.
+     * La persistencia del RIT ya la hace procesarDocumento() en CreateEmpresa::afterCreate;
+     * aquí solo se asocia la empresa y su reglamento vigente. Idempotente.
+     */
+    public function enlazarConEmpresa(AuditoriaRIT $auditoria, Empresa $empresa): void
+    {
+        $rit = ReglamentoInterno::where('empresa_id', $empresa->id)
+            ->orderByDesc('updated_at')
+            ->first();
+
+        $auditoria->update([
+            'empresa_id'            => $empresa->id,
+            'reglamento_interno_id' => $rit?->id ?? $auditoria->reglamento_interno_id,
+        ]);
+    }
+
+    /**
      * Procesa la auditoría sección por sección.
      * Actualiza el registro en BD después de cada sección para mostrar progreso en tiempo real.
      */
@@ -142,7 +180,9 @@ class AuditoriaRITService
         $auditoria->update(['estado' => 'procesando', 'secciones' => $secciones]);
 
         try {
-            $empresa = $auditoria->empresa;
+            // Razón social: de la empresa si ya está enlazada, o del snapshot capturado
+            // cuando la auditoría se creó desde el wizard (aún sin empresa).
+            $razonSocial = $auditoria->razonSocialParaAuditoria();
 
             // Obtener texto del RIT
             // Nota: texto_auditado persiste el texto en BD como fuente primaria/fallback.
@@ -169,7 +209,7 @@ class AuditoriaRITService
                     $resultado = $this->auditarSeccion(
                         textoRIT: $textoRIT,
                         config: $config,
-                        razonSocial: $empresa->nombre_completo,
+                        razonSocial: $razonSocial,
                     );
                 } catch (\Throwable $e) {
                     // Sección fallida → marcar y continuar con las demás
@@ -208,7 +248,7 @@ class AuditoriaRITService
                         $secciones[$clave] = $this->auditarSeccion(
                             textoRIT:    $textoRIT,
                             config:      self::SECCIONES[$clave],
-                            razonSocial: $empresa->nombre_completo,
+                            razonSocial: $razonSocial,
                         );
                         Log::info("AuditoriaRIT: sección '{$clave}' recuperada en segunda pasada");
                     } catch (\Throwable $e) {
@@ -226,7 +266,7 @@ class AuditoriaRITService
             $numSecciones = count(self::SECCIONES);
             $scoreTotal   = collect($secciones)->sum(fn($s) => $s['score'] ?? 0);
             $scoreGeneral = $numSecciones > 0 ? (int) round($scoreTotal / $numSecciones) : 0;
-            $resumen      = $this->generarResumen($secciones, $empresa->nombre_completo, $scoreGeneral);
+            $resumen      = $this->generarResumen($secciones, $razonSocial, $scoreGeneral);
 
             $auditoria->update([
                 'estado'          => 'completado',
@@ -237,7 +277,7 @@ class AuditoriaRITService
 
             Log::info("AuditoriaRIT: completada con score {$scoreGeneral}/100", [
                 'auditoria_id' => $auditoria->id,
-                'empresa_id'   => $empresa->id,
+                'empresa_id'   => $auditoria->empresa_id,
             ]);
 
         } catch (\Throwable $e) {
