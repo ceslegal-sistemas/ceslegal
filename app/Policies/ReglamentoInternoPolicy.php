@@ -47,7 +47,15 @@ class ReglamentoInternoPolicy
      */
     public function update(User $user, ReglamentoInterno $reglamentoInterno): bool
     {
-        return $user->can('update_reglamento::interno');
+        if (! $user->can('update_reglamento::interno')) {
+            return false;
+        }
+
+        if ($user->hasRole('cliente')) {
+            return $reglamentoInterno->empresa_id === $user->empresa_id;
+        }
+
+        return true;
     }
 
     /**

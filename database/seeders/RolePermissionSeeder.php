@@ -65,6 +65,18 @@ class RolePermissionSeeder extends Seeder
             'force_delete_solicitud::contrato',
             'force_delete_any_solicitud::contrato',
 
+            // ReglamentoInterno (RIT) permissions
+            'view_reglamento::interno',
+            'view_any_reglamento::interno',
+            'create_reglamento::interno',
+            'update_reglamento::interno',
+            'delete_reglamento::interno',
+            'delete_any_reglamento::interno',
+            'force_delete_reglamento::interno',
+            'force_delete_any_reglamento::interno',
+            // Página "Mi Reglamento Interno"
+            'page_MiReglamentoInterno',
+
             // Role permissions (only for super_admin)
             'view_role',
             'view_any_role',
@@ -128,6 +140,14 @@ class RolePermissionSeeder extends Seeder
             'delete_solicitud::contrato',
             'delete_any_solicitud::contrato',
 
+            // Reglamento Interno: puede construir/ver/editar el RIT de la empresa
+            // seleccionada (opera con el selector de empresa del topbar).
+            'view_reglamento::interno',
+            'view_any_reglamento::interno',
+            'create_reglamento::interno',
+            'update_reglamento::interno',
+            'page_MiReglamentoInterno',
+
             // Access to widgets
             'widget_StatsOverviewWidget',
             'widget_RecentProcessesWidget',
@@ -168,6 +188,14 @@ class RolePermissionSeeder extends Seeder
             'view_any_solicitud::contrato',
             'create_solicitud::contrato',
             'update_solicitud::contrato',
+
+            // Reglamento Interno: construir/ver/editar el suyo (restringido a su
+            // empresa en ReglamentoInternoPolicy). Sin borrar.
+            'view_reglamento::interno',
+            'view_any_reglamento::interno',
+            'create_reglamento::interno',
+            'update_reglamento::interno',
+            'page_MiReglamentoInterno',
 
             // Access to widgets
             'widget_StatsOverviewWidget',
