@@ -21,16 +21,14 @@
     $fecha = $rit?->updated_at?->format('d/m/Y');
 @endphp
 
+<script src="https://cdn.lordicon.com/lordicon.js"></script>
 <style>
     .ers-card{border-radius:16px;overflow:hidden;border:1px solid rgba(0,0,0,.07)}
     html.dark .ers-card{border-color:rgba(255,255,255,.08)}
-    .ers-head{display:flex;align-items:center;gap:.85rem;padding:1rem 1.15rem}
+    .ers-head{display:flex;align-items:center;gap:.75rem;padding:1rem 1.15rem}
     .ers-on .ers-head{background:linear-gradient(135deg,rgba(225,29,72,.10),rgba(249,115,22,.10))}
     html.dark .ers-on .ers-head{background:linear-gradient(135deg,rgba(225,29,72,.18),rgba(249,115,22,.15))}
-    .ers-ring{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
-        background:linear-gradient(135deg,#e11d48,#f97316);box-shadow:0 8px 20px rgba(225,29,72,.30)}
-    .ers-off .ers-ring{background:#a8a29e;box-shadow:none}
-    .ers-ring svg{width:22px;height:22px;color:#fff}
+    .ers-ico{width:52px;height:52px;flex-shrink:0;margin:-4px 0}
     .ers-ttl{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;color:#1c1917;margin:0;line-height:1.2}
     html.dark .ers-ttl{color:#f5f5f4}
     .ers-badge{margin-left:auto;font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.25rem .65rem;border-radius:100px}
@@ -56,9 +54,8 @@
 
 <div class="ers-card {{ $tiene ? 'ers-on' : 'ers-off' }}">
     <div class="ers-head">
-        <span class="ers-ring">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
-        </span>
+        <lord-icon class="ers-ico" src="https://cdn.lordicon.com/fikcyfpp.json" trigger="loop" delay="700"
+            colors="{{ $tiene ? 'primary:#e11d48,secondary:#fb923c' : 'primary:#a8a29e,secondary:#a8a29e' }}"></lord-icon>
         <p class="ers-ttl">Reglamento Interno de Trabajo</p>
         <span class="ers-badge {{ $tiene ? 'ok' : 'no' }}">{{ $tiene ? 'Vigente' : 'Sin reglamento' }}</span>
     </div>
