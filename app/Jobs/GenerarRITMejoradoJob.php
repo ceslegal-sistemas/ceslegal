@@ -52,6 +52,13 @@ class GenerarRITMejoradoJob implements ShouldQueue
 
         $auditoria->update(['progreso_mejora' => null]);
 
+        // Auto-adopción: si el responsable ya aceptó y declaró autoridad
+        // (decision_mejora='adoptado'), se activa la versión mejorada como RIT vigente.
+        $auditoria->refresh();
+        if ($auditoria->decision_mejora === 'adoptado' && $auditoria->empresa_id) {
+            app(\App\Services\AceptacionMejoraRITService::class)->adoptar($auditoria);
+        }
+
         // Notificar al usuario
         $user = \App\Models\User::find($this->userId);
         if ($user) {
