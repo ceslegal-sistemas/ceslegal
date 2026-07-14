@@ -11,7 +11,10 @@ use App\Models\Empresa;
 use App\Models\GapReporte;
 use App\Models\ReglamentoInterno;
 use App\Services\AuditoriaRITService;
+use App\Filament\Concerns\InteractsConAceptacionMejoraRIT;
 use App\Services\BibliotecaLegalService;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -22,9 +25,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
-class AuditarRIT extends Page implements HasForms
+class AuditarRIT extends Page implements HasForms, HasActions
 {
     use InteractsWithForms;
+    use InteractsWithActions;
+    use InteractsConAceptacionMejoraRIT;
 
     protected static ?string $navigationIcon  = 'heroicon-o-magnifying-glass-circle';
     protected static ?string $navigationLabel = 'Auditoría de RIT';

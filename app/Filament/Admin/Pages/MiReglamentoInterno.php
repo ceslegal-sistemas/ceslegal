@@ -259,11 +259,19 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                     return;
                 }
 
+                // Auto-auditar el RIT recién subido (consistencia con el registro):
+                // subir siempre dispara la auditoría automática.
+                $auditoria = app(\App\Services\AuditoriaRITService::class)->iniciar($this->empresa, null);
+                \App\Jobs\ProcesarAuditoriaRIT::dispatch($auditoria, (int) Auth::id());
+
                 Notification::make()
                     ->success()
-                    ->title('RIT subido correctamente')
-                    ->body('El documento ha sido procesado y guardado como versión vigente.')
+                    ->title('RIT subido — auditando')
+                    ->body('El documento se guardó como versión vigente y estamos auditándolo contra la normativa. Verá el resultado en unos segundos.')
                     ->send();
+
+                // Redirigir a la auditoría para ver el progreso (auto-audita al entrar).
+                $this->redirect(route('filament.admin.pages.auditar-r-i-t'));
             });
     }
 

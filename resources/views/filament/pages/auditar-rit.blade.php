@@ -516,13 +516,8 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
               versión vigente. Si prefiere conservar el que subió manualmente, puede mantenerlo y la versión
               mejorada quedará archivada.
             </p>
-            <div style="display:flex;gap:.75rem;flex-wrap:wrap">
-              <button wire:click="adoptarRITMejorado"
-                      wire:confirm="¿Confirma usar el RIT mejorado como su Reglamento Interno vigente? Esto reemplazará el actual."
-                      class="mejora-download-btn">
-                <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                Usar el RIT mejorado
-              </button>
+            <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center">
+              {{ $this->aceptarSugerenciasRITAction }}
               <button wire:click="mantenerRITActual" class="mejora-keep-btn">
                 <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Mantener mi RIT actual
@@ -541,11 +536,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
             <p style="font-size:.8rem;color:#94a3b8;margin:0;line-height:1.4">
               Conservó su RIT actual. La versión mejorada quedó archivada.
             </p>
-            <button wire:click="adoptarRITMejorado"
-                    wire:confirm="¿Confirma usar el RIT mejorado como su Reglamento Interno vigente? Esto reemplazará el actual."
-                    style="font-size:.775rem;font-weight:600;color:#fb7185;background:none;border:none;cursor:pointer;text-decoration:underline;white-space:nowrap">
-              Usar mejorado
-            </button>
+            {{ $this->aceptarSugerenciasRITAction }}
           </div>
         @endif
       </div>
@@ -674,4 +665,6 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
   @endif
 
 </div>
+
+<x-filament-actions::modals />
 </x-filament-panels::page>
