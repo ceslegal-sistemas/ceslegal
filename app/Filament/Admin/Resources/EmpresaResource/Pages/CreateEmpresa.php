@@ -63,7 +63,14 @@ class CreateEmpresa extends CreateRecord
      */
     protected function getRedirectUrl(): string
     {
-        return match ($this->data['rit_opcion'] ?? null) {
+        $opcion = $this->data['rit_opcion'] ?? null;
+
+        // Empresa OBLIGADA que no cargó ni eligió construir → llevar al constructor.
+        if ($this->record->requiereRit() === true && ! in_array($opcion, ['tiene', 'construir'], true)) {
+            return route('filament.admin.pages.mi-reglamento-interno');
+        }
+
+        return match ($opcion) {
             'tiene'     => route('filament.admin.pages.auditar-r-i-t'),
             'construir' => route('filament.admin.pages.mi-reglamento-interno'),
             default     => $this->getResource()::getUrl('index'),

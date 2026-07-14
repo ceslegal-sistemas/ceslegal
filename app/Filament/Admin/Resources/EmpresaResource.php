@@ -298,31 +298,15 @@ class EmpresaResource extends Resource
                             })
                             ->columnSpanFull(),
 
-                        Forms\Components\Radio::make('rit_opcion')
-                            ->label('¿Su empresa tiene Reglamento Interno de Trabajo (RIT)?')
-                            ->visibleOn('create')
+                        // Campo oculto que guarda la elección; las cards lo escriben.
+                        Forms\Components\Hidden::make('rit_opcion')
                             ->live()
-                            ->options(fn (Get $get) => static::esObligadaRit($get)
-                                ? [
-                                    'tiene'     => 'Sí, ya lo tengo — lo subo ahora',
-                                    'construir' => 'No lo tengo — construirlo con IA',
-                                ]
-                                : [
-                                    'tiene'     => 'Sí, ya lo tengo — lo subo ahora',
-                                    'construir' => 'No lo tengo — construirlo con IA (recomendado)',
-                                    'despues'   => 'No lo tengo — se regirá por el Código Sustantivo del Trabajo (CST)',
-                                ])
-                            ->descriptions(fn (Get $get) => static::esObligadaRit($get)
-                                ? [
-                                    'tiene'     => 'Suba el .docx o .pdf. Se auditará automáticamente (obligatorio para esta empresa).',
-                                    'construir' => 'Esta empresa está OBLIGADA a tener RIT (Art. 105 CST). Se abrirá el constructor guiado con IA.',
-                                ]
-                                : [
-                                    'tiene'     => 'Suba el archivo .docx o .pdf del RIT aprobado.',
-                                    'construir' => 'Cuestionario guiado; la IA redactará el RIT completo.',
-                                    'despues'   => 'No está obligada; puede regirse por el CST y subir o construir el RIT más adelante.',
-                                ])
-                            ->default(fn (Get $get) => static::esObligadaRit($get) ? 'construir' : 'despues')
+                            ->default(fn (Get $get) => static::esObligadaRit($get) ? 'construir' : 'despues'),
+
+                        // Selector en cards con Lordicon (loop), estilo "tipo de cuenta".
+                        Forms\Components\View::make('filament.components.rit-opcion-cards')
+                            ->visibleOn('create')
+                            ->viewData(fn (Get $get) => ['esObligada' => static::esObligadaRit($get)])
                             ->columnSpanFull(),
 
                         // ── Visor / descarga cuando existe RIT ───────────────────────
