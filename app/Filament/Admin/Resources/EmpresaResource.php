@@ -99,16 +99,11 @@ class EmpresaResource extends Resource
                 ->icon('heroicon-o-document-text')
                 ->iconColor('primary')
                 ->schema([
-                    Infolists\Components\TextEntry::make('obligacion_rit')
-                        ->hiddenLabel()->html()
-                        ->state(fn (Empresa $record) => \App\Support\ObligacionRit::avisoHtml(
-                            $record->numero_empleados,
-                            $record->actividadEconomica?->seccion,
-                        ))->columnSpanFull(),
-                    Infolists\Components\TextEntry::make('rit_status')
-                        ->hiddenLabel()->html()
-                        ->state(fn (Empresa $record) => view('filament.components.empresa-rit-status', ['empresa' => $record])->render())
-                        ->columnSpanFull(),
+                    // ViewEntry renderiza el blade tal cual (sin sanitizar el HTML/estilos),
+                    // a diferencia de TextEntry->html(). Muestra la obligación + la tarjeta.
+                    Infolists\Components\ViewEntry::make('rit_status')
+                        ->hiddenLabel()
+                        ->view('filament.components.empresa-rit-status'),
                 ]),
         ]);
     }
@@ -347,56 +342,17 @@ class EmpresaResource extends Resource
                             ->columnSpanFull(),
 
                         // ── Visor / descarga cuando existe RIT ───────────────────────
-                        Forms\Components\Placeholder::make('rit_visor')
-                            ->label('Reglamento Interno actual')
-                            ->content(function ($record) {
-                                $rit = $record?->reglamentoInterno;
-                                if (!$rit) return null;
-
-                                $fuente = match ($rit->fuente) {
-                                    'construido_ia' => '✦ Construido con IA',
-                                    default         => '↑ Subido manualmente',
-                                };
-                                $fecha  = $rit->updated_at?->format('d/m/Y H:i') ?? '—';
-                                $chars  = $rit->texto_completo
-                                    ? number_format(strlen($rit->texto_completo)) . ' caracteres'
-                                    : '—';
-                                $user = auth()->user();
-                                $esAdmin = $user?->hasRole('super_admin') || $user?->hasRole('abogado');
-                                $url = $esAdmin
-                                    ? route('rit.descargar.admin', $record)
-                                    : route('rit.descargar');
-
-                                return new HtmlString(<<<HTML
-                                <div style="display:flex;flex-direction:column;gap:.5rem">
-                                  <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:.8125rem;color:#64748b">
-                                    <span><strong>Fuente:</strong> {$fuente}</span>
-                                    <span><strong>Actualizado:</strong> {$fecha}</span>
-                                    <span><strong>Tamaño:</strong> {$chars}</span>
-                                  </div>
-                                  <a href="{$url}" target="_blank"
-                                     style="display:inline-flex;align-items:center;gap:.4rem;width:fit-content;
-                                            font-size:.8125rem;font-weight:600;padding:.45rem 1rem;border-radius:.5rem;
-                                            background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);
-                                            color:#166534;text-decoration:none">
-                                    <svg style="width:14px;height:14px" fill="none" viewBox="0 0 24 24"
-                                         stroke="currentColor" stroke-width="2">
-                                      <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
-                                    </svg>
-                                    Descargar PDF
-                                  </a>
-                                </div>
-                                HTML);
-                            })
-                            ->visible(fn ($record) => (bool) $record?->reglamentoInterno)
-                            ->columnSpanFull(),
-
-                        // ── Sin RIT registrado ────────────────────────────────────────
-                        Forms\Components\Placeholder::make('rit_sin_docx')
-                            ->label('Reglamento Interno')
-                            ->content('Sin reglamento registrado. Suba un archivo .docx o .pdf abajo, o use el wizard "Construir RIT".')
-                            ->visible(fn ($record) => $record && !$record?->reglamentoInterno)
+                        // Estado del RIT (tarjeta branded) — al editar. La obligación ya se
+                        // muestra arriba junto al Nº de empleados, por eso aquí va sin ella.
+                        Forms\Components\Placeholder::make('rit_estado')
+                            ->hiddenLabel()
+                            ->visibleOn('edit')
+                            ->content(fn ($record) => new HtmlString(
+                                view('filament.components.empresa-rit-status', [
+                                    'empresa'           => $record,
+                                    'mostrarObligacion' => false,
+                                ])->render()
+                            ))
                             ->columnSpanFull(),
 
                         // ── Upload para agregar / reemplazar RIT ─────────────────────
