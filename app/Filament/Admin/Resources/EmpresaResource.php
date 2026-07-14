@@ -44,6 +44,12 @@ class EmpresaResource extends Resource
 
     protected static ?string $navigationGroup = 'Administración';
 
+    /** El cliente solo tiene una empresa: en el menú aparece como "Mi empresa". */
+    public static function getNavigationLabel(): string
+    {
+        return auth()->user()?->hasRole('cliente') ? 'Mi empresa' : 'Empresas';
+    }
+
     protected static ?int $navigationSort = 2;
 
     public static function infolist(Infolist $infolist): Infolist
