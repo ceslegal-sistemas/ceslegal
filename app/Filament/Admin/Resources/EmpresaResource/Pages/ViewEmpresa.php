@@ -12,6 +12,20 @@ class ViewEmpresa extends ViewRecord
 {
     protected static string $resource = EmpresaResource::class;
 
+    public function getTitle(): string
+    {
+        if (auth()->user()?->hasRole('cliente')) {
+            return 'Mi empresa';
+        }
+
+        return $this->record->razon_social ?? parent::getTitle();
+    }
+
+    public function getBreadcrumb(): string
+    {
+        return auth()->user()?->hasRole('cliente') ? 'Mi empresa' : parent::getBreadcrumb();
+    }
+
     protected function getHeaderActions(): array
     {
         return [

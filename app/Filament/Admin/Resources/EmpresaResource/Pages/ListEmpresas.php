@@ -19,7 +19,8 @@ class ListEmpresas extends ListRecords
     {
         $user = auth()->user();
         if ($user?->role === 'cliente' && $user->empresa_id) {
-            $this->redirect(EmpresaResource::getUrl('edit', ['record' => $user->empresa_id]));
+            // Presenta la ficha (con botón Editar), en vez de ir directo a edición.
+            $this->redirect(EmpresaResource::getUrl('view', ['record' => $user->empresa_id]));
 
             return;
         }

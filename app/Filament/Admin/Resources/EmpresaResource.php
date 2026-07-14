@@ -9,6 +9,8 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -43,6 +45,67 @@ class EmpresaResource extends Resource
     protected static ?string $navigationGroup = 'Administración';
 
     protected static ?int $navigationSort = 2;
+
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+            Infolists\Components\Section::make('Datos de la empresa')
+                ->icon('heroicon-o-building-office-2')
+                ->iconColor('primary')
+                ->schema([
+                    Infolists\Components\TextEntry::make('razon_social')
+                        ->label('Razón social')->weight('bold')->columnSpanFull(),
+                    Infolists\Components\TextEntry::make('nit')->label('NIT')
+                        ->icon('heroicon-o-identification'),
+                    Infolists\Components\TextEntry::make('tipo_societario')
+                        ->label('Tipo societario')->placeholder('—'),
+                    Infolists\Components\TextEntry::make('representante_legal')
+                        ->label('Representante legal')->placeholder('—')->icon('heroicon-o-user'),
+                    Infolists\Components\TextEntry::make('actividadEconomica.nombre')
+                        ->label('Actividad económica')->placeholder('—'),
+                    Infolists\Components\TextEntry::make('numero_empleados')
+                        ->label('Número de empleados')->placeholder('—')->icon('heroicon-o-user-group'),
+                    Infolists\Components\IconEntry::make('active')
+                        ->label('Activa')->boolean(),
+                ])->columns(2),
+
+            Infolists\Components\Section::make('Contacto y ubicación')
+                ->icon('heroicon-o-phone')
+                ->iconColor('primary')
+                ->schema([
+                    Infolists\Components\TextEntry::make('telefono')
+                        ->label('Teléfono')->placeholder('—')->icon('heroicon-o-phone'),
+                    Infolists\Components\TextEntry::make('email_contacto')
+                        ->label('Correo')->placeholder('—')->icon('heroicon-o-envelope'),
+                    Infolists\Components\TextEntry::make('direccion')
+                        ->label('Dirección')->placeholder('—')->columnSpanFull(),
+                    Infolists\Components\TextEntry::make('departamento')
+                        ->label('Departamento')->placeholder('—'),
+                    Infolists\Components\TextEntry::make('ciudad')
+                        ->label('Ciudad / Municipio')->placeholder('—'),
+                    Infolists\Components\TextEntry::make('dias_laborales_texto')
+                        ->label('Días laborales')
+                        ->state(fn (Empresa $record) => $record->dias_laborales_texto)
+                        ->badge()->color('gray'),
+                ])->columns(2),
+
+            Infolists\Components\Section::make('Reglamento Interno de Trabajo')
+                ->icon('heroicon-o-document-text')
+                ->iconColor('primary')
+                ->schema([
+                    Infolists\Components\TextEntry::make('obligacion_rit')
+                        ->hiddenLabel()->html()
+                        ->state(fn (Empresa $record) => \App\Support\ObligacionRit::avisoHtml(
+                            $record->numero_empleados,
+                            $record->actividadEconomica?->seccion,
+                        ))->columnSpanFull(),
+                    Infolists\Components\TextEntry::make('rit_status')
+                        ->hiddenLabel()->html()
+                        ->state(fn (Empresa $record) => view('filament.components.empresa-rit-status', ['empresa' => $record])->render())
+                        ->columnSpanFull(),
+                ]),
+        ]);
+    }
 
     /** ¿La empresa que se está creando está obligada a tener RIT? (Art. 105 CST) */
     public static function esObligadaRit(Get $get): bool
