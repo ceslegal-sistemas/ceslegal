@@ -363,20 +363,26 @@ class EmpresaResource extends Resource
                             ->columnSpanFull(),
 
                         // ── Upload para agregar / reemplazar RIT ─────────────────────
+                        //   El toggle de visibilidad va en el Group (contenedor), no sobre
+                        //   el FileUpload directo (no re-renderiza confiable dentro del form).
                         //   Al editar: siempre visible. Al crear: solo si eligió "tiene".
-                        Forms\Components\FileUpload::make('reglamento_docx_temp')
-                            ->label('Subir Reglamento Interno (.docx o .pdf)')
-                            ->helperText('Formatos aceptados: .docx y .pdf — máx. 10 MB.')
-                            ->acceptedFileTypes([
-                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                                'application/pdf',
-                            ])
-                            ->disk('local')
-                            ->directory('reglamentos-temp')
-                            ->visibility('private')
-                            ->maxSize(10240)
+                        Forms\Components\Group::make([
+                            Forms\Components\FileUpload::make('reglamento_docx_temp')
+                                ->label('Subir Reglamento Interno (.docx o .pdf)')
+                                ->helperText('Formatos aceptados: .docx y .pdf — máx. 10 MB.')
+                                ->acceptedFileTypes([
+                                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                    'application/pdf',
+                                ])
+                                ->disk('local')
+                                ->directory('reglamentos-temp')
+                                ->visibility('private')
+                                ->maxSize(10240)
+                                ->columnSpanFull(),
+                        ])
                             ->visible(fn (string $operation, Get $get): bool =>
-                                $operation === 'edit' || $get('rit_opcion') === 'tiene'),
+                                $operation === 'edit' || $get('rit_opcion') === 'tiene')
+                            ->columnSpanFull(),
                     ]),
             ]);
     }
