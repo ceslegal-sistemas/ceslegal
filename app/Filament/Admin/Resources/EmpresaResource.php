@@ -380,8 +380,11 @@ class EmpresaResource extends Resource
                                 ->maxSize(10240)
                                 ->columnSpanFull(),
                         ])
-                            ->visible(fn (string $operation, Get $get): bool =>
-                                $operation === 'edit' || $get('rit_opcion') === 'tiene')
+                            // Al editar: siempre visible. Al crear: solo si eligió la card
+                            // "Sí, ya lo tengo" (control con Alpine, reacciona al instante).
+                            ->extraAttributes(fn (string $operation): array => $operation === 'create'
+                                ? ['x-show' => "\$wire.data?.rit_opcion === 'tiene'", 'x-cloak' => 'true']
+                                : [])
                             ->columnSpanFull(),
                     ]),
             ]);

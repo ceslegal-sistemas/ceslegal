@@ -373,9 +373,9 @@ class Register extends BaseRegister
                                 ->viewData(fn (Forms\Get $get) => ['esObligada' => $this->esObligadaRit($get)])
                                 ->columnSpanFull(),
 
-                            // El toggle de visibilidad va en el Group (contenedor), no
-                            // sobre el FileUpload directo: togglear un FileUpload dentro de
-                            // un wizard no re-renderiza de forma confiable.
+                            // El upload solo aparece al elegir la card "Sí, ya lo tengo".
+                            // Se controla con Alpine (x-show sobre el mismo estado entangado)
+                            // para que reaccione al instante dentro del wizard.
                             Forms\Components\Group::make([
                                 Forms\Components\FileUpload::make('reglamento_docx_temp')
                                     ->label('Subir Reglamento Interno (.docx o .pdf)')
@@ -391,7 +391,10 @@ class Register extends BaseRegister
                                     ->nullable()
                                     ->columnSpanFull(),
                             ])
-                                ->visible(fn (Forms\Get $get) => $get('rit_opcion') === 'tiene')
+                                ->extraAttributes([
+                                    'x-show'  => "\$wire.data?.rit_opcion === 'tiene'",
+                                    'x-cloak' => 'true',
+                                ])
                                 ->columnSpanFull(),
                         ]),
 

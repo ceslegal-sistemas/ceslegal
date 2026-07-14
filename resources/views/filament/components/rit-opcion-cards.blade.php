@@ -5,6 +5,7 @@
 
 @once
 <style>
+    [x-cloak]{display:none!important}
     .rop-q{font-weight:600;font-size:.95rem;color:#0f172a;margin:0 0 .6rem}
     html.dark .rop-q{color:#f1f5f9}
     .rop-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem}
