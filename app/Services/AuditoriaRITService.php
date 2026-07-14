@@ -135,7 +135,11 @@ class AuditoriaRITService
      */
     public function procesarAuditoria(AuditoriaRIT $auditoria): void
     {
-        $auditoria->update(['estado' => 'procesando', 'secciones' => []]);
+        // Reanudable: si el worker re-tomó el job (p. ej. por el retry_after de la cola
+        // o por un reinicio del proceso en hosting compartido), se conserva el progreso
+        // previo y se continúa en vez de reiniciar la auditoría desde 0/8.
+        $secciones = is_array($auditoria->secciones) ? $auditoria->secciones : [];
+        $auditoria->update(['estado' => 'procesando', 'secciones' => $secciones]);
 
         try {
             $empresa = $auditoria->empresa;
@@ -151,10 +155,12 @@ class AuditoriaRITService
                 throw new \RuntimeException('No se encontró texto del RIT para auditar.');
             }
 
-            $secciones = [];
-            $scoreTotal = 0;
-
             foreach (self::SECCIONES as $clave => $config) {
+                // Reanudación: saltar secciones ya resueltas con éxito en una pasada previa.
+                if (isset($secciones[$clave]) && ($secciones[$clave]['calificacion'] ?? '') !== 'Error') {
+                    continue;
+                }
+
                 Log::info("AuditoriaRIT: procesando sección '{$config['titulo']}'", [
                     'auditoria_id' => $auditoria->id,
                 ]);
@@ -183,7 +189,6 @@ class AuditoriaRITService
                 }
 
                 $secciones[$clave] = $resultado;
-                $scoreTotal += $resultado['score'] ?? 0;
 
                 // Guardar progreso parcial tras cada sección
                 $auditoria->update(['secciones' => $secciones]);
@@ -214,12 +219,13 @@ class AuditoriaRITService
                     $auditoria->update(['secciones' => $secciones]);
                 }
 
-                // Recalcular score total con los resultados finales
-                $scoreTotal = collect($secciones)->sum(fn($s) => $s['score'] ?? 0);
             }
 
+            // Score final calculado desde el estado acumulado de las secciones
+            // (robusto ante reanudaciones: no depende de un acumulador en el bucle).
             $numSecciones = count(self::SECCIONES);
-            $scoreGeneral = (int) round($scoreTotal / $numSecciones);
+            $scoreTotal   = collect($secciones)->sum(fn($s) => $s['score'] ?? 0);
+            $scoreGeneral = $numSecciones > 0 ? (int) round($scoreTotal / $numSecciones) : 0;
             $resumen      = $this->generarResumen($secciones, $empresa->nombre_completo, $scoreGeneral);
 
             $auditoria->update([
