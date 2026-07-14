@@ -363,60 +363,84 @@ class ProcesoDisciplinario extends Model
     }
 
     /**
-     * Obtener el texto de las sanciones laborales para la citación
-     * Formato completo con nombre claro y descripción
+     * Motivos de descargos NORMALIZADOS. Funciona con dos esquemas:
+     *  - Nuevo: conductas del RIT guardadas como TEXTO en sanciones_laborales_ids.
+     *  - Antiguo: IDs del catálogo estático SancionLaboral.
+     * Cada fila: ['nombre','gravedad'(leve|grave|muy_grave),'medida','tipo','dias','reincidencia'].
      */
-    public function getSancionesLaboralesTextoAttribute(): string
+    public function motivosDescargosNormalizados(): array
     {
-        if (empty($this->sanciones_laborales_ids)) {
-            return 'No especificado';
+        $ids = $this->sanciones_laborales_ids;
+        if (empty($ids)) {
+            return [];
         }
 
-        $sanciones = $this->sancionesLaborales;
+        // Nuevo esquema: conductas del RIT (texto).
+        $textos = array_values(array_filter($ids, fn($v) => $v !== 'otro' && !is_numeric($v)));
+        if (!empty($textos)) {
+            $conductas = app(\App\Services\ReglamentoInternoService::class)
+                ->conductasSancionablesDeEmpresa((int) $this->empresa_id);
 
-        if ($sanciones->isEmpty()) {
-            return 'No especificado';
-        }
-
-        // Formato: Nombre claro + Descripción (separados por párrafos)
-        $textoCompleto = [];
-
-        foreach ($sanciones as $sancion) {
-            $textoSancion = '';
-
-            // Nombre claro con emoji de tipo de falta
-            $emoji = $sancion->tipo_falta === 'leve' ? '🟢' : '🔴';
-            $textoSancion .= "{$emoji} {$sancion->nombre_claro}";
-
-            // Descripción en la siguiente línea
-            if (!empty($sancion->descripcion)) {
-                $textoSancion .= "\n" . $sancion->descripcion;
+            $mapa = [];
+            foreach (['leve' => 'leve', 'grave' => 'grave', 'gravisima' => 'muy_grave'] as $g => $gv) {
+                foreach ($conductas[$g] ?? [] as $c) {
+                    if (!empty($c['conducta'])) {
+                        $mapa[$c['conducta']] = [
+                            'gravedad' => $gv,
+                            'medida'   => $c['medida'] ?? '',
+                            'tipo'     => $c['tipo'] ?? '',
+                            'dias'     => $c['dias_suspension'] ?? null,
+                        ];
+                    }
+                }
             }
 
-            $textoCompleto[] = $textoSancion;
+            return array_map(function ($t) use ($mapa) {
+                $d = $mapa[$t] ?? ['gravedad' => 'grave', 'medida' => '', 'tipo' => '', 'dias' => null];
+                return ['nombre' => $t, 'reincidencia' => false] + $d;
+            }, $textos);
         }
 
-        // Unir todas las sanciones con doble salto de línea (párrafo)
-        return implode("\n\n", $textoCompleto);
+        // Compatibilidad: IDs del catálogo estático (procesos antiguos).
+        return $this->sancionesLaborales->map(fn($s) => [
+            'nombre'       => $s->nombre_claro,
+            'gravedad'     => $s->tipo_falta,
+            'medida'       => $s->tipo_sancion_texto ?? '',
+            'tipo'         => $s->tipo_sancion,
+            'dias'         => $s->dias_suspension_max ?? null,
+            'reincidencia' => $s->esReincidencia(),
+        ])->all();
     }
 
     /**
-     * Obtener solo los nombres claros de las sanciones (versión corta)
+     * Texto de los motivos para la citación (nombre + medida por conducta).
+     */
+    public function getSancionesLaboralesTextoAttribute(): string
+    {
+        $rows = $this->motivosDescargosNormalizados();
+        if (empty($rows)) {
+            return 'No especificado';
+        }
+
+        $etq = ['leve' => 'Leve', 'grave' => 'Grave', 'muy_grave' => 'Muy grave'];
+
+        return implode("\n\n", array_map(function ($r) use ($etq) {
+            $t = '[' . ($etq[$r['gravedad']] ?? 'Grave') . "] {$r['nombre']}";
+            if (!empty($r['medida'])) {
+                $t .= "\n{$r['medida']}";
+            }
+            return $t;
+        }, $rows));
+    }
+
+    /**
+     * Nombres cortos de los motivos.
      */
     public function getSancionesLaboralesNombresAttribute(): string
     {
-        if (empty($this->sanciones_laborales_ids)) {
-            return 'No especificado';
-        }
+        $rows = $this->motivosDescargosNormalizados();
 
-        $sanciones = $this->sancionesLaborales;
-
-        if ($sanciones->isEmpty()) {
-            return 'No especificado';
-        }
-
-        // Formato corto: "Retardo de 15 minutos (1ra vez), Falta de respeto leve"
-        return $sanciones->pluck('nombre_claro')->join(', ');
+        return empty($rows) ? 'No especificado' : implode(', ', array_column($rows, 'nombre'));
     }
 
     /**

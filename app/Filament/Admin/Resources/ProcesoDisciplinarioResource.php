@@ -621,79 +621,29 @@ class ProcesoDisciplinarioResource extends Resource
                             ->searchable()
                             ->preload()
                             ->live()
-                            ->options(function (Get $get, $record) {
-                                // Agregar "Otro" como primera opción
+                            ->options(function (Get $get) {
+                                // Conductas sancionables del RIT de la empresa (o base CST),
+                                // agrupadas por gravedad. Reemplaza el catálogo estático.
                                 $opciones = ['otro' => 'Otro (especificar motivo)'];
 
-                                $trabajadorId = $get('trabajador_id');
+                                $empresaId = $get('empresa_id');
+                                if (! $empresaId) {
+                                    return $opciones;
+                                }
 
-                                // Obtener todas las sanciones activas
-                                $todasLasSanciones = \App\Models\SancionLaboral::activas()
-                                    ->ordenado()
-                                    ->get();
+                                $conductas = app(\App\Services\ReglamentoInternoService::class)
+                                    ->conductasSancionablesDeEmpresa((int) $empresaId);
 
-                                // Obtener sanciones ya usadas por este trabajador en otros procesos
-                                $sancionesUsadasIds = [];
-                                if ($trabajadorId) {
-                                    $query = ProcesoDisciplinario::where('trabajador_id', $trabajadorId)
-                                        ->whereNotNull('sanciones_laborales_ids');
-
-                                    if ($record) {
-                                        $query->where('id', '!=', $record->id);
-                                    }
-
-                                    foreach ($query->get() as $proceso) {
-                                        if (is_array($proceso->sanciones_laborales_ids)) {
-                                            $sancionesUsadasIds = array_merge($sancionesUsadasIds, $proceso->sanciones_laborales_ids);
+                                $etq = ['leve' => 'Leve', 'grave' => 'Grave', 'gravisima' => 'Muy grave'];
+                                foreach (['leve', 'grave', 'gravisima'] as $g) {
+                                    foreach ($conductas[$g] ?? [] as $c) {
+                                        if (! empty($c['conducta'])) {
+                                            $opciones[$c['conducta']] = "[{$etq[$g]}] {$c['conducta']}";
                                         }
                                     }
-                                    $sancionesUsadasIds = array_unique($sancionesUsadasIds);
                                 }
 
-                                // Agrupar sanciones por su padre (o por sí mismas si son primera vez)
-                                $sancionesPorGrupo = [];
-                                $sancionesSinSecuencia = [];
-
-                                foreach ($todasLasSanciones as $sancion) {
-                                    if ($sancion->orden_reincidencia !== null) {
-                                        // Tiene secuencia de reincidencia
-                                        $grupoId = $sancion->sancion_padre_id ?? $sancion->id;
-                                        $sancionesPorGrupo[$grupoId][$sancion->orden_reincidencia] = $sancion;
-                                    } else {
-                                        // No tiene secuencia
-                                        $sancionesSinSecuencia[] = $sancion;
-                                    }
-                                }
-
-                                // Filtrar sanciones a mostrar
-                                $sancionesAMostrar = [];
-
-                                // Procesar sanciones con secuencia de reincidencia
-                                foreach ($sancionesPorGrupo as $grupoId => $secuencia) {
-                                    ksort($secuencia); // Ordenar por orden_reincidencia (1, 2, 3, 4)
-
-                                    // Encontrar la siguiente en la secuencia que debe mostrarse
-                                    foreach ($secuencia as $orden => $sancion) {
-                                        if (in_array($sancion->id, $sancionesUsadasIds)) {
-                                            // Esta ya fue usada, continuar a la siguiente
-                                            continue;
-                                        }
-
-                                        // Esta es la siguiente disponible en la secuencia
-                                        $sancionesAMostrar[$sancion->id] = $sancion->nombre_con_descripcion;
-                                        break; // Solo mostrar una de cada secuencia
-                                    }
-                                }
-
-                                // Agregar sanciones sin secuencia (siempre se muestran)
-                                foreach ($sancionesSinSecuencia as $sancion) {
-                                    $sancionesAMostrar[$sancion->id] = $sancion->nombre_con_descripcion;
-                                }
-
-                                // Ordenar por ID para mantener el orden original
-                                ksort($sancionesAMostrar);
-
-                                return $opciones + $sancionesAMostrar;
+                                return $opciones;
                             })
                             ->afterStateHydrated(function ($state, $record, Set $set) {
                                 // Si el registro tiene otro_motivo_descargos, agregar 'otro' a la selección
@@ -705,47 +655,18 @@ class ProcesoDisciplinarioResource extends Resource
                                 }
                             })
                             ->dehydrateStateUsing(function ($state) {
-                                // Filtrar 'otro' antes de guardar, solo guardar IDs numéricos
+                                // Guardar las conductas seleccionadas (texto del RIT); filtrar 'otro'.
                                 if (is_array($state)) {
-                                    return array_values(array_filter($state, fn($id) => $id !== 'otro' && is_numeric($id)));
+                                    return array_values(array_filter($state, fn($v) => $v !== 'otro'));
                                 }
                                 return $state;
                             })
-                            ->placeholder('Seleccione una o más motivos...')
-                            ->helperText(function (Get $get, $record) {
-                                $trabajadorId = $get('trabajador_id');
-                                if (!$trabajadorId) {
-                                    return 'Seleccione los motivos de los descargos a citar al trabajador';
+                            ->placeholder('Seleccione una o más conductas...')
+                            ->helperText(function (Get $get) {
+                                if (! $get('empresa_id')) {
+                                    return 'Primero seleccione la empresa para cargar sus conductas sancionables.';
                                 }
-
-                                // Contar sanciones con secuencia ya usadas por este trabajador
-                                $query = ProcesoDisciplinario::where('trabajador_id', $trabajadorId)
-                                    ->whereNotNull('sanciones_laborales_ids');
-
-                                if ($record) {
-                                    $query->where('id', '!=', $record->id);
-                                }
-
-                                $sancionesUsadasIds = [];
-                                foreach ($query->get() as $proceso) {
-                                    if (is_array($proceso->sanciones_laborales_ids)) {
-                                        $sancionesUsadasIds = array_merge($sancionesUsadasIds, $proceso->sanciones_laborales_ids);
-                                    }
-                                }
-                                $sancionesUsadasIds = array_unique($sancionesUsadasIds);
-
-                                if (count($sancionesUsadasIds) > 0) {
-                                    // Verificar si hay sanciones con reincidencia configurada
-                                    $sancionesConReincidencia = \App\Models\SancionLaboral::whereIn('id', $sancionesUsadasIds)
-                                        ->whereNotNull('orden_reincidencia')
-                                        ->count();
-
-                                    if ($sancionesConReincidencia > 0) {
-                                        return 'Los motivos con reincidencia muestran automáticamente la siguiente vez disponible';
-                                    }
-                                }
-
-                                return 'Seleccione los motivos de los descargos a citar al trabajador';
+                                return 'Conductas sancionables del Reglamento Interno de la empresa. Si no aparece, elija "Otro".';
                             })
                             ->extraAttributes([
                                 'data-tour' => 'motivos-select',
@@ -886,27 +807,23 @@ class ProcesoDisciplinarioResource extends Resource
                                             $trabajador = \App\Models\Trabajador::find($trabajadorId);
                                             $empresa = \App\Models\Empresa::find($empresaId);
 
-                                            // Obtener las sanciones laborales seleccionadas
-                                            $sancionesLaboralesIds = $get('sanciones_laborales_ids') ?? [];
+                                            // Motivos seleccionados: conductas del RIT (texto) + "otro"
+                                            $motivosSeleccionados = $get('sanciones_laborales_ids') ?? [];
+                                            $otroMotivo = $get('otro_motivo_descargos');
                                             $sancionesLaborales = 'No especificado';
 
-                                            if (!empty($sancionesLaboralesIds)) {
-                                                $sanciones = \App\Models\SancionLaboral::whereIn('id', $sancionesLaboralesIds)
-                                                    ->ordenado()
-                                                    ->get();
-
-                                                if ($sanciones->isNotEmpty()) {
-                                                    $textoCompleto = [];
-                                                    foreach ($sanciones as $sancion) {
-                                                        $emoji = $sancion->tipo_falta === 'leve' ? '🟢' : '🔴';
-                                                        $textoSancion = "{$emoji} {$sancion->nombre_claro}";
-                                                        if (!empty($sancion->descripcion)) {
-                                                            $textoSancion .= "\n" . $sancion->descripcion;
-                                                        }
-                                                        $textoCompleto[] = $textoSancion;
-                                                    }
-                                                    $sancionesLaborales = implode("\n\n", $textoCompleto);
+                                            $textoCompleto = [];
+                                            foreach ($motivosSeleccionados as $motivo) {
+                                                if ($motivo === 'otro') {
+                                                    continue;
                                                 }
+                                                $textoCompleto[] = $motivo;
+                                            }
+                                            if (in_array('otro', $motivosSeleccionados) && !empty($otroMotivo)) {
+                                                $textoCompleto[] = $otroMotivo;
+                                            }
+                                            if (!empty($textoCompleto)) {
+                                                $sancionesLaborales = implode("\n\n", $textoCompleto);
                                             }
 
                                             // Obtener configuración del proveedor de IA

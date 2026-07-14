@@ -420,29 +420,26 @@ class IAAnalisisSancionService
      */
     private function obtenerMotivosDescargosDetalle(ProcesoDisciplinario $proceso): string
     {
-        $sancionesLaborales = $proceso->sancionesLaborales;
+        // Motivos normalizados: conductas del RIT (texto) o catálogo antiguo (IDs).
+        $motivos = $proceso->motivosDescargosNormalizados();
 
-        if ($sancionesLaborales->isEmpty()) {
+        if (empty($motivos)) {
             return "No se han seleccionado motivos de descargos del reglamento interno.\n";
         }
 
         $detalle = "";
-        foreach ($sancionesLaborales as $index => $sancion) {
-            $numero = $index + 1;
-            $tipoFalta = strtoupper($sancion->tipo_falta);
-            $emoji = $sancion->tipo_falta === 'leve' ? '🟢' : '🔴';
-            $tipoSancion = $sancion->tipo_sancion_texto;
+        foreach ($motivos as $index => $m) {
+            $numero    = $index + 1;
+            $tipoFalta = strtoupper($m['gravedad'] ?? 'grave');
 
-            $detalle .= "{$numero}. {$emoji} [{$tipoFalta}] {$sancion->nombre_claro}\n";
-            $detalle .= "   Descripción: {$sancion->descripcion}\n";
-            $detalle .= "   Sanción del reglamento: {$tipoSancion}\n";
-
-            if ($sancion->tipo_sancion === 'suspension' && $sancion->dias_suspension_texto) {
-                $detalle .= "   Días de suspensión según reglamento: {$sancion->dias_suspension_texto}\n";
+            $detalle .= "{$numero}. [{$tipoFalta}] {$m['nombre']}\n";
+            if (!empty($m['medida'])) {
+                $detalle .= "   Medida contemplada en el RIT: {$m['medida']}\n";
             }
-
-            // Verificar si es reincidencia
-            if ($sancion->esReincidencia()) {
+            if (($m['tipo'] ?? '') === 'suspension' && !empty($m['dias'])) {
+                $detalle .= "   Días de suspensión según reglamento: {$m['dias']}\n";
+            }
+            if (!empty($m['reincidencia'])) {
                 $detalle .= "   NOTA: Este motivo es una REINCIDENCIA (no es la primera vez)\n";
             }
 
