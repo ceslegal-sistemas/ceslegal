@@ -27,6 +27,16 @@ class SancionLaboralResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    /**
+     * Catálogo estático retirado del menú: las conductas sancionables ahora se
+     * generan por IA dentro del RIT de cada empresa (conductas_sancionables). El
+     * modelo/tabla se conservan por compatibilidad histórica.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
