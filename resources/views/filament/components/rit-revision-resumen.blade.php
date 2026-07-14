@@ -110,6 +110,42 @@
         'XV' => 'Protección de Sujetos Especiales',
         'XVI' => 'Disposiciones Finales',
     ];
+
+    /* Embers (modo claro) — chispas de fuego que suben desde la base */
+    $emberColors = ['200,60,5', '230,90,10', '255,130,20', '180,45,0', '240,110,15', '210,70,5'];
+    $embers = [];
+    for ($i = 0; $i < 24; $i++) {
+        $c  = $emberColors[array_rand($emberColors)];
+        $sz = round(mt_rand(15, 45) / 10, 1);
+        $embers[] = [
+            'x' => mt_rand(2, 98),
+            'sz' => $sz,
+            'c' => $c,
+            'g' => (int) (($sz * mt_rand(25, 50)) / 10),
+            'dur' => round(mt_rand(35, 75) / 10, 1),
+            'del' => round(mt_rand(0, 90) / 10, 1),
+            'drift' => mt_rand(-40, 40),
+        ];
+    }
+
+    /* Luciérnagas (modo oscuro) — generadas en servidor para layout estable */
+    $ffColors = ['201,168,76', '255,235,120', '255,255,200', '190,215,255', '245,195,255', '255,210,90'];
+    $fireflies = [];
+    for ($i = 0; $i < 24; $i++) {
+        $c  = $ffColors[array_rand($ffColors)];
+        $sz = round(mt_rand(20, 60) / 10, 1);
+        $g  = (int) (($sz * mt_rand(35, 65)) / 10);
+        $fireflies[] = [
+            'x' => mt_rand(2, 97),
+            'y' => mt_rand(4, 96),
+            'sz' => $sz,
+            'g' => $g,
+            'c' => $c,
+            'tw' => round(mt_rand(18, 50) / 10, 1),
+            'del' => round(mt_rand(0, 60) / 10, 1),
+            'dr' => round(mt_rand(70, 160) / 10, 1),
+        ];
+    }
 @endphp
 
 @verbatim
@@ -147,9 +183,9 @@
     /* ── Hero ── */
     .rg-hero{ padding:30px 24px; text-align:center; overflow:hidden; }
     html.dark .rg-hero{ background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%); border-color:rgba(255,255,255,.06); }
-    .rg-ring{ width:58px;height:58px;border-radius:18px;display:inline-flex;align-items:center;justify-content:center;
-        background:linear-gradient(135deg,#e11d48,#f97316); box-shadow:0 10px 24px rgba(225,29,72,.35); margin-bottom:12px; animation:rg-pop .6s .05s cubic-bezier(.34,1.56,.64,1) both; }
-    .rg-ring svg{ width:29px;height:29px;color:#fff }
+    .rg-ring{ width:64px;height:64px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+        background:rgba(201,168,76,.12); border:1.5px solid rgba(201,168,76,.35); margin-bottom:12px; animation:rg-pop .6s .05s cubic-bezier(.34,1.56,.64,1) both; }
+    .rg-ring lord-icon{ width:50px;height:50px;flex-shrink:0 }
     .rg-kicker{ font-size:.66rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#be123c;margin:0 0 6px }
     html.dark .rg-kicker{ color:#fb7185 }
     .rg-title{ font-size:1.35rem;font-weight:700;line-height:1.2;margin:0 0 8px;color:#1c1917 }
@@ -222,7 +258,44 @@
     .rg-a1{ animation:rg-up .5s cubic-bezier(.16,1,.3,1) both }
     .rg-a2{ animation:rg-up .5s .08s cubic-bezier(.16,1,.3,1) both }
     .rg-a3{ animation:rg-up .5s .16s cubic-bezier(.16,1,.3,1) both }
-    @media(prefers-reduced-motion:reduce){ .rg-a1,.rg-a2,.rg-a3{ animation:none } }
+
+    /* ── Fuego (claro) / luciérnagas (oscuro) del hero — igual que el inicio ── */
+    .rg-fx{ position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:0 }
+    .rg-hero-content{ position:relative; z-index:2 }
+
+    @keyframes rg-ember-rise{
+        0%{ transform:translateY(0) translateX(0) scale(1); opacity:0 }
+        8%{ opacity:.92 }
+        80%{ opacity:.45 }
+        100%{ transform:translateY(-300px) translateX(var(--drift,20px)) scale(.2); opacity:0 }
+    }
+    .rg-ember{ position:absolute; bottom:-4px; border-radius:50%; pointer-events:none; will-change:transform,opacity;
+        animation:rg-ember-rise var(--dur,5s) var(--del,0s) ease-in infinite }
+    html.dark .rg-ember{ display:none }
+
+    @keyframes rg-twinkle{ 0%,100%{ opacity:.04; transform:scale(.3) } 45%,55%{ opacity:1; transform:scale(1.3) } }
+    @keyframes rg-ffdrift{ 0%,100%{ transform:translate(0,0) } 30%{ transform:translate(10px,-16px) } 65%{ transform:translate(-8px,-10px) } }
+    .rg-firefly{ position:absolute; border-radius:50%; pointer-events:none; will-change:transform,opacity;
+        animation:rg-twinkle var(--tw) var(--del) ease-in-out infinite, rg-ffdrift var(--dr) var(--del) ease-in-out infinite }
+    html:not(.dark) .rg-firefly{ opacity:0 !important }
+
+    /* Glow de fuego en la base (solo claro) */
+    .rg-fire-base{ display:none; position:absolute; inset:0; pointer-events:none; z-index:0 }
+    html:not(.dark) .rg-fire-base{ display:block;
+        background:radial-gradient(ellipse 85% 55% at 50% 100%, rgba(255,110,20,.22) 0%, rgba(255,160,40,.10) 50%, transparent 100%) }
+
+    /* Orbes flotantes suaves */
+    @keyframes rg-orb-a{ 0%,100%{ transform:translate(0,0) scale(1) } 40%{ transform:translate(-18px,16px) scale(1.08) } }
+    @keyframes rg-orb-b{ 0%,100%{ transform:translate(0,0) scale(1) } 45%{ transform:translate(16px,-18px) scale(1.1) } }
+    .rg-orb{ position:absolute; border-radius:50%; filter:blur(28px); pointer-events:none }
+    .rg-orb-a{ width:240px;height:240px;top:-60px;right:-40px;
+        background:radial-gradient(circle,rgba(225,29,72,.45),transparent 70%); animation:rg-orb-a 12s ease-in-out infinite }
+    .rg-orb-b{ width:190px;height:190px;bottom:-50px;left:-40px;
+        background:radial-gradient(circle,rgba(201,168,76,.24),transparent 70%); animation:rg-orb-b 15s ease-in-out infinite }
+    html:not(.dark) .rg-orb-a{ background:radial-gradient(circle,rgba(220,80,10,.26),transparent 70%) }
+    html:not(.dark) .rg-orb-b{ background:radial-gradient(circle,rgba(201,140,20,.30),transparent 70%) }
+
+    @media(prefers-reduced-motion:reduce){ .rg-a1,.rg-a2,.rg-a3,.rg-ember,.rg-firefly,.rg-orb-a,.rg-orb-b{ animation:none } }
 </style>
 @endverbatim
 
@@ -230,8 +303,26 @@
 
     {{-- ══ HERO ══ --}}
     <div class="rg-glass rg-hero rg-a1">
+
+        {{-- Capa de efecto: orbes + embers (claro) + luciérnagas (oscuro) --}}
+        <div class="rg-fx">
+            <div class="rg-orb rg-orb-a"></div>
+            <div class="rg-orb rg-orb-b"></div>
+            @foreach ($embers as $e)
+                <div class="rg-ember" style="left:{{ $e['x'] }}%;width:{{ $e['sz'] }}px;height:{{ $e['sz'] }}px;background:rgb({{ $e['c'] }});box-shadow:0 0 {{ $e['g'] }}px {{ $e['g'] }}px rgba({{ $e['c'] }},.6),0 0 {{ $e['g'] * 2 }}px {{ $e['g'] * 3 }}px rgba(255,160,30,.22);--drift:{{ $e['drift'] }}px;--dur:{{ $e['dur'] }}s;--del:{{ $e['del'] }}s;"></div>
+            @endforeach
+            @foreach ($fireflies as $f)
+                <div class="rg-firefly" style="left:{{ $f['x'] }}%;top:{{ $f['y'] }}%;width:{{ $f['sz'] }}px;height:{{ $f['sz'] }}px;background:rgb({{ $f['c'] }});box-shadow:0 0 {{ $f['g'] }}px {{ $f['g'] * 2 }}px rgba({{ $f['c'] }},.55),0 0 {{ $f['g'] * 4 }}px {{ $f['g'] * 3 }}px rgba({{ $f['c'] }},.18);--tw:{{ $f['tw'] }}s;--del:{{ $f['del'] }}s;--dr:{{ $f['dr'] }}s;"></div>
+            @endforeach
+        </div>
+        <div class="rg-fire-base"></div>
+
+      <div class="rg-hero-content">
         <div class="rg-ring">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+            <lord-icon src="https://cdn.lordicon.com/xjsqfzte.json" trigger="loop" delay="500" stroke="bold"
+                colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
+                data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
+                data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"></lord-icon>
         </div>
         <p class="rg-kicker">Resumen de su información</p>
         <h2 class="rg-title rg-disp">Reglamento Interno de Trabajo</h2>
@@ -261,6 +352,7 @@
                 <span>Revíselo con un <b>abogado</b> antes de presentarlo al Ministerio del Trabajo.</span>
             </div>
         </div>
+      </div>{{-- /.rg-hero-content --}}
     </div>
 
     <div class="rg-seclabel rg-a2">Resumen de sus respuestas</div>
