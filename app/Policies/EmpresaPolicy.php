@@ -48,7 +48,16 @@ class EmpresaPolicy
      */
     public function update(User $user, Empresa $empresa): bool
     {
-        return $user->can('update_empresa');
+        if (! $user->can('update_empresa')) {
+            return false;
+        }
+
+        // El cliente solo puede editar su propia empresa.
+        if ($user->hasRole('cliente')) {
+            return $empresa->id === $user->empresa_id;
+        }
+
+        return true;
     }
 
     /**

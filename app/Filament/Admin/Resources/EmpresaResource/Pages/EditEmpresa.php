@@ -13,9 +13,25 @@ class EditEmpresa extends EditRecord
 {
     protected static string $resource = EmpresaResource::class;
 
+    public function getTitle(): string
+    {
+        // Para el cliente es "su" empresa; para staff, el nombre de la empresa.
+        if (auth()->user()?->hasRole('cliente')) {
+            return 'Mi empresa';
+        }
+
+        return $this->record->razon_social ?? parent::getTitle();
+    }
+
+    public function getBreadcrumb(): string
+    {
+        return auth()->user()?->hasRole('cliente') ? 'Mi empresa' : parent::getBreadcrumb();
+    }
+
     protected function getHeaderActions(): array
     {
         return [
+            // La visibilidad la controla Shield (permiso delete_empresa vía policy).
             Actions\DeleteAction::make(),
         ];
     }

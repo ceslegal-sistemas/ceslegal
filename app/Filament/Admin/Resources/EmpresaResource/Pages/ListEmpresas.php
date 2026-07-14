@@ -11,6 +11,22 @@ class ListEmpresas extends ListRecords
 {
     protected static string $resource = EmpresaResource::class;
 
+    /**
+     * El cliente solo tiene una empresa: en vez de una tabla, lo llevamos directo a
+     * la ficha de SU empresa (más claro y consistente con el rebrand).
+     */
+    public function mount(): void
+    {
+        $user = auth()->user();
+        if ($user?->role === 'cliente' && $user->empresa_id) {
+            $this->redirect(EmpresaResource::getUrl('edit', ['record' => $user->empresa_id]));
+
+            return;
+        }
+
+        parent::mount();
+    }
+
     protected function getHeaderActions(): array
     {
         return [

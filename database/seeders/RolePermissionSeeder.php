@@ -144,9 +144,10 @@ class RolePermissionSeeder extends Seeder
             'view_trabajador',
             'view_any_trabajador',
 
-            // Can view empresas
+            // Can view AND edit their own empresa (restringido a la propia en la policy).
             'view_empresa',
             'view_any_empresa',
+            'update_empresa',
 
             // Can view users
             'view_user',
