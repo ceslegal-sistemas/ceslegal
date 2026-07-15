@@ -131,6 +131,15 @@ html:not(.dark) .mejora-shimmer{border-color:rgba(225,29,72,.18);background:line
 html:not(.dark) .mejora-card{background:#fff;border-color:rgba(225,29,72,.2);box-shadow:0 2px 16px rgba(225,29,72,.08)}
 .mejora-header{padding:1rem 1.25rem;background:linear-gradient(135deg,rgba(251,113,133,.12) 0%,rgba(225,29,72,.06) 100%);border-bottom:1px solid rgba(251,113,133,.15);display:flex;align-items:center;gap:.75rem}
 html:not(.dark) .mejora-header{background:linear-gradient(135deg,rgba(225,29,72,.07) 0%,rgba(251,113,133,.03) 100%);border-bottom-color:rgba(225,29,72,.12)}
+/* Títulos/subtítulos adaptativos de las tarjetas de mejora (evita blanco-sobre-blanco en claro) */
+.mejora-t{color:#f5f5f4;margin:0}
+html:not(.dark) .mejora-t{color:#1c1917}
+.mejora-eyebrow{font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fb7185;margin:0 0 .15rem}
+html:not(.dark) .mejora-eyebrow{color:#be123c}
+.mejora-sub{color:#a8a29e;margin:0}
+html:not(.dark) .mejora-sub{color:#78716c}
+.mejora-pct{font-family:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;font-weight:800;color:#fb7185;line-height:1}
+html:not(.dark) .mejora-pct{color:#e11d48}
 .mejora-badge{display:inline-flex;align-items:center;gap:.35rem;font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:.3rem .75rem;border-radius:2rem}
 .mejora-badge-version{background:rgba(251,113,133,.18);border:1px solid rgba(251,113,133,.35);color:#fb7185}
 html:not(.dark) .mejora-badge-version{background:rgba(225,29,72,.1);border-color:rgba(225,29,72,.25);color:#be123c}
@@ -425,16 +434,17 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
           </lord-icon>
         </div>
         <div style="flex:1;min-width:0">
-          <p style="font-size:1rem;font-weight:700;color:#fb7185;margin:0 0 .2rem">Generando RIT Mejorado con IA</p>
-          <p style="font-size:.8125rem;color:#64748b;margin:0;line-height:1.5">
-            {{ $progresoTexto ?: 'Iniciando mejora capítulo por capítulo...' }}
+          <p class="mejora-eyebrow">Mejora con IA · En proceso</p>
+          <p class="mejora-t" style="font-size:1.05rem;font-weight:700;margin:0 0 .2rem">Generando su RIT mejorado</p>
+          <p class="mejora-sub" style="font-size:.8125rem;line-height:1.5">
+            {{ $progresoTexto ?: 'Iniciando mejora capítulo por capítulo…' }}
           </p>
         </div>
         @if($capActual > 0)
           <div style="text-align:right;flex-shrink:0">
-            <span style="font-size:1.25rem;font-weight:800;color:#fb7185;line-height:1">{{ $capActual }}</span>
-            <span style="font-size:.75rem;color:#475569"> / {{ $capTotal }}</span>
-            <p style="font-size:.65rem;color:#64748b;margin:.15rem 0 0;text-transform:uppercase;letter-spacing:.06em">capítulos</p>
+            <span class="mejora-pct" style="font-size:1.35rem">{{ $capActual }}</span>
+            <span class="mejora-sub" style="font-size:.75rem"> / {{ $capTotal }}</span>
+            <p class="mejora-sub" style="font-size:.62rem;margin:.15rem 0 0;text-transform:uppercase;letter-spacing:.08em">capítulos</p>
           </div>
         @endif
       </div>
@@ -443,9 +453,9 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
       <div style="width:100%;height:8px;border-radius:4px;background:rgba(251,113,133,.12);overflow:hidden;margin-bottom:.875rem">
         <div style="height:100%;border-radius:4px;background:linear-gradient(90deg,#f97316,#fb7185);width:{{ $pct }}%;transition:width .6s ease"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#475569;margin-bottom:1rem">
-        <span>Progreso de mejora</span>
-        <span>{{ $pct }}%</span>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1rem">
+        <span class="mejora-sub" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">Progreso de mejora</span>
+        <span class="mejora-pct" style="font-size:.95rem">{{ $pct }}%</span>
       </div>
 
       {{-- Aviso: proceso continúa en segundo plano --}}
@@ -466,8 +476,9 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
           <svg style="width:18px;height:18px;color:#fb7185" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
         </div>
         <div style="flex:1;min-width:0">
-          <p style="font-size:.875rem;font-weight:700;color:#f1f5f9;margin:0 0 .2rem">RIT Mejorado Generado</p>
-          <p style="font-size:.75rem;color:#64748b;margin:0">Versión {{ $ritMejorado->version }} · {{ $ritMejorado->created_at->format('d/m/Y g:i A') }}</p>
+          <p class="mejora-eyebrow">Mejora con IA · Lista</p>
+          <p class="mejora-t" style="font-size:.95rem;font-weight:700;margin:0 0 .2rem">RIT Mejorado generado</p>
+          <p class="mejora-sub" style="font-size:.75rem">Versión {{ $ritMejorado->version }} · {{ $ritMejorado->created_at->format('d/m/Y g:i A') }}</p>
         </div>
         @if($decisionMejora === 'adoptado')
           <span class="mejora-badge mejora-badge-ok">RIT vigente</span>
@@ -510,8 +521,9 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
         {{-- ── DECISIÓN DEL CLIENTE ── --}}
         @if($mejoraPendiente)
           <div style="border-top:1px dashed rgba(251,113,133,.25);padding-top:1.125rem">
-            <p style="font-size:.8125rem;font-weight:600;color:#fb7185;margin:0 0 .35rem">¿Desea utilizar este RIT mejorado?</p>
-            <p style="font-size:.8rem;color:#64748b;line-height:1.6;margin:0 0 1rem">
+            <p class="mejora-eyebrow" style="color:#fb7185">Decisión</p>
+            <p class="mejora-t" style="font-size:.9rem;font-weight:700;margin:0 0 .35rem">¿Desea utilizar este RIT mejorado?</p>
+            <p class="mejora-sub" style="font-size:.8rem;line-height:1.6;margin:0 0 1rem">
               Revise el documento descargado. Si lo aprueba, reemplazará su Reglamento Interno actual como
               versión vigente. Si prefiere conservar el que subió manualmente, puede mantenerlo y la versión
               mejorada quedará archivada.
