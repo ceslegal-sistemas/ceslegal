@@ -178,44 +178,36 @@ class BibliotecaLegalService
                 return '';
             }
 
-            // Cargar solo fragmentos con embedding de documentos activos y procesados
-            $fragmentos = FragmentoDocumento::whereNotNull('embedding')
-                ->whereHas('documentoLegal', fn($q) => $q->activos()->procesados())
+            // Fase 1: puntuar candidatos (solo [id, embedding]) sobre documentos activos.
+            $q = FragmentoDocumento::whereNotNull('embedding')
+                ->whereHas('documentoLegal', fn($q) => $q->activos()->procesados());
+
+            $top = \App\Support\VectorSearch::topK($q, $queryEmbedding, $limite, $umbral);
+
+            if (empty($top)) {
+                return '';
+            }
+
+            // Fase 2: hidratar solo el top-K con su documento, conservando el orden por score.
+            $ids = array_column($top, 'key');
+            $frags = FragmentoDocumento::whereIn('id', $ids)
                 ->with('documentoLegal:id,titulo,tipo,referencia')
-                ->get();
-
-            if ($fragmentos->isEmpty()) {
-                return '';
-            }
-
-            // Calcular similitud coseno
-            $scored = $fragmentos
-                ->map(function (FragmentoDocumento $f) use ($queryEmbedding) {
-                    $emb = $f->embedding;
-                    if (empty($emb)) return null;
-                    return [
-                        'fragmento' => $f,
-                        'score'     => $this->cosineSimilarity($queryEmbedding, $emb),
-                    ];
-                })
-                ->filter(fn($item) => $item && $item['score'] >= $umbral)
-                ->sortByDesc('score')
-                ->take($limite)
-                ->values();
-
-            if ($scored->isEmpty()) {
-                return '';
-            }
+                ->get()
+                ->keyBy('id');
 
             // Construir bloque de texto con citas
             $lineas = [];
-            foreach ($scored as $item) {
-                $doc   = $item['fragmento']->documentoLegal;
+            foreach ($top as $t) {
+                $f = $frags[$t['key']] ?? null;
+                if (!$f) {
+                    continue;
+                }
+                $doc   = $f->documentoLegal;
                 $cita  = $doc->referencia ? "{$doc->titulo} ({$doc->referencia})" : $doc->titulo;
-                $score = number_format($item['score'] * 100, 0);
+                $score = number_format($t['score'] * 100, 0);
 
                 $lineas[] = "--- [{$cita}] (relevancia: {$score}%) ---";
-                $lineas[] = trim($item['fragmento']->contenido);
+                $lineas[] = trim($f->contenido);
                 $lineas[] = '';
             }
 

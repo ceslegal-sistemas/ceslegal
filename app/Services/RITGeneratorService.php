@@ -351,6 +351,7 @@ class RITGeneratorService
         }
 
         try {
+            // Fase 1: puntuar candidatos cargando solo [id, embedding] (memoria mínima).
             $q = ArticuloLegal::whereNull('empresa_id')
                 ->where('activo', true)
                 ->whereNotNull('embedding');
@@ -359,29 +360,27 @@ class RITGeneratorService
                 $q->whereNotIn('codigo', $yaObtenidos);
             }
 
-            $articulos = $q->get(['codigo', 'titulo', 'texto_completo', 'embedding']);
+            $top = \App\Support\VectorSearch::topK($q, $queryEmb, $limite, $umbral);
 
-            $scored = $articulos
-                ->map(function (ArticuloLegal $a) use ($queryEmb) {
-                    $emb = $a->embedding;
-                    if (empty($emb)) return null;
-                    return [
-                        'articulo' => $a,
-                        'score'    => $this->cosineSimilarity($queryEmb, $emb),
-                    ];
-                })
-                ->filter(fn($item) => $item !== null && $item['score'] >= $umbral)
-                ->sortByDesc('score')
-                ->take($limite)
-                ->values();
-
-            if ($scored->isEmpty()) {
+            if (empty($top)) {
                 return $this->buscarArticulosPorTema($queryTema, $yaObtenidos, $limite);
             }
 
-            return $scored
-                ->map(fn($item) => "--- {$item['articulo']->codigo}: {$item['articulo']->titulo} ---\n{$item['articulo']->texto_completo}")
-                ->implode("\n\n");
+            // Fase 2: hidratar el texto completo SOLO del top-K, conservando el orden por score.
+            $ids       = array_column($top, 'key');
+            $articulos = ArticuloLegal::whereIn('id', $ids)
+                ->get(['id', 'codigo', 'titulo', 'texto_completo'])
+                ->keyBy('id');
+
+            $out = [];
+            foreach ($top as $t) {
+                $a = $articulos[$t['key']] ?? null;
+                if ($a) {
+                    $out[] = "--- {$a->codigo}: {$a->titulo} ---\n{$a->texto_completo}";
+                }
+            }
+
+            return implode("\n\n", $out);
 
         } catch (\Throwable $e) {
             Log::warning('RITGeneratorService: buscarArticulosPorEmbedding falló', [
