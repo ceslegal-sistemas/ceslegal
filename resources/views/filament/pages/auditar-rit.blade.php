@@ -489,21 +489,14 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
         @endif
       </div>
       <div style="padding:1.25rem 1.5rem">
-        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
-          @if($numCorregidas > 0)
-            <span class="mejora-badge mejora-badge-ok">
-              <svg style="width:10px;height:10px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-              {{ $numCorregidas }} sección{{ $numCorregidas === 1 ? '' : 'es' }} corregida{{ $numCorregidas === 1 ? '' : 's' }}
-            </span>
-          @endif
-          <span class="mejora-badge mejora-badge-ok">
-            <svg style="width:10px;height:10px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-            Correcciones aplicadas
-          </span>
-          <span class="mejora-badge mejora-badge-ok">
-            <svg style="width:10px;height:10px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-            Biblioteca jurídica consultada
-          </span>
+        <div style="margin-bottom:1rem">
+          <p style="font-size:.8125rem;color:#94a3b8;line-height:1.6;margin:0">
+            @if($numCorregidas > 0)
+              Se {{ $numCorregidas === 1 ? 'ajustó' : 'ajustaron' }} {{ $numCorregidas }} {{ $numCorregidas === 1 ? 'sección' : 'secciones' }} conforme a los hallazgos de la auditoría y la normativa vigente, conservando el resto del reglamento.
+            @else
+              Documento actualizado conforme a la auditoría y la normativa vigente, conservando el reglamento.
+            @endif
+          </p>
         </div>
 
         {{-- Descarga del PDF mejorado (siempre disponible para revisión) --}}

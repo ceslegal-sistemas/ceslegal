@@ -201,11 +201,13 @@ html:not(.dark) .sl-badge{background:rgba(22,163,74,.1);color:#166534}
                     @if($decision === 'adoptado')<span class="sl-badge">RIT vigente</span>@endif
                 </div>
                 <div style="padding:1.25rem 1.5rem">
-                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
-                        @if($numCorreg > 0)<span class="sl-badge">{{ $numCorreg }} sección{{ $numCorreg === 1 ? '' : 'es' }} corregida{{ $numCorreg === 1 ? '' : 's' }}</span>@endif
-                        <span class="sl-badge">Correcciones aplicadas</span>
-                        <span class="sl-badge">Biblioteca jurídica consultada</span>
-                    </div>
+                    <p class="sl-muted" style="margin:0 0 1rem">
+                        @if($numCorreg > 0)
+                            Se {{ $numCorreg === 1 ? 'ajustó' : 'ajustaron' }} {{ $numCorreg }} {{ $numCorreg === 1 ? 'sección' : 'secciones' }} conforme a los hallazgos de la auditoría y la normativa vigente, conservando el resto de su reglamento.
+                        @else
+                            Documento actualizado conforme a la auditoría y la normativa vigente, conservando su reglamento.
+                        @endif
+                    </p>
                     <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
                         <button wire:click="downloadPDFMejorado" class="sl-btn sl-btn-primary">
                             <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
