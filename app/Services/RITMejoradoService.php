@@ -315,13 +315,30 @@ class RITMejoradoService
             }
 
             if ($mejor !== null && $mejorScore >= 1) {
-                $resultado[$mejor] = trim(($resultado[$mejor] ?? '') . "\n\n" . trim($texto));
+                // Quitar el encabezado "CAPÍTULO X / TÍTULO" del texto fuente para que el
+                // modelo NO lo repita y genere capítulos/numeración fantasma en la salida.
+                $resultado[$mejor] = trim(($resultado[$mejor] ?? '') . "\n\n" . $this->cuerpoSinEncabezado($texto));
             } else {
                 $resultado['__extra__'][$rom] = trim($texto);
             }
         }
 
         return $resultado;
+    }
+
+    /**
+     * Devuelve el cuerpo de un capítulo del original SIN su encabezado (línea "CAPÍTULO X" y
+     * la línea de título). Evita que ese encabezado se cuele como texto fuente y el modelo lo
+     * reproduzca creando capítulos duplicados.
+     */
+    private function cuerpoSinEncabezado(string $texto): string
+    {
+        $lineas = preg_split('/\r?\n/', trim($texto));
+        $drop   = 1; // quita "CAPÍTULO X"
+        if (isset($lineas[1]) && trim($lineas[1]) !== '' && !preg_match('/^\s*ART[IÍ]CULO/i', $lineas[1])) {
+            $drop = 2; // quita también la línea de título
+        }
+        return trim(implode("\n", array_slice($lineas, $drop)));
     }
 
     /** Minúsculas sin acentos, para comparar temas de forma robusta. */
