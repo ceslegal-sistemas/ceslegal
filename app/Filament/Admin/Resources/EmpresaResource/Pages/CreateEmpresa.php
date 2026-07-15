@@ -6,6 +6,7 @@ use App\Filament\Admin\Resources\EmpresaResource;
 use App\Jobs\ProcesarAuditoriaRIT;
 use App\Services\AuditoriaRITService;
 use App\Services\ReglamentoInternoService;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -61,6 +62,12 @@ class CreateEmpresa extends CreateRecord
         if (($this->data['rit_opcion'] ?? null) === 'tiene' && $ritConTexto) {
             $auditoria = app(AuditoriaRITService::class)->iniciar($this->record, null);
             ProcesarAuditoriaRIT::dispatch($auditoria, (int) auth()->id());
+
+            Notification::make()
+                ->success()
+                ->title('Empresa creada — auditando su RIT')
+                ->body('Estamos revisando el Reglamento Interno y generando la versión mejorada. Aquí mismo verá el resultado y podrá aceptar las sugerencias.')
+                ->send();
         }
     }
 
