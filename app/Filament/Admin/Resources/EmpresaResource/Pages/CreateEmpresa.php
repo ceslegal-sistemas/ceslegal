@@ -83,15 +83,26 @@ class CreateEmpresa extends CreateRecord
     public function iniciarAuditoriaWizard(mixed $archivo, string $razonSocial): void
     {
         try {
-            $path = is_array($archivo) ? ($archivo[0] ?? null) : $archivo;
-            if (! $path) {
-                $this->permitirCrearSinAuditoria();
-                return;
+            // El estado del FileUpload puede venir como [uuid => ruta], como string, o como
+            // un TemporaryUploadedFile (aún sin mover). Se resuelve la ruta absoluta real.
+            $valor = is_array($archivo) ? (reset($archivo) ?: null) : $archivo;
+
+            if (is_object($valor) && method_exists($valor, 'getRealPath')) {
+                $rutaAbsoluta = $valor->getRealPath(); // TemporaryUploadedFile
+            } elseif (is_string($valor) && $valor !== '') {
+                $rutaAbsoluta = Storage::disk('local')->path($valor);
+            } else {
+                $rutaAbsoluta = null;
             }
 
-            $rutaAbsoluta = Storage::disk('local')->path($path);
-            if (! is_file($rutaAbsoluta)) {
-                Log::warning('CreateEmpresa: archivo de RIT no encontrado para auditar', ['path' => $path, 'abs' => $rutaAbsoluta]);
+            Log::info('CreateEmpresa: intento de auditoría en wizard', [
+                'tipo_valor' => is_object($valor) ? get_class($valor) : gettype($valor),
+                'valor'      => is_string($valor) ? $valor : null,
+                'abs'        => $rutaAbsoluta,
+                'existe'     => $rutaAbsoluta ? is_file($rutaAbsoluta) : false,
+            ]);
+
+            if (! $rutaAbsoluta || ! is_file($rutaAbsoluta)) {
                 $this->permitirCrearSinAuditoria();
                 return;
             }
