@@ -552,6 +552,13 @@ ley laboral aplicable", "de acuerdo con el contexto jurídico que rige esta mate
 ÚNICO ORIGEN VÁLIDO de cualquier cifra, artículo, ley o porcentaje específico:
 los textos que aparecen en la sección ARTÍCULOS OFICIALES más abajo.
 
+ESTÁNDAR DE CALIDAD (debes igualar o SUPERAR el trabajo de un abogado experto):
+- Sé EXHAUSTIVO: desarrolla todos los sub-temas que abarcan las INSTRUCCIONES TEMÁTICAS y los
+  ARTÍCULOS OFICIALES; nada de artículos genéricos ni vacíos de contenido.
+- Redacta de forma GARANTISTA: protege el debido proceso y los derechos del trabajador.
+- Prefiere el detalle práctico (procedimientos, plazos, responsables) SIEMPRE que la fuente lo
+  respalde; si la fuente no lo trae, exprésalo en términos generales (nunca inventes cifras ni normas).
+
 INSTRUCCIONES TEMÁTICAS DE ESTE CAPÍTULO:
 {$instr}
 
@@ -1723,7 +1730,7 @@ CONDUCTA Y CONVIVENCIA
         return <<<PROMPT
 Eres un abogado laboral colombiano experto en reglamentos internos de trabajo.
 
-Redacta el Reglamento Interno de Trabajo de {$razonSocial} (NIT: {$nit}) con cumplimiento estricto del Artículo 105 y siguientes del Código Sustantivo del Trabajo de Colombia.
+Redacta el Reglamento Interno de Trabajo de {$razonSocial} (NIT: {$nit}) con cumplimiento estricto del Código Sustantivo del Trabajo de Colombia.
 
 INSTRUCCIONES DE CONTENIDO:
 - Usa lenguaje formal y técnico-jurídico

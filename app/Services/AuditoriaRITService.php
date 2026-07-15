@@ -416,6 +416,12 @@ NO PENALICE por:
 Un RIT de calidad en SST cubre: compromiso con el SG-SST, COPASST/Vigía, EPP, reporte de
 accidentes, exámenes médicos de ingreso/retiro, prohibición de sustancias psicoactivas.
 
+ADEMÁS DE LA COBERTURA, genera un hallazgo (SOLO con base en el CONTEXTO LEGAL de arriba):
+- Si una cláusula del RIT es MENOS protectora que, o CONTRADICE, lo que establece la normativa
+  vigente del contexto (provisión desactualizada frente a la ley actual).
+- Si el RIT expresa una cifra, porcentaje o plazo que NO coincide con el del contexto legal.
+No inventes obligaciones que no estén en el CONTEXTO LEGAL (PROHIBICIÓN 3 sigue vigente).
+
 Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
 {
   "cumple": boolean,
