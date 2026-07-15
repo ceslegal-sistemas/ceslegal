@@ -96,23 +96,8 @@
             @endforeach
         @endif
 
-        {{-- Decisión --}}
-        @if($yaDecidio || $gate)
-            <div style="display:flex;align-items:center;gap:.5rem;margin-top:1rem;padding:.65rem 1rem;border-radius:.6rem;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22)">
-                <svg style="width:16px;height:16px;color:#22c55e;flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span style="font-size:.82rem;color:#86efac">
-                    {{ $decision === 'adoptado'
-                        ? 'Aceptó las sugerencias: al crear la empresa se generará y adoptará el RIT mejorado.'
-                        : 'Conservará el RIT subido. Ya puede crear la empresa.' }}
-                </span>
-            </div>
-        @else
-            <p style="font-size:.82rem;color:#cbd5e1;margin:1rem 0 .6rem">¿Desea actualizar el RIT con las sugerencias de la auditoría?</p>
-            <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
-                {{ $this->aceptarMejoraWizardAction }}
-                <button type="button" wire:click="mantenerRITWizard" style="font-size:.82rem;font-weight:600;padding:.55rem 1.1rem;border-radius:.55rem;border:1px solid rgba(148,163,184,.3);background:rgba(148,163,184,.12);color:#cbd5e1;cursor:pointer">Mantener el RIT subido</button>
-            </div>
-            <p style="font-size:.75rem;color:#64748b;margin:.7rem 0 0">Debe decidir una opción para poder crear la empresa.</p>
-        @endif
+        <p style="font-size:.8rem;color:#cbd5e1;margin:1rem 0 0;padding-top:.75rem;border-top:1px dashed rgba(148,163,184,.2)">
+            Revise el resultado y, debajo, indique si desea actualizar su RIT con las sugerencias o mantenerlo como está.
+        </p>
     @endif
 </div>

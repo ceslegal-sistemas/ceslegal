@@ -9,8 +9,9 @@ use App\Services\AceptacionMejoraRITService;
 use App\Services\AuditoriaRITService;
 use App\Services\ReglamentoInternoService;
 use Filament\Forms\Components\Checkbox;
-use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\View as ViewComponent;
 use Filament\Forms\Components\Wizard\Step;
@@ -39,8 +40,14 @@ class CreateEmpresa extends CreateRecord
             $data['bufete_id'] = auth()->user()->bufete_id;
         }
 
-        // Campo de gate: no es columna de empresas.
-        unset($data['auditoria_confirmada']);
+        // Campos del wizard que no son columnas de empresas.
+        unset(
+            $data['rit_decision'],
+            $data['rit_autoridad'],
+            $data['rit_resp_nombre'],
+            $data['rit_resp_documento'],
+            $data['rit_resp_cargo'],
+        );
 
         return $data;
     }
@@ -65,11 +72,37 @@ class CreateEmpresa extends CreateRecord
                 ->schema([
                     ViewComponent::make('filament.components.rit-wizard-auditoria'),
 
-                    // Gate: obligatorio solo si subió RIT ('tiene'). Se llena al decidir
-                    // (o de forma fail-safe si la auditoría no pudo correr).
-                    Hidden::make('auditoria_confirmada')
+                    // Decisión (gate nativo): obligatoria solo si subió RIT. En fail-safe se
+                    // pre-marca 'mantener' para no bloquear la creación.
+                    Radio::make('rit_decision')
+                        ->label('¿Desea actualizar su Reglamento Interno con las sugerencias de la auditoría?')
+                        ->options([
+                            'aceptar'  => 'Sí, generar y adoptar la versión mejorada del RIT',
+                            'mantener' => 'No, mantener mi RIT tal como lo subí',
+                        ])
+                        ->required(fn (Get $get) => ($get('rit_opcion') ?? null) === 'tiene')
                         ->dehydrated(false)
-                        ->required(fn (Get $get) => ($get('rit_opcion') ?? null) === 'tiene'),
+                        ->live(),
+
+                    // Autoridad + datos del responsable (solo si acepta la actualización).
+                    Group::make([
+                        Placeholder::make('aviso_autoridad')->hiddenLabel()
+                            ->content('Esta actualización debe ser aprobada por alguien con autoridad para modificar el Reglamento Interno de la empresa. Registramos quién la autoriza.'),
+                        Checkbox::make('rit_autoridad')
+                            ->label('Declaro que tengo la autoridad para aprobar cambios al Reglamento Interno de esta empresa.')
+                            ->accepted()
+                            ->dehydrated(false)
+                            ->required(fn (Get $get) => $get('rit_decision') === 'aceptar'),
+                        TextInput::make('rit_resp_nombre')->label('Nombre completo')
+                            ->dehydrated(false)->maxLength(255)
+                            ->required(fn (Get $get) => $get('rit_decision') === 'aceptar'),
+                        TextInput::make('rit_resp_documento')->label('Documento (cédula)')
+                            ->dehydrated(false)->maxLength(50)
+                            ->required(fn (Get $get) => $get('rit_decision') === 'aceptar'),
+                        TextInput::make('rit_resp_cargo')->label('Cargo')
+                            ->dehydrated(false)->maxLength(255)
+                            ->required(fn (Get $get) => $get('rit_decision') === 'aceptar'),
+                    ])->visible(fn (Get $get) => $get('rit_decision') === 'aceptar'),
                 ]),
         ];
     }
@@ -139,54 +172,10 @@ class CreateEmpresa extends CreateRecord
         }
     }
 
-    /** Marca el gate para permitir crear cuando no hay auditoría posible. */
+    /** Fail-safe: si no se pudo auditar, se pre-marca 'mantener' para no bloquear la creación. */
     private function permitirCrearSinAuditoria(): void
     {
-        $this->data['auditoria_confirmada'] = 'sin_auditoria';
-    }
-
-    /** Acción "Aceptar sugerencias": captura autoridad + responsable y habilita crear. */
-    public function aceptarMejoraWizardAction(): \Filament\Actions\Action
-    {
-        return \Filament\Actions\Action::make('aceptarMejoraWizard')
-            ->label('Actualizar RIT con las sugerencias')
-            ->icon('heroicon-o-sparkles')
-            ->color('primary')
-            ->modalHeading('Actualizar el Reglamento Interno con las sugerencias')
-            ->modalDescription('Al crear la empresa se generará la versión mejorada del RIT y se adoptará como vigente. Registramos quién autoriza el cambio.')
-            ->modalSubmitActionLabel('Confirmar')
-            ->form([
-                Placeholder::make('aviso')->hiddenLabel()
-                    ->content('Debe ser aprobado por alguien con autoridad para modificar el RIT de la empresa.'),
-                Checkbox::make('autoridad_declarada')
-                    ->label('Declaro que tengo la autoridad para aprobar cambios al Reglamento Interno de esta empresa.')
-                    ->accepted()->required(),
-                TextInput::make('responsable_nombre')->label('Nombre completo')->required()->maxLength(255),
-                TextInput::make('responsable_documento')->label('Documento (cédula)')->required()->maxLength(50),
-                TextInput::make('responsable_cargo')->label('Cargo')->required()->maxLength(255),
-            ])
-            ->action(function (array $data): void {
-                if ($this->auditoria) {
-                    app(AceptacionMejoraRITService::class)->registrarAceptacion($this->auditoria, $data);
-                    $this->auditoria = $this->auditoria->fresh();
-                }
-                $this->data['auditoria_confirmada'] = 'aceptado';
-                Notification::make()->success()
-                    ->title('Sugerencias aceptadas')
-                    ->body('Al crear la empresa se generará y adoptará el RIT mejorado. Ya puede crear la empresa.')
-                    ->send();
-            });
-    }
-
-    /** El responsable decide mantener el RIT subido tal cual; habilita crear. */
-    public function mantenerRITWizard(): void
-    {
-        if ($this->auditoria) {
-            app(AceptacionMejoraRITService::class)->mantenerActual($this->auditoria);
-            $this->auditoria = $this->auditoria->fresh();
-        }
-        $this->data['auditoria_confirmada'] = 'mantener';
-        Notification::make()->info()->title('Conservará el RIT subido')->send();
+        $this->data['rit_decision'] = 'mantener';
     }
 
     // ── Post-creación ───────────────────────────────────────────────────────────
@@ -218,14 +207,23 @@ class CreateEmpresa extends CreateRecord
             }
         }
 
-        // Enlazar la auditoría temporal a la empresa y disparar la mejora si se aceptó.
+        // Enlazar la auditoría temporal a la empresa y, si el responsable aceptó, registrar
+        // la aceptación con sus datos y disparar la generación + adopción del RIT mejorado.
         if ($this->auditoria) {
             $svcAud = app(AuditoriaRITService::class);
             $svcAud->enlazarConEmpresa($this->auditoria, $this->record);
             $this->auditoria = $this->auditoria->fresh();
 
-            if ($this->auditoria->decision_mejora === 'adoptado') {
-                app(AceptacionMejoraRITService::class)->dispararMejora($this->auditoria, (int) auth()->id());
+            if (($this->data['rit_decision'] ?? null) === 'aceptar') {
+                $aceptacion = app(AceptacionMejoraRITService::class);
+                $aceptacion->registrarAceptacion($this->auditoria, [
+                    'responsable_nombre'    => $this->data['rit_resp_nombre'] ?? null,
+                    'responsable_documento' => $this->data['rit_resp_documento'] ?? null,
+                    'responsable_cargo'     => $this->data['rit_resp_cargo'] ?? null,
+                ]);
+                $aceptacion->dispararMejora($this->auditoria->fresh(), (int) auth()->id());
+            } elseif (($this->data['rit_decision'] ?? null) === 'mantener') {
+                app(AceptacionMejoraRITService::class)->mantenerActual($this->auditoria);
             }
         }
     }
