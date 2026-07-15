@@ -122,8 +122,16 @@ class EmpresaResource extends Resource
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
+        return $form->schema(static::formSchema());
+    }
+
+    /**
+     * Esquema del formulario de empresa, expuesto para reutilizarlo en el wizard
+     * de creación (CreateEmpresa) sin duplicar campos.
+     */
+    public static function formSchema(): array
+    {
+        return [
                 Forms\Components\Section::make('Información de la Empresa')
                     ->description('Datos básicos de identificación')
                     ->icon('heroicon-o-building-office')
@@ -380,7 +388,7 @@ class EmpresaResource extends Resource
                                 : [])
                             ->columnSpanFull(),
                     ]),
-            ]);
+        ];
     }
 
     public static function table(Table $table): Table
