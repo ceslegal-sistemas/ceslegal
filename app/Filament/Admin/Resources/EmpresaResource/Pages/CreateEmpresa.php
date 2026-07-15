@@ -7,7 +7,6 @@ use App\Jobs\ProcesarAuditoriaRIT;
 use App\Models\AuditoriaRIT;
 use App\Services\AceptacionMejoraRITService;
 use App\Services\AuditoriaRITService;
-use App\Services\BibliotecaLegalService;
 use App\Services\ReglamentoInternoService;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Hidden;
@@ -91,11 +90,14 @@ class CreateEmpresa extends CreateRecord
             }
 
             $rutaAbsoluta = Storage::disk('local')->path($path);
-            $docLegal     = new \App\Models\DocumentoLegal([
-                'archivo_path'            => $path,
-                'archivo_nombre_original' => basename($path),
-            ]);
-            $texto = app(BibliotecaLegalService::class)->extraerTexto($docLegal);
+            if (! is_file($rutaAbsoluta)) {
+                Log::warning('CreateEmpresa: archivo de RIT no encontrado para auditar', ['path' => $path, 'abs' => $rutaAbsoluta]);
+                $this->permitirCrearSinAuditoria();
+                return;
+            }
+
+            // Extraer el texto desde la ruta absoluta (mismo extractor que procesarDocumento).
+            $texto = app(ReglamentoInternoService::class)->extraerTextoDeArchivo($rutaAbsoluta);
 
             if (empty(trim($texto))) {
                 // No se puede auditar un documento ilegible → no bloquear la creación.

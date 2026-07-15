@@ -97,6 +97,20 @@ class ReglamentoInternoService
     }
 
     /**
+     * Extrae el texto plano de un archivo (PDF/DOCX/TXT) a partir de su RUTA ABSOLUTA.
+     * Reutilizable sin persistir un RIT (p. ej. auditoría en el wizard de registro).
+     */
+    public function extraerTextoDeArchivo(string $rutaArchivo): string
+    {
+        $extension = strtolower(pathinfo($rutaArchivo, PATHINFO_EXTENSION));
+
+        return match ($extension) {
+            'pdf'  => $this->extraerTextoPdf($rutaArchivo),
+            default => $this->extraerTextoDocx($rutaArchivo),
+        };
+    }
+
+    /**
      * Identifica el motivo real por el que no se pudo extraer texto de un documento,
      * para dar un aviso preciso al usuario. Intenta leer el archivo y clasifica:
      *   'protegido' → PDF cifrado o con restricciones (no se puede leer su contenido).
