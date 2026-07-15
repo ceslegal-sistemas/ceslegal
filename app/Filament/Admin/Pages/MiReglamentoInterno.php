@@ -32,6 +32,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
     public ?ReglamentoInterno $reglamento = null;
     public ?Empresa $empresa = null;
     public ?\App\Models\AuditoriaRIT $auditoria = null;
+    public ?ReglamentoInterno $ritMejorado = null;
 
     public function mount(): void
     {
@@ -73,6 +74,10 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                 ->latest()
                 ->first();
 
+            if ($this->auditoria?->reglamento_mejorado_id) {
+                $this->ritMejorado = $this->auditoria->reglamentoMejorado()->first();
+            }
+
             // Auto-auditar: cliente con RIT subido que aún no tiene auditoría
             // (p. ej. justo después de registrarse subiendo su RIT).
             if (Auth::user()?->hasRole('cliente')
@@ -98,7 +103,51 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
     {
         if ($this->auditoria) {
             $this->auditoria = $this->auditoria->fresh();
+            if ($this->auditoria?->reglamento_mejorado_id) {
+                $this->ritMejorado = $this->auditoria->reglamentoMejorado()->first();
+            }
         }
+    }
+
+    /** Reintenta la generación del RIT mejorado si falló. */
+    public function reintentarMejora(): void
+    {
+        if (! $this->auditoria || $this->auditoria->estado !== 'completado') {
+            return;
+        }
+        $this->auditoria->update(['estado_mejora' => 'procesando', 'mensaje_error' => null]);
+        \App\Jobs\GenerarRITMejoradoJob::dispatch($this->auditoria->fresh(), (int) Auth::id());
+        $this->auditoria = $this->auditoria->fresh();
+        Notification::make()->info()->title('Regenerando RIT mejorado')->send();
+    }
+
+    /** Descarga el PDF del RIT mejorado. */
+    public function downloadPDFMejorado(): mixed
+    {
+        if (! $this->ritMejorado) {
+            Notification::make()->warning()->title('RIT mejorado no disponible aún')->send();
+            return null;
+        }
+
+        $nombreEmpresa = preg_replace('/[^A-Za-z0-9\-_]/', '_', $this->empresa?->razon_social ?? 'empresa');
+        $nombreArchivo = "RIT_v{$this->ritMejorado->version}_{$nombreEmpresa}.pdf";
+
+        if ($this->ritMejorado->ruta_pdf) {
+            $rutaAbsoluta = Storage::path($this->ritMejorado->ruta_pdf);
+            if (file_exists($rutaAbsoluta)) {
+                return response()->download($rutaAbsoluta, $nombreArchivo, ['Content-Type' => 'application/pdf']);
+            }
+        }
+
+        if (! empty($this->ritMejorado->texto_completo) && $this->empresa) {
+            $tmpPath = app(\App\Services\RITGeneratorService::class)
+                ->generarPDFTemp($this->ritMejorado->texto_completo, $this->empresa);
+            return response()->download($tmpPath, $nombreArchivo, ['Content-Type' => 'application/pdf'])
+                ->deleteFileAfterSend();
+        }
+
+        Notification::make()->danger()->title('Archivo no encontrado en el servidor')->send();
+        return null;
     }
 
     /** Lanza manualmente la auditoría del RIT vigente (si aún no hay ninguna). */
