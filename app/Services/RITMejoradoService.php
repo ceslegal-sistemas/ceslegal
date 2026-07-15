@@ -482,6 +482,13 @@ class RITMejoradoService
         $titulo      = $cap['titulo'];
         $instrucciones = $cap['instrucciones'];
 
+        // Estándar de oro: elementos obligatorios que este capítulo debe cubrir (contenido curado).
+        $goldItems  = \App\Support\RitGoldStandard::paraCapitulo($numero);
+        $goldBloque = $goldItems
+            ? "\nELEMENTOS OBLIGATORIOS QUE DEBE CUBRIR ESTE CAPÍTULO (verifica que todos estén presentes; si el original omite alguno, agrégalo):\n"
+              . \App\Support\RitGoldStandard::comoLista($goldItems) . "\n"
+            : '';
+
         $seccionArticulos = $articulosLegales
             ? "\nTEXTO OFICIAL DE ARTÍCULOS DEL CST (fuente: base de datos interna — ÚNICA fuente válida para citas):\n"
               . $articulosLegales . "\n"
@@ -527,7 +534,7 @@ HALLAZGOS DE LA AUDITORÍA PARA ESTE CAPÍTULO (CORRÍGELOS TODOS):
 {$seccionOriginal}
 INSTRUCCIONES DE CONTENIDO PARA ESTE CAPÍTULO (mínimos obligatorios; puedes superarlos, nunca quedarte corto):
 {$instrucciones}
-
+{$goldBloque}
 INSTRUCCIONES DE FORMATO:
 - Los artículos de este capítulo se numeran desde ARTÍCULO {$articuloInicio}.
 - Primera línea del capítulo: CAPÍTULO {$numero}

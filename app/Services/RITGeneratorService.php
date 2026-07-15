@@ -509,6 +509,13 @@ class RITGeneratorService
         $titulo  = $cap['titulo'];
         $instr   = $cap['instrucciones'];
 
+        // Estándar de oro: elementos obligatorios que este capítulo debe cubrir (contenido curado).
+        $goldItems  = \App\Support\RitGoldStandard::paraCapitulo($numero);
+        $goldBloque = $goldItems
+            ? "\nELEMENTOS OBLIGATORIOS QUE DEBE CUBRIR ESTE CAPÍTULO (no dejes ninguno por fuera; desarróllalos con la profundidad de un abogado experto):\n"
+              . \App\Support\RitGoldStandard::comoLista($goldItems) . "\n"
+            : '';
+
         $seccionArticulos = $articulosObligatorios
             ? "═══════════════════════════════════════════════════\n"
               . "TEXTO OFICIAL DE ARTÍCULOS DEL CST (fuente: base de datos interna)\n"
@@ -561,7 +568,7 @@ ESTÁNDAR DE CALIDAD (debes igualar o SUPERAR el trabajo de un abogado experto):
 
 INSTRUCCIONES TEMÁTICAS DE ESTE CAPÍTULO:
 {$instr}
-
+{$goldBloque}
 REGLAS DE FORMATO — OBLIGATORIAS:
 1. Inicia con CAPÍTULO {$numero} (primera línea) y {$titulo} (segunda línea), ambas en MAYÚSCULAS.
 2. Cada artículo en su propia línea: ARTÍCULO N. NOMBRE. Texto completo (mínimo 60 palabras).

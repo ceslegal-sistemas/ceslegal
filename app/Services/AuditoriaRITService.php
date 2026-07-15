@@ -210,6 +210,7 @@ class AuditoriaRITService
                         textoRIT: $textoRIT,
                         config: $config,
                         razonSocial: $razonSocial,
+                        seccion: $clave,
                     );
                 } catch (\Throwable $e) {
                     // Sección fallida → marcar y continuar con las demás
@@ -249,6 +250,7 @@ class AuditoriaRITService
                             textoRIT:    $textoRIT,
                             config:      self::SECCIONES[$clave],
                             razonSocial: $razonSocial,
+                            seccion:     $clave,
                         );
                         Log::info("AuditoriaRIT: sección '{$clave}' recuperada en segunda pasada");
                     } catch (\Throwable $e) {
@@ -298,7 +300,7 @@ class AuditoriaRITService
     /**
      * Audita una sección temática del RIT usando exclusivamente articulos_legales.
      */
-    private function auditarSeccion(string $textoRIT, array $config, string $razonSocial): array
+    private function auditarSeccion(string $textoRIT, array $config, string $razonSocial, string $seccion = ''): array
     {
         // 1. Extraer fragmento relevante del RIT para esta sección (sin enviar todo el documento)
         $fragmentoRIT = $this->extraerFragmentoRIT(
@@ -362,6 +364,13 @@ class AuditoriaRITService
 
         $seccionArticulos = "\nCONTEXTO LEGAL (normativa colombiana vigente — ÚNICA referencia normativa válida para esta auditoría):\n{$articulosCst}\n";
 
+        // Estándar de oro: elementos de contenido que un RIT de primer nivel debe cubrir.
+        $goldItems   = \App\Support\RitGoldStandard::paraSeccion($seccion);
+        $seccionGold = $goldItems
+            ? "\nELEMENTOS QUE UN RIT DE PRIMER NIVEL DEBE CUBRIR EN ESTA SECCIÓN (verifica si el RIT aborda cada uno; los que falten o estén incompletos van como hallazgo, descritos como TEMAS DE CONTENIDO, SIN citar normas fuera del CONTEXTO LEGAL):\n"
+              . \App\Support\RitGoldStandard::comoLista($goldItems) . "\n"
+            : '';
+
         $prompt = <<<PROMPT
 Eres un auditor legal que revisa el Reglamento Interno de Trabajo de "{$razonSocial}".
 
@@ -396,8 +405,8 @@ numerales, parágrafos ni sub-referencias. Si no hay artículos relevantes, devu
 SECCIÓN A AUDITAR: {$config['titulo']}
 
 {$contextoRIT}
-
-Evalúa si el RIT cumple lo que establece el contexto jurídico para esta sección.
+{$seccionGold}
+Evalúa si el RIT cumple lo que establece el contexto jurídico y si cubre los ELEMENTOS de arriba.
 
 CRITERIO DE PUNTUACIÓN:
 - 95-100 (Completo): El RIT cubre correctamente todos los temas principales. Se acepta que
