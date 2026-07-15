@@ -134,8 +134,15 @@ class RITMejoradoService
         $articuloInicio = 1;
         $bloques      = [];
 
+        // Clasificar los capítulos del original por TEMA (no por número): un RIT de experto
+        // numera distinto y un tema canónico puede abarcar varios capítulos del original
+        // (p. ej. "Vacaciones" + "Permisos"). Lo no-canónico (teletrabajo, migrantes…) queda
+        // como 'extra' y se preserva al final. Así no se pierde ni se duplica contenido.
+        $clasificado    = $this->clasificarCapitulosOriginales($capitulosOriginales);
+        $capitulosExtra = $clasificado['__extra__'] ?? [];
+
         foreach ($capitulos as $idx => $cap) {
-            $capOriginal         = $capitulosOriginales[$cap['numero']] ?? '';
+            $capOriginal         = $clasificado[$cap['numero']] ?? '';
             $hallazgos           = $this->hallazgosParaCapitulo($cap, $secciones);
             $codigosObligatorios = $cap['codigos_obligatorios'] ?? [];
 
@@ -182,6 +189,14 @@ class RITMejoradoService
             if ($onProgress) {
                 $onProgress($idx + 1, $total, $cap['titulo']);
             }
+        }
+
+        // Preservar los capítulos ADICIONALES del RIT original que no encajan en los 16
+        // canónicos (p. ej. teletrabajo, trabajadores migrantes, cláusulas ineficaces): se
+        // conservan VERBATIM al final para NO perder el trabajo del experto ni inventar nada.
+        $extra = $this->preservarCapitulosAdicionales($capitulosExtra, count($capitulos), $articuloInicio);
+        if ($extra !== '') {
+            $bloques[] = $extra;
         }
 
         return implode("\n\n", $bloques);
@@ -241,6 +256,122 @@ class RITMejoradoService
         }
 
         return $capitulos;
+    }
+
+    /**
+     * Diccionario TEMÁTICO: frases clave que identifican cada capítulo canónico dentro del
+     * encabezado de un capítulo del RIT original. Se usa para clasificar por tema (no por número).
+     * Frases pensadas para no solaparse entre temas afines.
+     */
+    private const TEMAS_CAPITULO = [
+        'I'    => ['denominacion', 'domicilio', 'objeto', 'ambito de aplicacion', 'disposiciones generales'],
+        'II'   => ['admision', 'ingreso', 'condiciones de admision', 'periodo de prueba', 'vinculacion', 'contratacion'],
+        'III'  => ['horario', 'jornada'],
+        'IV'   => ['suplementario', 'horas extras', 'dominicales', 'festivos', 'nocturno', 'dias de descanso', 'descanso obligatorio', 'recargo'],
+        'V'    => ['salario', 'remuneracion', 'sueldo', 'forma de pago', 'lugar, dias', 'periodos de pago'],
+        'VI'   => ['vacaciones'],
+        'VII'  => ['permisos', 'licencias', 'maternidad', 'paternidad', 'luto', 'calamidad'],
+        'VIII' => ['clasificacion de faltas'],
+        'IX'   => ['sanciones', 'escala de faltas', 'escala de sanciones', 'multas', 'disciplinar'],
+        'X'    => ['reclamos', 'quejas', 'peticiones', 'procedimiento de reclamo'],
+        'XI'   => ['obligaciones especiales', 'prohibiciones especiales', 'prescripciones de orden', 'orden jerarquico', 'conducta', 'comportamiento'],
+        'XII'  => ['riesgos laborales', 'seguridad y salud', 'salud en el trabajo', 'copasst', 'higiene'],
+        'XIII' => ['uniformes', 'dotacion', 'equipos', 'bienes de la empresa', 'herramientas'],
+        'XIV'  => ['convivencia', 'acoso', 'comite de convivencia'],
+        'XV'   => ['proteccion de sujetos', 'sujetos de especial', 'mujeres y menores', 'labores prohibidas', 'discapacidad', 'fuero', 'estabilidad reforzada'],
+        'XVI'  => ['disposiciones finales', 'publicacion y vigencia', 'clausulas ineficaces', 'vigencia del presente'],
+    ];
+
+    /**
+     * Clasifica los capítulos del RIT original por TEMA (no por número). Un tema canónico puede
+     * recibir VARIOS capítulos del original (p. ej. "Vacaciones" + "Permisos"); lo que no encaje
+     * en ningún tema (teletrabajo, migrantes, trabajadores accidentales, cláusulas ineficaces…)
+     * queda en '__extra__' para preservarse. Devuelve:
+     *   ['I'=>textoConcatenado, ..., 'XVI'=>..., '__extra__'=>[romano=>texto, ...]]
+     */
+    private function clasificarCapitulosOriginales(array $capitulosOriginales): array
+    {
+        $resultado = ['__extra__' => []];
+
+        foreach ($capitulosOriginales as $rom => $texto) {
+            // Clasificar SOLO por el título del capítulo (líneas 1-2), nunca por el cuerpo:
+            // usar el cuerpo mete falsos positivos (p. ej. "salario" aparece en Prohibiciones).
+            $lineas = preg_split('/\r?\n/', trim($texto));
+            $head   = $this->normalizar(implode(' ', array_slice($lineas, 0, 2)));
+
+            $mejor = null;
+            $mejorScore = 0;
+            foreach (self::TEMAS_CAPITULO as $numero => $frases) {
+                $score = 0;
+                foreach ($frases as $frase) {
+                    if (str_contains($head, $frase)) {
+                        $score++;
+                    }
+                }
+                if ($score > $mejorScore) {
+                    $mejorScore = $score;
+                    $mejor      = $numero;
+                }
+            }
+
+            if ($mejor !== null && $mejorScore >= 1) {
+                $resultado[$mejor] = trim(($resultado[$mejor] ?? '') . "\n\n" . trim($texto));
+            } else {
+                $resultado['__extra__'][$rom] = trim($texto);
+            }
+        }
+
+        return $resultado;
+    }
+
+    /** Minúsculas sin acentos, para comparar temas de forma robusta. */
+    private function normalizar(string $texto): string
+    {
+        $texto = mb_strtolower($texto);
+        return strtr($texto, ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n']);
+    }
+
+    /**
+     * Preserva VERBATIM los capítulos del original que no encajan en ningún tema canónico
+     * (teletrabajo, migrantes, cláusulas ineficaces, etc.). Los renumera como CAPÍTULO XVII,
+     * XVIII… y renumera sus artículos de forma consecutiva. NO llama a la IA → cero riesgo de
+     * alucinación y no se pierde el trabajo del abogado experto.
+     */
+    private function preservarCapitulosAdicionales(array $extra, int $totalCanonicos, int $articuloInicio): string
+    {
+        if (empty($extra)) {
+            return '';
+        }
+
+        $bloques   = [];
+        $numeroCap = $totalCanonicos; // los canónicos ocupan I..XVI
+        $art       = $articuloInicio;
+
+        foreach ($extra as $texto) {
+            $texto = trim($texto);
+            if ($texto === '' || !preg_match('/ART[IÍ]CULO\s+\d+/iu', $texto)) {
+                continue; // saltar capítulos vacíos o sin articulado real
+            }
+            $numeroCap++;
+            $romNuevo = $this->intentarArabigoARomano($numeroCap) ?? (string) $numeroCap;
+
+            $lineas = preg_split('/\r?\n/', $texto);
+            $titulo = '';
+            if (isset($lineas[1]) && trim($lineas[1]) !== '' && !preg_match('/^\s*ART[IÍ]CULO/i', $lineas[1])) {
+                $titulo = trim($lineas[1]);
+            }
+            $cuerpo = trim(implode("\n", array_slice($lineas, ($titulo !== '') ? 2 : 1)));
+
+            // Renumerar los artículos consecutivamente (conserva el texto íntegro del experto).
+            $cuerpo = preg_replace_callback('/ART[IÍ]CULO\s+\d+/iu', function () use (&$art) {
+                return 'ARTÍCULO ' . $art++;
+            }, $cuerpo);
+
+            $encabezado = "CAPÍTULO {$romNuevo}\n" . ($titulo !== '' ? $titulo : 'DISPOSICIONES COMPLEMENTARIAS');
+            $bloques[]  = $encabezado . "\n" . $cuerpo;
+        }
+
+        return implode("\n\n", $bloques);
     }
 
     /**
@@ -371,20 +502,30 @@ class RITMejoradoService
             : "\nNo se encontró el capítulo original. Redáctalo desde cero siguiendo las instrucciones de contenido.\n";
 
         return <<<PROMPT
-Eres un abogado laboral colombiano experto en Reglamentos Internos de Trabajo.
+Eres un abogado laboral colombiano experto en Reglamentos Internos de Trabajo. Tu objetivo es
+producir un capítulo IGUAL O SUPERIOR al de un abogado experto: más completo, más preciso y
+totalmente conforme a la normativa vigente — nunca más pobre ni más corto.
 
-TAREA: Reescribir y mejorar el CAPÍTULO {$numero} ({$titulo}) del RIT de "{$razonSocial}".
+TAREA: Perfeccionar el CAPÍTULO {$numero} ({$titulo}) del RIT de "{$razonSocial}".
 
-REGLA FUNDAMENTAL — CITAS LEGALES:
+REGLA FUNDAMENTAL — CITAS LEGALES (CERO ALUCINACIÓN):
 - Números de artículo, nombres de ley, porcentajes y plazos legales: SOLO los que aparezcan
   textualmente en el contexto jurídico proporcionado más abajo.
 - PROHIBIDO inventar o recordar artículos, leyes, porcentajes o plazos de tu entrenamiento.
 - Si el contexto jurídico no trae una cifra o referencia, redacta el concepto sin citar fuente.
+
+REGLA DE PRESERVACIÓN (NO EMPOBRECER EL TRABAJO DEL EXPERTO):
+- CONSERVA todas las cláusulas, derechos, garantías, definiciones y detalles específicos que
+  ya trae el capítulo original y que sean legales. NO elimines contenido. NO lo resumas.
+- El resultado debe ser IGUAL O MÁS EXTENSO Y COMPLETO que el capítulo original.
+- Solo puedes: (a) corregir los hallazgos de la auditoría, (b) actualizar lo que contradiga la
+  normativa vigente proporcionada, (c) añadir lo obligatorio que falte, (d) mejorar la redacción.
+- Si el original y la norma vigente coinciden, mantén la redacción del original.
 {$seccionArticulos}{$seccionRag}{$seccionContexto}
 HALLAZGOS DE LA AUDITORÍA PARA ESTE CAPÍTULO (CORRÍGELOS TODOS):
 {$hallazgos}
 {$seccionOriginal}
-INSTRUCCIONES DE CONTENIDO PARA ESTE CAPÍTULO:
+INSTRUCCIONES DE CONTENIDO PARA ESTE CAPÍTULO (mínimos obligatorios; puedes superarlos, nunca quedarte corto):
 {$instrucciones}
 
 INSTRUCCIONES DE FORMATO:
