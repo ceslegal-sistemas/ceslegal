@@ -223,6 +223,17 @@ class Empresa extends Model
         return $this->hasMany(\App\Models\CorreoEnviado::class);
     }
 
+    /**
+     * ¿La empresa tiene un Reglamento Interno vigente y con contenido?
+     * Verdadero para un RIT subido o construido/mejorado por IA que ya tiene texto.
+     * Un RIT en generación (sin texto) todavía NO cuenta como vigente.
+     */
+    public function tieneRitVigente(): bool
+    {
+        $rit = $this->reglamentoInterno; // activo=true, más reciente
+        return $rit !== null && !empty($rit->texto_completo);
+    }
+
     public function puedeUsarTodasLasSanciones(): bool
     {
         $suscripcion = $this->suscripcion;

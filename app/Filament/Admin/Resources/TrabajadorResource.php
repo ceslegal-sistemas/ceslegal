@@ -38,6 +38,11 @@ class TrabajadorResource extends Resource
             return false;
         }
 
+        // Cliente sin RIT vigente: solo debe ver "Mi Reglamento Interno".
+        if (\App\Support\MenuRit::clienteSinRit()) {
+            return false;
+        }
+
         return parent::shouldRegisterNavigation();
     }
 

@@ -59,6 +59,11 @@ class ProcesoDisciplinarioResource extends Resource
      */
     public static function getNavigationItems(): array
     {
+        // Bufete sin empresa seleccionada, o cliente sin RIT vigente: ocultar estos ítems.
+        if (auth()->user()?->bufeteSinEmpresaActiva() || \App\Support\MenuRit::clienteSinRit()) {
+            return [];
+        }
+
         return [
             NavigationItem::make('Crear Citación de Descargos')
                 ->icon('heroicon-o-plus-circle')

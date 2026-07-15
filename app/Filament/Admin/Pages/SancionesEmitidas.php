@@ -29,6 +29,16 @@ class SancionesEmitidas extends Page implements HasTable
 
     protected static ?int $navigationSort = 1;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Bufete sin empresa seleccionada, o cliente sin RIT vigente: ocultar.
+        if (auth()->user()?->bufeteSinEmpresaActiva() || \App\Support\MenuRit::clienteSinRit()) {
+            return false;
+        }
+
+        return parent::shouldRegisterNavigation();
+    }
+
     protected static string $view = 'filament.admin.pages.sanciones-emitidas';
 
     public static function canAccess(): bool
