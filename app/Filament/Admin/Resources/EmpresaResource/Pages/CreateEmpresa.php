@@ -4,16 +4,68 @@ namespace App\Filament\Admin\Resources\EmpresaResource\Pages;
 
 use App\Filament\Admin\Resources\EmpresaResource;
 use App\Jobs\ProcesarAuditoriaRIT;
+use App\Models\User;
 use App\Services\AuditoriaRITService;
 use App\Services\ReglamentoInternoService;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\Password;
 
 class CreateEmpresa extends CreateRecord
 {
     protected static string $resource = EmpresaResource::class;
+
+    /**
+     * Onboarding B2B: la empresa SIEMPRE se crea junto con el usuario que la administrará
+     * (rol cliente). Se agrega una sección extra al formulario compartido de EmpresaResource,
+     * solo en esta página (EditEmpresa conserva el formulario original de EmpresaResource).
+     */
+    public function form(Form $form): Form
+    {
+        return $form->schema([
+            ...EmpresaResource::formSchema(),
+
+            Section::make('Usuario administrador')
+                ->description('Con estas credenciales el cliente ingresará a la plataforma para gestionar su Reglamento Interno y sus procesos disciplinarios.')
+                ->icon('heroicon-o-user-plus')
+                ->schema([
+                    TextInput::make('user_nombre')
+                        ->label('Nombre completo')
+                        ->required()
+                        ->maxLength(255),
+
+                    TextInput::make('user_email')
+                        ->label('Correo electrónico')
+                        ->email()
+                        ->required()
+                        ->unique(table: 'users', column: 'email')
+                        ->maxLength(255)
+                        ->helperText('Con este correo el cliente inicia sesión.'),
+
+                    TextInput::make('user_password')
+                        ->label('Contraseña')
+                        ->password()
+                        ->revealable()
+                        ->required()
+                        ->rule(Password::default())
+                        ->same('user_password_confirmation'),
+
+                    TextInput::make('user_password_confirmation')
+                        ->label('Confirmar contraseña')
+                        ->password()
+                        ->revealable()
+                        ->required()
+                        ->dehydrated(false),
+                ])
+                ->columns(2),
+        ]);
+    }
 
     /**
      * Multi-tenant: si un abogado de bufete crea la empresa, queda vinculada a su bufete.
@@ -31,6 +83,17 @@ class CreateEmpresa extends CreateRecord
     {
         // La empresa recién creada queda seleccionada como activa (para las herramientas de RIT).
         \App\Support\EmpresaActiva::set($this->record->id);
+
+        // Usuario administrador de la empresa (rol cliente) — obligatorio en el onboarding B2B.
+        $cliente = User::create([
+            'name'       => $this->data['user_nombre'],
+            'email'      => $this->data['user_email'],
+            'password'   => Hash::make($this->data['user_password']),
+            'role'       => 'cliente',
+            'empresa_id' => $this->record->id,
+            'active'     => true,
+        ]);
+        $cliente->assignRole('cliente');
 
         // Persistir el RIT subido (extrae texto + sanciones + conductas).
         // El estado del FileUpload puede venir como [uuid => ruta]; normalizar a string.
