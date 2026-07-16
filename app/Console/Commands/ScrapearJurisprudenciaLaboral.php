@@ -51,10 +51,10 @@ class ScrapearJurisprudenciaLaboral extends Command
             try {
                 $j = $scraper->importar($ref);
                 $estado = $j->estado === 'procesado' ? 'OK' : strtoupper($j->estado);
-                $this->info("    {$estado} — {$j->tema}");
+                $this->info("    {$estado} - {$j->tema}");
                 $j->estado === 'procesado' ? $ok++ : $fail++;
             } catch (\Throwable $e) {
-                $this->error('    FALLO — ' . $e->getMessage());
+                $this->error('    FALLO - ' . $e->getMessage());
                 $fail++;
             }
         }

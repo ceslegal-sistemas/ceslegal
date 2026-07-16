@@ -95,19 +95,19 @@ class FeedbackResource extends Resource
                         return $record->user?->name ?? 'Usuario anónimo';
                     })
                     ->searchable(false)
-                    ->placeholder('—'),
+                    ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('procesoDisciplinario.codigo')
                     ->label('Proceso')
                     ->searchable()
-                    ->placeholder('—')
+                    ->placeholder('-')
                     ->size('sm'),
 
                 Tables\Columns\TextColumn::make('calificacion')
                     ->label('Calificación')
                     ->formatStateUsing(fn ($state) => $state
                         ? str_repeat('★', (int) $state) . str_repeat('☆', 5 - (int) $state)
-                        : '—'
+                        : '-'
                     )
                     ->color(fn ($state) => match (true) {
                         $state >= 4 => 'success',
@@ -121,7 +121,7 @@ class FeedbackResource extends Resource
                 Tables\Columns\TextColumn::make('nps_score')
                     ->label('NPS')
                     ->formatStateUsing(function ($state, Feedback $record): string {
-                        if ($state === null) return '—';
+                        if ($state === null) return '-';
                         $categoria = $record->getNpsCategoria();
                         return $state . ' · ' . $categoria;
                     })
@@ -134,7 +134,7 @@ class FeedbackResource extends Resource
                             default      => 'gray',
                         };
                     })
-                    ->placeholder('—')
+                    ->placeholder('-')
                     ->sortable()
                     ->toggleable(),
 
@@ -163,16 +163,16 @@ class FeedbackResource extends Resource
                         'post_diligencia' => 'Post diligencia',
                         'periodico'       => 'Periódico',
                         'hito'            => 'Hito de uso',
-                        default           => $state ?? '—',
+                        default           => $state ?? '-',
                     })
                     ->badge()
                     ->color('gray')
-                    ->placeholder('—')
+                    ->placeholder('-')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Usuario admin')
-                    ->placeholder('—')
+                    ->placeholder('-')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')

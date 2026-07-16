@@ -14,7 +14,7 @@
 
     <p class="pt-body">
         Los datos de su empresa aparecerán en el encabezado oficial del documento.
-        Ya cargamos la información del registro — solo confirme o complete lo que falte.
+        Ya cargamos la información del registro - solo confirme o complete lo que falte.
     </p>
 
     <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem;">
@@ -37,14 +37,14 @@
                 data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                 style="width:20px;height:20px;flex-shrink:0">
             </lord-icon>
-            <span>Si tiene varias sedes, el reglamento <strong>aplica a todas</strong> — solo indique cuántos
+            <span>Si tiene varias sedes, el reglamento <strong>aplica a todas</strong> - solo indique cuántos
                 trabajadores hay en cada una.</span>
         </div>
 
     </div>
 
     <p class="pt-footer">
-        Tiempo estimado: 2 minutos. — Los campos con asterisco (*) son obligatorios.
+        Tiempo estimado: 2 minutos. - Los campos con asterisco (*) son obligatorios.
     </p>
 
 </div>

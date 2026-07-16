@@ -302,12 +302,12 @@ class GAPReporteService
         $section->addText('REPORTE DE ANÁLISIS GAP DE CUMPLIMIENTO NORMATIVO', $fBold, $pCenter);
         $section->addText($version, $fBold, $pCenter);
         $section->addText(
-            ($empresa->nombre_completo ?? $empresa->razon_social ?? '') . ' — NIT: ' . ($empresa->nit ?? ''),
+            ($empresa->nombre_completo ?? $empresa->razon_social ?? '') . ' - NIT: ' . ($empresa->nit ?? ''),
             $fNorm, $pCenter
         );
         $section->addText(
             'Fecha de auditoría: ' . $auditoria->created_at->format('d/m/Y') .
-            ' — Puntaje global: ' . $auditoria->score . '/100',
+            ' - Puntaje global: ' . $auditoria->score . '/100',
             $fNorm, $pCenter
         );
 
@@ -370,7 +370,7 @@ class GAPReporteService
                 $row->addCell($c4[0])->addText($sec['titulo'] ?? $clave,    $fNorm, $pLeft);
                 $row->addCell($c4[1])->addText((string)($sec['score'] ?? 0), $fNorm, $pCenter);
                 $row->addCell($c4[2])->addText($nivelLabels[$nivel],         $fBold, $pCenter);
-                $row->addCell($c4[3])->addText(($sec['recomendaciones'] ?? [])[0] ?? '—', $fNorm, $pLeft);
+                $row->addCell($c4[3])->addText(($sec['recomendaciones'] ?? [])[0] ?? '-', $fNorm, $pLeft);
             }
         }
         if (!$hayBrechas) {
@@ -426,8 +426,8 @@ class GAPReporteService
             foreach (['alto', 'medio', 'bajo'] as $nivel) {
                 foreach ($gapsAgrupados[$nivel] as $clave => $sec) {
                     $titulo = ($sec['titulo'] ?? $clave)
-                        . ' — Score: ' . ($sec['score'] ?? 0) . '/100'
-                        . ' — Riesgo: ' . $nivelLabels[$nivel];
+                        . ' - Score: ' . ($sec['score'] ?? 0) . '/100'
+                        . ' - Riesgo: ' . $nivelLabels[$nivel];
                     $section->addText($titulo, $fBold, $pSubHdr);
 
                     if (!empty($sec['hallazgos'])) {

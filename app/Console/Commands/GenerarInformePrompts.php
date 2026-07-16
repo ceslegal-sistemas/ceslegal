@@ -102,12 +102,12 @@ class GenerarInformePrompts extends Command
 
         $s->addText("Metodología de evaluación:", 'Label', 'Normal');
         $criterios = [
-            "Claridad de instrucción — ¿El modelo sabe exactamente qué hacer?",
-            "Anclaje jurídico — ¿Las instrucciones citan normas específicas?",
-            "Control de alucinaciones — ¿Se prohíbe inventar datos?",
-            "Formato de salida — ¿El formato esperado está definido sin ambigüedad?",
-            "Manejo de casos borde — ¿Se indican comportamientos ante situaciones atípicas?",
-            "Eficiencia de tokens — ¿El prompt es lo más compacto posible sin perder precisión?",
+            "Claridad de instrucción - ¿El modelo sabe exactamente qué hacer?",
+            "Anclaje jurídico - ¿Las instrucciones citan normas específicas?",
+            "Control de alucinaciones - ¿Se prohíbe inventar datos?",
+            "Formato de salida - ¿El formato esperado está definido sin ambigüedad?",
+            "Manejo de casos borde - ¿Se indican comportamientos ante situaciones atípicas?",
+            "Eficiencia de tokens - ¿El prompt es lo más compacto posible sin perder precisión?",
         ];
         foreach ($criterios as $c) {
             $s->addListItem($c, 0, null, ['listType' => \PhpOffice\PhpWord\Style\ListItem::TYPE_BULLET_FILLED]);
@@ -127,20 +127,20 @@ class GenerarInformePrompts extends Command
         $headers = ['#', 'Servicio', 'Método / Propósito', 'Modelo', 'Estado'];
         $widths  = [400, 2000, 3200, 1500, 1200];
         $filas   = [
-            ['1',  'IADescargoService',             'construirPromptGeneracionPreguntas — Pregunta dinámica tras respuesta',   'Multi-modelo', 'Mejorable'],
-            ['2',  'IADescargoService',             'generarPreguntasIA — Batería inicial de preguntas',                        'Multi-modelo', 'Mejorable'],
-            ['3',  'EvaluacionHechosService',       'construirSystemPrompt — Conversación guiada de hechos',                   'Multi-modelo', 'Bueno'],
-            ['4',  'EvaluacionHechosService',       'generarHechosDesdeFormulario — Redacción desde formulario',               'Multi-modelo', 'Mejorable'],
-            ['5',  'EvaluacionHechosService',       'mejorarRedaccion — Mejora de borrador empleador',                         'Multi-modelo', 'Bueno'],
-            ['6',  'EvaluacionHechosService',       'generarRedaccionCompleta — Redacción final del expediente',               'Multi-modelo', 'Excelente'],
-            ['7',  'EvaluacionHechosService',       'darFeedbackDictado — Retroalimentación en tiempo real',                   'Flash rápido', 'Excelente'],
-            ['8',  'EvaluacionHechosService',       'verificarDiscriminacion — Detección de lenguaje discriminatorio',          'Flash rápido', 'Excelente'],
-            ['9a', 'BibliotecaLegalService',        'extraerTextoConGeminiVision — OCR de PDFs escaneados (inline)',            'Gemini Vision','Mejorable'],
-            ['9b', 'BibliotecaLegalService',        'extraerTextoConGeminiFilesAPI — OCR de PDFs grandes (Files API)',          'Gemini Vision','Mejorable'],
-            ['10', 'InformeJuridicoExportService',  'construirPromptInformeLenguajeClaro — Informe ejecutivo cliente',          'Gemini Flash', 'Bueno'],
-            ['11', 'DocumentGeneratorService',      'construirPromptSancionLenguajeClaro — Documento de sanción',              'Gemini Flash', 'Bueno'],
-            ['12', 'IAAnalisisSancionService',      'construirPromptAnalisisSancion — Análisis de gravedad y sanción',          'Gemini Flash', 'Excelente'],
-            ['13', 'IAResolucionImpugnacionService','construirPrompt — Resolución de impugnaciones',                           'Gemini Flash', 'Excelente'],
+            ['1',  'IADescargoService',             'construirPromptGeneracionPreguntas - Pregunta dinámica tras respuesta',   'Multi-modelo', 'Mejorable'],
+            ['2',  'IADescargoService',             'generarPreguntasIA - Batería inicial de preguntas',                        'Multi-modelo', 'Mejorable'],
+            ['3',  'EvaluacionHechosService',       'construirSystemPrompt - Conversación guiada de hechos',                   'Multi-modelo', 'Bueno'],
+            ['4',  'EvaluacionHechosService',       'generarHechosDesdeFormulario - Redacción desde formulario',               'Multi-modelo', 'Mejorable'],
+            ['5',  'EvaluacionHechosService',       'mejorarRedaccion - Mejora de borrador empleador',                         'Multi-modelo', 'Bueno'],
+            ['6',  'EvaluacionHechosService',       'generarRedaccionCompleta - Redacción final del expediente',               'Multi-modelo', 'Excelente'],
+            ['7',  'EvaluacionHechosService',       'darFeedbackDictado - Retroalimentación en tiempo real',                   'Flash rápido', 'Excelente'],
+            ['8',  'EvaluacionHechosService',       'verificarDiscriminacion - Detección de lenguaje discriminatorio',          'Flash rápido', 'Excelente'],
+            ['9a', 'BibliotecaLegalService',        'extraerTextoConGeminiVision - OCR de PDFs escaneados (inline)',            'Gemini Vision','Mejorable'],
+            ['9b', 'BibliotecaLegalService',        'extraerTextoConGeminiFilesAPI - OCR de PDFs grandes (Files API)',          'Gemini Vision','Mejorable'],
+            ['10', 'InformeJuridicoExportService',  'construirPromptInformeLenguajeClaro - Informe ejecutivo cliente',          'Gemini Flash', 'Bueno'],
+            ['11', 'DocumentGeneratorService',      'construirPromptSancionLenguajeClaro - Documento de sanción',              'Gemini Flash', 'Bueno'],
+            ['12', 'IAAnalisisSancionService',      'construirPromptAnalisisSancion - Análisis de gravedad y sanción',          'Gemini Flash', 'Excelente'],
+            ['13', 'IAResolucionImpugnacionService','construirPrompt - Resolución de impugnaciones',                           'Gemini Flash', 'Excelente'],
         ];
 
         $tabla->addRow(400);
@@ -305,7 +305,7 @@ class GenerarInformePrompts extends Command
             // ── PROMPT 1 ──────────────────────────────────────────────────
             [
                 'titulo'   => 'Generación de Pregunta Dinámica tras Respuesta',
-                'archivo'  => 'app/Services/IADescargoService.php — construirPromptGeneracionPreguntas()',
+                'archivo'  => 'app/Services/IADescargoService.php - construirPromptGeneracionPreguntas()',
                 'metodo'   => 'construirPromptGeneracionPreguntas()',
                 'modelo'   => 'Multi-modelo (OpenAI / Claude / Gemini según config)',
                 'proposito'=> 'Analiza la última respuesta del trabajador y decide si se requiere una pregunta de seguimiento. Es el prompt de mayor impacto legal: una pregunta mal formulada puede nulificar la diligencia.',
@@ -322,7 +322,7 @@ PRINCIPIOS IRRENUNCIABLES
 Fundamento: Sentencia T-239/2021, SL1861-2024, C-1270/2000.
 
 CONTEXTO DEL PROCESO
-Trabajador: {nombre} — Cargo: {cargo}
+Trabajador: {nombre} - Cargo: {cargo}
 Hechos presuntos: {hechos}
 Artículos incumplidos: {articulos}
 Preguntas ya respondidas: {preguntas_respuestas}
@@ -358,7 +358,7 @@ PROMPT,
                 'mejorado' => <<<'PROMPT'
 Eres un abogado laboralista colombiano especialista en debido proceso disciplinario. Marco normativo: Art. 29 C.P., Art. 115 CST (Ley 2466/2025), Sentencias T-239/2021 y SL1861-2024.
 
-VERIFICACIÓN PREVIA OBLIGATORIA — GRUPO PROTEGIDO
+VERIFICACIÓN PREVIA OBLIGATORIA - GRUPO PROTEGIDO
 Antes de formular cualquier pregunta, verifica si el trabajador pertenece a un grupo con protección reforzada:
 • Mujer embarazada o en lactancia (Ley 1822/2017, C-005/2017)
 • Persona con discapacidad (Ley 361/1997)
@@ -369,7 +369,7 @@ Antes de formular cualquier pregunta, verifica si el trabajador pertenece a un g
 Si aplica algún grupo → incluye en la pregunta un recordatorio de que tiene el derecho de ser asistido/a por un representante de su elección.
 
 CONTEXTO DEL PROCESO
-Trabajador: {nombre} — Cargo: {cargo}
+Trabajador: {nombre} - Cargo: {cargo}
 Grupo protegido detectado: {grupo_protegido o "ninguno"}
 Hechos presuntos: {hechos}
 Artículos incumplidos: {articulos}
@@ -384,12 +384,12 @@ Si ya se generaron 3 o más preguntas dinámicas → responde directamente NO_RE
 Un número excesivo de preguntas convierte la diligencia en un interrogatorio.
 
 PREGUNTAS ABSOLUTAMENTE PROHIBIDAS
-1. SUGESTIVAS O CAPCIOSAS — inducen la respuesta.
+1. SUGESTIVAS O CAPCIOSAS - inducen la respuesta.
    ✗ "¿Verdad que actuó de forma negligente?"
-2. ACUSATORIAS — dan por hecho la culpa.
+2. ACUSATORIAS - dan por hecho la culpa.
    ✗ "¿Por qué cometió esa falta?"
-3. IMPERTINENTES — sin relación con los hechos.
-4. SOBRE VIDA PRIVADA — sin incidencia en la falta.
+3. IMPERTINENTES - sin relación con los hechos.
+4. SOBRE VIDA PRIVADA - sin incidencia en la falta.
 5. QUE VIOLEN LA DIGNIDAD O INTIMIDATORIO.
 6. AUTOEVALUACIÓN DE DESEMPEÑO.
    ✗ "¿Usted cumple con sus funciones?"
@@ -406,7 +406,7 @@ No se requiere pregunta: NO_REQUIERE
 PROMPT,
 
                 'cambios' => [
-                    'Se añadió bloque "VERIFICACIÓN PREVIA OBLIGATORIA — GRUPO PROTEGIDO" con 6 categorías y sus normas específicas. Esto protege al sistema de vulnerar fueros especiales.',
+                    'Se añadió bloque "VERIFICACIÓN PREVIA OBLIGATORIA - GRUPO PROTEGIDO" con 6 categorías y sus normas específicas. Esto protege al sistema de vulnerar fueros especiales.',
                     'Se añadió campo "{grupo_protegido}" en el contexto para forzar al sistema a incluir el dato en la decisión.',
                     'Se añadió "{contador_dinamicas}" y regla de límite máximo (3 preguntas dinámicas) para prevenir el interrogatorio excesivo.',
                     'Se redujo el contexto de "preguntas respondidas" a "últimas 5" para optimizar tokens sin perder contexto relevante.',
@@ -420,7 +420,7 @@ PROMPT,
             // ── PROMPT 2 ──────────────────────────────────────────────────
             [
                 'titulo'   => 'Generación de Batería Inicial de Preguntas de Descargos',
-                'archivo'  => 'app/Services/IADescargoService.php — generarPreguntasIA()',
+                'archivo'  => 'app/Services/IADescargoService.php - generarPreguntasIA()',
                 'metodo'   => 'generarPreguntasIA()',
                 'modelo'   => 'Multi-modelo',
                 'proposito'=> 'Genera el conjunto inicial de preguntas que se formulan al trabajador al comenzar la diligencia de descargos, basándose en los hechos y artículos del reglamento.',
@@ -435,7 +435,7 @@ Generar {cantidad} preguntas abiertas que:
 • Exploren si hubo autorización, aviso previo o fuerza mayor.
 
 CONTEXTO
-Trabajador: {nombre} — Cargo: {cargo}
+Trabajador: {nombre} - Cargo: {cargo}
 Hechos presuntos: {hechos}
 Artículos incumplidos: {articulos}
 
@@ -470,20 +470,20 @@ Revisa si el trabajador pertenece a: mujer embarazada/lactancia, persona con dis
 Si aplica → la primera pregunta específica del caso debe incluir una frase que le recuerde su derecho a ser asistido/a.
 
 CONTEXTO DEL CASO
-Trabajador: {nombre} — Cargo: {cargo}
+Trabajador: {nombre} - Cargo: {cargo}
 Grupo protegido: {grupo_protegido o "ninguno"}
 Hechos presuntos (versión empleador, no probados): {hechos}
 Artículos del reglamento supuestamente incumplidos: {articulos}
 
 ESTRUCTURA DE PREGUNTAS (orden obligatorio)
-BLOQUE A — Administrativas (siempre las mismas, 4 preguntas fijas):
+BLOQUE A - Administrativas (siempre las mismas, 4 preguntas fijas):
 A1. ¿Para qué empresa trabaja usted?
 A2. ¿Cuál es su cargo actual?
 A3. ¿Quién es su jefe directo?
 A4. ¿Va a asistir acompañado/a por alguien? (si sí, ¿en qué calidad?)
 [Genera exactamente estas 4 preguntas fijas sin modificarlas]
 
-BLOQUE B — Específicas del caso ({cantidad} preguntas de fondo):
+BLOQUE B - Específicas del caso ({cantidad} preguntas de fondo):
 Genera preguntas específicas sobre los hechos presuntos, en orden:
 1. Primero: versión general del trabajador sobre lo sucedido.
 2. Luego: circunstancias, contexto, justificaciones posibles.
@@ -491,9 +491,9 @@ Genera preguntas específicas sobre los hechos presuntos, en orden:
 4. Finalmente: si tiene pruebas, testigos o documentos a su favor.
 
 PREGUNTAS ABSOLUTAMENTE PROHIBIDAS
-1. SUGESTIVAS — inducen la respuesta. ✗ "¿Verdad que actuó de forma negligente?"
-2. ACUSATORIAS — presuponen culpa. ✗ "¿Por qué cometió esa falta?"
-3. IMPERTINENTES — sin relación con los hechos.
+1. SUGESTIVAS - inducen la respuesta. ✗ "¿Verdad que actuó de forma negligente?"
+2. ACUSATORIAS - presuponen culpa. ✗ "¿Por qué cometió esa falta?"
+3. IMPERTINENTES - sin relación con los hechos.
 4. SOBRE VIDA PRIVADA.
 5. QUE VIOLEN LA DIGNIDAD.
 6. DE AUTOEVALUACIÓN. ✗ "¿Cumple con sus funciones?"
@@ -523,8 +523,8 @@ PROMPT,
 
             // ── PROMPT 3 ──────────────────────────────────────────────────
             [
-                'titulo'   => 'System Prompt — Conversación Guiada de Hechos (Chat IA)',
-                'archivo'  => 'app/Services/EvaluacionHechosService.php — construirSystemPrompt()',
+                'titulo'   => 'System Prompt - Conversación Guiada de Hechos (Chat IA)',
+                'archivo'  => 'app/Services/EvaluacionHechosService.php - construirSystemPrompt()',
                 'metodo'   => 'construirSystemPrompt()',
                 'modelo'   => 'Multi-modelo',
                 'proposito'=> 'Instrucciones persistentes para el chat de recopilación de hechos con el empleador. El modelo actúa como abogado que hace preguntas hasta tener suficiente información para redactar el descargo.',
@@ -533,7 +533,7 @@ PROMPT,
 Eres un abogado laboralista experto de CES Legal (Colombia). Estás ayudando al empleador a documentar los hechos de un proceso disciplinario mediante conversación empática.
 
 FECHA ACTUAL: {hoy}
-TRABAJADOR: {nombre} — Cargo: {cargo}
+TRABAJADOR: {nombre} - Cargo: {cargo}
 {contexto_antecedentes}
 {contexto_reglamento}
 
@@ -565,7 +565,7 @@ PROMPT,
 Eres un abogado laboralista senior de CES Legal Colombia. Tu tarea es ayudar al empleador a documentar los hechos para un proceso disciplinario mediante conversación empática y directa. El empleador NO conoce de leyes; tú sí.
 
 FECHA ACTUAL DEL SISTEMA: {hoy}
-TRABAJADOR: {nombre} — Cargo: {cargo}
+TRABAJADOR: {nombre} - Cargo: {cargo}
 {contexto_antecedentes}
 {contexto_reglamento}
 
@@ -583,7 +583,7 @@ ESTRATEGIA DE CONVERSACIÓN:
 • Si el empleador da una respuesta vaga ("no recuerdo", "no sé"), acéptala literalmente para ese elemento y marca ese campo como null en datos.
 • Si el empleador contradice información previa, señálalo empáticamente y pide aclaración.
 • Máximo 8 turnos: si aún faltan datos, redacta con lo disponible y usa [PENDIENTE: dato] en el texto.
-• Los antecedentes ya están en el bloque de arriba — NO los preguntes.
+• Los antecedentes ya están en el bloque de arriba - NO los preguntes.
 
 REGLA CRÍTICA: Solo marca "listo: true" cuando puedas responder SÍ a los 5 elementos (null es válido si el empleador no tiene el dato).
 
@@ -606,16 +606,16 @@ PROMPT,
             // ── PROMPT 4 ──────────────────────────────────────────────────
             [
                 'titulo'   => 'Generación de Hechos desde Formulario Estático',
-                'archivo'  => 'app/Services/EvaluacionHechosService.php — generarHechosDesdeFormulario()',
+                'archivo'  => 'app/Services/EvaluacionHechosService.php - generarHechosDesdeFormulario()',
                 'metodo'   => 'generarHechosDesdeFormulario()',
                 'modelo'   => 'Multi-modelo',
                 'proposito'=> 'Cuando el empleador completa el formulario directamente (sin chat), este prompt convierte los datos del formulario en una redacción jurídica de los hechos.',
 
                 'actual' => <<<'PROMPT'
-Con base en los siguientes datos, redacta los hechos del proceso disciplinario en lenguaje jurídico-laboral formal colombiano (mínimo 3 párrafos, tercera persona). Usa EXACTAMENTE los datos proporcionados — NO uses corchetes, NO inventes ni omitas información.
+Con base en los siguientes datos, redacta los hechos del proceso disciplinario en lenguaje jurídico-laboral formal colombiano (mínimo 3 párrafos, tercera persona). Usa EXACTAMENTE los datos proporcionados - NO uses corchetes, NO inventes ni omitas información.
 
 DATOS DEL TRABAJADOR:
-- Nombre: {nombre} — Identificación: {identificacion} — Cargo: {cargo}
+- Nombre: {nombre} - Identificación: {identificacion} - Cargo: {cargo}
 
 DATOS DE LA EMPRESA:
 - Razón social: {razon_social}
@@ -624,7 +624,7 @@ DATOS DEL HECHO:
 - Descripción: {descripcion}
 - Fecha: {fecha}
 - Lugar: {lugar}
-- ¿El trabajador avisó?: {notifico} — Detalle: {detalle}
+- ¿El trabajador avisó?: {notifico} - Detalle: {detalle}
 - Evidencias: {evidencias}
 
 Responde ÚNICAMENTE en JSON válido sin bloques de código:
@@ -643,7 +643,7 @@ PROMPT,
 Redacta los hechos de un proceso disciplinario laboral colombiano con base EXCLUSIVAMENTE en los datos proporcionados. No inventes ni omitas información.
 
 DATOS DEL TRABAJADOR:
-- Nombre: {nombre} — Identificación: {identificacion} — Cargo: {cargo}
+- Nombre: {nombre} - Identificación: {identificacion} - Cargo: {cargo}
 
 DATOS DE LA EMPRESA:
 - Razón social: {razon_social}
@@ -652,7 +652,7 @@ DATOS DEL HECHO:
 - Descripción: {descripcion}
 - Fecha: {fecha}
 - Lugar: {lugar}
-- ¿El trabajador notificó previamente?: {notifico} — Detalle: {detalle}
+- ¿El trabajador notificó previamente?: {notifico} - Detalle: {detalle}
 - Evidencias disponibles: {evidencias}
 
 REGLAS DE REDACCIÓN OBLIGATORIAS:
@@ -668,9 +668,9 @@ Responde ÚNICAMENTE en JSON válido sin bloques de código:
 PROMPT,
 
                 'cambios' => [
-                    'Se añadió REGLA 1: lenguaje presuntivo obligatorio — crítico para que los hechos no perjudiquen prematuramente al trabajador.',
-                    'Se añadió REGLA 3: limpieza de lenguaje soez — el sistema ya lo hace en generarRedaccionCompleta() pero no en este prompt.',
-                    'Se añadió REGLA 4: prohibición antidiscriminatoria — coherente con el resto del sistema.',
+                    'Se añadió REGLA 1: lenguaje presuntivo obligatorio - crítico para que los hechos no perjudiquen prematuramente al trabajador.',
+                    'Se añadió REGLA 3: limpieza de lenguaje soez - el sistema ya lo hace en generarRedaccionCompleta() pero no en este prompt.',
+                    'Se añadió REGLA 4: prohibición antidiscriminatoria - coherente con el resto del sistema.',
                     'Se especificó la estructura de 3 párrafos con contenido de cada uno.',
                 ],
 
@@ -681,7 +681,7 @@ PROMPT,
             // ── PROMPT 5 ──────────────────────────────────────────────────
             [
                 'titulo'   => 'Mejora de Redacción del Borrador del Empleador',
-                'archivo'  => 'app/Services/EvaluacionHechosService.php — mejorarRedaccion()',
+                'archivo'  => 'app/Services/EvaluacionHechosService.php - mejorarRedaccion()',
                 'metodo'   => 'mejorarRedaccion()',
                 'modelo'   => 'Multi-modelo (flash rápido)',
                 'proposito'=> 'El empleador escribe un borrador libre de los hechos. Este prompt lo transforma en redacción jurídica válida, marcando con [COMPLETAR] los datos que faltan.',
@@ -755,7 +755,7 @@ PROMPT,
             // ── PROMPT 6 ──────────────────────────────────────────────────
             [
                 'titulo'   => 'Generación de Redacción Final Completa del Expediente',
-                'archivo'  => 'app/Services/EvaluacionHechosService.php — generarRedaccionCompleta()',
+                'archivo'  => 'app/Services/EvaluacionHechosService.php - generarRedaccionCompleta()',
                 'metodo'   => 'generarRedaccionCompleta()',
                 'modelo'   => 'Multi-modelo',
                 'proposito'=> 'Genera la redacción jurídica final de los hechos para el expediente, integrando todos los datos disponibles del caso.',
@@ -771,7 +771,7 @@ TAREA: Redacta los hechos disciplinarios para el expediente en 2-3 párrafos.
 
 REGLAS ABSOLUTAS:
 1. Usa TODOS los datos disponibles.
-2. Si un dato NO está disponible, omítelo — NUNCA uses placeholders.
+2. Si un dato NO está disponible, omítelo - NUNCA uses placeholders.
 3. Tercera persona, tono objetivo.
 4. Incluye: conducta, cuándo, dónde, cómo se enteró la empresa, consecuencia.
 5. Solo texto plano en párrafos. Máximo 200 palabras.
@@ -802,7 +802,7 @@ REGLAS ABSOLUTAS (en orden de prioridad):
 1. PRESUNTIVO: Toda acción del trabajador que no sea hecho probado se redacta como "presuntamente [acción]". Este principio es irrenunciable.
 2. ANTIDISCRIMINATORIO: Elimina cualquier referencia a raza, etnia, origen nacional, orientación sexual, identidad de género, discapacidad o apariencia física. Describe únicamente la conducta objetiva.
 3. LENGUAJE LIMPIO: Reemplaza groserías e insultos por terminología jurídica objetiva.
-4. SOLO DATOS DISPONIBLES: Si un dato no está disponible, omítelo completamente — NUNCA uses corchetes, placeholders ni [COMPLETAR].
+4. SOLO DATOS DISPONIBLES: Si un dato no está disponible, omítelo completamente - NUNCA uses corchetes, placeholders ni [COMPLETAR].
 5. Usa TODOS los datos disponibles: conducta, cuándo, dónde, cómo se enteró la empresa, consecuencia para la operación.
 6. Tercera persona, tono factual. Sin adornos ni frases genéricas. Máximo 200 palabras.
 7. Solo texto plano en párrafos. Sin HTML, listas, asteriscos ni JSON.
@@ -812,7 +812,7 @@ PROMPT,
                 'cambios' => [
                     'Reorganización: Las reglas de mayor impacto legal (presuntivo, antidiscriminatorio) ahora están en posiciones 1 y 2.',
                     'Se fusionaron las reglas 3 y 5 del original para mayor claridad.',
-                    'Sin cambios sustanciales de contenido — el prompt original es excelente.',
+                    'Sin cambios sustanciales de contenido - el prompt original es excelente.',
                 ],
 
                 'mejor'  => 'actual',
@@ -822,7 +822,7 @@ PROMPT,
             // ── PROMPT 7 ──────────────────────────────────────────────────
             [
                 'titulo'   => 'Feedback en Tiempo Real sobre Dictado del Empleador',
-                'archivo'  => 'app/Services/EvaluacionHechosService.php — darFeedbackDictado()',
+                'archivo'  => 'app/Services/EvaluacionHechosService.php - darFeedbackDictado()',
                 'metodo'   => 'darFeedbackDictado()',
                 'modelo'   => 'Flash rápido (baja latencia)',
                 'proposito'=> 'Mientras el empleador dicta o escribe los hechos, este prompt analiza el texto en tiempo real y le indica qué dato concreto le falta para completar el expediente. La respuesta se sintetiza en voz por TTS.',
@@ -855,16 +855,16 @@ PROMPT,
                 ],
 
                 'mejorado' => <<<'PROMPT'
-Eres un abogado laboralista colombiano con 15 años en procesos disciplinarios. Tu respuesta se leerá en voz alta (TTS) — sé directo y conciso.
+Eres un abogado laboralista colombiano con 15 años en procesos disciplinarios. Tu respuesta se leerá en voz alta (TTS) - sé directo y conciso.
 
 CONTEXTO (no lo repitas en tu respuesta):
 {reglamento} {datos_capturados} {normas}
 
 TAREA: Identifica EL criterio más urgente que falta en el relato. Evalúa en este orden:
-1. CONDUCTA CONCRETA: ¿Es específica? "No cumplió funciones" no sirve — ¿qué hizo exactamente?
+1. CONDUCTA CONCRETA: ¿Es específica? "No cumplió funciones" no sirve - ¿qué hizo exactamente?
 2. IMPACTO: ¿Consecuencia real y concreta para la empresa, el equipo o el servicio?
 3. PRUEBAS: ¿Testigos, cámara, correo, registro de entrada u otro soporte tangible?
-Nota: El historial disciplinario ya está registrado — NO lo solicites.
+Nota: El historial disciplinario ya está registrado - NO lo solicites.
 
 Si el relato ya es completo → confírmalo en una frase breve.
 
@@ -880,7 +880,7 @@ PROMPT,
                     'Se añadió aviso inicial "Tu respuesta se leerá en voz alta (TTS)" para forzar mayor naturalidad en el lenguaje.',
                     'Se instruve al modelo a no repetir el contexto en su respuesta, reduciendo el riesgo de que lea los datos del contexto en voz alta.',
                     'La cita de normas ahora se pide en lenguaje simple ("según el reglamento") en lugar de la notación técnica.',
-                    'El resto es ajuste de presentación — el comportamiento es equivalente.',
+                    'El resto es ajuste de presentación - el comportamiento es equivalente.',
                 ],
 
                 'mejor'  => 'actual',
@@ -890,7 +890,7 @@ PROMPT,
             // ── PROMPT 8 ──────────────────────────────────────────────────
             [
                 'titulo'   => 'Verificación de Lenguaje Discriminatorio',
-                'archivo'  => 'app/Services/EvaluacionHechosService.php — verificarDiscriminacion()',
+                'archivo'  => 'app/Services/EvaluacionHechosService.php - verificarDiscriminacion()',
                 'metodo'   => 'verificarDiscriminacion()',
                 'modelo'   => 'Flash rápido',
                 'proposito'=> 'Analiza el texto escrito por el empleador y detecta si contiene lenguaje discriminatorio, peyorativo o referencias innecesarias a características protegidas del trabajador.',
@@ -954,7 +954,7 @@ PROMPT,
             // ── PROMPTS 9a y 9b ──────────────────────────────────────────
             [
                 'titulo'   => 'Extracción de Texto de PDFs Escaneados (Gemini Vision)',
-                'archivo'  => 'app/Services/BibliotecaLegalService.php — extraerTextoConGeminiVision() y extraerTextoConGeminiFilesAPI()',
+                'archivo'  => 'app/Services/BibliotecaLegalService.php - extraerTextoConGeminiVision() y extraerTextoConGeminiFilesAPI()',
                 'metodo'   => 'extraerTextoConGeminiVision() / extraerTextoConGeminiFilesAPI()',
                 'modelo'   => 'Gemini Vision 2.5 Flash',
                 'proposito'=> 'Extrae el texto completo de documentos PDF escaneados (imágenes). Se usa cuando smalot/pdfparser no puede extraer texto porque el PDF es una imagen. Es la puerta de entrada de los documentos a la base de conocimiento jurídico (RAG).',
@@ -965,7 +965,7 @@ PROMPT,
 
                 'analisis' => [
                     'PROBLEMA CRÍTICO: Con una sola instrucción genérica, Gemini puede "limpiar" el texto, corregir ortografía o interpretar en lugar de transcribir. Para documentos legales esto es inadmisible.',
-                    'PROBLEMA: No especifica cómo manejar tablas, notas al pie, números de expediente o sellos — elementos frecuentes en jurisprudencia.',
+                    'PROBLEMA: No especifica cómo manejar tablas, notas al pie, números de expediente o sellos - elementos frecuentes en jurisprudencia.',
                     'PROBLEMA: No indica qué hacer con texto ilegible o degradado.',
                     'PROBLEMA: No instruye sobre la preservación de la estructura del documento (párrafos, numeración, puntos).',
                     'RIESGO RAG: Si el texto extraído tiene errores sutiles no detectados, los fragmentos indexados para búsqueda serán incorrectos y citarán mal la jurisprudencia.',
@@ -989,7 +989,7 @@ PROMPT,
 
                 'cambios' => [
                     'Se especificaron instrucciones para 6 tipos de elementos documentales frecuentes en jurisprudencia (tablas, sellos, firmas, texto ilegible, notas al pie, datos numéricos).',
-                    'Se añadió la instrucción de NO corregir ortografía ni gramática — la corrección podría cambiar el sentido de citas jurídicas.',
+                    'Se añadió la instrucción de NO corregir ortografía ni gramática - la corrección podría cambiar el sentido de citas jurídicas.',
                     'Se instruve sobre cómo manejar texto ilegible en lugar de dejar que el modelo invente el contenido.',
                     'Se añadió "Eres un sistema especializado en OCR" para orientar el comportamiento del modelo desde el inicio.',
                 ],
@@ -1001,9 +1001,9 @@ PROMPT,
             // ── PROMPT 10 ─────────────────────────────────────────────────
             [
                 'titulo'   => 'Informe Ejecutivo para el Cliente (Lenguaje Claro)',
-                'archivo'  => 'app/Services/InformeJuridicoExportService.php — construirPromptInformeLenguajeClaro()',
+                'archivo'  => 'app/Services/InformeJuridicoExportService.php - construirPromptInformeLenguajeClaro()',
                 'metodo'   => 'construirPromptInformeLenguajeClaro()',
-                'modelo'   => 'Gemini 2.5 Flash — 16.384 tokens máx.',
+                'modelo'   => 'Gemini 2.5 Flash - 16.384 tokens máx.',
                 'proposito'=> 'Genera un informe de gestión completo para el cliente empresa, explicando en lenguaje simple las gestiones realizadas por CES Legal durante el periodo.',
 
                 'actual' => <<<'PROMPT'
@@ -1028,7 +1028,7 @@ MANEJO DE MÉTRICAS CERO O ANÓMALAS:
 Si alguna métrica tiene valor 0 o parece incoherente (ej. tiempo_promedio = 0 horas), escríbela como "No disponible" en lugar de cero. No inventes justificaciones para valores anómalos.
 
 MANEJO DE LÍMITE DE LONGITUD:
-Si hay muchas gestiones y no alcanza el espacio para describir todas con el mismo detalle, describe las primeras con detalle completo y las últimas con un párrafo más conciso. Nunca omitas una gestión completamente — al menos menciona su nombre y propósito.
+Si hay muchas gestiones y no alcanza el espacio para describir todas con el mismo detalle, describe las primeras con detalle completo y las últimas con un párrafo más conciso. Nunca omitas una gestión completamente - al menos menciona su nombre y propósito.
 
 VERIFICACIÓN FINAL DE FORMATO:
 Antes de finalizar, verifica que tu respuesta no contenga: asteriscos (**), almohadillas (#), guiones largos (---), ni bloques de código. Si detectas alguno, elimínalo.
@@ -1047,9 +1047,9 @@ PROMPT,
             // ── PROMPT 11 ─────────────────────────────────────────────────
             [
                 'titulo'   => 'Documento de Sanción en Lenguaje Claro',
-                'archivo'  => 'app/Services/DocumentGeneratorService.php — construirPromptSancionLenguajeClaro()',
+                'archivo'  => 'app/Services/DocumentGeneratorService.php - construirPromptSancionLenguajeClaro()',
                 'metodo'   => 'construirPromptSancionLenguajeClaro()',
-                'modelo'   => 'Gemini 2.5 Flash — 8.192 tokens máx.',
+                'modelo'   => 'Gemini 2.5 Flash - 8.192 tokens máx.',
                 'proposito'=> 'Genera el documento oficial de sanción (llamado de atención, suspensión o terminación) con toda la información legal pero en lenguaje accesible para el trabajador.',
 
                 'actual' => <<<'PROMPT'
@@ -1089,10 +1089,10 @@ PROMPT,
             // ── PROMPT 12 ─────────────────────────────────────────────────
             [
                 'titulo'   => 'Análisis de Gravedad y Sanción Apropiada',
-                'archivo'  => 'app/Services/IAAnalisisSancionService.php — construirPromptAnalisisSancion()',
+                'archivo'  => 'app/Services/IAAnalisisSancionService.php - construirPromptAnalisisSancion()',
                 'metodo'   => 'construirPromptAnalisisSancion()',
                 'modelo'   => 'Gemini 2.5 Flash',
-                'proposito'=> 'Analiza la falta disciplinaria, su gravedad y determina qué sanciones son jurídicamente apropiadas. No decide — presenta las opciones con su razonamiento legal para que el cliente decida.',
+                'proposito'=> 'Analiza la falta disciplinaria, su gravedad y determina qué sanciones son jurídicamente apropiadas. No decide - presenta las opciones con su razonamiento legal para que el cliente decida.',
 
                 'actual' => <<<'PROMPT'
 [Prompt de ~800 palabras con 2 categorías de gravedad, 5 rangos de suspensión, análisis de motivos individuales y JSON de 14 campos.]
@@ -1108,7 +1108,7 @@ PROMPT,
                 ],
 
                 'mejorado' => <<<'PROMPT'
-[Versión prácticamente idéntica al actual — solo ajuste en el límite de palabras]
+[Versión prácticamente idéntica al actual - solo ajuste en el límite de palabras]
 
 ÚNICO CAMBIO:
 En REGLAS DE FORMATO, cambiar:
@@ -1128,7 +1128,7 @@ PROMPT,
             // ── PROMPT 13 ─────────────────────────────────────────────────
             [
                 'titulo'   => 'Análisis de Recursos de Impugnación',
-                'archivo'  => 'app/Services/IAResolucionImpugnacionService.php — construirPrompt()',
+                'archivo'  => 'app/Services/IAResolucionImpugnacionService.php - construirPrompt()',
                 'metodo'   => 'construirPrompt()',
                 'modelo'   => 'Gemini 2.5 Flash',
                 'proposito'=> 'Analiza el expediente completo y el recurso de impugnación presentado por el trabajador. Recomienda si confirmar, revocar o modificar la sanción y genera el fundamento jurídico para el documento de resolución.',

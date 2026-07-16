@@ -29,7 +29,7 @@
     'eyebrow'   => 'Reglamento Interno de Trabajo',
     'title'     => 'Asistente de Construcción del RIT',
     'subtitle'  => $subtitle,
-    'ruleLabel' => 'El proceso completo — 7 pasos',
+    'ruleLabel' => 'El proceso completo - 7 pasos',
     'steps'     => $steps,
     'nextHint'  => $nextHint,
 ])

@@ -61,7 +61,7 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                     ]),
 
                 // ── Credenciales Meta Cloud API ────────────────────────────────
-                Forms\Components\Section::make('Credenciales — Meta Cloud API')
+                Forms\Components\Section::make('Credenciales - Meta Cloud API')
                     ->icon('heroicon-o-key')
                     ->description('Obtenga estos datos en Meta for Developers → su app → WhatsApp → API Setup.')
                     ->schema([

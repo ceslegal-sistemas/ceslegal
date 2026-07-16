@@ -35,7 +35,7 @@ class ScrapearSuinJuriscol extends Command
                                 {--force      : Regenerar embeddings aunque ya existan}
                                 {--solo=      : Solo el artículo indicado (ej: --solo=236)}
                                 {--dry-run    : Muestra artículos detectados sin guardar}';
-    protected $description = 'Descarga artículos legales desde SUIN-Juriscol (MinJusticia — fuente oficial) con embeddings';
+    protected $description = 'Descarga artículos legales desde SUIN-Juriscol (MinJusticia - fuente oficial) con embeddings';
 
     private const BASE_URL = 'https://www.suin-juriscol.gov.co';
 
@@ -44,7 +44,7 @@ class ScrapearSuinJuriscol extends Command
      *
      * doc_id : parámetro ?id= de la URL de SUIN.
      * fuente  : campo "fuente" en articulos_legales.
-     * prefijo : patrón del campo "codigo" — {N} se reemplaza por el número del artículo.
+     * prefijo : patrón del campo "codigo" - {N} se reemplaza por el número del artículo.
      * target  : lista de números de artículo a importar (null = todos los detectados).
      *
      * Para agregar una nueva ley:
@@ -64,7 +64,7 @@ class ScrapearSuinJuriscol extends Command
             'target'    => null,
         ],
         'ley1010' => [
-            'nombre'    => 'Ley 1010 de 2006 — Acoso Laboral',
+            'nombre'    => 'Ley 1010 de 2006 - Acoso Laboral',
             // doc_id a verificar: buscar en https://www.suin-juriscol.gov.co
             // la "Ley 1010 de 2006" y copiar el ?id= de la URL.
             'doc_id'    => 30036777,
@@ -144,9 +144,9 @@ class ScrapearSuinJuriscol extends Command
 
         if (empty($articulos)) {
             $this->error('  No se detectaron artículos. El HTML de SUIN puede haber cambiado.');
-            Log::warning('suin:scraper — sin artículos detectados', ['url' => $url]);
+            Log::warning('suin:scraper - sin artículos detectados', ['url' => $url]);
             // Guardar muestra del HTML para depuración
-            Log::debug('suin:scraper — muestra HTML (primeros 2000 chars)', [
+            Log::debug('suin:scraper - muestra HTML (primeros 2000 chars)', [
                 'html' => mb_substr(strip_tags($html), 0, 2000),
             ]);
             return [0, 0, 1];
@@ -159,7 +159,7 @@ class ScrapearSuinJuriscol extends Command
                 if ($soloN !== null && (string) $num !== $soloN) continue;
                 $codigo = str_replace('{N}', (string) $num, $config['prefijo']);
                 $preview = mb_substr($data['texto'], 0, 100);
-                $this->line("  [dry] {$codigo} — {$data['titulo']}");
+                $this->line("  [dry] {$codigo} - {$data['titulo']}");
                 $this->line("         {$preview}...");
             }
             return [0, 0, 0];
@@ -207,7 +207,7 @@ class ScrapearSuinJuriscol extends Command
             );
 
             $estado = $embedding ? '[ok]' : '[sin embedding]';
-            $this->info("  {$estado} {$codigo} — {$data['titulo']}");
+            $this->info("  {$estado} {$codigo} - {$data['titulo']}");
             $ok++;
 
             usleep(350_000); // 350 ms entre llamadas de embedding
@@ -218,7 +218,7 @@ class ScrapearSuinJuriscol extends Command
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // HTTP — SUIN usa certificado SSL no estándar en el gobierno colombiano
+    // HTTP - SUIN usa certificado SSL no estándar en el gobierno colombiano
     // ──────────────────────────────────────────────────────────────────────────
 
     private function fetchUrl(string $url): ?string
@@ -239,7 +239,7 @@ class ScrapearSuinJuriscol extends Command
 
             if (!$response->successful()) {
                 $this->warn("  HTTP {$response->status()} en {$url}");
-                Log::warning('suin:scraper — HTTP error', ['status' => $response->status(), 'url' => $url]);
+                Log::warning('suin:scraper - HTTP error', ['status' => $response->status(), 'url' => $url]);
                 return null;
             }
 
@@ -252,7 +252,7 @@ class ScrapearSuinJuriscol extends Command
             return $body;
         } catch (\Throwable $e) {
             $this->error("  Excepción al descargar: {$e->getMessage()}");
-            Log::error('suin:scraper — excepción fetch', ['url' => $url, 'error' => $e->getMessage()]);
+            Log::error('suin:scraper - excepción fetch', ['url' => $url, 'error' => $e->getMessage()]);
             return null;
         }
     }
@@ -308,7 +308,7 @@ class ScrapearSuinJuriscol extends Command
         preg_match_all('/<div id="toggle_(\d+)">(.*?)<\/div>/s', $html, $matches);
 
         if (empty($matches[0])) {
-            Log::warning('suin:scraper — no se encontraron divs toggle_ en el HTML');
+            Log::warning('suin:scraper - no se encontraron divs toggle_ en el HTML');
             return [];
         }
 
@@ -405,14 +405,14 @@ class ScrapearSuinJuriscol extends Command
             ]);
 
             if (!$response->successful()) {
-                Log::warning('suin:scraper — embedding fallido', ['status' => $response->status()]);
+                Log::warning('suin:scraper - embedding fallido', ['status' => $response->status()]);
                 return null;
             }
 
             $values = $response->json('embedding.values');
             return is_array($values) && !empty($values) ? $values : null;
         } catch (\Throwable $e) {
-            Log::error('suin:scraper — excepción embedding', ['error' => $e->getMessage()]);
+            Log::error('suin:scraper - excepción embedding', ['error' => $e->getMessage()]);
             return null;
         }
     }

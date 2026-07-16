@@ -30,9 +30,9 @@ class DocumentoLegal extends Model
     ];
 
     public static array $tiposLabels = [
-        'sentencia_cc'        => 'Sentencia — Corte Constitucional',
-        'sentencia_csj'       => 'Sentencia — Corte Suprema de Justicia',
-        'sentencia_ce'        => 'Sentencia — Consejo de Estado',
+        'sentencia_cc'        => 'Sentencia - Corte Constitucional',
+        'sentencia_csj'       => 'Sentencia - Corte Suprema de Justicia',
+        'sentencia_ce'        => 'Sentencia - Consejo de Estado',
         'cst'                 => 'Código Sustantivo del Trabajo',
         'ley'                 => 'Ley',
         'concepto_ministerio' => 'Concepto del Ministerio de Trabajo',

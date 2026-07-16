@@ -45,7 +45,7 @@ class BibliotecaLegalResource extends Resource
                             ->label('Título')
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('Ej: Sentencia T-239/2021 — Corte Constitucional')
+                            ->placeholder('Ej: Sentencia T-239/2021 - Corte Constitucional')
                             ->columnSpanFull(),
 
                         Forms\Components\Select::make('tipo')
@@ -121,7 +121,7 @@ class BibliotecaLegalResource extends Resource
                 Tables\Columns\TextColumn::make('referencia')
                     ->label('Referencia')
                     ->searchable()
-                    ->placeholder('—'),
+                    ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')
@@ -156,14 +156,14 @@ class BibliotecaLegalResource extends Resource
                     ->label('Fragmentos')
                     ->numeric()
                     ->sortable()
-                    ->placeholder('—')
+                    ->placeholder('-')
                     ->alignCenter(),
 
                 Tables\Columns\TextColumn::make('total_palabras')
                     ->label('Palabras')
                     ->numeric()
                     ->sortable()
-                    ->formatStateUsing(fn($state) => $state ? number_format($state) : '—')
+                    ->formatStateUsing(fn($state) => $state ? number_format($state) : '-')
                     ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: true),
 
@@ -212,7 +212,7 @@ class BibliotecaLegalResource extends Resource
                     ->disabled(fn(DocumentoLegal $record) => $record->estado === 'procesando')
                     ->requiresConfirmation()
                     ->modalHeading('Encolar documento para procesar')
-                    ->modalDescription('El documento se marcará como pendiente y el sistema lo procesará en el próximo ciclo del cron (máx. 5 minutos). No cierre esta ventana mientras espera — recargue la página pasados unos minutos.')
+                    ->modalDescription('El documento se marcará como pendiente y el sistema lo procesará en el próximo ciclo del cron (máx. 5 minutos). No cierre esta ventana mientras espera - recargue la página pasados unos minutos.')
                     ->modalSubmitActionLabel('Encolar')
                     ->action(function (DocumentoLegal $record) {
                         $record->update(['estado' => 'pendiente', 'error_mensaje' => null]);
@@ -323,7 +323,7 @@ class BibliotecaLegalResource extends Resource
         if ($ref || $desc) {
             $infoBar = '<div style="padding:.625rem 1rem;background:rgba(99,102,241,.07);border-radius:.5rem;margin-bottom:.75rem;font-size:.8125rem;color:#64748b">'
                 . ($ref  ? '<span style="font-weight:600;color:#be123c">' . $ref . '</span>' : '')
-                . ($ref && $desc ? ' — ' : '')
+                . ($ref && $desc ? ' - ' : '')
                 . $desc
                 . '</div>';
         }

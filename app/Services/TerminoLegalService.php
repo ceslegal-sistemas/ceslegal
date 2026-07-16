@@ -63,7 +63,7 @@ class TerminoLegalService
      * $jornada puede ser:
      *  - array: conjunto de días ISO hábiles (1 = lunes … 7 = domingo). Modo nuevo,
      *    soporta cualquier combinación (incluido domingo y 24/7).
-     *  - bool:  modo legado — false = lunes a viernes; true = lunes a sábado.
+     *  - bool:  modo legado - false = lunes a viernes; true = lunes a sábado.
      *
      * En ambos casos, los festivos registrados nunca son hábiles.
      */

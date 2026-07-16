@@ -19,9 +19,9 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  *   3. Cualquier RIT de la empresa.
  *
  * Prioridad de formato del RIT elegido:
- *   a. Archivo físico adjunto (ruta_docx) — SOLO si el cliente lo subió él mismo
+ *   a. Archivo físico adjunto (ruta_docx) - SOLO si el cliente lo subió él mismo
  *      (fuente='subido'). Es su documento original y puede ser Word/PDF.
- *   b. PDF permanente (ruta_pdf) — típico del RIT mejorado por IA.
+ *   b. PDF permanente (ruta_pdf) - típico del RIT mejorado por IA.
  *   c. PDF generado al vuelo desde texto_completo.
  *
  * Los RIT producidos por la IA (construido_ia / mejora_ia) NUNCA se entregan como
@@ -37,7 +37,7 @@ class RitDescarga
             abort(404, 'Documento no encontrado. Genere su RIT primero.');
         }
 
-        // a. Archivo físico adjunto — solo el documento original que subió el cliente.
+        // a. Archivo físico adjunto - solo el documento original que subió el cliente.
         //    Para RIT de IA se ignora ruta_docx (jamás se entrega Word).
         if ($rit->fuente === 'subido' && !empty($rit->ruta_docx)) {
             $rutaAbsoluta = Storage::disk('local')->path($rit->ruta_docx);
@@ -55,7 +55,7 @@ class RitDescarga
             }
         }
 
-        // b. PDF permanente (RIT mejorado por IA) — solo si está cifrado.
+        // b. PDF permanente (RIT mejorado por IA) - solo si está cifrado.
         //    Los PDF antiguos sin cifrar se regeneran en el paso (c) para
         //    garantizar que toda descarga salga protegida (solo impresión).
         if (!empty($rit->ruta_pdf)) {

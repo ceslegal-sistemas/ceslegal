@@ -52,7 +52,7 @@
     </div>
 
     <p class="pt-footer">
-        Clasificación Industrial Internacional Uniforme — Rev. 4 A.C. (DANE Colombia)
+        Clasificación Industrial Internacional Uniforme - Rev. 4 A.C. (DANE Colombia)
     </p>
 
 </div>

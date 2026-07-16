@@ -106,7 +106,7 @@ class CorteConstitucionalScraper
             }
 
             $resultado[] = [
-                'titulo'     => "Sentencia {$sentencia} — Corte Constitucional",
+                'titulo'     => "Sentencia {$sentencia} - Corte Constitucional",
                 'tipo'       => 'sentencia_cc',
                 'referencia' => $sentencia,
                 'descripcion'=> isset($item['magistrado_a'])

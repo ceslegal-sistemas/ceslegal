@@ -27,7 +27,7 @@
 <script src="https://cdn.lordicon.com/lordicon.js"></script>
 
 <style>
-/* ── Base — hereda patrón rit-hero / rit-viewer ─────────────────────────── */
+/* ── Base - hereda patrón rit-hero / rit-viewer ─────────────────────────── */
 .ce-hero{position:relative;overflow:hidden;border-radius:1.25rem;padding:2rem 1.75rem;background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%)}
 html:not(.dark) .ce-hero{background:#fff;border:1px solid rgba(0,0,0,.07);box-shadow:0 4px 28px rgba(0,0,0,.08)}
 .ce-orb-b{position:absolute;width:260px;height:260px;top:-70px;right:-50px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.42),transparent 70%);filter:blur(28px);pointer-events:none;animation:ce-fb 14s ease-in-out infinite}
@@ -201,13 +201,13 @@ html:not(.dark) .ce-adjunto{background:#fff;border-color:rgba(0,0,0,.08);color:#
 
         <div class="ce-meta-item">
           <p class="ce-meta-label">Enviado en</p>
-          <p class="ce-meta-value">{{ $correo->enviado_en?->format('d/m/Y') ?? '—' }}</p>
+          <p class="ce-meta-value">{{ $correo->enviado_en?->format('d/m/Y') ?? '-' }}</p>
           <p class="ce-meta-sub">{{ $correo->enviado_en?->format('H:i:s') ?? 'Pendiente de envío' }}</p>
         </div>
 
         <div class="ce-meta-item">
           <p class="ce-meta-label">Primera apertura</p>
-          <p class="ce-meta-value">{{ $correo->abierto_en?->format('d/m/Y') ?? '—' }}</p>
+          <p class="ce-meta-value">{{ $correo->abierto_en?->format('d/m/Y') ?? '-' }}</p>
           <p class="ce-meta-sub">{{ $correo->abierto_en?->format('H:i:s') ?? 'Sin apertura registrada' }}</p>
         </div>
 
@@ -235,7 +235,7 @@ html:not(.dark) .ce-adjunto{background:#fff;border-color:rgba(0,0,0,.08);color:#
 
         <div class="ce-meta-item">
           <p class="ce-meta-label">Remitente</p>
-          <p class="ce-meta-value">{{ $correo->enviador?->name ?? '—' }}</p>
+          <p class="ce-meta-value">{{ $correo->enviador?->name ?? '-' }}</p>
           <p class="ce-meta-sub">{{ $correo->created_at->format('d/m/Y H:i') }}</p>
         </div>
 

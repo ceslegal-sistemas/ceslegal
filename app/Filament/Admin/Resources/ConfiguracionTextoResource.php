@@ -36,7 +36,7 @@ class ConfiguracionTextoResource extends Resource
                         Forms\Components\TextInput::make('clave')
                             ->label('Clave')
                             ->disabled()
-                            ->helperText('Identificador interno — no se puede modificar.'),
+                            ->helperText('Identificador interno - no se puede modificar.'),
 
                         Forms\Components\TextInput::make('grupo')
                             ->label('Grupo')
@@ -53,7 +53,7 @@ class ConfiguracionTextoResource extends Resource
                 Forms\Components\Section::make('Contenido')
                     ->description(function ($record) {
                         if ($record?->clave === 'disclaimer_descargos') {
-                            return 'Use los marcadores :nombre, :cedula, :empresa y :cargo — se reemplazan automáticamente con los datos del trabajador y la empresa al mostrar el formulario.';
+                            return 'Use los marcadores :nombre, :cedula, :empresa y :cargo - se reemplazan automáticamente con los datos del trabajador y la empresa al mostrar el formulario.';
                         }
                         return null;
                     })
@@ -121,7 +121,7 @@ class ConfiguracionTextoResource extends Resource
                             ->body('El texto configurable fue guardado correctamente.')
                     ),
             ])
-            ->bulkActions([])        // Sin acciones masivas — los registros son clave-valor únicos
+            ->bulkActions([])        // Sin acciones masivas - los registros son clave-valor únicos
             ->defaultSort('grupo')
             ->striped()
             ->emptyStateHeading('Sin textos configurables')

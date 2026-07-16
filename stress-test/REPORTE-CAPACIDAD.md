@@ -1,4 +1,4 @@
-# Reporte de capacidad — Descargos simultáneos
+# Reporte de capacidad - Descargos simultáneos
 
 **Entorno:** plan Hostinger compartido (servidor de pruebas `descargos`, idéntico al de producción).
 **Fecha de la medición:** junio 2026.
@@ -11,7 +11,7 @@
 > **alrededor de 150–300 descargos siendo diligenciados al mismo tiempo**.
 > El máximo teórico antes de saturar ronda los **~500**.
 >
-> Esto se refiere a trabajadores **llenando el formulario simultáneamente** — NO al
+> Esto se refiere a trabajadores **llenando el formulario simultáneamente** - NO al
 > total de clientes/trabajadores, que puede ser de **miles** (no todos usan a la vez).
 
 ---
@@ -57,7 +57,7 @@ Un trabajador no envía constantemente: lee y escribe, y envía una respuesta ca
 
 - **Simultáneos** (a la vez, en este instante): ~150–300 en compartido.
 - **Total de clientes/trabajadores** que puede gestionar el sistema (a lo largo de
-  días/meses): **miles** — limitado por almacenamiento/base de datos, no por concurrencia.
+  días/meses): **miles** - limitado por almacenamiento/base de datos, no por concurrencia.
 
 ## Para escalar a miles SIMULTÁNEOS
 
@@ -71,4 +71,4 @@ de descargos simultáneos. Es el siguiente paso natural cuando el volumen lo exi
 
 El plan actual **cubre con holgura el uso normal** (cientos de descargos en paralelo).
 El único cuidado operativo es **no enviar todas las citaciones a la misma hora**.
-Para crecimiento a miles concurrentes, el camino es VPS — con números medidos, no a ciegas.
+Para crecimiento a miles concurrentes, el camino es VPS - con números medidos, no a ciegas.

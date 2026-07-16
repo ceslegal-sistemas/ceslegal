@@ -16,7 +16,7 @@
             <div class="text-center">
 
                 @if($esTemprano ?? false)
-                    {{-- Ícono reloj — esperando la hora --}}
+                    {{-- Ícono reloj - esperando la hora --}}
                     <svg class="mx-auto h-16 w-16 text-amber-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -41,7 +41,7 @@
                         Esta página se actualizará automáticamente. Cuando llegue la hora podrá acceder.
                     </p>
                 @else
-                    {{-- Ícono candado — día incorrecto --}}
+                    {{-- Ícono candado - día incorrecto --}}
                     <svg class="mx-auto h-16 w-16 text-yellow-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>

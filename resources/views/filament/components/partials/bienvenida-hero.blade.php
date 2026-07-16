@@ -2,19 +2,19 @@
     Hero de bienvenida reutilizable para los wizards (Procesos Disciplinarios, RIT, etc.).
 
     Variables esperadas:
-      $eyebrow   string        — etiqueta superior (ej: "Reglamento Interno de Trabajo")
-      $title     string        — título principal
-      $subtitle  HtmlString    — HTML interno del subtítulo
-      $ruleLabel string        — etiqueta del divisor (ej: "El proceso completo — 7 pasos")
-      $steps     array         — [['n','sc','ib','ibc','tag','title','body'], ...]
-      $nextHint  HtmlString    — HTML del recuadro inferior "Siguiente"
-      $heroIcon  string|null   — src del lord-icon del hero (opcional)
+      $eyebrow   string        - etiqueta superior (ej: "Reglamento Interno de Trabajo")
+      $title     string        - título principal
+      $subtitle  HtmlString    - HTML interno del subtítulo
+      $ruleLabel string        - etiqueta del divisor (ej: "El proceso completo - 7 pasos")
+      $steps     array         - [['n','sc','ib','ibc','tag','title','body'], ...]
+      $nextHint  HtmlString    - HTML del recuadro inferior "Siguiente"
+      $heroIcon  string|null   - src del lord-icon del hero (opcional)
 --}}
 @php
     $uid = 'bv_' . substr(md5(uniqid()), 0, 8);
     $heroIcon = $heroIcon ?? 'https://cdn.lordicon.com/xjsqfzte.json';
 
-    /* Embers (light mode) — golden sparks rising from bottom */
+    /* Embers (light mode) - golden sparks rising from bottom */
     $emberColors = ['200,60,5', '230,90,10', '255,130,20', '180,45,0', '240,110,15', '210,70,5'];
     $embers = [];
     for ($i = 0; $i < 28; $i++) {
@@ -31,7 +31,7 @@
         ];
     }
 
-    /* Fireflies — generated server-side for deterministic layout */
+    /* Fireflies - generated server-side for deterministic layout */
     $ffColors = ['201,168,76', '255,235,120', '255,255,200', '190,215,255', '245,195,255', '255,210,90'];
     $fireflies = [];
     for ($i = 0; $i < 28; $i++) {
@@ -106,7 +106,7 @@
             animation: bv-pop .7s .08s cubic-bezier(.34, 1.56, .64, 1) both, bv-glow 3s 1.2s ease-in-out infinite
         }
 
-        /* ── Hero — mobile first ─────────────────────── */
+        /* ── Hero - mobile first ─────────────────────── */
         .bv-hero {
             position: relative;
             overflow: hidden;
@@ -155,7 +155,7 @@
             z-index: 0;
         }
 
-        /* ── Hero title — mobile first ───────────────── */
+        /* ── Hero title - mobile first ───────────────── */
         .bv-title {
             font-size: 1.25rem;
             font-weight: 700;
@@ -170,7 +170,7 @@
             }
         }
 
-        /* ── Subtitle max-width — only on larger screens */
+        /* ── Subtitle max-width - only on larger screens */
         .bv-subtitle-wrap {
             max-width: none;
         }
@@ -204,7 +204,7 @@
             white-space: nowrap;
         }
 
-        /* ── Process grid — 1 col mobile, 2 col desktop ─ */
+        /* ── Process grid - 1 col mobile, 2 col desktop ─ */
         .bv-process-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -309,7 +309,7 @@
             margin-bottom: .2rem;
         }
 
-        /* ── Color tokens — dark default ─────────────── */
+        /* ── Color tokens - dark default ─────────────── */
         .t-h {
             color: #f1f5f9
         }
@@ -428,7 +428,7 @@
         }
 
         html:not(.dark) .bv-hero-overlay {
-            /* velo blanco sutil — preserva el mármol y da contraste al texto */
+            /* velo blanco sutil - preserva el mármol y da contraste al texto */
             background: radial-gradient(ellipse 72% 80% at 50% 45%,
                     rgba(255, 255, 255, .68) 0%, rgba(255, 255, 255, .35) 55%, transparent 100%);
         }
@@ -869,7 +869,7 @@
                 else draw();
             }).observe(hero);
 
-        /* ── 3D Tilt — desktop (hover capable) only ── */
+        /* ── 3D Tilt - desktop (hover capable) only ── */
         var hasHover = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
         if (!hasHover) return;
 

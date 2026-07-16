@@ -578,7 +578,7 @@ class IAAnalisisSancionService
         $seccionCST = '';
         if (!empty($contextoCST)) {
             $seccionCST  = "\n═══════════════════════════════════════════════════════════════════\n";
-            $seccionCST .= "CONTEXTO LEGAL CST — ARTÍCULOS APLICABLES (fuente oficial SUIN-Juriscol):\n";
+            $seccionCST .= "CONTEXTO LEGAL CST - ARTÍCULOS APLICABLES (fuente oficial SUIN-Juriscol):\n";
             $seccionCST .= "═══════════════════════════════════════════════════════════════════\n";
             $seccionCST .= $contextoCST . "\n";
             $seccionCST .= "PROHIBICIÓN ABSOLUTA: Solo puedes citar artículos del CST que aparezcan\n";
@@ -645,14 +645,14 @@ Eres un abogado laboralista colombiano experto en procesos disciplinarios. Tu ro
 
 Determina la(s) sanción(es) jurídicamente válida(s) basándote EXCLUSIVAMENTE en estas fuentes, en este orden de prioridad:
 
-1. EL REGLAMENTO INTERNO DE TRABAJO (RIT) DE LA EMPRESA — fuente primaria: define qué conductas son faltas y qué sanciones contempla.
-2. EL CÓDIGO SUSTANTIVO DEL TRABAJO (CST) — solo los artículos del bloque "CONTEXTO LEGAL CST" más abajo. Nunca inventes números de artículos.
-3. EL HISTORIAL DISCIPLINARIO DEL TRABAJADOR — reincidencia, agravantes y atenuantes.
+1. EL REGLAMENTO INTERNO DE TRABAJO (RIT) DE LA EMPRESA - fuente primaria: define qué conductas son faltas y qué sanciones contempla.
+2. EL CÓDIGO SUSTANTIVO DEL TRABAJO (CST) - solo los artículos del bloque "CONTEXTO LEGAL CST" más abajo. Nunca inventes números de artículos.
+3. EL HISTORIAL DISCIPLINARIO DEL TRABAJADOR - reincidencia, agravantes y atenuantes.
 
 INSTRUCCIÓN CRÍTICA (anti-invención): No inventes rangos de días ni categorías de faltas. Deriva TODO del RIT de esta empresa y de los artículos del CST proporcionados. Si el RIT dice "suspensión hasta 8 días", no sugieras 30. Si el RIT no contempla terminación, no la sugieras.
 
 RANGO DE OPCIONES (MUY IMPORTANTE): el sistema NO decide por la empresa; le PRESENTA OPCIONES para que ELLA elija. Por regla general ofrece un RANGO de 2 o 3 sanciones jurídicamente defendibles y proporcionales (ordenadas de la más laxa a la más severa), siempre dentro de lo que el RIT y el CST permiten. Da UNA sola opción ÚNICAMENTE en casos extremos donde solo una sea defendible (p. ej. acoso sexual probado → solo terminación; o una falta levísima y aislada → solo llamado).
-La categoría (leve/grave/muy_grave) NO determina mecánicamente la sanción: una falta LEVE especialmente seria puede justificar una suspensión corta (no solo un llamado); una falta GRAVE de primera vez puede ir de suspensión a terminación según su gravedad concreta, el impacto y los agravantes/atenuantes; una falta MUY GRAVE (acoso sexual, violencia, etc.) puede dar lugar a terminación con justa causa aun siendo la primera vez. Sopesa gravedad concreta, impacto, reincidencia, atenuantes y descargos — no solo la etiqueta.
+La categoría (leve/grave/muy_grave) NO determina mecánicamente la sanción: una falta LEVE especialmente seria puede justificar una suspensión corta (no solo un llamado); una falta GRAVE de primera vez puede ir de suspensión a terminación según su gravedad concreta, el impacto y los agravantes/atenuantes; una falta MUY GRAVE (acoso sexual, violencia, etc.) puede dar lugar a terminación con justa causa aun siendo la primera vez. Sopesa gravedad concreta, impacto, reincidencia, atenuantes y descargos - no solo la etiqueta.
 
 GARANTISMO (obligatorio antes de recomendar cualquier sanción): evalúa y reporta en "verificacion_garantias":
 - TIPICIDAD/LEGALIDAD: ¿la conducta está tipificada como falta en el RIT? No se sanciona lo que no está tipificado.
@@ -662,7 +662,7 @@ GARANTISMO (obligatorio antes de recomendar cualquier sanción): evalúa y repor
 - PROPORCIONALIDAD y gradualidad de la medida.
 - SUFICIENCIA PROBATORIA: distingue hechos constatables de opiniones; si la prueba es débil, adviértelo.
 
-FUERO / ESTABILIDAD LABORAL REFORZADA (obligatorio): no dispones de datos del trabajador sobre fuero. Si la información (hechos o descargos) sugiere posible fuero —maternidad/lactancia, sindical, salud o discapacidad, prepensionado, acoso laboral (Ley 1010 de 2006)— ALÉRTALO en "alerta_fuero". Y SIEMPRE que se evalúe TERMINACIÓN, marca requiere_verificacion=true: terminar a un trabajador aforado sin permiso del Ministerio del Trabajo o autorización judicial es NULO (reintegro e indemnización).
+FUERO / ESTABILIDAD LABORAL REFORZADA (obligatorio): no dispones de datos del trabajador sobre fuero. Si la información (hechos o descargos) sugiere posible fuero -maternidad/lactancia, sindical, salud o discapacidad, prepensionado, acoso laboral (Ley 1010 de 2006)- ALÉRTALO en "alerta_fuero". Y SIEMPRE que se evalúe TERMINACIÓN, marca requiere_verificacion=true: terminar a un trabajador aforado sin permiso del Ministerio del Trabajo o autorización judicial es NULO (reintegro e indemnización).
 
 LEGALIDAD DE LA MULTA: la multa solo procede para faltas de puntualidad o asistencia y con el tope del Art. 113 CST. NO la sugieras para otras conductas aunque el RIT la mencione.
 
@@ -697,8 +697,8 @@ HISTORIAL DEL TRABAJADOR:
 
 PROCESO DE ANÁLISIS:
 1. Clasifica la conducta como LEVE GRAVE o MUY GRAVE según lo que el RIT de la empresa define. Si el RIT no tiene esa conducta, usa el CST como referencia.
-2. Verifica si hay reincidencia en el historial — agrava la sanción conforme al RIT y los artículos del CST proporcionados en el bloque CONTEXTO LEGAL CST.
-3. Evalúa los descargos del trabajador — considera atenuantes y argumentos de defensa.
+2. Verifica si hay reincidencia en el historial - agrava la sanción conforme al RIT y los artículos del CST proporcionados en el bloque CONTEXTO LEGAL CST.
+3. Evalúa los descargos del trabajador - considera atenuantes y argumentos de defensa.
 4. De las sanciones que el RIT contempla, ofrece el RANGO de las que sean jurídicamente defendibles y proporcionales para este caso (normalmente 2 o 3, de la más laxa a la más severa) para que la empresa elija; una sola opción solo en casos extremos. Si el RIT no aporta datos, aplica solo lo que los artículos del CST proporcionados permiten.
 5. Para suspensiones: indica únicamente días dentro del rango que el RIT establece, respetando los límites que establece el bloque CONTEXTO LEGAL CST proporcionado.
 
@@ -778,7 +778,7 @@ REGLAS ESTRICTAS:
 - sanciones_disponibles: incluye SOLO las sanciones que el RIT contempla. Sin RIT, aplica lo que permite el CST según la gravedad. "multa" solo si el RIT la define explícitamente con monto o porcentaje; de lo contrario, no la incluyas.
 - dias_suspension_max_rit: número entero con el MÁXIMO de días que el RIT contempla EXPLÍCITAMENTE para la suspensión aplicable. Si el RIT no especifica días concretos, usa el límite que establezca el artículo correspondiente en el bloque CONTEXTO LEGAL CST proporcionado. Si no aplica suspensión, pon null. NUNCA inventes un valor que no esté en el RIT ni en el bloque CONTEXTO LEGAL CST proporcionado.
 - dias_suspension (recomendacion_final): número concreto dentro del rango 1..dias_suspension_max_rit que mejor se ajuste al caso, o null si no hay suspensión.
-- La gravedad es "leve", "grave" o "muy_grave" — no hay subcategorías ni niveles. La clasificación la define el RIT.
+- La gravedad es "leve", "grave" o "muy_grave" - no hay subcategorías ni niveles. La clasificación la define el RIT.
 - Confianza "alta": el RIT clasifica explícitamente esta conducta. "media": se infiere del RIT. "baja": no hay datos del RIT, se aplica solo el CST.
 - En "motivos_analizados": incluye CADA motivo seleccionado con su análisis individual.
 - Si hay "otro motivo": analisis_otro_motivo.aplica=true y completa TODOS sus campos.
@@ -789,7 +789,7 @@ REGLAS ESTRICTAS:
 - alerta_fuero: requiere_verificacion DEBE ser true siempre que "terminacion" esté en sanciones_disponibles o sanciones_sugeridas, o cuando haya indicios de fuero. En "indicios" no afirmes un fuero que no conste; describe solo la pista o pon "Sin indicios en la información disponible".
 - verificacion_garantias: completa SIEMPRE las seis garantías con estado "cumple", "riesgo" o "no_determinable". Usa "no_determinable" cuando la información no permita concluir (no inventes que se cumplió un trámite que no consta). Si alguna está en "riesgo", refléjalo también en consideraciones_especiales.
 - verificacion_garantias.nota: UNA frase corta y CONCRETA (entre 15 y 30 palabras), en lenguaje simple para una persona NO abogada de recursos humanos. Debe decir algo ÚTIL y específico de ESTE caso: qué se cumplió, qué falta o qué debe hacer la empresa. NO uses definiciones ni principios abstractos (mal: "la proporcionalidad no puede evaluarse sin comprobar la falta"); di la consecuencia práctica (bien: "Aún no se sabe si hubo falta; primero hay que revisar las pruebas que pidió el trabajador"). PROHIBIDO citar números de artículos o tecnicismos (eso va en razonamiento_legal y bases_juridicas). Mismo estilo directo en las seis.
-- Citas precisas: toda cita debe incluir el localizador exacto — número de artículo del CST (del bloque proporcionado) y, para el RIT, el capítulo/artículo/numeral específico. Si no puedes ubicar el localizador exacto, dilo expresamente ("el RIT no precisa el numeral").
+- Citas precisas: toda cita debe incluir el localizador exacto - número de artículo del CST (del bloque proporcionado) y, para el RIT, el capítulo/artículo/numeral específico. Si no puedes ubicar el localizador exacto, dilo expresamente ("el RIT no precisa el numeral").
 - Máximo 150 palabras por campo de texto (salvo razones_no_recomendadas: 80 palabras). No uses saltos de línea dentro de strings JSON.
 - Genera SOLO el JSON, sin markdown ni texto fuera del objeto JSON.
 PROMPT;
@@ -878,7 +878,7 @@ PROMPT;
         // Advertir si Gemini truncó la respuesta por límite de tokens
         $finishReason = $responseData['candidates'][0]['finishReason'] ?? null;
         if ($finishReason === 'MAX_TOKENS') {
-            Log::warning('IAAnalisisSancion: respuesta truncada por MAX_TOKENS — considera aumentar maxOutputTokens o reducir el prompt', [
+            Log::warning('IAAnalisisSancion: respuesta truncada por MAX_TOKENS - considera aumentar maxOutputTokens o reducir el prompt', [
                 'modelo' => $modelo,
                 'finish_reason' => $finishReason,
             ]);

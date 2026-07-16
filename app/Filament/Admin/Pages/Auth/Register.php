@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
 /**
- * Registro de clientes nuevos — wizard de 5 pasos.
+ * Registro de clientes nuevos - wizard de 5 pasos.
  * Crea simultáneamente la Empresa y el usuario con rol 'cliente'.
  *
  * Planes:
@@ -198,12 +198,12 @@ class Register extends BaseRegister
                                         ->orderBy('codigo')
                                         ->limit(20)
                                         ->get()
-                                        ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} — {$a->nombre}"])
+                                        ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} - {$a->nombre}"])
                                         ->toArray()
                                 )
                                 ->getOptionLabelUsing(function ($value) {
                                     $a = ActividadEconomica::find($value);
-                                    return $a ? "{$a->codigo} — {$a->nombre}" : null;
+                                    return $a ? "{$a->codigo} - {$a->nombre}" : null;
                                 })
                                 ->placeholder('Buscar por código o nombre CIIU...')
                                 ->helperText('Actividad principal registrada en el RUT de la empresa')
@@ -245,7 +245,7 @@ class Register extends BaseRegister
                                         ->orderBy('codigo')
                                         ->limit(20)
                                         ->get()
-                                        ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} — {$a->nombre}"])
+                                        ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} - {$a->nombre}"])
                                         ->toArray()
                                 )
                                 ->placeholder('Buscar actividades secundarias...')
@@ -254,7 +254,7 @@ class Register extends BaseRegister
                         ]),
 
                     // ── Paso 4: Plan de Suscripción ───────────────────────────────
-                    // TEMPORALMENTE COMENTADO — se activará cuando el módulo de pagos esté listo
+                    // TEMPORALMENTE COMENTADO - se activará cuando el módulo de pagos esté listo
                     // Al estar comentado, el registro usa plan 'basico' + ciclo 'mensual' por defecto
                     
                     /*
@@ -379,7 +379,7 @@ class Register extends BaseRegister
                             Forms\Components\Group::make([
                                 Forms\Components\FileUpload::make('reglamento_docx_temp')
                                     ->label('Subir Reglamento Interno (.docx o .pdf)')
-                                    ->helperText('Formatos aceptados: .docx y .pdf — máx. 10 MB.')
+                                    ->helperText('Formatos aceptados: .docx y .pdf - máx. 10 MB.')
                                     ->acceptedFileTypes([
                                         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                                         'application/pdf',
@@ -588,7 +588,7 @@ class Register extends BaseRegister
             'payment_reference' => $referencia,
         ]);
 
-        $descripcion = "CES Legal — Plan {$nombrePlan} ({$ciclo})";
+        $descripcion = "CES Legal - Plan {$nombrePlan} ({$ciclo})";
 
         $this->redirectUrl = $payu->getCheckoutUrl($suscripcion, $buyerEmail, $descripcion);
     }

@@ -39,7 +39,7 @@ class AuditarRIT extends Page implements HasForms, HasActions
 
     /**
      * Ocultar el ítem de navegación para clientes cuyo RIT fue construido/mejorado
-     * por la IA del sistema — ya cumple los estándares jurídicos, no requiere auditoría externa.
+     * por la IA del sistema - ya cumple los estándares jurídicos, no requiere auditoría externa.
      * Los administradores siempre lo ven.
      */
     public static function shouldRegisterNavigation(): bool

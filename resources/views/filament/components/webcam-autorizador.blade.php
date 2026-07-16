@@ -1,5 +1,5 @@
 {{--
-    Webcam del Autorizador — detección oval + validaciones estrictas de rostro
+    Webcam del Autorizador - detección oval + validaciones estrictas de rostro
     Correcciones v4:
     - Compatible con modo claro y oscuro (CSS custom properties)
     - face-api se carga dentro de cargarModelos() sin depender de <script> externo
@@ -293,10 +293,10 @@ button.wca-btn-secondary:hover {
 
         <div x-show="!errorCamara" style="display:none">
 
-            {{-- ══ VISOR DE CÁMARA — siempre en DOM (x-show, no x-if) ══ --}}
+            {{-- ══ VISOR DE CÁMARA - siempre en DOM (x-show, no x-if) ══ --}}
             <div x-show="!fotoCapturada" style="display:none" class="space-y-3">
 
-                {{-- Video + overlay oval (fondo siempre negro — badges en blanco son correctos) --}}
+                {{-- Video + overlay oval (fondo siempre negro - badges en blanco son correctos) --}}
                 <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3;">
                     <video x-ref="video" autoplay playsinline muted
                            style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block;"></video>
@@ -320,7 +320,7 @@ button.wca-btn-secondary:hover {
                         </text>
                     </svg>
 
-                    {{-- Cargando modelos (sobre video — blanco correcto) --}}
+                    {{-- Cargando modelos (sobre video - blanco correcto) --}}
                     <div x-show="!modelsCargados"
                          style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);">
                         <span class="wca-badge" style="background:rgba(0,0,0,0.70);color:white;">
@@ -332,13 +332,13 @@ button.wca-btn-secondary:hover {
                         </span>
                     </div>
 
-                    {{-- Estado del rostro (sobre video — fondos opacos, blanco correcto) --}}
+                    {{-- Estado del rostro (sobre video - fondos opacos, blanco correcto) --}}
                     <div x-show="modelsCargados"
                          style="position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;padding:0 8px;">
 
                         <span x-show="estadoRostro === 'sin_rostro'"
                               class="wca-badge" style="background:rgba(220,38,38,0.85);color:white;display:none;">
-                            No se detecta un rostro — acérquese y mire de frente
+                            No se detecta un rostro - acérquese y mire de frente
                         </span>
                         <span x-show="estadoRostro === 'muy_lejos'"
                               class="wca-badge" style="background:rgba(180,83,9,0.85);color:white;display:none;">
@@ -361,7 +361,7 @@ button.wca-btn-secondary:hover {
                             <svg style="width:11px;height:11px;" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
-                            Listo — tome la foto ahora
+                            Listo - tome la foto ahora
                         </span>
                         <span x-show="estadoRostro === 'ok' && alertaAccesorios"
                               x-text="alertaAccesorios"
@@ -369,12 +369,12 @@ button.wca-btn-secondary:hover {
                         </span>
                         <span x-show="estadoRostro === 'sin_modelo'"
                               class="wca-badge" style="background:rgba(75,85,99,0.88);color:white;display:none;">
-                            Verificación automática no disponible — puede tomar la foto
+                            Verificación automática no disponible - puede tomar la foto
                         </span>
                     </div>
                 </div>
 
-                {{-- Alerta de accesorios (fuera del video — usa variables de modo) --}}
+                {{-- Alerta de accesorios (fuera del video - usa variables de modo) --}}
                 <div x-show="alertaAccesorios"
                      style="display:none;padding:10px 14px;background:rgba(180,83,9,0.15);border:1px solid rgba(251,191,36,0.35);border-radius:10px;">
                     <div style="display:flex;align-items:flex-start;gap:8px;">

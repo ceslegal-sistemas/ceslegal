@@ -230,7 +230,7 @@ class RITMejoradoService
      * Tolera formatos heterogéneos de RITs subidos manualmente:
      *   - Con o sin tilde: "CAPÍTULO" / "CAPITULO"
      *   - Romanos (I, II), arábigos (1, 2) u ordinales en palabra (PRIMERO, SEGUNDO)
-     *   - Cualquier mayúscula/minúscula y separadores posteriores (—, -, ., :)
+     *   - Cualquier mayúscula/minúscula y separadores posteriores (-, -, ., :)
      * Normaliza siempre la clave al número romano que usa getCapitulos().
      */
     private function parsearCapitulos(string $texto): array
@@ -507,7 +507,7 @@ class RITMejoradoService
             : '';
 
         $seccionArticulos = $articulosLegales
-            ? "\nTEXTO OFICIAL DE ARTÍCULOS DEL CST (fuente: base de datos interna — ÚNICA fuente válida para citas):\n"
+            ? "\nTEXTO OFICIAL DE ARTÍCULOS DEL CST (fuente: base de datos interna - ÚNICA fuente válida para citas):\n"
               . $articulosLegales . "\n"
             : '';
 
@@ -528,11 +528,11 @@ class RITMejoradoService
         return <<<PROMPT
 Eres un abogado laboral colombiano experto en Reglamentos Internos de Trabajo. Tu objetivo es
 producir un capítulo IGUAL O SUPERIOR al de un abogado experto: más completo, más preciso y
-totalmente conforme a la normativa vigente — nunca más pobre ni más corto.
+totalmente conforme a la normativa vigente - nunca más pobre ni más corto.
 
 TAREA: Perfeccionar el CAPÍTULO {$numero} ({$titulo}) del RIT de "{$razonSocial}".
 
-REGLA FUNDAMENTAL — CITAS LEGALES (CERO ALUCINACIÓN):
+REGLA FUNDAMENTAL - CITAS LEGALES (CERO ALUCINACIÓN):
 - Números de artículo, nombres de ley, porcentajes y plazos legales: SOLO los que aparezcan
   textualmente en el contexto jurídico proporcionado más abajo.
 - PROHIBIDO inventar o recordar artículos, leyes, porcentajes o plazos de tu entrenamiento.

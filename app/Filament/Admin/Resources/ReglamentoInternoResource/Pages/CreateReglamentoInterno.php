@@ -58,7 +58,7 @@ class CreateReglamentoInterno extends CreateRecord
                 $saved = $this->normalizarCuestionario($rit->respuestas_cuestionario);
             }
 
-            // Garantizar siempre los datos de la empresa (Step 1 — campos disabled)
+            // Garantizar siempre los datos de la empresa (Step 1 - campos disabled)
             $saved['razon_social']    = $empresa->razon_social ?? '';
             $saved['tipo_societario'] = $empresa->tipo_societario ?? '';
             $saved['nit']             = $empresa->nit ?? '';
@@ -386,18 +386,18 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->orderBy('codigo')
                                         ->limit(50)
                                         ->get()
-                                        ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} — {$a->nombre}"])
+                                        ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} - {$a->nombre}"])
                                         ->all()
                                 )
                                 ->getOptionLabelUsing(
                                     fn($value) => ($a = ActividadEconomica::find($value))
-                                        ? "{$a->codigo} — {$a->nombre}"
+                                        ? "{$a->codigo} - {$a->nombre}"
                                         : $value
                                 )
                                 ->default($empresa?->actividad_economica_id)
                                 ->nullable()
                                 ->placeholder('Buscar por código CIIU o nombre...')
-                                ->helperText('Actividad principal según el RUT. Ej: 4711 — Comercio al por menor en establecimientos no especializados')
+                                ->helperText('Actividad principal según el RUT. Ej: 4711 - Comercio al por menor en establecimientos no especializados')
                                 ->columnSpanFull(),
 
                             Forms\Components\Select::make('actividades_secundarias_ids')
@@ -416,19 +416,19 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->orderBy('codigo')
                                         ->limit(50)
                                         ->get()
-                                        ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} — {$a->nombre}"])
+                                        ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} - {$a->nombre}"])
                                         ->all()
                                 )
                                 ->getOptionLabelUsing(
                                     fn($value) => ($a = ActividadEconomica::find($value))
-                                        ? "{$a->codigo} — {$a->nombre}"
+                                        ? "{$a->codigo} - {$a->nombre}"
                                         : $value
                                 )
                                 ->getOptionLabelsUsing(
                                     fn(array $values) =>
                                     ActividadEconomica::whereIn('id', $values)
                                         ->get()
-                                        ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} — {$a->nombre}"])
+                                        ->mapWithKeys(fn($a) => [$a->id => "{$a->codigo} - {$a->nombre}"])
                                         ->all()
                                 )
                                 ->default($empresa?->actividadesSecundarias?->pluck('id')->toArray() ?? [])
@@ -1019,7 +1019,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->label('¿Cómo solicita un empleado un permiso personal?')
                                 ->placeholder('Ej: El trabajador solicita el permiso por escrito con 24 horas de anticipación al jefe inmediato. Los permisos de más de un día requieren aprobación de gerencia...')
                                 ->rows(2)
-                                ->helperText('Puede escribirlo en sus propias palabras — el sistema lo redactará formalmente.')
+                                ->helperText('Puede escribirlo en sus propias palabras - el sistema lo redactará formalmente.')
                                 ->columnSpanFull(),
 
                             Forms\Components\ToggleButtons::make('tiene_licencias_especiales')
@@ -1218,7 +1218,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->collapsed()
                                 ->itemLabel(
                                     fn(array $state): string => ($state['nombre'] ?? 'Nueva conducta') .
-                                        ' — ' . match ($state['tipo_falta'] ?? 'leve') {
+                                        ' - ' . match ($state['tipo_falta'] ?? 'leve') {
                                             'muy_grave' => 'Muy grave',
                                             'grave'     => 'Grave',
                                             default     => 'Leve',
@@ -1227,7 +1227,7 @@ class CreateReglamentoInterno extends CreateRecord
                                             'llamado_atencion' => 'Llamado de atención',
                                             'suspension'       => 'Suspensión' . (!empty($state['dias_suspension']) ? ' ' . $state['dias_suspension'] . ' días' : ''),
                                             'terminacion'      => 'Terminación',
-                                            default            => '—',
+                                            default            => '-',
                                         }
                                 )
                                 ->addActionLabel('+ Agregar conducta')
@@ -1264,7 +1264,7 @@ class CreateReglamentoInterno extends CreateRecord
                     //     ->columnSpanFull(),
 
                     Forms\Components\Section::make('Seguridad y Salud en el Trabajo (SG-SST)')
-                        ->description('El Ministerio de Trabajo verifica que el RIT incluya el SG-SST. No importa si está en proceso — lo importante es que quede documentado.')
+                        ->description('El Ministerio de Trabajo verifica que el RIT incluya el SG-SST. No importa si está en proceso - lo importante es que quede documentado.')
                         ->schema([
                             Forms\Components\ToggleButtons::make('tiene_sg_sst')
                                 ->label('¿Su empresa tiene el Sistema de Gestión de Seguridad y Salud en el Trabajo (SG-SST)?')
@@ -1322,17 +1322,17 @@ class CreateReglamentoInterno extends CreateRecord
                                         }),
                                 )
                                 ->options([
-                                    'ergonomico'  => 'Ergonómico — posturas, levantamiento de cargas, trabajo de pie',
-                                    'psicosocial' => 'Psicosocial — estrés, turnos nocturnos, atención al público',
-                                    'mecanico'    => 'Mecánico — maquinaria, herramientas, vehículos',
-                                    'electrico'   => 'Eléctrico — instalaciones eléctricas, equipos de alta tensión',
-                                    'publico'     => 'Público — riesgo de robo, violencia en atención al cliente',
-                                    'alturas'     => 'Alturas — trabajo en andamios, techos, superficies elevadas',
-                                    'quimico'     => 'Químico — exposición a solventes, pinturas, gases o sustancias tóxicas',
-                                    'vial'        => 'Vial — conducción de vehículos, motos o maquinaria en vías',
-                                    'fisico'      => 'Físico — ruido excesivo, vibraciones, temperatura extrema',
-                                    'biologico'   => 'Biológico — manipulación de alimentos, residuos o agentes biológicos',
-                                    'locativo'    => 'Locativo — pisos húmedos, escaleras, superficies irregulares',
+                                    'ergonomico'  => 'Ergonómico - posturas, levantamiento de cargas, trabajo de pie',
+                                    'psicosocial' => 'Psicosocial - estrés, turnos nocturnos, atención al público',
+                                    'mecanico'    => 'Mecánico - maquinaria, herramientas, vehículos',
+                                    'electrico'   => 'Eléctrico - instalaciones eléctricas, equipos de alta tensión',
+                                    'publico'     => 'Público - riesgo de robo, violencia en atención al cliente',
+                                    'alturas'     => 'Alturas - trabajo en andamios, techos, superficies elevadas',
+                                    'quimico'     => 'Químico - exposición a solventes, pinturas, gases o sustancias tóxicas',
+                                    'vial'        => 'Vial - conducción de vehículos, motos o maquinaria en vías',
+                                    'fisico'      => 'Físico - ruido excesivo, vibraciones, temperatura extrema',
+                                    'biologico'   => 'Biológico - manipulación de alimentos, residuos o agentes biológicos',
+                                    'locativo'    => 'Locativo - pisos húmedos, escaleras, superficies irregulares',
                                     'otro'        => 'Otro riesgo específico de mi empresa',
                                 ])
                                 ->icons([
@@ -1363,7 +1363,7 @@ class CreateReglamentoInterno extends CreateRecord
                             Forms\Components\ToggleButtons::make('tiene_epp')
                                 ->label('¿Sus trabajadores necesitan elementos de protección personal? (casco, guantes, gafas, botas...)')
                                 ->options([
-                                    'no' => 'No aplica — trabajo de oficina o bajo riesgo',
+                                    'no' => 'No aplica - trabajo de oficina o bajo riesgo',
                                     'si' => 'Sí, se requieren elementos de protección',
                                 ])
                                 ->default('no')
@@ -1387,7 +1387,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->options([
                                     'libre'     => 'Sí, libre uso',
                                     'descansos' => 'Solo en descansos y pausas',
-                                    'prohibido' => 'No — prohibido salvo emergencias',
+                                    'prohibido' => 'No - prohibido salvo emergencias',
                                 ])
                                 ->colors([
                                     'libre'     => 'success',
@@ -1407,8 +1407,8 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->label('¿La empresa entrega uniforme o dotación?')
                                 ->options([
                                     'no'              => 'No',
-                                    'uniforme'        => 'Sí — uniforme completo',
-                                    'dotacion_basica' => 'Sí — dotación básica (zapatos, ropa de trabajo)',
+                                    'uniforme'        => 'Sí - uniforme completo',
+                                    'dotacion_basica' => 'Sí - dotación básica (zapatos, ropa de trabajo)',
                                 ])
                                 ->default('no')
                                 ->inline(),
@@ -1426,7 +1426,7 @@ class CreateReglamentoInterno extends CreateRecord
                             Forms\Components\ToggleButtons::make('politica_confidencialidad')
                                 ->label('¿Exige confidencialidad o reserva de información a sus empleados?')
                                 ->options([
-                                    'por_contrato' => 'Sí — está en el contrato de trabajo',
+                                    'por_contrato' => 'Sí - está en el contrato de trabajo',
                                     'solo_verbal'  => 'Solo lo mencionamos verbalmente',
                                     'no'           => 'No aplica a nuestra empresa',
                                 ])
@@ -1555,7 +1555,7 @@ class CreateReglamentoInterno extends CreateRecord
         if ($actividadId) {
             $actividad = ActividadEconomica::find($actividadId);
             $data['actividad_economica'] = $actividad
-                ? "{$actividad->codigo} — {$actividad->nombre}"
+                ? "{$actividad->codigo} - {$actividad->nombre}"
                 : '';
             // Mantener el ID para que fillForm() lo restaure al editar
             $data['actividad_economica_id'] = $actividadId;
@@ -1568,7 +1568,7 @@ class CreateReglamentoInterno extends CreateRecord
         if (!empty($actividadesIds)) {
             $data['actividades_secundarias'] = ActividadEconomica::whereIn('id', $actividadesIds)
                 ->get()
-                ->map(fn($a) => "{$a->codigo} — {$a->nombre}")
+                ->map(fn($a) => "{$a->codigo} - {$a->nombre}")
                 ->join(', ');
             // Mantener los IDs para que fillForm() los restaure al editar
             $data['actividades_secundarias_ids'] = $actividadesIds;
@@ -1585,12 +1585,12 @@ class CreateReglamentoInterno extends CreateRecord
                 ($empresa->departamento ?? '')
         );
 
-        // 4. Guardar cuestionario PRIMERO en estado 'generando' — si la UI se cierra o
+        // 4. Guardar cuestionario PRIMERO en estado 'generando' - si la UI se cierra o
         //    el navegador falla, las respuestas no se pierden y el job puede completarse.
         $record = ReglamentoInterno::updateOrCreate(
             ['empresa_id' => $empresa->id],
             [
-                'nombre'                  => 'Reglamento Interno — ' . now()->format('d/m/Y'),
+                'nombre'                  => 'Reglamento Interno - ' . now()->format('d/m/Y'),
                 'texto_completo'          => '',
                 'activo'                  => false,
                 'respuestas_cuestionario' => $data,
@@ -1602,7 +1602,7 @@ class CreateReglamentoInterno extends CreateRecord
             ]
         );
 
-        // 5. Despachar el job al queue 'gemini' — la IA corre fuera del ciclo HTTP,
+        // 5. Despachar el job al queue 'gemini' - la IA corre fuera del ciclo HTTP,
         //    sin límites de timeout del servidor web.
         GenerarTextoRITJob::dispatch($record, Auth::id());
 

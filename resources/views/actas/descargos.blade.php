@@ -108,7 +108,7 @@ table { border-collapse: collapse; width: 100%; }
         @if($fotoInicioBase64)
         <div style="text-align:center; margin-top:6pt; margin-bottom:4pt;">
             <img src="{{ $fotoInicioBase64 }}" width="170" height="128">
-            <p class="photo-caption">Fotografía de verificación — inicio de la diligencia | {{ $fotoInicioEn }}</p>
+            <p class="photo-caption">Fotografía de verificación - inicio de la diligencia | {{ $fotoInicioEn }}</p>
         </div>
         @endif
     </li>
@@ -120,7 +120,7 @@ table { border-collapse: collapse; width: 100%; }
         @if($fotoFinBase64)
         <div style="text-align:center; margin-top:6pt; margin-bottom:4pt;">
             <img src="{{ $fotoFinBase64 }}" width="170" height="128">
-            <p class="photo-caption">Fotografía de verificación — cierre de la diligencia | {{ $fotoFinEn }}</p>
+            <p class="photo-caption">Fotografía de verificación - cierre de la diligencia | {{ $fotoFinEn }}</p>
         </div>
         @endif
     </li>

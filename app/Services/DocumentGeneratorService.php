@@ -119,7 +119,7 @@ class DocumentGeneratorService
             ])));
             $lugarDiligencia = $lugarDiligencia ?: 'instalaciones de la empresa';
         } else {
-            $lugarDiligencia = 'diligencia virtual — se remitirá el enlace de acceso al correo registrado';
+            $lugarDiligencia = 'diligencia virtual - se remitirá el enlace de acceso al correo registrado';
         }
 
         // ── Datos del trabajador ─────────────────────────────────────────────
@@ -201,7 +201,7 @@ class DocumentGeneratorService
             </ul>';
         }
 
-        // ── Tabla de sanciones del RIT (Artículo 20) — por gravedad EXACTA ───────
+        // ── Tabla de sanciones del RIT (Artículo 20) - por gravedad EXACTA ───────
         $tablaSancionesHTML = '';
         $rit = $empresa->reglamentoInterno;
         if ($rit) {
@@ -1411,7 +1411,7 @@ PROMPT;
     /**
      * Construye la TABLA DE SANCIONES de forma DETERMINÍSTICA (verbatim), sin IA.
      * Las faltas salen del RIT DEL CLIENTE (generado por IA o subido manualmente),
-     * vía ReglamentoInternoService::extraerSancionesParaEmail — NO de las sanciones
+     * vía ReglamentoInternoService::extraerSancionesParaEmail - NO de las sanciones
      * genéricas. Un "otro motivo" no tipificado se ancla a un artículo del CST
      * citado textualmente (nunca se inventa la sanción).
      */
@@ -1448,7 +1448,7 @@ HTML;
             $articulo = $this->buscarArticuloCstParaTexto($otroMotivo, $empresa->id ?? null);
             $conducta = e($otroMotivo);
             if ($articulo) {
-                $ref = e(trim(($articulo->codigo ? $articulo->codigo . ' — ' : '') . ($articulo->titulo ?? '')));
+                $ref = e(trim(($articulo->codigo ? $articulo->codigo . ' - ' : '') . ($articulo->titulo ?? '')));
                 $extracto = e(\Illuminate\Support\Str::limit(trim(preg_replace('/\s+/', ' ', (string) ($articulo->texto_completo ?? $articulo->descripcion ?? ''))), 320));
                 $fundamentoCol = "Fundamento legal: <strong>{$ref}</strong>. <em>{$extracto}</em>";
                 $tipoCol = 'Conforme al CST';

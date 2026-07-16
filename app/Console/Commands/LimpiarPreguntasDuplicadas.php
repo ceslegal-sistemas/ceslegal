@@ -27,7 +27,7 @@ class LimpiarPreguntasDuplicadas extends Command
 
         foreach ($afectadas as $row) {
             $dId = $row->diligencia_descargo_id;
-            $this->line("\n─── Diligencia ID: {$dId} — {$row->total} preguntas ───");
+            $this->line("\n─── Diligencia ID: {$dId} - {$row->total} preguntas ───");
 
             // Todas las preguntas estándar ordenadas por ID (las primeras 13 son las originales)
             $estandares = DB::table('preguntas_descargos')

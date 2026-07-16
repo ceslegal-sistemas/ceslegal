@@ -29,7 +29,7 @@ Route::get('/__cap-test', function (\Illuminate\Http\Request $request) {
     return response()->json(['ok' => true, 'slept_ms' => $ms, 'pid' => getmypid()]);
 });
 
-// PayU — URL de confirmación server-to-server (sin CSRF, sin auth)
+// PayU - URL de confirmación server-to-server (sin CSRF, sin auth)
 Route::post('/payu/confirmacion', [PayUConfirmationController::class, 'handle'])
     ->name('payu.confirmacion')
     ->withoutMiddleware([VerifyCsrfToken::class]);
@@ -128,7 +128,7 @@ Route::get('/descargar/sancion/{procesoId}', function ($procesoId) {
     ]);
 })->middleware(['auth'])->name('descargar.sancion');
 
-// Fotos privadas de descargos (inicio/fin) — solo usuarios autenticados
+// Fotos privadas de descargos (inicio/fin) - solo usuarios autenticados
 Route::get('/admin/fotos-descargos/{diligencia}/{tipo}', function ($diligenciaId, $tipo) {
     abort_unless(in_array($tipo, ['inicio', 'fin']), 404);
     $diligencia = \App\Models\DiligenciaDescargo::findOrFail($diligenciaId);

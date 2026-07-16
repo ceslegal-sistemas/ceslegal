@@ -17,7 +17,7 @@ class GenerarGAPReporteJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** DomPDF puro, sin HTTP — 60 s es más que suficiente */
+    /** DomPDF puro, sin HTTP - 60 s es más que suficiente */
     public int $timeout = 60;
 
     /** Reintentar una vez en caso de fallo transitorio (ej: disco lleno momentáneo) */

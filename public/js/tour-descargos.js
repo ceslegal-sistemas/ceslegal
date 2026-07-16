@@ -1,5 +1,5 @@
 /**
- * Guías interactivas de CES Legal (Driver.js — https://driverjs.com)
+ * Guías interactivas de CES Legal (Driver.js - https://driverjs.com)
  *
  * Las guías se adaptan al ROL del usuario autenticado, que llega en
  * window.CES_USER = { role, esBufete, empresaActiva, nombre } (inyectado por
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const hola = CES.nombre ? "Hola, " + CES.nombre + ". " : "";
 
     // ══════════════════════════════════════════════════════════════════════════
-    // INICIO (Dashboard) — guía por rol
+    // INICIO (Dashboard) - guía por rol
     // ══════════════════════════════════════════════════════════════════════════
     if (isAdminDashboard) {
         tagSidebar();

@@ -67,7 +67,7 @@ class EmpresasRelationManager extends RelationManager
                                     ->orderBy('razon_social')
                                     ->get()
                                     ->mapWithKeys(fn(Empresa $e) => [
-                                        $e->id => $e->razon_social . ($e->nit ? " — {$e->nit}" : '') . ($e->bufete_id ? ' (ya en otro bufete)' : ''),
+                                        $e->id => $e->razon_social . ($e->nit ? " - {$e->nit}" : '') . ($e->bufete_id ? ' (ya en otro bufete)' : ''),
                                     ])
                                     ->toArray();
                             })

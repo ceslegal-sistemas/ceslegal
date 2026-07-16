@@ -6,7 +6,7 @@
 // servidor (PHP-FPM + bootstrap de Laravel + sesión/caché en MySQL).
 //
 // Requiere k6 (https://k6.io/docs/get-started/installation/). Se corre DESDE TU PC
-// o una VM, apuntando al CLON/STAGING — nunca a producción.
+// o una VM, apuntando al CLON/STAGING - nunca a producción.
 //
 // Uso:
 //   k6 run -e BASE_URL=https://staging.tudominio.com stress-test/k6-ramp.js

@@ -94,7 +94,7 @@ class CorteSupremaLaboralScraper
             $fallosConsecutivos = 0;
 
             $resultado[] = [
-                'titulo'       => "Sentencia {$nombre} — Corte Suprema de Justicia (Sala Laboral)",
+                'titulo'       => "Sentencia {$nombre} - Corte Suprema de Justicia (Sala Laboral)",
                 'tipo'         => 'sentencia_csj',
                 'referencia'   => $nombre,
                 'descripcion'  => "Sala de Casación Laboral · {$anno}",

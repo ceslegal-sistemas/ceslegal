@@ -1,4 +1,4 @@
-# Bufetes (multi-tenant) — Implementation Plan
+# Bufetes (multi-tenant) - Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -150,7 +150,7 @@ return new class extends Migration {
 };
 ```
 
-- [ ] **Step 4: Modelo `Bufete`** (la relación `empresas` compila aunque `empresas.bufete_id` se cree en Task 2; el test de esta task ya lo requiere, así que incluir la columna aquí o correr Task 2 antes — ver nota). Para mantener la task autocontenida, **incluir en esta migración** también `empresas.bufete_id` NO; en su lugar, **reordenar**: ejecutar Task 2 como parte del mismo commit lógico. Alternativa simple: crear ambas columnas aquí. Decisión: **crear `empresas.bufete_id` en Task 2 y mover este test a después de Task 2.** (Ver Task 2.)
+- [ ] **Step 4: Modelo `Bufete`** (la relación `empresas` compila aunque `empresas.bufete_id` se cree en Task 2; el test de esta task ya lo requiere, así que incluir la columna aquí o correr Task 2 antes - ver nota). Para mantener la task autocontenida, **incluir en esta migración** también `empresas.bufete_id` NO; en su lugar, **reordenar**: ejecutar Task 2 como parte del mismo commit lógico. Alternativa simple: crear ambas columnas aquí. Decisión: **crear `empresas.bufete_id` en Task 2 y mover este test a después de Task 2.** (Ver Task 2.)
 
 ```php
 <?php
@@ -257,7 +257,7 @@ public function empresasGestionadas() {
 - Create: `app/Support/EmpresaActiva.php` (helper del selector de sesión)
 - Test: `tests/Feature/Bufete/ScopeAccesoTest.php`
 
-- [ ] **Step 1: Test (falla) — cubre los 4 casos:**
+- [ ] **Step 1: Test (falla) - cubre los 4 casos:**
 
 ```php
 public function test_scope_por_rol(): void
@@ -381,7 +381,7 @@ public function test_selector_solo_acepta_empresas_del_bufete(): void
 
 - [ ] **Step 3: Componente Livewire `SelectorEmpresa`:** método `seleccionar($id)` que valida `in_array($id, empresasGestionadas ids)` antes de `EmpresaActiva::set`, y `todas()` que hace `EmpresaActiva::clear()`. `render()` lista las empresas del bufete + opción "Todas".
 
-- [ ] **Step 4: Vista** — dropdown con estilo de marca (reutilizar tokens `ces-*`). Mostrar la empresa activa o "Todas".
+- [ ] **Step 4: Vista** - dropdown con estilo de marca (reutilizar tokens `ces-*`). Mostrar la empresa activa o "Todas".
 
 - [ ] **Step 5: Render hook** solo visible si `auth()->user()?->esAbogadoDeBufete()`:
 
@@ -397,14 +397,14 @@ FilamentView::registerRenderHook(PanelsRenderHook::TOPBAR_END,
 
 ---
 
-## Task 6: Registro — elección Empresa vs Bufete
+## Task 6: Registro - elección Empresa vs Bufete
 
 **Files:**
 - Modify: `app/Filament/Admin/Pages/Auth/Register.php`
 - Create: `resources/views/filament/components/register-tipo-cuenta.blade.php`
 - Test: `tests/Feature/Bufete/RegistroBufeteTest.php`
 
-- [ ] **Step 1: Test (falla) — registro de bufete crea Bufete + abogado:**
+- [ ] **Step 1: Test (falla) - registro de bufete crea Bufete + abogado:**
 
 ```php
 public function test_handle_registration_bufete_crea_bufete_y_abogado(): void
@@ -468,7 +468,7 @@ public function test_handle_registration_bufete_crea_bufete_y_abogado(): void
 
 ---
 
-## Task 9: Permisos — gates RIT vs sanción + gestión de abogados
+## Task 9: Permisos - gates RIT vs sanción + gestión de abogados
 
 **Files:**
 - Modify: `app/Filament/Admin/Resources/ProcesoDisciplinarioResource.php` (gates)

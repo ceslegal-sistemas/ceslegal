@@ -64,13 +64,13 @@ class EmpresaResource extends Resource
                     Infolists\Components\TextEntry::make('nit')->label('NIT')
                         ->icon('heroicon-o-identification'),
                     Infolists\Components\TextEntry::make('tipo_societario')
-                        ->label('Tipo societario')->placeholder('—'),
+                        ->label('Tipo societario')->placeholder('-'),
                     Infolists\Components\TextEntry::make('representante_legal')
-                        ->label('Representante legal')->placeholder('—')->icon('heroicon-o-user'),
+                        ->label('Representante legal')->placeholder('-')->icon('heroicon-o-user'),
                     Infolists\Components\TextEntry::make('actividadEconomica.nombre')
-                        ->label('Actividad económica')->placeholder('—'),
+                        ->label('Actividad económica')->placeholder('-'),
                     Infolists\Components\TextEntry::make('numero_empleados')
-                        ->label('Número de empleados')->placeholder('—')->icon('heroicon-o-user-group'),
+                        ->label('Número de empleados')->placeholder('-')->icon('heroicon-o-user-group'),
                     Infolists\Components\IconEntry::make('active')
                         ->label('Activa')->boolean(),
                 ])->columns(2),
@@ -80,15 +80,15 @@ class EmpresaResource extends Resource
                 ->iconColor('primary')
                 ->schema([
                     Infolists\Components\TextEntry::make('telefono')
-                        ->label('Teléfono')->placeholder('—')->icon('heroicon-o-phone'),
+                        ->label('Teléfono')->placeholder('-')->icon('heroicon-o-phone'),
                     Infolists\Components\TextEntry::make('email_contacto')
-                        ->label('Correo')->placeholder('—')->icon('heroicon-o-envelope'),
+                        ->label('Correo')->placeholder('-')->icon('heroicon-o-envelope'),
                     Infolists\Components\TextEntry::make('direccion')
-                        ->label('Dirección')->placeholder('—')->columnSpanFull(),
+                        ->label('Dirección')->placeholder('-')->columnSpanFull(),
                     Infolists\Components\TextEntry::make('departamento')
-                        ->label('Departamento')->placeholder('—'),
+                        ->label('Departamento')->placeholder('-'),
                     Infolists\Components\TextEntry::make('ciudad')
-                        ->label('Ciudad / Municipio')->placeholder('—'),
+                        ->label('Ciudad / Municipio')->placeholder('-'),
                     Infolists\Components\TextEntry::make('dias_laborales_texto')
                         ->label('Días laborales')
                         ->state(fn(Empresa $record) => $record->dias_laborales_texto)
@@ -350,7 +350,7 @@ class EmpresaResource extends Resource
                         ->columnSpanFull(),
 
                     // ── Visor / descarga cuando existe RIT ───────────────────────
-                    // Estado del RIT (tarjeta branded) — al editar. La obligación ya se
+                    // Estado del RIT (tarjeta branded) - al editar. La obligación ya se
                     // muestra arriba junto al Nº de empleados, por eso aquí va sin ella.
                     Forms\Components\Placeholder::make('rit_estado')
                         ->hiddenLabel()
@@ -370,7 +370,7 @@ class EmpresaResource extends Resource
                     Forms\Components\Group::make([
                         Forms\Components\FileUpload::make('reglamento_docx_temp')
                             ->label('Subir Reglamento Interno (.docx o .pdf)')
-                            ->helperText('Formatos aceptados: .docx y .pdf — máx. 10 MB.')
+                            ->helperText('Formatos aceptados: .docx y .pdf - máx. 10 MB.')
                             ->acceptedFileTypes([
                                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                                 'application/pdf',
@@ -453,7 +453,7 @@ class EmpresaResource extends Resource
                     ->badge()
                     ->color('info')
                     ->tooltip(fn(Empresa $record): ?string => $record->actividadEconomica?->nombre)
-                    ->placeholder('—')
+                    ->placeholder('-')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('trabajadores_count')

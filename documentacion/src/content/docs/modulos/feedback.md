@@ -28,7 +28,7 @@ Toda la informacion recolectada es visible en el recurso **Feedback** del panel 
 
 El feedback del trabajador es **organico**: las preguntas de opinion aparecen una a una despues de responder todas las preguntas del formulario de descargos, con el mismo estilo y botones "Guardar y continuar". No es un modal separado.
 
-### Preguntas (5 pasos — todas opcionales)
+### Preguntas (5 pasos - todas opcionales)
 
 | Paso | Pregunta | Tipo de campo |
 |------|----------|---------------|
@@ -91,10 +91,10 @@ El sistema detecta automaticamente el momento ideal para solicitar feedback al c
 | 1 | ¿Como calificaria su experiencia general? | Radio: Muy buena / Buena / Mala / Muy mala |
 | 2 | ¿En que parte tuvo mas dificultad? | Radio: Registro de trabajadores / Creacion de la citacion / Ninguna / Todas |
 | 3 | ¿Le resulto facil crear la citacion? | Radio: Si / No |
-| 4 | ¿Por que no le resulto facil? | Textarea (condicional — aparece si respuesta es No) |
+| 4 | ¿Por que no le resulto facil? | Textarea (condicional - aparece si respuesta es No) |
 | 5 | ¿Que mejoraria de la plataforma? | Textarea obligatorio |
 | 6 | ¿Pudo completar el proceso sin ayuda? | Radio: Si / No |
-| 7 | ¿En que necesito ayuda? | Textarea (condicional — aparece si respuesta es No) |
+| 7 | ¿En que necesito ayuda? | Textarea (condicional - aparece si respuesta es No) |
 
 Campos guardados en `respuestas_adicionales`: `calificacion_experiencia`, `dificultad_proceso`, `facilidad_citacion`, `facilidad_citacion_porque`, `mejora_sugerida`, `completo_sin_ayuda`, `completo_sin_ayuda_porque`.
 
@@ -198,11 +198,11 @@ Visible en la parte superior del listado:
 
 Cada feedback tiene una vista de detalle organizada en secciones:
 
-1. **¿Quien respondio?** — Nombre, tipo de respondente, contexto (trigger), proceso y fecha
-2. **Calificacion** — Estrellas (1-5) con NPS y categoria lado a lado
-3. **Comentario o sugerencia** — Texto completo con soporte Markdown
-4. **Respuestas adicionales** — Lista de preguntas/respuestas del trigger especifico (oculta si vacia)
-5. **Metadatos tecnicos** — Usuario autenticado, IP, ID de diligencia (colapsada por defecto)
+1. **¿Quien respondio?** - Nombre, tipo de respondente, contexto (trigger), proceso y fecha
+2. **Calificacion** - Estrellas (1-5) con NPS y categoria lado a lado
+3. **Comentario o sugerencia** - Texto completo con soporte Markdown
+4. **Respuestas adicionales** - Lista de preguntas/respuestas del trigger especifico (oculta si vacia)
+5. **Metadatos tecnicos** - Usuario autenticado, IP, ID de diligencia (colapsada por defecto)
 
 ---
 

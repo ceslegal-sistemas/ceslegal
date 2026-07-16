@@ -336,7 +336,7 @@ class DiligenciaDescargoResource extends Resource
                         $iaService = new IADescargoService();
 
                         try {
-                            // Solo genera las 2 preguntas IA — las estándar ya están creadas
+                            // Solo genera las 2 preguntas IA - las estándar ya están creadas
                             $preguntas = $iaService->generarPreguntasIA($record, 2);
 
                             Notification::make()
@@ -572,7 +572,7 @@ class DiligenciaDescargoResource extends Resource
                             ->badge()
                             ->getStateUsing(function ($record) {
                                 if ($record->otp_verificado_en) return 'Verificado';
-                                if ($record->otpBloqueado())    return 'Bloqueado — máx. intentos';
+                                if ($record->otpBloqueado())    return 'Bloqueado - máx. intentos';
                                 if ($record->otp_enviado_a)     return 'OTP enviado (pendiente)';
                                 return 'Sin verificar';
                             })
@@ -586,16 +586,16 @@ class DiligenciaDescargoResource extends Resource
                         TextEntry::make('otp_verificado_en')
                             ->label('Verificado el')
                             ->dateTime('d/m/Y H:i:s')
-                            ->placeholder('—'),
+                            ->placeholder('-'),
 
                         TextEntry::make('otp_canal')
                             ->label('Canal')
                             ->badge()
-                            ->placeholder('—'),
+                            ->placeholder('-'),
 
                         TextEntry::make('otp_enviado_a')
                             ->label('Enviado a')
-                            ->placeholder('—'),
+                            ->placeholder('-'),
 
                         TextEntry::make('otp_intentos')
                             ->label('Intentos fallidos')
@@ -610,12 +610,12 @@ class DiligenciaDescargoResource extends Resource
                         TextEntry::make('otp_expira_en')
                             ->label('OTP expira en')
                             ->dateTime('d/m/Y H:i:s')
-                            ->placeholder('—'),
+                            ->placeholder('-'),
                     ])
                     ->columns(3),
 
                 // ── Disclaimer ────────────────────────────────────────────
-                InfoSection::make('Disclaimer — Declaración de identidad')
+                InfoSection::make('Disclaimer - Declaración de identidad')
                     ->icon('heroicon-o-document-check')
                     ->schema([
                         TextEntry::make('disclaimer_aceptado_en')
@@ -627,7 +627,7 @@ class DiligenciaDescargoResource extends Resource
 
                         TextEntry::make('disclaimer_ip')
                             ->label('IP de aceptación')
-                            ->placeholder('—'),
+                            ->placeholder('-'),
                     ])
                     ->columns(2),
 
@@ -656,12 +656,12 @@ class DiligenciaDescargoResource extends Resource
                         TextEntry::make('foto_inicio_en')
                             ->label('Tomada el (inicio)')
                             ->dateTime('d/m/Y H:i:s')
-                            ->placeholder('—'),
+                            ->placeholder('-'),
 
                         TextEntry::make('foto_fin_en')
                             ->label('Tomada el (cierre)')
                             ->dateTime('d/m/Y H:i:s')
-                            ->placeholder('—'),
+                            ->placeholder('-'),
                     ])
                     ->columns(2),
 

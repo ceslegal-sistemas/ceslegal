@@ -1,5 +1,5 @@
 {{--
-    Señales de Comportamiento — registro conductual durante el formulario
+    Señales de Comportamiento - registro conductual durante el formulario
     Completamente auto-contenido con inline styles garantizados.
     Variable: $diligencia (DiligenciaDescargo|null)
 --}}
@@ -73,7 +73,7 @@
     @if(!$diligencia)
         No hay diligencia de descargos registrada para este proceso.
     @else
-        Sin datos de comportamiento — el trabajador completó el formulario con
+        Sin datos de comportamiento - el trabajador completó el formulario con
         una versión anterior del sistema que no incluía la detección conductual.
     @endif
 </p>
@@ -192,11 +192,11 @@
                         @if($esPegada)
                             <span style="font-weight:700;color:#ef4444;">Sí</span>
                         @else
-                            <span style="color:var(--cb-dim);">—</span>
+                            <span style="color:var(--cb-dim);">-</span>
                         @endif
                     </td>
                     <td style="padding:6px 12px;text-align:center;font-size:.8rem;color:var(--cb-note);">
-                        {{ $tiempo > 0 ? $tiempo.'s' : '—' }}
+                        {{ $tiempo > 0 ? $tiempo.'s' : '-' }}
                     </td>
                     <td style="padding:6px 12px;text-align:center;font-size:.8rem;">
                         @if($cambios > 0)

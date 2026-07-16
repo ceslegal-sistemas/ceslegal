@@ -1,4 +1,4 @@
-{{-- Guía "Tu proceso" — datos desde GuiaProcesoService. Un solo root (widget Filament). --}}
+{{-- Guía "Tu proceso" - datos desde GuiaProcesoService. Un solo root (widget Filament). --}}
 @php $g = $guia; @endphp
 
 <div class="pg-wrap">
@@ -120,7 +120,7 @@
         .pg-lead{font-size:.85rem;line-height:1.5;color:#78716c;margin:.35rem 0 .9rem;max-width:60ch}
         html.dark .pg-lead{color:#a8a29e}
         .pg-head{margin-bottom:1.1rem}
-        /* pasos — una sola fila en escritorio, scroll horizontal en móvil (nunca se corta) */
+        /* pasos - una sola fila en escritorio, scroll horizontal en móvil (nunca se corta) */
         .pg-steps{display:flex;flex-wrap:nowrap;gap:0;align-items:flex-start;margin-bottom:1.1rem}
         .pg-step{position:relative;display:flex;flex-direction:column;align-items:center;flex:1 1 0;min-width:0;gap:.4rem;padding:0 .15rem}
         .pg-node{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;

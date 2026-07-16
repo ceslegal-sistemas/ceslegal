@@ -81,7 +81,7 @@ class CorreoEnviadoResource extends Resource
                         )
                         ->get()
                         ->mapWithKeys(fn($t) => [
-                            $t->id => "{$t->nombres} {$t->apellidos} — {$t->email}",
+                            $t->id => "{$t->nombres} {$t->apellidos} - {$t->email}",
                         ])
                 )
                 ->searchable()
@@ -250,7 +250,7 @@ class CorreoEnviadoResource extends Resource
                     ->label('Proceso')
                     ->badge()
                     ->color('indigo')
-                    ->placeholder('—')
+                    ->placeholder('-')
                     ->sortable(),
 
                 Tables\Columns\BadgeColumn::make('prioridad')

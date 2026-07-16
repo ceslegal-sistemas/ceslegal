@@ -27,7 +27,7 @@
                 data-pt-light="primary:#16a34a,secondary:#22c55e"
                 style="width:20px;height:20px;flex-shrink:0">
             </lord-icon>
-            <span><strong>Ya lo tengo:</strong> súbalo en formato .docx o .pdf — lo procesamos automáticamente.</span>
+            <span><strong>Ya lo tengo:</strong> súbalo en formato .docx o .pdf - lo procesamos automáticamente.</span>
         </div>
 
         <div class="pt-bullet">
@@ -53,7 +53,7 @@
     </div>
 
     <p class="pt-footer">
-        Art. 105 CST — Ley 2365/2024 (prevención acoso sexual)
+        Art. 105 CST - Ley 2365/2024 (prevención acoso sexual)
     </p>
 
 </div>

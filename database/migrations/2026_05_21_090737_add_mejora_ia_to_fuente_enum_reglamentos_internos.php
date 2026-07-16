@@ -13,7 +13,7 @@ return new class extends Migration
         if (DB::getDriverName() !== 'mysql') {
             return;
         }
-        // ALTER COLUMN ENUM es DDL nativo — no tiene equivalente directo en Blueprint
+        // ALTER COLUMN ENUM es DDL nativo - no tiene equivalente directo en Blueprint
         DB::statement("ALTER TABLE `reglamentos_internos`
             MODIFY COLUMN `fuente` ENUM('subido', 'construido_ia', 'mejora_ia')
             NOT NULL DEFAULT 'subido'");

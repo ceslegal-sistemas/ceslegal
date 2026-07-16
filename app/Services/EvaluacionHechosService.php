@@ -113,7 +113,7 @@ class EvaluacionHechosService
         $contextoReglamento   = $this->obtenerContextoReglamento($empresaId);
         $systemPrompt = "Eres un redactor jurídico-laboral experto en derecho colombiano. " .
             "Redactas hechos disciplinarios en tercera persona, lenguaje formal, mínimo 3 párrafos. " .
-            "NUNCA uses corchetes ni placeholders — usa SIEMPRE los datos exactos que se te proporcionan. " .
+            "NUNCA uses corchetes ni placeholders - usa SIEMPRE los datos exactos que se te proporcionan. " .
             "Responde ÚNICAMENTE con JSON válido sin bloques de código ni texto adicional.\n\n" .
             $contextoAntecedentes . "\n" . $contextoReglamento;
 
@@ -129,7 +129,7 @@ class EvaluacionHechosService
             : '';
 
         $prompt = <<<PROMPT
-Con base en los siguientes datos, redacta los hechos del proceso disciplinario en lenguaje jurídico-laboral formal colombiano (mínimo 3 párrafos, tercera persona). Usa EXACTAMENTE los datos proporcionados — NO uses corchetes, NO inventes ni omitas información.
+Con base en los siguientes datos, redacta los hechos del proceso disciplinario en lenguaje jurídico-laboral formal colombiano (mínimo 3 párrafos, tercera persona). Usa EXACTAMENTE los datos proporcionados - NO uses corchetes, NO inventes ni omitas información.
 
 DATOS DEL TRABAJADOR:
 - Nombre completo: {$nombreCompleto}
@@ -184,16 +184,16 @@ Eres un abogado laboralista experto de CES Legal (Colombia). Estás ayudando al 
 FECHA ACTUAL DEL SISTEMA: {$hoy}
 Usa esta fecha para resolver expresiones relativas como "ayer", "la semana pasada", "el viernes", etc.
 
-TRABAJADOR: {$nombreTrabajador} — Cargo: {$cargo}
+TRABAJADOR: {$nombreTrabajador} - Cargo: {$cargo}
 
 {$contextoAntecedentes}
 
 {$contextoReglamento}
 
-TU MISIÓN: Obtener por conversación TODA la información necesaria para redactar un descargo completo y sólido. Tú eres quien debe garantizar que las preguntas cubran todo — no el empleador. Si una respuesta es vaga o insuficiente, pregunta de nuevo hasta tener el detalle necesario.
+TU MISIÓN: Obtener por conversación TODA la información necesaria para redactar un descargo completo y sólido. Tú eres quien debe garantizar que las preguntas cubran todo - no el empleador. Si una respuesta es vaga o insuficiente, pregunta de nuevo hasta tener el detalle necesario.
 
 ELEMENTOS QUE DEBES TENER ANTES DE FINALIZAR (evalúa cada uno):
-1. ¿Qué conducta exactamente ocurrió? (con suficiente detalle para el expediente — no "llegó tarde" sino cuándo, cuánto, cómo se enteró el jefe)
+1. ¿Qué conducta exactamente ocurrió? (con suficiente detalle para el expediente - no "llegó tarde" sino cuándo, cuánto, cómo se enteró el jefe)
 2. ¿Cuándo ocurrió? (fecha exacta o aproximada)
 3. ¿El trabajador avisó, pidió permiso o dio alguna justificación antes o después?
 4. ¿Hay algún contexto, circunstancia especial o antecedente inmediato que explique lo sucedido?
@@ -206,8 +206,8 @@ Los antecedentes disciplinarios ya los tienes en el bloque de arriba: no los pre
 Cuando tengas los 5 elementos, redacta los hechos en lenguaje jurídico-laboral formal (mínimo 3 párrafos, tercera persona) e incluye los antecedentes en el párrafo de contexto.
 
 RESPONDE SIEMPRE EN JSON VÁLIDO sin bloques de código:
-— Mientras conversas: {"mensaje": "...", "listo": false, "datos": null}
-— Al finalizar: {"mensaje": "...", "listo": true, "datos": {"hechos": "...", "fecha_ocurrencia": "YYYY-MM-DD o null", "resumen": "Una oración que resume los hechos"}}
+- Mientras conversas: {"mensaje": "...", "listo": false, "datos": null}
+- Al finalizar: {"mensaje": "...", "listo": true, "datos": {"hechos": "...", "fecha_ocurrencia": "YYYY-MM-DD o null", "resumen": "Una oración que resume los hechos"}}
 SYSTEM;
     }
 
@@ -266,10 +266,10 @@ SYSTEM;
             ->get(['codigo', 'estado', 'tipo_sancion', 'fecha_ocurrencia', 'hechos', 'created_at']);
 
         if ($procesos->isEmpty()) {
-            return "ANTECEDENTES DEL SISTEMA (base de datos — NO preguntes al empleador):\nSin antecedentes. Es el primer proceso disciplinario registrado para este trabajador.";
+            return "ANTECEDENTES DEL SISTEMA (base de datos - NO preguntes al empleador):\nSin antecedentes. Es el primer proceso disciplinario registrado para este trabajador.";
         }
 
-        $lineas = ["ANTECEDENTES DEL SISTEMA (base de datos — NO preguntes al empleador):"];
+        $lineas = ["ANTECEDENTES DEL SISTEMA (base de datos - NO preguntes al empleador):"];
         $lineas[] = "Este trabajador tiene {$procesos->count()} proceso(s) disciplinario(s) previo(s):";
 
         foreach ($procesos as $i => $p) {
@@ -285,7 +285,7 @@ SYSTEM;
                 ? mb_substr(strip_tags($p->hechos), 0, 200)
                 : 'Sin descripción';
 
-            $lineas[] = "  {$num}. [{$p->codigo}] Ocurrencia: {$fecha} — Estado: {$estado} — {$sancion}";
+            $lineas[] = "  {$num}. [{$p->codigo}] Ocurrencia: {$fecha} - Estado: {$estado} - {$sancion}";
             $lineas[] = "     Hechos: {$resumen}";
         }
 
@@ -335,7 +335,7 @@ SYSTEM;
 
     /**
      * Toma un borrador en lenguaje coloquial y devuelve una versión expandida,
-     * factual y objetiva (sin lenguaje jurídico aún — eso lo hace generarHechos).
+     * factual y objetiva (sin lenguaje jurídico aún - eso lo hace generarHechos).
      */
     public function mejorarRedaccion(string $textoBorrador, int $empresaId = 0, array $contexto = []): string
     {
@@ -346,9 +346,9 @@ SYSTEM;
         // Build "datos conocidos" block so the AI doesn't mark them as [COMPLETAR]
         $datosConocidos = '';
         if (!empty($contexto)) {
-            $lineas = ['DATOS YA CONOCIDOS DEL FORMULARIO (úsalos directamente — NO uses [COMPLETAR] para estos):'];
+            $lineas = ['DATOS YA CONOCIDOS DEL FORMULARIO (úsalos directamente - NO uses [COMPLETAR] para estos):'];
             if (!empty($contexto['trabajador_nombre'])) {
-                $cargo = !empty($contexto['trabajador_cargo']) ? " — Cargo: {$contexto['trabajador_cargo']}" : '';
+                $cargo = !empty($contexto['trabajador_cargo']) ? " - Cargo: {$contexto['trabajador_cargo']}" : '';
                 $lineas[] = "- Trabajador: {$contexto['trabajador_nombre']}{$cargo}";
             }
             if (!empty($contexto['fecha_hecho'])) {
@@ -373,7 +373,7 @@ TAREA: Reescribir el borrador del empleador de forma ESPECÍFICA y ÚTIL para el
 
 REGLAS CRÍTICAS:
 1. Conserva todos los hechos CONCRETOS que ya están escritos.
-2. NO amplíes con frases genéricas como "omitió sus funciones" o "no cumplió sus responsabilidades" — eso no sirve en un expediente.
+2. NO amplíes con frases genéricas como "omitió sus funciones" o "no cumplió sus responsabilidades" - eso no sirve en un expediente.
 3. Usa los DATOS YA CONOCIDOS listados arriba directamente en el texto. Donde falte información DESCONOCIDA que el proceso necesita, usa: [COMPLETAR: descripción breve de qué dato falta].
 4. Al final del texto, en una línea separada, escribe: "Norma aplicable: [artículo o numeral concreto del reglamento interno o del CST que aplica]"
 5. Tercera persona, tono factual y objetivo.
@@ -402,7 +402,7 @@ SYSTEM;
     /**
      * Genera una redacción completa y profesional de los hechos disciplinarios a partir de
      * un borrador y todos los datos ya capturados en el formulario.
-     * NUNCA deja marcadores [COMPLETAR] — omite los datos que no estén disponibles.
+     * NUNCA deja marcadores [COMPLETAR] - omite los datos que no estén disponibles.
      */
     public function generarRedaccionCompleta(string $borrador, int $empresaId = 0, array $contexto = []): string
     {
@@ -441,8 +441,8 @@ TAREA: Redacta los hechos disciplinarios para el expediente en 2-3 párrafos, co
 
 REGLAS ABSOLUTAS:
 1. Usa TODOS los datos del caso disponibles arriba.
-2. Si un dato NO está disponible, omítelo completamente — NUNCA uses "[COMPLETAR]", placeholders ni corchetes.
-3. Tercera persona, tono objetivo y factual — sin adornos ni frases genéricas.
+2. Si un dato NO está disponible, omítelo completamente - NUNCA uses "[COMPLETAR]", placeholders ni corchetes.
+3. Tercera persona, tono objetivo y factual - sin adornos ni frases genéricas.
 4. Incluye: conducta del trabajador, cuándo, dónde, cómo se enteró la empresa, consecuencia para la operación.
 5. Solo texto plano en párrafos. Sin HTML, sin listas, sin asteriscos, sin JSON.
 6. Máximo 200 palabras.
@@ -476,7 +476,7 @@ SYSTEM;
         if (empty($matches)) return [];
 
         // Solo excluir marcadores de fecha/hora cuando ya están capturados en el formulario.
-        // No excluir 'nombre' ni 'ubicación' — pueden referirse a otras personas (compañera,
+        // No excluir 'nombre' ni 'ubicación' - pueden referirse a otras personas (compañera,
         // testigo) o a sub-ubicaciones que el contexto no resuelve completamente.
         $excluirFecha = !empty($contexto['fecha_hecho']);
         $excluirHora  = !empty($contexto['hora_hecho']);
@@ -547,16 +547,16 @@ SYS;
 
         // Construir bloque de datos ya capturados
         $datosYaCapturados = $this->buildDatosCapturadosBloque($contexto,
-            'DATOS YA REGISTRADOS EN EL FORMULARIO (NO pidas estos datos — ya están capturados):'
+            'DATOS YA REGISTRADOS EN EL FORMULARIO (NO pidas estos datos - ya están capturados):'
         );
 
         // RAG: recuperar artículos legales semánticamente relevantes al relato
         // Filtra artículos universales (CST) + específicos del RIT de esta empresa
         $normasRag = $this->buscarNormasRelevantes($texto, empresaId: $empresaId > 0 ? $empresaId : null);
         $normasBloque = $normasRag
-            ? "NORMAS LEGALES RECUPERADAS (extractos reales de la base de datos — cita SOLO estas, con su texto exacto):\n{$normasRag}"
+            ? "NORMAS LEGALES RECUPERADAS (extractos reales de la base de datos - cita SOLO estas, con su texto exacto):\n{$normasRag}"
             : <<<NORMAS
-TABLA DE NORMAS APLICABLES (usa SOLO estas — no inventes artículos):
+TABLA DE NORMAS APLICABLES (usa SOLO estas - no inventes artículos):
 - Acoso laboral (hostigamiento, intimidación, maltrato psicológico): Ley 1010 de 2006
 - Acoso sexual en el trabajo: Ley 1257 de 2008 + Art. 62 num. 3 CST
 - Violencia física, amenazas o agresiones a compañeros/jefes: Art. 62 num. 2 CST
@@ -566,7 +566,7 @@ TABLA DE NORMAS APLICABLES (usa SOLO estas — no inventes artículos):
 - Abandono del puesto o ausencia sin justificar: Art. 62 num. 6 CST
 - Incumplimiento grave de obligaciones: Art. 62 num. 10 CST
 - Si hay reglamento interno aplicable, cita primero el artículo del reglamento.
-- Si no estás seguro del artículo exacto, NO lo cites — enfócate en la conducta.
+- Si no estás seguro del artículo exacto, NO lo cites - enfócate en la conducta.
 NORMAS;
 
         $system = <<<SYSTEM
@@ -578,11 +578,11 @@ CONTEXTO NORMATIVO:
 {$normasBloque}
 
 Evalúa el relato y señala EL criterio más urgente que falta.
-ENFÓCATE SOLO en lo que falta — NO menciones datos ya capturados arriba:
-1. CONDUCTA CONCRETA: ¿Es específica? "No cumplió funciones" no sirve — ¿qué hizo exactamente?
+ENFÓCATE SOLO en lo que falta - NO menciones datos ya capturados arriba:
+1. CONDUCTA CONCRETA: ¿Es específica? "No cumplió funciones" no sirve - ¿qué hizo exactamente?
 2. IMPACTO: ¿Se menciona consecuencia real para la empresa, el equipo o el servicio?
 3. PRUEBAS: ¿Hay testigos, cámara, correo, registro u otro soporte que obtener?
-NOTA: El historial disciplinario y la reincidencia YA están registrados en el sistema — NO los pidas.
+NOTA: El historial disciplinario y la reincidencia YA están registrados en el sistema - NO los pidas.
 
 Responde con 1 o 2 frases directas. Cita norma SOLO si está en las normas listadas arriba y aplica con certeza.
 Si el relato ya está completo, confírmalo brevemente.
@@ -644,7 +644,7 @@ SYSTEM;
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // RAG — Recuperación de normas legales por similitud semántica
+    // RAG - Recuperación de normas legales por similitud semántica
     // ──────────────────────────────────────────────────────────────────────────
 
     /**
@@ -702,7 +702,7 @@ SYSTEM;
             foreach ($top as $item) {
                 $art      = $item['articulo'];
                 $textoArt = $art->getRawOriginal('texto_completo') ?? $art->descripcion ?? '';
-                $fuente   = $art->fuente ? " — {$art->fuente}" : '';
+                $fuente   = $art->fuente ? " - {$art->fuente}" : '';
                 $lineas[] = "[{$art->codigo}{$fuente}]";
                 $lineas[] = $art->titulo;
                 if ($textoArt) {
@@ -842,7 +842,7 @@ SYSTEM;
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Llamadas a IA — patrón multi-turno con system prompt
+    // Llamadas a IA - patrón multi-turno con system prompt
     // ──────────────────────────────────────────────────────────────────────────
 
     /**

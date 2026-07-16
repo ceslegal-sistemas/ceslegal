@@ -1,4 +1,4 @@
-// PRUEBA SUAVE PARA PRODUCCIÓN (Camino B) — descargos.ceslegal.co
+// PRUEBA SUAVE PARA PRODUCCIÓN (Camino B) - descargos.ceslegal.co
 //
 // Objetivo: confirmar que el sitio aguanta carga MODERADA sin caerse, SIN buscar
 // el punto de quiebre (eso solo se hace en staging). Tope bajo (máx 20 VUs),
@@ -68,7 +68,7 @@ export function handleSummary(data) {
   const errPct = (g('errores_pct', 'rate') * 100).toFixed(2);
   const veredicto = errPct < 1 && g('http_req_duration', 'p(95)') < 2000
     ? 'OK: el sitio aguantó 20 usuarios concurrentes sin problema.'
-    : 'ATENCIÓN: hubo errores o lentitud — el plan está cerca de su límite con poca carga.';
+    : 'ATENCIÓN: hubo errores o lentitud - el plan está cerca de su límite con poca carga.';
   return {
     stdout:
       '\n================  RESUMEN (PROD SUAVE)  ================\n' +

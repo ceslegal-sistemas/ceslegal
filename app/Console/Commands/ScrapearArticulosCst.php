@@ -620,7 +620,7 @@ class ScrapearArticulosCst extends Command
         foreach ($lista as $numero => $meta) {
             // Respetar exclusiones (solo si no se usa --solo)
             if (!$soloNum && in_array($numero, $this->excluidos)) {
-                $this->line("  [excluido] Artículo. {$numero} — usar versión manual (más actualizada)");
+                $this->line("  [excluido] Artículo. {$numero} - usar versión manual (más actualizada)");
                 $skip++;
                 continue;
             }
@@ -643,8 +643,8 @@ class ScrapearArticulosCst extends Command
             $resultado = $this->scrapearArticulo($numero);
 
             if (!$resultado) {
-                $this->warn("  [error] {$codigo} — no se pudo obtener de leyes.co");
-                Log::warning("cst:scraper — sin resultado para Artículo. {$numero}");
+                $this->warn("  [error] {$codigo} - no se pudo obtener de leyes.co");
+                Log::warning("cst:scraper - sin resultado para Artículo. {$numero}");
                 $errores++;
                 continue;
             }
@@ -669,7 +669,7 @@ class ScrapearArticulosCst extends Command
             );
 
             $estado = $embedding ? '[ok]' : '[guardado sin embedding]';
-            $this->info("  {$estado} {$codigo} — {$resultado['titulo']}");
+            $this->info("  {$estado} {$codigo} - {$resultado['titulo']}");
             $ok++;
 
             usleep(400_000); // 400 ms entre requests
@@ -724,7 +724,7 @@ class ScrapearArticulosCst extends Command
         // El contenido del artículo está en div#statya (estructura de leyes.co)
         $statya = $xpath->query('//div[@id="statya"]');
         if (!$statya || $statya->length === 0) {
-            Log::warning("cst:scraper — div#statya no encontrado Artículo. {$numero}");
+            Log::warning("cst:scraper - div#statya no encontrado Artículo. {$numero}");
             return null;
         }
 
@@ -758,7 +758,7 @@ class ScrapearArticulosCst extends Command
         $texto = html_entity_decode(trim($texto), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         if (mb_strlen($texto) < 15) {
-            Log::warning("cst:scraper — texto demasiado corto Artículo. {$numero}");
+            Log::warning("cst:scraper - texto demasiado corto Artículo. {$numero}");
             return null;
         }
 
@@ -795,7 +795,7 @@ class ScrapearArticulosCst extends Command
                 continue;
             }
 
-            // El h1 contiene el título — lo formateamos especial
+            // El h1 contiene el título - lo formateamos especial
             if ($tag === 'h1') {
                 $t = trim(preg_replace('/\s+/', ' ', $hijo->textContent));
                 if ($t !== '') {
@@ -844,14 +844,14 @@ class ScrapearArticulosCst extends Command
             ]);
 
             if (!$response->successful()) {
-                Log::warning('cst:scraper — embedding fallido', ['status' => $response->status()]);
+                Log::warning('cst:scraper - embedding fallido', ['status' => $response->status()]);
                 return null;
             }
 
             $values = $response->json('embedding.values');
             return is_array($values) && !empty($values) ? $values : null;
         } catch (\Exception $e) {
-            Log::error('cst:scraper — excepción embedding', ['error' => $e->getMessage()]);
+            Log::error('cst:scraper - excepción embedding', ['error' => $e->getMessage()]);
             return null;
         }
     }

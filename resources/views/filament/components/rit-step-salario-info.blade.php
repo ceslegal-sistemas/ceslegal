@@ -14,7 +14,7 @@
 
     <p class="pt-body">
         El capítulo de salario protege a la empresa de reclamaciones por pagos no documentados.
-        Un beneficio que da habitualmente — aunque no sea obligatorio — debe quedar en el RIT para que
+        Un beneficio que da habitualmente - aunque no sea obligatorio - debe quedar en el RIT para que
         no se convierta en <strong class="t-gold">"salario"</strong> a efectos legales.
     </p>
 
@@ -45,7 +45,7 @@
     </div>
 
     <p class="pt-footer">
-        Los permisos y licencias también hacen parte de este capítulo — hay campos al final del paso.
+        Los permisos y licencias también hacen parte de este capítulo - hay campos al final del paso.
     </p>
 
 </div>

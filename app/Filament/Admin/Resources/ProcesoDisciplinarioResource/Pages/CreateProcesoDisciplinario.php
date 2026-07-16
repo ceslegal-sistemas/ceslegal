@@ -140,7 +140,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 // ->disabled(fn() => auth()->user()?->isCliente() ?? false)
                                 ->dehydrated()
                                 ->afterStateUpdated(fn(Forms\Set $set) => $set('trabajador_id', null))
-                                ->helperText('Seleccione la empresa primero — esto cargará la lista de trabajadores disponibles.')
+                                ->helperText('Seleccione la empresa primero - esto cargará la lista de trabajadores disponibles.')
                                 ->columnSpanFull(),
 
                             Forms\Components\Select::make('trabajador_id')
@@ -885,8 +885,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                 $contexto['trabajador_cargo']  = $t->cargo ?? '';
                 $procesos = $t->procesosDisciplinarios()->count();
                 $contexto['reincidente'] = $procesos > 0
-                    ? "Sí — tiene {$procesos} proceso(s) disciplinario(s) previo(s)"
-                    : 'No — primer proceso disciplinario';
+                    ? "Sí - tiene {$procesos} proceso(s) disciplinario(s) previo(s)"
+                    : 'No - primer proceso disciplinario';
             }
         }
 
@@ -986,7 +986,7 @@ class CreateProcesoDisciplinario extends CreateRecord
             $t = $this->data['descripcion_hecho'];
 
             if (preg_match('/\[COMPLETAR:/i', $t)) {
-                // Quedan marcadores sin sugerencias — regenerar sin exclusiones de contexto
+                // Quedan marcadores sin sugerencias - regenerar sin exclusiones de contexto
                 // para garantizar que todos sean presentados al usuario
                 $nuevas = app(EvaluacionHechosService::class)->generarSugerenciasCompletado($t, []);
                 $this->sugerenciasCompletado = $nuevas;
@@ -1000,7 +1000,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                     $this->data['descripcion_hecho'] = $t;
                 }
             } else {
-                // No quedan marcadores — limpiar residuos menores (]] sueltos, etc.)
+                // No quedan marcadores - limpiar residuos menores (]] sueltos, etc.)
                 $t = preg_replace('/\[[^\[\]]*\]/u', '', $t);
                 $t = str_replace(']]', '', $t);
                 $t = trim(preg_replace('/[ \t]{2,}/', ' ', $t));
@@ -1020,7 +1020,7 @@ class CreateProcesoDisciplinario extends CreateRecord
             return;
         }
 
-        // Texto normalizado: sin tildes ni mayúsculas — tolerante a mala ortografía
+        // Texto normalizado: sin tildes ni mayúsculas - tolerante a mala ortografía
         $tn = mb_strtolower(strtr($texto, [
             'á' => 'a',
             'é' => 'e',
@@ -1068,13 +1068,13 @@ class CreateProcesoDisciplinario extends CreateRecord
         $longitud = mb_strlen($texto);
         if ($longitud >= 150) {
             $detalleOk  = true;
-            $detalleTxt = 'Descripción detallada — la IA tendrá buen contexto';
+            $detalleTxt = 'Descripción detallada - la IA tendrá buen contexto';
         } elseif ($longitud >= 70) {
             $detalleOk  = false;
             $detalleTxt = 'Agregue más contexto: consecuencias, antecedentes o reincidencia';
         } else {
             $detalleOk  = false;
-            $detalleTxt = 'Descripción muy breve — amplíe con más detalles';
+            $detalleTxt = 'Descripción muy breve - amplíe con más detalles';
         }
 
         // ── 3. Acción concreta del trabajador ─────────────────────────────────
@@ -1084,7 +1084,7 @@ class CreateProcesoDisciplinario extends CreateRecord
         );
 
         // ── 4. Groserías, insultos y calificativos despectivos ────────────────
-        // Pasada 1 — raíces que NUNCA son aceptables, incluso dentro de
+        // Pasada 1 - raíces que NUNCA son aceptables, incluso dentro de
         // palabras compuestas (ej: "setentahijueputa", "dobleverga").
         // Sin \b para capturar compuestos numéricos o prefijados.
         $raicesVulgares =
@@ -1112,7 +1112,7 @@ class CreateProcesoDisciplinario extends CreateRecord
             }
         }
 
-        // Pasada 2 — insultos que requieren límite de palabra
+        // Pasada 2 - insultos que requieren límite de palabra
         if (!$tieneGroserias) {
             $pat2 = '/\b(cono|hp|sopenco|sopencos|lambon|lambona|'
                 . 'arrecho|arrecha|marico|marica|maricon|'
@@ -1386,12 +1386,12 @@ class CreateProcesoDisciplinario extends CreateRecord
                 'ok'    => !$tieneDiscriminacion && $this->discriminacionIAOk,
                 'texto' => (function () use ($tieneDiscriminacion, $categoriaDiscriminadaEncontrada, $terminoDiscriminatorioEncontrado): string {
                     if ($tieneDiscriminacion) {
-                        return "Lenguaje discriminatorio: la palabra \"{$terminoDiscriminatorioEncontrado}\" hace referencia a {$categoriaDiscriminadaEncontrada} — esto no debe incluirse en la descripción del hecho. Viola jurisprudencia antidiscriminatoria y puede invalidar el proceso.";
+                        return "Lenguaje discriminatorio: la palabra \"{$terminoDiscriminatorioEncontrado}\" hace referencia a {$categoriaDiscriminadaEncontrada} - esto no debe incluirse en la descripción del hecho. Viola jurisprudencia antidiscriminatoria y puede invalidar el proceso.";
                     }
                     if (!$this->discriminacionIAOk && $this->discriminacionIACategoria) {
                         $msg = "La IA detectó lenguaje discriminatorio";
                         if ($this->discriminacionIATermino) $msg .= ": \"{$this->discriminacionIATermino}\"";
-                        $msg .= " — referencia a {$this->discriminacionIACategoria}. Esto puede invalidar el proceso disciplinario.";
+                        $msg .= " - referencia a {$this->discriminacionIACategoria}. Esto puede invalidar el proceso disciplinario.";
                         if ($this->discriminacionIASugerencia) $msg .= " Sugerencia: {$this->discriminacionIASugerencia}.";
                         return $msg;
                     }
@@ -1412,9 +1412,9 @@ class CreateProcesoDisciplinario extends CreateRecord
                 'tipo'  => 'presuntivo',
                 'ok'    => !$necesitaPresuntivo,
                 'texto' => $necesitaPresuntivo
-                    ? "El verbo \"{$verboGraveEncontrado}\" es una acusación directa — use \"presuntamente {$verboGraveEncontrado}\" para no afirmar como hecho probado algo que aún está en investigación."
+                    ? "El verbo \"{$verboGraveEncontrado}\" es una acusación directa - use \"presuntamente {$verboGraveEncontrado}\" para no afirmar como hecho probado algo que aún está en investigación."
                     : ($tieneVerbosGraves
-                        ? 'Lenguaje presuntivo correcto — la acusación está bien calificada'
+                        ? 'Lenguaje presuntivo correcto - la acusación está bien calificada'
                         : 'Sin acusaciones graves que requieran calificación presuntiva'),
             ],
             [
@@ -1487,7 +1487,7 @@ class CreateProcesoDisciplinario extends CreateRecord
         }
 
         $this->feedbackQuienReportaOk = true;
-        $this->feedbackQuienReporta   = 'Información clara — la IA podrá identificar correctamente al reportante.';
+        $this->feedbackQuienReporta   = 'Información clara - la IA podrá identificar correctamente al reportante.';
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -1577,7 +1577,7 @@ class CreateProcesoDisciplinario extends CreateRecord
         try {
             $draft = session($this->getDraftKey());
             if ($draft && is_array($draft) && !empty($draft)) {
-                // Exclude file upload fields — they can't be restored from session
+                // Exclude file upload fields - they can't be restored from session
                 unset($draft['evidencias_empleador']);
                 $this->form->fill($draft);
             }
@@ -1642,7 +1642,7 @@ class CreateProcesoDisciplinario extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Clientes tienen empresa_id oculto — asignarlo desde su perfil si no llegó
+        // Clientes tienen empresa_id oculto - asignarlo desde su perfil si no llegó
         if (empty($data['empresa_id'])) {
             $data['empresa_id'] = auth()->user()?->empresa_id;
         }

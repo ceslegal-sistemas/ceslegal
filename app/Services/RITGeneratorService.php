@@ -307,7 +307,7 @@ class RITGeneratorService
                 $query->whereNotIn('codigo', $yaObtenidos);
             }
 
-            // Al menos un término debe aparecer en título o texto (OR — no AND)
+            // Al menos un término debe aparecer en título o texto (OR - no AND)
             $query->where(function ($q) use ($terminos) {
                 foreach ($terminos as $termino) {
                     $q->orWhereRaw('LOWER(titulo) LIKE ?', ["%{$termino}%"])
@@ -544,13 +544,13 @@ Eres un abogado laboral colombiano experto en Reglamentos Internos de Trabajo.
 Redacta ÚNICAMENTE el CAPÍTULO {$numero} ({$titulo}) del RIT de "{$razonSocial}".
 Los artículos comienzan desde ARTÍCULO {$articuloInicio}.
 
-REGLA FUNDAMENTAL — ANTI-ALUCINACIÓN (INCUMPLIRLA INVALIDA EL DOCUMENTO):
+REGLA FUNDAMENTAL - ANTI-ALUCINACIÓN (INCUMPLIRLA INVALIDA EL DOCUMENTO):
 PROHIBICIÓN ABSOLUTA: NUNCA menciones ningún número de artículo, nombre de ley, decreto,
 resolución, sentencia, porcentaje, plazo en días/semanas/meses, ni salario mínimo concreto
 que NO aparezca literalmente en la sección "ARTÍCULOS OFICIALES" proporcionada abajo.
 ESTO INCLUYE todo lo que recuerdes de tu entrenamiento, aunque estés completamente seguro
 de que es correcto. "Ley 2101 de 2021", "Art. 167A", "18 semanas", "Resolución 652/2012",
-"Decreto 1072/2015" — NINGUNO puede aparecer en el texto generado a menos que esté
+"Decreto 1072/2015" - NINGUNO puede aparecer en el texto generado a menos que esté
 literalmente en el contexto proporcionado.
 CUANDO QUIERAS CITAR algo que no está en el contexto proporcionado: escribe la obligación
 en términos generales. Ejemplos CORRECTOS: "conforme a la normativa vigente", "según la
@@ -568,7 +568,7 @@ ESTÁNDAR DE CALIDAD (debes igualar o SUPERAR el trabajo de un abogado experto):
 INSTRUCCIONES TEMÁTICAS DE ESTE CAPÍTULO:
 {$instr}
 {$goldBloque}
-REGLAS DE FORMATO — OBLIGATORIAS:
+REGLAS DE FORMATO - OBLIGATORIAS:
 1. Inicia con CAPÍTULO {$numero} (primera línea) y {$titulo} (segunda línea), ambas en MAYÚSCULAS.
 2. Cada artículo en su propia línea: ARTÍCULO N. NOMBRE. Texto completo (mínimo 60 palabras).
 3. Párrafos adicionales de un artículo: líneas a continuación sin prefijo ARTÍCULO.
@@ -920,8 +920,8 @@ PROMPT;
             $linea = ltrim($linea, '-*# ');
             $linea = rtrim($linea);
 
-            // ── CAPÍTULO con separador: CAPÍTULO I — TÍTULO ───────────────────
-            if (preg_match('/^(CAPÍTULO\s+[IVXLCDM]+)\s*[—–\-]+\s*(.+)$/iu', $linea, $m)) {
+            // ── CAPÍTULO con separador: CAPÍTULO I - TÍTULO ───────────────────
+            if (preg_match('/^(CAPÍTULO\s+[IVXLCDM]+)\s*[-–\-]+\s*(.+)$/iu', $linea, $m)) {
                 if ($enLista) { $cuerpo .= '</div>'; $enLista = false; }
                 $cuerpo .= '<p class="cap-num">' . htmlspecialchars(strtoupper($m[1]), ENT_QUOTES, 'UTF-8') . '</p>'
                          . '<p class="cap-tit">' . htmlspecialchars(strtoupper(trim($m[2])), ENT_QUOTES, 'UTF-8') . '</p>';
@@ -1131,7 +1131,7 @@ HTML;
         $phpWord->setDefaultFontName('Arial');
         $phpWord->setDefaultFontSize(9);
 
-        // Estilos comunes — igual que SERVISOM: interlineado sencillo (240 twips), 8pt after
+        // Estilos comunes - igual que SERVISOM: interlineado sencillo (240 twips), 8pt after
         $fNorm = ['name' => 'Arial', 'size' => 9];
         $fBold = ['name' => 'Arial', 'size' => 9, 'bold' => true];
         $fSmal = ['name' => 'Arial', 'size' => 8];
@@ -1176,7 +1176,7 @@ HTML;
             $textoRIT = ltrim(substr($textoRIT, strpos($textoRIT, "\n")), "\r\n");
         }
 
-        // Parser — idéntica lógica a textoAHtml()
+        // Parser - idéntica lógica a textoAHtml()
         $lastCapNum = false;
 
         foreach (explode("\n", $textoRIT) as $linea) {
@@ -1199,8 +1199,8 @@ HTML;
                 continue;
             }
 
-            // ── CAPÍTULO X — TÍTULO (una sola línea) ──────────────────────────
-            if (preg_match('/^(CAPÍTULO\s+[IVXLCDM]+)\s*[—–\-]+\s*(.+)$/iu', $linea, $m)) {
+            // ── CAPÍTULO X - TÍTULO (una sola línea) ──────────────────────────
+            if (preg_match('/^(CAPÍTULO\s+[IVXLCDM]+)\s*[-–\-]+\s*(.+)$/iu', $linea, $m)) {
                 $section->addText(strtoupper($m[1]), $fBold, $pCap);
                 $section->addText(strtoupper(trim($m[2])), $fBold, $pCapT);
                 $lastCapNum = false;
@@ -1279,12 +1279,12 @@ HTML;
                 'datos_empresa_keys'   => ['tipos_contrato', 'tiene_trabajadores_mision', 'cargos'],
                 'instrucciones' => implode("\n", [
                     '1. REQUISITOS DE INGRESO: lista de documentos que la empresa exige (hoja de vida, documento de identidad, certificados de estudio y experiencia). Los antecedentes judiciales solo son exigibles cuando el cargo lo requiera por razones de seguridad, no como criterio automático de exclusión. Lista en formato 1) 2) 3).',
-                    '2. PERÍODO DE PRUEBA — artículo completo y detallado con todos estos elementos:',
+                    '2. PERÍODO DE PRUEBA - artículo completo y detallado con todos estos elementos:',
                     '   a) El período de prueba SIEMPRE debe pactarse POR ESCRITO; sin pacto escrito no existe período de prueba.',
                     '   b) Duración máxima según el tipo de contrato (indefinido y término fijo). Las duraciones exactas provienen del contexto jurídico proporcionado.',
                     '   c) Prohibición en contratos sucesivos: cuando el trabajador ya prestó servicios al mismo empleador para el mismo cargo, no puede pactarse nuevo período de prueba. Las condiciones exactas provienen del contexto jurídico proporcionado.',
                     '   d) Terminación durante el período: cualquiera de las partes puede terminar el contrato durante el período de prueba. Las condiciones provienen del contexto jurídico proporcionado.',
-                    '3. PROHIBICIONES DE INGRESO — artículo expreso y detallado que incluya: a) Prohibición de exigir prueba de embarazo o preguntas sobre planes reproductivos, deseo de conformar familia o estado civil como condición de ingreso o permanencia en el empleo. b) Prohibición de exigir libreta militar como requisito de ingreso (excepto contratos con el sector público o cuando la norma lo exija expresamente). c) Prohibición de pruebas de VIH u otras pruebas de salud que constituyan discriminación. Los artículos y normas aplicables están en el contexto jurídico proporcionado.',
+                    '3. PROHIBICIONES DE INGRESO - artículo expreso y detallado que incluya: a) Prohibición de exigir prueba de embarazo o preguntas sobre planes reproductivos, deseo de conformar familia o estado civil como condición de ingreso o permanencia en el empleo. b) Prohibición de exigir libreta militar como requisito de ingreso (excepto contratos con el sector público o cuando la norma lo exija expresamente). c) Prohibición de pruebas de VIH u otras pruebas de salud que constituyan discriminación. Los artículos y normas aplicables están en el contexto jurídico proporcionado.',
                     '4. TIPOS DE CONTRATO que usa la empresa (según datos empresa). Si usa trabajadores en misión (empresas temporales), mencionar el marco aplicable.',
                     'IMPORTANTE: los plazos, porcentajes y referencias legales exactas provienen únicamente del contexto jurídico proporcionado.',
                 ]),
@@ -1295,17 +1295,17 @@ HTML;
                 'codigos_obligatorios' => ['Art. 158 CST', 'Art. 159 CST', 'Art. 160 CST', 'Art. 161 CST', 'Art. 162 CST', 'Art. 179 CST', 'Art. 180 CST', 'Art. 181 CST', 'Art. 182 CST'],
                 'datos_empresa_keys'   => ['horario_entrada', 'horario_salida', 'opera_en_turnos', 'numero_turnos', 'definicion_turnos', 'rotacion_turnos', 'trabaja_sabados', 'trabaja_dominicales', 'cargos_exentos_jornada', 'modalidades_jornada', 'cargos_nocturnos', 'control_asistencia'],
                 'instrucciones' => implode("\n", [
-                    'A. JORNADA MÁXIMA LEGAL — artículo completo con todos estos puntos:',
+                    'A. JORNADA MÁXIMA LEGAL - artículo completo con todos estos puntos:',
                     '   a) La jornada máxima legal semanal vigente. El número exacto de horas proviene del contexto jurídico proporcionado. Menciónalo explícitamente en el artículo.',
                     '   b) Definición de trabajo diurno y trabajo nocturno con los horarios que establezca el contexto jurídico proporcionado.',
                     '   c) La jornada diaria máxima sin horas extras. El límite exacto proviene del contexto jurídico proporcionado.',
-                    'B. HORARIO DE LA EMPRESA — usar TABLA con los datos reales de la empresa:',
+                    'B. HORARIO DE LA EMPRESA - usar TABLA con los datos reales de la empresa:',
                     '   TABLA:',
                     '   ENCABEZADO: Días | Horario entrada | Descanso | Horario salida',
                     '   FILA: [días según datos] | [hora entrada] | [pausa almuerzo] | [hora salida]',
                     '   FIN_TABLA  (si trabaja sábados, agregar fila; si opera en turnos, una tabla por turno)',
                     'C. DESCANSO DOMINICAL REMUNERADO: artículo independiente sobre el derecho al descanso dominical remunerado en domingos y días festivos. El salario por ese día y las condiciones exactas provienen del contexto jurídico proporcionado.',
-                    'D. TRABAJO EN DÍA DE DESCANSO OBLIGATORIO — artículo independiente obligatorio con:',
+                    'D. TRABAJO EN DÍA DE DESCANSO OBLIGATORIO - artículo independiente obligatorio con:',
                     '   a) Recargo por trabajar excepcionalmente en día de descanso obligatorio (domingo o festivo). El porcentaje exacto del recargo proviene del contexto jurídico proporcionado.',
                     '   b) DESCANSO COMPENSATORIO: derecho del trabajador que labora en su día de descanso habitual. Las condiciones exactas provienen del contexto jurídico proporcionado.',
                     '   c) TÉCNICOS Y ESPECIALIZADOS: reglas especiales de remuneración y compensación para trabajadores de labores técnicas que requieren continuidad. Las condiciones exactas provienen del contexto jurídico proporcionado.',
@@ -1335,7 +1335,7 @@ HTML;
                 'datos_empresa_keys'   => ['forma_pago', 'periodicidad_pago', 'periodicidad_detalle', 'maneja_comisiones', 'tipo_comisiones', 'beneficios_extralegales'],
                 'instrucciones' => implode("\n", [
                     'A. MODALIDADES DE SALARIO: por unidad de tiempo (jornal o sueldo), por obra o tarea, variable. Salario integral si aplica a algún cargo (ver condiciones en contexto jurídico).',
-                    'B. PERÍODO Y FORMA DE PAGO — artículo que incluya explícitamente:',
+                    'B. PERÍODO Y FORMA DE PAGO - artículo que incluya explícitamente:',
                     '   a) Los períodos máximos de pago según el tipo de salario (jornal y sueldo). Los períodos exactos provienen del contexto jurídico proporcionado.',
                     '   b) Forma de pago de la empresa según datos empresa (transferencia, efectivo, etc.).',
                     '   c) Comprobante de pago discriminado con devengados y descuentos.',
@@ -1384,11 +1384,11 @@ HTML;
                 'datos_empresa_keys'   => ['sanciones_configuradas', 'faltas_leves', 'faltas_graves', 'cargos'],
                 'instrucciones' => implode("\n", [
                     'A. DEFINICIÓN DE FALTA DISCIPLINARIA: incumplimiento de obligaciones o transgresión de prohibiciones del reglamento.',
-                    'B. LABORES PROHIBIDAS — artículo OBLIGATORIO: indicar expresamente las labores que NO pueden ejecutar las mujeres y los menores de dieciséis (16) años en la empresa, con referencia a las normas del contexto jurídico proporcionado. Si la empresa no emplea menores ni tiene labores de alto riesgo para mujeres gestantes o en lactancia, indicarlo explícitamente.',
+                    'B. LABORES PROHIBIDAS - artículo OBLIGATORIO: indicar expresamente las labores que NO pueden ejecutar las mujeres y los menores de dieciséis (16) años en la empresa, con referencia a las normas del contexto jurídico proporcionado. Si la empresa no emplea menores ni tiene labores de alto riesgo para mujeres gestantes o en lactancia, indicarlo explícitamente.',
                     'C. CATÁLOGO DE FALTAS LEVES (mínimo 8, lista 1) 2) 3)): impuntualidad reiterada, ausentarse sin permiso, descuido en el puesto, uso personal de equipos de la empresa, incumplimiento de entregas, presentación personal inadecuada, descuido en el uso de elementos de seguridad, etc.',
                     'D. CATÁLOGO DE FALTAS GRAVES (mínimo 8): reincidencia en faltas leves, abandono injustificado del puesto, daño doloso a bienes, engaño o fraude, falta grave de respeto, divulgación de información confidencial, inasistencia injustificada, incumplimiento reiterado de instrucciones.',
                     'E. CATÁLOGO DE FALTAS MUY GRAVES (mínimo 5): hurto o apropiación indebida, agresión física, acoso laboral o sexual, presentarse bajo efectos de alcohol o sustancias psicoactivas, sabotaje.',
-                    'F. PROCEDIMIENTO DISCIPLINARIO COMPLETO — artículo que reproduzca fielmente el procedimiento legal. Usar TABLA con las etapas:',
+                    'F. PROCEDIMIENTO DISCIPLINARIO COMPLETO - artículo que reproduzca fielmente el procedimiento legal. Usar TABLA con las etapas:',
                     '   TABLA:',
                     '   ENCABEZADO: Etapa | Descripción',
                     '   FILA: 1. Comunicación de cargos | El empleador informa por escrito al trabajador los hechos y cargos imputados, con traslado de las pruebas que los sustentan.',
@@ -1488,26 +1488,26 @@ HTML;
                 'numero' => 'XIV', 'titulo' => 'COMITÉ DE CONVIVENCIA LABORAL Y PREVENCIÓN DE ACOSO',
                 'query_rag' => 'acoso laboral sexual comité convivencia modalidades procedimiento queja denuncia prevención protocolo',
                 'codigos_obligatorios' => [
-                    // Ley 1010/2006 — artículos clave de acoso laboral
+                    // Ley 1010/2006 - artículos clave de acoso laboral
                     'Art. 1 Ley 1010', 'Art. 2 Ley 1010', 'Art. 6 Ley 1010', 'Art. 7 Ley 1010',
                     'Art. 9 Ley 1010', 'Art. 10 Ley 1010', 'Art. 11 Ley 1010', 'Art. 13 Ley 1010',
-                    // Res. 652/2012 — conformación y funciones del Comité de Convivencia
+                    // Res. 652/2012 - conformación y funciones del Comité de Convivencia
                     'Art. 3 Res. 652/2012', 'Art. 5 Res. 652/2012', 'Art. 6 Res. 652/2012',
                     'Art. 7 Res. 652/2012', 'Art. 8 Res. 652/2012', 'Art. 9 Res. 652/2012',
                 ],
                 'datos_empresa_keys'   => ['num_trabajadores'],
                 'instrucciones' => implode("\n", [
                     'Este capítulo es OBLIGATORIO. Cada artículo mínimo 80 palabras.',
-                    'A. ACOSO LABORAL — DEFINICIÓN Y MODALIDADES: artículo autónomo completo que defina el acoso laboral como toda conducta persistente y demostrable ejercida sobre un empleado por parte de un empleador, jefe o superior jerárquico inmediato o mediato, un compañero de trabajo o un subalterno. Luego detallar con ejemplos concretos TODAS las modalidades de la Ley 1010: 1) Maltrato laboral (toda expresión verbal o física que lesione la integridad moral o física del trabajador); 2) Persecución laboral (conductas reiteradas para inducir la renuncia); 3) Discriminación laboral (trato diferenciado injustificado); 4) Entorpecimiento laboral (obstáculos que impidan el trabajo); 5) Inequidad laboral (asignación de tareas denigrantes o excesivas); 6) Desprotección laboral (inducir al trabajador a riesgos laborales sin los medios adecuados). Las referencias normativas provienen del contexto jurídico proporcionado.',
-                    'B. COMITÉ DE CONVIVENCIA LABORAL — artículo completo que incluya:',
+                    'A. ACOSO LABORAL - DEFINICIÓN Y MODALIDADES: artículo autónomo completo que defina el acoso laboral como toda conducta persistente y demostrable ejercida sobre un empleado por parte de un empleador, jefe o superior jerárquico inmediato o mediato, un compañero de trabajo o un subalterno. Luego detallar con ejemplos concretos TODAS las modalidades de la Ley 1010: 1) Maltrato laboral (toda expresión verbal o física que lesione la integridad moral o física del trabajador); 2) Persecución laboral (conductas reiteradas para inducir la renuncia); 3) Discriminación laboral (trato diferenciado injustificado); 4) Entorpecimiento laboral (obstáculos que impidan el trabajo); 5) Inequidad laboral (asignación de tareas denigrantes o excesivas); 6) Desprotección laboral (inducir al trabajador a riesgos laborales sin los medios adecuados). Las referencias normativas provienen del contexto jurídico proporcionado.',
+                    'B. COMITÉ DE CONVIVENCIA LABORAL - artículo completo que incluya:',
                     '   a) Conformación bipartita: igual número de representantes del empleador y de los trabajadores.',
                     '   b) Elección democrática de los representantes de los trabajadores mediante votación.',
                     '   c) Período de gestión según lo establezca el contexto jurídico proporcionado, con posibilidad de reelección.',
                     '   d) Reuniones ordinarias y extraordinarias cuando se requiera. La frecuencia mínima proviene del contexto jurídico proporcionado.',
                     '   e) Quorum para sesionar según el contexto jurídico proporcionado.',
                     '   f) Actas de reunión como constancia de las actuaciones.',
-                    'C. FUNCIONES DEL COMITÉ — artículo completo con TODAS estas funciones: recibir y dar trámite a las quejas de acoso laboral; escuchar a las partes involucradas; promover acuerdos conciliatorios entre las partes; formular planes de mejora para convivencia laboral; hacer seguimiento a las medidas adoptadas; hacer seguimiento a las recomendaciones dadas por el Comité a las dependencias de gestión del talento humano y salud ocupacional de la empresa; reportar a la alta dirección los casos y sus resultados; hacer seguimiento trimestral de los casos atendidos.',
-                    'D. PROCEDIMIENTO INTERNO DE QUEJA POR ACOSO LABORAL — artículo con pasos numerados obligatorios:',
+                    'C. FUNCIONES DEL COMITÉ - artículo completo con TODAS estas funciones: recibir y dar trámite a las quejas de acoso laboral; escuchar a las partes involucradas; promover acuerdos conciliatorios entre las partes; formular planes de mejora para convivencia laboral; hacer seguimiento a las medidas adoptadas; hacer seguimiento a las recomendaciones dadas por el Comité a las dependencias de gestión del talento humano y salud ocupacional de la empresa; reportar a la alta dirección los casos y sus resultados; hacer seguimiento trimestral de los casos atendidos.',
+                    'D. PROCEDIMIENTO INTERNO DE QUEJA POR ACOSO LABORAL - artículo con pasos numerados obligatorios:',
                     '   1) Presentación escrita de la queja ante el Comité de Convivencia Laboral, con descripción de los hechos, fechas y testigos.',
                     '   2) Notificación al presunto acosador dentro de los 5 días hábiles siguientes.',
                     '   3) Investigación confidencial: el Comité escucha a ambas partes por separado y recauda las pruebas pertinentes.',
@@ -1515,14 +1515,14 @@ HTML;
                     '   5) Informe final del Comité con las medidas correctivas, plazos y responsables.',
                     '   6) Seguimiento trimestral por parte del Comité para verificar el cumplimiento de las medidas.',
                     '   7) Si no hay acuerdo o la conducta persiste, remisión a la autoridad competente (Inspector del Trabajo, Procuraduría, Fiscalía).',
-                    'E. PREVENCIÓN DEL ACOSO SEXUAL — ARTÍCULO AUTÓNOMO con mínimo 120 palabras:',
+                    'E. PREVENCIÓN DEL ACOSO SEXUAL - ARTÍCULO AUTÓNOMO con mínimo 120 palabras:',
                     '   a) Definición de acoso sexual en el contexto laboral: toda conducta de naturaleza sexual no consentida, solicitudes de favores sexuales, comentarios o actos de connotación sexual que afecten la dignidad del trabajador.',
                     '   b) Tipos de conductas constitutivas: verbales (comentarios, insinuaciones, proposiciones), físicas (contacto no deseado, proximidad invasiva), digitales o virtuales (mensajes, imágenes, videos).',
                     '   c) Canal confidencial y exclusivo para denuncias de acoso sexual, separado del canal general de quejas.',
                     '   d) Protocolo de respuesta: recepción de la denuncia, investigación imparcial y confidencial, medidas de protección inmediata para la víctima, decisión motivada.',
                     '   e) Garantía absoluta de confidencialidad de la identidad de la víctima durante la investigación.',
                     '   f) Prohibición expresa de represalias contra la persona que denuncia.',
-                    'F. SANCIONES POR ACOSO — artículo expreso: la conducta de acoso laboral o acoso sexual se califica como falta MUY GRAVE y puede dar lugar a terminación del contrato con justa causa, sin perjuicio de las acciones penales y administrativas a que haya lugar.',
+                    'F. SANCIONES POR ACOSO - artículo expreso: la conducta de acoso laboral o acoso sexual se califica como falta MUY GRAVE y puede dar lugar a terminación del contrato con justa causa, sin perjuicio de las acciones penales y administrativas a que haya lugar.',
                 ]),
             ],
             [
@@ -1531,7 +1531,7 @@ HTML;
                 'codigos_obligatorios' => ['Art. 236 CST', 'Art. 238 CST', 'Art. 239 CST', 'Art. 240 CST', 'Art. 241 CST', 'Art. 241A CST'],
                 'datos_empresa_keys'   => [],
                 'instrucciones' => implode("\n", [
-                    'A. MUJER EMBARAZADA Y EN PERÍODO DE LACTANCIA — artículo completo y detallado con todos estos elementos:',
+                    'A. MUJER EMBARAZADA Y EN PERÍODO DE LACTANCIA - artículo completo y detallado con todos estos elementos:',
                     '   a) PROHIBICIÓN DE DESPIDO: está prohibido despedir a la trabajadora durante el embarazo y hasta tres meses después del parto, sin la autorización previa del Inspector del Trabajo o del Alcalde Municipal. Esta prohibición opera desde el momento en que el empleador tenga conocimiento del estado de embarazo.',
                     '   b) NULIDAD DEL DESPIDO: el despido efectuado durante el embarazo o los tres meses siguientes al parto, sin autorización del Ministerio del Trabajo, se presume que es por razón del embarazo y es INEFICAZ. La trabajadora puede reclamar su reintegro y el pago de los salarios dejados de percibir.',
                     '   c) INDEMNIZACIÓN ADICIONAL: si el empleador despide a la trabajadora sin la autorización requerida, debe pagar adicionalmente, a título de indemnización, el valor establecido en el contexto jurídico proporcionado.',
@@ -1562,7 +1562,7 @@ HTML;
 
     private function _placeholder(): string
     {
-        // Este método no se usa — aquí termina la clase
+        // Este método no se usa - aquí termina la clase
         $biblioteca = app(BibliotecaLegalService::class);
 
         $queriesTematicas = [
@@ -1725,10 +1725,10 @@ CONDUCTA Y CONVIVENCIA
             ? "\nFRAGMENTOS DE LA BIBLIOTECA JURÍDICA (FUENTE AUTORIZADA PARA CITAS DE ARTÍCULOS):\n"
               . "REGLA DE CITAS: Usa números de artículo y referencias normativas ÚNICAMENTE cuando\n"
               . "aparezcan en estos fragmentos. Si un artículo específico no está en los fragmentos,\n"
-              . "omite el número pero REDACTA EL CONTENIDO IGUAL — no suprimas el capítulo.\n"
+              . "omite el número pero REDACTA EL CONTENIDO IGUAL - no suprimas el capítulo.\n"
               . "REGLA DE CONTENIDO: TODOS los capítulos son OBLIGATORIOS independientemente de los\n"
               . "fragmentos disponibles. La falta de fragmentos sobre un tema nunca justifica omitir\n"
-              . "o reducir un capítulo — usa el texto de referencia indicado en cada capítulo.\n\n"
+              . "o reducir un capítulo - usa el texto de referencia indicado en cada capítulo.\n\n"
               . $contextoBiblioteca . "\n"
             : "\nADVERTENCIA: La biblioteca legal no devolvió fragmentos. Redacta TODOS los capítulos\n"
               . "con contenido completo sin citar números de artículos específicos.\n";
@@ -1751,7 +1751,7 @@ INSTRUCCIONES DE CONTENIDO:
 - La fecha de elaboración es: {$fechaHoy}
 - El representante legal firmante es: {$representante}
 
-INSTRUCCIONES DE FORMATO — CRÍTICAS, INCUMPLIRLAS INVALIDA EL DOCUMENTO:
+INSTRUCCIONES DE FORMATO - CRÍTICAS, INCUMPLIRLAS INVALIDA EL DOCUMENTO:
 1. CADA artículo es un párrafo independiente de mínimo 60 palabras. NUNCA un resumen de una línea.
 2. NUNCA colapses varios artículos en una sola línea. Ejemplo PROHIBIDO: "Artículo 5-8: SST..."
 3. NUNCA uses guiones (-), asteriscos (*), almohadillas (#) ni viñetas al inicio de línea.
@@ -1762,7 +1762,7 @@ INSTRUCCIONES DE FORMATO — CRÍTICAS, INCUMPLIRLAS INVALIDA EL DOCUMENTO:
 6. PARÁGRAFO va en su propia línea: PARÁGRAFO PRIMERO. Texto del parágrafo.
 7. Para listas dentro de un artículo usa numeración interna en líneas separadas: "1) texto" "2) texto" etc.
 8. Sin Markdown: sin asteriscos, sin # ni **.
-9. TABLAS — usa este formato exacto para datos estructurados (horarios, escalas, etapas):
+9. TABLAS - usa este formato exacto para datos estructurados (horarios, escalas, etapas):
    TABLA:
    ENCABEZADO: Columna 1 | Columna 2 | Columna 3
    FILA: dato1 | dato2 | dato3
@@ -1779,7 +1779,7 @@ ARTÍCULO 4. REQUISITOS DE INGRESO. Para ingresar como trabajador de {$razonSoci
 
 ARTÍCULO 5. PERÍODO DE PRUEBA. El período de prueba deberá pactarse siempre por escrito como cláusula expresa del contrato de trabajo. En contratos a término indefinido, el período de prueba no podrá exceder de dos (2) meses. En contratos a término fijo, el período de prueba no podrá exceder de la quinta parte del término pactado, sin que pueda exceder de dos (2) meses. Durante el período de prueba cualquiera de las partes podrá dar por terminado el contrato en cualquier momento, sin previo aviso y sin indemnización, pero la terminación debe ser fundamentada y comunicada por escrito.
 
-EJEMPLO DE TABLA — HORARIO (úsalo exactamente así):
+EJEMPLO DE TABLA - HORARIO (úsalo exactamente así):
 ARTÍCULO 12. HORARIO DE TRABAJO. La jornada ordinaria de trabajo se distribuye de la siguiente manera:
 TABLA:
 ENCABEZADO: Días | Horario mañana | Descanso almuerzo | Horario tarde
@@ -1787,7 +1787,7 @@ FILA: Lunes a jueves | 07:00 am a 12:00 pm | 12:00 pm a 01:00 pm | 01:00 pm a 05
 FILA: Viernes | 07:00 am a 12:00 pm | 12:00 pm a 01:00 pm | 01:00 pm a 04:00 pm
 FIN_TABLA
 
-EJEMPLO DE TABLA — SANCIONES (úsalo exactamente así):
+EJEMPLO DE TABLA - SANCIONES (úsalo exactamente así):
 ARTÍCULO X. ESCALA DE SANCIONES. Las sanciones disciplinarias aplicables son las siguientes:
 TABLA:
 ENCABEZADO: Sanción | Descripción | Aplica para
@@ -1797,7 +1797,7 @@ FILA: Suspensión sin remuneración | Interrupción temporal del contrato de 1 a
 FILA: Terminación con justa causa | Desvinculación por comisión de falta muy grave o reincidencia. | Faltas muy graves
 FIN_TABLA
 
-EJEMPLO DE TABLA — PROCESO DISCIPLINARIO (úsalo exactamente así):
+EJEMPLO DE TABLA - PROCESO DISCIPLINARIO (úsalo exactamente así):
 ARTÍCULO X. PROCEDIMIENTO DISCIPLINARIO. El proceso disciplinario se desarrollará en las siguientes etapas:
 TABLA:
 ENCABEZADO: Etapa | Descripción
@@ -1808,7 +1808,7 @@ FILA: Decisión motivada | El empleador emite fallo escrito fundamentado.
 FILA: Notificación e impugnación | Se notifica al trabajador quien tiene 5 días hábiles para apelar ante el superior jerárquico.
 FIN_TABLA
 
-CAPÍTULOS OBLIGATORIOS — redacta CADA artículo como párrafo completo, no como resumen.
+CAPÍTULOS OBLIGATORIOS - redacta CADA artículo como párrafo completo, no como resumen.
 RECUERDA: cada capítulo va en DOS líneas (CAPÍTULO X en la primera, TÍTULO en la segunda):
 
 CAPÍTULO I
@@ -1817,30 +1817,30 @@ Artículos requeridos: ámbito de aplicación del reglamento, denominación y NI
 
 CAPÍTULO II
 ADMISIÓN Y PERÍODO DE PRUEBA
-Artículos requeridos: documentos exigidos para ingreso (hoja de vida, fotocopia del documento de identidad, certificados de estudio y experiencia; el certificado de antecedentes judiciales solo es exigible cuando el cargo lo requiera por razones de seguridad, y NO podrá usarse como criterio automático de exclusión); período de prueba estipulado siempre por escrito — máximo 2 meses en indefinidos y proporcional al plazo en fijos; prórroga del período de prueba solo por acuerdo escrito dentro del plazo original; prohibición expresa de discriminación en selección.
-ARTÍCULO OBLIGATORIO VERBATIM — incluir esta regla exacta: "El período de prueba deberá pactarse siempre por escrito como cláusula expresa del contrato de trabajo. La terminación durante el período de prueba debe comunicarse con fundamentación y por escrito."
-ARTÍCULO OBLIGATORIO VERBATIM sobre prohibiciones de ingreso — incluir con esta redacción exacta: "Queda expresamente prohibido exigir como requisito de ingreso la presentación de la libreta militar, certificados o pruebas de gravidez o estado de embarazo, prueba de VIH/SIDA, ni ningún otro examen o documento que pueda constituir discriminación en el proceso de selección, de conformidad con el artículo 77 del Decreto 2663 de 1950, la Ley 972 de 2005 y la Ley 1010 de 2006."
+Artículos requeridos: documentos exigidos para ingreso (hoja de vida, fotocopia del documento de identidad, certificados de estudio y experiencia; el certificado de antecedentes judiciales solo es exigible cuando el cargo lo requiera por razones de seguridad, y NO podrá usarse como criterio automático de exclusión); período de prueba estipulado siempre por escrito - máximo 2 meses en indefinidos y proporcional al plazo en fijos; prórroga del período de prueba solo por acuerdo escrito dentro del plazo original; prohibición expresa de discriminación en selección.
+ARTÍCULO OBLIGATORIO VERBATIM - incluir esta regla exacta: "El período de prueba deberá pactarse siempre por escrito como cláusula expresa del contrato de trabajo. La terminación durante el período de prueba debe comunicarse con fundamentación y por escrito."
+ARTÍCULO OBLIGATORIO VERBATIM sobre prohibiciones de ingreso - incluir con esta redacción exacta: "Queda expresamente prohibido exigir como requisito de ingreso la presentación de la libreta militar, certificados o pruebas de gravidez o estado de embarazo, prueba de VIH/SIDA, ni ningún otro examen o documento que pueda constituir discriminación en el proceso de selección, de conformidad con el artículo 77 del Decreto 2663 de 1950, la Ley 972 de 2005 y la Ley 1010 de 2006."
 
 CAPÍTULO III
 JORNADA ORDINARIA DE TRABAJO
 Artículos requeridos:
 A) Jornada máxima semanal: 47h con reducción progresiva a 42h (Ley 2101/2021); definición de trabajo diurno (06:00-21:00) y nocturno (21:00-06:00); distribución de la jornada diaria con el descanso para almuerzo.
-B) Horario específico de la empresa — OBLIGATORIO usar tabla con el horario exacto del cuestionario:
+B) Horario específico de la empresa - OBLIGATORIO usar tabla con el horario exacto del cuestionario:
    Texto del artículo en una línea, seguido INMEDIATAMENTE de:
    TABLA:
    ENCABEZADO: Días | Horario mañana | Descanso almuerzo | Horario tarde
    FILA: [días] | [hora entrada] | [hora inicio almuerzo] a [hora fin almuerzo] | [hora regreso] a [hora salida]
    FIN_TABLA
    Si la empresa trabaja sábado, agregar FILA: Sábado | [horario] | [almuerzo] | [salida]
-C) DESCANSO DOMINICAL OBLIGATORIO — artículo independiente: "Todo trabajador tiene derecho a un descanso remunerado que comprende el domingo de cada semana, de conformidad con el artículo 181 del Código Sustantivo del Trabajo. Este descanso será remunerado con el salario ordinario de un día de trabajo." (Art. 181 CST)
-D) DESCANSO COMPENSATORIO — artículo independiente: cuando por razón del trabajo se labore el día de descanso obligatorio, el trabajador tendrá derecho a un descanso compensatorio remunerado en la semana siguiente, sin perjuicio del recargo del 75% sobre el valor del trabajo en domingo o festivo (Art. 182 CST).
+C) DESCANSO DOMINICAL OBLIGATORIO - artículo independiente: "Todo trabajador tiene derecho a un descanso remunerado que comprende el domingo de cada semana, de conformidad con el artículo 181 del Código Sustantivo del Trabajo. Este descanso será remunerado con el salario ordinario de un día de trabajo." (Art. 181 CST)
+D) DESCANSO COMPENSATORIO - artículo independiente: cuando por razón del trabajo se labore el día de descanso obligatorio, el trabajador tendrá derecho a un descanso compensatorio remunerado en la semana siguiente, sin perjuicio del recargo del 75% sobre el valor del trabajo en domingo o festivo (Art. 182 CST).
 Si la empresa opera en múltiples turnos: artículo específico para cada turno con nombre, horario exacto y cargos, usando tabla.
 Si existen cargos de dirección, manejo o confianza (Art. 162 CST): artículo expreso indicando que dichos cargos quedan excluidos del límite de jornada máxima, sin que esto les prive del descanso dominical remunerado.
 
 CAPÍTULO IV
 TRABAJO SUPLEMENTARIO, DOMINICALES Y FESTIVOS
 Artículos requeridos:
-A) Límite horas extras — VERBATIM OBLIGATORIO: "El trabajo suplementario o de horas extras no podrá exceder de dos (2) horas diarias ni de doce (12) horas semanales, de conformidad con el artículo 167A del Decreto 2663 de 1950 (Código Sustantivo del Trabajo)." Autorización previa y escrita del empleador; horas extras no autorizadas no generan pago.
+A) Límite horas extras - VERBATIM OBLIGATORIO: "El trabajo suplementario o de horas extras no podrá exceder de dos (2) horas diarias ni de doce (12) horas semanales, de conformidad con el artículo 167A del Decreto 2663 de 1950 (Código Sustantivo del Trabajo)." Autorización previa y escrita del empleador; horas extras no autorizadas no generan pago.
 B) Recargos exactos: hora extra diurna 25% sobre el ordinario; hora extra nocturna 75%; trabajo en dominical o festivo 75%; recargo nocturno ordinario 35% (trabajo entre 21:00-06:00 no en jornada ordinaria).
 C) Si la empresa opera en turnos nocturnos regulares: artículo expreso sobre recargo nocturno del 35% para quienes tienen jornada ordinaria nocturna.
 D) Registro individual del trabajo suplementario por trabajador, firmado por ambas partes.
@@ -1851,16 +1851,16 @@ Artículos requeridos:
 A) Modalidades de salario: por unidad de tiempo, por obra o tarea, variable; el salario integral (cuando supere 10 SMMLV incluye prestaciones) si aplica a algún cargo de la empresa.
 B) Período de pago: jornales (trabajo diario u obra) se pagan semanal o quincenalmente; sueldos (contrato a tiempo) se pagan mensualmente; periodicidad específica de la empresa según los datos del cuestionario.
 C) Forma de pago: modalidad indicada en el cuestionario (transferencia, efectivo, cheque o mixto).
-D) Prohibición de trueque — VERBATIM OBLIGATORIO: "Queda absolutamente prohibido pagar el salario con fichas, vales, mercancías, bonos o cualquier otro signo representativo, así como con bebidas alcohólicas, estupefacientes o sustancias alucinógenas." (Art. 134 y 136 CST)
+D) Prohibición de trueque - VERBATIM OBLIGATORIO: "Queda absolutamente prohibido pagar el salario con fichas, vales, mercancías, bonos o cualquier otro signo representativo, así como con bebidas alcohólicas, estupefacientes o sustancias alucinógenas." (Art. 134 y 136 CST)
 E) Salario en especie: máximo el 50% del salario total (Art. 129 CST); para trabajadores que devenguen el salario mínimo mensual legal vigente, el pago en especie no podrá exceder el 30% de ese salario; debe pactarse por escrito; los alimentos, habitación y vestido de trabajo no se consideran salario en especie cuando son ocasionales o para el desempeño del cargo.
-F) Propinas — VERBATIM OBLIGATORIO: "Las propinas que reciban los trabajadores no constituyen salario y no se pueden pactar como tal. En consecuencia, no se computarán en el salario para ningún efecto legal." (Art. 131 CST)
+F) Propinas - VERBATIM OBLIGATORIO: "Las propinas que reciban los trabajadores no constituyen salario y no se pueden pactar como tal. En consecuencia, no se computarán en el salario para ningún efecto legal." (Art. 131 CST)
 G) Comprobante de pago discriminado que detalle devengados y descuentos.
 
 CAPÍTULO VI
 VACACIONES Y PERMISOS
 Artículos requeridos:
-ARTÍCULO OBLIGATORIO VERBATIM — incluir esta frase exacta: "Todo trabajador tiene derecho a quince (15) días hábiles consecutivos de vacaciones remuneradas por cada año de servicio, de conformidad con el artículo 186 del Código Sustantivo del Trabajo."
-Adicionalmente: período de disfrute acordado entre partes con aviso previo de 15 días; la empresa llevará un registro especial de vacaciones con nombre del trabajador, fecha de salida, fecha de retorno y saldo acumulado (Art. 187 CST); acumulación hasta 4 años por acuerdo escrito entre las partes; interrupción justificada — cuando durante el disfrute de las vacaciones sobrevenga una causa justificada (incapacidad médica, calamidad doméstica), el trabajador tendrá derecho a reanudarlas tan pronto desaparezca la causa de interrupción; compensación en dinero — la empresa podrá, por acuerdo escrito con el trabajador, compensar en dinero hasta la mitad de las vacaciones, siempre que el trabajador devenga más de un (1) salario mínimo mensual legal vigente (Art. 189 CST); permisos remunerados (calamidad doméstica, sufragio, diligencias personales con aviso previo).
+ARTÍCULO OBLIGATORIO VERBATIM - incluir esta frase exacta: "Todo trabajador tiene derecho a quince (15) días hábiles consecutivos de vacaciones remuneradas por cada año de servicio, de conformidad con el artículo 186 del Código Sustantivo del Trabajo."
+Adicionalmente: período de disfrute acordado entre partes con aviso previo de 15 días; la empresa llevará un registro especial de vacaciones con nombre del trabajador, fecha de salida, fecha de retorno y saldo acumulado (Art. 187 CST); acumulación hasta 4 años por acuerdo escrito entre las partes; interrupción justificada - cuando durante el disfrute de las vacaciones sobrevenga una causa justificada (incapacidad médica, calamidad doméstica), el trabajador tendrá derecho a reanudarlas tan pronto desaparezca la causa de interrupción; compensación en dinero - la empresa podrá, por acuerdo escrito con el trabajador, compensar en dinero hasta la mitad de las vacaciones, siempre que el trabajador devenga más de un (1) salario mínimo mensual legal vigente (Art. 189 CST); permisos remunerados (calamidad doméstica, sufragio, diligencias personales con aviso previo).
 
 CAPÍTULO VII
 LICENCIAS ESPECIALES
@@ -1869,7 +1869,7 @@ Artículos requeridos: licencia de maternidad 18 semanas remuneradas (Ley 2114/2
 CAPÍTULO VIII
 RÉGIMEN DISCIPLINARIO: CLASIFICACIÓN DE FALTAS
 Artículos requeridos: definición de falta disciplinaria; catálogo completo de faltas LEVES con ejemplos concretos de la empresa (mínimo 8 ejemplos como lista 1) 2) 3)...); catálogo completo de faltas GRAVES con ejemplos concretos (mínimo 8); catálogo de faltas MUY GRAVES (mínimo 5).
-Procedimiento disciplinario — OBLIGATORIO usar tabla con las etapas exactas:
+Procedimiento disciplinario - OBLIGATORIO usar tabla con las etapas exactas:
 Párrafo del artículo describiendo el proceso garantista (Art. 115 CST), seguido INMEDIATAMENTE de:
 TABLA:
 ENCABEZADO: Etapa | Descripción
@@ -1883,7 +1883,7 @@ FIN_TABLA
 
 CAPÍTULO IX
 ESCALA DE SANCIONES
-Artículos requeridos — OBLIGATORIO usar tabla para la escala de sanciones:
+Artículos requeridos - OBLIGATORIO usar tabla para la escala de sanciones:
 Párrafo del artículo introduciendo la escala proporcional (Art. 112-115 CST), seguido INMEDIATAMENTE de:
 TABLA:
 ENCABEZADO: Sanción disciplinaria | Concepto | Faltas que la generan
@@ -1905,7 +1905,7 @@ Artículos requeridos: obligaciones especiales del trabajador (puntualidad, cuid
 
 CAPÍTULO XII
 SEGURIDAD Y SALUD EN EL TRABAJO (SG-SST)
-ARTÍCULOS OBLIGATORIOS — cada uno como párrafo completo de mínimo 60 palabras:
+ARTÍCULOS OBLIGATORIOS - cada uno como párrafo completo de mínimo 60 palabras:
 A) Política de SST: compromiso de la alta dirección, recursos asignados, ámbito de aplicación
 B) Obligaciones del empleador en SST: afiliar a ARL, proveer EPP, garantizar condiciones seguras, realizar exámenes médicos ocupacionales de ingreso/periódicos/egreso, investigar accidentes y enfermedades laborales
 C) Obligaciones del trabajador en SST: usar correctamente el EPP, reportar condiciones inseguras, asistir a capacitaciones, no manipular equipos de seguridad sin autorización
@@ -1921,15 +1921,15 @@ Artículos requeridos: asignación formal de equipos con acta; responsabilidad d
 
 CAPÍTULO XIV
 COMITÉ DE CONVIVENCIA LABORAL Y PREVENCIÓN DE ACOSO
-ARTÍCULOS OBLIGATORIOS — cada uno como párrafo completo de mínimo 60 palabras:
+ARTÍCULOS OBLIGATORIOS - cada uno como párrafo completo de mínimo 60 palabras:
 A) Definición y modalidades de acoso laboral: persecución, discriminación, entorpecimiento, inequidad y desprotección (Ley 1010/2006, Art. 2). Definir cada modalidad con ejemplo.
-B) Comité de Convivencia Laboral — VERBATIM OBLIGATORIO incluir estas dos frases exactas:
+B) Comité de Convivencia Laboral - VERBATIM OBLIGATORIO incluir estas dos frases exactas:
    FRASE 1: "El comité estará conformado de manera bipartita por dos (2) representantes del empleador y dos (2) representantes de los trabajadores, para la adopción de medidas de prevención y corrección del acoso laboral, de conformidad con la Resolución 734 de 2006 y la Resolución 652 de 2012."
    FRASE 2 (PARÁGRAFO OBLIGATORIO): "Las personas que hayan sido víctimas o victimarios de conductas de acoso laboral no podrán integrar el Comité de Convivencia Laboral. Para empresas con menos de veinte (20) trabajadores, el Comité se conformará con un (1) representante del empleador y un (1) representante de los trabajadores."
    Elección democrática de representantes de los trabajadores, período de 2 años, reunión mensual ordinaria y extraordinaria cuando se presente un caso.
 C) Funciones del Comité: recibir quejas, examinar conductas, facilitar diálogo entre las partes, formular recomendaciones, hacer seguimiento, informar a la dirección.
-D) Procedimiento interno de queja por acoso laboral — artículo con pasos numerados: 1) presentación escrita al Comité; 2) aviso al presunto acosador en máx 5 días; 3) investigación confidencial en máx 30 días; 4) audiencia de conciliación; 5) informe final con medidas correctivas concretas y plazos; 6) seguimiento trimestral.
-E) POLÍTICA DE PREVENCIÓN DEL ACOSO SEXUAL — LEY 2365 DE 2024 — ARTÍCULO AUTÓNOMO CON ESTE TÍTULO EXACTO. Contenido mínimo: definición legal de acoso sexual en el trabajo; conductas que lo constituyen (solicitudes de favores sexuales, comentarios, contacto físico no deseado, exhibicionismo, acoso digital); canal confidencial exclusivo para denuncias de acoso sexual; protocolo de atención con plazos máximos; garantía de confidencialidad de la víctima; prohibición expresa de represalias contra quien denuncie; obligación del empleador de investigar dentro de los 5 días hábiles siguientes a la denuncia.
+D) Procedimiento interno de queja por acoso laboral - artículo con pasos numerados: 1) presentación escrita al Comité; 2) aviso al presunto acosador en máx 5 días; 3) investigación confidencial en máx 30 días; 4) audiencia de conciliación; 5) informe final con medidas correctivas concretas y plazos; 6) seguimiento trimestral.
+E) POLÍTICA DE PREVENCIÓN DEL ACOSO SEXUAL - LEY 2365 DE 2024 - ARTÍCULO AUTÓNOMO CON ESTE TÍTULO EXACTO. Contenido mínimo: definición legal de acoso sexual en el trabajo; conductas que lo constituyen (solicitudes de favores sexuales, comentarios, contacto físico no deseado, exhibicionismo, acoso digital); canal confidencial exclusivo para denuncias de acoso sexual; protocolo de atención con plazos máximos; garantía de confidencialidad de la víctima; prohibición expresa de represalias contra quien denuncie; obligación del empleador de investigar dentro de los 5 días hábiles siguientes a la denuncia.
 F) Sanciones por acoso laboral o sexual: falta muy grave con terminación con justa causa, denuncia ante Inspector del Trabajo, acciones penales según gravedad (Art. 210A Código Penal para acoso sexual).
 
 CAPÍTULO XV
@@ -1937,7 +1937,7 @@ PROTECCIÓN DE SUJETOS DE ESPECIAL PROTECCIÓN
 Artículos requeridos:
 A) Mujer embarazada y en período de lactancia: prohibición de despido sin autorización previa del Inspector del Trabajo (Art. 241A CST); licencia de maternidad de 18 semanas remuneradas (Ley 2114/2021); prohibición expresa de solicitar prueba de embarazo, examen de VIH/SIDA o hacer preguntas sobre estado de gravidez en entrevistas de trabajo o durante la relación laboral (Ley 972/2005, Art. 236 CST).
 B) Licencia de paternidad: dos (2) semanas remuneradas pagadas por el empleador al padre trabajador, de conformidad con la Ley 2114 de 2021, prorrogables según el número de hijos.
-C) Personas en situación de discapacidad: estabilidad laboral reforzada — prohibición de despido sin autorización del Ministerio del Trabajo (Sentencia T-306/2024 y T-427/1992 CSJ); deber de realizar ajustes razonables en el puesto de trabajo.
+C) Personas en situación de discapacidad: estabilidad laboral reforzada - prohibición de despido sin autorización del Ministerio del Trabajo (Sentencia T-306/2024 y T-427/1992 CSJ); deber de realizar ajustes razonables en el puesto de trabajo.
 D) Trabajadores con fuero sindical (fundadores, adherentes, directivos): prohibición de despido, traslado o desmejora sin autorización judicial previa (Art. 405-411 CST); el desconocimiento del fuero genera la obligación de reintegro y pago de salarios dejados de percibir.
 E) No discriminación: prohibición absoluta de discriminación por raza, color, sexo, edad, idioma, religión, opinión política, orientación sexual o identidad de género, origen nacional o social, posición económica o cualquier otra condición. (Art. 143 CST, Ley 1482/2011)
 
@@ -1948,7 +1948,7 @@ Artículos requeridos: vigencia desde la publicación a los trabajadores; proced
 INFORMACIÓN DE LA EMPRESA PROPORCIONADA POR EL ADMINISTRADOR:
 {$infoEmpresa}
 
-VERIFICACIÓN OBLIGATORIA ANTES DE TERMINAR — revisa CADA punto:
+VERIFICACIÓN OBLIGATORIA ANTES DE TERMINAR - revisa CADA punto:
 1. CAP. II: ¿incluye prohibición de exigir libreta militar y prueba de embarazo con referencia al Art. 77 del Decreto 2663 de 1950? ¿incluye prórroga del período de prueba?
 2. CAP. III: ¿tiene ARTÍCULO INDEPENDIENTE de descanso dominical remunerado (Art. 181 CST)? ¿tiene ARTÍCULO INDEPENDIENTE de descanso compensatorio (Art. 182 CST)? ¿describe la distribución de la jornada diaria?
 3. CAP. IV: ¿contiene la frase literal "no podrá exceder de dos (2) horas diarias ni de doce (12) horas semanales" con referencia al "artículo 167A del Decreto 2663 de 1950"? ¿especifica los recargos exactos (25%, 75%)?
@@ -1958,7 +1958,7 @@ VERIFICACIÓN OBLIGATORIA ANTES DE TERMINAR — revisa CADA punto:
 7. CAP. IX: ¿la escala diferencia claramente entre faltas leves (multa, no suspensión), graves (suspensión 1-8 días) y muy graves (hasta 2 meses o terminación)?
 8. CAP. XII: ¿incluye exámenes de alcoholemia/sustancias para cargos de riesgo? ¿tiene artículo de prohibición expresa para trabajadores en cargos de riesgo para terceros?
 9. CAP. XIV B: ¿contiene la frase "comité conformado de manera bipartita por dos (2) representantes del empleador y dos (2) representantes de los trabajadores" y referencia a la "Resolución 734 de 2006"?
-10. CAP. XIV E: ¿tiene un ARTÍCULO AUTÓNOMO titulado "POLÍTICA DE PREVENCIÓN DEL ACOSO SEXUAL — LEY 2365 DE 2024" con canal de denuncia y protocolo de atención separado del artículo del Comité?
+10. CAP. XIV E: ¿tiene un ARTÍCULO AUTÓNOMO titulado "POLÍTICA DE PREVENCIÓN DEL ACOSO SEXUAL - LEY 2365 DE 2024" con canal de denuncia y protocolo de atención separado del artículo del Comité?
 Si cualquiera de estos puntos está ausente, REDÁCTALO AHORA antes de finalizar.
 
 Redacta el Reglamento Interno de Trabajo completo:

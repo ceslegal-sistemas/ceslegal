@@ -1,4 +1,4 @@
-# Reporte de tokens y costo de IA — flujo RIT → decisión de sanción
+# Reporte de tokens y costo de IA - flujo RIT → decisión de sanción
 
 Mide cuántos tokens consume y cuánto cuesta en Gemini **un flujo completo**:
 construcción del RIT → creación de descargos → diligencia → decisión de la sanción.
@@ -57,13 +57,13 @@ Todas usan `gemini-2.5-flash` (con caída a `flash-lite`) salvo los embeddings:
 | Paso | Servicio | maxOutputTokens | Notas |
 |---|---|---|---|
 | **RIT** | `RITGeneratorService` / `RITMejoradoService` | **32 768** | Salida grande (reglamento completo). La llamada más pesada. |
-| RIT (índice) | `BibliotecaLegalService` (embedding) | — | `gemini-embedding-001`, costo marginal. |
+| RIT (índice) | `BibliotecaLegalService` (embedding) | - | `gemini-embedding-001`, costo marginal. |
 | **Hechos** | `EvaluacionHechosService` | 1 500 | Análisis de hechos; 1-3 llamadas según validación/feedback. |
-| Hechos (índice) | embedding | — | Marginal. |
+| Hechos (índice) | embedding | - | Marginal. |
 | **Preguntas descargos** | `IADescargoService` | 2 048 | Genera el cuestionario de descargos. |
 | **Diligencia** | `IADescargoService` (feedback/voz) | 1 024 | Variable: 0-N según interacción del trabajador. |
 | **Análisis sanción** | `IAAnalisisSancionService` | hasta **16 384** | Entrada grande (CST + jurisprudencia + RIT + hechos + descargos). |
-| Jurisprudencia | embedding (consulta) | — | Marginal. |
+| Jurisprudencia | embedding (consulta) | - | Marginal. |
 | Pruebas (multimodal) | `IAAnalisisSancionService` | 1 024 | Solo si hay evidencias adjuntas; suma tokens de imagen. |
 | **Documento sanción** | `DocumentGeneratorService` | 8 192 | Redacta la resolución/carta final. |
 
@@ -89,7 +89,7 @@ A precios `flash`: entrada $0.30/1M, salida $2.50/1M (USD). **La salida domina e
 10 000 flujos/mes ≈ **$1 000 USD**. Mídelo real para afinar.
 
 > Estos números son una guía. El comando `ia:reporte-tokens` te da el costo EXACTO
-> de tus flujos reales — úsalo para la cifra que lleves a tu jefe.
+> de tus flujos reales - úsalo para la cifra que lleves a tu jefe.
 
 ---
 

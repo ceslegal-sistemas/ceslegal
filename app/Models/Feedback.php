@@ -84,7 +84,7 @@ class Feedback extends Model
             self::TRIGGER_POST_DILIGENCIA => 'Post diligencia',
             self::TRIGGER_PERIODICO       => 'Periódico',
             self::TRIGGER_HITO            => 'Hito de uso',
-            default                       => $this->trigger ?? '—',
+            default                       => $this->trigger ?? '-',
         };
     }
 

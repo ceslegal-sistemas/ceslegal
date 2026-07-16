@@ -18,7 +18,7 @@ class ReglamentoInternoService
     /**
      * Procesa un archivo (.docx o .pdf), extrae el texto y lo guarda en BD.
      *
-     * La extracción de texto es opcional — si falla, el registro se crea de
+     * La extracción de texto es opcional - si falla, el registro se crea de
      * todas formas con activo=true para que la empresa quede con RIT activo.
      */
     /**
@@ -43,7 +43,7 @@ class ReglamentoInternoService
                 default => $this->extraerTextoDocx($rutaArchivo),
             };
         } catch (\Exception $e) {
-            // La extracción de texto falla con gracia — el RIT aún se registra
+            // La extracción de texto falla con gracia - el RIT aún se registra
             Log::warning('ReglamentoInternoService: no se pudo extraer texto del documento', [
                 'empresa_id' => $empresaId,
                 'archivo'    => basename($rutaArchivo),
@@ -59,7 +59,7 @@ class ReglamentoInternoService
             'texto_completo' => $texto ?: null,
             'activo'         => true,
             'fuente'         => 'subido',
-            // Legado (binario) — se conserva por compatibilidad; null si no se detecta.
+            // Legado (binario) - se conserva por compatibilidad; null si no se detecta.
             'dias_laborales' => $this->detectarDiasLaborales($texto),
             // Nuevo: conjunto de días ISO (null si no se detecta → se confirma luego).
             'dias_habiles'   => $diasHabiles,
@@ -198,7 +198,7 @@ class ReglamentoInternoService
      */
     public function extraerSancionesParaEmail(ReglamentoInterno $rit): array
     {
-        // ── Caso 1: wizard (construido_ia) — datos ya estructurados ───────────
+        // ── Caso 1: wizard (construido_ia) - datos ya estructurados ───────────
         // Solo se usa si la fuente activa es el wizard; si se subió un documento
         // posterior, respuestas_cuestionario puede seguir existiendo pero no es
         // la fuente vigente.
@@ -220,7 +220,7 @@ class ReglamentoInternoService
             return $rit->sanciones_extraidas;
         }
 
-        // ── Caso 3: documento subido sin extracción — extraer con IA y persistir
+        // ── Caso 3: documento subido sin extracción - extraer con IA y persistir
         if (empty($rit->texto_completo)) {
             return [];
         }
@@ -230,7 +230,7 @@ class ReglamentoInternoService
 
     /**
      * Devuelve las filas EXACTAS de la tabla de sanciones por gravedad (leve/grave/muy grave),
-     * con la conducta y la sanción tal como las define el RIT del cliente — sin heurística cuando
+     * con la conducta y la sanción tal como las define el RIT del cliente - sin heurística cuando
      * el dato existe. Normaliza ambas fuentes:
      *   - Wizard: respuestas_cuestionario.sanciones_configuradas (conducta + gravedad + sanción).
      *   - Subido: faltas + sanción por gravedad extraídas por IA (o heurística si es dato viejo).
@@ -742,7 +742,7 @@ PROMPT;
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // RAG — Fragmentación, embeddings y búsqueda semántica del RIT subido
+    // RAG - Fragmentación, embeddings y búsqueda semántica del RIT subido
     // ══════════════════════════════════════════════════════════════════════════
 
     /**
@@ -788,7 +788,7 @@ PROMPT;
         $lineas = [];
         foreach ($scored as $item) {
             $pct = number_format($item['score'] * 100, 0);
-            $lineas[] = "--- [RIT fragmento — relevancia {$pct}%] ---";
+            $lineas[] = "--- [RIT fragmento - relevancia {$pct}%] ---";
             $lineas[] = trim($item['fragmento']->contenido);
             $lineas[] = '';
         }

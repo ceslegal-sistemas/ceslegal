@@ -744,7 +744,7 @@
                         ">
 
                         <div>
-                            <h2 class="text-base font-semibold text-gray-900 mb-1">Verificación fotográfica — Cierre</h2>
+                            <h2 class="text-base font-semibold text-gray-900 mb-1">Verificación fotográfica - Cierre</h2>
                             <p class="text-sm text-gray-500">Tome una foto de su rostro para registrar el fin de la diligencia y enviar sus descargos.</p>
                         </div>
 

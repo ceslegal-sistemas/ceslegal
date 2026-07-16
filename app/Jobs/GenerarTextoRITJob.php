@@ -76,7 +76,7 @@ class GenerarTextoRITJob implements ShouldQueue
 
         // Persistir texto y activar el reglamento
         $rit->update([
-            'nombre'               => 'Reglamento Interno generado con IA — ' . now()->format('d/m/Y'),
+            'nombre'               => 'Reglamento Interno generado con IA - ' . now()->format('d/m/Y'),
             'texto_completo'       => $textoRIT,
             'activo'               => true,
             'estado_generacion'    => 'completado',

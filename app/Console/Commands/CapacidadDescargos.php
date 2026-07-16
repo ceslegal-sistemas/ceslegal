@@ -44,7 +44,7 @@ class CapacidadDescargos extends Command
         $cadencia = max(1, (int) $this->option('cadencia'));
         $modelo = $config['model'] ?? 'gemini-2.5-flash';
 
-        $this->warn("Midiendo latencia real de {$n} llamadas a Gemini ({$modelo}) — simula la carga de un envío de descargos.");
+        $this->warn("Midiendo latencia real de {$n} llamadas a Gemini ({$modelo}) - simula la carga de un envío de descargos.");
         $this->line('Esto hace llamadas reales (cuesta unos centavos). No persiste datos.');
         $this->newLine();
 

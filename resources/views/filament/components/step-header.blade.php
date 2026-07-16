@@ -4,12 +4,12 @@
     del hero de bienvenida (mismo acento por paso) y de las tarjetas de info.
 
     Variables:
-      $step     int          — número del paso actual (1..N)
-      $total    int          — total de pasos
-      $title    string       — título del paso
-      $accent   string       — color hex de acento (coincide con la tarjeta del hero)
-      $lord     string|null  — src del lord-icon (opcional)
-      $subtitle string|null  — descripción corta (opcional)
+      $step     int          - número del paso actual (1..N)
+      $total    int          - total de pasos
+      $title    string       - título del paso
+      $accent   string       - color hex de acento (coincide con la tarjeta del hero)
+      $lord     string|null  - src del lord-icon (opcional)
+      $subtitle string|null  - descripción corta (opcional)
 --}}
 @include('filament.components.pinfo-styles')
 

@@ -42,7 +42,7 @@
                 data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                 style="width:20px;height:20px;flex-shrink:0;margin-top:1px">
             </lord-icon>
-            <span>La <strong>descripción jurídica</strong> la redacta la IA — puede editarla antes de crear el proceso.</span>
+            <span>La <strong>descripción jurídica</strong> la redacta la IA - puede editarla antes de crear el proceso.</span>
         </div>
     </div>
 

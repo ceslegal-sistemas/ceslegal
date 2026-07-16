@@ -20,7 +20,7 @@
     </div>
 
     <p class="pt-body">
-        Las pruebas —archivos adjuntos y testigos— fortalecen el proceso y son determinantes
+        Las pruebas -archivos adjuntos y testigos- fortalecen el proceso y son determinantes
         si el trabajador impugna la decisión.
     </p>
 

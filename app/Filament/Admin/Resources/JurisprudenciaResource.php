@@ -40,10 +40,10 @@ class JurisprudenciaResource extends Resource
                     Forms\Components\Select::make('tipo')
                         ->label('Tipo')
                         ->options([
-                            'sentencia_cc' => 'Sentencia — Corte Constitucional',
-                            'auto_cc'      => 'Auto — Corte Constitucional',
-                            'sentencia_csj' => 'Sentencia — Corte Suprema',
-                            'sentencia_ce' => 'Sentencia — Consejo de Estado',
+                            'sentencia_cc' => 'Sentencia - Corte Constitucional',
+                            'auto_cc'      => 'Auto - Corte Constitucional',
+                            'sentencia_csj' => 'Sentencia - Corte Suprema',
+                            'sentencia_ce' => 'Sentencia - Consejo de Estado',
                         ])
                         ->default('sentencia_cc'),
                     Forms\Components\DatePicker::make('fecha')->label('Fecha')->native(false),

@@ -123,7 +123,7 @@ class ActaInspeccionDocService
             $tbl5->addRow(450);
             $tbl5->addCell(3500)->addText($asistentes[$i]['nombre'] ?? '');
             $tbl5->addCell(3500)->addText($asistentes[$i]['cargo'] ?? '');
-            $tbl5->addCell(3000)->addText('');  // Firma (en blanco — se firma a mano)
+            $tbl5->addCell(3000)->addText('');  // Firma (en blanco - se firma a mano)
         }
 
         // ─────────────────────────────────────────────────────────────────

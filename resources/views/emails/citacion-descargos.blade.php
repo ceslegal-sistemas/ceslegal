@@ -90,7 +90,7 @@
             font-size: 13px;
             color: #78350f;
         }
-        /* BLOQUE CTA — EL MAS IMPORTANTE */
+        /* BLOQUE CTA - EL MAS IMPORTANTE */
         .cta-block {
             background-color: #f0fdf4;
             border: 2px solid #16a34a;
@@ -225,7 +225,7 @@
             </div>
             @endif
 
-            {{-- BOTON CTA — PROTAGONISTA --}}
+            {{-- BOTON CTA - PROTAGONISTA --}}
             @if($linkDescargos)
             <div class="cta-block">
                 <div class="cta-label">Enlace para sus descargos en línea</div>

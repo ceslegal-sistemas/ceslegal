@@ -95,7 +95,7 @@ class ListProcesoDisciplinarios extends ListRecords
                 ->icon('heroicon-o-star')
                 ->color('warning')
                 ->visible(fn () => auth()->user()?->role !== 'super_admin')
-                ->modalHeading('Diligencia completada — ¿Cómo te fue?')
+                ->modalHeading('Diligencia completada - ¿Cómo te fue?')
                 ->modalDescription('Tu opinión nos ayuda a mejorar. Todos los campos son obligatorios.')
                 ->modalIcon('heroicon-o-document-check')
                 ->modalWidth('lg')

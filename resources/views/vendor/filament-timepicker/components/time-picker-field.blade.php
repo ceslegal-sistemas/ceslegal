@@ -7,7 +7,7 @@
 
     1) format / timeFormat en minuscula 'hh:mm'. El formateador interno usa
        el regex /(hh|h|mm|ss|tt|t)/g SIN flag de mayus/minus: 'hh' (minuscula)
-       devuelve hora 24h con padding (0-23) — valor valido para <input
+       devuelve hora 24h con padding (0-23) - valor valido para <input
        type="time">. 'HH' (mayuscula) NO lo reconoce y devolveria "HH:mm"
        literal, dejando el campo en blanco.
 
@@ -30,7 +30,7 @@
     $isDisabled = $isDisabled();
 
     // <input type="time"> exige HH:mm (24h). El valor guardado puede venir como
-    // H:i o H:i:s — lo normalizamos a H:i para el value inicial.
+    // H:i o H:i:s - lo normalizamos a H:i para el value inicial.
     $raw = $getState() ?? '';
     $initVal = '';
     if ($raw) {

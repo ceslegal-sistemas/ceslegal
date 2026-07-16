@@ -566,7 +566,7 @@
     {{-- ══════════════════ HERO ══════════════════ --}}
     <div class="er-hero er-a1" style="text-align:center;">
 
-        {{-- Orbs CSS only — sin canvas ni luciérnagas --}}
+        {{-- Orbs CSS only - sin canvas ni luciérnagas --}}
         <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
             <div class="er-orb-b"
                 style="position:absolute;width:240px;height:240px;top:-60px;right:-40px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.45),transparent 70%);filter:blur(24px);">
@@ -618,7 +618,7 @@
                         data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                         style="width:20px;height:20px;flex-shrink:0;margin-top:1px">
                     </lord-icon>
-                    <span>La <strong>descripción jurídica</strong> la redacta la IA — puede editarla antes de crear el proceso.</span>
+                    <span>La <strong>descripción jurídica</strong> la redacta la IA - puede editarla antes de crear el proceso.</span>
                 </div>
                 <div class="er-bullet">
                     <lord-icon src="https://cdn.lordicon.com/wpsdctqb.json"
@@ -777,7 +777,7 @@
                         @foreach ($testigos as $t)
                             @if (!empty($t['nombre']))
                                 <span
-                                    class="er-tag">{{ $t['nombre'] }}{{ !empty($t['cargo']) ? ' — ' . $t['cargo'] : '' }}</span>
+                                    class="er-tag">{{ $t['nombre'] }}{{ !empty($t['cargo']) ? ' - ' . $t['cargo'] : '' }}</span>
                             @endif
                         @endforeach
                     @elseif($hubo_testigos === 'no')

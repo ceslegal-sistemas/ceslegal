@@ -21,7 +21,7 @@ html:not(.dark) .rit-bar-hint strong { color: #111827 }
                 style="width:22px;height:22px;flex-shrink:0">
             </lord-icon>
             <p class="rit-bar-title" style="margin:0;font-size:.8rem;font-weight:600;">
-                Revise el resumen y confirme — la IA generará <strong>16 capítulos</strong> artículo por artículo
+                Revise el resumen y confirme - la IA generará <strong>16 capítulos</strong> artículo por artículo
             </p>
         </div>
 

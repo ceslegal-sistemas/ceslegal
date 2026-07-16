@@ -4,7 +4,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Validation Language Lines — Español
+    | Validation Language Lines - Español
     |--------------------------------------------------------------------------
     */
 
@@ -158,7 +158,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Custom Attribute Names — nombres en español para los campos del wizard
+    | Custom Attribute Names - nombres en español para los campos del wizard
     |--------------------------------------------------------------------------
     */
 

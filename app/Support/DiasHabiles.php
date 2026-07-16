@@ -121,7 +121,7 @@ class DiasHabiles
 
         $t = Str::lower(Str::ascii($texto));
 
-        // 24/7 — todos los días
+        // 24/7 - todos los días
         if (preg_match('/24\s*\/?\s*7|24\s*horas|todos\s+los\s+d[ií]as|siete\s*\(?\s*7?\s*\)?\s*d[ií]as|lunes\s+a\s+domingo|domingo\s+a\s+domingo|de\s+domingo\s+a\s+domingo/u', $t)) {
             return [1, 2, 3, 4, 5, 6, 7];
         }

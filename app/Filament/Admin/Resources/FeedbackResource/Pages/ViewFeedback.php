@@ -67,16 +67,16 @@ class ViewFeedback extends ViewRecord
                                         'post_diligencia' => 'Post diligencia',
                                         'periodico'       => 'Periódico',
                                         'hito'            => 'Hito de uso',
-                                        default           => $state ?? '—',
+                                        default           => $state ?? '-',
                                     })
-                                    ->default('—'),
+                                    ->default('-'),
                             ]),
 
                         Grid::make(2)
                             ->schema([
                                 TextEntry::make('procesoDisciplinario.codigo')
                                     ->label('Proceso disciplinario')
-                                    ->default('—')
+                                    ->default('-')
                                     ->icon('heroicon-o-document-text'),
 
                                 TextEntry::make('created_at')
@@ -208,11 +208,11 @@ class ViewFeedback extends ViewRecord
 
                                 TextEntry::make('ip_address')
                                     ->label('Dirección IP')
-                                    ->default('—'),
+                                    ->default('-'),
 
                                 TextEntry::make('diligenciaDescargo.id')
                                     ->label('ID Diligencia')
-                                    ->default('—'),
+                                    ->default('-'),
                             ]),
                     ])
                     ->collapsible()

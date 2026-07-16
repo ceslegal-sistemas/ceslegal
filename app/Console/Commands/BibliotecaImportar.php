@@ -94,7 +94,7 @@ class BibliotecaImportar extends Command
                 $exitosos++;
             } catch (\Throwable $e) {
                 $this->line("   ✗ Error embeddings: <error>{$e->getMessage()}</error>");
-                $this->line("   (El archivo fue guardado — puede reprocesar desde el panel)");
+                $this->line("   (El archivo fue guardado - puede reprocesar desde el panel)");
                 $fallidos++;
             }
         }

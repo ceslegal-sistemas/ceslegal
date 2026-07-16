@@ -145,7 +145,7 @@ class ScrapearNormasLaborales extends Command
             );
 
             $estado = $embedding ? '[ok]' : '[sin embedding]';
-            $this->info("  {$estado} {$codigo} — {$data['titulo']}");
+            $this->info("  {$estado} {$codigo} - {$data['titulo']}");
             $ok++;
 
             usleep(400_000); // 400 ms entre requests de embedding
@@ -170,7 +170,7 @@ class ScrapearNormasLaborales extends Command
                 ->get($url);
 
             if (!$response->successful()) {
-                Log::warning("normas:scraper HTTP {$response->status()} — {$url}");
+                Log::warning("normas:scraper HTTP {$response->status()} - {$url}");
                 return null;
             }
 
@@ -183,7 +183,7 @@ class ScrapearNormasLaborales extends Command
 
             return $body;
         } catch (\Throwable $e) {
-            Log::error("normas:scraper — excepción fetch {$url}", ['error' => $e->getMessage()]);
+            Log::error("normas:scraper - excepción fetch {$url}", ['error' => $e->getMessage()]);
             return null;
         }
     }
@@ -345,14 +345,14 @@ class ScrapearNormasLaborales extends Command
             ]);
 
             if (!$response->successful()) {
-                Log::warning('normas:scraper — embedding fallido', ['status' => $response->status()]);
+                Log::warning('normas:scraper - embedding fallido', ['status' => $response->status()]);
                 return null;
             }
 
             $values = $response->json('embedding.values');
             return is_array($values) && !empty($values) ? $values : null;
         } catch (\Throwable $e) {
-            Log::error('normas:scraper — excepción embedding', ['error' => $e->getMessage()]);
+            Log::error('normas:scraper - excepción embedding', ['error' => $e->getMessage()]);
             return null;
         }
     }

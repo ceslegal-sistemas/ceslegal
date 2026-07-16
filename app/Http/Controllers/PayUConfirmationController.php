@@ -11,7 +11,7 @@ class PayUConfirmationController extends Controller
 {
     /**
      * PayU llama a esta URL (POST) cuando se completa una transacción.
-     * Es server-to-server — no requiere sesión del usuario.
+     * Es server-to-server - no requiere sesión del usuario.
      */
     public function handle(Request $request, PayUService $payu)
     {

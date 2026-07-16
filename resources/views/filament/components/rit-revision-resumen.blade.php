@@ -26,7 +26,7 @@
     ];
     $periodicidadTexto = is_array($periodicidad_pago ?? null)
         ? implode(' · ', array_filter(array_map(fn($p) => $periodicidadLabels[$p] ?? $p, $periodicidad_pago)))
-        : $periodicidadLabels[$periodicidad_pago ?? ''] ?? ($periodicidad_pago ?: '—');
+        : $periodicidadLabels[$periodicidad_pago ?? ''] ?? ($periodicidad_pago ?: '-');
     $controlLabels = [
         'biometrico' => 'Reloj biométrico',
         'planilla' => 'Planilla manual',
@@ -111,7 +111,7 @@
         'XVI' => 'Disposiciones Finales',
     ];
 
-    /* Embers (modo claro) — chispas de fuego que suben desde la base */
+    /* Embers (modo claro) - chispas de fuego que suben desde la base */
     $emberColors = ['200,60,5', '230,90,10', '255,130,20', '180,45,0', '240,110,15', '210,70,5'];
     $embers = [];
     for ($i = 0; $i < 24; $i++) {
@@ -128,7 +128,7 @@
         ];
     }
 
-    /* Luciérnagas (modo oscuro) — generadas en servidor para layout estable */
+    /* Luciérnagas (modo oscuro) - generadas en servidor para layout estable */
     $ffColors = ['201,168,76', '255,235,120', '255,255,200', '190,215,255', '245,195,255', '255,210,90'];
     $fireflies = [];
     for ($i = 0; $i < 24; $i++) {
@@ -259,7 +259,7 @@
     .rg-a2{ animation:rg-up .5s .08s cubic-bezier(.16,1,.3,1) both }
     .rg-a3{ animation:rg-up .5s .16s cubic-bezier(.16,1,.3,1) both }
 
-    /* ── Fuego (claro) / luciérnagas (oscuro) del hero — igual que el inicio ── */
+    /* ── Fuego (claro) / luciérnagas (oscuro) del hero - igual que el inicio ── */
     .rg-fx{ position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:0 }
     .rg-hero-content{ position:relative; z-index:2 }
 
@@ -333,7 +333,7 @@
 
         <div class="rg-stats">
             <div class="rg-stat"><b>{{ $num_trabajadores ?: '?' }}</b><span>Trabaj.</span></div>
-            <div class="rg-stat"><b>{{ $totalCargos ?: '—' }}</b><span>Cargos</span></div>
+            <div class="rg-stat"><b>{{ $totalCargos ?: '-' }}</b><span>Cargos</span></div>
             <div class="rg-stat"><b>16</b><span>Capít.</span></div>
             <div class="rg-stat"><b>~80</b><span>Artíc.</span></div>
         </div>
@@ -345,7 +345,7 @@
             </div>
             <div class="rg-note">
                 <svg class="ic" fill="none" viewBox="0 0 24 24" stroke="#d97706" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
-                <span>Puede tardar hasta <b>60 segundos</b> — no cierre ni recargue la ventana.</span>
+                <span>Puede tardar hasta <b>60 segundos</b> - no cierre ni recargue la ventana.</span>
             </div>
             <div class="rg-note">
                 <svg class="ic" fill="none" viewBox="0 0 24 24" stroke="#ea580c" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
@@ -362,8 +362,8 @@
 
         <div class="rg-glass rg-card">
             <p class="rg-lbl">Empresa</p>
-            <p class="rg-val">{{ $empresa?->razon_social ?? '—' }}</p>
-            <p class="rg-sub">NIT {{ $empresa?->nit ?? '—' }}@if ($empresa?->ciudad) &nbsp;·&nbsp; {{ $empresa->ciudad }}@if ($empresa->departamento), {{ $empresa->departamento }}@endif @endif</p>
+            <p class="rg-val">{{ $empresa?->razon_social ?? '-' }}</p>
+            <p class="rg-sub">NIT {{ $empresa?->nit ?? '-' }}@if ($empresa?->ciudad) &nbsp;·&nbsp; {{ $empresa->ciudad }}@if ($empresa->departamento), {{ $empresa->departamento }}@endif @endif</p>
             @if (!empty($actividad_economica))<p class="rg-sub" style="margin-top:.3rem"><span style="opacity:.75">Actividad:</span> {{ $actividad_economica }}</p>@endif
             @if (($tiene_sucursales ?? null) === 'si')<p class="rg-sub" style="margin-top:.3rem">{{ count($sucursales ?? []) }} sucursal(es) registrada(s)</p>@endif
         </div>
@@ -387,14 +387,14 @@
                 @php
                     $dt = collect((array) ($t['dias'] ?? []))->map(fn($d) => $labelsDia[(int) $d] ?? '')->filter()->join(', ');
                 @endphp
-                <p class="rg-sub"><b>{{ $t['nombre'] ?: 'Turno' }}:</b> {{ $dt ?: '—' }} · {{ $fmtHora($t['hora_inicio'] ?? null) ?? '?' }} a {{ $fmtHora($t['hora_fin'] ?? null) ?? '?' }}{{ !empty($t['cargos']) ? ' ('.$t['cargos'].')' : '' }}</p>
+                <p class="rg-sub"><b>{{ $t['nombre'] ?: 'Turno' }}:</b> {{ $dt ?: '-' }} · {{ $fmtHora($t['hora_inicio'] ?? null) ?? '?' }} a {{ $fmtHora($t['hora_fin'] ?? null) ?? '?' }}{{ !empty($t['cargos']) ? ' ('.$t['cargos'].')' : '' }}</p>
             @endforeach
             @if (!empty($modalidades_jornada))<div class="rg-pills">@foreach ($modalidades_jornada as $mj)<span class="rg-pill">{{ $modalidadesJornadaLabels[$mj] ?? $mj }}</span>@endforeach</div>@endif
         </div>
 
         <div class="rg-glass rg-card">
             <p class="rg-lbl">Pago</p>
-            <p class="rg-val {{ !$forma_pago ? 'empty' : '' }}">{{ $formaPagoLabels[$forma_pago ?? ''] ?? ($forma_pago ?: '—') }}</p>
+            <p class="rg-val {{ !$forma_pago ? 'empty' : '' }}">{{ $formaPagoLabels[$forma_pago ?? ''] ?? ($forma_pago ?: '-') }}</p>
             <p class="rg-sub">{{ $periodicidadTexto }}</p>
         </div>
 
@@ -405,12 +405,12 @@
 
         <div class="rg-glass rg-card">
             <p class="rg-lbl">Control asistencia</p>
-            <p class="rg-val {{ !$control_asistencia ? 'empty' : '' }}">{{ $controlLabels[$control_asistencia ?? ''] ?? ($control_asistencia ?: '—') }}</p>
+            <p class="rg-val {{ !$control_asistencia ? 'empty' : '' }}">{{ $controlLabels[$control_asistencia ?? ''] ?? ($control_asistencia ?: '-') }}</p>
         </div>
 
         <div class="rg-glass rg-card">
             <p class="rg-lbl">SG-SST</p>
-            <p class="rg-val {{ !$tiene_sg_sst ? 'empty' : '' }}">{{ $sgSstLabels[$tiene_sg_sst ?? ''] ?? ($tiene_sg_sst ?: '—') }}</p>
+            <p class="rg-val {{ !$tiene_sg_sst ? 'empty' : '' }}">{{ $sgSstLabels[$tiene_sg_sst ?? ''] ?? ($tiene_sg_sst ?: '-') }}</p>
         </div>
 
         <div class="rg-glass rg-card">

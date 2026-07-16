@@ -9,7 +9,7 @@
     // botones "Aplicar esta sanción" y la tarjeta de "Otras sanciones".
     $opcionesSancion         = $opcionesSancion ?? [];
     $iaSancionesRecomendadas = $iaSancionesRecomendadas ?? [];
-    // Ícono (heroicon) y color por tipo de sanción — los mismos de "Decisión de Sanción".
+    // Ícono (heroicon) y color por tipo de sanción - los mismos de "Decisión de Sanción".
     $sancionMeta = [
         'llamado_atencion' => ['icon' => 'heroicon-o-chat-bubble-bottom-center-text', 'c' => '#2563eb'],
         'suspension'       => ['icon' => 'heroicon-o-clock',                          'c' => '#d97706'],
@@ -21,7 +21,7 @@
     $esReincidencia = $analisis['es_reincidencia'] ?? false;
     $justificacion  = $analisis['justificacion'] ?? '';
 
-    // Fase 1 — garantías y fuero
+    // Fase 1 - garantías y fuero
     $alertaFuero   = is_array($analisis['alerta_fuero'] ?? null) ? $analisis['alerta_fuero'] : [];
     $reqVerifFuero = (bool) ($alertaFuero['requiere_verificacion'] ?? false);
     // Solo mostramos la alerta de fuero cuando hay un INDICIO REAL. Si no hay indicios,
@@ -226,7 +226,7 @@ html.dark .esa-badge-reincidencia {
    Cada elemento define --a-light y --a-dark inline según su sanción/gravedad. */
 .esa-accent-text { color: var(--a-light); }
 html.dark .esa-accent-text { color: var(--a-dark); }
-/* Botones tipo badge: "Aplicar esta sanción" / "Otras sanciones" — mismo look que
+/* Botones tipo badge: "Aplicar esta sanción" / "Otras sanciones" - mismo look que
    los botones de "Decisión de Sanción" (color + ícono por tipo de sanción). */
 .esa-badge-btn {
     display: inline-flex; align-items: center; gap: 7px;
@@ -265,7 +265,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                 </lord-icon>
 
                 <div style="flex:1;min-width:0;">
-                    <p class="esa-label">Análisis IA — Gravedad de la falta</p>
+                    <p class="esa-label">Análisis IA - Gravedad de la falta</p>
 
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <span class="esa-accent-text"
@@ -385,7 +385,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
             <p class="esa-label">
                 {{ $esCondicional ? 'Opciones si la falta se confirma' : 'La IA recomienda' }}
                 @if(count($sancionesValidas) > 1)
-                    — {{ count($sancionesValidas) }} opciones jurídicamente válidas
+                    - {{ count($sancionesValidas) }} opciones jurídicamente válidas
                 @endif
             </p>
         </div>
@@ -524,7 +524,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
     @if(!empty($otrasSanciones))
     <div class="esa-card">
         <div style="padding:14px 18px 2px;">
-            <p class="esa-label">Otras sanciones — no recomendadas por la IA</p>
+            <p class="esa-label">Otras sanciones - no recomendadas por la IA</p>
             <p style="font-size:11.5px;color:var(--esa-muted);line-height:1.55;margin:5px 0 0;">
                 Puede aplicar una de estas, pero al apartarse de la recomendación deberá justificar el motivo y aceptar la responsabilidad.
             </p>
@@ -592,7 +592,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
     </div>
     @endif
 
-    {{-- ── Verificación de garantías (debido proceso) — Fase 1 ──────────── --}}
+    {{-- ── Verificación de garantías (debido proceso) - Fase 1 ──────────── --}}
     @if(!empty($garantias))
     @php
         $gEtiquetas = ['tipicidad' => '¿Es una falta del reglamento?', 'debido_proceso' => '¿Se respetó el debido proceso?', 'inmediatez' => '¿Se actuó a tiempo?', 'non_bis_in_idem' => '¿Ya fue sancionado por lo mismo?', 'proporcionalidad' => '¿La sanción es proporcional?', 'suficiencia_probatoria' => '¿Hay pruebas suficientes?'];
@@ -601,7 +601,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
     @endphp
     <div class="esa-card">
         <div style="padding:14px 18px;">
-            <p class="esa-label">¿La sanción se sostiene? — puntos a revisar</p>
+            <p class="esa-label">¿La sanción se sostiene? - puntos a revisar</p>
             @if($gRiesgos->isEmpty())
                 <div style="display:flex;align-items:center;gap:9px;margin-top:9px;">
                     <span class="esa-accent-text"
@@ -635,7 +635,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                         <div style="flex:1;min-width:0;">
                             <span style="font-size:12.5px;font-weight:600;color:var(--esa-text);">{{ $glabel }}</span>
                             @if($nota)
-                                <span style="font-size:12px;color:var(--esa-muted);"> — {{ $nota }}</span>
+                                <span style="font-size:12px;color:var(--esa-muted);"> - {{ $nota }}</span>
                             @endif
                         </div>
                     </div>

@@ -761,7 +761,7 @@ HTML;
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Informe de Gestión Jurídica — CES LEGAL</title>
+    <title>Informe de Gestión Jurídica - CES LEGAL</title>
     <style>
         /* ── Página (carta: 21.59 × 27.94 cm) ────────────────────── */
         @page {
@@ -794,7 +794,7 @@ HTML;
         }
 
         /* ───────────────────────────────────────────────────────────
-           ENCABEZADO FIJO — aparece en todas las páginas
+           ENCABEZADO FIJO - aparece en todas las páginas
         ─────────────────────────────────────────────────────────── */
         #page-header {
             position: fixed;
@@ -854,7 +854,7 @@ HTML;
         }
 
         /* ───────────────────────────────────────────────────────────
-           PIE FIJO — aparece en todas las páginas
+           PIE FIJO - aparece en todas las páginas
         ─────────────────────────────────────────────────────────── */
         #page-footer {
             position: fixed;
@@ -888,7 +888,7 @@ HTML;
         }
 
         /* ───────────────────────────────────────────────────────────
-           PORTADA — bloque de identificación
+           PORTADA - bloque de identificación
         ─────────────────────────────────────────────────────────── */
         .cover-block {
             border: 1px solid #D4D9E3;
@@ -944,7 +944,7 @@ HTML;
         }
 
         /* ───────────────────────────────────────────────────────────
-           KPI — tabla de indicadores clave
+           KPI - tabla de indicadores clave
         ─────────────────────────────────────────────────────────── */
         .kpi-table {
             width: 100%;
@@ -1114,7 +1114,7 @@ HTML;
         <hr class="pf-rule">
         <table class="pf-table">
             <tr>
-                <td>Documento confidencial — Uso exclusivo de {$empresa->razon_social}</td>
+                <td>Documento confidencial - Uso exclusivo de {$empresa->razon_social}</td>
                 <td class="pf-right">CES LEGAL S.A.S. &nbsp;·&nbsp; NIT 901.258.505-4 &nbsp;·&nbsp; {$fechaActual}</td>
             </tr>
         </table>
@@ -1122,7 +1122,7 @@ HTML;
     </div>
 
     <!-- ═══════════════════════════════════════════════════════
-         PÁGINA 1 — PORTADA Y ANÁLISIS EJECUTIVO
+         PÁGINA 1 - PORTADA Y ANÁLISIS EJECUTIVO
     ═══════════════════════════════════════════════════════ -->
 
     <!-- Bloque de identificación -->
@@ -1144,7 +1144,7 @@ HTML;
                 <td class="val">{$fechaActual}</td>
             </tr>
         </table>
-        <div class="confidencial-note">Documento Confidencial — Uso exclusivo del cliente</div>
+        <div class="confidencial-note">Documento Confidencial - Uso exclusivo del cliente</div>
     </div>
 
     <!-- Indicadores clave -->
@@ -1179,7 +1179,7 @@ HTML;
     <div class="page-break"></div>
 
     <!-- ═══════════════════════════════════════════════════════
-         PÁGINA 2 — ANÁLISIS GRÁFICO Y TABLAS
+         PÁGINA 2 - ANÁLISIS GRÁFICO Y TABLAS
     ═══════════════════════════════════════════════════════ -->
 
     <div class="sec-header">Análisis Gráfico</div>
@@ -1212,7 +1212,7 @@ HTML;
     <div class="page-break"></div>
 
     <!-- ═══════════════════════════════════════════════════════
-         PÁGINA 3 — DETALLE DE GESTIONES Y FIRMA
+         PÁGINA 3 - DETALLE DE GESTIONES Y FIRMA
     ═══════════════════════════════════════════════════════ -->
 
     <div class="sec-header">Detalle de Gestiones Realizadas</div>
@@ -1224,7 +1224,7 @@ HTML;
         </p>
         <div class="firma-linea">
             <div class="firma-nombre">{$nombreAbogado}</div>
-            <div class="firma-cargo">Abogado — CES LEGAL S.A.S.</div>
+            <div class="firma-cargo">Abogado - CES LEGAL S.A.S.</div>
             <div class="firma-cargo">NIT: 901.258.505-4</div>
         </div>
     </div>

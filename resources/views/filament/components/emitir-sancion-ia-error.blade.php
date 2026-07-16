@@ -1,5 +1,5 @@
 {{--
-    Tarjeta de error — análisis IA no disponible
+    Tarjeta de error - análisis IA no disponible
     Se muestra cuando Gemini devuelve error después de los reintentos.
 --}}
 <style>

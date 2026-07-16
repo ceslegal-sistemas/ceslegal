@@ -40,7 +40,7 @@ class FeedbackStatsWidget extends BaseWidget
         }
 
         return [
-            Stat::make('Calificación promedio', $avgRating > 0 ? number_format($avgRating, 1) . ' ★' : '—')
+            Stat::make('Calificación promedio', $avgRating > 0 ? number_format($avgRating, 1) . ' ★' : '-')
                 ->description(match (true) {
                     $avgRating >= 4.5 => 'Excelente',
                     $avgRating >= 4   => 'Muy bueno',
@@ -68,7 +68,7 @@ class FeedbackStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-o-briefcase')
                 ->color('primary'),
 
-            Stat::make('NPS', $npsScore !== null ? $npsScore . ' pts' : '—')
+            Stat::make('NPS', $npsScore !== null ? $npsScore . ' pts' : '-')
                 ->description($totalNps > 0
                     ? "{$promotores} promotores · {$detractores} detractores"
                     : 'Sin puntuaciones NPS aún'

@@ -4,7 +4,7 @@
 
     <meta charset="utf-8">
 
-    <title>CES Legal — Gestión disciplinaria con respaldo jurídico</title>
+    <title>CES Legal - Gestión disciplinaria con respaldo jurídico</title>
 
     <meta name="description" content="Plataforma de gestión de procesos disciplinarios laborales anclada a la Constitución, la jurisprudencia y el Código Sustantivo del Trabajo.">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -219,7 +219,7 @@
 										<h3 class="item-heading-large">
 											Fundamento jurídico real
 										</h3>
-										<p class="item-desc">No son opiniones de IA: cada salida cita su fuente documental — Constitución, jurisprudencia y Código Sustantivo del Trabajo.</p>
+										<p class="item-desc">No son opiniones de IA: cada salida cita su fuente documental - Constitución, jurisprudencia y Código Sustantivo del Trabajo.</p>
 									</div>
 								</div>
 								<div class="col-md-1_2">
@@ -412,7 +412,7 @@
                 </li>
             </ul>
         </nav>
-        <div class="copyright">© {{ date('Y') }} — CES Legal</div>
+        <div class="copyright">© {{ date('Y') }} - CES Legal</div>
     </div>
 </footer><!-- End footer -->
 

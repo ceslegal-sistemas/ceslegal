@@ -563,7 +563,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     ? \App\Support\DiasHabiles::texto($empresa->diasHabilesSet())
                                     : 'Lunes a Viernes';
 
-                                return "Audiencia virtual — días hábiles: {$texto}. Festivos no disponibles.";
+                                return "Audiencia virtual - días hábiles: {$texto}. Festivos no disponibles.";
                             }),
 
 
@@ -1706,7 +1706,7 @@ class ProcesoDisciplinarioResource extends Resource
                         } else {
                             \Filament\Notifications\Notification::make()
                                 ->warning()
-                                ->title('Fecha actualizada — fallo al enviar correo')
+                                ->title('Fecha actualizada - fallo al enviar correo')
                                 ->body('La fecha de la diligencia fue actualizada correctamente, pero no se pudo enviar el correo: ' . $emailError)
                                 ->persistent()
                                 ->send();
@@ -1912,7 +1912,7 @@ class ProcesoDisciplinarioResource extends Resource
                           Forms\Components\Grid::make(['default' => 1, 'lg' => 12])
                             ->schema([
 
-                            // ══ Columna izquierda — Análisis de la IA ════════════════════════
+                            // ══ Columna izquierda - Análisis de la IA ════════════════════════
                             Forms\Components\Group::make([
                             // ── Tarjetas: Análisis + Recomendación (o error IA) ──────────────
                             Forms\Components\Placeholder::make('analisis_recomendacion_cards')
@@ -1927,7 +1927,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     ])),
                             ])->columnSpan(['default' => 1, 'lg' => 7]),
 
-                            // ══ Columna derecha — Decisión y verificación ════════════════════
+                            // ══ Columna derecha - Decisión y verificación ════════════════════
                             Forms\Components\Group::make([
                             // ── Aviso sin RIT ─────────────────────────────────────────────────
                             Forms\Components\Section::make('Empresa sin Reglamento Interno de Trabajo')
@@ -2220,7 +2220,7 @@ class ProcesoDisciplinarioResource extends Resource
 
                                 \Filament\Notifications\Notification::make()
                                     ->success()
-                                    ->title('Proceso cerrado — Sin sanción')
+                                    ->title('Proceso cerrado - Sin sanción')
                                     ->body('Se generó la constancia de no sanción con IA y se envió al trabajador. El proceso quedó registrado y cerrado.')
                                     ->duration(8000)
                                     ->send();
@@ -3421,7 +3421,7 @@ class ProcesoDisciplinarioResource extends Resource
     }
 
     /**
-     * Vista de solo lectura del proceso — usada por clientes desde las notificaciones.
+     * Vista de solo lectura del proceso - usada por clientes desde las notificaciones.
      */
     public static function infolist(Infolist $infolist): Infolist
     {
@@ -3488,7 +3488,7 @@ class ProcesoDisciplinarioResource extends Resource
                             ->formatStateUsing(fn($state) => match ($state) {
                                 'presencial' => 'Presencial',
                                 'virtual'    => 'Virtual',
-                                default      => $state ?? '—',
+                                default      => $state ?? '-',
                             }),
 
                         Infolists\Components\TextEntry::make('tipo_sancion')
@@ -3498,7 +3498,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 'suspension'       => 'Suspensión Laboral',
                                 'terminacion'      => 'Terminación de Contrato',
                                 'no_sancion'       => 'Sin Sanción',
-                                default            => $state ?? '—',
+                                default            => $state ?? '-',
                             })
                             ->badge()
                             ->color(fn($state) => match ($state) {
@@ -3578,9 +3578,9 @@ class ProcesoDisciplinarioResource extends Resource
                                 'suspension'       => 'Suspensión',
                                 'terminacion'      => 'Terminación',
                                 'no_sancion'       => 'Sin Sanción',
-                                default            => $state ?? '—',
+                                default            => $state ?? '-',
                             })
-                            ->placeholder('—'),
+                            ->placeholder('-'),
 
                         Infolists\Components\TextEntry::make('tipo_sancion')
                             ->label('Sanción Aplicada')
@@ -3597,16 +3597,16 @@ class ProcesoDisciplinarioResource extends Resource
                                 'suspension'       => 'Suspensión Laboral',
                                 'terminacion'      => 'Terminación de Contrato',
                                 'no_sancion'       => 'Sin Sanción',
-                                default            => $state ?? '—',
+                                default            => $state ?? '-',
                             })
-                            ->placeholder('—'),
+                            ->placeholder('-'),
 
                         Infolists\Components\TextEntry::make('_divergencia')
                             ->label('¿Siguió la recomendación?')
                             ->getStateUsing(
                                 fn($record) =>
                                 $record->sancion_ia_recomendada && $record->tipo_sancion !== $record->sancion_ia_recomendada
-                                    ? 'No — exoneración requerida'
+                                    ? 'No - exoneración requerida'
                                     : 'Sí'
                             )
                             ->badge()
@@ -3653,7 +3653,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->hidden(fn($record) => empty($record->autorizador_nombre))
                     ->collapsible(),
 
-                // ── Señales de Comportamiento — Capa 2 ───────────────────────────
+                // ── Señales de Comportamiento - Capa 2 ───────────────────────────
                 Infolists\Components\Section::make('Señales de Comportamiento durante los Descargos')
                     ->icon('heroicon-o-eye')
                     ->iconColor('primary')

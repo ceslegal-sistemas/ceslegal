@@ -11,7 +11,7 @@ El archivo `.env` en la raiz del proyecto controla toda la configuracion del sis
 |----------|-------------|-----------|-------------------|---------|
 | `APP_NAME` | Nombre de la aplicacion mostrado en la interfaz y correos | Si | `Laravel` | `"CES LEGAL"` |
 | `APP_ENV` | Entorno de ejecucion | Si | `local` | `production` |
-| `APP_KEY` | Clave de cifrado de la aplicacion (generada con `php artisan key:generate`) | Si | — | `base64:abc123...` |
+| `APP_KEY` | Clave de cifrado de la aplicacion (generada con `php artisan key:generate`) | Si | - | `base64:abc123...` |
 | `APP_DEBUG` | Activa el modo de depuracion con mensajes de error detallados | Si | `true` | `false` |
 | `APP_URL` | URL base de la aplicacion, usada para generar enlaces en correos y documentos | Si | `http://localhost` | `https://app.ceslegal.com` |
 | `APP_TIMEZONE` | Zona horaria del servidor | Si | `UTC` | `America/Bogota` |
@@ -43,7 +43,7 @@ APP_LOCALE=es
 | `DB_PORT` | Puerto del servidor de base de datos | Si (MySQL) | `3306` | `3306` |
 | `DB_DATABASE` | Nombre de la base de datos | Si | `laravel` | `ces_legal` |
 | `DB_USERNAME` | Usuario de la base de datos | Si (MySQL) | `root` | `ces_user` |
-| `DB_PASSWORD` | Contrasena del usuario de la base de datos | Si (MySQL) | — | `contraseña_segura` |
+| `DB_PASSWORD` | Contrasena del usuario de la base de datos | Si (MySQL) | - | `contraseña_segura` |
 | `DB_CHARSET` | Conjunto de caracteres de la base de datos | No | `utf8mb4` | `utf8mb4` |
 | `DB_COLLATION` | Regla de ordenamiento de la base de datos | No | `utf8mb4_unicode_ci` | `utf8mb4_unicode_ci` |
 
@@ -103,7 +103,7 @@ Si usas Gmail como servidor SMTP, debes generar una **contrasena de aplicacion**
 | Variable | Descripcion | Requerida | Valor por defecto | Ejemplo |
 |----------|-------------|-----------|-------------------|---------|
 | `IA_PROVIDER` | Proveedor de IA a utilizar | No | `gemini` | `openai` / `gemini` |
-| `GEMINI_API_KEY` | Clave de API de Google Gemini | Si (si usa Gemini) | — | `AIzaSyD...` |
+| `GEMINI_API_KEY` | Clave de API de Google Gemini | Si (si usa Gemini) | - | `AIzaSyD...` |
 | `GEMINI_MODEL` | Modelo de Gemini a utilizar | No | `gemini-2.5-flash` | `gemini-2.5-flash` |
 | `GEMINI_MAX_TOKENS` | Limite maximo de tokens por solicitud | No | `8192` | `4096` |
 
@@ -134,7 +134,7 @@ Gemini tiene un nivel gratuito con limites de tasa. Para produccion con alto vol
 | `SESSION_LIFETIME` | Duracion de la sesion en minutos | No | `120` | `120` |
 | `SESSION_ENCRYPT` | Cifrar datos de sesion | No | `false` | `true` |
 | `CACHE_STORE` | Driver de almacenamiento de cache | Si | `database` | `database` / `file` / `redis` |
-| `CACHE_PREFIX` | Prefijo para claves de cache | No | — | `ces_legal` |
+| `CACHE_PREFIX` | Prefijo para claves de cache | No | - | `ces_legal` |
 | `QUEUE_CONNECTION` | Driver de colas para trabajos en segundo plano | Si | `database` | `database` / `redis` / `sync` |
 
 ```ini

@@ -26,7 +26,7 @@
                 data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                 style="width:20px;height:20px;flex-shrink:0">
             </lord-icon>
-            <span>Liste los cargos <strong>tal como los llaman internamente</strong> — no necesita usar nombres formales.</span>
+            <span>Liste los cargos <strong>tal como los llaman internamente</strong> - no necesita usar nombres formales.</span>
         </div>
 
         <div class="pt-bullet">

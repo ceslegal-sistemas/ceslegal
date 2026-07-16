@@ -12,7 +12,7 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Disclaimer jurídico — Formulario de descargos (Ley 1581/2012, Art. 29 CN, Art. 115 CST)
+    | Disclaimer jurídico - Formulario de descargos (Ley 1581/2012, Art. 29 CN, Art. 115 CST)
     |--------------------------------------------------------------------------
     | Plantilla con marcadores: :nombre :cedula :empresa
     | Se reemplazan en FormularioDescargos.php con los datos del trabajador/empresa.
@@ -48,7 +48,7 @@ Al marcar la casilla de aceptación manifiesto haber leído, entendido y aceptad
 
     /*
     |--------------------------------------------------------------------------
-    | PayU Colombia — pasarela de pagos
+    | PayU Colombia - pasarela de pagos
     |--------------------------------------------------------------------------
     */
     'payu' => [

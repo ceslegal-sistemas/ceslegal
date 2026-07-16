@@ -14,7 +14,7 @@
 
     <p class="pt-body">
         Este es el capítulo más importante del RIT. Sin una lista clara de faltas y sanciones,
-        la empresa <strong>no puede sancionar válidamente</strong> — cualquier descargo puede ganarse en un juzgado.
+        la empresa <strong>no puede sancionar válidamente</strong> - cualquier descargo puede ganarse en un juzgado.
     </p>
 
     <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem;">
@@ -26,7 +26,7 @@
                 data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                 style="width:20px;height:20px;flex-shrink:0">
             </lord-icon>
-            <span>Escriba las faltas en <strong>lenguaje normal</strong> — no necesita citar leyes ni artículos.</span>
+            <span>Escriba las faltas en <strong>lenguaje normal</strong> - no necesita citar leyes ni artículos.</span>
         </div>
 
         <div class="pt-bullet">

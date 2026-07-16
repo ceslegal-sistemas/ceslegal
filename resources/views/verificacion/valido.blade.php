@@ -1,7 +1,7 @@
 @php
     $heroId = 'hv_' . substr(md5('verificacion'), 0, 8);
 
-    /* Embers — golden-orange sparks rising from bottom (light mode) */
+    /* Embers - golden-orange sparks rising from bottom (light mode) */
     $emberColors = ['200,60,5', '230,90,10', '255,130,20', '180,45,0', '240,110,15', '210,70,5'];
     $embers = [];
     for ($i = 0; $i < 28; $i++) {
@@ -99,7 +99,7 @@
                        bv-glow 3s 1.2s ease-in-out infinite;
         }
 
-        /* ══ Hero container — light mode ════════════════════════════════ */
+        /* ══ Hero container - light mode ════════════════════════════════ */
         .bv-hero {
             position: relative;
             overflow: hidden;
@@ -177,7 +177,7 @@
             position: relative;
             transition: transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s ease;
         }
-        /* Top accent bar — slides in on hover */
+        /* Top accent bar - slides in on hover */
         .section-card::before {
             content: '';
             position: absolute;
@@ -369,23 +369,23 @@
                 <div>
                     <p class="field-label">N.° proceso</p>
                     <span class="inline-block px-2.5 py-0.5 bg-primary-50 text-primary-700 text-xs font-bold rounded-full border border-primary-200">
-                        {{ $proceso->codigo ?? '—' }}
+                        {{ $proceso->codigo ?? '-' }}
                     </span>
                 </div>
                 <div>
                     <p class="field-label">Empresa</p>
-                    <p class="field-value">{{ $empresa->razon_social ?? '—' }}</p>
+                    <p class="field-value">{{ $empresa->razon_social ?? '-' }}</p>
                 </div>
                 <div>
                     <p class="field-label">NIT</p>
-                    <p class="field-value mono">{{ $empresa->nit ?? '—' }}</p>
+                    <p class="field-value mono">{{ $empresa->nit ?? '-' }}</p>
                 </div>
                 <div>
                     <p class="field-label">Fecha de diligencia</p>
                     <p class="field-value">
                         {{ $diligencia->fecha_diligencia
                             ? $diligencia->fecha_diligencia->timezone('America/Bogota')->format('d/m/Y')
-                            : '—' }}
+                            : '-' }}
                     </p>
                 </div>
             </div>
@@ -405,21 +405,21 @@
             <div class="p-5 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
                 <div class="col-span-2">
                     <p class="field-label">Nombre completo</p>
-                    <p class="field-value">{{ $trabajador->nombre_completo ?? '—' }}</p>
+                    <p class="field-value">{{ $trabajador->nombre_completo ?? '-' }}</p>
                 </div>
                 <div>
                     <p class="field-label">Documento</p>
                     <p class="field-value mono">
-                        {{ $trabajador->tipo_documento ?? 'C.C.' }} {{ $trabajador->numero_documento ?? '—' }}
+                        {{ $trabajador->tipo_documento ?? 'C.C.' }} {{ $trabajador->numero_documento ?? '-' }}
                     </p>
                 </div>
                 <div>
                     <p class="field-label">Cargo</p>
-                    <p class="field-value">{{ $trabajador->cargo ?? '—' }}</p>
+                    <p class="field-value">{{ $trabajador->cargo ?? '-' }}</p>
                 </div>
                 <div class="col-span-2">
                     <p class="field-label">IP de acceso</p>
-                    <p class="field-value mono">{{ $diligencia->ip_acceso ?? '—' }}</p>
+                    <p class="field-value mono">{{ $diligencia->ip_acceso ?? '-' }}</p>
                 </div>
             </div>
         </div>
@@ -539,7 +539,7 @@
                     <p class="field-value mt-1">
                         {{ $diligencia->verificacion_generada_en
                             ? $diligencia->verificacion_generada_en->timezone('America/Bogota')->format('d/m/Y \a \l\a\s h:i:s A')
-                            : '—' }}
+                            : '-' }}
                     </p>
                 </div>
             </div>

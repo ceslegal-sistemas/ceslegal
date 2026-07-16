@@ -50,7 +50,7 @@ class GeminiCircuitBreaker
             Cache::put(self::OPEN_KEY, true, self::OPEN_TTL);
             Cache::forget(self::FAILURES_KEY);
 
-            Log::warning('GeminiCircuitBreaker: circuito ABIERTO — se bloquearán llamadas por ' . self::OPEN_TTL . 's', [
+            Log::warning('GeminiCircuitBreaker: circuito ABIERTO - se bloquearán llamadas por ' . self::OPEN_TTL . 's', [
                 'fallos_acumulados' => $failures,
                 'ultimo_modelo'     => $modelo,
             ]);
@@ -66,7 +66,7 @@ class GeminiCircuitBreaker
 
         if (Cache::has(self::OPEN_KEY)) {
             Cache::forget(self::OPEN_KEY);
-            Log::info('GeminiCircuitBreaker: circuito CERRADO — API recuperada');
+            Log::info('GeminiCircuitBreaker: circuito CERRADO - API recuperada');
         }
     }
 

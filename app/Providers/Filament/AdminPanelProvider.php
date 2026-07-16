@@ -31,7 +31,7 @@ class AdminPanelProvider extends PanelProvider
 {
     public function boot(): void
     {
-        // Lordicon — iconos animados usados en modales y tarjetas
+        // Lordicon - iconos animados usados en modales y tarjetas
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
             fn(): string => '<script src="https://cdn.lordicon.com/lordicon.js"></script>',
@@ -94,7 +94,7 @@ class AdminPanelProvider extends PanelProvider
             .fi-sidebar-item-active > .fi-sidebar-item-button .fi-sidebar-item-label,
             .fi-sidebar-item-active > .fi-sidebar-item-button .fi-sidebar-item-icon{ color:#fff !important; }
             .fi-sidebar-item-active > .fi-sidebar-item-button:hover{ filter:brightness(1.04); }
-            /* Tarjetas de indicadores del dashboard — polish de marca */
+            /* Tarjetas de indicadores del dashboard - polish de marca */
             .fi-wi-stats-overview-stat{
                 border-radius:16px;
                 transition:transform .15s ease, box-shadow .15s ease;
@@ -208,7 +208,7 @@ class AdminPanelProvider extends PanelProvider
             PanelsRenderHook::HEAD_END,
             fn(): string => <<<'HTML'
             <style>
-            /* (1) Accesibilidad — focus visible de marca en elementos interactivos */
+            /* (1) Accesibilidad - focus visible de marca en elementos interactivos */
             .fi-btn:focus-visible,.fi-icon-btn:focus-visible,.fi-link:focus-visible,
             .fi-sidebar-item-button:focus-visible,.fi-ta-record a:focus-visible,
             .fi-dropdown-list-item:focus-visible,.fi-tabs-item:focus-visible,
@@ -221,7 +221,7 @@ class AdminPanelProvider extends PanelProvider
             html.dark .fi-tabs-item:focus-visible,html.dark .fi-pagination-item:focus-visible{
                 outline-color:#fb7185 !important;
             }
-            /* (1) Contraste — subir textos secundarios muy claros en modo claro */
+            /* (1) Contraste - subir textos secundarios muy claros en modo claro */
             html:not(.dark) .fi-ta-empty-state-description,
             html:not(.dark) .fi-in-entry-wrp-hint,
             html:not(.dark) .fi-fo-field-wrp-hint{ color:#57534e; }
@@ -239,7 +239,7 @@ class AdminPanelProvider extends PanelProvider
             /* (4) Breadcrumb actual con acento de marca */
             .fi-breadcrumbs-item:last-child .fi-breadcrumbs-item-label{ color:#be123c;font-weight:600; }
             html.dark .fi-breadcrumbs-item:last-child .fi-breadcrumbs-item-label{ color:#fb7185; }
-            /* (9) Dark mode — bordes/superficies con contraste suficiente */
+            /* (9) Dark mode - bordes/superficies con contraste suficiente */
             html.dark .fi-section,html.dark .fi-wi-stats-overview-stat,html.dark .fi-ta-ctn{
                 border-color:rgba(255,255,255,.08);
             }
@@ -261,7 +261,7 @@ class AdminPanelProvider extends PanelProvider
         // Fix: Mac browsers fire native HTML form validation before Livewire intercepts,
         // throwing "An invalid form control with name='' is not focusable" for hidden
         // inputs created by Tom Select (native:false) and conditional repeaters.
-        // Three-layer fix (global — applies to all admin pages):
+        // Three-layer fix (global - applies to all admin pages):
         //   1. novalidate on <form> applied IMMEDIATELY on script parse (BODY_END =
         //      DOM already loaded, DOMContentLoaded never re-fires)
         //   2. MutationObserver to re-apply after Livewire DOM morphing removes the attr
@@ -276,7 +276,7 @@ class AdminPanelProvider extends PanelProvider
                         f.setAttribute('novalidate', '');
                     });
                 }
-                // Run immediately — DOM is already parsed at BODY_END
+                // Run immediately - DOM is already parsed at BODY_END
                 patchForms();
                 // Re-apply after Livewire updates (morphing can reset attributes)
                 document.addEventListener('livewire:update', patchForms);
@@ -299,7 +299,7 @@ class AdminPanelProvider extends PanelProvider
             HTML,
         );
 
-        // Selector de "empresa activa" en el topbar — solo para abogados de bufete.
+        // Selector de "empresa activa" en el topbar - solo para abogados de bufete.
         FilamentView::registerRenderHook(
             PanelsRenderHook::TOPBAR_END,
             fn(): string => auth()->user()?->esAbogadoDeBufete()
@@ -429,7 +429,7 @@ class AdminPanelProvider extends PanelProvider
                 }, true);
                 // SPA hook (por si se activa ->spa() más adelante): solo limpia al terminar.
                 document.addEventListener('livewire:navigated', hide);
-                // bfcache: al volver con el botón atrás, el documento se restaura — limpia el overlay
+                // bfcache: al volver con el botón atrás, el documento se restaura - limpia el overlay
                 window.addEventListener('pageshow', hide);
             })();
             </script>
@@ -516,7 +516,7 @@ class AdminPanelProvider extends PanelProvider
             ->login(\App\Filament\Admin\Pages\Auth\Login::class)
             ->registration(\App\Filament\Admin\Pages\Auth\Register::class)
             ->passwordReset()
-            // Rebrand CES Legal — rojo de marca + neutros cálidos (stone) + semánticos
+            // Rebrand CES Legal - rojo de marca + neutros cálidos (stone) + semánticos
             ->colors([
                 'primary' => Color::hex('#E11D48'),
                 'gray'    => Color::Stone,
@@ -525,7 +525,7 @@ class AdminPanelProvider extends PanelProvider
                 'success' => Color::Green,
                 'info'    => Color::Blue,
             ])
-            // ->theme() removido — se usa el tema por defecto de Filament que incluye todos los estilos fi-*
+            // ->theme() removido - se usa el tema por defecto de Filament que incluye todos los estilos fi-*
             ->sidebarCollapsibleOnDesktop()
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
             ->databaseNotifications()

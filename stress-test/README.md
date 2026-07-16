@@ -1,4 +1,4 @@
-# Prueba de estrés — CES Legal
+# Prueba de estrés - CES Legal
 
 Objetivo: conocer el **techo real** del plan de Hostinger compartido y estimar
 **cuántos clientes** aguanta antes de tener que migrar a VPS/Cloud.
@@ -14,17 +14,17 @@ Objetivo: conocer el **techo real** del plan de Hostinger compartido y estimar
 
 ## Los 3 muros (por qué se prueba por separado)
 
-1. **MySQL** — cola, caché y sesión usan la base (`*_CONNECTION=database`). Es el
+1. **MySQL** - cola, caché y sesión usan la base (`*_CONNECTION=database`). Es el
    cuello de botella único a escala.
-2. **Hostinger compartido** — límites duros: procesos PHP concurrentes (~20-40),
+2. **Hostinger compartido** - límites duros: procesos PHP concurrentes (~20-40),
    CPU, y conexiones MySQL (~25-75). No existe "miles a la vez" aquí.
-3. **Gemini (IA)** — techo EXTERNO: cuota de Google (RPM/TPM) + costo $. El
+3. **Gemini (IA)** - techo EXTERNO: cuota de Google (RPM/TPM) + costo $. El
    servidor no es el límite ahí. Por eso los benchmarks de TU servidor **no**
    llaman a Gemini.
 
 ---
 
-## Paso 1 — Capacidad del servidor (PDF + MySQL) · por SSH en el staging
+## Paso 1 - Capacidad del servidor (PDF + MySQL) · por SSH en el staging
 
 Mide cuántos documentos/seg y operaciones de BD/seg aguanta **un proceso (un core)**.
 No usa IA, no cuesta dinero, no toca datos reales.
@@ -43,7 +43,7 @@ Estimación: `PDF/seg total ≈ (1000 / pdf_p50_ms) × nº de cores/procesos del
 
 ---
 
-## Paso 2 — Concurrencia web (k6) · desde TU PC contra el staging
+## Paso 2 - Concurrencia web (k6) · desde TU PC contra el staging
 
 Instala k6: https://k6.io/docs/get-started/installation/
 
@@ -59,7 +59,7 @@ latencia p95 supere 2 s. Ese número de VUs ≈ usuarios concurrentes que aguant
 
 ---
 
-## Paso 3 — Vigilar el servidor mientras corre (hPanel)
+## Paso 3 - Vigilar el servidor mientras corre (hPanel)
 
 Durante el k6, mira en **hPanel → Uso de recursos**:
 - **CPU** (si toca el 100% del límite → throttling).
@@ -71,7 +71,7 @@ El recurso que tope **primero** es tu cuello de botella real.
 
 ---
 
-## Paso 4 — Throughput de cola (lo más crítico para "miles de jobs")
+## Paso 4 - Throughput de cola (lo más crítico para "miles de jobs")
 
 La app encola RIT, preguntas, GAP, correos (y la sanción debería ir a cola también).
 En Hostinger compartido **no hay un worker permanente fiable** (no hay supervisor;
@@ -95,7 +95,7 @@ Si necesitas miles de jobs/minuto, la cola en BD + cron de Hostinger **no alcanz
 
 ---
 
-## Paso 5 — Límite de Gemini (aparte, suave, con costo controlado)
+## Paso 5 - Límite de Gemini (aparte, suave, con costo controlado)
 
 NO lo mezcles con lo anterior. Haz una prueba pequeña (ej. 20-50 llamadas reales)
 y observa: latencia por llamada, y si aparecen errores 429 (rate limit). Con eso
@@ -117,7 +117,7 @@ Gemini /min (Paso 5)       -> generaciones IA por minuto (techo externo).
 ```
 
 El **menor** de esos cuatro, comparado con tu **pico esperado de uso simultáneo**
-(no el total de clientes — casi nunca todos usan a la vez), te dice si el plan
+(no el total de clientes - casi nunca todos usan a la vez), te dice si el plan
 aguanta. Regla práctica: si un cliente activo dispara ~1 acción pesada cada pocos
 minutos, el límite te lo marca el **pico**, no el número total de clientes.
 

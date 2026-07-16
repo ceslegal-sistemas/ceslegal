@@ -29,7 +29,7 @@ class ProcesarAuditoriaRIT implements ShouldQueue
         public readonly AuditoriaRIT $auditoria,
         public readonly int $userId,
     ) {
-        // Cola dedicada para IA — permite controlar concurrencia con --queue=gemini
+        // Cola dedicada para IA - permite controlar concurrencia con --queue=gemini
         $this->onQueue('gemini');
     }
 

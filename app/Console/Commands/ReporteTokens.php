@@ -14,7 +14,7 @@ use Illuminate\Console\Command;
  *   3. Corre UN flujo real: crear descargos → diligenciar → emitir sanción.
  *   4. php artisan ia:reporte-tokens                   (muestra tokens y costo)
  *
- * Precios POR DEFECTO (USD por 1M de tokens) — VERIFÍCALOS en ai.google.dev/pricing,
+ * Precios POR DEFECTO (USD por 1M de tokens) - VERIFÍCALOS en ai.google.dev/pricing,
  * cambian con el tiempo. Se pueden sobreescribir con las opciones --in-* / --out-*.
  */
 class ReporteTokens extends Command

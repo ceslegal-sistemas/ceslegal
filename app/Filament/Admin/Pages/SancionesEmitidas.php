@@ -109,7 +109,7 @@ class SancionesEmitidas extends Page implements HasTable
                         'suspension'       => 'Suspensión Laboral',
                         'multa'            => 'Multa',
                         'terminacion'      => 'Terminación de Contrato',
-                        default            => $state ?? '—',
+                        default            => $state ?? '-',
                     })
                     ->color(fn($state) => match ($state) {
                         'llamado_atencion' => 'info',
@@ -121,7 +121,7 @@ class SancionesEmitidas extends Page implements HasTable
 
                 Tables\Columns\TextColumn::make('dias_suspension')
                     ->label('Días')
-                    ->formatStateUsing(fn($state) => $state ? $state . ' día' . ($state > 1 ? 's' : '') : '—')
+                    ->formatStateUsing(fn($state) => $state ? $state . ' día' . ($state > 1 ? 's' : '') : '-')
                     ->alignCenter()
                     ->toggleable(),
 

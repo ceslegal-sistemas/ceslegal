@@ -40,12 +40,12 @@ class FormularioDescargos extends Component
 
     public bool $tiempoExpiradoMostrarEvidencias = false;
 
-    // Verificación facial — Capas 2 y 3
+    // Verificación facial - Capas 2 y 3
     public bool   $validandoFoto        = false;
     public string $errorValidacionFoto  = '';
     public string $alertaAccesorios     = '';  // pre-captura: gorra, tapabocas, gafas oscuras, etc.
 
-    // Feedback orgánico — paso actual (1-5 = pregunta activa, 6 = completado)
+    // Feedback orgánico - paso actual (1-5 = pregunta activa, 6 = completado)
     public int    $feedbackPaso      = 1;
     public string $fbExperiencia     = '';  // 'muy_buena'|'buena'|'mala'|'muy_mala'
     public string $fbAlgoConfuso     = '';  // 'si'|'no'
@@ -241,7 +241,7 @@ class FormularioDescargos extends Component
 
         $this->actualizarEvidenciaMetadata();
         $this->etapa = 'formulario';
-        $this->mostrarAdvertencia = true; // muestra la advertencia — el timer arranca solo al confirmar
+        $this->mostrarAdvertencia = true; // muestra la advertencia - el timer arranca solo al confirmar
     }
 
     public function guardarFotoFin(string $base64): void
@@ -256,7 +256,7 @@ class FormularioDescargos extends Component
         $this->actualizarEvidenciaMetadata();
 
         // Regresar al formulario para adjuntar evidencias y enviar
-        // (NO finalizar aquí — el trabajador puede adjuntar archivos antes)
+        // (NO finalizar aquí - el trabajador puede adjuntar archivos antes)
         $this->etapa = 'formulario';
     }
 
@@ -296,7 +296,7 @@ class FormularioDescargos extends Component
 
         $servicio = app(VerificacionFacialService::class);
 
-        // Capa 2 — Gemini Vision
+        // Capa 2 - Gemini Vision
         $resultadoGemini = $servicio->validarCalidadFoto($base64);
 
         if (!$resultadoGemini['ok']) {
@@ -306,7 +306,7 @@ class FormularioDescargos extends Component
             return;
         }
 
-        // Capa 3 — Rekognition (solo si el trabajador tiene foto de referencia)
+        // Capa 3 - Rekognition (solo si el trabajador tiene foto de referencia)
         $trabajador = $this->diligencia->proceso->trabajador;
 
         if ($trabajador->foto_referencia_path) {
@@ -722,7 +722,7 @@ class FormularioDescargos extends Component
             ]);
         }
 
-        // Capa 3 — Análisis de autenticidad de respuestas (detección de uso de IA)
+        // Capa 3 - Análisis de autenticidad de respuestas (detección de uso de IA)
         // Se ejecuta en segundo plano: si falla no interrumpe el flujo principal.
         try {
             $iaDescargo = new IADescargoService();

@@ -62,9 +62,9 @@ class BibliotecaSincronizar extends Command
             $this->newLine();
         }
 
-        // ── Corte Suprema — Sala Laboral ─────────────────────────────────────────
+        // ── Corte Suprema - Sala Laboral ─────────────────────────────────────────
         if (in_array($fuente, ['todas', 'corte-suprema'])) {
-            $this->line('<fg=blue>▶ Corte Suprema de Justicia — Sala de Casación Laboral (SL, STL)</>');
+            $this->line('<fg=blue>▶ Corte Suprema de Justicia - Sala de Casación Laboral (SL, STL)</>');
 
             $sentencias = $csjScraper->obtenerSentencias($desde, $limite);
             $this->line("  Encontradas: " . count($sentencias));

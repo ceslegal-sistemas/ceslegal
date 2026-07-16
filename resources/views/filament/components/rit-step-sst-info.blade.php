@@ -27,7 +27,7 @@
                 style="width:20px;height:20px;flex-shrink:0">
             </lord-icon>
             <span>Si aún no tiene el SG-SST implementado, indique <strong>"En proceso"</strong>
-                — es la respuesta más honesta y la más común en empresas medianas.</span>
+                - es la respuesta más honesta y la más común en empresas medianas.</span>
         </div>
 
         <div class="pt-bullet">

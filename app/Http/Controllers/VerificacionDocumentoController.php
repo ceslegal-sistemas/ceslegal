@@ -44,7 +44,7 @@ class VerificacionDocumentoController extends Controller
 
         if ($diligencia->foto_inicio_en) {
             $autenticaciones[] = [
-                'tipo'    => 'Verificación facial — inicio de la diligencia',
+                'tipo'    => 'Verificación facial - inicio de la diligencia',
                 'estado'  => 'verificado',
                 'detalle' => 'Capturada el ' . $diligencia->foto_inicio_en
                                 ->timezone('America/Bogota')->format('d/m/Y \a \l\a\s h:i A'),
@@ -53,7 +53,7 @@ class VerificacionDocumentoController extends Controller
 
         if ($diligencia->foto_fin_en) {
             $autenticaciones[] = [
-                'tipo'    => 'Verificación facial — cierre de la diligencia',
+                'tipo'    => 'Verificación facial - cierre de la diligencia',
                 'estado'  => 'verificado',
                 'detalle' => 'Capturada el ' . $diligencia->foto_fin_en
                                 ->timezone('America/Bogota')->format('d/m/Y \a \l\a\s h:i A'),

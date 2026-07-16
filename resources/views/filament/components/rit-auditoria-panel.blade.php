@@ -107,7 +107,7 @@ html:not(.dark) .sl-badge{background:rgba(22,163,74,.1);color:#166534}
         <div class="sl-viewer"><div class="sl-vb">
             <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.35rem">
                 <svg class="sl-spin" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="40 20"/></svg>
-                <span style="font-size:.9rem;color:#fb7185;font-weight:600">Analizando con IA — {{ $numDone }} / {{ $numTotal }} secciones</span>
+                <span style="font-size:.9rem;color:#fb7185;font-weight:600">Analizando con IA - {{ $numDone }} / {{ $numTotal }} secciones</span>
             </div>
             <div class="sl-track"><div class="sl-fill" style="width:{{ $numTotal ? round($numDone/$numTotal*100) : 0 }}%"></div></div>
             <p class="sl-muted" style="margin:.25rem 0 0">Revisando su reglamento contra la normativa vigente colombiana. Por favor espere…</p>
@@ -133,7 +133,7 @@ html:not(.dark) .sl-badge{background:rgba(22,163,74,.1);color:#166534}
                     <div style="flex:1;min-width:0">
                         <p class="sl-title">
                             @if($score >= 80) Reglamento jurídicamente actualizado
-                            @elseif($score >= 65) Reglamento aprobado — con sugerencias de mejora
+                            @elseif($score >= 65) Reglamento aprobado - con sugerencias de mejora
                             @elseif($score >= 50) Reglamento con observaciones
                             @else Reglamento requiere revisión urgente @endif
                         </p>

@@ -17,7 +17,7 @@ return new class extends Migration
                 ->after('estado_mejora')
                 ->constrained('reglamentos_internos')
                 ->nullOnDelete();
-            // Texto del RIT auditado — persiste el RIT externo en BD
+            // Texto del RIT auditado - persiste el RIT externo en BD
             // (antes se usaba cache que podía expirar antes de que el job de mejora corriera)
             $table->longText('texto_auditado')->nullable()->after('reglamento_mejorado_id');
         });

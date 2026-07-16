@@ -1,11 +1,11 @@
-# CES Legal — Dirección de rebrand del panel (alineada a la marca)
+# CES Legal - Dirección de rebrand del panel (alineada a la marca)
 
 Marca: **CES + Legal Digital**. Identidad = **gradiente rojo→naranja** (crimson → naranja),
 moderna, legal-**tech** (no bufete tradicional). Guía para **diseñar en Figma** y luego
 implementar en el **theming de Filament**.
 
 > Sin emojis. Íconos: Lordicon / Heroicons.
-> Los hex de marca son aproximados del logo — **muestréalos exactos con el eyedropper / MCP de Figma**.
+> Los hex de marca son aproximados del logo - **muestréalos exactos con el eyedropper / MCP de Figma**.
 
 ---
 
@@ -50,14 +50,14 @@ para que no se sienta "alarma" y para que la marca **resalte** donde importa.
 
 ---
 
-## 3. Semánticos — OJO con la usabilidad
+## 3. Semánticos - OJO con la usabilidad
 
 El rojo/naranja de marca **colisiona** con los colores de estado. Para no confundir:
 
 | Estado | Light | Nota |
 |---|---|---|
 | Info (leve / informativo) | `#2563EB` azul | **Frío**, contrasta con la marca cálida |
-| Éxito (no sancionar / ok) | `#16A34A` verde | — |
+| Éxito (no sancionar / ok) | `#16A34A` verde | - |
 | Advertencia (grave / suspensión) | `#F59E0B` ámbar | Cercano a la marca → **acompañar con ícono + texto** |
 | Peligro (muy grave / terminación) | `#DC2626` rojo | Cercano a la marca → **reservar a acciones destructivas**, con ícono |
 
@@ -96,25 +96,25 @@ ya siguen esto → el rebrand queda consistente.
 - **Badges:** pill tintado suave + texto del color (gravedad/estado). Ya definidos.
 - **Tablas:** header fijo, hover de fila, filas 44px+, estados como badges, acciones a la derecha.
 - **Formularios:** secciones en cards, label claro, helper atenuado, **focus ring rojo de marca**.
-- **Toques de marca:** una línea/acento con el **gradiente** en headers de página o el login —
+- **Toques de marca:** una línea/acento con el **gradiente** en headers de página o el login -
   con moderación, para identidad sin saturar.
 
 ---
 
 ## 6. Pantallas a diseñar en Figma (1440px + 375px)
 
-1. **Login** — split: panel con **gradiente de marca** + logo CES, derecha formulario limpio.
-2. **Dashboard** — tarjetas de indicadores (Procesos activos, En descargos, Sanciones, RIT), actividad.
-3. **Listado** (Procesos Disciplinarios) — tabla con badges + acciones.
-4. **Formulario / wizard** (emitir sanción) — secciones, badges de sanción.
-5. **Estados** — vacío, cargando (skeleton), error.
+1. **Login** - split: panel con **gradiente de marca** + logo CES, derecha formulario limpio.
+2. **Dashboard** - tarjetas de indicadores (Procesos activos, En descargos, Sanciones, RIT), actividad.
+3. **Listado** (Procesos Disciplinarios) - tabla con badges + acciones.
+4. **Formulario / wizard** (emitir sanción) - secciones, badges de sanción.
+5. **Estados** - vacío, cargando (skeleton), error.
 
 ---
 
 ## 7. Tokens en Figma (para mapear 1:1 a Filament)
 
 - **Color styles** por **rol** (no por color): `brand/red`, `brand/orange`, `brand/gradient`,
-  `surface`, `text/strong`, `text/muted`, `border`, `info`, `success`, `warning`, `danger` —
+  `surface`, `text/strong`, `text/muted`, `border`, `info`, `success`, `warning`, `danger` -
   con variante **light** y **dark**.
 - **Text styles:** Display, H1, H2, H3, Body, Label, Caption (Space Grotesk / Inter).
 - **Componentes:** Button (variants), Badge (variants), Card, Sidebar item, Input, Table row.

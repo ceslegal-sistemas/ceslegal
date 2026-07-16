@@ -21,7 +21,7 @@ class OtpDescargos extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "{$this->codigo} es su código de verificación — CES Legal",
+            subject: "{$this->codigo} es su código de verificación - CES Legal",
         );
     }
 

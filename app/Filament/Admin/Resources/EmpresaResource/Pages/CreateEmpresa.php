@@ -58,7 +58,7 @@ class CreateEmpresa extends CreateRecord
             }
         }
 
-        // Auto-auditar el RIT subido — MISMO flujo que "Mi Reglamento Interno": la auditoría
+        // Auto-auditar el RIT subido - MISMO flujo que "Mi Reglamento Interno": la auditoría
         // corre y, al completar, se genera automáticamente la versión mejorada, que se ofrece
         // en la vista unificada con la aceptación (autoridad + responsable).
         if (($this->data['rit_opcion'] ?? null) === 'tiene' && $ritConTexto) {
@@ -67,7 +67,7 @@ class CreateEmpresa extends CreateRecord
 
             Notification::make()
                 ->success()
-                ->title('Empresa creada — auditando su RIT')
+                ->title('Empresa creada - auditando su RIT')
                 ->body('Estamos revisando el Reglamento Interno y generando la versión mejorada. Aquí mismo verá el resultado y podrá aceptar las sugerencias.')
                 ->send();
         }

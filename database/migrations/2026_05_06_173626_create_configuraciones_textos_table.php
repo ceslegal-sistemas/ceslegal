@@ -17,7 +17,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Semilla inicial — disclaimer de descargos
+        // Semilla inicial - disclaimer de descargos
         DB::table('configuraciones_textos')->insert([
             'clave'       => 'disclaimer_descargos',
             'grupo'       => 'descargos',

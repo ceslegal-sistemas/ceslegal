@@ -11,7 +11,7 @@ class ArticulosLegalesSeeder extends Seeder
     {
         $articulos = [
 
-            // ── CST Art. 58 — Obligaciones del trabajador ──────────────────────
+            // ── CST Art. 58 - Obligaciones del trabajador ──────────────────────
             [
                 'codigo'        => 'CST-58',
                 'titulo'        => 'Obligaciones especiales del trabajador',
@@ -22,7 +22,7 @@ class ArticulosLegalesSeeder extends Seeder
                 'orden'         => 1,
             ],
 
-            // ── CST Art. 60 — Prohibiciones al trabajador ──────────────────────
+            // ── CST Art. 60 - Prohibiciones al trabajador ──────────────────────
             [
                 'codigo'        => 'CST-60',
                 'titulo'        => 'Prohibiciones a los trabajadores',
@@ -69,7 +69,7 @@ class ArticulosLegalesSeeder extends Seeder
                 'orden'         => 6,
             ],
 
-            // ── CST Art. 62 — Terminación por justa causa ──────────────────────
+            // ── CST Art. 62 - Terminación por justa causa ──────────────────────
             [
                 'codigo'        => 'CST-62',
                 'titulo'        => 'Terminación del contrato por justa causa',
@@ -134,7 +134,7 @@ class ArticulosLegalesSeeder extends Seeder
                 'orden'         => 16,
             ],
 
-            // ── Ley 1010 de 2006 — Acoso laboral ───────────────────────────────
+            // ── Ley 1010 de 2006 - Acoso laboral ───────────────────────────────
             [
                 'codigo'        => 'L1010-2',
                 'titulo'        => 'Definición de acoso laboral',
@@ -163,7 +163,7 @@ class ArticulosLegalesSeeder extends Seeder
                 'orden'         => 22,
             ],
 
-            // ── Ley 1257 de 2008 — Acoso sexual ────────────────────────────────
+            // ── Ley 1257 de 2008 - Acoso sexual ────────────────────────────────
             [
                 'codigo'        => 'L1257-2',
                 'titulo'        => 'Definición de violencia y acoso sexual',
@@ -183,7 +183,7 @@ class ArticulosLegalesSeeder extends Seeder
                 'orden'         => 31,
             ],
 
-            // ── Resolución 2646 de 2008 — Riesgo psicosocial ───────────────────
+            // ── Resolución 2646 de 2008 - Riesgo psicosocial ───────────────────
             [
                 'codigo'        => 'RES2646-3',
                 'titulo'        => 'Factores de riesgo psicosocial en el trabajo',

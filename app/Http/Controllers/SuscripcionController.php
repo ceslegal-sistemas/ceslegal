@@ -40,7 +40,7 @@ class SuscripcionController extends Controller
             $mensaje   = 'El pago no fue aprobado. Por favor intente nuevamente.';
 
         } else {
-            // Estado desconocido — consultar via API
+            // Estado desconocido - consultar via API
             $payload = $payu->verificarTransaccion($referencia);
 
             if (!empty($payload)) {

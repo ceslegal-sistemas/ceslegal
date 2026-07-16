@@ -1,4 +1,4 @@
-# Diseño — Bufetes (multi-tenant) para CES Legal
+# Diseño - Bufetes (multi-tenant) para CES Legal
 
 - **Fecha:** 2026-07-06
 - **Estado:** Diseño aprobado (v1, pendiente de afinar antes de implementar)
@@ -29,7 +29,7 @@ si es **empresa** o **bufete**.
 
 ## 3. Enfoque elegido (y descartados)
 
-**Elegido — Modelo `Bufete` + scopes + selector de empresa.** Poco invasivo,
+**Elegido - Modelo `Bufete` + scopes + selector de empresa.** Poco invasivo,
 mantiene el panel actual, bajo riesgo para el despliegue Hostinger (solo
 migraciones, sin build npm).
 

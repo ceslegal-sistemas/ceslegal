@@ -19,7 +19,7 @@ class IADescargoService
     protected string $provider;
     protected array $config;
 
-    // Control de timeout y reintentos — se ajustan según el modo de uso
+    // Control de timeout y reintentos - se ajustan según el modo de uso
     protected int $timeoutSegundos  = 20;  // para generación en batch
     protected int $maxReintentos    = 2;   // para generación en batch
     protected int $maxSalidaTokens  = 0;   // 0 = usar config; se sobreescribe en modo realtime
@@ -158,7 +158,7 @@ class IADescargoService
                 ->toArray();
         }
 
-        // Preguntas YA RESPONDIDAS — historial completo para contexto íntegro
+        // Preguntas YA RESPONDIDAS - historial completo para contexto íntegro
         $preguntasYRespuestas = $diligencia->preguntas()
             ->with('respuesta')
             ->activas()
@@ -177,7 +177,7 @@ class IADescargoService
 
         // Detección PHP de ancla episódica ya cubierta:
         // si alguna respuesta menciona hora, lugar específico o personas presentes,
-        // el tipo de ancla está cubierto — evitamos pedirle al modelo que lo infiera.
+        // el tipo de ancla está cubierto - evitamos pedirle al modelo que lo infiera.
         $anclaYaCubierta = false;
         $patronAncla = '/\b(\d{1,2}:\d{2}|\d{1,2}\s*[aApP][mM]|hora|piso|sala|área|pasillo|oficina'
             . '|estaba haciendo|estaba realizando|quién estaba|personas presentes'
@@ -189,7 +189,7 @@ class IADescargoService
             }
         }
 
-        // Preguntas pendientes (sin respuesta) — la IA NO debe regenerarlas
+        // Preguntas pendientes (sin respuesta) - la IA NO debe regenerarlas
         $preguntasPendientes = $diligencia->preguntas()
             ->activas()
             ->whereDoesntHave('respuesta')
@@ -244,7 +244,7 @@ class IADescargoService
             : "\n⛔ ESTA EMPRESA NO TIENE REGLAMENTO INTERNO DE TRABAJO (RIT) REGISTRADO.\n"
               . "ESTÁ PROHIBIDO generar preguntas sobre si el trabajador conocía el reglamento, las políticas internas o cualquier RIT.\n";
         $normasBloque = !empty($contexto['normas_rag'])
-            ? "\nNORMAS LEGALES RECUPERADAS (RIT, CST, jurisprudencia — cita solo estas):\n{$contexto['normas_rag']}\n"
+            ? "\nNORMAS LEGALES RECUPERADAS (RIT, CST, jurisprudencia - cita solo estas):\n{$contexto['normas_rag']}\n"
             : '';
 
         $disponibles      = $contexto['preguntas_disponibles'] ?? 10;
@@ -270,7 +270,7 @@ class IADescargoService
         // Ancla episódica: si PHP ya detectó que está cubierta, omitir la instrucción
         // (evita que el modelo genere preguntas de hora/lugar que ya fueron respondidas)
         if ($anclaYaCubierta) {
-            $anclaInstruccion = "✅ ANCLA YA CUBIERTA — el historial contiene al menos una respuesta con hora, "
+            $anclaInstruccion = "✅ ANCLA YA CUBIERTA - el historial contiene al menos una respuesta con hora, "
                 . "lugar específico o personas presentes. NO es necesario ni permitido generar "
                 . "más preguntas de este tipo. Omite completamente este aspecto.";
         } else {
@@ -284,16 +284,16 @@ class IADescargoService
                 . "  → Tipo D: el lugar físico concreto dentro de la empresa\n"
                 . "  → Tipo E: qué herramienta, documento o sistema estaba usando el trabajador\n\n"
                 . "REGLA: formula la pregunta adaptada a los HECHOS DEL CASO, no como pregunta genérica.\n"
-                . "NO copies ni parafrasees estos tipos literalmente — derivan del contexto del proceso.";
+                . "NO copies ni parafrasees estos tipos literalmente - derivan del contexto del proceso.";
         }
 
-        // Preguntas pendientes — el trabajador las responderá próximamente, NO regenerar
+        // Preguntas pendientes - el trabajador las responderá próximamente, NO regenerar
         $pendientesText = '';
         foreach ($contexto['preguntas_pendientes'] ?? [] as $i => $p) {
             $pendientesText .= ($i + 1) . '. ' . $p . "\n";
         }
         if (empty($pendientesText)) {
-            $pendientesText = '(ninguna — todas las preguntas anteriores ya fueron respondidas)';
+            $pendientesText = '(ninguna - todas las preguntas anteriores ya fueron respondidas)';
         }
 
         // Lista completa de todas las preguntas del formulario (para anti-repetición secundaria)
@@ -312,10 +312,10 @@ Fundamento: Sentencia T-239/2021, SL1861-2024, C-1270/2000.
 ════════════════════════════════════════════════════════
 PRINCIPIOS IRRENUNCIABLES
 ════════════════════════════════════════════════════════
-• Presunción de inocencia — los hechos son PRESUNTOS.
-• Derecho a la defensa — el trabajador debe poder explicar su versión completamente.
-• Dignidad humana — ninguna pregunta puede intimidar ni humillar.
-• Imparcialidad — se recoge información objetiva, no se asume culpabilidad.
+• Presunción de inocencia - los hechos son PRESUNTOS.
+• Derecho a la defensa - el trabajador debe poder explicar su versión completamente.
+• Dignidad humana - ninguna pregunta puede intimidar ni humillar.
+• Imparcialidad - se recoge información objetiva, no se asume culpabilidad.
 
 ════════════════════════════════════════════════════════
 CONTEXTO DEL PROCESO
@@ -324,7 +324,7 @@ Trabajador: {$contexto['trabajador']}
 Cargo: {$contexto['cargo']}
 
 ════════════════════════════════════════════════════════
-ANÁLISIS EXPERTO DEL CARGO — LEE ESTO ANTES DE CONTINUAR
+ANÁLISIS EXPERTO DEL CARGO - LEE ESTO ANTES DE CONTINUAR
 ════════════════════════════════════════════════════════
 Eres también un AUDITOR EXPERTO en el cargo "{$contexto['cargo']}".
 Conoces con detalle qué hace alguien en este rol: sus funciones propias, los procedimientos
@@ -346,7 +346,7 @@ sobre ella. El objetivo es determinar si el trabajador cumplió o no con sus obl
 profesionales específicas, no hacer un cuestionario general de sus tareas.
 DAS POR SABIDAS las funciones del cargo (las conoces como experto): EMBÉBELAS afirmándolas
 dentro de la pregunta. JAMÁS le pidas al trabajador que te explique en qué consiste su cargo
-ni qué tareas tiene — eso lo sabes tú; preguntarlo es un error grave.
+ni qué tareas tiene - eso lo sabes tú; preguntarlo es un error grave.
 
 Hechos presuntos (versión del empleador):
 {$contexto['hechos']}
@@ -365,7 +365,7 @@ RESPUESTA DEL TRABAJADOR:
 {$respuesta->respuesta}
 
 ████████████████████████████████████████████████████████
-⛔ PREGUNTAS EN COLA — YA ESTÁN PROGRAMADAS, NO LAS REPITAS
+⛔ PREGUNTAS EN COLA - YA ESTÁN PROGRAMADAS, NO LAS REPITAS
 ████████████████████████████████████████████████████████
 Las siguientes preguntas ya están en el formulario esperando ser respondidas.
 ESTÁ ABSOLUTAMENTE PROHIBIDO generar preguntas iguales o similares a estas.
@@ -373,28 +373,28 @@ Si generas una que cubre el mismo aspecto, es un ERROR GRAVE que arruina el expe
 
 {$pendientesText}
 ════════════════════════════════════════════════════════
-HISTORIAL COMPLETO DEL FORMULARIO (respondidas + pendientes — NO repetir ninguna)
+HISTORIAL COMPLETO DEL FORMULARIO (respondidas + pendientes - NO repetir ninguna)
 ════════════════════════════════════════════════════════
 {$todasText}
 ████████████████████████████████████████████████████████
 ⛔ PATRONES DE PREGUNTA SIEMPRE PROHIBIDOS (aunque cambies las palabras)
 ████████████████████████████████████████████████████████
 
-1. VERSIÓN DE LOS HECHOS — Si el trabajador ya narró qué pasó (aunque sea brevemente),
+1. VERSIÓN DE LOS HECHOS - Si el trabajador ya narró qué pasó (aunque sea brevemente),
    está CUBIERTO. NUNCA vuelvas a pedir "su versión", "qué ocurrió", "describa el incidente",
    "relate los hechos" ni ninguna variante. Pedir la misma historia de nuevo viola el Art. 29 C.P.
 
-2. PRUEBAS Y TESTIGOS — Si ya se preguntó sobre pruebas, documentos o testigos en cualquier
+2. PRUEBAS Y TESTIGOS - Si ya se preguntó sobre pruebas, documentos o testigos en cualquier
    forma anterior, está CUBIERTO. PROHIBIDO volver a preguntar sobre ello.
 
-3. CONOCIMIENTO DE NORMAS/POLÍTICAS — Si ya se preguntó si el trabajador conocía reglas,
+3. CONOCIMIENTO DE NORMAS/POLÍTICAS - Si ya se preguntó si el trabajador conocía reglas,
    políticas o el reglamento, está CUBIERTO. No repetir aunque uses otras palabras.
 
-4. RESPUESTAS TAJANTES — Si el trabajador respondió "ya lo respondí", "ya lo expliqué",
+4. RESPUESTAS TAJANTES - Si el trabajador respondió "ya lo respondí", "ya lo expliqué",
    "no" de forma definitiva, o algo similar, ese tema está CERRADO. No generes más preguntas
    sobre él bajo ninguna circunstancia.
 
-5. FUNCIONES DEL PROPIO CARGO — NUNCA le preguntes al trabajador qué tareas, funciones o
+5. FUNCIONES DEL PROPIO CARGO - NUNCA le preguntes al trabajador qué tareas, funciones o
    responsabilidades tiene su cargo "{$contexto['cargo']}". ESO YA LO SABES TÚ: eres auditor
    experto de ese cargo y conoces sus funciones. Preguntárselo revela que no conoces el rol,
    desperdicia una pregunta y debilita el expediente.
@@ -410,32 +410,32 @@ ASPECTOS QUE DEBE CUBRIR UN EXPEDIENTE DISCIPLINARIO COMPLETO
 Antes de generar una pregunta, verifica en "LO QUE EL TRABAJADOR YA DECLARÓ" si el aspecto
 ya fue abordado. Si fue respondido (aunque sea brevemente), está CUBIERTO → no preguntes.
 
-1. VERSIÓN COMPLETA — ¿El trabajador explicó qué pasó, cuándo y cómo? (una vez es suficiente)
-2. PERSONAS INVOLUCRADAS — ¿Mencionó a otras personas? ¿Quedó claro el rol de cada una?
-3. INTENCIONALIDAD — ¿Fue deliberado, accidental, por descuido, por instrucción de otro?
-4. AUTORIZACIÓN O JUSTIFICACIÓN — ¿Tenía permiso, orden o causa justificada?
-5. EVIDENCIA A FAVOR — ¿Tiene pruebas, testigos o documentos? (solo preguntar una vez)
-6. IMPACTO Y CONSECUENCIAS — ¿Es consciente del efecto de sus actos en la empresa?
-7. FACTORES ATENUANTES — ¿Hay circunstancias que expliquen (no justifiquen) lo ocurrido?
-8. CONTRADICCIONES — ¿Hay puntos vagos o contradictorios que requieran aclaración ESPECÍFICA?
+1. VERSIÓN COMPLETA - ¿El trabajador explicó qué pasó, cuándo y cómo? (una vez es suficiente)
+2. PERSONAS INVOLUCRADAS - ¿Mencionó a otras personas? ¿Quedó claro el rol de cada una?
+3. INTENCIONALIDAD - ¿Fue deliberado, accidental, por descuido, por instrucción de otro?
+4. AUTORIZACIÓN O JUSTIFICACIÓN - ¿Tenía permiso, orden o causa justificada?
+5. EVIDENCIA A FAVOR - ¿Tiene pruebas, testigos o documentos? (solo preguntar una vez)
+6. IMPACTO Y CONSECUENCIAS - ¿Es consciente del efecto de sus actos en la empresa?
+7. FACTORES ATENUANTES - ¿Hay circunstancias que expliquen (no justifiquen) lo ocurrido?
+8. CONTRADICCIONES - ¿Hay puntos vagos o contradictorios que requieran aclaración ESPECÍFICA?
    (una contradicción específica, no pedir que repita todo de nuevo)
-9. OBLIGACIONES DEL CARGO — Usando tu análisis experto del cargo "{$contexto['cargo']}":
+9. OBLIGACIONES DEL CARGO - Usando tu análisis experto del cargo "{$contexto['cargo']}":
    ¿Queda claro si el trabajador siguió el procedimiento correcto para su rol?
    ¿Se sabe si actuó dentro de sus atribuciones o tomó decisiones que no le correspondían?
    ¿Se conoce si reportó o escaló la situación como debía hacerlo según su cargo?
    (Solo aplica a los hechos. No preguntes sobre funciones del cargo no relacionadas con ellos.)
 
 ════════════════════════════════════════════════════════
-ANCLA DE MEMORIA EPISÓDICA — CAPA ANTI-IA
+ANCLA DE MEMORIA EPISÓDICA - CAPA ANTI-IA
 ════════════════════════════════════════════════════════
 {$anclaInstruccion}
 
 ════════════════════════════════════════════════════════
 TU TAREA
 ════════════════════════════════════════════════════════
-PASO 1 — Lee el historial completo y marca cuáles de los 9 aspectos ya están cubiertos.
-PASO 2 — Verifica si ya existe al menos una ancla episódica respondida o pendiente.
-PASO 3 — De los aspectos NO cubiertos (y la ancla si falta), formula máximo 2 preguntas NUEVAS que:
+PASO 1 - Lee el historial completo y marca cuáles de los 9 aspectos ya están cubiertos.
+PASO 2 - Verifica si ya existe al menos una ancla episódica respondida o pendiente.
+PASO 3 - De los aspectos NO cubiertos (y la ancla si falta), formula máximo 2 preguntas NUEVAS que:
 ✓ Ofrezcan información genuinamente nueva, no repetida en ninguna forma anterior.
 ✓ Sean específicas (un punto concreto), no generales ("cuénteme todo").
 ✓ Aporten valor real para la decisión disciplinaria.
@@ -453,7 +453,7 @@ PREGUNTAS ABSOLUTAMENTE PROHIBIDAS
 ✗ Sugestivas: "¿Verdad que actuó negligentemente?" → ✓ "¿Qué ocurrió desde su punto de vista?"
 ✗ Acusatorias: "¿Por qué cometió esa falta?" → ✓ "¿Qué puede contarnos sobre lo que ocurrió?"
 ✗ Sobre vida privada sin relación con el hecho investigado.
-✗ Autoevaluación genérica: "¿Cumple usted con sus funciones?" — no tienen valor probatorio.
+✗ Autoevaluación genérica: "¿Cumple usted con sus funciones?" - no tienen valor probatorio.
    DIFERENCIA CLAVE: Preguntar "¿Siguió el procedimiento X que corresponde a su cargo en esta situación?"
    SÍ es válido porque es específico al hecho. "¿Es usted buen empleado?" NO es válido.
 ✗ Que intimiden, presionen o humillen al trabajador.
@@ -461,8 +461,8 @@ PREGUNTAS ABSOLUTAMENTE PROHIBIDAS
 ════════════════════════════════════════════════════════
 FORMATO DE RESPUESTA
 ════════════════════════════════════════════════════════
-• Lenguaje SENCILLO — sin tecnicismos jurídicos.
-• Preguntas BREVES, ABIERTAS y NEUTRAS — máximo 2 líneas cada una.
+• Lenguaje SENCILLO - sin tecnicismos jurídicos.
+• Preguntas BREVES, ABIERTAS y NEUTRAS - máximo 2 líneas cada una.
 • NUNCA reformules una pregunta ya existente en la lista.
 
 Si hay aspectos sin documentar (1 o 2 preguntas):
@@ -508,7 +508,7 @@ PROMPT;
                     || str_contains($msj, 'overloaded');
 
                 if (!$esTransitorio) {
-                    throw $e; // Error permanente — no tiene sentido reintentar
+                    throw $e; // Error permanente - no tiene sentido reintentar
                 }
             }
         }
@@ -623,7 +623,7 @@ PROMPT;
                     'Content-Type' => 'application/json',
                 ])->timeout($this->timeoutSegundos)->post($url, $payload);
             } catch (\Illuminate\Http\Client\ConnectionException $e) {
-                // Timeout o error de red — probar con el siguiente modelo
+                // Timeout o error de red - probar con el siguiente modelo
                 Log::warning("IADescargoService: timeout/conexión en {$modelo}, intentando siguiente modelo", [
                     'error' => $e->getMessage(),
                 ]);
@@ -847,7 +847,7 @@ PROMPT;
             $this->crearPreguntasEstandar($diligencia, self::PREGUNTAS_CIERRE, $ordenInicio, 'cierre')
         );
 
-        // 3. Generar preguntas específicas con IA — se insertarán ANTES de las de cierre
+        // 3. Generar preguntas específicas con IA - se insertarán ANTES de las de cierre
         if ($cantidadPreguntasIA > 0) {
             $preguntasIA = $this->generarPreguntasIA($diligencia, $cantidadPreguntasIA);
             $preguntasCreadas = array_merge($preguntasCreadas, $preguntasIA);
@@ -939,17 +939,17 @@ Eres un abogado laboral experto en procesos disciplinarios colombianos, con enfo
 MARCO JURÍDICO OBLIGATORIO
 ════════════════════════════════════════════════════════
 Principios que rigen esta diligencia (Art. 115 CST + jurisprudencia constitucional):
-• Presunción de inocencia — el trabajador NO ha sido hallado culpable de nada.
-• Derecho a la defensa y a la contradicción — la diligencia es para que él/ella explique su versión.
-• Dignidad humana — ninguna pregunta puede humillar, intimidar ni coaccionar.
-• Imparcialidad — no se asume culpabilidad; se recoge información de forma objetiva.
-• In dubio pro disciplinado — ante duda, se favorece al trabajador.
-• Proporcionalidad — las preguntas deben ser pertinentes y directamente relacionadas con los hechos.
+• Presunción de inocencia - el trabajador NO ha sido hallado culpable de nada.
+• Derecho a la defensa y a la contradicción - la diligencia es para que él/ella explique su versión.
+• Dignidad humana - ninguna pregunta puede humillar, intimidar ni coaccionar.
+• Imparcialidad - no se asume culpabilidad; se recoge información de forma objetiva.
+• In dubio pro disciplinado - ante duda, se favorece al trabajador.
+• Proporcionalidad - las preguntas deben ser pertinentes y directamente relacionadas con los hechos.
 
 Fundamento jurídico: Sentencia T-239/2021 (Corte Constitucional), SL1861-2024 (Corte Suprema), C-1270/2000.
 
 ════════════════════════════════════════════════════════
-OBJETIVO DE LA DILIGENCIA — NO ES UN INTERROGATORIO
+OBJETIVO DE LA DILIGENCIA - NO ES UN INTERROGATORIO
 ════════════════════════════════════════════════════════
 La diligencia de descargos es el espacio para que el TRABAJADOR ejerza su derecho de defensa.
 Su finalidad es:
@@ -966,7 +966,7 @@ CONTEXTO DEL PROCESO
 Trabajador: {$proceso->trabajador->nombre_completo}
 Cargo: {$proceso->trabajador->cargo}
 
-Hechos presuntos (versión del empleador — aún no probados):
+Hechos presuntos (versión del empleador - aún no probados):
 {$proceso->hechos}
 
 Artículos presuntamente incumplidos:
@@ -977,23 +977,23 @@ PREGUNTAS ABSOLUTAMENTE PROHIBIDAS
 ════════════════════════════════════════════════════════
 Nunca generes ninguna pregunta de los siguientes tipos:
 
-1. SUGESTIVAS O CAPCIOSAS — inducen la respuesta o confunden al trabajador para que admita una falta.
+1. SUGESTIVAS O CAPCIOSAS - inducen la respuesta o confunden al trabajador para que admita una falta.
    ✗ NUNCA: "¿Verdad que usted actuó de forma negligente?"
    ✗ NUNCA: "¿Reconoce que no cumplió con su deber?"
    ✓ CORRECTO: "¿Qué sucedió ese día desde su punto de vista?"
 
-2. ACUSATORIAS O PREJUZGADORAS — dan por hecho la culpabilidad antes de que el trabajador se defienda.
+2. ACUSATORIAS O PREJUZGADORAS - dan por hecho la culpabilidad antes de que el trabajador se defienda.
    ✗ NUNCA: "¿Por qué cometió esa falta?"
    ✗ NUNCA: "¿Sabía usted que lo que hizo estaba prohibido y lo hizo de todas formas?"
    ✓ CORRECTO: "¿Qué puede contarnos sobre lo que ocurrió?"
 
-3. IMPERTINENTES O IRRELEVANTES — sin relación directa con los hechos que motivaron la citación.
+3. IMPERTINENTES O IRRELEVANTES - sin relación directa con los hechos que motivaron la citación.
    ✗ NUNCA: Preguntas sobre otras situaciones pasadas no relacionadas con el hecho actual.
 
-4. SOBRE VIDA PRIVADA — aspectos personales sin incidencia en el desempeño laboral o la falta investigada.
+4. SOBRE VIDA PRIVADA - aspectos personales sin incidencia en el desempeño laboral o la falta investigada.
    ✗ NUNCA: Preguntas sobre situación familiar, creencias, vida fuera del trabajo.
 
-5. QUE VIOLEN LA DIGNIDAD O EL DEBIDO PROCESO — buscan intimidar, coaccionar o humillar.
+5. QUE VIOLEN LA DIGNIDAD O EL DEBIDO PROCESO - buscan intimidar, coaccionar o humillar.
    ✗ NUNCA: Preguntas que presionen, amenacen o pongan al trabajador en situación de inferioridad.
 
 6. SOBRE AUTOEVALUACIÓN DE DESEMPEÑO O CUMPLIMIENTO DE FUNCIONES.
@@ -1025,7 +1025,7 @@ Genera {$cantidadPreguntas} preguntas abiertas, neutrales y breves que:
 • Den espacio para que presente pruebas, testigos o documentos a su favor.
 • Sean directamente pertinentes a los hechos presuntos descritos arriba.
 
-LENGUAJE SENCILLO — sin tecnicismos jurídicos:
+LENGUAJE SENCILLO - sin tecnicismos jurídicos:
 ✗ "¿Tenía conocimiento de las disposiciones del reglamento?" → ✓ "¿Conocía esa regla de la empresa?"
 ✗ "¿Cuál fue el móvil de su actuación?" → ✓ "¿Por qué pasó eso?"
 ✗ "¿Informó oportunamente a su superior jerárquico?" → ✓ "¿Le avisó a su jefe?"
@@ -1115,7 +1115,7 @@ PROMPT;
         return $preguntasGuardadas;
     }
 
-    // ── RAG — RIT y jurisprudencia ────────────────────────────────────────────
+    // ── RAG - RIT y jurisprudencia ────────────────────────────────────────────
 
     /**
      * Recupera un extracto relevante del RIT de la empresa para incluir en el prompt.
@@ -1205,7 +1205,7 @@ PROMPT;
             foreach ($top as $item) {
                 $art      = $item['articulo'];
                 $textoArt = $art->getRawOriginal('texto_completo') ?? $art->descripcion ?? '';
-                $fuente   = $art->fuente ? " — {$art->fuente}" : '';
+                $fuente   = $art->fuente ? " - {$art->fuente}" : '';
                 $lineas[] = "[{$art->codigo}{$fuente}] {$art->titulo}";
                 if ($textoArt) {
                     $lineas[] = mb_substr($textoArt, 0, 600);
@@ -1328,7 +1328,7 @@ Resumen de los hechos investigados: {$hechosResumen}
 PREGUNTAS Y RESPUESTAS DEL TRABAJADOR:
 {$qaTexto}
 
-CRITERIOS DE ANÁLISIS — indicios de texto generado por IA:
+CRITERIOS DE ANÁLISIS - indicios de texto generado por IA:
 1. FORMALIDAD EXCESIVA: lenguaje jurídico o corporativo poco natural en una persona sin formación legal
 2. AUSENCIA DE DETALLES EPISÓDICOS: no menciona horas, nombres concretos, lugares específicos,
    objetos o herramientas que solo conocería alguien que estuvo presente

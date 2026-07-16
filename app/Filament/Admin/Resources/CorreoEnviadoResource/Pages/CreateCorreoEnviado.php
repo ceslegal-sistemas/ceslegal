@@ -93,7 +93,7 @@ class CreateCorreoEnviado extends CreateRecord
         try {
             $via = app(CorreoOficialSender::class)->send($correo);
         } catch (\Throwable $e) {
-            Log::error('Envío síncrono de correo oficial falló — no se registra', [
+            Log::error('Envío síncrono de correo oficial falló - no se registra', [
                 'destinatario' => $data['email_destinatario'] ?? null,
                 'error'        => $e->getMessage(),
             ]);

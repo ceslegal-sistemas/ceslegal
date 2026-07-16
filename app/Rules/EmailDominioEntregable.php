@@ -7,7 +7,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
  * Verifica que el dominio de un email pueda recibir correos, es decir, que tenga
- * registros DNS MX (o, en su defecto, un registro A/AAAA — algunos dominios reciben
+ * registros DNS MX (o, en su defecto, un registro A/AAAA - algunos dominios reciben
  * sin MX explícito).
  *
  * Atrapa errores típicos de digitación ("gmial.com", "hotmial.com", dominios

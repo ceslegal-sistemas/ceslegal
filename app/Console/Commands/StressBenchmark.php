@@ -32,7 +32,7 @@ class StressBenchmark extends Command
 
     public function handle(): int
     {
-        $this->warn('Benchmark de capacidad — NO usa Gemini, NO toca datos reales.');
+        $this->warn('Benchmark de capacidad - NO usa Gemini, NO toca datos reales.');
         $this->line('Servidor PHP ' . PHP_VERSION . ' · memory_limit=' . ini_get('memory_limit'));
         $this->newLine();
 
@@ -54,7 +54,7 @@ class StressBenchmark extends Command
 
         $this->newLine();
         $this->info('Listo. Multiplica el throughput por los workers/procesos reales del plan para estimar el total.');
-        $this->comment('Recuerda: la IA (Gemini) es un techo aparte — esto solo mide TU servidor.');
+        $this->comment('Recuerda: la IA (Gemini) es un techo aparte - esto solo mide TU servidor.');
 
         return self::SUCCESS;
     }
@@ -180,7 +180,7 @@ class StressBenchmark extends Command
   h1{font-size:18px;} table{width:100%;border-collapse:collapse;margin-top:10px;}
   td,th{border:1px solid #999;padding:4px 6px;} th{background:#eee;}
 </style></head><body>
-<h1>Documento de prueba — Benchmark</h1>
+<h1>Documento de prueba - Benchmark</h1>
 <p>Este documento simula una carta/acta de una página con tabla y texto para medir
 el tiempo de render de DomPDF en el servidor. No tiene datos reales.</p>
 <table><thead><tr><th>#</th><th>Concepto</th><th>Base legal</th><th>Observación</th></tr></thead>

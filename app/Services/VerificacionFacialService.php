@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 class VerificacionFacialService
 {
     /**
-     * Capa 2: Gemini Vision — Verifica calidad de la foto y ausencia de obstrucciones.
+     * Capa 2: Gemini Vision - Verifica calidad de la foto y ausencia de obstrucciones.
      *
      * Devuelve ['ok' => true] si la foto es válida.
      * Devuelve ['ok' => false, 'motivo' => '...'] con la razón de rechazo.
@@ -84,7 +84,7 @@ class VerificacionFacialService
 
     /**
      * Pre-captura: detecta gafas, tapabocas, gorras u obstrucciones usando Gemini Vision.
-     * Prompt ultra-específico solo para accesorios — diferente al de calidad de foto (Capa 2).
+     * Prompt ultra-específico solo para accesorios - diferente al de calidad de foto (Capa 2).
      * Fail-open en errores para no bloquear al trabajador.
      */
     public function detectarAccesorios(string $base64): array
@@ -95,7 +95,7 @@ class VerificacionFacialService
         $prompt = 'Observa esta imagen de cámara web en tiempo real. '
             . 'Tu única tarea: detectar si la persona lleva puestos accesorios que dificulten la identificación facial. '
             . 'Responde SOLO con JSON válido (sin markdown): {"accesorio": true/false, "motivo": "string o null"}. '
-            . 'Reglas estrictas — responde accesorio=true si: '
+            . 'Reglas estrictas - responde accesorio=true si: '
             . '(1) Lleva CUALQUIER tipo de gafas: de sol, transparentes, de lectura, de cualquier color o forma. '
             . '(2) Lleva tapabocas, mascarilla o cualquier cosa cubriendo boca/nariz. '
             . '(3) Lleva gorra, sombrero, capucha u otro objeto que tape la frente o parte del rostro. '
@@ -166,7 +166,7 @@ class VerificacionFacialService
     }
 
     /**
-     * Capa 3: AWS Rekognition — Compara la selfie del trabajador contra la foto de referencia.
+     * Capa 3: AWS Rekognition - Compara la selfie del trabajador contra la foto de referencia.
      *
      * @param  string $referenciaBytes  Contenido binario de la foto de referencia (Storage::get()).
      * @param  string $selfieBase64     Selfie en base64 (con o sin prefijo data:image/...).

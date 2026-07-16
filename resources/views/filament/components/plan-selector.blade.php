@@ -121,7 +121,7 @@
     border: 1px solid rgba(255,255,255,.1);
 }
 
-/* color bar top — animado en hover, permanente si seleccionado */
+/* color bar top - animado en hover, permanente si seleccionado */
 .ps-card::before {
     content: '';
     position: absolute;

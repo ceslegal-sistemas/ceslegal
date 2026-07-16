@@ -78,7 +78,7 @@ class CorregirEstadoDescargosRealizados extends Command
                 Log::info('Estado corregido por comando', ['proceso_id' => $proceso->id]);
             } else {
                 $errores++;
-                $this->error("  ✗ Proceso #{$proceso->id} ({$proceso->codigo}) — no se pudo cambiar el estado");
+                $this->error("  ✗ Proceso #{$proceso->id} ({$proceso->codigo}) - no se pudo cambiar el estado");
             }
         }
 

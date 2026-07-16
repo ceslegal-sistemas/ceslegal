@@ -328,7 +328,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
           <div style="flex:1;min-width:0">
             <p class="audit-result-title">
               @if($score >= 80) Reglamento jurídicamente actualizado
-              @elseif($score >= 65) Reglamento aprobado — con sugerencias de mejora
+              @elseif($score >= 65) Reglamento aprobado - con sugerencias de mejora
               @elseif($score >= 50) Reglamento con observaciones
               @else Reglamento requiere revisión urgente
               @endif
@@ -462,7 +462,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
       <div style="display:flex;align-items:center;gap:.6rem;padding:.65rem 1rem;border-radius:.625rem;background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.18)">
         <svg style="width:14px;height:14px;color:#fb7185;flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
         <p style="font-size:.75rem;color:#94a3b8;margin:0;line-height:1.4">
-          Puede salir de esta página sin problema — el proceso continúa en segundo plano y recibirá una notificación cuando el RIT mejorado esté listo.
+          Puede salir de esta página sin problema - el proceso continúa en segundo plano y recibirá una notificación cuando el RIT mejorado esté listo.
         </p>
       </div>
     </div>

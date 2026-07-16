@@ -1,4 +1,4 @@
-{{-- Register split-screen CES Legal — un solo nodo raíz (Livewire) --}}
+{{-- Register split-screen CES Legal - un solo nodo raíz (Livewire) --}}
 <div class="ces-auth-root">
 
     <aside class="ces-auth-brand">

@@ -60,7 +60,7 @@
 
     {{-- Guía rápida --}}
     <x-filament::section class="mt-6">
-        <x-slot name="heading">Guía rápida — cómo obtener las credenciales</x-slot>
+        <x-slot name="heading">Guía rápida - cómo obtener las credenciales</x-slot>
         <x-slot name="description">Pasos para configurar WhatsApp Business con Meta Cloud API</x-slot>
 
         <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 dark:text-gray-400">

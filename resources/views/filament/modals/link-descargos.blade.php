@@ -54,11 +54,11 @@
         </div>
         <div>
             <p class="text-xs text-gray-500 dark:text-gray-400">Fecha permitida</p>
-            <p class="font-medium text-gray-900 dark:text-gray-100">{{ $diligencia->fecha_acceso_permitida?->format('d/m/Y') ?? '—' }}</p>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ $diligencia->fecha_acceso_permitida?->format('d/m/Y') ?? '-' }}</p>
         </div>
         <div class="col-span-2">
             <p class="text-xs text-gray-500 dark:text-gray-400">Token expira</p>
-            <p class="font-medium text-gray-900 dark:text-gray-100">{{ $diligencia->token_expira_en?->format('d/m/Y H:i') ?? '—' }}</p>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ $diligencia->token_expira_en?->format('d/m/Y H:i') ?? '-' }}</p>
         </div>
     </div>
 
