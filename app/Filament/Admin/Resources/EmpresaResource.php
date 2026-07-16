@@ -91,7 +91,7 @@ class EmpresaResource extends Resource
                         ->label('Ciudad / Municipio')->placeholder('—'),
                     Infolists\Components\TextEntry::make('dias_laborales_texto')
                         ->label('Días laborales')
-                        ->state(fn (Empresa $record) => $record->dias_laborales_texto)
+                        ->state(fn(Empresa $record) => $record->dias_laborales_texto)
                         ->badge()->color('gray'),
                 ])->columns(2),
 
@@ -132,262 +132,262 @@ class EmpresaResource extends Resource
     public static function formSchema(): array
     {
         return [
-                Forms\Components\Section::make('Información de la Empresa')
-                    ->description('Datos básicos de identificación')
-                    ->icon('heroicon-o-building-office')
-                    ->schema([
-                        Forms\Components\TextInput::make('razon_social')
-                            ->label('Razón Social')
-                            ->required()
-                            ->maxLength(255)
-                            ->placeholder('Ej: EMPRESA ABC')
-                            ->helperText('Nombre legal sin tipo societario')
-                            ->extraInputAttributes(['style' => 'text-transform:uppercase'])
-                            ->columnSpan(2),
+            Forms\Components\Section::make('Información de la Empresa')
+                ->description('Datos básicos de identificación')
+                ->icon('heroicon-o-building-office')
+                ->schema([
+                    Forms\Components\TextInput::make('razon_social')
+                        ->label('Razón Social')
+                        ->required()
+                        ->maxLength(255)
+                        ->placeholder('Ej: EMPRESA ABC')
+                        ->helperText('Nombre legal sin tipo societario')
+                        ->extraInputAttributes(['style' => 'text-transform:uppercase'])
+                        ->columnSpan(2),
 
-                        Forms\Components\Select::make('tipo_societario')
-                            ->label('Tipo Societario')
-                            ->options(\App\Models\Empresa::TIPOS_SOCIETARIOS)
-                            ->searchable()
-                            ->placeholder('Seleccione...')
-                            ->helperText('Forma jurídica')
-                            ->live(),
+                    Forms\Components\Select::make('tipo_societario')
+                        ->label('Tipo Societario')
+                        ->options(\App\Models\Empresa::TIPOS_SOCIETARIOS)
+                        ->searchable()
+                        ->placeholder('Seleccione...')
+                        ->helperText('Forma jurídica')
+                        ->live(),
 
-                        Forms\Components\TextInput::make('nit')
-                            ->label('NIT')
-                            ->required()
-                            ->unique(ignoreRecord: true)
-                            ->maxLength(50)
-                            ->mask(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
-                                ? '999999999-9'
-                                : null)
-                            ->placeholder(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
-                                ? 'Ej: 900123456-7'
-                                : 'Ej: 1023456789')
-                            ->helperText(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
-                                ? 'Incluya el dígito de verificación separado por guion'
-                                : 'Número de cédula de ciudadanía')
-                            ->rules(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
-                                ? ['regex:/^\d{6,12}-\d$/']
-                                : [])
-                            ->validationMessages(['regex' => 'El NIT debe incluir el dígito de verificación (ej: 900123456-7).'])
-                            ->suffixIcon('heroicon-o-identification'),
+                    Forms\Components\TextInput::make('nit')
+                        ->label('NIT')
+                        ->required()
+                        ->unique(ignoreRecord: true)
+                        ->maxLength(50)
+                        ->mask(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                            ? '999999999-9'
+                            : null)
+                        ->placeholder(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                            ? 'Ej: 900123456-7'
+                            : 'Ej: 1023456789')
+                        ->helperText(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                            ? 'Incluya el dígito de verificación separado por guion'
+                            : 'Número de cédula de ciudadanía')
+                        ->rules(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                            ? ['regex:/^\d{6,12}-\d$/']
+                            : [])
+                        ->validationMessages(['regex' => 'El NIT debe incluir el dígito de verificación (ej: 900123456-7).'])
+                        ->suffixIcon('heroicon-o-identification'),
 
-                        Forms\Components\TextInput::make('representante_legal')
-                            ->label('Representante Legal')
-                            ->required()
-                            ->maxLength(255)
-                            ->placeholder('Ej: Juan Pérez García')
-                            ->helperText('Nombre del representante legal')
-                            ->suffixIcon('heroicon-o-user'),
+                    Forms\Components\TextInput::make('representante_legal')
+                        ->label('Representante Legal')
+                        ->required()
+                        ->maxLength(255)
+                        ->placeholder('Ej: Juan Pérez García')
+                        ->helperText('Nombre del representante legal')
+                        ->suffixIcon('heroicon-o-user'),
 
-                        Forms\Components\Toggle::make('active')
-                            ->label('Empresa Activa')
-                            ->default(true)
-                            ->helperText('Desactive si la empresa ya no está en servicio')
-                            ->inline(false),
+                    Forms\Components\Toggle::make('active')
+                        ->label('Empresa Activa')
+                        ->default(true)
+                        ->helperText('Desactive si la empresa ya no está en servicio')
+                        ->inline(false),
 
-                        // Los días laborales se definen en el Reglamento Interno (no aquí).
-                        // Se conserva el campo legado oculto como respaldo por defecto.
-                        Forms\Components\Hidden::make('dias_laborales')
-                            ->default('lunes_viernes'),
-                    ])->columns(2),
+                    // Los días laborales se definen en el Reglamento Interno (no aquí).
+                    // Se conserva el campo legado oculto como respaldo por defecto.
+                    Forms\Components\Hidden::make('dias_laborales')
+                        ->default('lunes_viernes'),
+                ])->columns(2),
 
-                Forms\Components\Section::make('Información de Contacto')
-                    ->description('Datos para comunicación')
-                    ->icon('heroicon-o-phone')
-                    ->schema([
-                        Forms\Components\TextInput::make('telefono')
-                            ->label('Teléfono / Celular')
-                            ->tel()
-                            // ->required()
-                            ->mask('9999999999')
-                            ->maxLength(10)
-                            ->rules(['nullable', 'regex:/^[0-9]{10}$/'])
-                            ->validationMessages([
-                                'regex' => 'El teléfono debe tener exactamente 10 dígitos numéricos (sin +57, espacios, guiones ni letras).',
-                            ])
-                            ->placeholder('3001234567')
-                            ->helperText('10 dígitos, solo números. Se usa para las notificaciones por WhatsApp.')
-                            ->suffixIcon('heroicon-o-phone'),
-
-                        Forms\Components\TextInput::make('email_contacto')
-                            ->label('Email de Contacto')
-                            ->email()
-                            // ->required()
-                            ->maxLength(255)
-                            ->placeholder('contacto@empresa.com')
-                            ->helperText('Correo electrónico principal')
-                            ->suffixIcon('heroicon-o-envelope'),
-
-                        Forms\Components\Textarea::make('direccion')
-                            ->label('Dirección')
-                            // ->required()
-                            ->rows(2)
-                            ->placeholder('Ej: Calle 123 # 45-67, Edificio ABC, Piso 3')
-                            ->helperText('Dirección completa de la empresa')
-                            ->columnSpanFull(),
-                    ])->columns(2),
-
-                Forms\Components\Section::make('Ubicación')
-                    ->description('Ciudad y departamento')
-                    ->icon('heroicon-o-map-pin')
-                    ->schema([
-                        Forms\Components\Select::make('departamento')
-                            ->label('Departamento')
-                            ->required()
-                            ->searchable()
-                            // Misma fuente que el registro (tabla departamentos, incluye Bogotá D.C.).
-                            ->options(self::getDepartamentos())
-                            ->live()
-                            ->afterStateUpdated(fn(Set $set) => $set('ciudad', null))
-                            ->helperText('Seleccione el departamento'),
-
-                        Forms\Components\Select::make('ciudad')
-                            ->label('Ciudad')
-                            ->required()
-                            ->searchable()
-                            ->options(function (Get $get) {
-                                $departamento = $get('departamento');
-                                return self::getCiudadesPorDepartamento($departamento);
-                            })
-                            ->disabled(fn(Get $get) => empty($get('departamento')))
-                            ->helperText('Seleccione primero el departamento')
-                            ->placeholder('Seleccione una ciudad...'),
-                    ])->columns(2),
-
-                Forms\Components\Section::make('Actividad Económica (CIIU)')
-                    ->description('Clasificación Industrial Internacional Uniforme Rev. 4 A.C. Colombia')
-                    ->icon('heroicon-o-chart-bar')
-                    ->schema([
-                        Forms\Components\Select::make('actividad_economica_id')
-                            ->label('Actividad Económica Principal')
-                            ->relationship('actividadEconomica', 'nombre')
-                            ->getOptionLabelFromRecordUsing(fn (ActividadEconomica $record) => "{$record->codigo} - {$record->nombre}")
-                            ->getOptionLabelUsing(function ($value): ?string {
-                                $a = ActividadEconomica::find($value);
-                                return $a ? "{$a->codigo} - {$a->nombre}" : null;
-                            })
-                            ->searchable(['codigo', 'nombre'])
-                            ->preload(false)
-                            ->nullable()
-                            ->live()
-                            ->placeholder('Buscar por código o nombre...')
-                            ->helperText('Actividad principal según el RUT de la empresa')
-                            ->columnSpanFull(),
-
-                        // Nº de empleados → determina la obligación de RIT (Art. 105 CST).
-                        Forms\Components\TextInput::make('numero_empleados')
-                            ->label('Número de empleados')
-                            ->numeric()
-                            ->minValue(0)
-                            ->live(onBlur: true)
-                            ->placeholder('Ej: 12')
-                            ->helperText('Empleados permanentes. Determina si la empresa está obligada a tener RIT.')
-                            ->suffixIcon('heroicon-o-user-group'),
-
-                        Forms\Components\Placeholder::make('obligacion_rit')
-                            ->hiddenLabel()
-                            ->content(function (Get $get) {
-                                $seccion = $get('actividad_economica_id')
-                                    ? ActividadEconomica::find($get('actividad_economica_id'))?->seccion
-                                    : null;
-                                $n = $get('numero_empleados');
-                                $n = is_numeric($n) ? (int) $n : null;
-
-                                return new \Illuminate\Support\HtmlString(
-                                    \App\Support\ObligacionRit::avisoHtml($n, $seccion)
-                                );
-                            })
-                            ->columnSpanFull(),
-
-                        Forms\Components\Select::make('actividadesSecundarias')
-                            ->label('Actividades Secundarias')
-                            ->relationship('actividadesSecundarias', 'nombre')
-                            ->getOptionLabelFromRecordUsing(fn (ActividadEconomica $record) => "{$record->codigo} - {$record->nombre}")
-                            ->getOptionLabelUsing(function ($value): ?string {
-                                $a = ActividadEconomica::find($value);
-                                return $a ? "{$a->codigo} - {$a->nombre}" : null;
-                            })
-                            ->searchable(['codigo', 'nombre'])
-                            ->preload(false)
-                            ->multiple()
-                            ->nullable()
-                            ->placeholder('Buscar por código o nombre...')
-                            ->helperText('Actividades complementarias que también ejerce la empresa')
-                            ->columnSpanFull(),
-                    ]),
-
-                Forms\Components\Section::make('Reglamento Interno')
-                    ->description('Documento normativo interno de la empresa')
-                    ->icon('heroicon-o-document-text')
-                    ->schema([
-
-                        // ── Al CREAR: rama según obligación (¿tiene RIT?) ────────────
-                        Forms\Components\Placeholder::make('rit_obligacion_crear')
-                            ->hiddenLabel()
-                            ->visibleOn('create')
-                            ->content(function (Get $get) {
-                                $seccion = $get('actividad_economica_id')
-                                    ? ActividadEconomica::find($get('actividad_economica_id'))?->seccion
-                                    : null;
-                                $n = $get('numero_empleados');
-                                $n = is_numeric($n) ? (int) $n : null;
-
-                                return new HtmlString(\App\Support\ObligacionRit::avisoHtml($n, $seccion));
-                            })
-                            ->columnSpanFull(),
-
-                        // Campo oculto que guarda la elección; las cards lo escriben.
-                        Forms\Components\Hidden::make('rit_opcion')
-                            ->live()
-                            ->default(fn (Get $get) => static::esObligadaRit($get) ? 'construir' : 'despues'),
-
-                        // Selector en cards con Lordicon (loop), estilo "tipo de cuenta".
-                        Forms\Components\View::make('filament.components.rit-opcion-cards')
-                            ->visibleOn('create')
-                            ->viewData(fn (Get $get) => ['esObligada' => static::esObligadaRit($get)])
-                            ->columnSpanFull(),
-
-                        // ── Visor / descarga cuando existe RIT ───────────────────────
-                        // Estado del RIT (tarjeta branded) — al editar. La obligación ya se
-                        // muestra arriba junto al Nº de empleados, por eso aquí va sin ella.
-                        Forms\Components\Placeholder::make('rit_estado')
-                            ->hiddenLabel()
-                            ->visibleOn('edit')
-                            ->content(fn ($record) => new HtmlString(
-                                view('filament.components.empresa-rit-status', [
-                                    'empresa'           => $record,
-                                    'mostrarObligacion' => false,
-                                ])->render()
-                            ))
-                            ->columnSpanFull(),
-
-                        // ── Upload para agregar / reemplazar RIT ─────────────────────
-                        //   El toggle de visibilidad va en el Group (contenedor), no sobre
-                        //   el FileUpload directo (no re-renderiza confiable dentro del form).
-                        //   Al editar: siempre visible. Al crear: solo si eligió "tiene".
-                        Forms\Components\Group::make([
-                            Forms\Components\FileUpload::make('reglamento_docx_temp')
-                                ->label('Subir Reglamento Interno (.docx o .pdf)')
-                                ->helperText('Formatos aceptados: .docx y .pdf — máx. 10 MB.')
-                                ->acceptedFileTypes([
-                                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                                    'application/pdf',
-                                ])
-                                ->disk('local')
-                                ->directory('reglamentos-temp')
-                                ->visibility('private')
-                                ->maxSize(10240)
-                                ->columnSpanFull(),
+            Forms\Components\Section::make('Información de Contacto')
+                ->description('Datos para comunicación')
+                ->icon('heroicon-o-phone')
+                ->schema([
+                    Forms\Components\TextInput::make('telefono')
+                        ->label('Teléfono / Celular')
+                        ->tel()
+                        // ->required()
+                        ->mask('9999999999')
+                        ->maxLength(10)
+                        ->rules(['nullable', 'regex:/^[0-9]{10}$/'])
+                        ->validationMessages([
+                            'regex' => 'El teléfono debe tener exactamente 10 dígitos numéricos (sin +57, espacios, guiones ni letras).',
                         ])
-                            // Al editar: siempre visible. Al crear: solo si eligió la card
-                            // "Sí, ya lo tengo" (control con Alpine, reacciona al instante).
-                            ->extraAttributes(fn (string $operation): array => $operation === 'create'
-                                ? ['x-show' => "\$wire.data?.rit_opcion === 'tiene'", 'x-cloak' => 'true']
-                                : [])
+                        ->placeholder('3001234567')
+                        ->helperText('10 dígitos, solo números. Se usa para las notificaciones por WhatsApp.')
+                        ->suffixIcon('heroicon-o-phone'),
+
+                    Forms\Components\TextInput::make('email_contacto')
+                        ->label('Email de Contacto')
+                        ->email()
+                        // ->required()
+                        ->maxLength(255)
+                        ->placeholder('contacto@empresa.com')
+                        ->helperText('Correo electrónico principal')
+                        ->suffixIcon('heroicon-o-envelope'),
+
+                    Forms\Components\Textarea::make('direccion')
+                        ->label('Dirección')
+                        // ->required()
+                        ->rows(2)
+                        ->placeholder('Ej: Calle 123 # 45-67, Edificio ABC, Piso 3')
+                        ->helperText('Dirección completa de la empresa')
+                        ->columnSpanFull(),
+                ])->columns(2),
+
+            Forms\Components\Section::make('Ubicación')
+                ->description('Ciudad y departamento')
+                ->icon('heroicon-o-map-pin')
+                ->schema([
+                    Forms\Components\Select::make('departamento')
+                        ->label('Departamento')
+                        ->required()
+                        ->searchable()
+                        // Misma fuente que el registro (tabla departamentos, incluye Bogotá D.C.).
+                        ->options(self::getDepartamentos())
+                        ->live()
+                        ->afterStateUpdated(fn(Set $set) => $set('ciudad', null))
+                        ->helperText('Seleccione el departamento'),
+
+                    Forms\Components\Select::make('ciudad')
+                        ->label('Ciudad')
+                        ->required()
+                        ->searchable()
+                        ->options(function (Get $get) {
+                            $departamento = $get('departamento');
+                            return self::getCiudadesPorDepartamento($departamento);
+                        })
+                        ->disabled(fn(Get $get) => empty($get('departamento')))
+                        ->helperText('Seleccione primero el departamento')
+                        ->placeholder('Seleccione una ciudad...'),
+                ])->columns(2),
+
+            Forms\Components\Section::make('Actividad Económica (CIIU)')
+                ->description('Clasificación Industrial Internacional Uniforme Rev. 4 A.C. Colombia')
+                ->icon('heroicon-o-chart-bar')
+                ->schema([
+                    Forms\Components\Select::make('actividad_economica_id')
+                        ->label('Actividad Económica Principal')
+                        ->relationship('actividadEconomica', 'nombre')
+                        ->getOptionLabelFromRecordUsing(fn(ActividadEconomica $record) => "{$record->codigo} - {$record->nombre}")
+                        ->getOptionLabelUsing(function ($value): ?string {
+                            $a = ActividadEconomica::find($value);
+                            return $a ? "{$a->codigo} - {$a->nombre}" : null;
+                        })
+                        ->searchable(['codigo', 'nombre'])
+                        ->preload(false)
+                        ->nullable()
+                        ->live()
+                        ->placeholder('Buscar por código o nombre...')
+                        ->helperText('Actividad principal según el RUT de la empresa')
+                        ->columnSpanFull(),
+
+                    // Nº de empleados → determina la obligación de RIT (Art. 105 CST).
+                    Forms\Components\TextInput::make('numero_empleados')
+                        ->label('Número de empleados')
+                        ->numeric()
+                        ->minValue(0)
+                        ->live(onBlur: true)
+                        ->placeholder('Ej: 12')
+                        ->helperText('Empleados permanentes. Determina si la empresa está obligada a tener RIT.')
+                        ->suffixIcon('heroicon-o-user-group'),
+
+                    Forms\Components\Placeholder::make('obligacion_rit')
+                        ->hiddenLabel()
+                        ->content(function (Get $get) {
+                            $seccion = $get('actividad_economica_id')
+                                ? ActividadEconomica::find($get('actividad_economica_id'))?->seccion
+                                : null;
+                            $n = $get('numero_empleados');
+                            $n = is_numeric($n) ? (int) $n : null;
+
+                            return new \Illuminate\Support\HtmlString(
+                                \App\Support\ObligacionRit::avisoHtml($n, $seccion)
+                            );
+                        })
+                        ->columnSpanFull(),
+
+                    Forms\Components\Select::make('actividadesSecundarias')
+                        ->label('Actividades Secundarias')
+                        ->relationship('actividadesSecundarias', 'nombre')
+                        ->getOptionLabelFromRecordUsing(fn(ActividadEconomica $record) => "{$record->codigo} - {$record->nombre}")
+                        ->getOptionLabelUsing(function ($value): ?string {
+                            $a = ActividadEconomica::find($value);
+                            return $a ? "{$a->codigo} - {$a->nombre}" : null;
+                        })
+                        ->searchable(['codigo', 'nombre'])
+                        ->preload(false)
+                        ->multiple()
+                        ->nullable()
+                        ->placeholder('Buscar por código o nombre...')
+                        ->helperText('Actividades complementarias que también ejerce la empresa')
+                        ->columnSpanFull(),
+                ]),
+
+            Forms\Components\Section::make('Reglamento Interno')
+                ->description('Documento normativo interno de la empresa')
+                ->icon('heroicon-o-document-text')
+                ->schema([
+
+                    // ── Al CREAR: rama según obligación (¿tiene RIT?) ────────────
+                    Forms\Components\Placeholder::make('rit_obligacion_crear')
+                        ->hiddenLabel()
+                        ->visibleOn('create')
+                        ->content(function (Get $get) {
+                            $seccion = $get('actividad_economica_id')
+                                ? ActividadEconomica::find($get('actividad_economica_id'))?->seccion
+                                : null;
+                            $n = $get('numero_empleados');
+                            $n = is_numeric($n) ? (int) $n : null;
+
+                            return new HtmlString(\App\Support\ObligacionRit::avisoHtml($n, $seccion));
+                        })
+                        ->columnSpanFull(),
+
+                    // Campo oculto que guarda la elección; las cards lo escriben.
+                    Forms\Components\Hidden::make('rit_opcion')
+                        ->live()
+                        ->default(fn(Get $get) => static::esObligadaRit($get) ? 'construir' : 'despues'),
+
+                    // Selector en cards con Lordicon (loop), estilo "tipo de cuenta".
+                    Forms\Components\View::make('filament.components.rit-opcion-cards')
+                        ->visibleOn('create')
+                        ->viewData(fn(Get $get) => ['esObligada' => static::esObligadaRit($get)])
+                        ->columnSpanFull(),
+
+                    // ── Visor / descarga cuando existe RIT ───────────────────────
+                    // Estado del RIT (tarjeta branded) — al editar. La obligación ya se
+                    // muestra arriba junto al Nº de empleados, por eso aquí va sin ella.
+                    Forms\Components\Placeholder::make('rit_estado')
+                        ->hiddenLabel()
+                        ->visibleOn('edit')
+                        ->content(fn($record) => new HtmlString(
+                            view('filament.components.empresa-rit-status', [
+                                'empresa'           => $record,
+                                'mostrarObligacion' => false,
+                            ])->render()
+                        ))
+                        ->columnSpanFull(),
+
+                    // ── Upload para agregar / reemplazar RIT ─────────────────────
+                    //   El toggle de visibilidad va en el Group (contenedor), no sobre
+                    //   el FileUpload directo (no re-renderiza confiable dentro del form).
+                    //   Al editar: siempre visible. Al crear: solo si eligió "tiene".
+                    Forms\Components\Group::make([
+                        Forms\Components\FileUpload::make('reglamento_docx_temp')
+                            ->label('Subir Reglamento Interno (.docx o .pdf)')
+                            ->helperText('Formatos aceptados: .docx y .pdf — máx. 10 MB.')
+                            ->acceptedFileTypes([
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                'application/pdf',
+                            ])
+                            ->disk('local')
+                            ->directory('reglamentos-temp')
+                            ->visibility('private')
+                            ->maxSize(10240)
                             ->columnSpanFull(),
-                    ]),
+                    ])
+                        // Al editar: siempre visible. Al crear: solo si eligió la card
+                        // "Sí, ya lo tengo" (control con Alpine, reacciona al instante).
+                        ->extraAttributes(fn(string $operation): array => $operation === 'create'
+                            ? ['x-show' => "\$wire.data?.rit_opcion === 'tiene'", 'x-cloak' => 'true']
+                            : [])
+                        ->columnSpanFull(),
+                ]),
         ];
     }
 
@@ -452,7 +452,7 @@ class EmpresaResource extends Resource
                     ->searchable()
                     ->badge()
                     ->color('info')
-                    ->tooltip(fn (Empresa $record): ?string => $record->actividadEconomica?->nombre)
+                    ->tooltip(fn(Empresa $record): ?string => $record->actividadEconomica?->nombre)
                     ->placeholder('—')
                     ->toggleable(),
 
@@ -466,18 +466,19 @@ class EmpresaResource extends Resource
                 Tables\Columns\TextColumn::make('rit_estado')
                     ->label('RIT')
                     ->badge()
-                    ->getStateUsing(fn(Empresa $record): string =>
-                        match($record->reglamentoInterno?->fuente) {
+                    ->getStateUsing(
+                        fn(Empresa $record): string =>
+                        match ($record->reglamentoInterno?->fuente) {
                             'construido_ia' => 'IA generado',
                             default         => $record->reglamentoInterno ? 'Manual' : 'Sin RIT',
                         }
                     )
-                    ->color(fn(string $state): string => match($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'IA generado' => 'success',
                         'Manual'      => 'info',
                         default       => 'gray',
                     })
-                    ->icon(fn(string $state): string => match($state) {
+                    ->icon(fn(string $state): string => match ($state) {
                         'IA generado' => 'heroicon-o-cpu-chip',
                         'Manual'      => 'heroicon-o-document-arrow-up',
                         default       => 'heroicon-o-document-minus',
@@ -492,7 +493,7 @@ class EmpresaResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('departamento')
                     ->label('Departamento')
-                    ->options(fn () => self::getDepartamentos())
+                    ->options(fn() => self::getDepartamentos())
                     ->multiple(),
 
                 Tables\Filters\TernaryFilter::make('active')
@@ -509,7 +510,7 @@ class EmpresaResource extends Resource
                         if (empty($values)) {
                             return $query;
                         }
-                        return $query->whereHas('actividadEconomica', fn (Builder $q) => $q->whereIn('seccion', $values));
+                        return $query->whereHas('actividadEconomica', fn(Builder $q) => $q->whereIn('seccion', $values));
                     })
                     ->multiple(),
             ])
@@ -520,8 +521,8 @@ class EmpresaResource extends Resource
                     ->color('success')
                     ->url(fn(Empresa $record): string => (
                         auth()->user()?->hasRole('super_admin') || auth()->user()?->hasRole('abogado')
-                            ? route('rit.descargar.admin', $record)
-                            : route('rit.descargar')
+                        ? route('rit.descargar.admin', $record)
+                        : route('rit.descargar')
                     ))
                     ->openUrlInNewTab()
                     ->visible(fn(Empresa $record): bool => $record->reglamentoInterno !== null),
@@ -530,69 +531,122 @@ class EmpresaResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('Editar')
                     ->visible(fn(Empresa $record): bool => !auth()->user()->hasRole('cliente') || auth()->user()->empresa_id === $record->id),
-                Tables\Actions\DeleteAction::make()
-                    ->label('Eliminar')
-                    ->before(function (Tables\Actions\DeleteAction $action, \App\Models\Empresa $record) {
-                        // Verificar si tiene procesos disciplinarios
-                        if ($record->procesosDisciplinarios()->count() > 0) {
-                            \Filament\Notifications\Notification::make()
-                                ->danger()
-                                ->title('No se puede eliminar la empresa')
-                                ->body("La empresa '{$record->razon_social}' tiene {$record->procesosDisciplinarios()->count()} procesos disciplinarios asociados. Debe eliminar o reasignar esos procesos primero.")
-                                ->persistent()
-                                ->send();
 
-                            $action->cancel();
-                        }
-
-                        // Verificar si tiene trabajadores
-                        if ($record->trabajadores()->count() > 0) {
-                            \Filament\Notifications\Notification::make()
-                                ->danger()
-                                ->title('No se puede eliminar la empresa')
-                                ->body("La empresa '{$record->razon_social}' tiene {$record->trabajadores()->count()} trabajadores asociados. Debe eliminar o reasignar esos trabajadores primero.")
-                                ->persistent()
-                                ->send();
-
-                            $action->cancel();
-                        }
+                Tables\Actions\Action::make('desactivar')
+                    ->label('Desactivar')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Desactivar Empresa')
+                    ->modalDescription(fn(Empresa $record) => "¿Está seguro que desea desactivar a la empresa '{$record->nombre_completo}'? La empresa no será eliminada, solo quedará marcada como inactiva.")
+                    ->modalSubmitActionLabel('Sí, desactivar')
+                    ->visible(fn(Empresa $record) => $record->active)
+                    ->action(function (Empresa $record) {
+                        $record->update(['active' => false]);
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Empresa desactivada')
+                            ->body("La empresa '{$record->nombre_completo}' ha sido desactivada.")
+                            ->send();
                     }),
+                Tables\Actions\Action::make('activar')
+                    ->label('Activar')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Activar Empresa')
+                    ->modalDescription(fn(Empresa $record) => "¿Está seguro que desea activar a la empresa '{$record->nombre_completo}'?")
+                    ->modalSubmitActionLabel('Sí, activar')
+                    ->visible(fn(Empresa $record) => !$record->active)
+                    ->action(function (Empresa $record) {
+                        $record->update(['active' => true]);
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Empresa activada')
+                            ->body("La empresa '{$record->nombre_completo}' ha sido activada.")
+                            ->send();
+                    }),
+
+
+                // Tables\Actions\DeleteAction::make()
+                //     ->label('Eliminar')
+                //     ->before(function (Tables\Actions\DeleteAction $action, \App\Models\Empresa $record) {
+                //         // Verificar si tiene procesos disciplinarios
+                //         if ($record->procesosDisciplinarios()->count() > 0) {
+                //             \Filament\Notifications\Notification::make()
+                //                 ->danger()
+                //                 ->title('No se puede eliminar la empresa')
+                //                 ->body("La empresa '{$record->razon_social}' tiene {$record->procesosDisciplinarios()->count()} procesos disciplinarios asociados. Debe eliminar o reasignar esos procesos primero.")
+                //                 ->persistent()
+                //                 ->send();
+
+                //             $action->cancel();
+                //         }
+
+                //         // Verificar si tiene trabajadores
+                //         if ($record->trabajadores()->count() > 0) {
+                //             \Filament\Notifications\Notification::make()
+                //                 ->danger()
+                //                 ->title('No se puede eliminar la empresa')
+                //                 ->body("La empresa '{$record->razon_social}' tiene {$record->trabajadores()->count()} trabajadores asociados. Debe eliminar o reasignar esos trabajadores primero.")
+                //                 ->persistent()
+                //                 ->send();
+
+                //             $action->cancel();
+                //         }
+                //     }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->label('Eliminar seleccionadas')
-                        ->action(function (Tables\Actions\DeleteBulkAction $action, \Illuminate\Support\Collection $records) {
-                            $bloqueadas = [];
-                            $eliminadas = 0;
-
+                    Tables\Actions\BulkAction::make('desactivar_seleccionados')
+                        ->label('Desactivar seleccionados')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Desactivar Empresas')
+                        ->modalDescription('¿Está seguro que desea desactivar las empresas seleccionadas?')
+                        ->modalSubmitActionLabel('Sí, desactivar')
+                        ->action(function (\Illuminate\Support\Collection $records) {
+                            $desactivados = 0;
                             foreach ($records as $record) {
-                                // Verificar si tiene relaciones
-                                if ($record->procesosDisciplinarios()->count() > 0 || $record->trabajadores()->count() > 0) {
-                                    $bloqueadas[] = $record->razon_social;
-                                } else {
-                                    $record->delete();
-                                    $eliminadas++;
+                                if ($record->active) {
+                                    $record->update(['active' => false]);
+                                    $desactivados++;
                                 }
                             }
 
-                            if (count($bloqueadas) > 0) {
-                                \Filament\Notifications\Notification::make()
-                                    ->warning()
-                                    ->title('Algunas empresas no se pudieron eliminar')
-                                    ->body('Las siguientes empresas tienen procesos o trabajadores asociados: ' . implode(', ', $bloqueadas))
-                                    ->persistent()
-                                    ->send();
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Empresas desactivadas')
+                                ->body("{$desactivados} empresa(s) desactivada(s) correctamente.")
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
+
+                    Tables\Actions\BulkAction::make('activar_seleccionados')
+                        ->label('Activar seleccionados')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Activar Empresas')
+                        ->modalDescription('¿Está seguro que desea activar las empresas seleccionadas?')
+                        ->modalSubmitActionLabel('Sí, activar')
+                        ->action(function (\Illuminate\Support\Collection $records) {
+                            $activados = 0;
+                            foreach ($records as $record) {
+                                if (!$record->active) {
+                                    $record->update(['active' => true]);
+                                    $activados++;
+                                }
                             }
 
-                            if ($eliminadas > 0) {
-                                \Filament\Notifications\Notification::make()
-                                    ->success()
-                                    ->title('Empresas eliminadas')
-                                    ->body("{$eliminadas} empresa(s) eliminada(s) correctamente.")
-                                    ->send();
-                            }
-                        }),
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Empresas activadas')
+                                ->body("{$activados} empresa(s) activada(s) correctamente.")
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');

@@ -371,7 +371,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
 
                 Notification::make()
                     ->success()
-                    ->title('RIT subido — auditando')
+                    ->title('RIT subido - auditando')
                     ->body('El documento se guardó como versión vigente y estamos auditándolo contra la normativa. Verá el resultado aquí mismo en unos segundos.')
                     ->send();
             });
