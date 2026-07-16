@@ -509,6 +509,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
           @else
             <span style="font-size:.8rem;color:#94a3b8;font-style:italic">PDF en generación...</span>
           @endif
+          {{ $this->verCambiosRITAction() }}
         </div>
 
         {{-- ── DECISIÓN DEL CLIENTE ── --}}

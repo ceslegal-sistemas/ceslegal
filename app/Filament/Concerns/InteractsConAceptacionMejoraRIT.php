@@ -3,6 +3,7 @@
 namespace App\Filament\Concerns;
 
 use App\Services\AceptacionMejoraRITService;
+use App\Services\RitDiffService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Hidden;
@@ -99,5 +100,51 @@ trait InteractsConAceptacionMejoraRIT
                     ->body('La versión mejorada se adoptará como su Reglamento Interno vigente. Si aún se está generando, le avisaremos al terminar.')
                     ->send();
             });
+    }
+
+    /**
+     * "Ver cambios": redline entre el RIT original y el mejorado (verde=agregado,
+     * rojo=eliminado, amarillo=modificado), con las mismas acciones de decisión al
+     * pie del modal para que revisar y aceptar/mantener ocurran en un solo lugar.
+     */
+    public function verCambiosRITAction(): Action
+    {
+        return Action::make('verCambiosRIT')
+            ->label('Ver cambios')
+            ->icon('heroicon-o-eye')
+            ->color('gray')
+            ->modalHeading('Cambios propuestos en el Reglamento Interno')
+            ->modalDescription('Verde: se agregó. Rojo: se eliminó. Amarillo: se modificó.')
+            ->modalWidth('4xl')
+            ->modalContent(function () {
+                $auditoria = $this->auditoria ?? null;
+                $original  = $auditoria?->reglamento?->texto_completo;
+                $mejorado  = $this->ritMejorado?->texto_completo ?? $auditoria?->reglamentoMejorado?->texto_completo;
+
+                $cambios = (!empty($original) && !empty($mejorado))
+                    ? app(RitDiffService::class)->compararDocumentos($original, $mejorado)
+                    : [];
+
+                return view('filament.components.rit-redline', ['cambios' => $cambios]);
+            })
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Cerrar')
+            ->extraModalFooterActions(fn (): array => [
+                $this->aceptarSugerenciasRITAction(),
+                $this->mantenerRITAction(),
+            ]);
+    }
+
+    /** Envuelve mantenerRITActual() (ya implementado en cada página) como Action, para el pie del modal de "Ver cambios". */
+    public function mantenerRITAction(): Action
+    {
+        return Action::make('mantenerRIT')
+            ->label('Mantener el actual')
+            ->color('gray')
+            ->outlined()
+            ->requiresConfirmation()
+            ->modalHeading('¿Mantener su Reglamento Interno actual?')
+            ->modalDescription('La versión mejorada quedará archivada; podrá adoptarla más adelante si cambia de opinión.')
+            ->action(fn () => $this->mantenerRITActual());
     }
 }
