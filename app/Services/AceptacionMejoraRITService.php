@@ -19,10 +19,12 @@ use App\Models\ReglamentoInterno;
 class AceptacionMejoraRITService
 {
     /**
-     * Registra la aceptación: datos del responsable + declaración de autoridad.
-     * Marca la decisión como 'adoptado' (la generación/adopción se dispara aparte).
+     * Registra la aceptación: datos del responsable + declaración de autoridad + la
+     * verificación fotográfica (equivalencia funcional de firma manuscrita, Ley 527/1999
+     * Art. 7-8 y Decreto 2364/2012). Marca la decisión como 'adoptado' (la
+     * generación/adopción se dispara aparte).
      *
-     * @param array{responsable_nombre:string,responsable_documento:string,responsable_cargo:string} $datos
+     * @param array{responsable_nombre:string,responsable_documento:string,responsable_cargo:string,responsable_foto_path?:?string} $datos
      */
     public function registrarAceptacion(AuditoriaRIT $auditoria, array $datos): void
     {
@@ -30,6 +32,7 @@ class AceptacionMejoraRITService
             'responsable_nombre'     => $datos['responsable_nombre'] ?? null,
             'responsable_documento'  => $datos['responsable_documento'] ?? null,
             'responsable_cargo'      => $datos['responsable_cargo'] ?? null,
+            'responsable_foto_path'  => $datos['responsable_foto_path'] ?? null,
             'autoridad_declarada'    => true,
             'autoridad_declarada_at' => now(),
             'decision_mejora'        => 'adoptado',

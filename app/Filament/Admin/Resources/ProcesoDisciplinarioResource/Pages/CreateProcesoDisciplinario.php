@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\ProcesoDisciplinarioResource\Pages;
 
 use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
+use App\Filament\Concerns\HasVerificacionFotografica;
 use App\Models\DiaNoHabil;
 use App\Models\Empresa;
 use App\Models\Trabajador;
@@ -16,6 +17,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\CreateRecord\Concerns\HasWizard;
 use Filament\Forms\Components\Wizard\Step;
+use Filament\Support\Exceptions\Halt;
 use HusamTariq\FilamentTimePicker\Forms\Components\TimePickerField;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -25,6 +27,7 @@ use Illuminate\Support\HtmlString;
 class CreateProcesoDisciplinario extends CreateRecord
 {
     use HasWizard;
+    use HasVerificacionFotografica;
 
     protected static string $resource = ProcesoDisciplinarioResource::class;
 
@@ -91,7 +94,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ->key('proc_step_header_trabajador')
                         ->viewData([
                             'step' => 1,
-                            'total' => 5,
+                            'total' => 6,
                             'title' => 'Trabajador',
                             'accent' => '#e11d48',
                             'lord' => 'https://cdn.lordicon.com/bushiqea.json',
@@ -347,7 +350,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ->key('proc_step_header_cuando')
                         ->viewData([
                             'step' => 2,
-                            'total' => 5,
+                            'total' => 6,
                             'title' => 'Cuándo',
                             'accent' => '#f97316',
                             'lord' => 'https://cdn.lordicon.com/uphbloed.json',
@@ -407,7 +410,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ->key('proc_step_header_hechos')
                         ->viewData([
                             'step' => 3,
-                            'total' => 5,
+                            'total' => 6,
                             'title' => 'Hechos',
                             'accent' => '#eab308',
                             'lord' => 'https://cdn.lordicon.com/bpptgtfr.json',
@@ -569,7 +572,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ->key('proc_step_header_pruebas')
                         ->viewData([
                             'step' => 4,
-                            'total' => 5,
+                            'total' => 6,
                             'title' => 'Pruebas',
                             'accent' => '#84cc16',
                             'lord' => 'https://cdn.lordicon.com/fqbvgezn.json',
@@ -651,7 +654,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ->key('proc_step_header_revision')
                         ->viewData([
                             'step' => 5,
-                            'total' => 5,
+                            'total' => 6,
                             'title' => 'Revisión',
                             'accent' => '#22c55e',
                             'lord' => 'https://cdn.lordicon.com/fikcyfpp.json',
@@ -778,6 +781,68 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ])
                         ->columns(2),
 
+                ]),
+
+            // ── Paso 6: Verificación (equivalencia funcional de firma) ────────
+            Step::make('verificacion')
+                ->label('Verificación')
+                ->description('Confirme su identidad para crear la citación')
+                ->icon('heroicon-o-finger-print')
+                ->schema([
+
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('proc_step_header_verificacion')
+                        ->viewData([
+                            'step' => 6,
+                            'total' => 6,
+                            'title' => 'Verificación de identidad',
+                            'accent' => '#f43f5e',
+                            'lord' => 'https://cdn.lordicon.com/lecprnjb.json',
+                            'subtitle' => 'Equivalencia funcional de su firma: declaración + verificación fotográfica.',
+                        ])
+                        ->columnSpanFull(),
+
+                    Forms\Components\Section::make()
+                        ->schema([
+                            Forms\Components\Grid::make(1)
+                                ->schema([
+                                    Forms\Components\TextInput::make('citante_nombre')
+                                        ->label('Nombre completo')
+                                        ->required()
+                                        ->maxLength(255),
+                                    Forms\Components\TextInput::make('citante_cargo')
+                                        ->label('Cargo')
+                                        ->required()
+                                        ->maxLength(255),
+                                ]),
+
+                            Forms\Components\Placeholder::make('declaracion_citacion_texto')
+                                ->hiddenLabel()
+                                ->content(fn() => new HtmlString(
+                                    '<style>:root{--decl-bg:rgba(0,0,0,0.03);--decl-border:rgba(0,0,0,0.10);--decl-left:rgba(0,0,0,0.15);--decl-label:rgba(0,0,0,0.45);--decl-text:rgba(17,24,39,0.78);}' .
+                                        'html.dark{--decl-bg:rgba(255,255,255,0.04);--decl-border:rgba(255,255,255,0.10);--decl-left:rgba(255,255,255,0.25);--decl-label:rgba(255,255,255,0.38);--decl-text:rgba(255,255,255,0.72);}</style>' .
+                                        '<div style="padding:14px 16px;background:var(--decl-bg);border-radius:12px;border:1px solid var(--decl-border);border-left:3px solid var(--decl-left);">' .
+                                        '<p style="font-size:10px;font-weight:700;color:var(--decl-label);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px;">Declaración de quien cita</p>' .
+                                        '<p style="font-size:13px;color:var(--decl-text);line-height:1.6;margin:0;">Al marcar la casilla a continuación, declaro que tengo la potestad para iniciar este proceso disciplinario, que los hechos descritos son ciertos según mi conocimiento, y que autorizo expresamente la citación a descargos del trabajador. Entiendo que esta acción queda registrada con fecha, hora e imagen de verificación como parte del expediente del proceso.</p>' .
+                                        '</div>'
+                                )),
+
+                            Forms\Components\Checkbox::make('citacion_declaracion_aceptada')
+                                ->label('Acepto y confirmo la declaración anterior como persona autorizada para citar a descargos')
+                                ->required()
+                                ->accepted(),
+
+                            Forms\Components\Placeholder::make('webcam_citante')
+                                ->label('Foto de verificación')
+                                ->content(fn() => view('filament.components.webcam-autorizador', [
+                                    'wireTargetPath' => 'data.foto_citante_base64',
+                                ])),
+
+                            // La obligatoriedad se valida en mutateFormDataBeforeCreate() con
+                            // una notificación visible: al ser un campo oculto (base64), el
+                            // error de "requerido" no se mostraría al usuario.
+                            Forms\Components\Hidden::make('foto_citante_base64'),
+                        ]),
                 ]),
         ];
     }
@@ -1642,6 +1707,21 @@ class CreateProcesoDisciplinario extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        // Verificación fotográfica de quien cita a descargos (equivalencia funcional de
+        // firma, Ley 527/1999 Art. 7-8 y Decreto 2364/2012): es un campo oculto (base64),
+        // así que el error de "requerido" no se mostraría al usuario. Se valida aquí con
+        // un aviso claro ANTES de crear el registro.
+        if (empty($data['foto_citante_base64'])) {
+            Notification::make()
+                ->danger()
+                ->title('Falta la verificación fotográfica')
+                ->body('Debe tomar la foto de verificación antes de crear la citación.')
+                ->persistent()
+                ->send();
+
+            throw new Halt();
+        }
+
         // Clientes tienen empresa_id oculto - asignarlo desde su perfil si no llegó
         if (empty($data['empresa_id'])) {
             $data['empresa_id'] = auth()->user()?->empresa_id;
@@ -1684,7 +1764,9 @@ class CreateProcesoDisciplinario extends CreateRecord
             $data['testigos'],
             $data['hechos_ia'],
             $data['fecha_temp_descargos'],
-            $data['hora_temp_descargos']
+            $data['hora_temp_descargos'],
+            $data['foto_citante_base64'],
+            $data['citacion_declaracion_aceptada']
         );
 
         return $data;
@@ -1726,6 +1808,20 @@ class CreateProcesoDisciplinario extends CreateRecord
         session()->forget($this->getDraftKey());
 
         $proceso = $this->record;
+
+        // Persistir la foto de verificación de quien cita a descargos. Se hace aquí (no
+        // en mutateFormDataBeforeCreate) porque el directorio necesita el ID real del
+        // registro, que solo existe después de crearlo. citante_nombre/citante_cargo ya
+        // se guardaron con el resto del registro (son campos normales del formulario).
+        // $this->data conserva el estado crudo aunque mutateFormDataBeforeCreate ya haya
+        // limpiado $data.
+        $fotoPath = $this->guardarFotoVerificacion(
+            $this->data['foto_citante_base64'] ?? null,
+            "fotos-verificacion/citacion/{$proceso->id}",
+        );
+        if ($fotoPath) {
+            $proceso->update(['foto_citante_path' => $fotoPath, 'foto_citante_en' => now()]);
+        }
 
         if (
             !empty($proceso->fecha_descargos_programada) &&

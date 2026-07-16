@@ -59,6 +59,10 @@ class ProcesoDisciplinario extends Model
         'razon_divergencia',
         'foto_autorizador_path',
         'foto_autorizador_en',
+        'citante_nombre',
+        'citante_cargo',
+        'foto_citante_path',
+        'foto_citante_en',
     ];
 
     protected $casts = [
@@ -83,6 +87,7 @@ class ProcesoDisciplinario extends Model
         'exoneracion_aceptada' => 'boolean',
         'exoneracion_aceptada_en' => 'datetime',
         'foto_autorizador_en' => 'datetime',
+        'foto_citante_en' => 'datetime',
     ];
 
     // ── Embedding de hechos (RAG persistido) ──────────────────────────────────

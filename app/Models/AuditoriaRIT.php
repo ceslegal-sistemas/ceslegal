@@ -29,6 +29,7 @@ class AuditoriaRIT extends Model
         'responsable_nombre',
         'responsable_documento',
         'responsable_cargo',
+        'responsable_foto_path',
         'autoridad_declarada',
         'autoridad_declarada_at',
     ];

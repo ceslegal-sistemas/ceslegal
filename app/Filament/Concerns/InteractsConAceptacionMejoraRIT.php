@@ -3,23 +3,29 @@
 namespace App\Filament\Concerns;
 
 use App\Services\AceptacionMejoraRITService;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 
 /**
  * Acción reutilizable "Actualizar RIT con las sugerencias": captura la declaración de
- * autoridad y los datos del responsable, y dispara la generación + adopción del RIT
- * mejorado. La usan la página de Auditar RIT y la vista unificada del cliente.
+ * autoridad, los datos del responsable y su verificación fotográfica (equivalencia
+ * funcional de firma manuscrita, Ley 527/1999 Art. 7-8 y Decreto 2364/2012), y dispara
+ * la generación + adopción del RIT mejorado. La usan la página de Auditar RIT y la
+ * vista unificada del cliente.
  *
  * La página que use este trait debe exponer `public ?\App\Models\AuditoriaRIT $auditoria`.
  */
 trait InteractsConAceptacionMejoraRIT
 {
-    public function aceptarSugerenciasRITAction(): \Filament\Actions\Action
+    use HasVerificacionFotografica;
+
+    public function aceptarSugerenciasRITAction(): Action
     {
-        return \Filament\Actions\Action::make('aceptarSugerenciasRIT')
+        return Action::make('aceptarSugerenciasRIT')
             ->label('Actualizar RIT con las sugerencias')
             ->icon('heroicon-o-sparkles')
             ->color('primary')
@@ -47,13 +53,39 @@ trait InteractsConAceptacionMejoraRIT
                     ->label('Cargo')
                     ->required()
                     ->maxLength(255),
+
+                Placeholder::make('foto_verificacion')
+                    ->label('Verificación fotográfica')
+                    ->helperText('Equivalencia funcional de su firma: confirma que usted, y no otra persona, autoriza este cambio.')
+                    ->content(fn () => view('filament.components.webcam-autorizador', [
+                        'wireTargetPath' => 'mountedActionsData.0.foto_responsable_base64',
+                    ])),
+                Hidden::make('foto_responsable_base64'),
             ])
-            ->action(function (array $data): void {
+            ->action(function (array $data, Action $action): void {
                 $auditoria = $this->auditoria ?? null;
                 if (! $auditoria) {
                     Notification::make()->warning()->title('No hay auditoría activa')->send();
                     return;
                 }
+
+                // La foto es un campo oculto (base64): si falta, el error de "requerido"
+                // no se mostraría al usuario. Se valida aquí con un aviso claro.
+                if (empty($data['foto_responsable_base64'])) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Falta la verificación fotográfica')
+                        ->body('Debe tomar la foto de verificación antes de continuar.')
+                        ->persistent()
+                        ->send();
+
+                    $action->halt();
+                }
+
+                $data['responsable_foto_path'] = $this->guardarFotoVerificacion(
+                    $data['foto_responsable_base64'] ?? null,
+                    "fotos-verificacion/rit/{$auditoria->id}",
+                );
 
                 $svc = app(AceptacionMejoraRITService::class);
                 $svc->registrarAceptacion($auditoria, $data);

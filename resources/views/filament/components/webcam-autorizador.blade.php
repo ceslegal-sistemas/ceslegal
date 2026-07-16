@@ -1,11 +1,21 @@
 {{--
-    Webcam del Autorizador - detección oval + validaciones estrictas de rostro
+    Webcam de verificación fotográfica (equivalencia funcional de firma) - detección
+    oval + validaciones estrictas de rostro.
     Correcciones v4:
     - Compatible con modo claro y oscuro (CSS custom properties)
     - face-api se carga dentro de cargarModelos() sin depender de <script> externo
     - Detecta cara recortada, perfil, inclinada, muy lejos
     - volverATomarFoto resetea todos los flags
+
+    Reutilizable en cualquier contexto Livewire: el host (Table Action, Page Action o
+    Wizard de un CreateRecord) debe exponer `verificarAccesoriosAutorizador($fotoBase64)`
+    y `$alertaAccesoriosAutorizador` (ver App\Filament\Concerns\HasVerificacionFotografica),
+    y pasar `wireTargetPath` con la ruta de estado Livewire donde escribir la foto:
+      - Table Action:  'mountedTableActionsData.{n}.campo'  (default, compat. actual)
+      - Page Action:   'mountedActionsData.{n}.campo'
+      - Wizard/Create: 'data.campo'
 --}}
+@php $wireTargetPath = $wireTargetPath ?? 'mountedTableActionsData.0.foto_autorizador_base64'; @endphp
 
 <style>
 /* ── Variables modo claro (default) / oscuro (html.dark) ─────────── */
@@ -249,7 +259,7 @@ button.wca-btn-secondary:hover {
                  this.iniciarDeteccionAccesorios();
              } else {
                  this.fotoCapturada = foto;
-                 $wire.$set('mountedTableActionsData.0.foto_autorizador_base64', foto);
+                 $wire.$set('{{ $wireTargetPath }}', foto);
              }
          },
 
@@ -413,7 +423,7 @@ button.wca-btn-secondary:hover {
             {{-- ══ FOTO CAPTURADA (el video sigue en DOM, solo oculto) ══ --}}
             <div x-show="fotoCapturada" style="display:none;" class="space-y-3">
                 <div style="position:relative;border-radius:12px;overflow:hidden;border:2px solid #4ade80;aspect-ratio:4/3;">
-                    <img :src="fotoCapturada" style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);" alt="Foto del autorizador"/>
+                    <img :src="fotoCapturada" style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);" alt="Foto de verificación"/>
                     <div style="position:absolute;top:10px;right:10px;">
                         <span class="wca-badge" style="background:rgba(22,101,52,0.90);color:#86efac;">
                             <svg style="width:11px;height:11px;" fill="currentColor" viewBox="0 0 20 20">

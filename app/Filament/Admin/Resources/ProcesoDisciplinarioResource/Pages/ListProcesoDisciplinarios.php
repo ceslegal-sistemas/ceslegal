@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\ProcesoDisciplinarioResource\Pages;
 
 use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
+use App\Filament\Concerns\HasVerificacionFotografica;
 use App\Models\Feedback;
 use App\Models\ProcesoDisciplinario;
 use Filament\Actions;
@@ -15,11 +16,12 @@ use Illuminate\Contracts\View\View;
 
 class ListProcesoDisciplinarios extends ListRecords
 {
+    use HasVerificacionFotografica;
+
     protected static string $resource = ProcesoDisciplinarioResource::class;
 
     public ?int  $feedbackProcesoId            = null;
     public bool  $mostrarFeedbackAutomatico    = false;
-    public string $alertaAccesoriosAutorizador = '';
 
     public function mount(): void
     {
@@ -58,22 +60,6 @@ class ListProcesoDisciplinarios extends ListRecords
     public function abrirModalFeedback(): void
     {
         $this->mountAction('feedback');
-    }
-
-    /**
-     * Verificar accesorios del autorizador (gafas, mascarilla, etc.) vía Gemini Vision.
-     * Llamado desde el componente Alpine webcam-autorizador.blade.php.
-     */
-    public function verificarAccesoriosAutorizador(string $fotoBase64): void
-    {
-        try {
-            $service = new \App\Services\VerificacionFacialService();
-            $resultado = $service->detectarAccesorios($fotoBase64);
-            $this->alertaAccesoriosAutorizador = $resultado['ok'] ? '' : ($resultado['motivo'] ?? '');
-        } catch (\Throwable $e) {
-            // fail-open: si la verificación falla, permitir continuar
-            $this->alertaAccesoriosAutorizador = '';
-        }
     }
 
     public function getFooter(): ?View
