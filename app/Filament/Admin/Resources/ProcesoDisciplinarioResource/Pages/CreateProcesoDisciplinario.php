@@ -900,10 +900,26 @@ class CreateProcesoDisciplinario extends CreateRecord
             if ($enHorario === 'si')      $partes[] = 'El hecho ocurrió en horario laboral';
             elseif ($enHorario === 'no')  $partes[] = 'El hecho ocurrió fuera del horario laboral';
 
+            // Fecha(s) del hecho: la principal + las adicionales del Paso 2 (el hecho
+            // pudo repetirse en más de un día). Se envían todas a la IA para que la
+            // redacción las mencione, en vez de solo la primera fecha.
+            $fechaTexto = Carbon::parse($this->data['fecha_hecho'])
+                ->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
+
+            $fechasAdicionales = collect($this->data['fechas_ocurrencia_adicionales'] ?? [])
+                ->pluck('fecha')
+                ->filter()
+                ->map(fn($f) => Carbon::parse($f)->locale('es')->isoFormat('D [de] MMMM [de] YYYY'))
+                ->values();
+
+            if ($fechasAdicionales->isNotEmpty()) {
+                $fechaTexto = "{$fechaTexto}, y también el " . $fechasAdicionales->join(', el ');
+            }
+
             $resultado = app(EvaluacionHechosService::class)->generarHechosDesdeFormulario(
                 datosFormulario: [
                     'descripcion_hecho'      => $this->data['descripcion_hecho'] ?? '',
-                    'fecha_hecho'            => $this->data['fecha_hecho'] ?? '',
+                    'fecha_hecho'            => $fechaTexto,
                     'trabajador_notifico'    => false,
                     'detalle_notificacion'   => null,
                     'evidencias_disponibles' => !empty($partes) ? implode('. ', $partes) : null,
@@ -958,6 +974,19 @@ class CreateProcesoDisciplinario extends CreateRecord
         if (!empty($this->data['fecha_hecho'])) {
             $contexto['fecha_hecho'] = Carbon::parse($this->data['fecha_hecho'])
                 ->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
+
+            // Fechas adicionales (el hecho pudo repetirse en más de un día laboral):
+            // se anexan para que la IA (redacción y feedback de dictado) las tenga en
+            // cuenta y no asuma que ocurrió una sola vez.
+            $fechasAdicionales = collect($this->data['fechas_ocurrencia_adicionales'] ?? [])
+                ->pluck('fecha')
+                ->filter()
+                ->map(fn($f) => Carbon::parse($f)->locale('es')->isoFormat('D [de] MMMM [de] YYYY'))
+                ->values();
+
+            if ($fechasAdicionales->isNotEmpty()) {
+                $contexto['fecha_hecho'] .= ', y también el ' . $fechasAdicionales->join(', el ');
+            }
         }
         if (!empty($this->data['hora_aproximada_hecho'])) {
             // Carbon::parse() acepta 'H:i' y 'H:i:s' sin fallar
