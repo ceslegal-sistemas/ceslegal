@@ -33,9 +33,11 @@ class CreateEmpresa extends CreateRecord
         \App\Support\EmpresaActiva::set($this->record->id);
 
         // Persistir el RIT subido (extrae texto + sanciones + conductas).
-        $path          = $this->data['reglamento_docx_temp'] ?? null;
+        // El estado del FileUpload puede venir como [uuid => ruta]; normalizar a string.
+        $rawPath       = $this->data['reglamento_docx_temp'] ?? null;
+        $path          = is_array($rawPath) ? (reset($rawPath) ?: null) : $rawPath;
         $ritConTexto   = false;
-        if ($path) {
+        if (is_string($path) && $path !== '') {
             try {
                 $nombreArchivo  = basename($path);
                 $rutaPermanente = 'reglamentos/' . $this->record->id . '/' . $nombreArchivo;
