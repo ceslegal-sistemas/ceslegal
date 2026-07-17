@@ -241,7 +241,7 @@ class IADescargoService
 
         $ritBloque   = !empty($contexto['rit_contexto'])
             ? "\nREGLAMENTO INTERNO DE LA EMPRESA (extracto relevante):\n{$contexto['rit_contexto']}\n"
-            : "\n⛔ ESTA EMPRESA NO TIENE REGLAMENTO INTERNO DE TRABAJO (RIT) REGISTRADO.\n"
+            : "\nADVERTENCIA: ESTA EMPRESA NO TIENE REGLAMENTO INTERNO DE TRABAJO (RIT) REGISTRADO.\n"
               . "ESTÁ PROHIBIDO generar preguntas sobre si el trabajador conocía el reglamento, las políticas internas o cualquier RIT.\n";
         $normasBloque = !empty($contexto['normas_rag'])
             ? "\nNORMAS LEGALES RECUPERADAS (RIT, CST, jurisprudencia - cita solo estas):\n{$contexto['normas_rag']}\n"
@@ -252,25 +252,25 @@ class IADescargoService
         $anclaYaCubierta  = $contexto['ancla_cubierta'] ?? false;
 
         $notaLimite = $disponibles <= 4
-            ? "\n⚠ ESPACIO REDUCIDO: Solo puedes añadir {$disponibles} pregunta(s) más. Prioriza las más críticas para el expediente.\n"
+            ? "\nNOTA: ESPACIO REDUCIDO: Solo puedes añadir {$disponibles} pregunta(s) más. Prioriza las más críticas para el expediente.\n"
             : '';
 
         // Umbral progresivo: con muchas preguntas respondidas, el criterio para generar
         // más debe ser mucho más estricto para evitar repetición y fatiga del trabajador
         $notaUmbral = '';
         if ($totalRespondidas >= 10) {
-            $notaUmbral = "\n⛔ YA HAY {$totalRespondidas} PREGUNTAS RESPONDIDAS. El expediente está muy avanzado.\n"
+            $notaUmbral = "\nADVERTENCIA: YA HAY {$totalRespondidas} PREGUNTAS RESPONDIDAS. El expediente está muy avanzado.\n"
                 . "SOLO genera una nueva pregunta si detectas una laguna ESPECÍFICA e INEQUÍVOCA (un hecho concreto sin documentar).\n"
                 . "Ante cualquier duda, retorna NO_REQUIERE.\n";
         } elseif ($totalRespondidas >= 7) {
-            $notaUmbral = "\n⚠ Con {$totalRespondidas} preguntas respondidas, el expediente está bien documentado.\n"
+            $notaUmbral = "\nNOTA: Con {$totalRespondidas} preguntas respondidas, el expediente está bien documentado.\n"
                 . "Solo genera preguntas para lagunas concretas y verificables. Prefiere NO_REQUIERE si no hay una laguna clara.\n";
         }
 
         // Ancla episódica: si PHP ya detectó que está cubierta, omitir la instrucción
         // (evita que el modelo genere preguntas de hora/lugar que ya fueron respondidas)
         if ($anclaYaCubierta) {
-            $anclaInstruccion = "✅ ANCLA YA CUBIERTA - el historial contiene al menos una respuesta con hora, "
+            $anclaInstruccion = "ANCLA YA CUBIERTA - el historial contiene al menos una respuesta con hora, "
                 . "lugar específico o personas presentes. NO es necesario ni permitido generar "
                 . "más preguntas de este tipo. Omite completamente este aspecto.";
         } else {
@@ -365,7 +365,7 @@ RESPUESTA DEL TRABAJADOR:
 {$respuesta->respuesta}
 
 ████████████████████████████████████████████████████████
-⛔ PREGUNTAS EN COLA - YA ESTÁN PROGRAMADAS, NO LAS REPITAS
+PREGUNTAS EN COLA - YA ESTÁN PROGRAMADAS, NO LAS REPITAS
 ████████████████████████████████████████████████████████
 Las siguientes preguntas ya están en el formulario esperando ser respondidas.
 ESTÁ ABSOLUTAMENTE PROHIBIDO generar preguntas iguales o similares a estas.
@@ -377,7 +377,7 @@ HISTORIAL COMPLETO DEL FORMULARIO (respondidas + pendientes - NO repetir ninguna
 ════════════════════════════════════════════════════════
 {$todasText}
 ████████████████████████████████████████████████████████
-⛔ PATRONES DE PREGUNTA SIEMPRE PROHIBIDOS (aunque cambies las palabras)
+PATRONES DE PREGUNTA SIEMPRE PROHIBIDOS (aunque cambies las palabras)
 ████████████████████████████████████████████████████████
 
 1. VERSIÓN DE LOS HECHOS - Si el trabajador ya narró qué pasó (aunque sea brevemente),
@@ -391,8 +391,11 @@ HISTORIAL COMPLETO DEL FORMULARIO (respondidas + pendientes - NO repetir ninguna
    políticas o el reglamento, está CUBIERTO. No repetir aunque uses otras palabras.
 
 4. RESPUESTAS TAJANTES - Si el trabajador respondió "ya lo respondí", "ya lo expliqué",
-   "no" de forma definitiva, o algo similar, ese tema está CERRADO. No generes más preguntas
-   sobre él bajo ninguna circunstancia.
+   "no" de forma definitiva, o "sí" de forma definitiva (ej: "sí, yo lo hice", "sí, fue así",
+   "reconozco que sucedió", "sí, es verdad"), ese tema está CERRADO. Una confirmación cierra
+   la pregunta igual que una negación: NUNCA vuelvas a preguntar SI ocurrió el hecho o si fue
+   el trabajador una vez ya lo confirmó. Sí puedes indagar en aspectos DISTINTOS (por qué,
+   si hubo justificación o atenuantes), pero nunca repreguntes la confirmación misma.
 
 5. FUNCIONES DEL PROPIO CARGO - NUNCA le preguntes al trabajador qué tareas, funciones o
    responsabilidades tiene su cargo "{$contexto['cargo']}". ESO YA LO SABES TÚ: eres auditor
@@ -443,9 +446,9 @@ PASO 3 - De los aspectos NO cubiertos (y la ancla si falta), formula máximo 2 p
 CRITERIOS para NO incluir una pregunta:
 ✗ El aspecto ya fue abordado en cualquier declaración anterior (aunque el trabajador haya dado poco detalle).
 ✗ Ya existe en la lista del formulario una pregunta pendiente que lo cubre.
-✗ La pregunta es sugestiva, acusatoria, sobre vida privada o viola la dignidad.
 ✗ La pregunta busca que el trabajador se autoincrimine.
 ✗ Es una reformulación de cualquier pregunta ya existente en el historial.
+✗ Es un estilo prohibido: ver la lista completa más abajo (sugestiva, acusatoria, vida privada, autoevaluación genérica, que intimide).
 
 ════════════════════════════════════════════════════════
 PREGUNTAS ABSOLUTAMENTE PROHIBIDAS
@@ -922,7 +925,7 @@ PROMPT;
         $ritContexto = $empresaId ? $this->obtenerContextoRIT($empresaId) : '';
         $ritBloque   = $ritContexto
             ? "\nREGLAMENTO INTERNO DE LA EMPRESA (extracto relevante para estos hechos):\n{$ritContexto}\n"
-            : "\n⛔ ESTA EMPRESA NO TIENE REGLAMENTO INTERNO DE TRABAJO (RIT) REGISTRADO.\n"
+            : "\nADVERTENCIA: ESTA EMPRESA NO TIENE REGLAMENTO INTERNO DE TRABAJO (RIT) REGISTRADO.\n"
               . "ESTÁ PROHIBIDO generar preguntas sobre si el trabajador conocía el reglamento, las políticas internas o cualquier RIT.\n"
               . "Aplica únicamente el Código Sustantivo del Trabajo.\n";
 
