@@ -76,8 +76,9 @@ class RitGoldStandard
             'Tipos de sanción (llamado de atención, suspensión, terminación)',
             'Límites legales de cada sanción',
             'Prohibición de penas corporales y de doble sanción por el mismo hecho',
-            'Debido proceso previo a sancionar (citación, descargos, defensa)',
-            'Autoridad competente para imponer la sanción y para resolver la impugnación',
+            'Debido proceso previo a sancionar: citación formal, presentación de descargos y un término razonable para que el trabajador prepare su defensa',
+            'Autoridad competente para imponer la sanción',
+            'Derecho del trabajador a impugnar la decisión sancionatoria',
         ],
         'X' => [
             'Instancia o persona ante quien se presentan reclamos y quejas',
@@ -98,6 +99,10 @@ class RitGoldStandard
             'Reporte e investigación de accidentes e incidentes',
             'Exámenes médicos de ingreso, periódicos y de retiro',
             'Política de prevención de alcohol y sustancias psicoactivas',
+            'Exigencia de mantener actualizada la matriz de identificación de peligros y evaluación de riesgos',
+            'Existencia de un plan de emergencias y respuesta ante contingencias',
+            'Programa anual de capacitación en seguridad y salud en el trabajo',
+            'Extensión de las obligaciones de SST a contratistas y personal temporal que ingrese a las instalaciones',
         ],
         'XIII' => [
             'Entrega y cuidado de dotación y uniformes',
@@ -107,9 +112,10 @@ class RitGoldStandard
         ],
         'XIV' => [
             'Conformación y funciones del Comité de Convivencia Laboral',
+            'Restricción a la conformación del Comité: no puede integrarlo quien haya sido víctima o presunto acosador en un caso',
             'Definición y modalidades del acoso laboral',
-            'Prevención y atención del acoso sexual',
-            'Procedimiento confidencial de queja y su trámite',
+            'Prevención y atención del acoso sexual, con campañas o acciones colectivas de prevención dirigidas a todo el personal',
+            'Procedimiento confidencial de queja y su trámite: el Comité informa a la alta dirección y el trabajador puede acudir directamente a las autoridades competentes en cualquier momento',
             'Medidas de protección para quien denuncia',
         ],
         'XV' => [
