@@ -345,18 +345,13 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                 // Si no se pudo extraer texto, el RIT queda guardado pero sin sanciones
                 // detectables. Se identifica el motivo real y se da una acción concreta.
                 if (empty($ritCreado->texto_completo)) {
-                    $motivo = app(ReglamentoInternoService::class)->motivoTextoVacio($rutaAbsoluta);
-
-                    $cuerpo = match ($motivo) {
-                        'protegido' => 'El PDF está protegido o cifrado (tiene restricciones), por eso no se puede leer su contenido para detectar las faltas y sanciones. Vuelva a subirlo en Word (.docx) o exporte el PDF sin protección.',
-                        'corrupto'  => 'No se pudo leer el archivo: puede estar dañado o en un formato no compatible. Verifíquelo y vuelva a subirlo en Word (.docx) o en un PDF con texto seleccionable.',
-                        default     => 'El PDF no tiene texto seleccionable (parece escaneado como imagen), por eso no se puede leer su contenido para detectar las faltas y sanciones. Vuelva a subirlo en Word (.docx) o en un PDF con texto seleccionable.',
-                    };
+                    $servicio = app(ReglamentoInternoService::class);
+                    $motivo   = $servicio->motivoTextoVacio($rutaAbsoluta);
 
                     Notification::make()
                         ->warning()
                         ->title('No se pudo leer el contenido del reglamento')
-                        ->body($cuerpo)
+                        ->body($servicio->mensajeTextoVacio($motivo))
                         ->persistent()
                         ->send();
 

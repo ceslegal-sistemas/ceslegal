@@ -15,6 +15,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Pages\Auth\Register as BaseRegister;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -495,12 +496,26 @@ class Register extends BaseRegister
 
             $rutaAbsoluta = Storage::disk('local')->path($rutaPermanente);
 
-            app(ReglamentoInternoService::class)->procesarDocumento(
+            $servicio = app(ReglamentoInternoService::class);
+            $rit      = $servicio->procesarDocumento(
                 $rutaAbsoluta,
                 $empresa->id,
                 $nombreArchivo,
                 $rutaPermanente,
             );
+
+            // El archivo se guardó, pero si no se pudo leer su contenido, "Mi Reglamento
+            // Interno" lo trataría como si no hubiera RIT (solo mostraría "Subir RIT"),
+            // dando la falsa impresión de que la carga durante el registro no sirvió.
+            if (empty($rit->texto_completo)) {
+                $motivo = $servicio->motivoTextoVacio($rutaAbsoluta);
+                Notification::make()
+                    ->warning()
+                    ->title('El RIT se guardó, pero no se pudo leer su contenido')
+                    ->body($servicio->mensajeTextoVacio($motivo))
+                    ->persistent()
+                    ->send();
+            }
 
             // Redirigir a la vista unificada "Mi Reglamento Interno", donde el RIT subido
             // se audita automáticamente y se muestra su salud legal en la misma página.

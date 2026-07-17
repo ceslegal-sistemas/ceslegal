@@ -105,14 +105,29 @@ class CreateEmpresa extends CreateRecord
                 $nombreArchivo  = basename($path);
                 $rutaPermanente = 'reglamentos/' . $this->record->id . '/' . $nombreArchivo;
                 Storage::disk('local')->move($path, $rutaPermanente);
+                $rutaAbsoluta = storage_path("app/{$rutaPermanente}");
 
-                $rit = app(ReglamentoInternoService::class)->procesarDocumento(
-                    storage_path("app/{$rutaPermanente}"),
+                $servicio = app(ReglamentoInternoService::class);
+                $rit = $servicio->procesarDocumento(
+                    $rutaAbsoluta,
                     $this->record->id,
                     $nombreArchivo,
                     $rutaPermanente,
                 );
                 $ritConTexto = !empty($rit->texto_completo);
+
+                // El archivo se guardó, pero si no se pudo leer su contenido, la vista
+                // "Mi Reglamento Interno" lo trataría como si no hubiera RIT (solo mostraría
+                // el botón "Subir RIT"). Avisar de inmediato el motivo real y qué hacer.
+                if (! $ritConTexto) {
+                    $motivo = $servicio->motivoTextoVacio($rutaAbsoluta);
+                    Notification::make()
+                        ->warning()
+                        ->title('El RIT se guardó, pero no se pudo leer su contenido')
+                        ->body($servicio->mensajeTextoVacio($motivo))
+                        ->persistent()
+                        ->send();
+                }
             } catch (\Exception $e) {
                 Log::error('Error al procesar reglamento interno en CreateEmpresa', [
                     'empresa_id' => $this->record->id,

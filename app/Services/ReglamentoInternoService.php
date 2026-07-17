@@ -144,6 +144,16 @@ class ReglamentoInternoService
         }
     }
 
+    /** Mensaje al usuario según el motivo devuelto por motivoTextoVacio(). */
+    public function mensajeTextoVacio(string $motivo): string
+    {
+        return match ($motivo) {
+            'protegido' => 'El PDF está protegido o cifrado (tiene restricciones), por eso no se puede leer su contenido para detectar las faltas y sanciones. Vuelva a subirlo en Word (.docx) o exporte el PDF sin protección.',
+            'corrupto'  => 'No se pudo leer el archivo: puede estar dañado o en un formato no compatible. Verifíquelo y vuelva a subirlo en Word (.docx) o en un PDF con texto seleccionable.',
+            default     => 'El PDF no tiene texto seleccionable (parece escaneado como imagen), por eso no se puede leer su contenido para detectar las faltas y sanciones. Vuelva a subirlo en Word (.docx) o en un PDF con texto seleccionable.',
+        };
+    }
+
     /** ¿El PDF tiene diccionario /Encrypt (cifrado o con restricciones)? */
     private function pdfEstaCifrado(string $rutaArchivo): bool
     {
