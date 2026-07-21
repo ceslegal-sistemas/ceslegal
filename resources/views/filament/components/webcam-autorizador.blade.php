@@ -332,7 +332,7 @@ button.wca-btn-secondary:hover {
                      max-width la limita en pantallas de escritorio (el contenedor del wizard
                      puede ser mucho más ancho que un recuadro 4:3 cómodo); en móvil, más angosto
                      que el tope, simplemente ocupa el 100% de su contenedor como antes. --}}
-                <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3;max-width:420px;margin:0 auto;">
+                <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3;max-width:480px;margin:0 auto;">
                     <video x-ref="video" autoplay playsinline muted
                            style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block;"></video>
 
@@ -447,7 +447,7 @@ button.wca-btn-secondary:hover {
 
             {{-- ══ FOTO CAPTURADA (el video sigue en DOM, solo oculto) ══ --}}
             <div x-show="fotoCapturada" style="display:none;" class="space-y-3">
-                <div style="position:relative;border-radius:12px;overflow:hidden;border:2px solid #4ade80;aspect-ratio:4/3;max-width:420px;margin:0 auto;">
+                <div style="position:relative;border-radius:12px;overflow:hidden;border:2px solid #4ade80;aspect-ratio:4/3;max-width:480px;margin:0 auto;">
                     <img :src="fotoCapturada" style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);" alt="Foto de verificación"/>
                     <div style="position:absolute;top:10px;right:10px;">
                         <span class="wca-badge" style="background:rgba(22,101,52,0.90);color:#86efac;">
