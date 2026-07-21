@@ -2,8 +2,8 @@
     $p = $this->getProgreso();
 @endphp
 
-@if($p)
 <div wire:poll.2000ms>
+@if($p)
 <style>
 .pcs-viewer{border-radius:1rem;border:1px solid rgba(255,255,255,.09);overflow:hidden;margin-bottom:1rem}
 html:not(.dark) .pcs-viewer{border-color:rgba(0,0,0,.08);box-shadow:0 2px 12px rgba(0,0,0,.06)}
@@ -55,5 +55,5 @@ html:not(.dark) .pcs-spin{color:#e11d48}
             </div>
         </div>
     @endif
-</div>
 @endif
+</div>
