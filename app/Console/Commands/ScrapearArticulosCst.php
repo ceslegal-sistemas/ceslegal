@@ -603,25 +603,62 @@ class ScrapearArticulosCst extends Command
     {
         $this->info('Descargando artículos del CST desde leyes.co...');
 
-        $apiKey = config('services.ia.gemini.api_key') ?? config('services.gemini.api_key');
-        if (!$apiKey) {
-            $this->error('No se encontró GEMINI_API_KEY en la configuración.');
+        $force   = (bool) $this->option('force');
+        $soloNum = $this->option('solo') ? (int) $this->option('solo') : null;
+
+        try {
+            $resultado = $this->ejecutar($force, $soloNum, function (string $nivel, string $mensaje) {
+                $this->{$nivel}($mensaje);
+            });
+        } catch (\RuntimeException $e) {
+            $this->error($e->getMessage());
             return self::FAILURE;
         }
 
-        $force    = $this->option('force');
-        $soloNum  = $this->option('solo') ? (int) $this->option('solo') : null;
-        $lista    = $soloNum
+        $this->info("Listo. {$resultado['ok']} importados, {$resultado['skip']} omitidos, {$resultado['errores']} errores.");
+        return self::SUCCESS;
+    }
+
+    /**
+     * Número total de artículos que procesaría una corrida completa (sin --solo).
+     * Público para que quien dispare esto en background (Job) pueda inicializar
+     * una barra de progreso antes de arrancar.
+     */
+    public function totalArticulos(): int
+    {
+        return count($this->articulos);
+    }
+
+    /**
+     * Lógica de scraping reutilizable, sin nada de I/O de consola: la usa tanto
+     * handle() (imprime en la terminal) como el Job en cola (actualiza progreso
+     * en caché para que el panel admin lo muestre en vivo). $onProgreso recibe
+     * (nivel: 'info'|'line'|'warn', mensaje, índice actual, total) tras cada ítem.
+     *
+     * @throws \RuntimeException si falta la API key de Gemini.
+     */
+    public function ejecutar(bool $force, ?int $soloNum, ?\Closure $onProgreso = null): array
+    {
+        $apiKey = config('services.ia.gemini.api_key') ?? config('services.gemini.api_key');
+        if (!$apiKey) {
+            throw new \RuntimeException('No se encontró GEMINI_API_KEY en la configuración.');
+        }
+
+        $lista = $soloNum
             ? [$soloNum => $this->articulos[$soloNum] ?? ['general', $soloNum]]
             : $this->articulos;
 
+        $total = count($lista);
         $ok = $skip = $errores = 0;
+        $indice = 0;
 
         foreach ($lista as $numero => $meta) {
+            $indice++;
+
             // Respetar exclusiones (solo si no se usa --solo)
             if (!$soloNum && in_array($numero, $this->excluidos)) {
-                $this->line("  [excluido] Artículo. {$numero} - usar versión manual (más actualizada)");
                 $skip++;
+                $onProgreso?->__invoke('line', "  [excluido] Artículo. {$numero} - usar versión manual (más actualizada)", $indice, $total);
                 continue;
             }
 
@@ -635,17 +672,17 @@ class ScrapearArticulosCst extends Command
                 ->first();
 
             if ($existente && !$force && $existente->embedding) {
-                $this->line("  [skip] {$codigo}");
                 $skip++;
+                $onProgreso?->__invoke('line', "  [skip] {$codigo}", $indice, $total);
                 continue;
             }
 
             $resultado = $this->scrapearArticulo($numero);
 
             if (!$resultado) {
-                $this->warn("  [error] {$codigo} - no se pudo obtener de leyes.co");
-                Log::warning("cst:scraper - sin resultado para Artículo. {$numero}");
                 $errores++;
+                Log::warning("cst:scraper - sin resultado para Artículo. {$numero}");
+                $onProgreso?->__invoke('warn', "  [error] {$codigo} - no se pudo obtener de leyes.co", $indice, $total);
                 continue;
             }
 
@@ -668,15 +705,14 @@ class ScrapearArticulosCst extends Command
                 ]
             );
 
-            $estado = $embedding ? '[ok]' : '[guardado sin embedding]';
-            $this->info("  {$estado} {$codigo} - {$resultado['titulo']}");
             $ok++;
+            $estadoTxt = $embedding ? '[ok]' : '[guardado sin embedding]';
+            $onProgreso?->__invoke('info', "  {$estadoTxt} {$codigo} - {$resultado['titulo']}", $indice, $total);
 
             usleep(400_000); // 400 ms entre requests
         }
 
-        $this->info("Listo. {$ok} importados, {$skip} omitidos, {$errores} errores.");
-        return self::SUCCESS;
+        return ['ok' => $ok, 'skip' => $skip, 'errores' => $errores, 'total' => $total];
     }
 
     // ──────────────────────────────────────────────────────────────────────────
