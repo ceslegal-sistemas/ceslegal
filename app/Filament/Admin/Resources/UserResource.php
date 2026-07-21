@@ -82,7 +82,11 @@ class UserResource extends Resource
 
                         Forms\Components\Select::make('empresa_id')
                             ->label('Empresa Asignada')
-                            ->relationship('empresa', 'razon_social')
+                            ->relationship(
+                                name: 'empresa',
+                                titleAttribute: 'razon_social',
+                                modifyQueryUsing: fn (Builder $query, ?\Illuminate\Database\Eloquent\Model $record) => $query->paraAsignar($record?->empresa_id),
+                            )
                             ->searchable()
                             ->preload()
                             ->required(fn(Get $get) => in_array($get('role'), ['cliente']))
@@ -302,7 +306,7 @@ class UserResource extends Resource
 
                 Tables\Filters\SelectFilter::make('empresa')
                     ->label('Empresa')
-                    ->relationship('empresa', 'razon_social')
+                    ->relationship('empresa', 'razon_social', modifyQueryUsing: fn (Builder $query) => $query->paraAsignar())
                     ->searchable()
                     ->preload()
                     ->multiple(),

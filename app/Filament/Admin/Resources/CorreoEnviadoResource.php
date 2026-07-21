@@ -162,7 +162,11 @@ class CorreoEnviadoResource extends Resource
 
             Forms\Components\Select::make('empresa_id')
                 ->label('Empresa remitente (Gmail)')
-                ->relationship('empresa', 'razon_social')
+                ->relationship(
+                    name: 'empresa',
+                    titleAttribute: 'razon_social',
+                    modifyQueryUsing: fn (Builder $query, ?\Illuminate\Database\Eloquent\Model $record) => $query->paraAsignar($record?->empresa_id),
+                )
                 ->searchable()
                 ->nullable()
                 ->visible(fn() => Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('abogado'))

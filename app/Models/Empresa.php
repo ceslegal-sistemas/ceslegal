@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\ScopedToBufeteOrEmpresa;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -241,5 +242,21 @@ class Empresa extends Model
             return false;
         }
         return $this->reglamentoInterno !== null;
+    }
+
+    /**
+     * Empresas seleccionables en formularios y filtros: solo activas. Al pasar
+     * $idAConservar (el empresa_id que el registro YA tiene asignado) esa empresa
+     * se conserva visible aunque se haya desactivado después, para no romper la
+     * edición de registros existentes ni vaciar el campo silenciosamente.
+     */
+    public function scopeParaAsignar(Builder $query, ?int $idAConservar = null): Builder
+    {
+        return $query->where(function (Builder $q) use ($idAConservar) {
+            $q->where('active', true);
+            if ($idAConservar) {
+                $q->orWhere('id', $idAConservar);
+            }
+        });
     }
 }

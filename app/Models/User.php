@@ -58,7 +58,21 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return in_array($this->role, ['super_admin', 'abogado', 'cliente', 'bufete']);
+        if (! in_array($this->role, ['super_admin', 'abogado', 'cliente', 'bufete'], true)) {
+            return false;
+        }
+
+        // Usuario desactivado individualmente (independiente de su empresa).
+        if (! $this->active) {
+            return false;
+        }
+
+        // Empresa del usuario desactivada: sus usuarios quedan sin acceso al panel.
+        if ($this->empresa_id && $this->empresa?->active === false) {
+            return false;
+        }
+
+        return true;
     }
 
     public function empresa(): BelongsTo

@@ -108,7 +108,11 @@ class ProcesoDisciplinarioResource extends Resource
 
                         Forms\Components\Select::make('empresa_id')
                             ->label('Empresa')
-                            ->relationship('empresa', 'razon_social')
+                            ->relationship(
+                                name: 'empresa',
+                                titleAttribute: 'razon_social',
+                                modifyQueryUsing: fn (Builder $query, ?\Illuminate\Database\Eloquent\Model $record) => $query->paraAsignar($record?->empresa_id),
+                            )
                             ->searchable()
                             ->extraAttributes([
                                 'data-tour' => 'empresa-select',
@@ -1365,7 +1369,7 @@ class ProcesoDisciplinarioResource extends Resource
 
                 Tables\Filters\SelectFilter::make('empresa')
                     ->label('Empresa')
-                    ->relationship('empresa', 'razon_social')
+                    ->relationship('empresa', 'razon_social', modifyQueryUsing: fn (Builder $query) => $query->paraAsignar())
                     ->searchable()
                     ->visible(Auth::user()->hasRole('super_admin', 'abogado'))
                     ->preload(),

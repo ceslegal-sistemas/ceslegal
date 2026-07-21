@@ -59,7 +59,10 @@ class ActaInspeccionResource extends Resource
 
                     Forms\Components\Select::make('empresa_id')
                         ->label('Empresa')
-                        ->options(fn() => Empresa::orderBy('razon_social')->pluck('razon_social', 'id'))
+                        ->options(fn (?\Illuminate\Database\Eloquent\Model $record) => Empresa::query()
+                            ->paraAsignar($record?->empresa_id)
+                            ->orderBy('razon_social')
+                            ->pluck('razon_social', 'id'))
                         ->required()
                         ->searchable()
                         ->columnSpan(1),

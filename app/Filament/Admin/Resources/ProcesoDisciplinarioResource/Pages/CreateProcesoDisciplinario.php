@@ -115,7 +115,11 @@ class CreateProcesoDisciplinario extends CreateRecord
 
                             Forms\Components\Select::make('empresa_id')
                                 ->label('¿A qué empresa pertenece el trabajador?')
-                                ->relationship('empresa', 'razon_social')
+                                ->relationship(
+                                    name: 'empresa',
+                                    titleAttribute: 'razon_social',
+                                    modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->paraAsignar(),
+                                )
                                 ->searchable()
                                 ->preload()
                                 ->required()

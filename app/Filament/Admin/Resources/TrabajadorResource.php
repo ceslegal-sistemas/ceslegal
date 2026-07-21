@@ -68,7 +68,11 @@ class TrabajadorResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('empresa_id')
                             ->label('Empresa')
-                            ->relationship('empresa', 'razon_social')
+                            ->relationship(
+                                name: 'empresa',
+                                titleAttribute: 'razon_social',
+                                modifyQueryUsing: fn (Builder $query, ?\Illuminate\Database\Eloquent\Model $record) => $query->paraAsignar($record?->empresa_id),
+                            )
                             ->searchable()
                             ->preload()
                             ->required()
@@ -531,7 +535,7 @@ class TrabajadorResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('empresa')
                     ->label('Empresa')
-                    ->relationship('empresa', 'razon_social')
+                    ->relationship('empresa', 'razon_social', modifyQueryUsing: fn (Builder $query) => $query->paraAsignar())
                     ->searchable()
                     ->preload()
                     ->multiple(),

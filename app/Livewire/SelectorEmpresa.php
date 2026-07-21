@@ -20,7 +20,7 @@ class SelectorEmpresa extends Component
             return [];
         }
 
-        return $user->empresasGestionadas()->pluck('id')->all();
+        return $user->empresasGestionadas()->paraAsignar()->pluck('id')->all();
     }
 
     public function seleccionar($id): void
@@ -44,7 +44,7 @@ class SelectorEmpresa extends Component
 
         return view('livewire.selector-empresa', [
             'empresas' => ($user && $user->esAbogadoDeBufete())
-                ? $user->empresasGestionadas()->orderBy('razon_social')->get(['id', 'razon_social'])
+                ? $user->empresasGestionadas()->paraAsignar()->orderBy('razon_social')->get(['id', 'razon_social'])
                 : collect(),
             'activaId' => EmpresaActiva::id(),
         ]);

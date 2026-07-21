@@ -63,6 +63,7 @@ class EmpresasRelationManager extends RelationManager
 
                                 return Empresa::query()
                                     ->withoutGlobalScope('bufeteOrEmpresa')
+                                    ->paraAsignar()
                                     ->where(fn($q) => $q->whereNull('bufete_id')->orWhere('bufete_id', '!=', $bufeteId))
                                     ->orderBy('razon_social')
                                     ->get()
