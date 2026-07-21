@@ -29,6 +29,11 @@ class AuditoriaRITService
             'codigos_obligatorios' => ['Art. 76 CST', 'Art. 77 CST', 'Art. 78 CST', 'Art. 80 CST'],
             'palabras_clave'       => ['admis', 'prueba', 'contrat', 'vinculac', 'ingres', 'libreta', 'embarazo', 'decreto 2663'],
             'capitulos'            => ['ADMISIÓN', 'ADMISION', 'PERÍODO DE PRUEBA', 'PERIODO DE PRUEBA'],
+            // Muchos RIT separan "Admisión" y "Período de Prueba" en dos capítulos
+            // consecutivos (en vez de uno combinado, como el estándar del generador
+            // propio) - captura ambos para no dejar fuera el segundo si el primero
+            // que coincide por palabra clave es "Admisión".
+            'num_capitulos'        => 2,
         ],
         'jornada' => [
             'titulo'               => 'Jornada Laboral y Horas Extras',
