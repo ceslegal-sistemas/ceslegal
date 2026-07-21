@@ -11,6 +11,7 @@
     $secciones    = $a?->secciones ?? [];
     $numTotal     = \App\Services\AuditoriaRITService::getNumSecciones();
     $numDone      = count($secciones);
+    $titulos      = \App\Services\AuditoriaRITService::getTitulosSecciones();
     $enProceso    = $a && in_array($a->estado, ['pendiente', 'procesando'], true);
     $completada   = $a && $a->estado === 'completado';
     $errorAud     = $a && $a->estado === 'error';
@@ -76,7 +77,7 @@ html:not(.dark) .sl-badge{background:rgba(22,163,74,.1);color:#166534}
 </style>
 @endverbatim
 
-<div class="sl-wrap" @if($enProceso || $mejorando) wire:poll.2000ms="refrescarAuditoria" @endif>
+<div class="sl-wrap" @if($mejorando) wire:poll.2000ms="refrescarAuditoria" @endif>
 
     {{-- ── Encabezado con lordicon + score ── --}}
     <div style="display:flex;align-items:center;gap:.85rem">
@@ -104,14 +105,13 @@ html:not(.dark) .sl-badge{background:rgba(22,163,74,.1);color:#166534}
 
     {{-- ── En proceso ── --}}
     @elseif($enProceso)
-        <div class="sl-viewer"><div class="sl-vb">
-            <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.35rem">
-                <svg class="sl-spin" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="40 20"/></svg>
-                <span style="font-size:.9rem;color:#fb7185;font-weight:600">Analizando con IA - {{ $numDone }} / {{ $numTotal }} secciones</span>
-            </div>
-            <div class="sl-track"><div class="sl-fill" style="width:{{ $numTotal ? round($numDone/$numTotal*100) : 0 }}%"></div></div>
-            <p class="sl-muted" style="margin:.25rem 0 0">Revisando su reglamento contra la normativa vigente colombiana. Por favor espere…</p>
-        </div></div>
+        @include('filament.components.rit-progreso-analisis', [
+            'secciones'  => $secciones,
+            'numDone'    => $numDone,
+            'numTotal'   => $numTotal,
+            'titulos'    => $titulos,
+            'pollMethod' => 'refrescarAuditoria',
+        ])
 
     {{-- ── Error ── --}}
     @elseif($errorAud)

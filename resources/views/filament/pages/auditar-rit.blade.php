@@ -250,65 +250,13 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
 
   {{-- ── EN PROCESO ── --}}
   @if($procesando && $auditoria)
-  <div wire:poll.2000ms="refrescarEstado" class="rit-viewer"
-       x-data="{ elapsed: 0, _t: null }"
-       x-init="_t = setInterval(() => elapsed++, 1000)"
-       x-destroy="clearInterval(_t)">
-    <div class="rit-viewer-header">
-      <span class="rit-viewer-label">Progreso del análisis</span>
-      <span style="display:flex;align-items:center;gap:.75rem">
-        <span style="font-size:.75rem;color:#64748b">{{ $numCompletadas }} / {{ $numTotal }} secciones</span>
-        {{-- Tiempo transcurrido (Alpine) --}}
-        <span style="font-size:.7rem;color:#475569;font-variant-numeric:tabular-nums"
-              x-text="Math.floor(elapsed/60).toString().padStart(2,'0') + ':' + (elapsed%60).toString().padStart(2,'0')">
-          00:00
-        </span>
-      </span>
-    </div>
-    <div class="rit-viewer-body">
-
-      <div class="audit-progress-track">
-        <div class="audit-progress-fill" style="width:{{ $progreso }}%"></div>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 mt-3">
-        @foreach($titulos as $clave => $titulo)
-          @php
-            $done   = isset($secciones[$clave]) && ($secciones[$clave]['calificacion'] ?? '') !== 'Error';
-            $error  = isset($secciones[$clave]) && ($secciones[$clave]['calificacion'] ?? '') === 'Error';
-            $keys   = array_keys($titulos);
-            $idx    = array_search($clave, $keys);
-            $active = !isset($secciones[$clave]) && $idx === $numCompletadas;
-          @endphp
-          <div class="audit-step {{ $active ? 'audit-step-active' : '' }}">
-            @if($active)
-              {{-- Spinner SVG para la sección que se está procesando ahora --}}
-              <svg class="audit-spinner" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="31.4" stroke-dashoffset="10" stroke-linecap="round"/>
-              </svg>
-            @elseif($done)
-              <div class="audit-dot audit-dot-done"></div>
-            @elseif($error)
-              <div class="audit-dot" style="background:#f87171"></div>
-            @else
-              <div class="audit-dot audit-dot-pending"></div>
-            @endif
-            <span style="font-size:.8125rem;{{ $active ? '' : ($done ? 'color:#94a3b8' : 'color:#475569') }}"
-                  class="{{ $active ? 'audit-step-active-label' : '' }}">
-              {{ $titulo }}
-              @if($done)   <span style="color:#22c55e;font-size:.7rem;margin-left:.25rem">✓</span>  @endif
-              @if($error)  <span style="color:#f87171;font-size:.7rem;margin-left:.25rem">✗ reintentando</span> @endif
-              @if($active) <span style="font-size:.7rem;color:#fb7185;margin-left:.35rem">analizando…</span> @endif
-            </span>
-          </div>
-        @endforeach
-      </div>
-
-      <p style="font-size:.75rem;color:#64748b;margin-top:1rem;text-align:center">
-        Revisando su reglamento contra la normativa vigente colombiana. Por favor espere…
-      </p>
-    </div>
-  </div>
+    @include('filament.components.rit-progreso-analisis', [
+        'secciones'  => $secciones,
+        'numDone'    => $numCompletadas,
+        'numTotal'   => $numTotal,
+        'titulos'    => $titulos,
+        'pollMethod' => 'refrescarEstado',
+    ])
   @endif
 
   {{-- ── RESULTADO COMPLETADO ── --}}
