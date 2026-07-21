@@ -58,6 +58,11 @@ class AuditoriaRITService
             'codigos_obligatorios' => ['Art. 127 CST', 'Art. 128 CST', 'Art. 129 CST', 'Art. 131 CST', 'Art. 132 CST', 'Art. 133 CST', 'Art. 134 CST', 'Art. 136 CST', 'Art. 143 CST', 'Art. 149 CST'],
             'palabras_clave'       => ['salario', 'remunera', 'pago', 'sueldo', 'deduccion', 'nómina', 'trueque', 'fichas', 'víveres'],
             'capitulos'            => ['REMUNERACIÓN', 'REMUNERACION', 'SALARIO', 'FORMA DE PAGO'],
+            // Muchos RIT ponen la prohibición de deducciones no autorizadas en un
+            // capítulo general de "Prohibiciones" (junto con prohibiciones de otros
+            // temas), no en el propio capítulo de salario - sin esto, la sección
+            // "salario" nunca ve ese artículo y lo marca "falta" aunque exista.
+            'capitulos_extra'      => ['PROHIBICIONES ESPECIALES', 'PROHIBICIONES A LOS EMPLEADORES', 'PROHIBICIONES'],
         ],
         'disciplina' => [
             'titulo'               => 'Régimen Disciplinario',
