@@ -498,6 +498,20 @@ PROMPT;
         }
 
         if ($numItems > 0) {
+            // Segunda pasada: antes de aceptar un "falta"/"incorrecto" definitivo, se
+            // relee el fragmento solo para esos ítems (menos ítems compitiendo por
+            // atención que en la pasada de {$numItems} a la vez) - reduce falsos
+            // negativos de contenido que sí está presente pero se pasó por alto.
+            if (!empty($datos['items'])) {
+                $datos['items'] = $this->verificarItemsFaltantes(
+                    $datos['items'],
+                    $goldItems,
+                    $fragmentoRIT,
+                    $articulosCst,
+                    $razonSocial,
+                );
+            }
+
             $datos = $this->normalizarItemsSeccion($datos, $goldItems);
         }
 
@@ -511,6 +525,107 @@ PROMPT;
             'articulos_referencia' => [],
             'seccion_encontrada'  => $seccionEncontrada,
         ], $datos, ['titulo' => $config['titulo'], 'seccion_encontrada' => $seccionEncontrada]);
+    }
+
+    /**
+     * Segunda pasada de verificación: antes de aceptar un "falta"/"incorrecto" definitivo
+     * para algún ítem, se le pide a la IA releer el fragmento COMPLETO otra vez, pero
+     * concentrándose SOLO en los ítems marcados como faltantes (no en todos los de la
+     * pasada inicial) - una lista más corta compite menos por la atención del
+     * modelo y reduce falsos negativos de contenido que sí está presente en el texto
+     * pero se pasó por alto en la primera lectura (caso real detectado: el RIT de RENBEL
+     * tenía medidas de protección al denunciante de acoso desarrolladas en un artículo
+     * propio, y la pasada inicial de 6 ítems a la vez las marcó "falta" igual).
+     *
+     * Solo sobrescribe los ítems que efectivamente se reenviaron a verificar; si la IA
+     * no revierte su conclusión o la llamada falla, se conserva la conclusión original.
+     */
+    private function verificarItemsFaltantes(
+        array  $itemsIA,
+        array  $goldItems,
+        string $fragmentoRIT,
+        string $articulosCst,
+        string $razonSocial,
+    ): array {
+        $porNumero = [];
+        foreach ($itemsIA as $entrada) {
+            $n = (int) ($entrada['n'] ?? 0);
+            if ($n >= 1 && $n <= count($goldItems)) {
+                $porNumero[$n] = $entrada;
+            }
+        }
+
+        $aVerificar = array_filter(
+            $porNumero,
+            fn($e) => in_array($e['estado'] ?? null, ['falta', 'incorrecto'], true)
+        );
+
+        if (empty($aVerificar)) {
+            return array_values($porNumero);
+        }
+
+        $listaVerificar = '';
+        foreach ($aVerificar as $n => $e) {
+            $textoItem = $goldItems[$n - 1] ?? '';
+            $hallazgoPrevio = trim((string) ($e['hallazgo'] ?? ''));
+            $listaVerificar .= "{$n}) {$textoItem} [conclusión preliminar: {$e['estado']}" . ($hallazgoPrevio ? " - {$hallazgoPrevio}" : '') . "]\n";
+        }
+
+        $prompt = <<<PROMPT
+Eres un auditor legal en una SEGUNDA REVISIÓN del Reglamento Interno de Trabajo de
+"{$razonSocial}". Una primera lectura concluyó que los siguientes elementos NO están
+cubiertos adecuadamente:
+
+{$listaVerificar}
+Antes de confirmar, RELEE con atención el TEXTO COMPLETO del RIT de abajo buscando
+específicamente cualquier artículo, cláusula o mención que SÍ aborde cada elemento -
+puede estar en otra parte del texto, con otra redacción, o mezclado con otro tema. Es
+común que una primera lectura de varios elementos a la vez pase por alto contenido real
+que sí está presente.
+
+TEXTO DEL RIT:
+{$fragmentoRIT}
+
+CONTEXTO LEGAL (normativa vigente colombiana - única referencia normativa válida):
+{$articulosCst}
+
+Para cada elemento: si al releer confirmas que efectivamente falta o es incorrecto,
+mantén esa conclusión; si encuentras que SÍ está cubierto (total o parcialmente),
+corrige el estado. Reglas para "hallazgo"/"recomendacion" (si el estado final no es
+"cubierto"): nunca cites artículo, ley, cifra o plazo que no aparezca literalmente en
+el CONTEXTO LEGAL; nunca menciones que esto es una "segunda revisión", "conclusión
+preliminar" ni nada del proceso interno de auditoría - debe leerse igual que cualquier
+otro hallazgo.
+
+Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
+{
+  "items": [
+    {"n": integer (solo los números listados arriba),
+     "estado": "cubierto" | "parcial" | "incorrecto" | "falta",
+     "hallazgo": "string, \\"\\" si cubierto, máx 140 chars",
+     "recomendacion": "string, \\"\\" si cubierto, máx 140 chars"}
+  ]
+}
+PROMPT;
+
+        try {
+            $respuesta = $this->llamarIA($prompt, true);
+            $revisado  = $this->parsearJSON($respuesta);
+        } catch (\Throwable $e) {
+            Log::warning('AuditoriaRIT: verificación de ítems faltantes falló, se conserva la conclusión inicial', [
+                'error' => $e->getMessage(),
+            ]);
+            return array_values($porNumero);
+        }
+
+        foreach ((is_array($revisado['items'] ?? null) ? $revisado['items'] : []) as $entrada) {
+            $n = (int) ($entrada['n'] ?? 0);
+            if (isset($porNumero[$n]) && in_array($entrada['estado'] ?? null, ['cubierto', 'parcial', 'incorrecto', 'falta'], true)) {
+                $porNumero[$n] = $entrada;
+            }
+        }
+
+        return array_values($porNumero);
     }
 
     /**
