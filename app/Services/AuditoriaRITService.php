@@ -634,6 +634,36 @@ PROMPT;
     }
 
     /**
+     * Red de seguridad para la PROHIBICIÓN 2 del prompt (nunca revelar el mecanismo
+     * interno de la auditoría al cliente). El refuerzo por instrucción reduce la fuga
+     * pero no la elimina del todo (confirmado: reaparece en corridas distintas, hasta
+     * 3 veces en una sola sección real - "...con referencia a una ley no presente en
+     * el contexto legal", "...con referencia a un artículo no presente en el contexto
+     * legal", "...con una referencia no presente en el contexto"). Como reescribir la
+     * frase de forma segura por regex no es confiable (la redacción varía demasiado),
+     * si se detecta la fuga se descarta ESE hallazgo/recomendación puntual y se
+     * reemplaza por un mensaje genérico pero seguro, en vez de arriesgar una frase
+     * rota o seguir mostrando el mecanismo interno al cliente.
+     */
+    private function limpiarFugaDeContexto(string $texto): string
+    {
+        if ($texto === '') {
+            return $texto;
+        }
+
+        // "contexto laboral/empresarial/de trabajo/normativo" son términos legales legítimos
+        // (ej. la Ley 2365/2024 habla de acoso sexual "en el contexto laboral") - no son la
+        // fuga que buscamos. Solo se marca "contexto" a secas o seguido de otra palabra,
+        // que es como se cuela la referencia al material interno de la auditoría.
+        if (preg_match('/\bcontexto\b(?!\s+(laboral|empresarial|normativo|de\s+trabajo))|\bbase normativa\b/ui', $texto)) {
+            Log::warning('AuditoriaRIT: fuga de PROHIBICIÓN 2 detectada y sustituida', ['texto_original' => $texto]);
+            return 'Se recomienda verificar que este punto sea consistente con la normativa laboral vigente.';
+        }
+
+        return $texto;
+    }
+
+    /**
      * Normaliza la respuesta de la IA en formato "por ítem" (análisis de brechas):
      * - Mapea cada entrada por su número "n" al texto CANÓNICO del checklist (nunca se
      *   confía en que la IA reescriba el ítem igual; solo en su número).
@@ -667,8 +697,8 @@ PROMPT;
                 ? $entrada['estado']
                 : 'falta'; // la IA omitió este ítem → se asume el peor caso, no se oculta
 
-            $hallazgo      = $estado !== 'cubierto' ? trim((string) ($entrada['hallazgo'] ?? '')) : '';
-            $recomendacion = $estado !== 'cubierto' ? trim((string) ($entrada['recomendacion'] ?? '')) : '';
+            $hallazgo      = $estado !== 'cubierto' ? $this->limpiarFugaDeContexto(trim((string) ($entrada['hallazgo'] ?? ''))) : '';
+            $recomendacion = $estado !== 'cubierto' ? $this->limpiarFugaDeContexto(trim((string) ($entrada['recomendacion'] ?? ''))) : '';
 
             $items[] = [
                 'item'          => $textoItem,
