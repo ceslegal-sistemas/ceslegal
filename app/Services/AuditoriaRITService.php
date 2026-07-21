@@ -369,24 +369,23 @@ class AuditoriaRITService
         $seccionArticulos = "\nCONTEXTO LEGAL (normativa colombiana vigente - ÚNICA referencia normativa válida para esta auditoría):\n{$articulosCst}\n";
 
         // Estándar de oro: elementos de contenido que un RIT de primer nivel debe cubrir.
-        $goldItems   = \App\Support\RitGoldStandard::paraSeccion($seccion);
-        $seccionGold = $goldItems
-            ? "\nELEMENTOS QUE UN RIT DE PRIMER NIVEL DEBE CUBRIR EN ESTA SECCIÓN (verifica si el RIT aborda cada uno; los que falten o estén incompletos van como hallazgo, descritos como TEMAS DE CONTENIDO, SIN citar normas fuera del CONTEXTO LEGAL):\n"
-              . \App\Support\RitGoldStandard::comoLista($goldItems) . "\n"
-            : '';
+        // Se evalúan UNO POR UNO (no como lista libre de hallazgos) para poder mostrar un
+        // panel de análisis de brechas: qué está cubierto, qué falta, y su corrección al lado.
+        $goldItems = \App\Support\RitGoldStandard::paraSeccion($seccion);
+        $numItems  = count($goldItems);
 
-        $prompt = <<<PROMPT
+        $reglasComunes = <<<PROMPT
 Eres un auditor legal que revisa el Reglamento Interno de Trabajo de "{$razonSocial}".
 
 REGLA FUNDAMENTAL - ANTI-ALUCINACIÓN (INCUMPLIRLA INVALIDA LA AUDITORÍA):
 
-PROHIBICIÓN 1 - REFERENCIAS: En "hallazgos" y "recomendaciones" NUNCA menciones ningún
+PROHIBICIÓN 1 - REFERENCIAS: En "hallazgo" y "recomendacion" NUNCA menciones ningún
 número de artículo, ley, decreto, resolución, numeral, parágrafo, sentencia, porcentaje,
 plazo en días ni salario mínimo que NO aparezca LITERALMENTE en el CONTEXTO LEGAL de abajo.
 Esto incluye sub-referencias como "Num. 7", "Parágrafo 2°", "literal b" no presentes.
 Si el contexto es insuficiente, describe el hallazgo en términos generales SIN citar norma.
 
-PROHIBICIÓN 2 - REVELACIÓN DE CONTEXTO: NUNCA uses en "hallazgos" o "recomendaciones"
+PROHIBICIÓN 2 - REVELACIÓN DE CONTEXTO: NUNCA uses en "hallazgo" o "recomendacion"
 frases como "no fue proporcionado", "no está en el contexto", "no aparece en el contexto",
 "CONTEXTO LEGAL", "BASE NORMATIVA", ni ninguna referencia a los límites del material
 proporcionado. Si el RIT cita un artículo que no puedes verificar con la normativa disponible,
@@ -394,7 +393,7 @@ descríbelo en términos del cumplimiento (ej: "Se recomienda verificar que las 
 de trabajo dominical habitual cumplan con los requisitos legales aplicables") sin mencionar
 la fuente de tu información ni sus límites.
 
-PROHIBICIÓN 3 - ALCANCE DE LA EVALUACIÓN: SOLO puedes crear "hallazgos" y "recomendaciones"
+PROHIBICIÓN 3 - ALCANCE DE LA EVALUACIÓN: SOLO puedes crear "hallazgo" y "recomendacion"
 basados en obligaciones que aparezcan EXPLÍCITAMENTE en el CONTEXTO LEGAL proporcionado.
 NUNCA crees un hallazgo para una obligación que conozcas de tu entrenamiento pero que NO
 esté mencionada en los artículos del CONTEXTO LEGAL. Si el CONTEXTO LEGAL no menciona un
@@ -409,16 +408,6 @@ numerales, parágrafos ni sub-referencias. Si no hay artículos relevantes, devu
 SECCIÓN A AUDITAR: {$config['titulo']}
 
 {$contextoRIT}
-{$seccionGold}
-Evalúa si el RIT cumple lo que establece el contexto jurídico y si cubre los ELEMENTOS de arriba.
-
-CRITERIO DE PUNTUACIÓN:
-- 95-100 (Completo): El RIT cubre correctamente todos los temas principales. Se acepta que
-  las condiciones exactas se expresen en términos generales ("conforme a la ley vigente",
-  "según la normativa aplicable") cuando el CONTEXTO LEGAL no incluyó la cifra exacta.
-- 80-94 (Parcial alto): El RIT cubre el tema principal pero omite algún elemento de detalle.
-- 60-79 (Parcial): El RIT cubre parcialmente el tema; falta un elemento significativo.
-- 0-59 (Ausente/Incorrecto): El tema está ausente o contiene información claramente errónea.
 NO PENALICE por:
 - Detalles operativos (provisión de asientos, muebles o equipos físicos, avisos en carteleras,
   registros administrativos internos) que no son contenido estándar de un RIT.
@@ -428,16 +417,56 @@ NO PENALICE por:
 - Cualquier requisito que no esté mencionado en el CONTEXTO LEGAL proporcionado (PROHIBICIÓN 3).
 Un RIT de calidad en SST cubre: compromiso con el SG-SST, COPASST/Vigía, EPP, reporte de
 accidentes, exámenes médicos de ingreso/retiro, prohibición de sustancias psicoactivas.
+PROMPT;
 
-ADEMÁS DE LA COBERTURA, genera un hallazgo (SOLO con base en el CONTEXTO LEGAL de arriba):
-- Si una cláusula del RIT es MENOS protectora que, o CONTRADICE, lo que establece la normativa
-  vigente del contexto (provisión desactualizada frente a la ley actual).
-- Si el RIT expresa una cifra, porcentaje o plazo que NO coincide con el del contexto legal.
-No inventes obligaciones que no estén en el CONTEXTO LEGAL (PROHIBICIÓN 3 sigue vigente).
+        if ($numItems > 0) {
+            // ── Formato por ítem: habilita el panel de análisis de brechas ────────
+            $listaGold = \App\Support\RitGoldStandard::comoLista($goldItems);
+
+            $prompt = <<<PROMPT
+{$reglasComunes}
+
+ELEMENTOS QUE UN RIT DE PRIMER NIVEL DEBE CUBRIR EN ESTA SECCIÓN (numerados; evalúa CADA
+UNO, sin omitir ninguno, en el mismo orden):
+{$listaGold}
+
+Para CADA uno de los {$numItems} elementos numerados, clasifica su estado:
+- "cubierto": el RIT lo aborda de forma adecuada y consistente con el CONTEXTO LEGAL.
+- "parcial": el RIT lo aborda pero omite un detalle significativo.
+- "incorrecto": el RIT lo aborda pero de forma MENOS protectora que, o que CONTRADICE, el
+  CONTEXTO LEGAL (incluye cifras, porcentajes o plazos que no coinciden con el contexto).
+- "falta": el RIT no lo aborda en absoluto.
+Si el estado NO es "cubierto", agrega un "hallazgo" (qué pasa) y una "recomendacion" (qué
+hacer), ambos SOLO con base en el CONTEXTO LEGAL (PROHIBICIÓN 3). Si es "cubierto", deja
+ambos como cadena vacía "".
 
 Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
 {
-  "cumple": boolean,
+  "items": [
+    {"n": integer (1 a {$numItems}, uno por cada elemento numerado, EN ORDEN, ninguno omitido),
+     "estado": "cubierto" | "parcial" | "incorrecto" | "falta",
+     "hallazgo": "string, \\"\\" si cubierto, sin citar artículos fuera del contexto, máx 140 chars",
+     "recomendacion": "string, \\"\\" si cubierto, sin citar artículos fuera del contexto, máx 140 chars"}
+  ],
+  "articulos_referencia": [ códigos copiados textualmente del contexto, máximo 5, o [] ]
+}
+PROMPT;
+        } else {
+            // ── Fallback: sección sin checklist propio (no ocurre hoy, las 8 secciones
+            // tienen su lista en RitGoldStandard; se conserva por seguridad) ──────────
+            $prompt = <<<PROMPT
+{$reglasComunes}
+
+Evalúa si el RIT cumple lo que establece el contexto jurídico.
+
+CRITERIO DE PUNTUACIÓN:
+- 95-100 (Completo): El RIT cubre correctamente todos los temas principales.
+- 80-94 (Parcial alto): El RIT cubre el tema principal pero omite algún elemento de detalle.
+- 60-79 (Parcial): El RIT cubre parcialmente el tema; falta un elemento significativo.
+- 0-59 (Ausente/Incorrecto): El tema está ausente o contiene información claramente errónea.
+
+Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
+{
   "calificacion": "Completo" | "Parcial" | "Ausente",
   "score": integer 0-100,
   "hallazgos": [ máximo 3 strings sin citar artículos fuera del contexto, máx 120 chars c/u ],
@@ -445,6 +474,7 @@ Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
   "articulos_referencia": [ códigos copiados textualmente del contexto, máximo 5, o [] ]
 }
 PROMPT;
+        }
 
         $respuesta = $this->llamarIA($prompt, true);
         $datos     = $this->parsearJSON($respuesta);
@@ -457,6 +487,10 @@ PROMPT;
             ));
         }
 
+        if ($numItems > 0) {
+            $datos = $this->normalizarItemsSeccion($datos, $goldItems);
+        }
+
         return array_merge([
             'titulo'              => $config['titulo'],
             'cumple'              => false,
@@ -467,6 +501,68 @@ PROMPT;
             'articulos_referencia' => [],
             'seccion_encontrada'  => $seccionEncontrada,
         ], $datos, ['titulo' => $config['titulo'], 'seccion_encontrada' => $seccionEncontrada]);
+    }
+
+    /**
+     * Normaliza la respuesta de la IA en formato "por ítem" (análisis de brechas):
+     * - Mapea cada entrada por su número "n" al texto CANÓNICO del checklist (nunca se
+     *   confía en que la IA reescriba el ítem igual; solo en su número).
+     * - Rellena con estado "falta" cualquier ítem que la IA haya omitido.
+     * - Calcula score/calificación/cumple desde los estados (no desde un número que la
+     *   IA "sienta" - más trazable: el cliente puede contar los ítems y verificar el score).
+     * - Deriva "hallazgos"/"recomendaciones" planos (compatibilidad con RITMejoradoService
+     *   y GAPReporteService, que ya consumen esas dos listas).
+     */
+    private function normalizarItemsSeccion(array $datos, array $goldItems): array
+    {
+        $puntosPorEstado = ['cubierto' => 100, 'parcial' => 55, 'incorrecto' => 35, 'falta' => 0];
+
+        $porNumero = [];
+        foreach ((is_array($datos['items'] ?? null) ? $datos['items'] : []) as $entrada) {
+            $n = (int) ($entrada['n'] ?? 0);
+            if ($n >= 1 && $n <= count($goldItems)) {
+                $porNumero[$n] = $entrada;
+            }
+        }
+
+        $items = [];
+        $hallazgos = [];
+        $recomendaciones = [];
+        $sumaPuntos = 0;
+
+        foreach (array_values($goldItems) as $i => $textoItem) {
+            $n       = $i + 1;
+            $entrada = $porNumero[$n] ?? null;
+            $estado  = in_array($entrada['estado'] ?? null, array_keys($puntosPorEstado), true)
+                ? $entrada['estado']
+                : 'falta'; // la IA omitió este ítem → se asume el peor caso, no se oculta
+
+            $hallazgo      = $estado !== 'cubierto' ? trim((string) ($entrada['hallazgo'] ?? '')) : '';
+            $recomendacion = $estado !== 'cubierto' ? trim((string) ($entrada['recomendacion'] ?? '')) : '';
+
+            $items[] = [
+                'item'          => $textoItem,
+                'estado'        => $estado,
+                'hallazgo'      => $hallazgo,
+                'recomendacion' => $recomendacion,
+            ];
+
+            if ($hallazgo !== '') $hallazgos[] = $hallazgo;
+            if ($recomendacion !== '') $recomendaciones[] = $recomendacion;
+            $sumaPuntos += $puntosPorEstado[$estado];
+        }
+
+        $score = count($items) > 0 ? (int) round($sumaPuntos / count($items)) : 0;
+        $calificacion = $score >= 95 ? 'Completo' : ($score >= 60 ? 'Parcial' : 'Ausente');
+
+        $datos['items']            = $items;
+        $datos['hallazgos']        = $hallazgos;
+        $datos['recomendaciones']  = $recomendaciones;
+        $datos['score']            = $score;
+        $datos['calificacion']     = $calificacion;
+        $datos['cumple']           = $score >= 80;
+
+        return $datos;
     }
 
     /**

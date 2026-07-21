@@ -345,55 +345,7 @@ html:not(.dark) .gap-btn-tech{background:rgba(185,28,28,.06);border-color:rgba(1
     </div>
 
     {{-- Detalle por sección --}}
-    <div class="rit-viewer">
-      <div class="rit-viewer-header">
-        <span class="rit-viewer-label">Detalle por sección</span>
-        <span style="font-size:.75rem;color:#64748b">{{ $numCompletadas }} secciones revisadas</span>
-      </div>
-      <div class="rit-viewer-body">
-        @foreach($secciones as $clave => $sec)
-          @php
-            $calif   = $sec['calificacion'] ?? 'Ausente';
-            $secCls  = match($calif) { 'Completo' => 'audit-sec-ok', 'Parcial' => 'audit-sec-warn', default => 'audit-sec-danger' };
-            $tagCls  = match($calif) { 'Completo' => 'audit-tag-ok', 'Parcial' => 'audit-tag-warn', default => 'audit-tag-danger' };
-          @endphp
-          <div class="audit-sec {{ $secCls }}">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.5rem">
-              <span class="audit-sec-title">{{ $sec['titulo'] ?? $clave }}</span>
-              <div style="display:flex;align-items:center;gap:.5rem">
-                @if(!($sec['seccion_encontrada'] ?? true))
-                  <span style="font-size:.7rem;color:#94a3b8;font-style:italic">No encontrado en el RIT</span>
-                @endif
-                <span style="font-size:.75rem;font-weight:700;color:{{ match($calif){ 'Completo'=>'#22c55e','Parcial'=>'#f59e0b',default=>'#ef4444' } }}">{{ $sec['score'] ?? 0 }}/100</span>
-                <span class="audit-tag {{ $tagCls }}">{{ $calif }}</span>
-              </div>
-            </div>
-
-            @if(!empty($sec['hallazgos']))
-              <p class="audit-sub-label">Hallazgos</p>
-              @foreach($sec['hallazgos'] as $h)
-                <div class="audit-list-item"><span style="flex-shrink:0;color:#f97316">›</span>{{ $h }}</div>
-              @endforeach
-            @endif
-
-            @if(!empty($sec['recomendaciones']))
-              <p class="audit-sub-label" style="margin-top:.625rem">Recomendaciones</p>
-              @foreach($sec['recomendaciones'] as $r)
-                <div class="audit-list-item"><span style="flex-shrink:0;color:#22c55e">→</span>{{ $r }}</div>
-              @endforeach
-            @endif
-
-            @if(!empty($sec['articulos_referencia']))
-              <div style="margin-top:.625rem">
-                @foreach($sec['articulos_referencia'] as $art)
-                  <span class="audit-art">{{ $art }}</span>
-                @endforeach
-              </div>
-            @endif
-          </div>
-        @endforeach
-      </div>
-    </div>
+    @include('filament.components.rit-detalle-secciones', ['secciones' => $secciones, 'numDone' => $numCompletadas])
 
     {{-- ── INFO: RIT generado por el sistema (no aplica versión mejorada) ── --}}
     @if($auditoria?->estado === 'completado' && !$esExterno)

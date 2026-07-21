@@ -144,36 +144,7 @@ html:not(.dark) .sl-badge{background:rgba(22,163,74,.1);color:#166534}
         </div>
 
         {{-- Detalle por sección --}}
-        <div class="sl-viewer">
-            <div class="sl-vh"><span class="sl-vl">Detalle por sección</span>
-                <span style="font-size:.75rem;color:#64748b">{{ $numDone }} secciones revisadas</span></div>
-            <div class="sl-vb">
-                @foreach($secciones as $clave => $sec)
-                    @php
-                        $calif = $sec['calificacion'] ?? 'Ausente';
-                        $bord  = $calif === 'Completo' ? '#22c55e' : ($calif === 'Parcial' ? '#f59e0b' : '#ef4444');
-                        $tag   = $calif === 'Completo' ? 'sl-tag-ok' : ($calif === 'Parcial' ? 'sl-tag-warn' : 'sl-tag-danger');
-                    @endphp
-                    <div class="sl-sec" style="border-color:{{ $bord }}">
-                        <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.5rem">
-                            <span class="sl-sec-title">{{ $sec['titulo'] ?? $clave }}</span>
-                            <div style="display:flex;align-items:center;gap:.5rem">
-                                <span style="font-size:.75rem;font-weight:700;color:{{ $bord }}">{{ $sec['score'] ?? 0 }}/100</span>
-                                <span class="sl-tag {{ $tag }}">{{ $calif }}</span>
-                            </div>
-                        </div>
-                        @if(!empty($sec['hallazgos']))
-                            <p class="sl-sublabel">Hallazgos</p>
-                            @foreach($sec['hallazgos'] as $h)<div class="sl-li"><span style="flex-shrink:0;color:#f97316">›</span>{{ $h }}</div>@endforeach
-                        @endif
-                        @if(!empty($sec['recomendaciones']))
-                            <p class="sl-sublabel" style="margin-top:.625rem">Recomendaciones</p>
-                            @foreach($sec['recomendaciones'] as $r)<div class="sl-li"><span style="flex-shrink:0;color:#22c55e">→</span>{{ $r }}</div>@endforeach
-                        @endif
-                    </div>
-                @endforeach
-            </div>
-        </div>
+        @include('filament.components.rit-detalle-secciones', ['secciones' => $secciones, 'numDone' => $numDone])
 
         {{-- ── Mejora en proceso ── --}}
         @if($mejorando)
