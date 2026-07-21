@@ -14,8 +14,20 @@
       - Table Action:  'mountedTableActionsData.{n}.campo'  (default, compat. actual)
       - Page Action:   'mountedActionsData.{n}.campo'
       - Wizard/Create: 'data.campo'
+
+    En modales (Table/Page Action) el contenido solo se monta al abrir el modal, así que
+    "al iniciar el componente" == "al abrir el modal" (correcto: pide cámara justo ahí).
+    En un Wizard, Filament renderiza TODOS los pasos en el DOM desde el primer paso (solo
+    los oculta con CSS), así que sin esto la cámara se pediría de una vez al cargar la
+    página. Por eso, si el host pasa `wizardStepId` (el id del Step donde vive este
+    componente), el `x-init` no llama iniciarCamara() de inmediato: espera a que la
+    variable reactiva `step` del Wizard ancestro (declarada en su x-data, heredada aquí
+    sin redeclararla) coincida con ese id, y libera la cámara al salir del paso.
 --}}
-@php $wireTargetPath = $wireTargetPath ?? 'mountedTableActionsData.0.foto_autorizador_base64'; @endphp
+@php
+    $wireTargetPath = $wireTargetPath ?? 'mountedTableActionsData.0.foto_autorizador_base64';
+    $wizardStepId   = $wizardStepId ?? null;
+@endphp
 
 <style>
 /* ── Variables modo claro (default) / oscuro (html.dark) ─────────── */
@@ -284,7 +296,17 @@ button.wca-btn-secondary:hover {
              if (this.intervaloAccesorios) { clearInterval(this.intervaloAccesorios); this.intervaloAccesorios = null; }
          }
      }"
-     x-init="iniciarCamara()"
+     x-init="
+        @if($wizardStepId)
+            if (step === {{ Illuminate\Support\Js::from($wizardStepId) }}) { iniciarCamara() }
+            $watch('step', (valor) => {
+                if (valor === {{ Illuminate\Support\Js::from($wizardStepId) }}) { iniciarCamara() }
+                else { detenerCamara() }
+            })
+        @else
+            iniciarCamara()
+        @endif
+     "
      @modal-closed.window="detenerCamara()">
 
     <div class="space-y-3">

@@ -836,6 +836,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->label('Foto de verificación')
                                 ->content(fn() => view('filament.components.webcam-autorizador', [
                                     'wireTargetPath' => 'data.foto_citante_base64',
+                                    'wizardStepId'   => 'verificacion',
                                 ])),
 
                             // La obligatoriedad se valida en mutateFormDataBeforeCreate() con
