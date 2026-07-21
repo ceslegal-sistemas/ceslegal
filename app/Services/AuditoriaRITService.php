@@ -68,7 +68,11 @@ class AuditoriaRITService
             'query'                => 'seguridad salud trabajo SG-SST obligaciones empleador COPASST vigía EPP accidentes laborales exámenes médicos responsabilidades trabajadores',
             'codigos_obligatorios' => ['Art. 56 CST', 'Art. 57 CST'],
             'palabras_clave'       => ['seguridad', 'salud', 'riesgo', 'accidente', 'SST', 'ARL', 'EPP', 'alcoholemia', 'psicoactiv', 'médico'],
-            'capitulos'            => ['SEGURIDAD Y SALUD', 'SG-SST', 'SST'],
+            // Incluye títulos de capítulo de RIT antiguos, previos a la terminología
+            // "SG-SST" (p. ej. "SERVICIO MÉDICO, MEDIDAS DE SEGURIDAD, RIESGOS
+            // LABORALES..."), para no caer al método de respaldo por palabras clave
+            // (que no delimita capítulo y puede arrastrar la mitad del documento).
+            'capitulos'            => ['SEGURIDAD Y SALUD', 'SG-SST', 'SST', 'RIESGOS LABORALES', 'MEDIDAS DE SEGURIDAD'],
         ],
         'acoso' => [
             'titulo'               => 'Acoso Laboral y Sexual',
@@ -481,18 +485,42 @@ PROMPT;
         $total  = count($lineas);
 
         // ── Estrategia 1: extracción por encabezado CAPÍTULO ──────────────────
-        // El generador produce DOS líneas: "CAPÍTULO III" seguido de "JORNADA ORDINARIA..."
-        // Por eso se revisa la línea actual Y la siguiente para encontrar el título.
+        // El regex de encabezado se ancla al INICIO de línea (^\s*CAP[IÍ]TULO\b): un
+        // encabezado real siempre empieza la línea con esa palabra. Sin el ancla,
+        // cualquier mención normal en prosa ("...el presente capítulo tiene por
+        // objeto...", común como primera frase de un artículo) se confundía con un
+        // encabezado y cortaba el fragmento a 1-2 líneas (bug detectado auditando un
+        // RIT real: la sección SST quedaba con ~70 caracteres en vez de su capítulo
+        // completo, calificando como "Ausente" un capítulo en realidad completo).
+        $esEncabezado = fn(string $linea): bool => (bool) preg_match('/^\s*CAP[IÍ]TULO\b/ui', $linea);
+
         if (!empty($capitulos)) {
             $inicio = null;
             foreach ($lineas as $i => $linea) {
-                if (!preg_match('/CAP[IÍ]TULO/ui', $linea)) continue;
-                // Línea actual (ej: "CAPÍTULO III JORNADA...") + línea siguiente (ej: "JORNADA...")
-                $lineaUp     = mb_strtoupper($linea);
-                $siguienteUp = isset($lineas[$i + 1]) ? mb_strtoupper($lineas[$i + 1]) : '';
+                if (!$esEncabezado($linea)) continue;
+
+                // El título puede venir en la misma línea (raro), en la siguiente
+                // (convención del generador: "CAPÍTULO III" + "JORNADA...") o después
+                // de una o más líneas en blanco (frecuente en documentos subidos/PDF:
+                // "CAPITULO II" + línea vacía + "DE LA ADMISIÓN..."). Se revisan las
+                // líneas siguientes saltando blancos, pero se PARA en cuanto aparece
+                // contenido de artículo (ARTÍCULO/PARÁGRAFO): de ahí en adelante ya es
+                // cuerpo del capítulo, no título, y buscar palabras clave ahí produce
+                // falsos positivos (una mención de "salario" dentro del primer artículo
+                // de un capítulo de jornada, por ejemplo).
+                $lineaUp  = mb_strtoupper($linea);
+                $tituloUp = '';
+                $revisadas = 0;
+                for ($j = $i + 1; $j < $total && $revisadas < 4; $j++) {
+                    if (trim($lineas[$j]) === '') continue;
+                    if (preg_match('/^\s*(ART[IÍ]CULO|PAR[AÁ]GRAFO)\b/ui', $lineas[$j])) break;
+                    $tituloUp .= ' ' . mb_strtoupper($lineas[$j]);
+                    $revisadas++;
+                }
+
                 foreach ($capitulos as $keyword) {
                     $kw = mb_strtoupper($keyword);
-                    if (str_contains($lineaUp, $kw) || str_contains($siguienteUp, $kw)) {
+                    if (str_contains($lineaUp, $kw) || str_contains($tituloUp, $kw)) {
                         $inicio = $i;
                         break 2;
                     }
@@ -505,7 +533,7 @@ PROMPT;
                 $fin           = $total;
                 $chapterCount  = 0;
                 for ($i = $inicio + 1; $i < $total; $i++) {
-                    if (preg_match('/CAP[IÍ]TULO/ui', $lineas[$i])) {
+                    if ($esEncabezado($lineas[$i])) {
                         $chapterCount++;
                         if ($chapterCount >= $numCapitulos) {
                             $fin = $i;
