@@ -525,174 +525,44 @@ class RITMejoradoService
             ? "\nCAPÍTULO ORIGINAL A MEJORAR:\n" . $capituloOriginal . "\n"
             : "\nNo se encontró el capítulo original. Redáctalo desde cero siguiendo las instrucciones de contenido.\n";
 
-        /*
-        // ── PROMPT ACTUAL (comentado temporalmente para probar el prompt del jefe
-        //    - ver "rit prompt1.docx". Para volver: descomentar este bloque y borrar
-        //    o comentar el bloque "PROMPT DEL JEFE" de abajo). ──────────────────────
         return <<<PROMPT
-        Eres un abogado laboral colombiano experto en Reglamentos Internos de Trabajo. Tu objetivo es
-        producir un capítulo IGUAL O SUPERIOR al de un abogado experto: más completo, más preciso y
-        totalmente conforme a la normativa vigente - nunca más pobre ni más corto.
+Eres un abogado laboral colombiano experto en Reglamentos Internos de Trabajo. Tu objetivo es
+producir un capítulo IGUAL O SUPERIOR al de un abogado experto: más completo, más preciso y
+totalmente conforme a la normativa vigente - nunca más pobre ni más corto.
 
-        TAREA: Perfeccionar el CAPÍTULO {$numero} ({$titulo}) del RIT de "{$razonSocial}".
+TAREA: Perfeccionar el CAPÍTULO {$numero} ({$titulo}) del RIT de "{$razonSocial}".
 
-        REGLA FUNDAMENTAL - CITAS LEGALES (CERO ALUCINACIÓN):
-        - Números de artículo, nombres de ley, porcentajes y plazos legales: SOLO los que aparezcan
-          textualmente en el contexto jurídico proporcionado más abajo.
-        - PROHIBIDO inventar o recordar artículos, leyes, porcentajes o plazos de tu entrenamiento.
-        - Si el contexto jurídico no trae una cifra o referencia, redacta el concepto sin citar fuente.
+REGLA FUNDAMENTAL - CITAS LEGALES (CERO ALUCINACIÓN):
+- Números de artículo, nombres de ley, porcentajes y plazos legales: SOLO los que aparezcan
+  textualmente en el contexto jurídico proporcionado más abajo.
+- PROHIBIDO inventar o recordar artículos, leyes, porcentajes o plazos de tu entrenamiento.
+- Si el contexto jurídico no trae una cifra o referencia, redacta el concepto sin citar fuente.
 
-        REGLA DE PRESERVACIÓN (NO EMPOBRECER EL TRABAJO DEL EXPERTO):
-        - CONSERVA todas las cláusulas, derechos, garantías, definiciones y detalles específicos que
-          ya trae el capítulo original y que sean legales. NO elimines contenido. NO lo resumas.
-        - El resultado debe ser IGUAL O MÁS EXTENSO Y COMPLETO que el capítulo original.
-        - Solo puedes: (a) corregir los hallazgos de la auditoría, (b) actualizar lo que contradiga la
-          normativa vigente proporcionada, (c) añadir lo obligatorio que falte, (d) mejorar la redacción.
-        - Si el original y la norma vigente coinciden, mantén la redacción del original.
-        {$seccionArticulos}{$seccionRag}{$seccionContexto}
-        HALLAZGOS DE LA AUDITORÍA PARA ESTE CAPÍTULO (CORRÍGELOS TODOS):
-        {$hallazgos}
-        {$seccionOriginal}
-        INSTRUCCIONES DE CONTENIDO PARA ESTE CAPÍTULO (mínimos obligatorios; puedes superarlos, nunca quedarte corto):
-        {$instrucciones}
-        {$goldBloque}
-        INSTRUCCIONES DE FORMATO:
-        - Los artículos de este capítulo se numeran desde ARTÍCULO {$articuloInicio}.
-        - Primera línea del capítulo: CAPÍTULO {$numero}
-        - Segunda línea: {$titulo}
-        - Cada artículo: párrafo completo de mínimo 60 palabras en su propia línea.
-        - Usa los datos reales de la empresa cuando el artículo lo requiera; NUNCA uses corchetes ni placeholders.
-        - NUNCA uses guiones (-), asteriscos (*) ni almohadillas (#) al inicio de línea.
-        - Para listas internas usa: "1) texto 2) texto" en líneas separadas.
-        - TABLAS cuando aplique: TABLA: / ENCABEZADO: col1 | col2 / FILA: v1 | v2 / FIN_TABLA
-
-        Devuelve ÚNICAMENTE el texto del capítulo mejorado, sin comentarios ni explicaciones.
-        PROMPT;
-        */
-
-        // ── PROMPT DEL JEFE (EXPERIMENTAL - prueba con "rit prompt1.docx") ─────────
-        $contextoJuridico = trim($seccionArticulos . $seccionRag);
-
-        return <<<PROMPT
-Eres un abogado laboral colombiano experto en Reglamentos Internos de Trabajo (RIT), técnica legislativa y derecho disciplinario laboral.
-OBJETIVO
-Reconstruir y perfeccionar el CAPÍTULO {$numero} ({$titulo}) del Reglamento Interno de Trabajo de "{$razonSocial}" utilizando EXCLUSIVAMENTE el contexto jurídico suministrado.
-El resultado deberá ser siempre igual o superior al recibido. Nunca podrá ser jurídicamente inferior.
-==================================================
-FUENTE ÚNICA
-Toda decisión jurídica deberá sustentarse EXCLUSIVAMENTE en el contexto jurídico suministrado.
-Está prohibido utilizar:
-1) memoria del entrenamiento
-2) conocimiento propio
-3) leyes recordadas
-4) jurisprudencia recordada
-5) artículos recordados
-6) porcentajes recordados
-7) plazos recordados
-Si el contexto jurídico no contiene determinada información: NO la inventes. NO la cites. NO completes con conocimiento externo.
-==================================================
-OBJETIVO DE RECONSTRUCCIÓN
-El capítulo recibido puede encontrarse en cualquiera de estos estados:
-1) Excelente
-2) Bueno
-3) Regular
-4) Deficiente
-5) Muy deficiente
-6) Jurídicamente incorrecto
-Tu obligación consiste en entregar la mejor versión jurídicamente posible utilizando exclusivamente la normativa suministrada.
-==================================================
-JERARQUÍA OBLIGATORIA DE DECISIONES
-Para CADA artículo aplica exactamente el siguiente orden.
-1) Identifica el objetivo jurídico del artículo.
-2) Conserva todo el contenido compatible con el contexto jurídico.
-3) Corrige únicamente aquello que contradiga el contexto jurídico.
-4) Elimina únicamente el contenido incompatible con el contexto jurídico.
-5) Incorpora todas las obligaciones, requisitos, garantías, procedimientos o definiciones obligatorias que falten según el contexto.
-6) Fortalece la claridad jurídica.
-7) Fortalece la técnica normativa.
-8) Fortalece la seguridad jurídica.
-9) Fortalece la aplicabilidad práctica.
-10) Realiza una revisión final verificando que el artículo quedó mejor que el original.
-==================================================
-REGLA DE CONSERVACIÓN
-Conserva absolutamente todo el contenido jurídicamente válido.
-No elimines contenido únicamente por estilo.
-No resumas. No reduzcas información.
-Si una disposición continúa siendo válida deberá conservarse.
-==================================================
-REGLA DE RECONSTRUCCIÓN
-Cuando un artículo resulte insuficiente, ambiguo, contradictorio o incompatible con el contexto jurídico: podrás reorganizarlo, reestructurarlo, ampliarlo, o reemplazarlo completamente, siempre que el resultado final sea jurídicamente superior.
-La calidad jurídica prevalece sobre la conservación literal.
-==================================================
-REGLA DE MEJORA
-Siempre que el contexto jurídico lo permita fortalece:
-1) definiciones
-2) procedimientos
-3) competencias
-4) responsabilidades
-5) garantías
-6) debido proceso
-7) mecanismos de aplicación
-8) obligaciones
-9) prohibiciones
-10) controles
-11) excepciones
-12) condiciones
-13) efectos jurídicos
-14) coherencia normativa
-15) lenguaje jurídico
-==================================================
-REGLA DE SEGURIDAD JURÍDICA
-La versión final deberá minimizar: vacíos jurídicos, ambigüedades, contradicciones, errores procedimentales, riesgos de interpretación, debilidades disciplinarias, conflictos de aplicación.
-==================================================
-REGLA ESPECIAL PARA PROCEDIMIENTOS DISCIPLINARIOS
-Siempre que el contexto jurídico lo permita, fortalece la regulación para que pueda servir como fundamento sólido en: investigaciones, descargos, procesos disciplinarios, imposición de sanciones, aplicación práctica del reglamento, sin vulnerar las garantías previstas en el contexto jurídico.
-==================================================
-REGLA SOBRE CITAS
-Solo podrás citar: artículos, leyes, sentencias, decretos, porcentajes, plazos, cuando aparezcan expresamente dentro del contexto jurídico. Nunca inventes referencias.
-==================================================
-VALIDACIÓN FINAL OBLIGATORIA
-Antes de responder verifica internamente que:
-1) No eliminaste contenido jurídicamente válido.
-2) No redujiste la protección jurídica existente.
-3) No inventaste normas.
-4) No citaste artículos inexistentes.
-5) No utilizaste conocimiento externo.
-6) El capítulo quedó igual o más completo.
-7) El capítulo quedó jurídicamente superior.
-8) No existen contradicciones internas.
-9) La terminología es consistente.
-10) El resultado puede aplicarse en la práctica.
-Si cualquiera de estas validaciones falla deberás corregir el capítulo antes de responder.
-==================================================
-CONTEXTO JURÍDICO SUMINISTRADO
-{$contextoJuridico}
-==================================================
-CAPÍTULO RECIBIDO A RECONSTRUIR
+REGLA DE PRESERVACIÓN (NO EMPOBRECER EL TRABAJO DEL EXPERTO):
+- CONSERVA todas las cláusulas, derechos, garantías, definiciones y detalles específicos que
+  ya trae el capítulo original y que sean legales. NO elimines contenido. NO lo resumas.
+- El resultado debe ser IGUAL O MÁS EXTENSO Y COMPLETO que el capítulo original.
+- Solo puedes: (a) corregir los hallazgos de la auditoría, (b) actualizar lo que contradiga la
+  normativa vigente proporcionada, (c) añadir lo obligatorio que falte, (d) mejorar la redacción.
+- Si el original y la norma vigente coinciden, mantén la redacción del original.
+{$seccionArticulos}{$seccionRag}{$seccionContexto}
+HALLAZGOS DE LA AUDITORÍA PARA ESTE CAPÍTULO (CORRÍGELOS TODOS):
+{$hallazgos}
 {$seccionOriginal}
-==================================================
-FORMATO
-Los artículos comienzan en: ARTÍCULO {$articuloInicio}
-Primera línea: CAPÍTULO {$numero}
-Segunda línea: {$titulo}
-Cada artículo deberá escribirse como un párrafo completo. Mínimo 60 palabras por artículo. Puedes superar ampliamente ese tamaño cuando sea necesario. No existe límite máximo de longitud.
-==================================================
-DATOS DE LA EMPRESA
-Cuando un artículo requiera información específica utiliza exclusivamente los datos reales suministrados.
-Nunca utilices: [] {} <> placeholders texto de ejemplo
-{$seccionContexto}
-==================================================
-FORMATO DE LISTAS
-Nunca utilices: - * #
-Para listas utiliza únicamente: 1) texto 2) texto 3) texto
-==================================================
-TABLAS
-Cuando sean necesarias utiliza exclusivamente el siguiente formato:
-TABLA: ENCABEZADO: col1 | col2 FILA: v1 | v2 FIN_TABLA
-==================================================
-SALIDA
-Devuelve ÚNICAMENTE el capítulo reconstruido.
-No expliques cambios. No agregues comentarios. No agregues observaciones. No utilices markdown. No escribas texto adicional.
+INSTRUCCIONES DE CONTENIDO PARA ESTE CAPÍTULO (mínimos obligatorios; puedes superarlos, nunca quedarte corto):
+{$instrucciones}
+{$goldBloque}
+INSTRUCCIONES DE FORMATO:
+- Los artículos de este capítulo se numeran desde ARTÍCULO {$articuloInicio}.
+- Primera línea del capítulo: CAPÍTULO {$numero}
+- Segunda línea: {$titulo}
+- Cada artículo: párrafo completo de mínimo 60 palabras en su propia línea.
+- Usa los datos reales de la empresa cuando el artículo lo requiera; NUNCA uses corchetes ni placeholders.
+- NUNCA uses guiones (-), asteriscos (*) ni almohadillas (#) al inicio de línea.
+- Para listas internas usa: "1) texto 2) texto" en líneas separadas.
+- TABLAS cuando aplique: TABLA: / ENCABEZADO: col1 | col2 / FILA: v1 | v2 / FIN_TABLA
+
+Devuelve ÚNICAMENTE el texto del capítulo mejorado, sin comentarios ni explicaciones.
 PROMPT;
     }
 
