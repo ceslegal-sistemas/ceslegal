@@ -118,9 +118,21 @@ class AuditoriaRITService
      */
     public function iniciar(Empresa $empresa, ?string $textoExternoRIT = null): AuditoriaRIT
     {
+        // El RIT VIGENTE es el marcado activo=true (mismo criterio que usa el resto del
+        // sistema: MiReglamentoInterno, ReglamentoInternoService::procesarDocumento()).
+        // Sin este filtro, "Nueva auditoría" podía terminar auditando el RIT MEJORADO
+        // (fuente='mejora_ia', activo=false hasta que se adopta) en vez del vigente, si
+        // ese mejorado tenía un updated_at más reciente - dando un score distinto (más
+        // alto, por tratarse de un documento ya corregido) al mismo botón en otra página
+        // que sí filtraba correctamente. El fallback sin filtro cubre el caso borde de
+        // que, por algún motivo, ningún registro esté marcado activo todavía.
         $rit = ReglamentoInterno::where('empresa_id', $empresa->id)
+            ->where('activo', true)
             ->orderByDesc('updated_at')
-            ->first();
+            ->first()
+            ?? ReglamentoInterno::where('empresa_id', $empresa->id)
+                ->orderByDesc('updated_at')
+                ->first();
 
         // 'externo' si: se subió un archivo externo al momento de auditar, O
         // si el RIT fue cargado manualmente durante el registro (fuente='subido').
