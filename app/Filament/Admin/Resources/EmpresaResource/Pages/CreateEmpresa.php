@@ -105,7 +105,14 @@ class CreateEmpresa extends CreateRecord
                 $nombreArchivo  = basename($path);
                 $rutaPermanente = 'reglamentos/' . $this->record->id . '/' . $nombreArchivo;
                 Storage::disk('local')->move($path, $rutaPermanente);
-                $rutaAbsoluta = storage_path("app/{$rutaPermanente}");
+                // Ojo: NUNCA construir esta ruta a mano con storage_path("app/...") - el
+                // disco 'local' de este proyecto tiene su raíz en storage/app/private
+                // (config/filesystems.php), no en storage/app. Storage::disk('local')->path()
+                // sí respeta esa raíz real; storage_path("app/...") apuntaba a un lugar donde
+                // el archivo NUNCA estuvo, por lo que is_file() fallaba, procesarDocumento()
+                // no encontraba nada que leer, y motivoTextoVacio() reportaba "corrupto" para
+                // CUALQUIER RIT subido al crear una empresa, sin importar que fuera válido.
+                $rutaAbsoluta = Storage::disk('local')->path($rutaPermanente);
 
                 $servicio = app(ReglamentoInternoService::class);
                 $rit = $servicio->procesarDocumento(
