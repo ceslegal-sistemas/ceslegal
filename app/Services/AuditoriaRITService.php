@@ -384,112 +384,220 @@ class AuditoriaRITService
         $goldItems = \App\Support\RitGoldStandard::paraSeccion($seccion);
         $numItems  = count($goldItems);
 
+        /*
+        // ── PROMPT ACTUAL (comentado temporalmente para probar el prompt del jefe
+        //    - ver "rit prompt1.docx". Para volver: descomentar este bloque y borrar
+        //    o comentar el bloque "PROMPT DEL JEFE" de abajo). ──────────────────────
         $reglasComunes = <<<PROMPT
-Eres un auditor legal que revisa el Reglamento Interno de Trabajo de "{$razonSocial}".
+        Eres un auditor legal que revisa el Reglamento Interno de Trabajo de "{$razonSocial}".
 
-REGLA FUNDAMENTAL - ANTI-ALUCINACIÓN (INCUMPLIRLA INVALIDA LA AUDITORÍA):
+        REGLA FUNDAMENTAL - ANTI-ALUCINACIÓN (INCUMPLIRLA INVALIDA LA AUDITORÍA):
 
-PROHIBICIÓN 1 - REFERENCIAS: En "hallazgo" y "recomendacion" NUNCA menciones ningún
-número de artículo, ley, decreto, resolución, numeral, parágrafo, sentencia, porcentaje,
-plazo en días ni salario mínimo que NO aparezca LITERALMENTE en el CONTEXTO LEGAL de abajo.
-Esto incluye sub-referencias como "Num. 7", "Parágrafo 2°", "literal b" no presentes.
-Si el contexto es insuficiente, describe el hallazgo en términos generales SIN citar norma.
+        PROHIBICIÓN 1 - REFERENCIAS: En "hallazgo" y "recomendacion" NUNCA menciones ningún
+        número de artículo, ley, decreto, resolución, numeral, parágrafo, sentencia, porcentaje,
+        plazo en días ni salario mínimo que NO aparezca LITERALMENTE en el CONTEXTO LEGAL de abajo.
+        Esto incluye sub-referencias como "Num. 7", "Parágrafo 2°", "literal b" no presentes.
+        Si el contexto es insuficiente, describe el hallazgo en términos generales SIN citar norma.
 
-PROHIBICIÓN 2 - REVELACIÓN DE CONTEXTO: NUNCA uses en "hallazgo" o "recomendacion"
-frases como "no fue proporcionado", "no está en el contexto", "no aparece en el contexto",
-"mencionado/a en el contexto", "el contexto legal no especifica", "según el contexto",
-"CONTEXTO LEGAL", "BASE NORMATIVA", ni ninguna referencia — directa o indirecta — a que tu
-información viene de un material que se te proporcionó o que tiene límites. El lector de
-este hallazgo es la empresa auditada: para ella, "el contexto" no significa nada y revela
-el mecanismo interno de la auditoría. Si el RIT cita un artículo que no puedes verificar con
-la normativa disponible, descríbelo en términos del cumplimiento (ej: "Se recomienda
-verificar que las condiciones de trabajo dominical habitual cumplan con los requisitos
-legales aplicables") o compara directamente el hecho SIN mencionar de dónde sale tu
-comparación (ej: en vez de "esto contradice la jurisprudencia mencionada en el contexto",
-escribe "esto contradice el criterio judicial vigente sobre la materia").
+        PROHIBICIÓN 2 - REVELACIÓN DE CONTEXTO: NUNCA uses en "hallazgo" o "recomendacion"
+        frases como "no fue proporcionado", "no está en el contexto", "no aparece en el contexto",
+        "mencionado/a en el contexto", "el contexto legal no especifica", "según el contexto",
+        "CONTEXTO LEGAL", "BASE NORMATIVA", ni ninguna referencia — directa o indirecta — a que tu
+        información viene de un material que se te proporcionó o que tiene límites. El lector de
+        este hallazgo es la empresa auditada: para ella, "el contexto" no significa nada y revela
+        el mecanismo interno de la auditoría. Si el RIT cita un artículo que no puedes verificar con
+        la normativa disponible, descríbelo en términos del cumplimiento (ej: "Se recomienda
+        verificar que las condiciones de trabajo dominical habitual cumplan con los requisitos
+        legales aplicables") o compara directamente el hecho SIN mencionar de dónde sale tu
+        comparación (ej: en vez de "esto contradice la jurisprudencia mencionada en el contexto",
+        escribe "esto contradice el criterio judicial vigente sobre la materia").
 
-PROHIBICIÓN 3 - ALCANCE DE LA EVALUACIÓN: SOLO puedes crear "hallazgo" y "recomendacion"
-basados en obligaciones que aparezcan EXPLÍCITAMENTE en el CONTEXTO LEGAL proporcionado.
-NUNCA crees un hallazgo para una obligación que conozcas de tu entrenamiento pero que NO
-esté mencionada en los artículos del CONTEXTO LEGAL. Si el CONTEXTO LEGAL no menciona un
-requisito (ej. sala de lactancia, ampliación de licencia por determinada ley, instalaciones
-físicas especiales), NO lo evalúes aunque lo conozcas. Evalúa SOLO lo que dice el texto de
-los artículos proporcionados.
+        PROHIBICIÓN 3 - ALCANCE DE LA EVALUACIÓN: SOLO puedes crear "hallazgo" y "recomendacion"
+        basados en obligaciones que aparezcan EXPLÍCITAMENTE en el CONTEXTO LEGAL proporcionado.
+        NUNCA crees un hallazgo para una obligación que conozcas de tu entrenamiento pero que NO
+        esté mencionada en los artículos del CONTEXTO LEGAL. Si el CONTEXTO LEGAL no menciona un
+        requisito (ej. sala de lactancia, ampliación de licencia por determinada ley, instalaciones
+        físicas especiales), NO lo evalúes aunque lo conozcas. Evalúa SOLO lo que dice el texto de
+        los artículos proporcionados.
 
-Para "articulos_referencia": copia TEXTUALMENTE los encabezados "--- CODIGO: ..." que aparecen
-en CONTEXTO LEGAL (ej: "Art. 115 CST", "Art. 7 Ley 1010"). NUNCA reformatees ni añadas
-numerales, parágrafos ni sub-referencias. Si no hay artículos relevantes, devuelve [].
-{$seccionArticulos}
-SECCIÓN A AUDITAR: {$config['titulo']}
+        Para "articulos_referencia": copia TEXTUALMENTE los encabezados "--- CODIGO: ..." que aparecen
+        en CONTEXTO LEGAL (ej: "Art. 115 CST", "Art. 7 Ley 1010"). NUNCA reformatees ni añadas
+        numerales, parágrafos ni sub-referencias. Si no hay artículos relevantes, devuelve [].
+        {$seccionArticulos}
+        SECCIÓN A AUDITAR: {$config['titulo']}
 
-{$contextoRIT}
-NO PENALICE por:
-- Detalles operativos (provisión de asientos, muebles o equipos físicos, avisos en carteleras,
-  registros administrativos internos) que no son contenido estándar de un RIT.
-- Obligaciones de infraestructura física de higiene/seguridad (condiciones de locales,
-  ventilación, iluminación, instalaciones especiales por actividad productiva, alojamiento
-  de trabajadores en zonas remotas) - estas son condiciones de trabajo reguladas aparte.
-- Cualquier requisito que no esté mencionado en el CONTEXTO LEGAL proporcionado (PROHIBICIÓN 3).
-Un RIT de calidad en SST cubre: compromiso con el SG-SST, COPASST/Vigía, EPP, reporte de
-accidentes, exámenes médicos de ingreso/retiro, prohibición de sustancias psicoactivas.
-PROMPT;
+        {$contextoRIT}
+        NO PENALICE por:
+        - Detalles operativos (provisión de asientos, muebles o equipos físicos, avisos en carteleras,
+          registros administrativos internos) que no son contenido estándar de un RIT.
+        - Obligaciones de infraestructura física de higiene/seguridad (condiciones de locales,
+          ventilación, iluminación, instalaciones especiales por actividad productiva, alojamiento
+          de trabajadores en zonas remotas) - estas son condiciones de trabajo reguladas aparte.
+        - Cualquier requisito que no esté mencionado en el CONTEXTO LEGAL proporcionado (PROHIBICIÓN 3).
+        Un RIT de calidad en SST cubre: compromiso con el SG-SST, COPASST/Vigía, EPP, reporte de
+        accidentes, exámenes médicos de ingreso/retiro, prohibición de sustancias psicoactivas.
+        PROMPT;
 
         if ($numItems > 0) {
             // ── Formato por ítem: habilita el panel de análisis de brechas ────────
             $listaGold = \App\Support\RitGoldStandard::comoLista($goldItems);
 
             $prompt = <<<PROMPT
-{$reglasComunes}
+            {$reglasComunes}
 
-ELEMENTOS QUE UN RIT DE PRIMER NIVEL DEBE CUBRIR EN ESTA SECCIÓN (numerados; evalúa CADA
-UNO, sin omitir ninguno, en el mismo orden):
-{$listaGold}
+            ELEMENTOS QUE UN RIT DE PRIMER NIVEL DEBE CUBRIR EN ESTA SECCIÓN (numerados; evalúa CADA
+            UNO, sin omitir ninguno, en el mismo orden):
+            {$listaGold}
 
-Para CADA uno de los {$numItems} elementos numerados, clasifica su estado:
-- "cubierto": el RIT lo aborda de forma adecuada y consistente con el CONTEXTO LEGAL.
-- "parcial": el RIT lo aborda pero omite un detalle significativo.
-- "incorrecto": el RIT lo aborda pero de forma MENOS protectora que, o que CONTRADICE, el
-  CONTEXTO LEGAL (incluye cifras, porcentajes o plazos que no coinciden con el contexto).
-- "falta": el RIT no lo aborda en absoluto.
-Si el estado NO es "cubierto", agrega un "hallazgo" (qué pasa) y una "recomendacion" (qué
-hacer), ambos SOLO con base en el CONTEXTO LEGAL (PROHIBICIÓN 3). Si es "cubierto", deja
-ambos como cadena vacía "".
+            Para CADA uno de los {$numItems} elementos numerados, clasifica su estado:
+            - "cubierto": el RIT lo aborda de forma adecuada y consistente con el CONTEXTO LEGAL.
+            - "parcial": el RIT lo aborda pero omite un detalle significativo.
+            - "incorrecto": el RIT lo aborda pero de forma MENOS protectora que, o que CONTRADICE, el
+              CONTEXTO LEGAL (incluye cifras, porcentajes o plazos que no coinciden con el contexto).
+            - "falta": el RIT no lo aborda en absoluto.
+            Si el estado NO es "cubierto", agrega un "hallazgo" (qué pasa) y una "recomendacion" (qué
+            hacer), ambos SOLO con base en el CONTEXTO LEGAL (PROHIBICIÓN 3). Si es "cubierto", deja
+            ambos como cadena vacía "".
 
-Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
-{
-  "items": [
-    {"n": integer (1 a {$numItems}, uno por cada elemento numerado, EN ORDEN, ninguno omitido),
-     "estado": "cubierto" | "parcial" | "incorrecto" | "falta",
-     "hallazgo": "string, \\"\\" si cubierto, sin citar artículos fuera del contexto, máx 140 chars",
-     "recomendacion": "string, \\"\\" si cubierto, sin citar artículos fuera del contexto, máx 140 chars"}
-  ],
-  "articulos_referencia": [ códigos copiados textualmente del contexto, máximo 5, o [] ]
-}
-PROMPT;
+            Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
+            {
+              "items": [
+                {"n": integer (1 a {$numItems}, uno por cada elemento numerado, EN ORDEN, ninguno omitido),
+                 "estado": "cubierto" | "parcial" | "incorrecto" | "falta",
+                 "hallazgo": "string, \\"\\" si cubierto, sin citar artículos fuera del contexto, máx 140 chars",
+                 "recomendacion": "string, \\"\\" si cubierto, sin citar artículos fuera del contexto, máx 140 chars"}
+              ],
+              "articulos_referencia": [ códigos copiados textualmente del contexto, máximo 5, o [] ]
+            }
+            PROMPT;
         } else {
             // ── Fallback: sección sin checklist propio (no ocurre hoy, las 8 secciones
             // tienen su lista en RitGoldStandard; se conserva por seguridad) ──────────
             $prompt = <<<PROMPT
-{$reglasComunes}
+            {$reglasComunes}
 
-Evalúa si el RIT cumple lo que establece el contexto jurídico.
+            Evalúa si el RIT cumple lo que establece el contexto jurídico.
 
-CRITERIO DE PUNTUACIÓN:
-- 95-100 (Completo): El RIT cubre correctamente todos los temas principales.
-- 80-94 (Parcial alto): El RIT cubre el tema principal pero omite algún elemento de detalle.
-- 60-79 (Parcial): El RIT cubre parcialmente el tema; falta un elemento significativo.
-- 0-59 (Ausente/Incorrecto): El tema está ausente o contiene información claramente errónea.
+            CRITERIO DE PUNTUACIÓN:
+            - 95-100 (Completo): El RIT cubre correctamente todos los temas principales.
+            - 80-94 (Parcial alto): El RIT cubre el tema principal pero omite algún elemento de detalle.
+            - 60-79 (Parcial): El RIT cubre parcialmente el tema; falta un elemento significativo.
+            - 0-59 (Ausente/Incorrecto): El tema está ausente o contiene información claramente errónea.
 
-Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
-{
-  "calificacion": "Completo" | "Parcial" | "Ausente",
-  "score": integer 0-100,
-  "hallazgos": [ máximo 3 strings sin citar artículos fuera del contexto, máx 120 chars c/u ],
-  "recomendaciones": [ máximo 3 strings sin citar artículos fuera del contexto, máx 120 chars c/u ],
-  "articulos_referencia": [ códigos copiados textualmente del contexto, máximo 5, o [] ]
-}
-PROMPT;
+            Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
+            {
+              "calificacion": "Completo" | "Parcial" | "Ausente",
+              "score": integer 0-100,
+              "hallazgos": [ máximo 3 strings sin citar artículos fuera del contexto, máx 120 chars c/u ],
+              "recomendaciones": [ máximo 3 strings sin citar artículos fuera del contexto, máx 120 chars c/u ],
+              "articulos_referencia": [ códigos copiados textualmente del contexto, máximo 5, o [] ]
+            }
+            PROMPT;
         }
+        */
+
+        // ── PROMPT DEL JEFE (EXPERIMENTAL - prueba con "rit prompt1.docx") ─────────
+        // Esquema de salida distinto al actual (holístico + rubrica ponderada, sin
+        // checklist por ítem) - se adapta más abajo para que la UI existente lo muestre.
+        $prompt = <<<PROMPT
+Eres un auditor jurídico laboral colombiano especializado exclusivamente en Reglamentos Internos de Trabajo (RIT).
+OBJETIVO
+Determinar objetivamente el nivel de cumplimiento del RIT de "{$razonSocial}" respecto de la normativa suministrada.
+IMPORTANTE
+NO debes mejorar el reglamento.
+NO debes reescribir artículos.
+NO debes interpretar normas utilizando tu conocimiento.
+NO debes utilizar información aprendida durante tu entrenamiento.
+NO debes citar leyes, artículos o jurisprudencia que no aparezcan expresamente dentro del contexto jurídico suministrado.
+Toda conclusión deberá provenir EXCLUSIVAMENTE del contexto jurídico proporcionado.
+Si el contexto jurídico no permite evaluar un aspecto deberás indicarlo expresamente en los hallazgos y NO asumir cumplimiento ni incumplimiento.
+SECCIÓN A AUDITAR
+{$config['titulo']}
+========================
+CONTEXTO JURÍDICO AUTORIZADO
+{$articulosCst}
+========================
+REGLAMENTO INTERNO A EVALUAR
+{$contextoRIT}
+========================
+METODOLOGÍA OBLIGATORIA
+Evalúa únicamente la sección suministrada.
+No evalúes el resto del reglamento.
+El puntaje deberá calcularse exclusivamente utilizando la siguiente ponderación.
+1. Cumplimiento de la normativa suministrada
+40 puntos
+Evalúa únicamente si el contenido coincide con la normativa entregada.
+Toda contradicción reduce la calificación.
+Toda disposición compatible conserva la puntuación.
+2. Integridad jurídica
+20 puntos
+Evalúa si faltan requisitos obligatorios contenidos dentro del contexto jurídico.
+Toda omisión obligatoria disminuye el puntaje.
+3. Actualización normativa
+15 puntos
+Evalúa si el contenido refleja adecuadamente la normativa suministrada.
+Si el texto contiene disposiciones incompatibles con la normativa entregada reduce la puntuación.
+4. Coherencia jurídica
+10 puntos
+Evalúa contradicciones internas dentro de la sección.
+5. Técnica normativa
+10 puntos
+Evalúa únicamente: claridad, precisión, consistencia, lenguaje jurídico, orden lógico.
+La técnica normativa nunca podrá compensar incumplimientos legales.
+6. Aplicabilidad práctica
+5 puntos
+Evalúa si la regulación puede ejecutarse correctamente.
+========================
+REGLAS DE CALIFICACIÓN
+La conformidad jurídica siempre tendrá prioridad sobre la calidad de redacción.
+Un texto bien redactado pero contrario a la normativa deberá recibir menor calificación que uno jurídicamente correcto.
+Nunca otorgues una puntuación alta únicamente porque el texto sea extenso.
+Nunca premies cantidad de texto.
+Premia únicamente cumplimiento jurídico.
+========================
+HALLAZGOS
+Reporta únicamente hallazgos jurídicamente relevantes.
+Prioriza: omisiones, contradicciones, desactualización, vacíos jurídicos, ambigüedades, errores procedimentales, errores que puedan afectar procesos disciplinarios.
+Cada hallazgo deberá citar el documento fuente contenido dentro del contexto jurídico.
+Si no existe fuente expresa no generes el hallazgo.
+========================
+RECOMENDACIONES
+Cada recomendación deberá corresponder directamente con un hallazgo.
+Nunca inventes recomendaciones.
+========================
+CALIFICACIÓN
+Completo: 95-100
+Parcial: 60-94
+Ausente: 0-59
+========================
+RESPONDE EXCLUSIVAMENTE EL SIGUIENTE JSON
+{
+  "cumple": true,
+  "calificacion": "Completo",
+  "score": 96,
+  "evaluacion": {
+      "cumplimiento_normativo": 40,
+      "integridad_juridica": 20,
+      "actualizacion_normativa": 15,
+      "coherencia_juridica": 10,
+      "tecnica_normativa": 8,
+      "aplicabilidad_practica": 3
+  },
+  "hallazgos":[
+      {
+          "tipo":"",
+          "gravedad":"",
+          "descripcion":"",
+          "fuente":""
+      }
+  ],
+  "recomendaciones":[
+      ""
+  ],
+  "articulos_referencia":[]
+}
+NO agregues texto antes ni después del JSON.
+PROMPT;
 
         $respuesta = $this->llamarIA($prompt, true);
         $datos     = $this->parsearJSON($respuesta);
@@ -502,6 +610,8 @@ PROMPT;
             ));
         }
 
+        /*
+        // ── POST-PROCESAMIENTO ACTUAL (comentado junto con el prompt de arriba) ────
         if ($numItems > 0) {
             // Segunda pasada: antes de aceptar un "falta"/"incorrecto" definitivo, se
             // relee el fragmento solo para esos ítems (menos ítems compitiendo por
@@ -519,6 +629,32 @@ PROMPT;
 
             $datos = $this->normalizarItemsSeccion($datos, $goldItems);
         }
+        */
+
+        // ── ADAPTADOR PARA EL PROMPT DEL JEFE (EXPERIMENTAL) ───────────────────────
+        // Su esquema de "hallazgos" es una lista de objetos {tipo,gravedad,descripcion,
+        // fuente}, no strings planos; la UI existente ("Detalle por sección") espera
+        // strings simples cuando no hay "items" (formato de checklist). Se aplana aquí
+        // para poder ver el resultado sin tocar la vista. score/calificacion/cumple se
+        // dejan tal cual los devuelve la IA (rúbrica ponderada propia del prompt del
+        // jefe, no el promedio por ítem que calcula normalizarItemsSeccion()).
+        $datos['hallazgos'] = collect($datos['hallazgos'] ?? [])
+            ->map(function ($h) {
+                if (is_array($h)) {
+                    $desc   = trim((string) ($h['descripcion'] ?? ''));
+                    $fuente = trim((string) ($h['fuente'] ?? ''));
+                    return $fuente ? "{$desc} (Fuente: {$fuente})" : $desc;
+                }
+                return trim((string) $h);
+            })
+            ->filter()
+            ->values()
+            ->all();
+        $datos['recomendaciones'] = collect($datos['recomendaciones'] ?? [])
+            ->map(fn($r) => trim((string) $r))
+            ->filter()
+            ->values()
+            ->all();
 
         return array_merge([
             'titulo'              => $config['titulo'],
@@ -844,18 +980,88 @@ PROMPT;
             $listaSecciones .= "- {$seccion['titulo']}: {$seccion['calificacion']} ({$seccion['score']}/100)\n";
         }
 
+        /*
+        // ── PROMPT ACTUAL (comentado temporalmente para probar el prompt del jefe
+        //    - ver "rit prompt1.docx"). ──────────────────────────────────────────
         $prompt = <<<PROMPT
-Eres un abogado laboral colombiano. Redacta un resumen ejecutivo profesional de la auditoría del RIT de "{$razonSocial}".
+        Eres un abogado laboral colombiano. Redacta un resumen ejecutivo profesional de la auditoría del RIT de "{$razonSocial}".
 
-REGLA FUNDAMENTAL: NO cites ningún artículo, ley, decreto, resolución ni norma específica por nombre o número.
-Usa únicamente términos generales como "la legislación laboral vigente", "las normas de seguridad en el trabajo",
-"el régimen disciplinario exigido por la ley", etc.
+        REGLA FUNDAMENTAL: NO cites ningún artículo, ley, decreto, resolución ni norma específica por nombre o número.
+        Usa únicamente términos generales como "la legislación laboral vigente", "las normas de seguridad en el trabajo",
+        "el régimen disciplinario exigido por la ley", etc.
 
-Score general: {$score}/100
+        Score general: {$score}/100
+        Resultados por sección:
+        {$listaSecciones}
+
+        Redacta 2-3 párrafos indicando: (1) estado general del cumplimiento, (2) principales riesgos jurídicos identificados, (3) acciones prioritarias recomendadas. Tono formal y jurídico. Sin markdown.
+        PROMPT;
+        */
+
+        // ── PROMPT DEL JEFE (EXPERIMENTAL - prueba con "rit prompt1.docx") ─────────
+        // Necesita hallazgos/recomendaciones agregados de todas las secciones (el
+        // método actual solo pasaba calificación/score por sección).
+        $hallazgosAgregados = [];
+        $recomendacionesAgregadas = [];
+        foreach ($secciones as $seccion) {
+            foreach (($seccion['hallazgos'] ?? []) as $h) {
+                $hallazgosAgregados[] = "- {$seccion['titulo']}: {$h}";
+            }
+            foreach (($seccion['recomendaciones'] ?? []) as $r) {
+                $recomendacionesAgregadas[] = "- {$seccion['titulo']}: {$r}";
+            }
+        }
+        $hallazgosTexto        = implode("\n", $hallazgosAgregados) ?: 'Sin hallazgos relevantes.';
+        $recomendacionesTexto  = implode("\n", $recomendacionesAgregadas) ?: 'Sin recomendaciones adicionales.';
+
+        $prompt = <<<PROMPT
+Eres un abogado laboral colombiano experto en análisis ejecutivo de Reglamentos Internos de Trabajo (RIT).
+Tu función es elaborar un resumen ejecutivo profesional de la auditoría jurídica realizada al Reglamento Interno de Trabajo de "{$razonSocial}".
+El resumen será utilizado para presentar al cliente o responsable de la empresa el estado jurídico actual del RIT, los principales riesgos identificados y las acciones recomendadas.
+==================================================
+INFORMACIÓN DE AUDITORÍA
+Score general:
+{$score}/100
 Resultados por sección:
 {$listaSecciones}
-
-Redacta 2-3 párrafos indicando: (1) estado general del cumplimiento, (2) principales riesgos jurídicos identificados, (3) acciones prioritarias recomendadas. Tono formal y jurídico. Sin markdown.
+Hallazgos principales:
+{$hallazgosTexto}
+Recomendaciones principales:
+{$recomendacionesTexto}
+==================================================
+REGLAS DE REDACCIÓN
+El resumen debe basarse exclusivamente en la información suministrada.
+No agregues: normas no mencionadas, artículos no proporcionados, interpretaciones jurídicas externas, conclusiones que no estén soportadas por la auditoría.
+==================================================
+OBJETIVO DEL RESUMEN
+Redacta un documento ejecutivo que explique:
+1. Estado general del cumplimiento del RIT.
+2. Nivel de riesgo jurídico identificado.
+3. Principales deficiencias encontradas.
+4. Impacto práctico de dichas deficiencias.
+5. Acciones prioritarias recomendadas.
+==================================================
+CRITERIOS DE ANÁLISIS
+Interpreta el score de la siguiente manera:
+95-100: RIT con alto nivel de cumplimiento jurídico. Puede requerir ajustes menores de optimización.
+80-94: RIT con cumplimiento adecuado, pero con oportunidades de fortalecimiento.
+60-79: RIT con cumplimiento parcial. Requiere actualización y ajustes relevantes.
+0-59: RIT con deficiencias importantes que requieren intervención prioritaria.
+==================================================
+ESTRUCTURA OBLIGATORIA
+El documento debe contener entre 3 y 5 párrafos.
+PÁRRAFO 1: Indica el estado general del Reglamento Interno de Trabajo, incluyendo el nivel de cumplimiento reflejado en la calificación obtenida.
+PÁRRAFO 2: Explica los principales riesgos jurídicos identificados, priorizando aquellos relacionados con: incumplimientos normativos, vacíos jurídicos, desactualización, debilidades para procesos disciplinarios.
+PÁRRAFO 3: Explica las acciones prioritarias recomendadas para fortalecer el RIT.
+PÁRRAFOS ADICIONALES: Inclúyelos únicamente si son necesarios para explicar riesgos relevantes.
+==================================================
+TONO
+Utiliza lenguaje: formal, jurídico, profesional, claro para personas no expertas en derecho.
+No utilices: markdown, listas, viñetas, tablas, asteriscos, encabezados.
+==================================================
+SALIDA
+Devuelve únicamente el resumen ejecutivo.
+No agregues explicaciones adicionales.
 PROMPT;
 
         try {
