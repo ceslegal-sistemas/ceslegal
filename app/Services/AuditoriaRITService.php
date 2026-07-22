@@ -428,6 +428,19 @@ requisito (ej. sala de lactancia, ampliación de licencia por determinada ley, i
 físicas especiales), NO lo evalúes aunque lo conozcas. Evalúa SOLO lo que dice el texto de
 los artículos proporcionados.
 
+PROHIBICIÓN 4 - CITAS DEL RIT QUE NO SE PUEDEN VERIFICAR: Esta es la ÚNICA excepción a la
+PROHIBICIÓN 3. Si el texto del RIT (no tú) invoca una ley, decreto, resolución o artículo
+específico por su nombre o número para justificar una cláusula, y esa norma exacta NO
+aparece en el CONTEXTO LEGAL, repórtalo como hallazgo de riesgo de verificación (nunca
+confirmes ni corrijas el contenido de esa norma usando tu propio conocimiento - eso seguiría
+violando la PROHIBICIÓN 1). Redacta el hallazgo citando ÚNICAMENTE el nombre/número que el
+RIT mismo usa, sin mencionar "el contexto" ni ninguna base de datos (PROHIBICIÓN 2). Ejemplo:
+si el RIT dice "conforme al Decreto 1234 de 2020, artículo 5", y esa norma no está en el
+material disponible para esta revisión, el hallazgo debe ser: "El reglamento invoca el
+Decreto 1234 de 2020 (artículo 5) para sustentar esta cláusula; se recomienda verificar su
+vigencia y contenido exacto antes de aplicarla." Si el RIT no cita ninguna norma específica
+(solo describe una práctica), esta prohibición no aplica - no inventes una cita que buscar.
+
 Para "articulos_referencia": copia TEXTUALMENTE los encabezados "--- CODIGO: ..." que aparecen
 en CONTEXTO LEGAL (ej: "Art. 115 CST", "Art. 7 Ley 1010"). NUNCA reformatees ni añadas
 numerales, parágrafos ni sub-referencias. Si no hay artículos relevantes, devuelve [].
@@ -461,11 +474,13 @@ Para CADA uno de los {$numItems} elementos numerados, clasifica su estado:
 - "cubierto": el RIT lo aborda de forma adecuada y consistente con el CONTEXTO LEGAL.
 - "parcial": el RIT lo aborda pero omite un detalle significativo.
 - "incorrecto": el RIT lo aborda pero de forma MENOS protectora que, o que CONTRADICE, el
-  CONTEXTO LEGAL (incluye cifras, porcentajes o plazos que no coinciden con el contexto).
+  CONTEXTO LEGAL (incluye cifras, porcentajes o plazos que no coinciden con el contexto), O
+  el RIT sustenta esta cláusula citando una norma específica que no se puede verificar
+  (PROHIBICIÓN 4).
 - "falta": el RIT no lo aborda en absoluto.
 Si el estado NO es "cubierto", agrega un "hallazgo" (qué pasa) y una "recomendacion" (qué
-hacer), ambos SOLO con base en el CONTEXTO LEGAL (PROHIBICIÓN 3). Si es "cubierto", deja
-ambos como cadena vacía "".
+hacer), ambos SOLO con base en el CONTEXTO LEGAL (PROHIBICIÓN 3), salvo el caso de cita no
+verificable (PROHIBICIÓN 4). Si es "cubierto", deja ambos como cadena vacía "".
 
 Responde ÚNICAMENTE con JSON válido (sin texto adicional antes ni después):
 {
