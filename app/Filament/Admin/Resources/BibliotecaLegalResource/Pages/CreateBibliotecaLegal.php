@@ -3,7 +3,7 @@
 namespace App\Filament\Admin\Resources\BibliotecaLegalResource\Pages;
 
 use App\Filament\Admin\Resources\BibliotecaLegalResource;
-use App\Services\BibliotecaLegalService;
+use App\Jobs\ProcesarBibliotecaLegal;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -24,13 +24,15 @@ class CreateBibliotecaLegal extends CreateRecord
 
     protected function afterCreate(): void
     {
-        // No se procesa automáticamente aquí para evitar timeouts en hosting compartido.
-        // El usuario debe usar el botón "Procesar" en la lista, o el comando artisan:
-        //   php artisan biblioteca:procesar {id}
+        // Se encola de inmediato (cola 'gemini', misma que la auditoría de RIT) en vez de
+        // esperar al próximo ciclo del cron (hasta 5 min) - el listado ya tiene ->poll('10s')
+        // así que el usuario ve el cambio de estado sin recargar la página.
+        ProcesarBibliotecaLegal::dispatch($this->record);
+
         Notification::make()
             ->success()
-            ->title('Documento guardado')
-            ->body('Usa el botón "Procesar" en la lista para generar los fragmentos y embeddings.')
+            ->title('Documento guardado - procesando')
+            ->body('Extrayendo texto y generando fragmentos. El estado se actualizará solo en la lista.')
             ->send();
     }
 }

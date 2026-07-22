@@ -212,14 +212,15 @@ class BibliotecaLegalResource extends Resource
                     ->disabled(fn(DocumentoLegal $record) => $record->estado === 'procesando')
                     ->requiresConfirmation()
                     ->modalHeading('Encolar documento para procesar')
-                    ->modalDescription('El documento se marcará como pendiente y el sistema lo procesará en el próximo ciclo del cron (máx. 5 minutos). No cierre esta ventana mientras espera - recargue la página pasados unos minutos.')
+                    ->modalDescription('El documento se procesará de inmediato en segundo plano. Esta lista se actualiza sola cada 10 segundos, no hace falta recargar la página.')
                     ->modalSubmitActionLabel('Encolar')
                     ->action(function (DocumentoLegal $record) {
                         $record->update(['estado' => 'pendiente', 'error_mensaje' => null]);
+                        \App\Jobs\ProcesarBibliotecaLegal::dispatch($record);
                         Notification::make()
                             ->success()
-                            ->title('Documento encolado')
-                            ->body('Se procesará en el próximo ciclo. Recargue la página en 1-2 minutos para ver el resultado.')
+                            ->title('Documento encolado - procesando')
+                            ->body('El estado se actualizará solo en la lista en cuanto termine.')
                             ->send();
                     }),
 
@@ -273,12 +274,13 @@ class BibliotecaLegalResource extends Resource
                             $total = 0;
                             foreach ($records as $doc) {
                                 $doc->update(['estado' => 'pendiente', 'error_mensaje' => null]);
+                                \App\Jobs\ProcesarBibliotecaLegal::dispatch($doc);
                                 $total++;
                             }
                             Notification::make()
                                 ->success()
-                                ->title("{$total} documento(s) encolados")
-                                ->body('Se procesarán en el próximo ciclo del cron. Recargue en 1-2 minutos.')
+                                ->title("{$total} documento(s) encolados - procesando")
+                                ->body('El estado se actualizará solo en la lista en cuanto terminen.')
                                 ->send();
                         }),
 
