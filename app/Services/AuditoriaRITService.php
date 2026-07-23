@@ -12,10 +12,13 @@ use App\Services\RITGeneratorService;
 /**
  * Servicio de Auditoría de Reglamento Interno de Trabajo.
  *
- * Fuente normativa: ÚNICAMENTE articulos_legales (scrapeados).
- * - codigos_obligatorios: lookup exacto por código (fuente primaria).
- * - buscarArticulosPorTema(): RAG por palabras clave (misma fuente que el generador).
- * No se usa BibliotecaLegalService para evitar incorporar fragmentos externos no controlados.
+ * Fuente normativa:
+ * - codigos_obligatorios: lookup exacto por código en articulos_legales (fuente primaria).
+ * - buscarArticulosPorEmbedding(): RAG semántico sobre articulos_legales (misma fuente que el generador).
+ * - BibliotecaLegalService::buscarFragmentos(): RAG semántico sobre los documentos que el
+ *   administrador sube a Biblioteca Legal (leyes, sentencias, doctrina) - solo documentos
+ *   activos y ya procesados. Se agregó para que leyes cargadas ahí (ej. Ley 2466/2025) también
+ *   puedan usarse como CONTEXTO LEGAL en la auditoría, no solo articulos_legales.
  */
 class AuditoriaRITService
 {
@@ -130,6 +133,7 @@ class AuditoriaRITService
 
     public function __construct(
         private RITGeneratorService $ritGenerator,
+        private BibliotecaLegalService $biblioteca,
     ) {}
 
     /**
@@ -384,12 +388,23 @@ class AuditoriaRITService
             umbral:      0.35,
         );
 
-        // Combinar: exactos primero (alta precisión), semánticos después (cobertura complementaria).
+        //    2c. Biblioteca Legal: documentos que el administrador sube ahí (leyes, sentencias,
+        //        doctrina), activos y ya procesados - ej. una ley reciente que aún no está
+        //        cargada artículo por artículo en articulos_legales. Mismo mecanismo de RAG que
+        //        ya usa IADescargoService, aplicado aquí también para que la auditoría pueda
+        //        verificar citas contra ella (ver PROHIBICIÓN 4 en el prompt más abajo).
+        $fragmentosBiblioteca = $this->biblioteca->buscarFragmentos($config['query'], limite: 4, umbral: 0.55);
+
+        // Combinar: exactos primero (alta precisión), semánticos después (cobertura complementaria),
+        // Biblioteca Legal al final (fuente adicional, no controlada por el scraper del CST).
         $articulosCst = trim($articulosObligatorios . ($articulosSemant ? "\n\n" . $articulosSemant : ''));
+        if (!empty($fragmentosBiblioteca)) {
+            $articulosCst = trim($articulosCst . "\n\n" . $fragmentosBiblioteca);
+        }
 
         // 3. Sin normativa → abortar
         if (empty(trim($articulosCst))) {
-            Log::warning("AuditoriaRIT: sin normativa en articulos_legales para '{$config['titulo']}'");
+            Log::warning("AuditoriaRIT: sin normativa en articulos_legales ni Biblioteca Legal para '{$config['titulo']}'");
             return [
                 'titulo'               => $config['titulo'],
                 'cumple'               => false,
@@ -463,7 +478,10 @@ vigencia y contenido exacto antes de aplicarla." Si el RIT no cita ninguna norma
 
 Para "articulos_referencia": copia TEXTUALMENTE los encabezados "--- CODIGO: ..." que aparecen
 en CONTEXTO LEGAL (ej: "Art. 115 CST", "Art. 7 Ley 1010"). NUNCA reformatees ni añadas
-numerales, parágrafos ni sub-referencias. Si no hay artículos relevantes, devuelve [].
+numerales, parágrafos ni sub-referencias. El CONTEXTO LEGAL también puede incluir fragmentos de
+Biblioteca Legal con encabezado "--- [Título (Referencia)] ..." (ej: "--- [Ley 2466 de 2025] ---");
+para esos, copia el título entre corchetes tal cual aparece. Si no hay artículos ni documentos
+relevantes, devuelve [].
 {$seccionArticulos}
 SECCIÓN A AUDITAR: {$config['titulo']}
 
