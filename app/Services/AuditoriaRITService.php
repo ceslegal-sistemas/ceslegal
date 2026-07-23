@@ -109,6 +109,12 @@ class AuditoriaRITService
             ],
             'palabras_clave'       => ['acoso', 'hostigamiento', 'sexual', 'convivencia', 'matonismo', 'bipartit', '734', 'comité'],
             'capitulos'            => ['ACOSO', 'CONVIVENCIA LABORAL', 'COMITÉ DE CONVIVENCIA', 'PREVENCIÓN DE ACOSO'],
+            // Algunos RIT reales separan "mecanismos de prevención del acoso laboral" y
+            // "política de prevención/protección del acoso sexual" en 2 capítulos seguidos
+            // (visto en un RIT real con numeración duplicada: dos "CAPÍTULO XX" consecutivos) -
+            // sin esto, el 2do quedaba fuera y las medidas de protección al denunciante
+            // (derechos de las víctimas, garantías contra retaliaciones) se reportaban "falta".
+            'num_capitulos'        => 2,
         ],
         'grupos_protegidos' => [
             'titulo'               => 'Protección de Sujetos Especiales',
