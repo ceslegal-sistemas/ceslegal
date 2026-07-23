@@ -77,8 +77,15 @@ class AuditoriaRITService
             'codigos_obligatorios' => ['Art. 108 CST', 'Art. 111 CST', 'Art. 112 CST', 'Art. 113 CST', 'Art. 114 CST', 'Art. 115 CST'],
             'palabras_clave'       => ['falta', 'sanc', 'disciplin', 'descargo', 'amonestac', 'suspens', 'sindical', 'multa', '1/5'],
             'capitulos'            => ['RÉGIMEN DISCIPLINARIO', 'REGIMEN DISCIPLINARIO', 'FALTAS', 'SANCIONES', 'ESCALA DE SANCIONES'],
-            // Captura Cap VIII (clasificación de faltas) + Cap IX (escala de sanciones) juntos
-            'num_capitulos'        => 2,
+            // Captura Cap VIII (clasificación de faltas) + Cap IX (escala de sanciones) + un
+            // 3er capítulo de RECLAMOS (instancia/trámite/conducto regular) cuando el RIT los
+            // separa en capítulos consecutivos angostos (ej. RIT real: procedimiento/debido
+            // proceso, escala de faltas y sanciones, reclamos - 3 capítulos seguidos).
+            'num_capitulos'        => 3,
+            // 'ORDEN JERARQUICO': capítulo no adyacente donde varios RITs reales dejan la
+            // cláusula de "quién tiene la facultad de imponer sanciones" (ej. un parágrafo al
+            // final del organigrama), separado del bloque principal de faltas/sanciones.
+            'capitulos_extra'      => ['ORDEN JERARQUICO', 'ORDEN JERÁRQUICO'],
         ],
         'sst' => [
             'titulo'               => 'Seguridad y Salud en el Trabajo (SG-SST)',
@@ -775,14 +782,29 @@ PROMPT;
         $total  = count($lineas);
 
         // ── Estrategia 1: extracción por encabezado CAPÍTULO ──────────────────
-        // El regex de encabezado se ancla al INICIO de línea (^\s*CAP[IÍ]TULO\b): un
-        // encabezado real siempre empieza la línea con esa palabra. Sin el ancla,
-        // cualquier mención normal en prosa ("...el presente capítulo tiene por
-        // objeto...", común como primera frase de un artículo) se confundía con un
-        // encabezado y cortaba el fragmento a 1-2 líneas (bug detectado auditando un
-        // RIT real: la sección SST quedaba con ~70 caracteres en vez de su capítulo
-        // completo, calificando como "Ausente" un capítulo en realidad completo).
-        $esEncabezado = fn(string $linea): bool => (bool) preg_match('/^\s*CAP[IÍ]TULO\b/ui', $linea);
+        // Un encabezado real es SOLO "CAPÍTULO <número romano>" y nada más en esa
+        // línea - por eso se compara la línea SIN espacios y anclada también al
+        // FINAL (^CAP[IÍ]TULO[IVXLCDM]+\.?$), no solo al inicio. Dos casos reales
+        // que motivaron esto (RIT real, empresa de prueba):
+        // 1. "CAP I T U LO XVII" (espaciado irregular entre letras, típico de un
+        //    encabezado con formato de caracter individual en Word) - al quitar
+        //    espacios queda "CAPITULOXVII" y sí matchea. Sin este fix, ese
+        //    capítulo completo (con el debido proceso disciplinario) quedaba
+        //    fuera de cualquier fragmento, reportando "falta" sin serlo.
+        // 2. "CAPITULO IX de este reglamento." - NO es un encabezado, es una
+        //    referencia cruzada dentro de una oración ("...establecidas en el
+        //    CAPITULO IX de este reglamento.") que el salto de línea del Word
+        //    dejó como el inicio de una línea al extraer el .docx. El ancla de
+        //    FINAL de línea lo descarta (le sigue texto además del número
+        //    romano), evitando que un capítulo real se corte a la mitad.
+        // (Anteriormente el regex solo anclaba al INICIO: sin ancla alguna,
+        // cualquier mención en prosa como "el presente capítulo tiene por
+        // objeto..." ya se confundía con un encabezado y cortaba el fragmento a
+        // 1-2 líneas - bug distinto, ya corregido, que motivó el ancla inicial).
+        $esEncabezado = function (string $linea): bool {
+            $sinEspacios = preg_replace('/\s+/', '', $linea);
+            return (bool) preg_match('/^CAP[IÍ]TULO[IVXLCDM]+\.?$/ui', $sinEspacios);
+        };
 
         if (!empty($capitulos)) {
             $inicio = null;
