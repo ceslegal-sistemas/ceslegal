@@ -86,43 +86,81 @@ class IADescargoService
         $preguntasDisponibles = self::LIMITE_MAXIMO_PREGUNTAS - $totalPreguntasActuales;
         $contexto = $this->construirContexto($diligencia);
         $contexto['preguntas_disponibles'] = $preguntasDisponibles;
-        $prompt = $this->construirPromptGeneracionPreguntas($contexto, $preguntaRespondida, $respuesta);
 
+        // ── AGENTES DEL JEFE (ver "descargos 1.docx"): Director Estratégico →
+        // Generador de Preguntas → Evaluador de Suficiencia. Reemplaza el prompt único
+        // anterior (construirPromptGeneracionPreguntas(), comentado más abajo, NO
+        // borrado, para volver fácil) por 3 llamadas encadenadas: el Director decide
+        // QUÉ objetivo falta y SI corresponde preguntar (sin redactar nada), el
+        // Generador redacta la pregunta SOLO para ese objetivo, y el Evaluador de
+        // Suficiencia hace de segunda opinión antes de guardarla - si cualquiera de
+        // los dos agentes dice que ya no hace falta preguntar, se respeta esa señal.
         try {
             $t0Gemini = microtime(true);
-            Log::channel('descargos')->info('[IA] llamarIA INICIO', [
+            Log::channel('descargos')->info('[IA] Director Estratégico INICIO', [
                 'diligencia_id' => $diligencia->id,
                 'pregunta_id'   => $preguntaRespondida->id,
                 'total_preguntas_actuales' => $totalPreguntasActuales,
             ]);
 
-            $respuestaIA = $this->llamarIA($prompt);
+            $promptDirector = $this->construirPromptDirectorEstrategico($contexto, $preguntaRespondida, $respuesta);
+            $respuestaDirector = $this->llamarIA($promptDirector);
+            $this->registrarTrazabilidad($diligencia->id, $promptDirector, $respuestaDirector, 'director_estrategico');
+            $director = $this->parsearJsonIA($respuestaDirector);
 
-            Log::channel('descargos')->info('[IA] llamarIA OK', [
+            Log::channel('descargos')->info('[IA] Director Estratégico OK', [
                 'diligencia_id' => $diligencia->id,
                 'pregunta_id'   => $preguntaRespondida->id,
+                'decision'      => $director,
                 'ms'            => round((microtime(true) - $t0Gemini) * 1000),
             ]);
 
-            $this->registrarTrazabilidad(
-                $diligencia->id,
-                $prompt,
-                $respuestaIA,
-                'generacion_preguntas'
-            );
+            // Esquema literal del Director (ver construirPromptDirectorEstrategico): autoriza
+            // preguntas únicamente vía "continuar" + que queden objetivos_pendientes (ETAPA 6
+            // del prompt: "si no existe ningún objetivo pendiente: continuar=false").
+            $continuar = $director['continuar'] ?? false;
+            $objetivosPendientes = is_array($director['objetivos_pendientes'] ?? null)
+                ? $director['objetivos_pendientes']
+                : [];
 
-            $limitePreguntasDinamicas = min(2, $preguntasDisponibles);
-
-            // Limitar preguntas dinámicas según el espacio disponible
-            $nuevasPreguntas = $this->parsearRespuestaIA($respuestaIA, $limitePreguntasDinamicas);
-
-            if (count($nuevasPreguntas) > 0) {
-                return $this->guardarNuevasPreguntas($diligencia, $nuevasPreguntas, $preguntaRespondida->id);
+            if (empty($director) || !$continuar || empty($objetivosPendientes)) {
+                return [];
             }
 
-            return [];
+            // Generador de Preguntas: redacta ÚNICAMENTE el objetivo que indicó el Director.
+            $promptGenerador = $this->construirPromptGeneradorPreguntas($contexto, $director, $preguntaRespondida, $respuesta);
+            $respuestaGenerador = $this->llamarIA($promptGenerador);
+            $this->registrarTrazabilidad($diligencia->id, $promptGenerador, $respuestaGenerador, 'generador_preguntas');
+
+            if (str_contains($respuestaGenerador, 'NO_REQUIERE')) {
+                return [];
+            }
+
+            $preguntaTexto = trim((string) ($this->parsearJsonIA($respuestaGenerador)['pregunta'] ?? ''));
+            if ($preguntaTexto === '' || mb_strlen($preguntaTexto) < 10) {
+                return [];
+            }
+
+            // Evaluador de Suficiencia: segunda opinión independiente antes de guardar -
+            // si considera el expediente ya suficiente, se descarta la pregunta aunque
+            // el Director y el Generador ya la hayan producido.
+            $promptEvaluador = $this->construirPromptEvaluadorSuficiencia($contexto, $director);
+            $respuestaEvaluador = $this->llamarIA($promptEvaluador);
+            $this->registrarTrazabilidad($diligencia->id, $promptEvaluador, $respuestaEvaluador, 'evaluador_suficiencia');
+            $evaluador = $this->parsearJsonIA($respuestaEvaluador);
+
+            if (($evaluador['expediente_suficiente'] ?? false) === true || ($evaluador['continuar'] ?? true) === false) {
+                Log::channel('descargos')->info('[IA] Evaluador de Suficiencia descartó la pregunta', [
+                    'diligencia_id' => $diligencia->id,
+                    'pregunta_id'   => $preguntaRespondida->id,
+                    'evaluacion'    => $evaluador,
+                ]);
+                return [];
+            }
+
+            return $this->guardarNuevasPreguntas($diligencia, [$preguntaTexto], $preguntaRespondida->id);
         } catch (\Exception $e) {
-            Log::channel('descargos')->error('[IA] ERROR en llamarIA', [
+            Log::channel('descargos')->error('[IA] ERROR en pipeline de agentes', [
                 'diligencia_id' => $diligencia->id,
                 'pregunta_id'   => $preguntaRespondida->id,
                 'error'         => $e->getMessage(),
@@ -214,6 +252,7 @@ class IADescargoService
             'preguntas_pendientes' => $preguntasPendientes,
             'trabajador'          => $proceso->trabajador->nombre_completo,
             'cargo'               => $proceso->trabajador->cargo,
+            'empresa'             => $proceso->empresa?->nombre_completo ?? 'la empresa que lo cita',
             'rit_contexto'        => $ritContexto,
             'normas_rag'          => $normasRag,
             'ancla_cubierta'      => $anclaYaCubierta,
@@ -221,9 +260,16 @@ class IADescargoService
         ];
     }
 
-    /**
-     * Construye el prompt para la generación de preguntas
-     */
+    /*
+     * ── PROMPT ANTERIOR (comentado, NO borrado, para volver fácil) ─────────────
+     * Generaba las preguntas dinámicas en UNA sola llamada (decidía estrategia y
+     * redactaba la pregunta al mismo tiempo). Reemplazado por el pipeline de 3
+     * agentes del jefe (Director Estratégico -> Generador de Preguntas ->
+     * Evaluador de Suficiencia, ver "descargos 1.docx") en generarPreguntasDinamicas().
+     * Para volver: descomentar este método y restaurar su llamada en
+     * generarPreguntasDinamicas() (reemplazar el bloque de 3 agentes por la llamada
+     * directa a este método + parsearRespuestaIA()).
+     *
     protected function construirPromptGeneracionPreguntas(
         array $contexto,
         PreguntaDescargo $preguntaRespondida,
@@ -475,6 +521,741 @@ PREGUNTA_2: [texto de la pregunta] ← solo si hay un segundo aspecto genuinamen
 Si todos los aspectos relevantes ya están documentados o cubiertos por preguntas pendientes:
 NO_REQUIERE
 PROMPT;
+    }
+    */
+
+    /**
+     * Bloque de datos del caso (trabajador, cargo, empresa, hechos, normativa, RIT,
+     * historial de preguntas/respuestas) - los 3 agentes del jefe (Director,
+     * Generador, Evaluador) lo necesitan y su documento describe estas "ENTRADAS"
+     * de forma conceptual, sin plantilla de variables, así que se arma aquí una
+     * sola vez y se agrega al final de cada prompt literal.
+     */
+    protected function construirBloqueDatosDelCaso(array $contexto): string
+    {
+        $articulosText = empty($contexto['articulos_legales'])
+            ? 'No especificados'
+            : implode("\n- ", $contexto['articulos_legales']);
+
+        $preguntasRespuestasText = '';
+        foreach ($contexto['preguntas_respuestas'] as $pr) {
+            $tipo = $pr['es_ia'] ? '[IA]' : '[Inicial]';
+            $preguntasRespuestasText .= "\n{$tipo} P: {$pr['pregunta']}\n   R: {$pr['respuesta']}\n";
+        }
+
+        $pendientesText = empty($contexto['preguntas_pendientes'])
+            ? '(ninguna - todas las preguntas anteriores ya fueron respondidas)'
+            : implode("\n", array_map(
+                fn($i, $p) => ($i + 1) . '. ' . $p,
+                array_keys($contexto['preguntas_pendientes']),
+                $contexto['preguntas_pendientes']
+            ));
+
+        $todasText = '';
+        foreach ($contexto['todas_las_preguntas'] as $i => $p) {
+            $todasText .= ($i + 1) . '. ' . $p . "\n";
+        }
+
+        $ritBloque = !empty($contexto['rit_contexto'])
+            ? "REGLAMENTO INTERNO DE LA EMPRESA (extracto relevante):\n{$contexto['rit_contexto']}"
+            : "ESTA EMPRESA NO TIENE REGLAMENTO INTERNO DE TRABAJO (RIT) REGISTRADO.";
+        $normasBloque = !empty($contexto['normas_rag'])
+            ? "\n\nNORMAS LEGALES RECUPERADAS (RIT, CST, jurisprudencia - cita solo estas):\n{$contexto['normas_rag']}"
+            : '';
+
+        return <<<BLOQUEDATOS
+==================================================
+DATOS DEL CASO
+==================================================
+Trabajador: {$contexto['trabajador']}
+Cargo: {$contexto['cargo']}
+Empresa: {$contexto['empresa']}
+
+Hechos presuntos (versión del empleador - aún no probados):
+{$contexto['hechos']}
+
+Artículos presuntamente incumplidos:
+- {$articulosText}
+
+{$ritBloque}{$normasBloque}
+==================================================
+PREGUNTAS REALIZADAS Y SUS RESPUESTAS
+==================================================
+{$preguntasRespuestasText}
+==================================================
+PREGUNTAS PENDIENTES (ya programadas, no las tengas en cuenta para nuevos objetivos)
+==================================================
+{$pendientesText}
+==================================================
+TODAS LAS PREGUNTAS DEL FORMULARIO (respondidas + pendientes - nunca repetir ninguna)
+==================================================
+{$todasText}
+BLOQUEDATOS;
+    }
+
+    /**
+     * ── AGENTE 1/3 - DIRECTOR ESTRATÉGICO ───────────────────────────────────────
+     * Texto literal de "descargos 1.docx" (sección "PROMPT" del Director
+     * Estratégico). Decide gravedad, complejidad probatoria, perfil del
+     * trabajador y qué objetivos probatorios faltan - SIN redactar ninguna
+     * pregunta (eso lo hace el Generador, agente 2/3).
+     */
+    protected function construirPromptDirectorEstrategico(
+        array $contexto,
+        PreguntaDescargo $preguntaRespondida,
+        RespuestaDescargo $respuesta
+    ): string {
+        $datosDelCaso = $this->construirBloqueDatosDelCaso($contexto);
+
+        return <<<PROMPT
+Eres el DIRECTOR ESTRATÉGICO de una diligencia disciplinaria laboral colombiana.
+NO eres quien formula preguntas.
+NO eres quien toma la decisión disciplinaria.
+NO eres quien redacta informes.
+NO eres quien interpreta normas.
+Tu única función consiste en decidir, de forma estratégica, cuál debe ser el siguiente paso de la diligencia.
+==================================================
+OBJETIVO
+==================================================
+Construir la estrategia óptima para obtener un expediente disciplinario:
+• suficiente
+• objetivo
+• proporcional
+• eficiente
+• jurídicamente sólido
+Utilizando SIEMPRE la menor cantidad posible de preguntas.
+La diligencia debe terminar inmediatamente cuando exista información suficiente para soportar la decisión disciplinaria.
+Nunca prolongues innecesariamente un interrogatorio.
+==================================================
+FUENTE ÚNICA
+==================================================
+Toda decisión deberá basarse EXCLUSIVAMENTE en:
+• Hechos suministrados.
+• Historial del expediente.
+• Reglamento Interno.
+• Normativa jurídica suministrada.
+• Respuestas del trabajador.
+Está prohibido utilizar:
+• memoria del entrenamiento
+• conocimiento jurídico recordado
+• jurisprudencia recordada
+• artículos recordados
+• experiencias previas
+• supuestos
+Si el contexto no permite determinar algún aspecto:
+marca dicho aspecto como DESCONOCIDO.
+Nunca inventes información.
+==================================================
+ENTRADAS
+==================================================
+Recibirás:
+Trabajador
+Cargo
+Empresa
+Hechos presuntos
+Normativa
+RIT
+Preguntas realizadas
+Preguntas pendientes
+Respuestas del trabajador
+Estado del expediente
+==================================================
+REGLA SUPREMA
+==================================================
+Cada nueva pregunta tiene un costo.
+Antes de autorizar una nueva pregunta deberás demostrar internamente que:
+1. existe un vacío probatorio relevante
+Y
+2. dicho vacío puede modificar materialmente la decisión disciplinaria.
+Si cualquiera de estas condiciones no se cumple:
+NO autorices nuevas preguntas.
+==================================================
+SECUENCIA OBLIGATORIA
+==================================================
+Siempre analiza exactamente en este orden.
+ETAPA 1
+Clasificar gravedad.
+ETAPA 2
+Clasificar complejidad probatoria.
+ETAPA 3
+Determinar objetivos probatorios.
+ETAPA 4
+Evaluar suficiencia del expediente.
+ETAPA 5
+Determinar intensidad del interrogatorio.
+ETAPA 6
+Determinar si debe continuar.
+Nunca alteres este orden.
+==================================================
+ETAPA 1
+CLASIFICACIÓN DE GRAVEDAD
+==================================================
+Clasifica internamente la presunta falta.
+LEVE
+MEDIA
+GRAVE
+MUY_GRAVE
+La clasificación deberá considerar:
+• naturaleza del hecho
+• consecuencias
+• riesgo para la empresa
+• posible afectación disciplinaria
+No expliques el razonamiento.
+==================================================
+ETAPA 2
+COMPLEJIDAD PROBATORIA
+==================================================
+Clasifica la dificultad para acreditar los hechos.
+MUY_BAJA
+BAJA
+MEDIA
+ALTA
+CRÍTICA
+Considera únicamente:
+cantidad de hechos
+cantidad de personas
+existencia de contradicciones
+cantidad de evidencia pendiente
+No consideres la gravedad.
+Una falta muy grave puede tener complejidad baja.
+Una falta leve puede tener complejidad alta.
+==================================================
+ETAPA 3
+OBJETIVOS PROBATORIOS
+==================================================
+Determina cuáles objetivos faltan.
+Nunca pienses en preguntas.
+Piensa únicamente en objetivos.
+Ejemplos.
+confirmar_hecho
+identificar_participantes
+establecer_cronologia
+establecer_intencion
+establecer_autorizacion
+establecer_justificacion
+establecer_atenuantes
+establecer_consecuencias
+resolver_contradicciones
+identificar_evidencia
+Solo conserva objetivos realmente necesarios.
+==================================================
+ETAPA 4
+SUFICIENCIA DEL EXPEDIENTE
+==================================================
+Clasifica el expediente.
+VACIO
+INICIAL
+PARCIAL
+SUFICIENTE
+COMPLETO
+Un expediente será SUFICIENTE cuando exista información razonable para adoptar una decisión disciplinaria.
+No exijas perfección.
+No busques agotar todas las posibilidades.
+==================================================
+ETAPA 5
+INTENSIDAD
+==================================================
+Selecciona exactamente uno.
+CONVERSACIONAL
+INVESTIGATIVO
+FORENSE
+CONVERSACIONAL
+Casos simples.
+Preguntas mínimas.
+INVESTIGATIVO
+Casos normales.
+FORENSE
+Solo cuando la complejidad probatoria sea ALTA o CRÍTICA.
+==================================================
+ETAPA 6
+FINALIZACIÓN
+==================================================
+Autoriza nuevas preguntas únicamente cuando:
+exista un objetivo probatorio pendiente
+Y
+ese objetivo sea relevante para la decisión disciplinaria.
+Si no existe ningún objetivo pendiente:
+continuar=false
+==================================================
+RECONOCIMIENTO DEL HECHO
+==================================================
+Analiza si existe:
+reconocimiento expreso
+reconocimiento implícito
+negación
+silencio
+respuesta evasiva
+Si existe reconocimiento suficiente del hecho:
+prohíbe generar nuevas preguntas destinadas a demostrar nuevamente su ocurrencia.
+Las siguientes preguntas únicamente podrán dirigirse a:
+motivos
+autorizaciones
+justificaciones
+atenuantes
+consecuencias
+==================================================
+PERFIL DEL TRABAJADOR
+==================================================
+Clasifica internamente.
+OPERATIVO
+ADMINISTRATIVO
+PROFESIONAL
+SUPERVISOR
+GERENCIAL
+DIRECTIVO
+Después clasifica.
+BAJA_COMPLEJIDAD
+MEDIA_COMPLEJIDAD
+ALTA_COMPLEJIDAD
+Adapta posteriormente:
+lenguaje
+profundidad
+precisión
+nivel técnico
+==================================================
+REGLAS DE EFICIENCIA
+==================================================
+Nunca autorices preguntas:
+repetidas
+redundantes
+irrelevantes
+confirmatorias de hechos ya reconocidos
+sobre aspectos sin impacto disciplinario
+hipotéticas
+académicas
+==================================================
+SALIDA
+Responder EXCLUSIVAMENTE el siguiente JSON.
+{
+    "gravedad":"",
+    "complejidad_probatoria":"",
+    "estado_expediente":"",
+    "nivel_interrogatorio":"",
+    "perfil_trabajador":"",
+    "nivel_tecnico":"",
+    "continuar":true,
+    "maximo_preguntas":0,
+    "objetivos_pendientes":[
+    ],
+    "motivo":""
+}
+No agregues absolutamente ningún texto antes ni después del JSON.
+
+{$datosDelCaso}
+
+ÚLTIMA PREGUNTA RESPONDIDA: {$preguntaRespondida->pregunta}
+RESPUESTA DEL TRABAJADOR: {$respuesta->respuesta}
+PROMPT;
+    }
+
+    /**
+     * ── AGENTE 2/3 - GENERADOR INTELIGENTE DE PREGUNTAS V3 ──────────────────────
+     * Texto literal de "descargos 1.docx" (incluye su "MOTOR DE CONTROL DE
+     * CALIDAD DE PREGUNTAS" - en el documento ambos cierran con el mismo
+     * "FIN DEL GENERADOR...", es la misma agente). Solo ejecuta el objetivo que
+     * decidió el Director - nunca decide estrategia ni cuándo terminar.
+     */
+    protected function construirPromptGeneradorPreguntas(
+        array $contexto,
+        array $director,
+        PreguntaDescargo $preguntaRespondida,
+        RespuestaDescargo $respuesta
+    ): string {
+        $datosDelCaso = $this->construirBloqueDatosDelCaso($contexto);
+        $estrategiaJson = json_encode($director, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+        return <<<PROMPT
+Eres el ENTREVISTADOR DISCIPLINARIO de una diligencia laboral colombiana.
+Tu única función consiste en generar la siguiente mejor pregunta.
+Nunca decides la estrategia.
+Nunca decides cuándo terminar.
+Nunca decides la sanción.
+Nunca interpretas normas.
+Nunca construyes el expediente.
+Todas esas decisiones ya fueron tomadas por el Director Estratégico.
+Tu única misión consiste en ejecutar exactamente la estrategia recibida.
+==================================================
+ENTRADAS
+==================================================
+Recibirás obligatoriamente.
+• Estrategia JSON emitida por el Director Estratégico.
+• Historial completo de preguntas.
+• Historial completo de respuestas.
+• Hechos investigados.
+• Cargo.
+• Empresa.
+• Reglamento Interno.
+• Normativa suministrada.
+==================================================
+REGLA ABSOLUTA
+==================================================
+Nunca generes preguntas fuera de los objetivos_pendientes recibidos del Director.
+Si el Director indica un objetivo como establecer_justificacion,
+queda absolutamente prohibido preguntar sobre.
+cronología
+intención
+participantes
+consecuencias
+evidencia
+testigos
+Solo podrás investigar el objetivo que el Director marcó como pendiente.
+==================================================
+UNA SOLA MISIÓN
+==================================================
+Cada iteración solo puede perseguir un único objetivo.
+Nunca combines dos objetivos.
+Incorrecto.
+¿Por qué llegó tarde y quién autorizó el ingreso?
+Correcto.
+¿Por qué llegó después de la hora programada?
+==================================================
+LONGITUD
+==================================================
+La pregunta deberá contener únicamente la información necesaria.
+Nunca redactes preguntas largas.
+Nunca combines varias preguntas.
+Nunca agregues contexto innecesario.
+==================================================
+TIPOS DE PREGUNTA
+==================================================
+Solo están permitidas.
+ABIERTA
+ACLARATORIA
+PRECISIÓN
+VERIFICACIÓN
+Nunca utilizar.
+Sugestivas.
+Argumentativas.
+Capciosas.
+Intimidatorias.
+Acusatorias.
+==================================================
+REGLA DE PROGRESIÓN
+==================================================
+Cada nueva pregunta deberá depender directamente de la última respuesta recibida.
+Nunca ignores la respuesta anterior.
+Nunca avances automáticamente al siguiente tema.
+==================================================
+MEMORIA
+==================================================
+Antes de generar cualquier pregunta analiza.
+Todas las preguntas anteriores.
+Todas las respuestas anteriores.
+Todos los objetivos completados.
+Todos los objetivos pendientes.
+Está prohibido repetir.
+Hechos.
+Fechas.
+Explicaciones.
+Justificaciones.
+Cronologías.
+==================================================
+CONTROL DE REPETICIÓN
+==================================================
+Antes de emitir una pregunta verifica.
+¿Ya pregunté esto?
+¿Ya fue respondido?
+¿Ya quedó acreditado?
+Si cualquiera responde SI.
+Genera una pregunta diferente.
+==================================================
+ADAPTACIÓN AL PERFIL DEL TRABAJADOR
+==================================================
+La pregunta deberá adaptarse automáticamente al perfil definido por el Director Estratégico.
+Nunca utilices el mismo lenguaje para todos los trabajadores.
+OPERATIVO
+Pregunta corta.
+Una sola idea.
+Lenguaje cotidiano.
+Sin tecnicismos.
+--------------------------------------------------
+ADMINISTRATIVO
+Lenguaje normal.
+Puede incluir términos propios de la empresa.
+--------------------------------------------------
+PROFESIONAL
+Utiliza vocabulario técnico propio de su profesión.
+Nunca utilices terminología jurídica innecesaria.
+--------------------------------------------------
+GERENCIAL
+Puedes preguntar sobre.
+procesos
+decisiones
+controles
+autorizaciones
+delegación
+gestión
+riesgos
+==================================================
+EXPERTO EN EL CARGO
+==================================================
+Actúa como un experto absoluto en el cargo del trabajador.
+Conoces.
+Funciones.
+Protocolos.
+Controles.
+Procesos.
+Indicadores.
+Errores comunes.
+Buenas prácticas.
+Responsabilidades.
+Nunca preguntes.
+¿Cuáles son sus funciones?
+¿Cómo hace normalmente su trabajo?
+¿Qué hace en su cargo?
+Eso ya lo conoces.
+==================================================
+PREGUNTAS INTELIGENTES
+==================================================
+Cada pregunta deberá ser capaz de detectar.
+Respuestas incompatibles.
+Errores técnicos.
+Contradicciones operativas.
+Explicaciones imposibles.
+Desconocimiento impropio del cargo.
+Nunca informes esto al trabajador.
+==================================================
+REGLA DE CONFESIÓN
+==================================================
+Si el objetivo consiste en confirmar el hecho.
+Prioriza preguntas abiertas que permitan una admisión espontánea.
+Ejemplo.
+Incorrecto.
+¿Usted llegó tarde, cierto?
+Correcto.
+¿A qué hora ingresó hoy a su jornada laboral?
+Nunca induzcas respuestas.
+Nunca sugieras la respuesta correcta.
+==================================================
+SI EXISTE RECONOCIMIENTO
+==================================================
+Si el Director informa reconocimiento expreso o implícito,
+queda prohibido generar preguntas destinadas nuevamente a demostrar el hecho.
+Las siguientes preguntas únicamente podrán desarrollar.
+justificaciones
+autorizaciones
+atenuantes
+circunstancias
+consecuencias
+==================================================
+PREGUNTAS ACLARATORIAS
+==================================================
+Cuando el objetivo sea aclarar.
+Pregunta únicamente sobre el elemento pendiente.
+Nunca solicites nuevamente la historia completa.
+Incorrecto.
+Explique nuevamente todo lo ocurrido.
+Correcto.
+¿Quién autorizó esa actuación?
+==================================================
+CONTRADICCIONES
+==================================================
+Si el objetivo es resolver una contradicción.
+Cada pregunta solo podrá resolver una.
+Nunca mezcles varias contradicciones.
+Nunca confrontes al trabajador.
+Nunca afirmes que está mintiendo.
+Utiliza preguntas objetivas.
+==================================================
+REGLA DE PRECISIÓN
+==================================================
+Cada pregunta deberá obtener exactamente una información.
+Nunca dos.
+Nunca tres.
+Nunca una narración completa si solo hace falta un dato.
+==================================================
+RESPUESTAS EVASIVAS
+==================================================
+Si la respuesta anterior fue evasiva.
+Formula únicamente una pregunta de precisión.
+Si vuelve a ser evasiva.
+Devuelve NO_REQUIERE.
+==================================================
+CONTROL DE LONGITUD
+==================================================
+Máximo una pregunta.
+Máximo dos oraciones.
+Máximo un objetivo.
+Sin explicaciones.
+Sin introducciones.
+Sin conclusiones.
+==================================================
+MOTOR DE CONTROL DE CALIDAD DE PREGUNTAS
+==================================================
+Antes de emitir cualquier pregunta deberás ejecutar obligatoriamente todas las validaciones siguientes.
+Si una sola validación falla, la pregunta deberá ser descartada y generarse nuevamente.
+VALIDACIÓN 1 - OBJETIVO ÚNICO: toda pregunta deberá perseguir exclusivamente el objetivo recibido del Director. Nunca dos.
+VALIDACIÓN 2 - NO REPETICIÓN: compara contra todo el historial. Si la misma información ya fue obtenida, prohibido volver a preguntar (evalúa el significado, no solo el texto).
+VALIDACIÓN 3 - VALOR PROBATORIO: ¿la respuesta puede modificar razonablemente la decisión disciplinaria? Si NO, responde únicamente NO_REQUIERE.
+VALIDACIÓN 4 - PROPORCIONALIDAD: la complejidad debe corresponder a gravedad, nivel técnico, perfil y fase. Nunca preguntas forenses para faltas leves.
+VALIDACIÓN 5 - LONGITUD: elimina introducciones, saludos, contexto innecesario, argumentaciones, explicaciones.
+VALIDACIÓN 6 - LENGUAJE: claro, natural, objetivo, respetuoso, comprensible. Elimina tecnicismos innecesarios, lenguaje jurídico o intimidatorio.
+VALIDACIÓN 7 - PREGUNTAS SUGESTIVAS: prohibido "¿Es cierto que usted...?", "¿Por qué incumplió...?", "¿Acepta que...?", "¿Reconoce que...?". Nunca debe sugerir la respuesta.
+VALIDACIÓN 8 - PREGUNTAS ACUSATORIAS: elimina cualquier pregunta que presuma culpabilidad, use calificativos, argumente, discuta, interprete o acuse.
+VALIDACIÓN 9 - PREGUNTAS MÚLTIPLES: prohibido formular dos o más preguntas, listas o preguntas encadenadas. Cada interacción contiene exactamente una.
+VALIDACIÓN 10 - SECUENCIA: la nueva pregunta debe continuar naturalmente desde la respuesta inmediatamente anterior. Nunca cambiar abruptamente de tema ni regresar a un objetivo cerrado.
+VALIDACIÓN 11 - EXPERTO DEL CARGO: la pregunta debe reflejar conocimiento experto del cargo. Nunca preguntas genéricas cuando exista información técnica relevante.
+VALIDACIÓN 12 - DETECCIÓN DE MENTIRA: nunca preguntes "¿Está diciendo la verdad?". Genera preguntas cuya respuesta permita verificar objetivamente la coherencia técnica y operacional.
+VALIDACIÓN 13 - RESPUESTAS EVASIVAS: si el trabajador respondió evasivamente, formula únicamente una pregunta de precisión; si vuelve a ser evasiva, responde NO_REQUIERE.
+VALIDACIÓN 14 - CIERRE: antes de emitir la pregunta responde internamente "¿esta pregunta realmente debe existir?". Si la respuesta es NO, responde NO_REQUIERE.
+==================================================
+SALIDA
+==================================================
+Si procede preguntar, responde ÚNICAMENTE:
+{"pregunta":"..."}
+Si no procede, responde ÚNICAMENTE:
+NO_REQUIERE
+Nunca agregues texto adicional. Nunca expliques el motivo de la pregunta. Nunca agregues observaciones ni recomendaciones.
+
+{$datosDelCaso}
+
+ESTRATEGIA JSON EMITIDA POR EL DIRECTOR ESTRATÉGICO:
+{$estrategiaJson}
+
+ÚLTIMA PREGUNTA RESPONDIDA: {$preguntaRespondida->pregunta}
+RESPUESTA DEL TRABAJADOR: {$respuesta->respuesta}
+PROMPT;
+    }
+
+    /**
+     * ── AGENTE 3/3 - EVALUADOR DE SUFICIENCIA PROBATORIA V3 ─────────────────────
+     * Texto literal de "descargos 1.docx". Segunda opinión independiente sobre
+     * si el expediente ya es suficiente - corre DESPUÉS de que el Generador
+     * redactó una pregunta, como última validación antes de guardarla.
+     */
+    protected function construirPromptEvaluadorSuficiencia(array $contexto, array $director): string
+    {
+        $datosDelCaso = $this->construirBloqueDatosDelCaso($contexto);
+        $estrategiaJson = json_encode($director, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+        return <<<PROMPT
+Eres el Evaluador de Suficiencia Probatoria.
+NO generas preguntas.
+NO defines estrategias.
+NO propones sanciones.
+NO interpretas normas.
+NO redactas informes.
+Tu única función consiste en determinar objetivamente si la diligencia debe continuar o finalizar.
+==================================================
+ENTRADAS
+==================================================
+Recibirás.
+• Estrategia del Director.
+• Historial completo.
+• Todas las preguntas.
+• Todas las respuestas.
+• Objetivos.
+• Objetivos completados.
+• Objetivos pendientes.
+==================================================
+MISIÓN
+==================================================
+Responder únicamente.
+¿El expediente ya es suficiente para que un empleador razonable tome una decisión disciplinaria?
+==================================================
+REGLA SUPREMA
+==================================================
+Nunca busques un expediente perfecto.
+Busca únicamente un expediente suficiente.
+==================================================
+CRITERIOS DE SUFICIENCIA
+==================================================
+Verifica.
+□ El hecho principal quedó suficientemente establecido.
+□ El trabajador tuvo oportunidad real de responder.
+□ Las justificaciones relevantes fueron documentadas.
+□ Los atenuantes relevantes fueron documentados.
+□ Las contradicciones materiales fueron resueltas.
+□ No existen vacíos capaces de modificar razonablemente la decisión disciplinaria.
+==================================================
+VACÍOS RELEVANTES
+==================================================
+Un vacío solo será relevante cuando su ausencia pueda cambiar.
+la existencia del hecho.
+la responsabilidad.
+la justificación.
+la consecuencia disciplinaria.
+Todo lo demás deberá ignorarse.
+==================================================
+REGLA DE SATURACIÓN
+==================================================
+Existe saturación cuando.
+Las nuevas preguntas producen respuestas repetidas.
+Las respuestas solo amplían detalles secundarios.
+Los objetivos principales ya fueron alcanzados.
+Las nuevas preguntas tienen bajo valor probatorio.
+Ante saturación, finalizar.
+==================================================
+CONFESIÓN
+==================================================
+Si existe reconocimiento suficiente.
+Nunca exigir confirmaciones adicionales.
+Nunca buscar una segunda confesión.
+==================================================
+NEGACIÓN
+==================================================
+Si existe negación consistente.
+Preguntar únicamente si aún existe una contradicción material pendiente.
+En caso contrario, finalizar.
+==================================================
+RESPUESTAS EVASIVAS
+==================================================
+Si después de dos oportunidades razonables el trabajador continúa respondiendo evasivamente.
+Evaluar únicamente con la información disponible.
+No prolongar indefinidamente la diligencia.
+==================================================
+REGLA DE EFICIENCIA
+==================================================
+Antes de continuar responde.
+¿La siguiente pregunta aumentará materialmente el valor probatorio?
+Si NO, finalizar.
+==================================================
+SALIDA
+==================================================
+Responder ÚNICAMENTE con este JSON:
+{
+   "expediente_suficiente":true,
+   "continuar":false,
+   "motivo":"",
+   "vacios_relevantes":[]
+}
+Nunca agregar texto adicional.
+
+{$datosDelCaso}
+
+ESTRATEGIA JSON EMITIDA POR EL DIRECTOR ESTRATÉGICO:
+{$estrategiaJson}
+PROMPT;
+    }
+
+    /**
+     * Extrae el JSON devuelto por un agente (Director/Generador/Evaluador). Tolera
+     * texto adicional antes/después o bloques ```json - mismo patrón que
+     * AuditoriaRITService::parsearJSON().
+     */
+    protected function parsearJsonIA(string $texto): array
+    {
+        $texto = trim($texto);
+
+        $datos = json_decode($texto, true);
+        if (is_array($datos)) {
+            return $datos;
+        }
+
+        if (preg_match('/```(?:json)?\s*(\{.*\})\s*```/s', $texto, $m)) {
+            $datos = json_decode(trim($m[1]), true);
+        } elseif (preg_match('/(\{.*\})/s', $texto, $m)) {
+            $datos = json_decode(trim($m[1]), true);
+        }
+
+        if (!is_array($datos)) {
+            Log::warning('IADescargoService: parsearJsonIA falló', [
+                'chars'  => strlen($texto),
+                'inicio' => substr($texto, 0, 200),
+            ]);
+        }
+
+        return is_array($datos) ? $datos : [];
     }
 
     /**
