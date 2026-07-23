@@ -40,9 +40,16 @@ class AuditoriaRITService
             'query'                => 'jornada laboral horas extras trabajo nocturno dominicales festivos trabajo suplementario recargo descanso dominical remunerado trabajo habitual domingo',
             'codigos_obligatorios' => ['Art. 158 CST', 'Art. 159 CST', 'Art. 160 CST', 'Art. 161 CST', 'Art. 162 CST', 'Art. 167 CST', 'Art. 168 CST', 'Art. 169 CST', 'Art. 179 CST', 'Art. 180 CST', 'Art. 181 CST', 'Art. 182 CST'],
             'palabras_clave'       => ['jornada', 'horario', 'hora extra', 'suplementar', 'nocturno', 'dominical', 'festiv', 'diarias', 'semanales', 'recargo'],
-            'capitulos'            => ['JORNADA', 'TRABAJO SUPLEMENTARIO', 'HORAS EXTRAS', 'DOMINICALES'],
-            // Captura Cap III (jornada ordinaria) + Cap IV (suplementario/extras) juntos
-            'num_capitulos'        => 2,
+            // 'HORARIO DE TRABAJO' es un título de capítulo tan común como 'JORNADA' para
+            // este mismo contenido (ej. RIT real: Cap "HORARIO DE TRABAJO" con la jornada
+            // ordinaria y su reducción gradual, seguido de Cap "TRABAJO SUPLEMENTARIO..." -
+            // sin este alias, el primero se saltaba por completo y su contenido (duración
+            // máxima y reducción gradual vigente) se reportaba como "falta" sin serlo).
+            'capitulos'            => ['JORNADA', 'HORARIO DE TRABAJO', 'TRABAJO SUPLEMENTARIO', 'HORAS EXTRAS', 'DOMINICALES'],
+            // Captura Cap III (jornada ordinaria) + Cap IV (suplementario/extras) juntos en
+            // RITs con capitulado amplio; 3 en RITs con capitulado más granular donde jornada
+            // ordinaria, suplementario y descanso dominical caen en 3 capítulos consecutivos.
+            'num_capitulos'        => 3,
         ],
         'descansos' => [
             'titulo'               => 'Descansos y Vacaciones',
