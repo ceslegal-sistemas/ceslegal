@@ -203,11 +203,23 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         Forms\Components\TextInput::make('numero_documento')
                                             ->label('Número de Documento')
                                             ->required()
-                                            ->numeric()
-                                            ->integer()
-                                            ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
+                                            // Mismo comportamiento que TrabajadorResource: sin esta mascara
+                                            // el campo aceptaba hasta 50 digitos (con ->numeric()->integer()
+                                            // solamente) y ademas rechazaba pasaportes alfanumericos.
                                             ->maxLength(50)
-                                            ->placeholder('Ej: 1234567890'),
+                                            ->placeholder(fn(Get $get) => match ($get('tipo_documento')) {
+                                                'CC' => 'Ej: 1234567890',
+                                                'CE' => 'Ej: 9876543210',
+                                                'TI' => 'Ej: 1234567890123',
+                                                'PASS' => 'Ej: AB123456',
+                                                default => 'Ingrese el número de documento',
+                                            })
+                                            ->mask(fn(Get $get) => match ($get('tipo_documento')) {
+                                                'CC' => '9999999999',
+                                                'CE' => '9999999999',
+                                                'TI' => '9999999999999',
+                                                default => null,
+                                            }),
 
                                         Forms\Components\Select::make('genero')
                                             ->label('Género')
