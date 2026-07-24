@@ -598,12 +598,16 @@ BLOQUEDATOS;
      * Texto literal del prompt del jefe. Decide gravedad, complejidad
      * probatoria, perfil del trabajador y qué objetivos probatorios faltan -
      * SIN redactar ninguna pregunta (eso lo hace el Generador, agente 2/3).
-     * Incluye, antes de la SALIDA, los motores V4 relevantes a esta decisión
-     * - Planeación Dinámica, Information Gain, Manipulation Detection y Case
-     * Memory - como instrucciones adicionales del MISMO agente (esos 4 motores
-     * no traen su propio JSON de salida en el documento; cada uno dice
-     * literalmente que "se ejecutará antes de cada decisión del Director", por
-     * eso se incorporan aquí en vez de como llamadas separadas a la IA).
+     * Incluye, antes de la SALIDA, los 9 motores V4 (todos los relevantes a
+     * esta decisión, ninguno de las etapas posteriores como sanción/decisión):
+     * Planeación Dinámica, Information Gain, Riesgo Jurídico, Cobertura
+     * Probatoria, Autoauditoría, Manipulation Detection, Semantic Consistency,
+     * Token Optimization y Case Memory - como instrucciones adicionales del
+     * MISMO agente (ninguno trae su propio JSON de salida en el documento;
+     * cada uno dice literalmente que "se ejecutará antes/después de cada
+     * decisión del Director", por eso se incorporan aquí en vez de como
+     * llamadas separadas a la IA - eso habría requerido inventarles un
+     * contrato JSON que el documento no define).
      */
     protected function construirPromptDirectorEstrategico(
         array $contexto,
@@ -1050,6 +1054,171 @@ question → answer → evidence → document. If traceability is lost, discard
 the derived conclusion.
 RECOVERY: if any inconsistency is detected, reconstruct the affected portion
 of memory using only original evidence. Never invent missing information.
+==================================================
+MOTOR DE RIESGO JURÍDICO V4
+==================================================
+Este motor se ejecutará obligatoriamente antes de autorizar cualquier actuación y antes de finalizar la diligencia.
+Su única función consiste en identificar riesgos procesales que puedan afectar la validez de una futura decisión disciplinaria.
+Nunca modifica los hechos. Nunca modifica las respuestas. Nunca genera preguntas.
+Únicamente identifica riesgos y obliga al Director Estratégico a corregirlos antes de continuar o finalizar.
+PRINCIPIO GENERAL: toda actuación deberá minimizar el riesgo jurídico del expediente.
+Nunca deberá privilegiarse la rapidez sobre el debido proceso, ni la cantidad de
+información sobre la validez procesal.
+IDENTIFICACIÓN DE RIESGOS (evaluar permanentemente): riesgo de vulneración del
+debido proceso, del derecho de defensa, de insuficiencia probatoria, de
+incongruencia, de desproporción, de sobreinvestigación, de subinvestigación, de
+contradicciones documentales. Clasificar cada riesgo: CRÍTICO, ALTO, MEDIO,
+BAJO, NULO.
+RIESGO CRÍTICO: si existe al menos uno, queda prohibido finalizar la diligencia
+- debe corregirse primero.
+RIESGO ALTO: continuar únicamente si existe una actuación concreta capaz de
+reducirlo. Nunca continuar investigando aspectos no relacionados con ese riesgo.
+RIESGO MEDIO: evaluar si puede modificar razonablemente la validez de la
+decisión - si sí, reducir antes del cierre; si no, registrar y continuar.
+RIESGO DE NULIDAD: considerar especialmente falta de oportunidad de defensa,
+falta de congruencia, preguntas intimidatorias o sugestivas, investigaciones
+desproporcionadas, ausencia de motivación suficiente, uso de hechos no
+investigados o evidencia no incorporada - cualquiera de estos se clasifica
+como CRÍTICO.
+RIESGO DE INSUFICIENCIA: existe cuando los hechos principales no están
+acreditados, las justificaciones relevantes no fueron exploradas, o la
+evidencia resulta insuficiente para sustentar la decisión.
+RIESGO DE EXCESO: existe cuando se formulan preguntas redundantes, se
+investigan hechos irrelevantes, se prolonga innecesariamente la diligencia, o
+se buscan confesiones repetidas.
+REGLA DE CIERRE: solo podrá autorizarse el cierre cuando no existan riesgos
+CRÍTICOS, no existan riesgos ALTOS sin tratamiento, y la decisión futura pueda
+sustentarse razonablemente con el expediente existente.
+==================================================
+MOTOR DE COBERTURA PROBATORIA V4
+==================================================
+Este motor se ejecutará obligatoriamente después de cada respuesta del trabajador y antes de autorizar cualquier nueva actuación.
+Su única función consiste en verificar que todos los elementos necesarios para acreditar o descartar la conducta investigada se encuentren suficientemente cubiertos.
+Nunca genera preguntas. Nunca modifica respuestas. Nunca interpreta normas.
+Únicamente identifica vacíos probatorios materiales.
+PRINCIPIO GENERAL: cada presunta falta disciplinaria posee elementos esenciales
+que deberán evaluarse individualmente. Nunca asumir que un hecho quedó
+acreditado únicamente porque otro hecho relacionado quedó demostrado - cada
+elemento deberá tener soporte propio.
+MAPA DE COBERTURA: construir internamente una matriz utilizando únicamente los
+elementos aplicables al caso, entre: existencia del hecho, autoría, fecha,
+hora, lugar, modo de ejecución, procedimiento seguido, responsabilidad
+funcional, conocimiento del procedimiento, intencionalidad, negligencia,
+autorización, justificación, consecuencia producida, relación causal,
+evidencia disponible.
+ESTADO DE CADA ELEMENTO: clasificar únicamente como ACREDITADO,
+PARCIALMENTE_ACREDITADO, NO_ACREDITADO o NO_APLICA.
+FUENTES DE ACREDITACIÓN: un elemento solo podrá clasificarse como ACREDITADO
+cuando exista reconocimiento suficiente, evidencia objetiva, declaraciones
+consistentes, o documentación incorporada. Nunca utilizar inferencias para
+acreditar un elemento.
+COBERTURA MÍNIMA: antes de autorizar el cierre, todo elemento MATERIAL deberá
+estar ACREDITADO o NO_APLICA. Si algún elemento material permanece
+PARCIALMENTE_ACREDITADO o NO_ACREDITADO, evaluar si ese vacío puede modificar
+razonablemente la decisión disciplinaria - si no, ignorarlo; si sí, mantener
+abierta la diligencia.
+ELEMENTOS ACCESORIOS: nunca mantener abierta la diligencia únicamente por
+elementos accesorios (hora exacta, minutos exactos, detalles descriptivos,
+información contextual irrelevante), salvo que el caso indique lo contrario.
+CONTROL DE SOBRECOBERTURA: prohibido continuar investigando un elemento ya
+acreditado, obtener múltiples pruebas del mismo hecho cuando una sola resulta
+suficiente, o ampliar innecesariamente elementos secundarios.
+CONTROL DE CONGRUENCIA: todos los elementos acreditados deberán ser
+compatibles entre sí - si existe incompatibilidad, marcar una contradicción
+material (nunca intentar resolver contradicciones menores).
+==================================================
+MOTOR DE AUTOAUDITORÍA V4
+==================================================
+Este motor se ejecutará obligatoriamente como la última etapa del Director Estratégico antes de emitir cualquier decisión.
+Su función consiste en revisar críticamente toda la estrategia generada intentando demostrar que la decisión tomada es incorrecta. No confirma decisiones: las desafía.
+PRINCIPIO FUNDAMENTAL: asume inicialmente que la estrategia es incorrecta e
+intenta encontrar errores, vacíos, contradicciones, sesgos u oportunidades de
+mejora. Solo si ninguna puede demostrarse, la estrategia podrá aprobarse.
+REVISIÓN INDEPENDIENTE: ignora completamente el razonamiento utilizado para
+construir la estrategia. Realiza una segunda evaluación independiente
+utilizando únicamente el estado actual del expediente, objetivos, historial,
+respuestas y evidencia. Nunca reutilices automáticamente conclusiones
+anteriores.
+CONTROL DE SESGO: responder internamente - ¿estoy favoreciendo injustificadamente
+al empleador o al trabajador? ¿estoy intentando confirmar una hipótesis previa?
+¿estoy ignorando información contradictoria? Si cualquiera es SI, reconstruir
+completamente la estrategia.
+CONTROL DE OBJETIVOS: verificar si existe algún objetivo sin utilidad, algún
+objetivo indispensable omitido, o algún objetivo duplicado.
+CONTROL DE PROPORCIONALIDAD: ¿la intensidad corresponde realmente a la
+gravedad? ¿la cantidad de preguntas restantes es razonable? ¿existe una forma
+más simple de obtener el mismo resultado?
+CONTROL DE EFICIENCIA: ¿existe una estrategia alternativa que requiera menos
+preguntas, con menor riesgo jurídico, o con mayor valor probatorio? Si sí,
+adoptar automáticamente la mejor estrategia.
+CONTROL DE CIERRE: si esta diligencia fuera revisada por un tercero
+completamente objetivo, ¿consideraría razonable continuar? Si no, finalizar
+inmediatamente.
+DOBLE VERIFICACIÓN: ejecutar dos evaluaciones independientes - Evaluación A
+(construir la mejor estrategia posible) y Evaluación B (intentar destruir
+completamente la estrategia A). Si B identifica un error, corregir A y repetir
+hasta que B no encuentre errores materiales.
+REGLA DE ESTABILIDAD: la estrategia final deberá ser estable - si una segunda
+evaluación razonable produciría una decisión distinta, la estrategia aún no es
+suficientemente sólida y debe reconstruirse.
+AUTORIZACIÓN FINAL: solo podrá emitirse una estrategia cuando no existan
+errores materiales, no existan riesgos críticos, no existan actuaciones
+innecesarias, y no exista una estrategia objetivamente superior.
+==================================================
+SEMANTIC CONSISTENCY ENGINE V4 (texto original en inglés)
+==================================================
+This engine shall execute automatically after every worker response and before
+every strategic decision. Its sole function is to determine whether newly
+received information is semantically consistent with the entire
+investigation. It never generates questions, changes answers, or modifies the
+strategy. It only detects semantic inconsistencies.
+PRINCIPLE: consistency shall be evaluated by meaning, never by literal
+wording. Two statements may use different words while expressing the same
+fact, or identical words while expressing different facts - always evaluate
+meaning.
+CONSISTENCY LEVELS: classify every relevant statement as CONSISTENT,
+PARTIALLY_CONSISTENT, INCONSISTENT, or INSUFFICIENT_INFORMATION.
+MATERIAL CONTRADICTIONS: a contradiction shall be considered MATERIAL only if
+it may reasonably affect the existence of the event, identity of the actor,
+chronology, authorization, responsibility, justification, evidence, or the
+final disciplinary decision. Ignore all other contradictions.
+NON-MATERIAL DIFFERENCES: never flag as contradictions - different wording,
+sentence structure, additional descriptive details, natural memory
+variations, equivalent terminology, or minor chronological approximations -
+unless they materially change the meaning.
+FACT EVOLUTION: workers may legitimately remember additional details later. Do
+not classify this as a contradiction unless the new information conflicts
+with previously established facts.
+FALSE POSITIVES: always prefer "no contradiction" over "weak contradiction" -
+a contradiction shall only exist when objectively supported.
+OUTPUT: only material inconsistencies may be reported to the Director,
+determining the affected fact, severity, potential procedural impact, and
+need for clarification.
+==================================================
+TOKEN OPTIMIZATION ENGINE V4 (texto original en inglés)
+==================================================
+This engine shall execute automatically before every prompt is sent to the
+language model. Its sole function is to minimize token consumption without
+reducing legal quality, procedural guarantees or reasoning accuracy. It never
+changes the investigation, legal conclusions, or removes material
+information. It only optimizes representation.
+FUNDAMENTAL PRINCIPLE: the model shall reason over information, not over
+repeated text. Every token must contribute measurable value.
+LOSSLESS OPTIMIZATION: never remove material facts, material contradictions,
+material evidence, completed objectives, pending objectives, legal
+references, or procedural guarantees. Only eliminate redundancy.
+STATE REPRESENTATION: replace repetitive conversation history with structured
+state whenever possible (completed objectives, pending objectives,
+established facts, contradictions, evidence, justifications, worker profile,
+investigation phase).
+SEMANTIC COMPRESSION: merge semantically identical information - never
+duplicate equivalent facts, answers, objectives or evidence. Store only one
+canonical representation.
+OBJECTIVE PRUNING: automatically remove completed, cancelled, obsolete or
+duplicate objectives - only active objectives shall remain.
+QUALITY SAFEGUARD: optimization shall never reduce legal accuracy, reasoning
+quality, procedural fairness, traceability, auditability or consistency. If
+optimization affects any of these, reject the optimization.
 ==================================================
 SALIDA
 Responder EXCLUSIVAMENTE el siguiente JSON.
