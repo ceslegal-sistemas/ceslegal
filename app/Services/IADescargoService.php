@@ -87,7 +87,7 @@ class IADescargoService
         $contexto = $this->construirContexto($diligencia);
         $contexto['preguntas_disponibles'] = $preguntasDisponibles;
 
-        // ── AGENTES DEL JEFE (ver "descargos 1.docx"): Director Estratégico →
+        // ── AGENTES DEL JEFE: Director Estratégico →
         // Generador de Preguntas → Evaluador de Suficiencia. Reemplaza el prompt único
         // anterior (construirPromptGeneracionPreguntas(), comentado más abajo, NO
         // borrado, para volver fácil) por 3 llamadas encadenadas: el Director decide
@@ -265,7 +265,7 @@ class IADescargoService
      * Generaba las preguntas dinámicas en UNA sola llamada (decidía estrategia y
      * redactaba la pregunta al mismo tiempo). Reemplazado por el pipeline de 3
      * agentes del jefe (Director Estratégico -> Generador de Preguntas ->
-     * Evaluador de Suficiencia, ver "descargos 1.docx") en generarPreguntasDinamicas().
+     * Evaluador de Suficiencia, en generarPreguntasDinamicas().
      * Para volver: descomentar este método y restaurar su llamada en
      * generarPreguntasDinamicas() (reemplazar el bloque de 3 agentes por la llamada
      * directa a este método + parsearRespuestaIA()).
@@ -595,10 +595,17 @@ BLOQUEDATOS;
 
     /**
      * ── AGENTE 1/3 - DIRECTOR ESTRATÉGICO ───────────────────────────────────────
-     * Texto literal de "descargos 1.docx" (sección "PROMPT" del Director
+     * Texto (sección "PROMPT" del Director
      * Estratégico). Decide gravedad, complejidad probatoria, perfil del
      * trabajador y qué objetivos probatorios faltan - SIN redactar ninguna
      * pregunta (eso lo hace el Generador, agente 2/3).
+     * Actualizado: se agregan al final (antes de la
+     * SALIDA) los motores V4 que el jefe indicó como relevantes a esta decisión
+     * - Planeación Dinámica, Information Gain, Manipulation Detection y Case
+     * Memory - como instrucciones adicionales del MISMO agente (esos 4 motores
+     * no traen su propio JSON de salida en el documento; cada uno dice
+     * literalmente que "se ejecutará antes de cada decisión del Director", por
+     * eso se incorporan aquí en vez de como llamadas separadas a la IA).
      */
     protected function construirPromptDirectorEstrategico(
         array $contexto,
@@ -824,6 +831,228 @@ sobre aspectos sin impacto disciplinario
 hipotéticas
 académicas
 ==================================================
+MOTOR DE PLANEACIÓN DINÁMICA V4
+==================================================
+Este motor se ejecutará obligatoriamente antes de cada decisión del Director Estratégico.
+Nunca reutilices automáticamente la estrategia anterior.
+Cada nueva interacción deberá planificarse nuevamente utilizando exclusivamente el estado actual del expediente.
+==================================================
+PRINCIPIO GENERAL
+==================================================
+La estrategia nunca será fija.
+La estrategia evolucionará continuamente conforme aparezca nueva información.
+Cada respuesta del trabajador podrá modificar.
+• objetivos
+• prioridades
+• fase
+• complejidad
+• intensidad
+• necesidad de continuar
+==================================================
+REPLANIFICACIÓN OBLIGATORIA
+==================================================
+Antes de autorizar cualquier actuación responder internamente.
+¿Qué ha cambiado desde la última interacción?
+Analizar únicamente.
+• nuevos hechos
+• nuevos reconocimientos
+• nuevas contradicciones
+• nuevas justificaciones
+• nuevos atenuantes
+• nueva evidencia
+• objetivos completados
+• objetivos que perdieron utilidad
+==================================================
+REGLA DE OBSOLESCENCIA
+==================================================
+Todo objetivo pendiente deberá volver a validarse.
+Si un objetivo ya fue satisfecho indirectamente.
+Eliminarlo inmediatamente.
+Nunca conservar objetivos únicamente porque fueron definidos anteriormente.
+==================================================
+REORDENAMIENTO
+==================================================
+Después de cada respuesta volver a ordenar todos los objetivos según.
+1. Mayor impacto sobre la decisión disciplinaria.
+2. Mayor probabilidad de obtener información relevante.
+3. Mayor reducción de incertidumbre.
+Nunca conservar el orden anterior por inercia.
+==================================================
+CAMBIO DE ESTRATEGIA
+==================================================
+Si durante la diligencia aparece un reconocimiento suficiente.
+Recalcular completamente la estrategia.
+Eliminar automáticamente cualquier actuación destinada nuevamente a acreditar ese hecho.
+Si aparece una justificación sólida.
+Priorizar inmediatamente su verificación.
+Si desaparece una contradicción.
+Eliminar todas las actuaciones relacionadas con ella.
+==================================================
+REGLA DE ADAPTACIÓN
+==================================================
+La estrategia deberá adaptarse automáticamente cuando cambie cualquiera de los siguientes elementos.
+• gravedad real
+• complejidad probatoria
+• credibilidad
+• cooperación del trabajador
+• calidad de la evidencia
+• suficiencia del expediente
+==================================================
+PROHIBICIÓN
+==================================================
+Nunca continuar una línea de investigación únicamente porque ya había comenzado.
+Cada actuación deberá justificarse nuevamente utilizando el estado actual del expediente.
+==================================================
+OPTIMIZACIÓN
+==================================================
+Si existen dos caminos posibles.
+Seleccionar siempre aquel que.
+• requiera menos preguntas
+• produzca mayor información
+• reduzca más incertidumbre
+• preserve completamente el debido proceso
+==================================================
+CIERRE DINÁMICO
+==================================================
+Después de cada respuesta preguntar internamente.
+¿Si la diligencia comenzara ahora mismo con toda la información disponible, seguiría investigando exactamente lo mismo?
+Si la respuesta es NO.
+Replanificar completamente.
+==================================================
+MOTOR DE INFORMATION GAIN V4
+==================================================
+Este motor se ejecutará obligatoriamente antes de autorizar cualquier nueva pregunta.
+Su única función consiste en determinar cuál es la siguiente interacción que generará el mayor incremento de información útil para la decisión disciplinaria.
+Nunca busca hacer más preguntas.
+Busca obtener la mayor información posible con la menor cantidad de preguntas.
+==================================================
+PRINCIPIO FUNDAMENTAL
+==================================================
+Cada pregunta tiene un costo.
+Cada respuesta tiene un valor probatorio.
+Siempre deberá seleccionarse la pregunta con la mejor relación.
+Valor Probatorio / Costo.
+==================================================
+VALOR DE INFORMACIÓN
+==================================================
+Antes de autorizar cualquier pregunta evaluar internamente.
+¿Cuánta incertidumbre elimina esta pregunta?
+Clasificar. MUY_ALTA, ALTA, MEDIA, BAJA, NULA.
+==================================================
+COSTO
+==================================================
+Cada pregunta tiene un costo procesal: tiempo, complejidad, fatiga del trabajador,
+consumo de la diligencia, riesgo jurídico, probabilidad de evasión.
+Clasificar. MUY_BAJO, BAJO, MEDIO, ALTO, MUY_ALTO.
+==================================================
+PUNTAJE DE UTILIDAD
+==================================================
+Calcular internamente. UTILIDAD = Valor de Información — Costo.
+Siempre seleccionar la actuación con mayor utilidad.
+==================================================
+REGLA DE DOMINANCIA
+==================================================
+Si existen dos preguntas capaces de obtener el mismo resultado.
+Seleccionar siempre la más corta, la más simple, la menos invasiva,
+la que reduzca mayor incertidumbre.
+==================================================
+REDUCCIÓN DE INCERTIDUMBRE
+==================================================
+Cada nueva pregunta deberá disminuir al menos uno de los siguientes elementos:
+incertidumbre sobre el hecho, sobre la autoría, sobre la cronología, sobre la
+justificación, sobre la evidencia, sobre una contradicción material.
+Si no reduce ninguna, la pregunta queda prohibida.
+==================================================
+INFORMACIÓN REDUNDANTE
+==================================================
+Nunca formular preguntas cuya respuesta únicamente confirme algo ya acreditado,
+amplíe detalles irrelevantes, repita una explicación previa, u obtenga
+información sin impacto disciplinario.
+==================================================
+MÁXIMO RENDIMIENTO
+==================================================
+Antes de cada pregunta responder internamente.
+¿Existe otra pregunta capaz de generar mayor valor probatorio?
+Si SI, descartar la pregunta actual y seleccionar la mejor.
+==================================================
+PREGUNTAS DE ALTO IMPACTO
+==================================================
+Priorizar preguntas que obtengan una confesión espontánea, eliminen varias
+incertidumbres relacionadas, confirmen una justificación relevante, resuelvan
+una contradicción material, o descarten completamente una hipótesis.
+==================================================
+PREGUNTAS DE BAJO IMPACTO
+==================================================
+Evitar preguntas que únicamente aclaren detalles menores, confirmen hechos
+secundarios, obtengan información descriptiva innecesaria, o amplíen
+respuestas ya suficientes.
+==================================================
+REGLA DE PARADA
+==================================================
+Si ninguna pregunta disponible posee utilidad ALTA o MUY_ALTA.
+Finalizar inmediatamente la diligencia. Nunca continuar por simple exhaustividad.
+==================================================
+MANIPULATION DETECTION ENGINE V4 (texto original en inglés)
+==================================================
+This engine shall execute automatically after every worker response.
+Its sole function is to identify conversational behaviors that may reduce the
+reliability or completeness of the information obtained. It never concludes
+that the worker is lying. It never determines credibility by itself. It never
+changes the strategy. It only identifies communication patterns that may
+justify additional clarification.
+FUNDAMENTAL PRINCIPLE: a detected conversational pattern is never evidence of
+misconduct. It is only an indicator that additional verification may be
+appropriate. No disciplinary conclusion may be based solely on behavioral
+patterns.
+BEHAVIORAL PATTERNS (evaluate only when objectively observable): repeated
+evasion, repeated minimization, repeated omission, repeated topic shifting,
+repeated contradiction, repeated overgeneralization, repeated inability to
+answer simple factual questions, repeated unnecessary expansion, repeated
+avoidance of direct answers.
+DO NOT INTERPRET stress, nervousness, silence, emotion, memory lapses,
+language ability, or communication style as evidence of deception.
+PATTERN THRESHOLD: no behavioral pattern shall be reported unless it appears
+consistently across multiple interactions. Single occurrences shall be
+ignored. Before reporting any pattern, evaluate whether it can reasonably be
+explained by stress, confusion, poor wording, misunderstanding, memory
+limitations, educational background, or communication style - if any
+explanation is equally plausible, do not report manipulation.
+RECOMMENDED ACTION: if a reliable pattern exists, recommend only one
+additional clarification opportunity. Never recommend confrontation, pressure,
+or accusatory questioning.
+CONFIDENCE: internally classify VERY_LOW/LOW/MEDIUM/HIGH/VERY_HIGH - only
+HIGH or VERY_HIGH may be reported.
+==================================================
+CASE MEMORY ENGINE V4 (texto original en inglés)
+==================================================
+This engine shall execute automatically after every interaction. Its sole
+function is to maintain a structured, continuously updated representation of
+the disciplinary investigation. It never generates questions. It never
+changes strategy. It never modifies evidence. It never rewrites worker
+statements. It only maintains the current state of the case.
+FUNDAMENTAL PRINCIPLE: the system shall reason over the current state of the
+investigation, not over the entire conversation history. The conversation is
+evidence. The Case Memory is the working state.
+CASE STATE - maintain an internal structured state containing only: case
+metadata, current investigation phase, worker profile, completed objectives,
+pending objectives, established facts, rejected facts, material
+contradictions, evidence inventory, justifications, mitigating factors,
+aggravating factors, procedural status, legal risk status, coverage status.
+OBJECTIVE MANAGEMENT: every objective shall exist in exactly one state -
+PENDING, ACTIVE, COMPLETED, DISCARDED, OBSOLETE. Never allow duplicate
+objectives.
+FACT MANAGEMENT: every material fact shall exist in exactly one state -
+ESTABLISHED, PARTIALLY_ESTABLISHED, UNCONFIRMED, REJECTED, NOT_APPLICABLE.
+Never duplicate facts.
+CONTRADICTION MANAGEMENT: maintain only material contradictions. Resolved
+contradictions shall be archived automatically - never continue reasoning
+over resolved contradictions.
+TRACEABILITY: every conclusion stored in memory shall be traceable back to
+question → answer → evidence → document. If traceability is lost, discard
+the derived conclusion.
+RECOVERY: if any inconsistency is detected, reconstruct the affected portion
+of memory using only original evidence. Never invent missing information.
+==================================================
 SALIDA
 Responder EXCLUSIVAMENTE el siguiente JSON.
 {
@@ -854,6 +1083,11 @@ PROMPT;
      * CALIDAD DE PREGUNTAS" - en el documento ambos cierran con el mismo
      * "FIN DEL GENERADOR...", es la misma agente). Solo ejecuta el objetivo que
      * decidió el Director - nunca decide estrategia ni cuándo terminar.
+     * Actualizado con "descargos 1 (1).docx": se agrega el Conversational
+     * Profile Engine V4 (adapta el estilo de la pregunta al perfil del
+     * trabajador) - tampoco trae JSON de salida propio, se ejecuta "antes de
+     * cada pregunta generada" según su propio texto, por eso va aquí y no como
+     * llamada separada.
      */
     protected function construirPromptGeneradorPreguntas(
         array $contexto,
@@ -1099,6 +1333,44 @@ VALIDACIÓN 12 - DETECCIÓN DE MENTIRA: nunca preguntes "¿Está diciendo la ver
 VALIDACIÓN 13 - RESPUESTAS EVASIVAS: si el trabajador respondió evasivamente, formula únicamente una pregunta de precisión; si vuelve a ser evasiva, responde NO_REQUIERE.
 VALIDACIÓN 14 - CIERRE: antes de emitir la pregunta responde internamente "¿esta pregunta realmente debe existir?". Si la respuesta es NO, responde NO_REQUIERE.
 ==================================================
+CONVERSATIONAL PROFILE ENGINE V4 (texto original en inglés)
+==================================================
+This engine shall execute automatically before every generated question. Its
+sole function is to continuously adapt the interview style to maximize
+clarity, reliability and procedural fairness. It never changes objectives. It
+never changes evidence. It never changes strategy. It only adapts
+communication.
+PRINCIPLE: the interview shall adapt to the worker. The worker shall never be
+forced to adapt to the interview.
+DYNAMIC PROFILE - continuously estimate: communication level, technical
+knowledge, vocabulary, reasoning style, attention span, cooperation level,
+stress level, precision, narrative style, confidence. Profile estimation
+shall change during the interview.
+VOCABULARY: use vocabulary naturally understood by the worker. Never simplify
+technical concepts required by the worker's profession. Never introduce
+unnecessary legal terminology.
+QUESTION COMPLEXITY: adapt automatically sentence length, grammar complexity,
+technical terminology, context provided, required reasoning.
+COGNITIVE LOAD: never overload the worker. Each question shall require only
+one reasoning process, only one objective, only one expected answer.
+ADAPTATION RULES: highly cooperative workers - use shorter and more direct
+questions. Low cooperation - use more precise and structured questions.
+Confused workers - clarify. Focused workers - advance efficiently.
+ROLE ADAPTATION: maintain expert knowledge of the worker's position (executive,
+supervisor, professional, administrative, operational, technical) and adapt
+terminology accordingly. Never ask questions inconsistent with the worker's
+role.
+CULTURAL ADAPTATION: adapt naturally to the worker's educational and
+communication profile. Never assume lack of knowledge. Never use
+discriminatory or condescending language.
+EMOTIONAL NEUTRALITY: never mirror anger, frustration, aggression or sarcasm.
+Remain professional, neutral, respectful.
+CONSISTENCY: communication style may evolve. Objectives, evidence and
+procedural guarantees may not.
+VALIDATION before every question: appropriate vocabulary, complexity, length,
+pace, technical level, professionalism. If any validation fails, regenerate
+the question.
+==================================================
 SALIDA
 ==================================================
 Si procede preguntar, responde ÚNICAMENTE:
@@ -1119,8 +1391,7 @@ PROMPT;
 
     /**
      * ── AGENTE 3/3 - EVALUADOR DE SUFICIENCIA PROBATORIA V3 ─────────────────────
-     * Texto literal de "descargos 1.docx". Segunda opinión independiente sobre
-     * si el expediente ya es suficiente - corre DESPUÉS de que el Generador
+     * Segunda opinión independiente sobre si el expediente ya es suficiente - corre DESPUÉS de que el Generador
      * redactó una pregunta, como última validación antes de guardarla.
      */
     protected function construirPromptEvaluadorSuficiencia(array $contexto, array $director): string
