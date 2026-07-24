@@ -595,12 +595,10 @@ BLOQUEDATOS;
 
     /**
      * ── AGENTE 1/3 - DIRECTOR ESTRATÉGICO ───────────────────────────────────────
-     * Texto (sección "PROMPT" del Director
-     * Estratégico). Decide gravedad, complejidad probatoria, perfil del
-     * trabajador y qué objetivos probatorios faltan - SIN redactar ninguna
-     * pregunta (eso lo hace el Generador, agente 2/3).
-     * Actualizado: se agregan al final (antes de la
-     * SALIDA) los motores V4 que el jefe indicó como relevantes a esta decisión
+     * Texto literal del prompt del jefe. Decide gravedad, complejidad
+     * probatoria, perfil del trabajador y qué objetivos probatorios faltan -
+     * SIN redactar ninguna pregunta (eso lo hace el Generador, agente 2/3).
+     * Incluye, antes de la SALIDA, los motores V4 relevantes a esta decisión
      * - Planeación Dinámica, Information Gain, Manipulation Detection y Case
      * Memory - como instrucciones adicionales del MISMO agente (esos 4 motores
      * no traen su propio JSON de salida en el documento; cada uno dice
@@ -1079,14 +1077,14 @@ PROMPT;
 
     /**
      * ── AGENTE 2/3 - GENERADOR INTELIGENTE DE PREGUNTAS V3 ──────────────────────
-     * Texto literal de "descargos 1.docx" (incluye su "MOTOR DE CONTROL DE
+     * Texto literal del prompt del jefe (incluye su "MOTOR DE CONTROL DE
      * CALIDAD DE PREGUNTAS" - en el documento ambos cierran con el mismo
      * "FIN DEL GENERADOR...", es la misma agente). Solo ejecuta el objetivo que
      * decidió el Director - nunca decide estrategia ni cuándo terminar.
-     * Actualizado con "descargos 1 (1).docx": se agrega el Conversational
-     * Profile Engine V4 (adapta el estilo de la pregunta al perfil del
-     * trabajador) - tampoco trae JSON de salida propio, se ejecuta "antes de
-     * cada pregunta generada" según su propio texto, por eso va aquí y no como
+     * Incluye el Conversational Profile Engine V4 (adapta el estilo de la
+     * pregunta al perfil del trabajador) - tampoco trae JSON de salida propio,
+     * se ejecuta "antes de cada pregunta generada" según su propio texto, por
+     * eso va aquí y no como
      * llamada separada.
      */
     protected function construirPromptGeneradorPreguntas(
