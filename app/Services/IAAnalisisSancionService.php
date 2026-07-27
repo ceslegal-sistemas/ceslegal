@@ -1336,6 +1336,76 @@ PROMPT;
     }
 
     /**
+     * Los 6 motores auditan el mismo caso desde ángulos distintos (pruebas,
+     * coherencia, riesgo judicial, precedentes, trato igualitario), así que
+     * es normal que varios señalen el MISMO hecho de fondo con palabras
+     * distintas (ej. "faltan declaraciones de testigos" puede salir en 4 de
+     * los 6). Mostrar eso 4 veces agota a quien lee - se consolida en UNA
+     * sola llamada a Gemini que funde los hallazgos repetidos en una lista
+     * corta de puntos únicos. Devuelve [] si no hay nada que consolidar
+     * (todos los motores en 'ok'/'na', o si la consolidación falla - en ese
+     * caso el detalle por motor de evaluarMotoresV6() sigue disponible como
+     * respaldo, nunca se pierde información).
+     */
+    public function consolidarHallazgosV6(array $filas): array
+    {
+        $hallazgosPorMotor = [];
+        foreach ($filas as $fila) {
+            if (in_array($fila['estado'], ['riesgo', 'atencion'], true) && !empty($fila['hallazgos'])) {
+                $hallazgosPorMotor[$fila['titulo']] = $fila['hallazgos'];
+            }
+        }
+
+        if (empty($hallazgosPorMotor)) {
+            return [];
+        }
+
+        $texto = '';
+        foreach ($hallazgosPorMotor as $titulo => $hallazgos) {
+            $texto .= "- {$titulo}:\n";
+            foreach ($hallazgos as $h) {
+                $texto .= "    - {$h}\n";
+            }
+        }
+
+        $prompt = <<<PROMPT
+A continuación hay observaciones que distintas revisiones automáticas encontraron
+sobre una recomendación de sanción disciplinaria. Cada revisión mira el caso desde
+un ángulo distinto (pruebas, coherencia, riesgo judicial, precedentes, trato
+igualitario), así que varias pueden estar diciendo, en el fondo, LO MISMO con
+distintas palabras.
+
+Tu tarea: consolida estas observaciones en una lista corta de HECHOS ÚNICOS que una
+persona de Recursos Humanos debería tener en cuenta antes de confirmar la sanción,
+sin repetir la misma idea más de una vez.
+
+OBSERVACIONES:
+{$texto}
+
+REGLAS:
+- Máximo 4 puntos - si dos o más observaciones dicen lo mismo, fusiónalas en una sola.
+- Cada punto en UNA oración corta (máximo 25 palabras), español simple, sin
+  tecnicismos ni nombres de revisiones o reglas internas.
+- Ordena del punto más importante al menos importante.
+- Si las observaciones ya son todas distintas entre sí, devuélvelas tal cual
+  (hasta el máximo de 4, priorizando las más graves).
+
+Responde EXACTAMENTE con este JSON:
+{
+  "puntos": ["primer punto", "segundo punto"]
+}
+Genera SOLO el JSON, sin markdown ni texto fuera del objeto.
+PROMPT;
+
+        $respuesta = $this->llamarGemini($prompt);
+        $datos = $this->parsearJsonV6($respuesta);
+
+        return is_array($datos['puntos'] ?? null)
+            ? array_values(array_filter(array_map('strval', $datos['puntos'])))
+            : [];
+    }
+
+    /**
      * Si evaluarMotoresV6() marcó algún motor como 'riesgo', se pide UNA
      * corrección de la recomendación original en el MISMO esquema JSON de
      * analizarYSugerirSanciones(), indicando exactamente qué hallazgos debe

@@ -69,6 +69,7 @@ class ProcesoDisciplinario extends Model
         'analisis_recomendacion',
         'analisis_recomendacion_original',
         'correccion_v6_motivo',
+        'validaciones_v6_puntos_clave',
     ];
 
     protected $casts = [
@@ -98,6 +99,7 @@ class ProcesoDisciplinario extends Model
         'validaciones_v6_en' => 'datetime',
         'analisis_recomendacion' => 'array',
         'analisis_recomendacion_original' => 'array',
+        'validaciones_v6_puntos_clave' => 'array',
     ];
 
     // ── Embedding de hechos (RAG persistido) ──────────────────────────────────

@@ -48,6 +48,7 @@ class EjecutarValidacionesV6Job implements ShouldQueue
         $analisisFinal      = $this->analisisSancion;
         $analisisOriginal   = null;
         $motivoCorreccion   = null;
+        $puntosClave        = [];
 
         if (!$todosFallaron) {
             $filas = $servicio->evaluarMotoresV6($resultados);
@@ -72,6 +73,7 @@ class EjecutarValidacionesV6Job implements ShouldQueue
                         // corregirRecomendacionConHallazgosV6() aquí (tope de 1 corrección
                         // por ciclo, sin importar qué diga esta segunda pasada).
                         $resultados = $servicio->ejecutarValidacionesV6($this->proceso, $analisisFinal);
+                        $filas      = $servicio->evaluarMotoresV6($resultados);
 
                         Log::info('EjecutarValidacionesV6Job: recomendación corregida automáticamente', [
                             'proceso_id' => $this->proceso->id,
@@ -85,6 +87,20 @@ class EjecutarValidacionesV6Job implements ShouldQueue
                     ]);
                 }
             }
+
+            // Los 6 motores auditan el mismo caso desde ángulos distintos, así que
+            // suelen repetir el mismo hecho de fondo con palabras distintas. Se
+            // consolida en una sola lista de puntos únicos (ver
+            // consolidarHallazgosV6) para que el modal no muestre lo mismo 4 o 5
+            // veces. Si falla, el detalle por motor sigue disponible como respaldo.
+            try {
+                $puntosClave = $servicio->consolidarHallazgosV6($filas);
+            } catch (\Throwable $e) {
+                Log::warning('EjecutarValidacionesV6Job: falló la consolidación de hallazgos', [
+                    'proceso_id' => $this->proceso->id,
+                    'error'      => $e->getMessage(),
+                ]);
+            }
         }
 
         $this->proceso->update([
@@ -94,6 +110,7 @@ class EjecutarValidacionesV6Job implements ShouldQueue
             'analisis_recomendacion'           => $analisisFinal,
             'analisis_recomendacion_original'  => $analisisOriginal,
             'correccion_v6_motivo'             => $motivoCorreccion,
+            'validaciones_v6_puntos_clave'     => $puntosClave,
         ]);
 
         Log::info('EjecutarValidacionesV6Job: completado', [
