@@ -45,15 +45,61 @@ class EjecutarValidacionesV6Job implements ShouldQueue
         // de un resultado completado (aunque sea con hallazgos parciales).
         $todosFallaron = collect($resultados)->every(fn($r) => isset($r['error']));
 
+        $analisisFinal      = $this->analisisSancion;
+        $analisisOriginal   = null;
+        $motivoCorreccion   = null;
+
+        if (!$todosFallaron) {
+            $filas = $servicio->evaluarMotoresV6($resultados);
+            $hallazgosGraves = array_filter($filas, fn($f) => $f['estado'] === 'riesgo');
+
+            if (!empty($hallazgosGraves)) {
+                try {
+                    $corregido = $servicio->corregirRecomendacionConHallazgosV6(
+                        $this->proceso,
+                        $this->analisisSancion,
+                        $hallazgosGraves
+                    );
+
+                    if (!empty($corregido) && !empty($corregido['resumen_correccion'])) {
+                        $analisisOriginal = $this->analisisSancion;
+                        $motivoCorreccion = $corregido['resumen_correccion'];
+                        $analisisFinal    = $corregido;
+
+                        // Re-evaluar los 6 motores sobre la versión YA CORREGIDA para que
+                        // el checklist que ve Recursos Humanos refleje la recomendación
+                        // final, no la original. Deliberadamente NO se vuelve a llamar a
+                        // corregirRecomendacionConHallazgosV6() aquí (tope de 1 corrección
+                        // por ciclo, sin importar qué diga esta segunda pasada).
+                        $resultados = $servicio->ejecutarValidacionesV6($this->proceso, $analisisFinal);
+
+                        Log::info('EjecutarValidacionesV6Job: recomendación corregida automáticamente', [
+                            'proceso_id' => $this->proceso->id,
+                            'motores_graves' => array_keys($hallazgosGraves),
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('EjecutarValidacionesV6Job: falló la corrección automática, se conserva la recomendación original', [
+                        'proceso_id' => $this->proceso->id,
+                        'error'      => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
         $this->proceso->update([
-            'validaciones_v6_estado' => $todosFallaron ? 'error' : 'completado',
-            'validaciones_v6'        => $resultados,
-            'validaciones_v6_en'     => now(),
+            'validaciones_v6_estado'           => $todosFallaron ? 'error' : 'completado',
+            'validaciones_v6'                  => $resultados,
+            'validaciones_v6_en'               => now(),
+            'analisis_recomendacion'           => $analisisFinal,
+            'analisis_recomendacion_original'  => $analisisOriginal,
+            'correccion_v6_motivo'             => $motivoCorreccion,
         ]);
 
         Log::info('EjecutarValidacionesV6Job: completado', [
             'proceso_id' => $this->proceso->id,
             'estado'     => $todosFallaron ? 'error' : 'completado',
+            'corregido'  => $motivoCorreccion !== null,
         ]);
     }
 

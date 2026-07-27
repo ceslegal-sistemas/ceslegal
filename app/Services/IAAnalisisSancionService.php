@@ -1226,6 +1226,204 @@ PROMPT;
     }
 
     /**
+     * Configuración de los 6 motores V6 relevantes para Recursos Humanos
+     * (explicabilidad y calidad_documental quedan fuera: son auditoría
+     * interna del modelo, no información accionable para decidir una
+     * sanción - ver validaciones-v6-resumen.blade.php). Único lugar donde
+     * se define qué campo y qué valores hacen que un motor esté "bien" o
+     * "mal", para que el job (decide si corrige la recomendación) y la
+     * vista (decide qué ícono mostrar) nunca queden desincronizados.
+     */
+    public function metaVerificacionesV6(): array
+    {
+        return [
+            'ponderacion_evidencia' => [
+                'titulo' => 'Fuerza de las pruebas', 'icon' => 'heroicon-o-scale',
+                'campo' => 'peso_global', 'buenos' => ['MUY_ALTO', 'ALTO'], 'malos' => ['BAJO', 'NULO'],
+                'listas' => [],
+            ],
+            'resolucion_conflictos' => [
+                'titulo' => 'Contradicciones entre las pruebas', 'icon' => 'heroicon-o-arrows-right-left',
+                'campo' => 'impacto', 'buenos' => ['BAJO', 'NULO'], 'malos' => ['ALTO'],
+                'listas' => ['conflictos_pendientes' => null],
+            ],
+            'congruencia_juridica' => [
+                'titulo' => 'Coherencia del caso', 'icon' => 'heroicon-o-link',
+                'campo' => 'nivel_riesgo', 'buenos' => ['BAJO'], 'malos' => ['ALTO'],
+                'listas' => ['incongruencias' => null],
+            ],
+            'simulacion_judicial' => [
+                'titulo' => 'Resistencia ante una revisión judicial', 'icon' => 'heroicon-o-building-library',
+                'campo' => 'probabilidad_resistencia_judicial', 'buenos' => ['MUY_PROBABLE', 'PROBABLE'], 'malos' => ['IMPROBABLE', 'MUY_IMPROBABLE'],
+                'listas' => ['debilidades' => null, 'riesgos' => null],
+            ],
+            'precedentes_internos' => [
+                'titulo' => 'Consistencia con casos anteriores', 'icon' => 'heroicon-o-archive-box',
+                'campo' => 'nivel_consistencia', 'buenos' => ['ALTO', 'SIN_PRECEDENTE'], 'malos' => ['INCONSISTENTE', 'BAJO'],
+                'listas' => ['alertas' => null],
+            ],
+            'uniformidad_disciplinaria' => [
+                'titulo' => 'Trato igualitario frente a casos similares', 'icon' => 'heroicon-o-users',
+                'campo' => 'uniformidad', 'buenos' => ['ALTA'], 'malos' => ['BAJA'],
+                'listas' => ['riesgos_discriminacion' => null, 'inconsistencias' => null],
+            ],
+        ];
+    }
+
+    /**
+     * Limpia un hallazgo (string o array) del texto crudo que devuelve
+     * Gemini: si a pesar de la REGLA DE REDACCIÓN se cuela snake_case,
+     * corchetes o comillas de array/JSON, se limpia para que nunca le
+     * llegue a Recursos Humanos texto con forma de código.
+     */
+    private function limpiarTextoHallazgoV6($item): string
+    {
+        if (is_array($item)) {
+            $texto = $item['descripcion'] ?? $item['detalle'] ?? $item['nota'] ?? implode(' - ', array_filter(array_map('strval', $item)));
+        } else {
+            $texto = (string) $item;
+        }
+        $texto = preg_replace('/\b[a-z][a-z0-9]*(_[a-z0-9]+)+\b/', ' esto ', $texto);
+        $texto = str_replace(["['", "']", '["', '"]', "[", "]"], '', $texto);
+        return trim(preg_replace('/\s+/', ' ', $texto));
+    }
+
+    /**
+     * Evalúa los 6 motores V6 relevantes para negocio contra los resultados
+     * crudos de ejecutarValidacionesV6() y devuelve, por motor: título,
+     * ícono, estado ('ok'/'atencion'/'riesgo'/'na') y hallazgos ya
+     * limpiados (SIN recortar - la vista decide cuántos mostrar). Usado
+     * tanto por el job (para decidir si hace falta corregir la
+     * recomendación) como por validaciones-v6-resumen.blade.php (para
+     * mostrar el checklist) - única fuente de verdad para ambos.
+     */
+    public function evaluarMotoresV6(array $resultados): array
+    {
+        $filas = [];
+        foreach ($this->metaVerificacionesV6() as $clave => $meta) {
+            $r = $resultados[$clave] ?? null;
+            $fallo = !is_array($r) || isset($r['error']);
+            $valor = $fallo ? null : ($r[$meta['campo']] ?? null);
+
+            $hallazgos = [];
+            if (!$fallo) {
+                foreach (array_keys($meta['listas']) as $listaKey) {
+                    foreach (($r[$listaKey] ?? []) as $item) {
+                        $hallazgos[] = $this->limpiarTextoHallazgoV6($item);
+                    }
+                }
+            }
+
+            if ($fallo) {
+                $estado = 'na';
+            } elseif (in_array($valor, $meta['malos'], true) || count($hallazgos) > 0) {
+                $estado = 'riesgo';
+            } elseif (in_array($valor, $meta['buenos'], true)) {
+                $estado = 'ok';
+            } else {
+                $estado = 'atencion';
+            }
+
+            $filas[$clave] = [
+                'titulo'    => $meta['titulo'],
+                'icon'      => $meta['icon'],
+                'estado'    => $estado,
+                'hallazgos' => $hallazgos,
+            ];
+        }
+
+        return $filas;
+    }
+
+    /**
+     * Si evaluarMotoresV6() marcó algún motor como 'riesgo', se pide UNA
+     * corrección de la recomendación original en el MISMO esquema JSON de
+     * analizarYSugerirSanciones(), indicando exactamente qué hallazgos debe
+     * resolver. Nunca se reemplaza la recomendación en silencio: devuelve
+     * además "resumen_correccion" en español simple para mostrarlo con
+     * transparencia en el modal (ver correccion_v6_motivo en el modelo).
+     *
+     * Se llama UNA sola vez por ciclo de análisis (no hay recursión): el
+     * job re-evalúa los motores sobre la versión corregida para refrescar
+     * el checklist, pero no vuelve a llamar a este método aunque el
+     * resultado corregido siga marcando algo grave.
+     */
+    public function corregirRecomendacionConHallazgosV6(ProcesoDisciplinario $proceso, array $analisisOriginal, array $hallazgosGraves): array
+    {
+        $empresa = $proceso->empresa;
+        [$sancionesRIT, $contextoRITRag] = $this->obtenerContextoRIT($empresa, $proceso);
+        $contextoCST            = $this->obtenerContextoCST($proceso);
+        $contextoJurisprudencia = $this->obtenerContextoJurisprudencia($proceso);
+        $contextoDescargos      = $this->obtenerContextoDescargos($proceso);
+        $ritTexto = $contextoRITRag ?: (
+            !empty($sancionesRIT) ? json_encode($sancionesRIT, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : '(sin RIT disponible)'
+        );
+
+        $hallazgosTexto = '';
+        foreach ($hallazgosGraves as $motor) {
+            $hallazgosTexto .= "- {$motor['titulo']}:\n";
+            foreach ($motor['hallazgos'] as $h) {
+                $hallazgosTexto .= "    - {$h}\n";
+            }
+        }
+
+        $analisisJson = json_encode($analisisOriginal, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+        $prompt = <<<PROMPT
+Eres el mismo abogado laboralista que preparó la recomendación de sanción de abajo.
+Una revisión adicional automática encontró problemas GRAVES en esa recomendación (ver
+"PROBLEMAS A RESOLVER"). Tu tarea es preparar una VERSIÓN CORREGIDA de la recomendación
+que resuelva esos problemas, sin inventar hechos nuevos. Sigues sin decidir la sanción -
+solo preparas una recomendación para la persona autorizada en la empresa que decidirá.
+
+REGLAS PARA LA CORRECCIÓN:
+- Si un problema señala que falta verificar un hecho alegado por el trabajador (ej. una
+  excusa médica no confirmada), la corrección debe reflejarlo en
+  "recomendacion_final.estado_recomendacion" = "condicionada" (nunca "sancionar"),
+  dejándolo explícito en "mensaje_para_decision".
+- Si un problema señala una contradicción interna (ej. dos sanciones distintas para el
+  mismo caso en distintas partes del JSON), la corrección debe dejar UNA sola línea
+  coherente en todo el documento.
+- Si un problema señala que un hecho de la recomendación no aparece en los hechos
+  investigados originales, elimina esa afirmación de la recomendación - no la sostengas.
+- Nunca agraves la sanción solo por corregir; ajusta ÚNICAMENTE lo necesario para resolver
+  los problemas señalados, manteniendo todo lo demás que ya estaba bien.
+- Mantén EXACTAMENTE el mismo esquema JSON de la recomendación original (las mismas
+  claves, con la misma estructura).
+
+RECOMENDACIÓN ORIGINAL (a corregir):
+{$analisisJson}
+
+PROBLEMAS GRAVES A RESOLVER (detectados por la revisión adicional):
+{$hallazgosTexto}
+
+REGLAMENTO INTERNO DE {$empresa->nombre_completo}:
+{$ritTexto}
+
+CÓDIGO SUSTANTIVO DEL TRABAJO (artículos aplicables):
+{$contextoCST}
+
+JURISPRUDENCIA APLICABLE:
+{$contextoJurisprudencia}
+
+DESCARGOS DEL TRABAJADOR:
+{$contextoDescargos}
+
+Responde EXACTAMENTE con el mismo JSON de la recomendación original (todas sus claves,
+corrigiendo solo lo necesario) y agrega ADEMÁS esta clave nueva al final del objeto:
+"resumen_correccion": una frase corta (máximo 35 palabras) en español simple, sin
+tecnicismos, dirigida a una persona de Recursos Humanos, explicando QUÉ se ajustó en la
+recomendación y POR QUÉ (ej. "Se cambió la recomendación a condicionada porque no se
+había verificado la excusa médica que alegó el trabajador.").
+Genera SOLO el JSON, sin markdown ni texto fuera del objeto.
+PROMPT;
+
+        $respuesta = $this->llamarGemini($prompt);
+
+        return $this->parsearAnalisisIA($respuesta);
+    }
+
+    /**
      * Bloque de contexto compartido por los 8 motores V6: hechos, la
      * recomendación ya generada por analizarYSugerirSanciones(), y el
      * historial del trabajador (para precedentes/uniformidad).

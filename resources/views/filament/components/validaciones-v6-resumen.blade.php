@@ -14,103 +14,23 @@
     $estado     = $estado ?? null;
     $resultados = is_array($resultados ?? null) ? $resultados : [];
 
-    // Cada verificación: título en lenguaje simple (nada de "motor"/"V6"/nombres
-    // técnicos), el campo que decide si está bien o mal, y qué listas del JSON
-    // contienen los hallazgos a mostrar.
-    $verificaciones = [
-        'ponderacion_evidencia' => [
-            'titulo' => 'Fuerza de las pruebas', 'icon' => 'heroicon-o-scale',
-            'campo' => 'peso_global', 'buenos' => ['MUY_ALTO', 'ALTO'], 'malos' => ['BAJO', 'NULO'],
-            'listas' => [],
-        ],
-        'resolucion_conflictos' => [
-            'titulo' => 'Contradicciones entre las pruebas', 'icon' => 'heroicon-o-arrows-right-left',
-            'campo' => 'impacto', 'buenos' => ['BAJO', 'NULO'], 'malos' => ['ALTO'],
-            'listas' => ['conflictos_pendientes' => null],
-        ],
-        'congruencia_juridica' => [
-            'titulo' => 'Coherencia del caso', 'icon' => 'heroicon-o-link',
-            'campo' => 'nivel_riesgo', 'buenos' => ['BAJO'], 'malos' => ['ALTO'],
-            'listas' => ['incongruencias' => null],
-        ],
-        // 'explicabilidad' se calcula igual (ejecutarValidacionesV6 sigue
-        // corriendo los 8) pero NO se muestra aquí: audita si el propio
-        // razonamiento de la IA es rastreable, un concepto de control de
-        // calidad interno del modelo - no es información que una persona de
-        // Recursos Humanos pueda usar para decidir algo. Queda solo en
-        // $proceso->validaciones_v6 por si CES Legal quiere revisarlo.
-        'simulacion_judicial' => [
-            'titulo' => 'Resistencia ante una revisión judicial', 'icon' => 'heroicon-o-building-library',
-            'campo' => 'probabilidad_resistencia_judicial', 'buenos' => ['MUY_PROBABLE', 'PROBABLE'], 'malos' => ['IMPROBABLE', 'MUY_IMPROBABLE'],
-            'listas' => ['debilidades' => null, 'riesgos' => null],
-        ],
-        'precedentes_internos' => [
-            'titulo' => 'Consistencia con casos anteriores', 'icon' => 'heroicon-o-archive-box',
-            'campo' => 'nivel_consistencia', 'buenos' => ['ALTO', 'SIN_PRECEDENTE'], 'malos' => ['INCONSISTENTE', 'BAJO'],
-            'listas' => ['alertas' => null],
-        ],
-        'uniformidad_disciplinaria' => [
-            'titulo' => 'Trato igualitario frente a casos similares', 'icon' => 'heroicon-o-users',
-            'campo' => 'uniformidad', 'buenos' => ['ALTA'], 'malos' => ['BAJA'],
-            'listas' => ['riesgos_discriminacion' => null, 'inconsistencias' => null],
-        ],
-        // 'calidad_documental' tampoco se muestra por el mismo motivo:
-        // revisa ortografía/formato/consistencia del texto generado, no
-        // riesgo legal ni algo accionable para quien decide la sanción.
-    ];
-
-    $textoDeItem = function ($item): string {
-        if (is_array($item)) {
-            $texto = $item['descripcion'] ?? $item['detalle'] ?? $item['nota'] ?? implode(' - ', array_filter(array_map('strval', $item)));
-        } else {
-            $texto = (string) $item;
-        }
-        // Defensa: si a pesar de la instrucción del prompt se cuela sintaxis
-        // técnica (snake_case, corchetes, comillas de array/JSON), se limpia
-        // para que no le llegue a Recursos Humanos texto tipo código.
-        $texto = preg_replace('/\b[a-z][a-z0-9]*(_[a-z0-9]+)+\b/', ' esto ', $texto);
-        $texto = str_replace(["['", "']", '["', '"]', "[", "]"], '', $texto);
-        return trim(preg_replace('/\s+/', ' ', $texto));
-    };
-
+    // La clasificación bien/mal por motor y la limpieza de texto viven en
+    // IAAnalisisSancionService::evaluarMotoresV6() - única fuente de verdad
+    // compartida con EjecutarValidacionesV6Job (que la usa para decidir si
+    // corrige la recomendación). Aquí solo se decide cómo mostrarlo.
     $maxHallazgosV6 = 3;
 
-    // Estado de cada verificación: 'ok' (verde) / 'atencion' (ámbar, no es
-    // claramente bueno ni malo) / 'riesgo' (rojo). Nunca se muestra el valor
-    // crudo del JSON (ALTO/MUY_PROBABLE/SIN_PRECEDENTE/etc.) - solo el ícono
-    // y, si hace falta, los hallazgos en español simple.
+    $filasCrudas = app(\App\Services\IAAnalisisSancionService::class)->evaluarMotoresV6($resultados);
+
     $filas = [];
-    foreach ($verificaciones as $clave => $meta) {
-        $r = $resultados[$clave] ?? null;
-        $fallo = !is_array($r) || isset($r['error']);
-        $valor = $fallo ? null : ($r[$meta['campo']] ?? null);
-
-        $hallazgos = [];
-        if (!$fallo) {
-            foreach (array_keys($meta['listas']) as $listaKey) {
-                foreach (($r[$listaKey] ?? []) as $item) {
-                    $hallazgos[] = $textoDeItem($item);
-                }
-            }
-        }
-
-        if ($fallo) {
-            $estadoFila = 'na';
-        } elseif (in_array($valor, $meta['malos'], true) || count($hallazgos) > 0) {
-            $estadoFila = 'riesgo';
-        } elseif (in_array($valor, $meta['buenos'], true)) {
-            $estadoFila = 'ok';
-        } else {
-            $estadoFila = 'atencion';
-        }
-
-        $totalHallazgos = count($hallazgos);
+    foreach ($filasCrudas as $fila) {
+        $totalHallazgos = count($fila['hallazgos']);
         $filas[] = [
-            'titulo'     => $meta['titulo'],
-            'icon'       => $meta['icon'],
-            'estado'     => $estadoFila,
-            'hallazgos'  => array_slice($hallazgos, 0, $maxHallazgosV6),
-            'ocultos'    => max(0, $totalHallazgos - $maxHallazgosV6),
+            'titulo'    => $fila['titulo'],
+            'icon'      => $fila['icon'],
+            'estado'    => $fila['estado'],
+            'hallazgos' => array_slice($fila['hallazgos'], 0, $maxHallazgosV6),
+            'ocultos'   => max(0, $totalHallazgos - $maxHallazgosV6),
         ];
     }
     $numOk = collect($filas)->where('estado', 'ok')->count();

@@ -1831,6 +1831,21 @@ class ProcesoDisciplinarioResource extends Resource
                         }
                         $analisis = $resultado['analisis'];
 
+                        // Si la revisión V6 en segundo plano encontró algo grave y corrigió
+                        // la recomendación, se usa la versión corregida - pero solo si
+                        // corresponde a ESTE mismo ciclo de análisis (cache todavía vigente;
+                        // si $cacheValido es false aquí es porque se acaba de regenerar un
+                        // análisis nuevo en esta misma petición, y la corrección persistida
+                        // sería de un ciclo anterior). Nunca se reemplaza en silencio: el
+                        // aviso de qué cambió y por qué se muestra en el modal.
+                        $correccionV6Aplicada = $cacheValido
+                            && $record->validaciones_v6_estado === 'completado'
+                            && !empty($record->correccion_v6_motivo)
+                            && is_array($record->analisis_recomendacion);
+                        if ($correccionV6Aplicada) {
+                            $analisis = $record->analisis_recomendacion;
+                        }
+
                         // ¿Tiene RIT activo?
                         $sinRit = !$record->empresa->reglamentoInterno()->where('activo', true)->exists();
 
@@ -1924,6 +1939,15 @@ class ProcesoDisciplinarioResource extends Resource
 
                             // ══ Columna izquierda - Análisis de la IA ════════════════════════
                             Forms\Components\Group::make([
+                            // ── Aviso: la revisión V6 corrigió la recomendación (transparencia) ──
+                            Forms\Components\Placeholder::make('correccion_v6_aviso')
+                                ->hiddenLabel()
+                                ->content(fn() => view('filament.components.emitir-sancion-correccion-v6', [
+                                    'motivo'   => $record->correccion_v6_motivo,
+                                    'original' => $record->analisis_recomendacion_original,
+                                ]))
+                                ->visible($correccionV6Aplicada),
+
                             // ── Tarjetas: Análisis + Recomendación (o error IA) ──────────────
                             Forms\Components\Placeholder::make('analisis_recomendacion_cards')
                                 ->hiddenLabel()
