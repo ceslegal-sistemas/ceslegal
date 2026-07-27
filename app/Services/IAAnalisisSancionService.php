@@ -1299,17 +1299,38 @@ ANTECEDENTES DISCIPLINARIOS DEL TRABAJADOR
 REGLA DE REDACCIÓN PARA TODAS LAS LISTAS DE HALLAZGOS (obligatoria)
 ==================================================
 Quien lee esto es una persona de Recursos Humanos, no un desarrollador ni un
-abogado técnico. Cada hallazgo de cualquier lista (incongruencias, alertas,
-debilidades, riesgos, errores, advertencias, fallas_explicabilidad, etc.):
-- Máximo 4 hallazgos por lista - prioriza los más importantes, descarta el
-  resto en vez de listarlo todo.
-- Cada hallazgo en UNA sola oración, máximo 30 palabras, en español simple.
+abogado técnico. Va a leer como máximo 10 segundos por hallazgo. Cada hallazgo
+de cualquier lista (incongruencias, alertas, debilidades, riesgos, errores,
+advertencias, fallas_explicabilidad, etc.):
+- Máximo 2 hallazgos por lista - reporta solo el o los más graves; si hay
+  más de 2 problemas reales, elige los 2 que más cambiarían la decisión y
+  descarta el resto (no los resumas al final, simplemente omítelos).
+- Cada hallazgo en UNA sola oración corta (máximo 25 palabras), como si se
+  lo explicaras hablando a la persona, sin tecnicismos.
+- Cada hallazgo debe decir: (1) qué falta o qué no cuadra, y (2) por qué le
+  importa a la empresa (ej. "el trabajador dijo que avisó a su jefe pero eso
+  no quedó verificado, así que la sanción podría caerse si él lo alega ante
+  un juez").
+- PROHIBIDO citar los títulos en mayúsculas de este documento (son
+  instrucciones internas tuyas, nunca nombres que el lector conozca) -
+  jamás escribas frases como "esto rompe la Congruencia Fáctica y
+  Probatoria", "viola el Control de Expansión" o "afecta la Trazabilidad".
+  Si necesitas explicar por qué algo es un problema, dilo con tus propias
+  palabras de sentido común, no citando el nombre de la regla.
+- PROHIBIDO usar códigos internos como identificador del hallazgo (ej. no
+  empieces con "C001 -", "H1:", etc.).
 - PROHIBIDO mencionar nombres de campos JSON (ej. "sancion_recomendada",
-  "verificacion_garantias.tipicidad.nota") o rutas técnicas - describe el
-  problema en palabras, no la ubicación del dato.
+  "verificacion_garantias.tipicidad.nota") o rutas técnicas.
 - PROHIBIDO usar corchetes, comillas simples, snake_case o sintaxis de
-  código en el texto del hallazgo - escribe como si se lo explicaras
-  hablando a la persona.
+  código en el texto del hallazgo.
+- Si necesitas comparar dos datos que no coinciden entre sí (por ejemplo,
+  dos partes de la recomendación que se contradicen), nunca uses una
+  palabra genérica como "esto" para reemplazar el dato que no puedes
+  nombrar - en su lugar, describe directamente el CONTENIDO real de cada
+  uno en palabras simples (ej. "en una parte del análisis se sugiere una
+  suspensión, pero en otra parte se habla de un llamado de atención para
+  el mismo caso" - nunca "la clave X indica esto, mientras que Y indica
+  esto").
 - Si no hay ningún hallazgo relevante, devuelve la lista vacía [] - nunca
   fuerces hallazgos menores solo para llenar espacio.
 CONTEXTO;
