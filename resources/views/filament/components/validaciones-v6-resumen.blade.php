@@ -57,7 +57,7 @@
                 <span class="v6chk-spinner" aria-hidden="true"></span>
                 <p style="font-size:12.5px;color:var(--esa-muted);line-height:1.6;margin:0;">
                     Estamos revisando la recomendación con más detalle (coherencia, pruebas, redacción...).
-                    Puede tardar unos minutos - esta ventana se actualiza sola. <strong style="color:var(--esa-text);">Mientras tanto no se puede confirmar la sanción.</strong>
+                    Suele tardar menos de un minuto - esta ventana se actualiza sola. <strong style="color:var(--esa-text);">Mientras tanto no se puede confirmar la sanción.</strong>
                 </p>
             </div>
         @elseif($estado === 'error')

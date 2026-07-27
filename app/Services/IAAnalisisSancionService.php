@@ -1183,14 +1183,17 @@ PROMPT;
      * las otras 7). Devuelve un array con la clave de cada motor y su resultado
      * (o null + 'error' si ese motor específico falló).
      *
-     * ADVERTENCIA DE LATENCIA: esto son 8 llamadas adicionales a Gemini,
-     * ejecutadas de forma síncrona una tras otra. analizarYSugerirSanciones()
-     * ya se llama de forma síncrona y bloqueante desde un Action de Filament
-     * (ver ProcesoDisciplinarioResource.php) - agregar estas 8 llamadas AL
-     * MISMO flujo haría que el botón "Emitir Sanción" tarde mucho más.
-     * Por eso este método NO se invoca automáticamente desde
-     * analizarYSugerirSanciones(): debe cablearse aparte (botón separado,
-     * job en cola, o llamada explícita) según se decida.
+     * Las 8 llamadas se disparan EN PARALELO (Http::pool(), ver
+     * llamarGeminiEnParalelo()) en vez de una tras otra - en serie tardaban
+     * varios minutos (el modal de "Emitir Sanción" bloquea confirmar hasta
+     * que termina, ver ProcesoDisciplinarioResource.php), lo que se sentía
+     * como una espera larga en vez de una revisión "en tiempo real". En
+     * paralelo, el tiempo total es el de la llamada más lenta de las 8
+     * (típicamente bajo un minuto), no la suma de las 8. Si alguna falla en
+     * el intento paralelo (con el modelo principal), se reintenta en serie
+     * con el cascade completo de modelos de llamarGemini() antes de darla
+     * por perdida - por eso esto sigue corriendo en un job en cola y no
+     * dentro del mismo request que genera la recomendación inicial.
      */
     public function ejecutarValidacionesV6(ProcesoDisciplinario $proceso, array $analisisSancion): array
     {
@@ -1207,11 +1210,22 @@ PROMPT;
             'calidad_documental'          => 'construirPromptCalidadDocumentalV6',
         ];
 
+        $prompts = [];
+        foreach ($motores as $clave => $metodo) {
+            $prompts[$clave] = $this->{$metodo}($contexto);
+        }
+
+        $respuestas = $this->llamarGeminiEnParalelo($prompts);
+
         $resultados = [];
         foreach ($motores as $clave => $metodo) {
             try {
-                $prompt = $this->{$metodo}($contexto);
-                $respuesta = $this->llamarGemini($prompt);
+                $respuesta = $respuestas[$clave] ?? null;
+                if ($respuesta === null) {
+                    // Falló en el intento paralelo (solo probó el modelo
+                    // principal) - reintentar en serie con el cascade completo.
+                    $respuesta = $this->llamarGemini($prompts[$clave]);
+                }
                 $resultados[$clave] = $this->parsearJsonV6($respuesta);
             } catch (\Throwable $e) {
                 Log::warning("IAAnalisisSancion: motor V6 '{$clave}' falló", [
@@ -1223,6 +1237,76 @@ PROMPT;
         }
 
         return $resultados;
+    }
+
+    /**
+     * Dispara varios prompts EN PARALELO contra Gemini (solo el modelo
+     * principal - sin el cascade de respaldo de llamarGemini(), que es
+     * inherentemente secuencial por prompt). Devuelve [clave => texto] para
+     * los que respondieron bien y [clave => null] para los que fallaron
+     * (el llamador decide si los reintenta en serie con el cascade completo).
+     */
+    private function llamarGeminiEnParalelo(array $prompts): array
+    {
+        if (empty($prompts)) {
+            return [];
+        }
+
+        if (GeminiCircuitBreaker::isOpen()) {
+            return array_fill_keys(array_keys($prompts), null);
+        }
+
+        $config = config('services.ia.gemini', []);
+        $apiKey = $config['api_key'] ?? config('services.ia.' . config('services.ia.provider', 'gemini') . '.api_key');
+        $modelo = $config['model'] ?? 'gemini-2.5-flash';
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent?key={$apiKey}";
+        $maxTokens = max((int) ($config['max_tokens'] ?? 4096), 16384);
+
+        $claves = array_keys($prompts);
+
+        $respuestasPool = Http::pool(fn (\Illuminate\Http\Client\Pool $pool) => array_map(
+            fn (string $clave) => $pool->as($clave)
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->timeout(90)
+                ->post($url, [
+                    'contents' => [['parts' => [['text' => $prompts[$clave]]]]],
+                    'generationConfig' => [
+                        'temperature' => 0.3,
+                        'maxOutputTokens' => $maxTokens,
+                        'topP' => 0.95,
+                    ],
+                ]),
+            $claves
+        ));
+
+        $resultado = [];
+        foreach ($claves as $clave) {
+            $resp = $respuestasPool[$clave] ?? null;
+
+            if ($resp instanceof \Throwable || $resp === null) {
+                GeminiCircuitBreaker::recordFailure($modelo);
+                $resultado[$clave] = null;
+                continue;
+            }
+
+            if (!$resp->successful()) {
+                GeminiCircuitBreaker::recordFailure($modelo);
+                $resultado[$clave] = null;
+                continue;
+            }
+
+            $texto = $resp->json('candidates.0.content.parts.0.text');
+            if (!is_string($texto) || $texto === '') {
+                GeminiCircuitBreaker::recordFailure($modelo);
+                $resultado[$clave] = null;
+                continue;
+            }
+
+            GeminiCircuitBreaker::recordSuccess();
+            $resultado[$clave] = $texto;
+        }
+
+        return $resultado;
     }
 
     /**

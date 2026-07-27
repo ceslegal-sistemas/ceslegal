@@ -2201,7 +2201,7 @@ class ProcesoDisciplinarioResource extends Resource
                             \Filament\Notifications\Notification::make()
                                 ->warning()
                                 ->title('Todavía estamos revisando esta recomendación')
-                                ->body('La revisión de calidad adicional (coherencia, pruebas, redacción...) no ha terminado. Este panel se actualiza solo - espere unos minutos y presione "Continuar" de nuevo.')
+                                ->body('La revisión de calidad adicional (coherencia, pruebas, redacción...) no ha terminado. Este panel se actualiza solo - espere un momento (suele tardar menos de un minuto) y presione "Continuar" de nuevo.')
                                 ->persistent()
                                 ->send();
 

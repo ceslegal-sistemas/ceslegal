@@ -16,7 +16,13 @@ class EjecutarValidacionesV6Job implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** 8 motores secuenciales, cada uno con su propio cascade de modelos. */
+    /**
+     * Los 8 motores corren en paralelo (~1 min típico, ver
+     * IAAnalisisSancionService::llamarGeminiEnParalelo()), pero el timeout
+     * generoso cubre el peor caso: corrección automática + re-validación +
+     * consolidación, más el cascade de modelos en serie si algún motor
+     * falla en el intento paralelo.
+     */
     public int $timeout = 900;
 
     /** Cada motor ya maneja sus propios fallos internamente (ver ejecutarValidacionesV6). */
