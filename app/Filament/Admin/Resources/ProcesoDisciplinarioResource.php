@@ -1819,6 +1819,12 @@ class ProcesoDisciplinarioResource extends Resource
                                 || str_contains($resultado['analisis']['justificacion'] ?? '', 'Análisis manual requerido');
                             if (!$esFallback) {
                                 session([$cacheKey => $resultado]);
+                                // Validación V6 (Ponderación de Evidencia, Congruencia Jurídica,
+                                // Simulación Judicial, etc.) en segundo plano - no bloquea este
+                                // formulario. Se dispara una sola vez por análisis nuevo (no en
+                                // cada re-render desde caché) para no re-encolar de más.
+                                $record->update(['validaciones_v6_estado' => 'pendiente']);
+                                \App\Jobs\EjecutarValidacionesV6Job::dispatch($record, $resultado['analisis']);
                             }
                         } else {
                             $esFallback = false; // viene de caché = ya fue exitoso
