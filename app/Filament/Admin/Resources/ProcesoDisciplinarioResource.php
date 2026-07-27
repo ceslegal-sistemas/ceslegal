@@ -1935,6 +1935,20 @@ class ProcesoDisciplinarioResource extends Resource
                                         'opcionesSancion'         => $opcionesSancion,
                                         'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
                                     ])),
+
+                            // ── Validaciones V6 (auditoría en segundo plano) ─────────────────
+                            //    Se calculan cuando se genera un análisis NUEVO (no desde caché)
+                            //    vía EjecutarValidacionesV6Job; se leen aquí desde la BD, no
+                            //    hacen polling en vivo dentro del modal (cerrar/reabrir para ver
+                            //    el resultado actualizado si todavía estaba "procesando").
+                            Forms\Components\Placeholder::make('validaciones_v6_resumen')
+                                ->hiddenLabel()
+                                ->content(fn() => view('filament.components.validaciones-v6-resumen', [
+                                    'estado'     => $record->validaciones_v6_estado,
+                                    'resultados' => $record->validaciones_v6,
+                                    'en'         => $record->validaciones_v6_en,
+                                ]))
+                                ->visible(!$esFallback),
                             ])->columnSpan(['default' => 1, 'lg' => 7]),
 
                             // ══ Columna derecha - Decisión y verificación ════════════════════
