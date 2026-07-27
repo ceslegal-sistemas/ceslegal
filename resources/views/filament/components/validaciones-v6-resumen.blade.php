@@ -69,23 +69,40 @@
     };
 
     $textoDeItem = function ($item): string {
-        if (is_string($item)) return $item;
         if (is_array($item)) {
-            return $item['descripcion'] ?? $item['detalle'] ?? $item['nota'] ?? implode(' - ', array_filter(array_map('strval', $item)));
+            $texto = $item['descripcion'] ?? $item['detalle'] ?? $item['nota'] ?? implode(' - ', array_filter(array_map('strval', $item)));
+        } else {
+            $texto = (string) $item;
         }
-        return (string) $item;
+        // Defensa: si a pesar de la instrucción del prompt se cuela sintaxis
+        // técnica (snake_case, corchetes, comillas de array/JSON), se limpia
+        // para que no le llegue a Recursos Humanos texto tipo código.
+        $texto = preg_replace('/\b[a-z][a-z0-9]*(_[a-z0-9]+)+\b/', ' esto ', $texto);
+        $texto = str_replace(["['", "']", '["', '"]', "[", "]"], '', $texto);
+        return trim(preg_replace('/\s+/', ' ', $texto));
     };
 
-    // Cuántos motores señalan algo que requiere atención (para el resumen de arriba).
+    // Máximo de hallazgos que se muestran por motor - el prompt ya pide un
+    // máximo de 4, esto es solo una defensa adicional si un motor devuelve más.
+    $maxHallazgosV6 = 4;
+
+    // Cuántos motores señalan algo que requiere atención (para el resumen de
+    // arriba) - CADA MOTOR CUENTA UNA SOLA VEZ, sin importar cuántas cosas
+    // distintas tenga para revisar (antes se podía contar dos veces el mismo
+    // motor - valor "malo" + lista con contenido - dando totales absurdos
+    // como "9 de 8").
     $motoresConAlerta = 0;
     foreach ($motoresV6 as $clave => $meta) {
         $r = $resultados[$clave] ?? null;
         if (!is_array($r) || isset($r['error'])) continue;
         $valor = $r[$meta['campo']] ?? null;
-        if (in_array($valor, $meta['malos'], true)) $motoresConAlerta++;
-        foreach (array_keys($meta['listas']) as $listaKey) {
-            if (!empty($r[$listaKey])) { $motoresConAlerta++; break; }
+        $tieneAlerta = in_array($valor, $meta['malos'], true);
+        if (!$tieneAlerta) {
+            foreach (array_keys($meta['listas']) as $listaKey) {
+                if (!empty($r[$listaKey])) { $tieneAlerta = true; break; }
+            }
         }
+        if ($tieneAlerta) $motoresConAlerta++;
     }
 @endphp
 
@@ -138,6 +155,9 @@
                                 }
                             }
                         }
+                        $totalHallazgos = count($hallazgos);
+                        $hallazgosOcultos = max(0, $totalHallazgos - $maxHallazgosV6);
+                        $hallazgos = array_slice($hallazgos, 0, $maxHallazgosV6);
                     @endphp
                     <details style="border:1px solid {{ $color }}33; border-radius:8px; background:{{ $color }}0a;">
                         <summary style="padding:8px 11px; cursor:pointer; list-style:none; display:flex; align-items:center; gap:8px; font-size:12.5px;">
@@ -158,6 +178,11 @@
                                         <span style="opacity:.65;font-weight:600;">{{ $h['grupo'] }}:</span> {{ $h['texto'] }}
                                     </p>
                                 @endforeach
+                                @if($hallazgosOcultos > 0)
+                                    <p style="font-size:11.5px;color:var(--esa-muted);margin:6px 0 0;font-style:italic;">
+                                        +{{ $hallazgosOcultos }} observación{{ $hallazgosOcultos > 1 ? 'es' : '' }} adicional{{ $hallazgosOcultos > 1 ? 'es' : '' }} sin mostrar.
+                                    </p>
+                                @endif
                             </div>
                         @elseif(!$fallo)
                             <div style="padding:0 11px 10px 33px;">

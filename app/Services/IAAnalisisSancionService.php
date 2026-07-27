@@ -1233,6 +1233,7 @@ PROMPT;
     private function construirContextoV6(ProcesoDisciplinario $proceso, array $analisisSancion): string
     {
         $trabajador = $proceso->trabajador;
+        $empresa    = $proceso->empresa;
         $hechosTexto = strip_tags($proceso->hechos);
         $recomendacionJson = json_encode($analisisSancion, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         $historialProcesos = $this->obtenerHistorialProcesos($trabajador, $proceso->id);
@@ -1244,6 +1245,20 @@ PROMPT;
             $historialTexto = '(sin procesos disciplinarios previos)';
         }
 
+        // Mismas fuentes que usó analizarYSugerirSanciones() para redactar la
+        // recomendación - sin esto, motores como Explicabilidad/Congruencia
+        // marcaban como "no trazable" cada cita al RIT o al CST que la
+        // recomendación SÍ sustentaba correctamente, solo que en un contexto
+        // que estos 8 motores nunca recibían.
+        [$sancionesRIT, $contextoRITRag] = $this->obtenerContextoRIT($empresa, $proceso);
+        $contextoCST            = $this->obtenerContextoCST($proceso);
+        $contextoJurisprudencia = $this->obtenerContextoJurisprudencia($proceso);
+        $contextoDescargos      = $this->obtenerContextoDescargos($proceso);
+
+        $ritTexto = $contextoRITRag ?: (
+            !empty($sancionesRIT) ? json_encode($sancionesRIT, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : '(sin RIT disponible)'
+        );
+
         return <<<CONTEXTO
 ==================================================
 EXPEDIENTE DEL CASO
@@ -1254,6 +1269,22 @@ Cargo: {$trabajador->cargo}
 Hechos investigados:
 {$hechosTexto}
 
+Descargos del trabajador:
+{$contextoDescargos}
+
+==================================================
+NORMATIVA DISPONIBLE (misma fuente que usó la recomendación - para verificar
+que cada cita sea trazable, NO para reinterpretarla con conocimiento externo)
+==================================================
+REGLAMENTO INTERNO DE {$empresa->nombre_completo}:
+{$ritTexto}
+
+CÓDIGO SUSTANTIVO DEL TRABAJO (artículos aplicables):
+{$contextoCST}
+
+JURISPRUDENCIA APLICABLE:
+{$contextoJurisprudencia}
+
 ==================================================
 RECOMENDACIÓN YA GENERADA (a validar, no a decidir de nuevo)
 ==================================================
@@ -1263,6 +1294,24 @@ RECOMENDACIÓN YA GENERADA (a validar, no a decidir de nuevo)
 ANTECEDENTES DISCIPLINARIOS DEL TRABAJADOR
 ==================================================
 {$historialTexto}
+
+==================================================
+REGLA DE REDACCIÓN PARA TODAS LAS LISTAS DE HALLAZGOS (obligatoria)
+==================================================
+Quien lee esto es una persona de Recursos Humanos, no un desarrollador ni un
+abogado técnico. Cada hallazgo de cualquier lista (incongruencias, alertas,
+debilidades, riesgos, errores, advertencias, fallas_explicabilidad, etc.):
+- Máximo 4 hallazgos por lista - prioriza los más importantes, descarta el
+  resto en vez de listarlo todo.
+- Cada hallazgo en UNA sola oración, máximo 30 palabras, en español simple.
+- PROHIBIDO mencionar nombres de campos JSON (ej. "sancion_recomendada",
+  "verificacion_garantias.tipicidad.nota") o rutas técnicas - describe el
+  problema en palabras, no la ubicación del dato.
+- PROHIBIDO usar corchetes, comillas simples, snake_case o sintaxis de
+  código en el texto del hallazgo - escribe como si se lo explicaras
+  hablando a la persona.
+- Si no hay ningún hallazgo relevante, devuelve la lista vacía [] - nunca
+  fuerces hallazgos menores solo para llenar espacio.
 CONTEXTO;
     }
 
