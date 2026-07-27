@@ -2189,6 +2189,24 @@ class ProcesoDisciplinarioResource extends Resource
                         )
                     )
                     ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
+                        // No permitir confirmar mientras la revisión de calidad adicional
+                        // (motores V6 + posible auto-corrección) sigue en curso: si el cliente
+                        // pudiera confirmar antes de que termine, una corrección grave (ej.
+                        // bajar el estado a "condicionada" por un hecho sin verificar) nunca
+                        // llegaría a aplicarse. Solo bloquea cuando SABEMOS que está en curso
+                        // (pendiente/procesando); si nunca se disparó (null) o ya terminó
+                        // (completado/error) se deja continuar con normalidad.
+                        if (in_array($record->validaciones_v6_estado, ['pendiente', 'procesando'], true)) {
+                            \Filament\Notifications\Notification::make()
+                                ->warning()
+                                ->title('Todavía estamos revisando esta recomendación')
+                                ->body('La revisión de calidad adicional (coherencia, pruebas, redacción...) no ha terminado. Este panel se actualiza solo - espere unos minutos y presione "Continuar" de nuevo.')
+                                ->persistent()
+                                ->send();
+
+                            $action->halt();
+                        }
+
                         // Validación visible de la foto del autorizador (campo oculto). Si no
                         // se tomó, avisamos con un mensaje claro y detenemos, sin dejar al
                         // usuario con la duda de qué falta.

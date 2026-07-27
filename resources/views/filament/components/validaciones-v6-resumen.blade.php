@@ -6,9 +6,12 @@
     confirmar? Variables esperadas: $estado (string|null), $resultados
     (array|null), $en (\Carbon\Carbon|null).
 
-    Este contenido se calcula al abrir el modal - si el job todavía no
-    terminó, hay que cerrar y volver a abrir "Emitir Sanción" más tarde para
-    ver el resultado actualizado (no hace polling en vivo).
+    Mientras el job sigue en curso, este panel se refresca solo cada pocos
+    segundos (wire:poll) - no hace falta cerrar y reabrir el modal. El botón
+    "Continuar" del modal está bloqueado en el servidor mientras el estado es
+    pendiente/procesando (ver ->action() de la acción emitir_sancion en
+    ProcesoDisciplinarioResource.php) para que nunca se pueda confirmar la
+    recomendación antes de que una posible corrección automática se aplique.
 --}}
 @php
     $estado     = $estado ?? null;
@@ -38,15 +41,18 @@
 @endphp
 
 @if($estado)
-<div class="esa-card v6chk-wrap" style="margin-top:10px;">
+<div class="esa-card v6chk-wrap" style="margin-top:10px;" @if(in_array($estado, ['pendiente', 'procesando'], true)) wire:poll.4000ms @endif>
     <div style="padding:14px 18px;">
         <p class="esa-label">Revisión de calidad de la recomendación</p>
 
         @if(in_array($estado, ['pendiente', 'procesando'], true))
-            <p style="font-size:12.5px;color:var(--esa-muted);line-height:1.6;margin:6px 0 0;">
-                Estamos revisando la recomendación con más detalle (coherencia, pruebas, redacción...).
-                Puede tardar unos minutos - cierre y vuelva a abrir "Emitir Sanción" para ver el resultado.
-            </p>
+            <div style="display:flex;align-items:center;gap:8px;margin:8px 0 0;">
+                <span class="v6chk-spinner" aria-hidden="true"></span>
+                <p style="font-size:12.5px;color:var(--esa-muted);line-height:1.6;margin:0;">
+                    Estamos revisando la recomendación con más detalle (coherencia, pruebas, redacción...).
+                    Puede tardar unos minutos - esta ventana se actualiza sola. <strong style="color:var(--esa-text);">Mientras tanto no se puede confirmar la sanción.</strong>
+                </p>
+            </div>
         @elseif($estado === 'error')
             <p style="font-size:12.5px;color:var(--esa-muted);line-height:1.6;margin:6px 0 0;">
                 No se pudo completar esta revisión adicional. Esto no bloquea la emisión de la sanción -
@@ -127,5 +133,8 @@ div.v6chk-head{cursor:default;}
 .v6chk-item[open] .v6chk-chevron{transform:rotate(90deg);}
 .v6chk-body{padding:0 10px 9px 34px;}
 .v6chk-li{font-size:12px;color:var(--esa-text);line-height:1.55;display:flex;gap:6px;margin:3px 0 0;}
+.v6chk-spinner{flex-shrink:0;width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,0,0,.12);border-top-color:#2563eb;animation:v6chkspin .8s linear infinite;}
+html.dark .v6chk-spinner{border-color:rgba(255,255,255,.15);border-top-color:#60a5fa;}
+@keyframes v6chkspin{to{transform:rotate(360deg);}}
 </style>
 @endif
