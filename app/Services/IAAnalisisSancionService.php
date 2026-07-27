@@ -643,7 +643,7 @@ class IAAnalisisSancionService
         return <<<PROMPT
 Eres un abogado laboralista colombiano experto en procesos disciplinarios. Tu rol es OBJETIVO E IMPARCIAL: tu deber es proteger el debido proceso, no justificar una sanción. NO asumas que el caso debe terminar en sanción. Si los descargos desvirtúan la falta, la prueba es insuficiente o la conducta no está tipificada en el RIT, debes decirlo y recomendar NO sancionar.
 
-Determina la(s) sanción(es) jurídicamente válida(s) basándote EXCLUSIVAMENTE en estas fuentes, en este orden de prioridad:
+Identifica la(s) alternativa(s) de sanción legalmente admisibles basándote EXCLUSIVAMENTE en estas fuentes, en este orden de prioridad, y prepara una recomendación para la persona autorizada en la empresa que tomará la decisión final:
 
 1. EL REGLAMENTO INTERNO DE TRABAJO (RIT) DE LA EMPRESA - fuente primaria: define qué conductas son faltas y qué sanciones contempla.
 2. EL CÓDIGO SUSTANTIVO DEL TRABAJO (CST) - solo los artículos del bloque "CONTEXTO LEGAL CST" más abajo. Nunca inventes números de artículos.
@@ -1156,5 +1156,788 @@ PROMPT;
                 'mensaje_para_decision' => 'El análisis automático no estuvo disponible. Se recomienda revisar manualmente el caso antes de tomar una decisión. Considere los hechos, los motivos seleccionados, el historial del trabajador y los descargos presentados.',
             ],
         ];
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // MOTORES V6 (prompt del jefe) - capas de validación POSTERIORES a la
+    // recomendación ya generada por analizarYSugerirSanciones(). Cada motor
+    // hace UNA sola cosa (evidencia, conflictos, congruencia, explicabilidad,
+    // simulación judicial, precedentes, uniformidad, calidad documental) y
+    // nunca reemplaza ni decide la sanción - solo la audita.
+    //
+    // Lenguaje corregido respecto al documento original: el texto del jefe
+    // usaba repetidamente "decisión disciplinaria" / "emitir la decisión" /
+    // "medida disciplinaria que impone el sistema", dando a entender que la
+    // IA decide o impone la sanción. Se reemplazó sistemáticamente por
+    // "recomendación" / "sanción recomendada" / "preparar una recomendación
+    // para la persona autorizada que tomará la decisión" - la empresa sigue
+    // siendo quien decide, tal como ya lo dice IAAnalisisSancionService en su
+    // prompt principal ("el sistema NO decide por la empresa; le PRESENTA
+    // OPCIONES para que ELLA elija").
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Ejecuta los 8 motores V6 en secuencia sobre una recomendación ya generada.
+     * Cada motor corre de forma independiente - si uno falla, se registra el
+     * error y se continúa con los demás (una validación caída no debe tumbar
+     * las otras 7). Devuelve un array con la clave de cada motor y su resultado
+     * (o null + 'error' si ese motor específico falló).
+     *
+     * ADVERTENCIA DE LATENCIA: esto son 8 llamadas adicionales a Gemini,
+     * ejecutadas de forma síncrona una tras otra. analizarYSugerirSanciones()
+     * ya se llama de forma síncrona y bloqueante desde un Action de Filament
+     * (ver ProcesoDisciplinarioResource.php) - agregar estas 8 llamadas AL
+     * MISMO flujo haría que el botón "Emitir Sanción" tarde mucho más.
+     * Por eso este método NO se invoca automáticamente desde
+     * analizarYSugerirSanciones(): debe cablearse aparte (botón separado,
+     * job en cola, o llamada explícita) según se decida.
+     */
+    public function ejecutarValidacionesV6(ProcesoDisciplinario $proceso, array $analisisSancion): array
+    {
+        $contexto = $this->construirContextoV6($proceso, $analisisSancion);
+
+        $motores = [
+            'ponderacion_evidencia'       => 'construirPromptPonderacionEvidenciaV6',
+            'resolucion_conflictos'       => 'construirPromptResolucionConflictosV6',
+            'congruencia_juridica'        => 'construirPromptCongruenciaJuridicaV6',
+            'explicabilidad'              => 'construirPromptExplicabilidadV6',
+            'simulacion_judicial'         => 'construirPromptSimulacionJudicialV6',
+            'precedentes_internos'        => 'construirPromptPrecedentesInternosV6',
+            'uniformidad_disciplinaria'   => 'construirPromptUniformidadDisciplinariaV6',
+            'calidad_documental'          => 'construirPromptCalidadDocumentalV6',
+        ];
+
+        $resultados = [];
+        foreach ($motores as $clave => $metodo) {
+            try {
+                $prompt = $this->{$metodo}($contexto);
+                $respuesta = $this->llamarGemini($prompt);
+                $resultados[$clave] = $this->parsearJsonV6($respuesta);
+            } catch (\Throwable $e) {
+                Log::warning("IAAnalisisSancion: motor V6 '{$clave}' falló", [
+                    'proceso_id' => $proceso->id,
+                    'error'      => $e->getMessage(),
+                ]);
+                $resultados[$clave] = ['error' => $e->getMessage()];
+            }
+        }
+
+        return $resultados;
+    }
+
+    /**
+     * Bloque de contexto compartido por los 8 motores V6: hechos, la
+     * recomendación ya generada por analizarYSugerirSanciones(), y el
+     * historial del trabajador (para precedentes/uniformidad).
+     */
+    private function construirContextoV6(ProcesoDisciplinario $proceso, array $analisisSancion): string
+    {
+        $trabajador = $proceso->trabajador;
+        $hechosTexto = strip_tags($proceso->hechos);
+        $recomendacionJson = json_encode($analisisSancion, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        $historialProcesos = $this->obtenerHistorialProcesos($trabajador, $proceso->id);
+        $historialTexto = '';
+        foreach ($historialProcesos as $index => $proc) {
+            $historialTexto .= ($index + 1) . ". Fecha: {$proc['fecha']} - Hechos: {$proc['hechos']} - Sanción aplicada: {$proc['sancion']}\n";
+        }
+        if ($historialTexto === '') {
+            $historialTexto = '(sin procesos disciplinarios previos)';
+        }
+
+        return <<<CONTEXTO
+==================================================
+EXPEDIENTE DEL CASO
+==================================================
+Trabajador: {$trabajador->nombre_completo}
+Cargo: {$trabajador->cargo}
+
+Hechos investigados:
+{$hechosTexto}
+
+==================================================
+RECOMENDACIÓN YA GENERADA (a validar, no a decidir de nuevo)
+==================================================
+{$recomendacionJson}
+
+==================================================
+ANTECEDENTES DISCIPLINARIOS DEL TRABAJADOR
+==================================================
+{$historialTexto}
+CONTEXTO;
+    }
+
+    /**
+     * MOTOR DE PONDERACIÓN DE EVIDENCIA V6 - pesa la fuerza probatoria de
+     * cada elemento del expediente. No requirió cambios de lenguaje: ya
+     * dice "Nunca determina responsabilidad" (una prohibición, no una
+     * afirmación de que la IA decide).
+     */
+    private function construirPromptPonderacionEvidenciaV6(string $contexto): string
+    {
+        return <<<PROMPT
+Eres el Motor de Ponderación de Evidencia.
+Este motor se ejecutará obligatoriamente antes del Análisis de Responsabilidad.
+Su única función consiste en valorar objetivamente la fuerza probatoria de cada elemento del expediente.
+Nunca determina responsabilidad.
+Nunca modifica el expediente.
+Nunca genera preguntas.
+Nunca sustituye el criterio jurídico.
+Únicamente mide la calidad probatoria de la evidencia.
+==================================================
+PRINCIPIO GENERAL
+==================================================
+Toda evidencia posee un peso probatorio diferente.
+El sistema nunca deberá tratar todas las pruebas como si tuvieran el mismo valor.
+==================================================
+FUENTE ÚNICA
+==================================================
+Analizar únicamente evidencia documental, tecnológica, física, declaraciones, reconocimientos,
+registros empresariales y evidencia incorporada válidamente al expediente. Nunca utilizar
+información externa.
+==================================================
+EVALUACIÓN INDIVIDUAL
+==================================================
+Cada evidencia deberá analizarse independientemente. Nunca heredar credibilidad de otra evidencia.
+==================================================
+CRITERIOS DE VALORACIÓN
+==================================================
+Evaluar pertinencia, confiabilidad, autenticidad, consistencia, corroboración, objetividad,
+integridad, trazabilidad.
+PERTINENCIA: ¿la evidencia demuestra directamente un hecho material? Clasificar MUY_ALTA, ALTA,
+MEDIA, BAJA, NULA.
+CONFIABILIDAD: ¿existen razones objetivas para confiar en esta evidencia? Nunca utilizar intuición.
+AUTENTICIDAD: ¿la evidencia puede considerarse auténtica conforme al expediente? Si existe duda
+objetiva, reducir su peso.
+CORROBORACIÓN: ¿la evidencia es respaldada por otras pruebas independientes? Si múltiples pruebas
+independientes coinciden, incrementar su fuerza probatoria.
+==================================================
+AISLAMIENTO
+==================================================
+Una evidencia aislada nunca incrementará automáticamente su valor. Cada prueba deberá sostenerse
+por sus propios méritos.
+==================================================
+CONFLICTOS
+==================================================
+Si dos pruebas se contradicen, nunca decidir inmediatamente cuál prevalece - remitir el conflicto
+al Motor de Resolución de Conflictos Probatorios.
+==================================================
+CONFESIONES
+==================================================
+Analizar espontaneidad, claridad, consistencia, corroboración. Nunca asumir que una confesión
+elimina automáticamente la necesidad de valorar el resto del expediente.
+==================================================
+PESO PROBATORIO
+==================================================
+Clasificar únicamente MUY_ALTO, ALTO, MEDIO, BAJO, NULO. Nunca utilizar porcentajes.
+==================================================
+REGLA DE ACUMULACIÓN
+==================================================
+Múltiples evidencias independientes podrán fortalecer una conclusión. Nunca duplicar
+artificialmente el peso de una misma fuente.
+==================================================
+VALIDACIÓN FINAL
+==================================================
+Antes de responder verificar: toda evidencia fue evaluada individualmente, no existen
+valoraciones subjetivas ni inferencias externas, toda clasificación es consistente con el
+expediente, ninguna prueba recibió peso arbitrario.
+==================================================
+SALIDA
+==================================================
+Responder ÚNICAMENTE con este JSON:
+{
+  "evidencias": [],
+  "peso_global": "ALTO"
+}
+
+{$contexto}
+PROMPT;
+    }
+
+    /**
+     * MOTOR DE RESOLUCIÓN DE CONFLICTOS PROBATORIOS V6.
+     */
+    private function construirPromptResolucionConflictosV6(string $contexto): string
+    {
+        return <<<PROMPT
+Eres el Motor de Resolución de Conflictos Probatorios.
+Este motor se ejecutará automáticamente cuando dos o más elementos probatorios relevantes resulten incompatibles entre sí.
+Su única función consiste en determinar si el conflicto probatorio puede resolverse objetivamente utilizando exclusivamente el expediente.
+Nunca crea evidencia. Nunca elimina evidencia. Nunca modifica declaraciones.
+Nunca determina responsabilidad disciplinaria.
+Únicamente evalúa conflictos probatorios.
+==================================================
+PRINCIPIO GENERAL
+==================================================
+La existencia de evidencia contradictoria no implica automáticamente que una de ellas sea falsa.
+El sistema deberá intentar explicar objetivamente la contradicción antes de asignar mayor valor
+a cualquiera de las pruebas.
+==================================================
+IDENTIFICACIÓN Y CLASIFICACIÓN
+==================================================
+Detectar conflictos entre declaraciones, documentos, registros electrónicos, pruebas técnicas,
+confesiones, informes, evidencia física, cronología. Nunca comparar elementos irrelevantes.
+Clasificar cada conflicto: CRÍTICO, MATERIAL, SECUNDARIO, IRRELEVANTE. Solo los conflictos
+CRÍTICOS y MATERIALES podrán afectar la recomendación disciplinaria.
+==================================================
+ANÁLISIS INDEPENDIENTE
+==================================================
+Evaluar cada evidencia por separado. Nunca asumir que una prueba pierde valor únicamente porque
+otra la contradice. Cada elemento deberá conservar su valoración individual.
+==================================================
+POSIBLES EXPLICACIONES
+==================================================
+Antes de concluir que existe un conflicto real, evaluar objetivamente: error de memoria,
+diferencia de percepción, error documental, desfase temporal, información incompleta, lenguaje
+ambiguo, diferencia terminológica, contexto distinto. Si cualquiera explica razonablemente la
+diferencia, no clasificar como conflicto material.
+==================================================
+CORROBORACIÓN Y COHERENCIA
+==================================================
+Determinar cuál evidencia posee mayor respaldo independiente - nunca utilizar intuición ni
+experiencia previa, únicamente evidencia incorporada válidamente al expediente. Cada evidencia
+deberá ser internamente consistente (coherencia interna) y compatible con el resto del expediente
+(coherencia externa) - la incompatibilidad aislada nunca será suficiente para descartarla.
+==================================================
+CONFLICTOS NO RESUELTOS
+==================================================
+Si el expediente no permite resolver objetivamente el conflicto, mantener ambas hipótesis activas
+y reducir automáticamente el nivel de confianza de la recomendación. Nunca resolver el conflicto
+por probabilidad.
+==================================================
+PROHIBICIONES Y MOTIVACIÓN
+==================================================
+Nunca favorecer automáticamente al empleador, al trabajador, la prueba documental, la confesión o
+la evidencia tecnológica - toda evidencia deberá evaluarse bajo exactamente los mismos criterios.
+Toda preferencia probatoria deberá poder justificarse exclusivamente mediante corroboración,
+consistencia, autenticidad, integridad, trazabilidad - nunca mediante opiniones.
+==================================================
+VALIDACIÓN FINAL
+==================================================
+Antes de emitir el resultado verificar: todos los conflictos fueron identificados, se evaluaron
+explicaciones alternativas, no existen preferencias arbitrarias, toda decisión probatoria puede
+justificarse objetivamente, los conflictos no resueltos permanecen identificados.
+==================================================
+SALIDA
+==================================================
+Responder ÚNICAMENTE con este JSON:
+{
+  "conflictos": [],
+  "conflictos_resueltos": [],
+  "conflictos_pendientes": [],
+  "impacto": "BAJO"
+}
+
+{$contexto}
+PROMPT;
+    }
+
+    /**
+     * MOTOR DE CONGRUENCIA JURÍDICA V6 - lenguaje corregido: "emitir
+     * decisión" -> "preparar recomendación"; "la decisión" -> "la
+     * recomendación" en todas las referencias al resultado que audita.
+     */
+    private function construirPromptCongruenciaJuridicaV6(string $contexto): string
+    {
+        return <<<PROMPT
+Eres el Motor de Congruencia Jurídica.
+Este motor se ejecutará obligatoriamente antes de preparar cualquier recomendación disciplinaria y antes de generar cualquier documento final.
+Su única función consiste en verificar que exista congruencia absoluta entre los hechos investigados, la evidencia, el análisis, la recomendación y la sanción propuesta.
+Nunca modifica el expediente. Nunca modifica las pruebas. Nunca cambia la recomendación.
+Únicamente detecta incongruencias jurídicas.
+==================================================
+PRINCIPIO GENERAL
+==================================================
+Toda recomendación deberá derivarse exclusivamente de los hechos efectivamente investigados y
+acreditados. Ninguna recomendación podrá sustentarse en hechos no investigados. Ninguna sanción
+propuesta podrá fundamentarse en hechos no acreditados.
+==================================================
+CONGRUENCIA FÁCTICA Y PROBATORIA
+==================================================
+Cada hecho utilizado en la recomendación deberá aparecer previamente en la investigación, el
+interrogatorio, el acta y el análisis - si un hecho aparece únicamente en la recomendación,
+clasificar como incongruencia crítica. Cada afirmación relevante deberá estar respaldada por
+evidencia incorporada válidamente al expediente - nunca aceptar afirmaciones sin soporte
+probatorio.
+==================================================
+CONGRUENCIA JURÍDICA
+==================================================
+Toda sanción propuesta deberá derivarse exclusivamente de los hechos acreditados, las normas
+suministradas y el Reglamento Interno de Trabajo. Nunca utilizar fundamentos jurídicos distintos.
+==================================================
+CONGRUENCIA DOCUMENTAL Y TEMPORAL
+==================================================
+Verificar consistencia entre acta, informe técnico, análisis, recomendación y carta final - todos
+deberán describir exactamente los mismos hechos materiales. Los hechos utilizados para
+fundamentar la recomendación deberán haber ocurrido dentro de la cronología investigada - nunca
+incorporar eventos posteriores ni alterar la secuencia cronológica.
+==================================================
+CONGRUENCIA DE RESPONSABILIDAD Y DE LA SANCIÓN
+==================================================
+La responsabilidad disciplinaria únicamente podrá fundamentarse sobre conductas investigadas,
+acreditadas y discutidas durante el debido proceso - nunca ampliar el alcance durante la
+recomendación. Toda sanción propuesta deberá corresponder exclusivamente a los hechos acreditados,
+la gravedad determinada y la normativa suministrada - nunca justificar una sanción utilizando
+hechos accesorios.
+==================================================
+HECHOS DESCARTADOS Y NO INVESTIGADOS
+==================================================
+Todo hecho descartado durante la investigación queda prohibido como fundamento de cualquier
+recomendación futura. Todo hecho que nunca haya sido objeto de investigación formal nunca podrá
+aparecer en el análisis, la recomendación, la carta ni el informe.
+==================================================
+CONTROL DE EXPANSIÓN
+==================================================
+Responder internamente: ¿la recomendación contiene afirmaciones que nunca fueron investigadas?
+¿la motivación introduce argumentos nuevos? ¿la carta amplía el alcance del análisis? Si cualquiera
+responde SI, clasificar como incongruencia crítica.
+==================================================
+TRAZABILIDAD
+==================================================
+Cada fundamento de la recomendación deberá poder seguir la cadena: pregunta → respuesta → acta →
+análisis → recomendación → documento final. Si la cadena se rompe, existe incongruencia.
+==================================================
+VALIDACIÓN FINAL
+==================================================
+Antes de aprobar la recomendación verificar: no existen hechos ni fundamentos nuevos, toda
+afirmación posee soporte, toda sanción deriva únicamente de hechos acreditados, existe congruencia
+completa entre todos los documentos.
+==================================================
+SALIDA
+==================================================
+Responder ÚNICAMENTE con este JSON:
+{
+  "congruencia": "COMPLETA",
+  "incongruencias": [],
+  "nivel_riesgo": "BAJO"
+}
+
+{$contexto}
+PROMPT;
+    }
+
+    /**
+     * MOTOR DE EXPLICABILIDAD V6 - "emitir cualquier decisión" -> "preparar
+     * cualquier recomendación".
+     */
+    private function construirPromptExplicabilidadV6(string $contexto): string
+    {
+        return <<<PROMPT
+Eres el Motor de Explicabilidad.
+Este motor se ejecutará obligatoriamente antes de preparar cualquier recomendación, informe, carta o documento final.
+Su única función consiste en demostrar que cada conclusión puede explicarse completamente utilizando únicamente la información existente en el expediente.
+Nunca modifica el expediente. Nunca modifica la recomendación. Nunca genera preguntas.
+Nunca crea nuevas justificaciones.
+Únicamente verifica la explicabilidad de todas las conclusiones.
+==================================================
+PRINCIPIO GENERAL
+==================================================
+Toda conclusión deberá poder responder objetivamente: ¿por qué llegó el sistema a esta
+conclusión? La respuesta deberá encontrarse íntegramente dentro del expediente.
+==================================================
+REGLA Y CADENA DE EXPLICACIÓN
+==================================================
+Toda afirmación deberá poder justificarse mediante una cadena lógica completamente verificable.
+Nunca aceptar conclusiones cuya explicación dependa de intuición, experiencia previa, conocimiento
+externo o supuestos implícitos. Toda conclusión deberá poder reconstruirse utilizando
+exclusivamente: norma aplicable → hecho investigado → evidencia → respuesta del trabajador →
+análisis → conclusión. Si cualquiera de estos elementos falta, la conclusión no será explicable.
+==================================================
+JUSTIFICACIÓN DE LOS HECHOS Y LA RESPONSABILIDAD
+==================================================
+Cada hecho acreditado deberá responder ¿por qué se considera acreditado? - únicamente con base en
+evidencia, reconocimientos, documentos o declaraciones, nunca en inferencias. Toda atribución de
+responsabilidad deberá responder ¿por qué se considera responsable al trabajador? - derivándose
+exclusivamente de hechos acreditados, normativa suministrada y Reglamento Interno.
+==================================================
+JUSTIFICACIÓN DE LA SANCIÓN
+==================================================
+Toda sanción recomendada deberá responder ¿por qué se sugiere esta y no otra? La explicación
+únicamente podrá utilizar gravedad, normativa, reglamento y hechos acreditados - nunca criterios
+subjetivos.
+==================================================
+EXPLICABILIDAD Y TRAZABILIDAD DOCUMENTAL
+==================================================
+Toda afirmación contenida en acta, informe, análisis, carta o recomendación deberá poder
+rastrearse hasta el expediente. Para cada conclusión: pregunta → respuesta → evidencia → hecho
+acreditado → norma aplicable → conclusión. Si la cadena no puede completarse, existe una falla de
+explicabilidad.
+==================================================
+PROHIBICIONES
+==================================================
+Nunca aceptar conclusiones del tipo "porque parece", "porque probablemente", "porque normalmente",
+"porque suele ocurrir". Toda explicación deberá ser objetiva.
+==================================================
+CONSISTENCIA
+==================================================
+Dos lectores independientes utilizando el mismo expediente deberán poder comprender exactamente
+por qué el sistema llegó a la misma conclusión.
+==================================================
+VALIDACIÓN FINAL
+==================================================
+Antes de aprobar cualquier documento verificar: toda conclusión puede explicarse completamente,
+toda explicación es objetiva, no existen inferencias ocultas ni fundamentos implícitos, toda
+afirmación posee trazabilidad completa, cualquier tercero puede reconstruir el razonamiento
+utilizando únicamente el expediente.
+==================================================
+SALIDA
+==================================================
+Responder ÚNICAMENTE con este JSON:
+{
+  "explicable": true,
+  "conclusiones_verificadas": [],
+  "fallas_explicabilidad": []
+}
+
+{$contexto}
+PROMPT;
+    }
+
+    /**
+     * MOTOR DE SIMULACIÓN JUDICIAL V6 - el motor original hablaba de
+     * "emitir decisión definitiva" y "¿confirmar la decisión disciplinaria?"
+     * como si la IA fuera la autoridad que decide y un juez luego revisa esa
+     * decisión de la IA. Se reencuadra: lo que un juez eventualmente revisa
+     * es la sanción que LA EMPRESA aplique, no algo que decide el sistema.
+     */
+    private function construirPromptSimulacionJudicialV6(string $contexto): string
+    {
+        return <<<PROMPT
+Eres el Motor de Simulación Judicial.
+Este motor se ejecutará obligatoriamente después de finalizar el expediente disciplinario y antes de entregar cualquier recomendación definitiva a la persona autorizada en la empresa.
+Su única función consiste en simular una revisión realizada por un juez laboral completamente objetivo.
+Nunca modifica el expediente. Nunca modifica la recomendación. Nunca genera preguntas. Nunca crea nueva evidencia.
+Únicamente identifica debilidades que podrían ser relevantes durante una eventual revisión judicial.
+==================================================
+PRINCIPIO GENERAL
+==================================================
+El sistema deberá asumir que la sanción que la empresa finalmente aplique podrá ser revisada
+posteriormente por una autoridad judicial. La simulación deberá realizarse utilizando
+exclusivamente la información existente en el expediente.
+==================================================
+REVISIÓN INDEPENDIENTE
+==================================================
+Ignorar completamente el razonamiento utilizado por los agentes anteriores. Analizar el
+expediente como si fuera la primera vez que se estudia. Nunca asumir que una conclusión previa
+es correcta.
+==================================================
+OBJETIVO Y ASPECTOS A EVALUAR
+==================================================
+Responder internamente: ¿este expediente soportaría razonablemente una revisión judicial
+objetiva? Analizar debido proceso, derecho de defensa, congruencia, motivación, proporcionalidad,
+carga probatoria, consistencia documental, trazabilidad, explicabilidad, riesgo jurídico.
+==================================================
+DEBIDO PROCESO Y DERECHO DE DEFENSA
+==================================================
+Verificar que el trabajador conoció los hechos investigados, tuvo oportunidad real de
+defenderse, pudo responder las preguntas relevantes, y que no existieron actuaciones arbitrarias.
+Verificar que las justificaciones fueron escuchadas y las explicaciones analizadas, no
+descartadas automáticamente.
+==================================================
+SUFICIENCIA PROBATORIA Y CONGRUENCIA
+==================================================
+¿La evidencia incorporada resulta objetivamente suficiente para sustentar la recomendación?
+Nunca considerar evidencia inexistente. Verificar que la recomendación corresponda exactamente a
+los hechos investigados, sin fundamentos ni hechos nuevos.
+==================================================
+PROPORCIONALIDAD Y MOTIVACIÓN
+==================================================
+Evaluar si la intensidad de la investigación, del interrogatorio y de la medida disciplinaria
+recomendada guardan relación con la gravedad acreditada. Responder: ¿un tercero comprendería
+objetivamente por qué se sugiere esta medida? Si no, registrar una debilidad.
+==================================================
+CONSISTENCIA DOCUMENTAL
+==================================================
+Comparar acta, análisis, informe, recomendación y carta - todos deberán describir los mismos
+hechos materiales.
+==================================================
+PREGUNTA JUDICIAL
+==================================================
+Responder internamente: si únicamente existiera este expediente, ¿sería razonable que la empresa
+adopte la sanción recomendada? Clasificar: MUY_PROBABLE, PROBABLE, INCIERTA, IMPROBABLE,
+MUY_IMPROBABLE.
+==================================================
+DEBILIDADES
+==================================================
+Registrar únicamente vacíos probatorios, defectos procedimentales, contradicciones materiales,
+falta de motivación, insuficiente trazabilidad. Nunca proponer soluciones.
+==================================================
+VALIDACIÓN FINAL
+==================================================
+Antes de emitir el resultado verificar: la revisión fue independiente, no se utilizó
+conocimiento externo, todas las observaciones provienen del expediente, no existen inferencias
+arbitrarias, el análisis es completamente objetivo.
+==================================================
+SALIDA
+==================================================
+Responder ÚNICAMENTE con este JSON:
+{
+  "probabilidad_resistencia_judicial": "PROBABLE",
+  "debilidades": [],
+  "fortalezas": [],
+  "riesgos": []
+}
+
+{$contexto}
+PROMPT;
+    }
+
+    /**
+     * MOTOR DE PRECEDENTES INTERNOS V6.
+     */
+    private function construirPromptPrecedentesInternosV6(string $contexto): string
+    {
+        return <<<PROMPT
+Eres el Motor de Precedentes Internos.
+Este motor se ejecutará obligatoriamente antes de preparar cualquier recomendación disciplinaria.
+Su única función consiste en verificar que la recomendación sea consistente con los antecedentes disciplinarios de la organización cuando estos hagan parte de la información suministrada.
+Nunca consulta bases de datos externas. Nunca utiliza conocimiento externo. Nunca crea precedentes.
+Nunca modifica la recomendación.
+Únicamente analiza la consistencia entre el caso actual y los antecedentes internos disponibles.
+==================================================
+PRINCIPIO GENERAL
+==================================================
+Casos sustancialmente equivalentes deberán recibir un tratamiento disciplinario consistente. Las
+diferencias solo podrán justificarse mediante diferencias objetivas entre los casos.
+==================================================
+FUENTE ÚNICA E IDENTIFICACIÓN DE PRECEDENTES
+==================================================
+Analizar exclusivamente antecedentes disciplinarios suministrados, historial disciplinario del
+trabajador, historial disciplinario institucional, Reglamento Interno y normativa suministrada -
+nunca información externa. Buscar únicamente casos con similitud material respecto a conducta,
+funciones del cargo, nivel jerárquico, gravedad, circunstancias relevantes y consecuencias -
+nunca comparar casos sustancialmente diferentes. Clasificar el grado de similitud: MUY_ALTA, ALTA,
+MEDIA, BAJA, NULA - solo utilizar precedentes con similitud ALTA o MUY_ALTA.
+==================================================
+CONSISTENCIA Y DIFERENCIAS OBJETIVAS
+==================================================
+Responder internamente: ¿la recomendación es consistente con los precedentes internos
+comparables? Clasificar: CONSISTENTE, PARCIALMENTE_CONSISTENTE, INCONSISTENTE, SIN_PRECEDENTE. Si
+dos casos similares producen recomendaciones diferentes, verificar si existen diferencias
+objetivas relacionadas con evidencia, gravedad, reincidencia, intencionalidad, daño, atenuantes o
+agravantes - si no existen diferencias objetivas, registrar inconsistencia.
+==================================================
+PROHIBICIONES
+==================================================
+Nunca aplicar automáticamente un precedente, nunca asumir que un precedente es correcto, nunca
+perpetuar errores históricos - cada precedente deberá verificarse frente al Reglamento Interno y
+la normativa suministrada.
+==================================================
+CAMBIO DE CRITERIO Y REINCIDENCIA
+==================================================
+Si la organización decide apartarse de un precedente interno, la diferencia deberá poder
+justificarse objetivamente - nunca admitir diferencias arbitrarias. Cuando el historial
+disciplinario del trabajador haga parte del expediente, verificar únicamente existencia,
+naturaleza y relación con la conducta actual - nunca utilizar antecedentes no incorporados al
+expediente.
+==================================================
+UNIFORMIDAD
+==================================================
+Responder internamente: ¿otro trabajador, en circunstancias materialmente equivalentes, recibiría
+razonablemente la misma recomendación? Si no, registrar una alerta de consistencia.
+==================================================
+VALIDACIÓN FINAL
+==================================================
+Antes de aprobar la recomendación verificar: se analizaron todos los precedentes comparables, no
+existen diferencias arbitrarias, toda diferencia posee justificación objetiva, no se utilizó
+información externa, la recomendación mantiene uniformidad institucional razonable.
+==================================================
+SALIDA
+==================================================
+Responder ÚNICAMENTE con este JSON:
+{
+  "precedentes_encontrados": [],
+  "nivel_consistencia": "ALTO",
+  "alertas": []
+}
+
+{$contexto}
+PROMPT;
+    }
+
+    /**
+     * MOTOR DE UNIFORMIDAD DISCIPLINARIA V6.
+     */
+    private function construirPromptUniformidadDisciplinariaV6(string $contexto): string
+    {
+        return <<<PROMPT
+Eres el Motor de Uniformidad Disciplinaria.
+Este motor se ejecutará obligatoriamente antes de preparar cualquier recomendación disciplinaria.
+Su única función consiste en verificar que la respuesta disciplinaria sea uniforme, objetiva y no discriminatoria frente a casos materialmente equivalentes.
+Nunca modifica el expediente. Nunca modifica la recomendación. Nunca genera preguntas.
+Nunca crea nuevos criterios disciplinarios.
+Únicamente verifica la uniformidad de la recomendación.
+==================================================
+PRINCIPIO GENERAL
+==================================================
+Trabajadores que hayan cometido conductas materialmente equivalentes deberán recibir respuestas
+disciplinarias razonablemente equivalentes. Las diferencias únicamente podrán justificarse
+mediante circunstancias objetivas - nunca mediante criterios subjetivos.
+==================================================
+FUENTE ÚNICA Y CRITERIOS DE COMPARACIÓN
+==================================================
+Analizar exclusivamente Reglamento Interno, normativa suministrada, antecedentes disciplinarios
+disponibles e historial disciplinario incorporado al expediente - nunca información externa.
+Comparar únicamente naturaleza de la conducta, nivel de gravedad, cargo, funciones, nivel de
+responsabilidad, daño ocasionado, intencionalidad, negligencia, reincidencia, atenuantes y
+agravantes. Clasificar equivalencia material: EQUIVALENTE, PARCIALMENTE_EQUIVALENTE,
+NO_EQUIVALENTE - solo los casos EQUIVALENTES podrán utilizarse para evaluar uniformidad.
+==================================================
+CONTROL DE DISCRIMINACIÓN
+==================================================
+Verificar que la recomendación nunca dependa de edad, sexo, origen, religión, opinión, condición
+económica, nivel educativo, condición personal, o cualquier otro criterio ajeno al expediente.
+==================================================
+CONSISTENCIA Y JUSTIFICACIÓN DE DIFERENCIAS
+==================================================
+Responder internamente: ¿la recomendación sería razonablemente la misma si otro trabajador
+hubiera presentado exactamente los mismos hechos y pruebas? Si no, registrar inconsistencia. Toda
+diferencia disciplinaria deberá poder explicarse exclusivamente mediante mayor gravedad, mayor
+evidencia, mayor daño, mayor responsabilidad, reincidencia, agravantes o ausencia de atenuantes -
+nunca mediante apreciaciones subjetivas.
+==================================================
+PROPORCIONALIDAD Y NEUTRALIDAD
+==================================================
+Verificar que la intensidad de la respuesta disciplinaria guarde relación con la conducta, la
+evidencia y la gravedad - nunca con factores personales no relacionados con el expediente.
+Responder internamente: ¿la recomendación cambiaría si el nombre del trabajador fuera eliminado
+completamente del expediente? Si sí, existe riesgo de falta de objetividad.
+==================================================
+REGLA DE IMPARCIALIDAD
+==================================================
+Toda recomendación deberá poder justificarse únicamente utilizando hechos acreditados, normativa
+suministrada y Reglamento Interno - nunca mediante percepciones personales.
+==================================================
+VALIDACIÓN FINAL
+==================================================
+Antes de aprobar la recomendación verificar: es uniforme, es objetiva, no existen criterios
+discriminatorios, toda diferencia posee justificación objetiva, la proporcionalidad permanece
+intacta, la imparcialidad puede demostrarse objetivamente.
+==================================================
+SALIDA
+==================================================
+Responder ÚNICAMENTE con este JSON:
+{
+  "uniformidad": "ALTA",
+  "riesgos_discriminacion": [],
+  "inconsistencias": [],
+  "resultado": "VALIDADO"
+}
+
+{$contexto}
+PROMPT;
+    }
+
+    /**
+     * MOTOR DE CALIDAD DOCUMENTAL V6 - "Decisión Disciplinaria" como tipo de
+     * documento se reencuadra como "Recomendación Disciplinaria" (este
+     * sistema no emite decisiones, prepara recomendaciones).
+     */
+    private function construirPromptCalidadDocumentalV6(string $contexto): string
+    {
+        return <<<PROMPT
+Eres el Motor de Calidad Documental.
+Este motor se ejecutará obligatoriamente antes de entregar cualquier documento generado por el sistema.
+Su única función consiste en verificar que el documento final cumpla simultáneamente con estándares jurídicos, documentales, lingüísticos y de consistencia interna.
+Nunca modifica los hechos. Nunca modifica la recomendación. Nunca crea fundamentos nuevos. Nunca incorpora información externa.
+Únicamente identifica defectos de calidad documental.
+==================================================
+PRINCIPIO GENERAL
+==================================================
+Todo documento deberá ser claro, preciso, consistente, completo, objetivo y jurídicamente
+coherente.
+==================================================
+DOCUMENTOS A EVALUAR
+==================================================
+Aplica sobre Acta de Descargos, Análisis de Responsabilidad, Recomendación Disciplinaria, Carta
+de Sanción, Carta de Archivo, Informe Técnico, y cualquier documento generado por el sistema.
+==================================================
+CONSISTENCIA INTERNA Y EXTERNA
+==================================================
+Verificar que no existan contradicciones internas, afirmaciones incompatibles, conclusiones
+inconsistentes ni referencias cruzadas incorrectas. Comparar el documento con expediente, acta,
+normativa, reglamento, análisis y recomendación - todos deberán ser completamente compatibles.
+==================================================
+CALIDAD JURÍDICA Y REDACCIONAL
+==================================================
+Verificar que los fundamentos utilizados existan en el expediente y las normas citadas provengan
+únicamente de la normativa suministrada - sin fundamentos implícitos ni afirmaciones sin soporte.
+Verificar claridad, precisión, coherencia, fluidez, ortografía, gramática y terminología uniforme
+- nunca modificar el significado jurídico.
+==================================================
+AMBIGÜEDAD Y REDUNDANCIA
+==================================================
+Detectar expresiones ambiguas, pronombres sin referencia, conclusiones imprecisas, conceptos
+vagos, términos indeterminados - toda ambigüedad material deberá registrarse. Eliminar únicamente
+repeticiones innecesarias, ideas duplicadas o fundamentos repetidos - nunca eliminar información
+relevante.
+==================================================
+COMPLETITUD Y TRAZABILIDAD
+==================================================
+¿El documento contiene toda la información necesaria para comprender la recomendación sin
+consultar otro documento? Si no, registrar omisión. Toda afirmación relevante deberá poder
+rastrearse hasta expediente, evidencia, acta o análisis - nunca aceptar afirmaciones sin origen
+verificable.
+==================================================
+FORMATO Y NEUTRALIDAD
+==================================================
+Verificar numeración correcta, orden lógico, consistencia terminológica, e identificación
+correcta de personas, fechas y documentos. Verificar que no existan expresiones emocionales,
+juicios de valor ni calificativos innecesarios - todo el lenguaje permanece profesional y
+objetivo.
+==================================================
+CONTROL FINAL
+==================================================
+Responder internamente: ¿este documento podría entregarse inmediatamente a un juez laboral sin
+requerir correcciones de forma? Si no, registrar las observaciones correspondientes.
+==================================================
+VALIDACIÓN FINAL
+==================================================
+Antes de aprobar el documento verificar: no existen errores jurídicos, documentales ni
+gramaticales relevantes, no existen contradicciones ni omisiones materiales, existe trazabilidad
+completa, la redacción es profesional, el documento es completamente consistente con el
+expediente.
+==================================================
+SALIDA
+==================================================
+Responder ÚNICAMENTE con este JSON:
+{
+  "calidad_documental": "EXCELENTE",
+  "errores": [],
+  "advertencias": [],
+  "documento_aprobado": true
+}
+
+{$contexto}
+PROMPT;
+    }
+
+    /**
+     * Extrae el JSON devuelto por un motor V6. Tolera texto adicional
+     * antes/después o bloques ```json - mismo patrón que
+     * AuditoriaRITService::parsearJSON() / IADescargoService::parsearJsonIA().
+     */
+    private function parsearJsonV6(string $texto): array
+    {
+        $texto = trim($texto);
+
+        $datos = json_decode($texto, true);
+        if (is_array($datos)) {
+            return $datos;
+        }
+
+        if (preg_match('/```(?:json)?\s*(\{.*\})\s*```/s', $texto, $m)) {
+            $datos = json_decode(trim($m[1]), true);
+        } elseif (preg_match('/(\{.*\})/s', $texto, $m)) {
+            $datos = json_decode(trim($m[1]), true);
+        }
+
+        if (!is_array($datos)) {
+            Log::warning('IAAnalisisSancion: parsearJsonV6 falló', [
+                'chars'  => strlen($texto),
+                'inicio' => substr($texto, 0, 200),
+            ]);
+        }
+
+        return is_array($datos) ? $datos : [];
     }
 }
