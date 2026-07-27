@@ -462,7 +462,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                                 : 'background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
                             style="flex-shrink:0;background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
                             @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
-                            Aplicar esta sanción
+                            <span x-text="sancionSel === @js($s) ? 'Sanción seleccionada' : 'Aplicar esta sanción'"></span>
                         </button>
                     </div>
 
@@ -540,7 +540,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                         : 'background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
                     style="background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
                     @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
-                    {{ $val === 'no_sancion' ? $label : 'Aplicar: ' . $label }}
+                    <span x-text="sancionSel === @js($val) ? 'Sanción seleccionada' : @js($val === 'no_sancion' ? $label : 'Aplicar: ' . $label)"></span>
                 </button>
             @endforeach
         </div>
@@ -583,7 +583,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                                 : 'background:#16a34a14;border-color:#16a34a59;color:#15803d;'"
                             style="background:#16a34a14;border-color:#16a34a59;color:#15803d;">
                             @svg('heroicon-o-check-circle', '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
-                            Aplicar: No Aplicar Sanción
+                            <span x-text="sancionSel === 'no_sancion' ? 'Sanción seleccionada' : 'Aplicar: No Aplicar Sanción'"></span>
                         </button>
                     @endif
                 </div>
