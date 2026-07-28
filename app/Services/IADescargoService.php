@@ -244,6 +244,18 @@ class IADescargoService
         $ritContexto = $empresaId ? $this->obtenerContextoRIT($empresaId) : '';
         $normasRag   = $this->buscarNormasRelevantes($proceso->hechos ?? '', $empresaId, limite: 3, proceso: $proceso);
 
+        // Jurisprudencia curada del equipo jurídico (Corte Constitucional/Suprema),
+        // vía JurisprudenciaService - DISTINTA de $normasRag (que solo busca en
+        // ArticuloLegal + Biblioteca Legal subida). Ayuda a que el Director
+        // Estratégico y el Generador de Preguntas orienten las preguntas hacia lo
+        // que la jurisprudencia exige probar (fuero, estabilidad reforzada, etc.),
+        // no solo hacia el RIT/CST.
+        $queryJurisprudencia = 'descargos derecho de defensa debido proceso fuero estabilidad laboral reforzada'
+            . ' reincidencia proporcionalidad'
+            . ' ' . implode(' ', $articulosLegales)
+            . ' ' . mb_substr(strip_tags($proceso->hechos ?? ''), 0, 300);
+        $jurisprudenciaCurada = app(JurisprudenciaService::class)->buscarContexto($queryJurisprudencia);
+
         return [
             'hechos'              => $proceso->hechos,
             'articulos_legales'   => $articulosLegales,
@@ -255,6 +267,7 @@ class IADescargoService
             'empresa'             => $proceso->empresa?->nombre_completo ?? 'la empresa que lo cita',
             'rit_contexto'        => $ritContexto,
             'normas_rag'          => $normasRag,
+            'jurisprudencia_curada' => $jurisprudenciaCurada,
             'ancla_cubierta'      => $anclaYaCubierta,
             'total_respondidas'   => $totalRespondidas,
         ];
@@ -562,6 +575,11 @@ PROMPT;
         $normasBloque = !empty($contexto['normas_rag'])
             ? "\n\nNORMAS LEGALES RECUPERADAS (RIT, CST, jurisprudencia - cita solo estas):\n{$contexto['normas_rag']}"
             : '';
+        $jurisprudenciaBloque = !empty($contexto['jurisprudencia_curada'])
+            ? "\n\nJURISPRUDENCIA APLICABLE (extractos curados por el equipo jurídico - úsala para orientar qué"
+                . " preguntar, ej. si hay indicios de fuero o estabilidad reforzada; PROHIBIDO citar sentencias"
+                . " que no aparezcan aquí):\n{$contexto['jurisprudencia_curada']}"
+            : '';
 
         return <<<BLOQUEDATOS
 ==================================================
@@ -577,7 +595,7 @@ Hechos presuntos (versión del empleador - aún no probados):
 Artículos presuntamente incumplidos:
 - {$articulosText}
 
-{$ritBloque}{$normasBloque}
+{$ritBloque}{$normasBloque}{$jurisprudenciaBloque}
 ==================================================
 PREGUNTAS REALIZADAS Y SUS RESPUESTAS
 ==================================================
