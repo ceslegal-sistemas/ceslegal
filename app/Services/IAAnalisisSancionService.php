@@ -1531,6 +1531,14 @@ REGLAS PARA LA CORRECCIÓN:
       la conducta -de haber ocurrido- sea tan grave como se dijo, no solo si ocurrió).
       Solo en este caso puedes ampliar "sanciones_sugeridas"/"sancion_principal" hacia
       una sanción de menor entidad.
+- Si un problema es tan grave que ninguna sanción sería defendible (ej. una violación
+  clara e insubsanable del debido proceso, como falta de inmediatez, caducidad de la
+  facultad disciplinaria, o un vicio de trámite que anularía cualquier medida), el
+  estado debe pasar a "no_sancionar". EN ESE CASO, exactamente como en el análisis
+  original: "sanciones_sugeridas" = [] (vacío), "sancion_principal" = null,
+  "dias_suspension" = null - NUNCA dejes un tipo de sanción específico (ni siquiera
+  "llamado_atencion") si el estado final es "no_sancionar". Deja la explicación
+  completa en "mensaje_para_decision" y en "razones_no_recomendadas.no_sancion".
 - REGLA DE CONSISTENCIA (la más importante, no la olvides): "resumen_correccion" debe
   describir EXACTAMENTE lo que cambiaste en "sancion_principal", "sanciones_sugeridas"
   y "dias_suspension" - PROHIBIDO decir que bajaste a una sanción (ej. "llamado de
@@ -1577,7 +1585,30 @@ PROMPT;
 
         $respuesta = $this->llamarGemini($prompt);
 
-        return $this->parsearAnalisisIA($respuesta);
+        return $this->normalizarCoherenciaNoSancionar($this->parsearAnalisisIA($respuesta));
+    }
+
+    /**
+     * Red de seguridad determinística (no depender solo de que el prompt se cumpla):
+     * un caso real mostró la corrección poniendo estado_recomendacion="no_sancionar"
+     * pero dejando "sancion_principal": "llamado_atencion" sin vaciar - la vista
+     * (emitir-sancion-analisis.blade.php) decide si mostrar "No aplicar sanción" según
+     * si sanciones_sugeridas viene vacío, así que esa inconsistencia hacía que la UI
+     * mostrara "La IA recomienda: Llamado de Atención" pese a recomendar no sancionar.
+     * Esta es la MISMA regla de coherencia que ya exige el análisis original
+     * (construirPromptAnalisisSancion) - se fuerza aquí en PHP para garantizarla
+     * siempre, sin importar si el modelo la respetó en su respuesta.
+     */
+    private function normalizarCoherenciaNoSancionar(array $analisis): array
+    {
+        if (($analisis['recomendacion_final']['estado_recomendacion'] ?? null) === 'no_sancionar') {
+            $analisis['recomendacion_final']['sanciones_sugeridas'] = [];
+            $analisis['recomendacion_final']['sancion_principal']   = null;
+            $analisis['recomendacion_final']['dias_suspension']     = null;
+            $analisis['recomendacion_final']['requiere_sancion']    = false;
+        }
+
+        return $analisis;
     }
 
     /**
