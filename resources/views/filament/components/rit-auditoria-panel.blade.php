@@ -30,6 +30,9 @@
         $capActual = (int) $m[1]; $capTotal = (int) $m[2];
     }
     $pctMejora = $capTotal > 0 ? min(100, round($capActual / $capTotal * 100)) : 0;
+    // Llegó desde la notificación de "nueva normativa disponible" - resalta el
+    // botón de auditar/re-auditar con un pulso, sin importar en qué estado esté.
+    $resaltar = $resaltar ?? false;
 @endphp
 
 @verbatim
@@ -87,6 +90,10 @@ html:not(.dark) .mejora-eyebrow{color:#be123c}
 html:not(.dark) .mejora-sub{color:#78716c}
 .mejora-pct{font-family:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;font-weight:800;color:#fb7185;line-height:1}
 html:not(.dark) .mejora-pct{color:#e11d48}
+
+/* ── Resaltado al llegar desde la notificación de nueva normativa ── */
+.sl-highlight{animation:sl-pulse 1.4s ease-in-out 4;position:relative}
+@keyframes sl-pulse{0%,100%{box-shadow:0 0 0 0 rgba(251,113,133,.55)}50%{box-shadow:0 0 0 8px rgba(251,113,133,0)}}
 </style>
 @endverbatim
 
@@ -110,7 +117,7 @@ html:not(.dark) .mejora-pct{color:#e11d48}
     @if(! $a)
         <div class="sl-viewer"><div class="sl-vb" style="text-align:center">
             <p class="sl-muted" style="margin:0 0 1rem">Aún no se ha auditado este Reglamento Interno.</p>
-            <button wire:click="iniciarAuditoriaManual" class="sl-btn sl-btn-primary" style="margin:0 auto">
+            <button wire:click="iniciarAuditoriaManual" class="sl-btn sl-btn-primary @if($resaltar) sl-highlight @endif" style="margin:0 auto">
                 <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.2-5.2m1.7-4.05a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"/></svg>
                 Auditar ahora
             </button>
@@ -151,6 +158,10 @@ html:not(.dark) .mejora-pct{color:#e11d48}
                             @else Reglamento requiere revisión urgente @endif
                         </p>
                         @if($a->resumen_general)<p class="sl-muted" style="white-space:pre-line">{{ $a->resumen_general }}</p>@endif
+                        <button wire:click="iniciarAuditoriaManual" class="sl-btn sl-btn-ghost @if($resaltar) sl-highlight @endif" style="margin-top:.75rem">
+                            <svg style="width:14px;height:14px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                            Volver a auditar
+                        </button>
                     </div>
                 </div>
             </div>

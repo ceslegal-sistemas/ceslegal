@@ -50,9 +50,13 @@ class DocumentoLegalObserver
                 ->icon('heroicon-o-scale')
                 ->iconColor('warning')
                 ->actions([
+                    // Antes apuntaba a /admin/auditar-r-i-t, pero esa página está oculta
+                    // para el rol 'cliente' (usa la vista unificada "Mi Reglamento
+                    // Interno" - ver AuditarRIT::shouldRegisterNavigation()). El query
+                    // param resalta el botón "Auditar ahora" / "Volver a auditar" al llegar.
                     FilamentAction::make('auditar')
                         ->label('Auditar RIT')
-                        ->url(url('/admin/auditar-r-i-t'))
+                        ->url(url('/admin/mi-reglamento-interno') . '?resaltar=auditar')
                         ->button(),
                 ])
                 ->sendToDatabase($user);

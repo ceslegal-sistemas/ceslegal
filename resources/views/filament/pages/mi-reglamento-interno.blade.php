@@ -283,10 +283,13 @@ html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(251,113,
     </div>
   @endif
 
-  {{-- Salud legal / Auditoría del RIT (vista unificada del cliente) --}}
-  @if($tiene && ($reglamento?->fuente === 'subido' || $auditoria))
+  {{-- Salud legal / Auditoría del RIT (vista unificada del cliente).
+       $resaltarAuditar (llegó desde la notificación de nueva normativa) fuerza
+       mostrar el panel también para RIT construido_ia sin auditoría previa -
+       si no, no habría ningún botón de "Auditar ahora" que resaltar. --}}
+  @if($tiene && ($reglamento?->fuente === 'subido' || $auditoria || $resaltarAuditar))
     <div style="margin-top:1.25rem">
-      @include('filament.components.rit-auditoria-panel', ['auditoria' => $auditoria])
+      @include('filament.components.rit-auditoria-panel', ['auditoria' => $auditoria, 'resaltar' => $resaltarAuditar])
     </div>
   @endif
 

@@ -34,8 +34,13 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
     public ?\App\Models\AuditoriaRIT $auditoria = null;
     public ?ReglamentoInterno $ritMejorado = null;
 
+    /** Llegó desde la notificación de "nueva normativa disponible" (?resaltar=auditar) - resalta el botón de auditar. */
+    public bool $resaltarAuditar = false;
+
     public function mount(): void
     {
+        $this->resaltarAuditar = request()->query('resaltar') === 'auditar';
+
         $user = Auth::user();
         if (!$user) {
             $this->redirect(route('filament.admin.pages.dashboard'));
