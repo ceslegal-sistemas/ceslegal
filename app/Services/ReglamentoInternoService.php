@@ -566,16 +566,16 @@ PROMPT;
         }
 
         $prompt = <<<PROMPT
-Analiza el siguiente capítulo del Reglamento Interno de Trabajo de una empresa colombiana y extrae la lista de faltas laborales.
+Analiza el siguiente capítulo del Reglamento Interno de Trabajo de una empresa colombiana y extrae LITERALMENTE la lista de faltas laborales que ya están redactadas en el texto - esto va a una tabla legal que se envía al trabajador, así que debe coincidir palabra por palabra con el Reglamento, no con tu propia interpretación.
 
 TEXTO DEL REGLAMENTO:
 {$fragmento}
 
 Responde ÚNICAMENTE con un JSON válido, sin texto adicional, con esta estructura exacta:
 {
-  "faltas_leves": ["descripción concreta de falta 1", "descripción concreta de falta 2"],
-  "faltas_graves": ["descripción concreta de falta 1", "descripción concreta de falta 2"],
-  "faltas_muy_graves": ["descripción concreta de falta 1"],
+  "faltas_leves": ["texto literal de la falta 1 tal como aparece en el RIT", "texto literal de la falta 2"],
+  "faltas_graves": ["texto literal de la falta 1 tal como aparece en el RIT", "texto literal de la falta 2"],
+  "faltas_muy_graves": ["texto literal de la falta 1 tal como aparece en el RIT"],
   "sancion_leve": "la sanción EXACTA que el RIT asigna a las faltas LEVES",
   "sancion_grave": "la sanción EXACTA que el RIT asigna a las faltas GRAVES",
   "sancion_muy_grave": "la sanción EXACTA que el RIT asigna a las faltas MUY GRAVES (o '' si no las distingue)",
@@ -583,12 +583,18 @@ Responde ÚNICAMENTE con un JSON válido, sin texto adicional, con esta estructu
 }
 
 Reglas:
-- faltas_leves, faltas_graves y faltas_muy_graves: máximo 8 items cada uno, máximo 100 caracteres por item
+- PROHIBIDO resumir, parafrasear, acortar o "poner algo similar" a cada falta - copia el texto EXACTO
+  de cada conducta/falta tal como está redactada literalmente en el Reglamento (numeral, artículo o
+  viñeta completa). Si el RIT enumera una falta en una frase larga, cópiala completa - no la recortes
+  para que quepa en pocos caracteres.
+- faltas_leves, faltas_graves y faltas_muy_graves: máximo 8 items cada uno, sin límite artificial de
+  caracteres - el largo lo define el propio texto del RIT, no un resumen tuyo.
 - sancion_leve / sancion_grave / sancion_muy_grave: copia EXACTA (textual) de la sanción que el RIT
   asigna a cada nivel de gravedad. Si el RIT no separa "muy graves", deja faltas_muy_graves vacío y
   sancion_muy_grave en "". NO inventes la sanción: si no está clara, deja la cadena vacía.
 - sanciones: lista legible de TODAS las sanciones que menciona el RIT (respaldo)
-- Si el texto no tiene información clara de faltas, devuelve arrays vacíos
+- Si el texto no tiene información clara de faltas, devuelve arrays vacíos - NUNCA inventes una falta
+  ni la aproximes con conocimiento general de derecho laboral si no está literalmente en este RIT.
 - No listes artículos del CST genéricos; solo lo que describe concretamente este RIT
 PROMPT;
 
