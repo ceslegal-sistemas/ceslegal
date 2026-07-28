@@ -19,6 +19,11 @@ use App\Services\RITGeneratorService;
  *   administrador sube a Biblioteca Legal (leyes, sentencias, doctrina) - solo documentos
  *   activos y ya procesados. Se agregó para que leyes cargadas ahí (ej. Ley 2466/2025) también
  *   puedan usarse como CONTEXTO LEGAL en la auditoría, no solo articulos_legales.
+ * - JurisprudenciaService::buscarContexto(): RAG semántico sobre la jurisprudencia CURADA
+ *   (Corte Constitucional/Suprema, modelo Jurisprudencia - distinto de Biblioteca Legal).
+ *   Mismo mecanismo que ya usan el análisis de sanción, las impugnaciones y las preguntas
+ *   de descargos. Se agrega al mismo bloque CONTEXTO LEGAL para heredar la PROHIBICIÓN 3
+ *   (solo citar lo que aparece ahí, con referencia exacta).
  */
 class AuditoriaRITService
 {
@@ -134,6 +139,7 @@ class AuditoriaRITService
     public function __construct(
         private RITGeneratorService $ritGenerator,
         private BibliotecaLegalService $biblioteca,
+        private JurisprudenciaService $jurisprudencia,
     ) {}
 
     /**
@@ -395,11 +401,22 @@ class AuditoriaRITService
         //        verificar citas contra ella (ver PROHIBICIÓN 4 en el prompt más abajo).
         $fragmentosBiblioteca = $this->biblioteca->buscarFragmentos($config['query'], limite: 4, umbral: 0.55);
 
+        //    2d. Jurisprudencia curada (Corte Constitucional/Suprema) - mismo mecanismo de
+        //        búsqueda semántica que ya usan el análisis de sanción, las impugnaciones y
+        //        las preguntas de descargos (JurisprudenciaService). Se agrega al MISMO
+        //        bloque de CONTEXTO LEGAL (no una sección aparte) para heredar automáticamente
+        //        la PROHIBICIÓN 3 (solo citar lo que aparece ahí, con referencia exacta).
+        $fragmentosJurisprudencia = $this->jurisprudencia->buscarContexto($config['query']);
+
         // Combinar: exactos primero (alta precisión), semánticos después (cobertura complementaria),
-        // Biblioteca Legal al final (fuente adicional, no controlada por el scraper del CST).
+        // Biblioteca Legal y jurisprudencia curada al final (fuentes adicionales, no controladas
+        // por el scraper del CST).
         $articulosCst = trim($articulosObligatorios . ($articulosSemant ? "\n\n" . $articulosSemant : ''));
         if (!empty($fragmentosBiblioteca)) {
             $articulosCst = trim($articulosCst . "\n\n" . $fragmentosBiblioteca);
+        }
+        if (!empty($fragmentosJurisprudencia)) {
+            $articulosCst = trim($articulosCst . "\n\n" . $fragmentosJurisprudencia);
         }
 
         // 3. Sin normativa → abortar
