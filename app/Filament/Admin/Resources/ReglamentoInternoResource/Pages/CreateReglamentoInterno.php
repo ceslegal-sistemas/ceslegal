@@ -446,6 +446,7 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->integer()
                                 ->extraInputAttributes(['min' => 1, 'onkeydown' => "return event.key !== '-'"])
                                 ->minValue(1)
+                                ->default($empresa?->numero_empleados)
                                 ->placeholder('Ej: 15')
                                 ->hint('¿Es obligatorio el RIT?')
                                 ->hintColor('info')
