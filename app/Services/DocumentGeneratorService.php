@@ -1144,21 +1144,6 @@ HTML;
             $textoNoRespondio = "\n\nNOTA IMPORTANTE: El trabajador NO respondió al formulario de descargos. Se le envió la citación a descargos y se le dio la oportunidad de presentar su versión de los hechos, pero no ejerció su derecho de defensa dentro del plazo establecido. Esta circunstancia debe mencionarse explícitamente en la sección 3 del documento.";
         }
 
-        // Si la revisión adicional (IAAnalisisSancionService::ejecutarValidacionesV6)
-        // corrigió automáticamente la recomendación (ej. bajó a "condicionada" por un
-        // hecho sin verificar), esa condición solo vivía como aviso en el modal - el
-        // documento legal nunca se enteraba y quedaba redactado como un caso cerrado
-        // y sin dudas, aunque el cliente haya confirmado sabiendo que algo estaba
-        // pendiente de verificar. Se instruye explícitamente a reflejarlo.
-        $textoCorreccionV6 = '';
-        $correccionV6 = trim((string) ($proceso->correccion_v6_motivo ?? ''));
-        if ($correccionV6 !== '') {
-            $textoCorreccionV6 = "\n\nCONDICIÓN DETECTADA POR LA REVISIÓN ADICIONAL ANTES DE CONFIRMAR ESTA SANCIÓN: {$correccionV6} "
-                . "Redacta este documento reflejando esta condición explícitamente en la motivación - NO lo redactes "
-                . "como un caso cerrado y sin dudas. Aclara que la empresa debe completar esa verificación pendiente "
-                . "como parte del debido proceso, y que la sanción podría reconsiderarse según el resultado.";
-        }
-
         return <<<PROMPT
 Genera un documento oficial de {$nombreSancion} para un trabajador en Colombia usando formato profesional estilo Word.
 
@@ -1177,7 +1162,7 @@ SANCIONES DEL REGLAMENTO INTERNO INCUMPLIDAS:
 {$sancionesLaborales}
 
 DESCARGOS DEL TRABAJADOR:
-{$contextoDescargos}{$textoNoRespondio}{$textoCorreccionV6}
+{$contextoDescargos}{$textoNoRespondio}
 
 INSTRUCCIONES DE REDACCIÓN (LENGUAJE CLARO):
 - Oraciones cortas (máximo 25 palabras)
