@@ -1581,13 +1581,23 @@ REGLAS PARA LA CORRECCIÓN:
   excusa médica no confirmada), la corrección debe reflejarlo en
   "recomendacion_final.estado_recomendacion" = "condicionada" (nunca "sancionar"),
   dejándolo explícito en "mensaje_para_decision".
+- IMPORTANTE - no basta con marcar "condicionada" y dejar la misma sanción sobre la
+  mesa: cuando los problemas señalados debilitan la solidez de la falta o de la prueba
+  (evidencia no verificada, testigos sin declaración, hechos alegados sin comprobar,
+  incertidumbre sobre si la conducta aplica al trabajador), AJUSTA también
+  "sanciones_sugeridas" y "sancion_principal" hacia la opción MÁS LENIENTE que siga
+  siendo defendible - por ejemplo, si el rango ofrecía "llamado_atencion" hasta
+  "suspension", y la prueba de la falta es débil, deja únicamente "llamado_atencion"
+  (o reduce "dias_suspension" al mínimo del rango si la suspensión debe mantenerse).
+  Entre más débil la base probatoria, más conservadora debe ser la sanción ofrecida -
+  ese es el objetivo real de esta corrección, no solo avisar que algo está pendiente.
 - Si un problema señala una contradicción interna (ej. dos sanciones distintas para el
   mismo caso en distintas partes del JSON), la corrección debe dejar UNA sola línea
   coherente en todo el documento.
 - Si un problema señala que un hecho de la recomendación no aparece en los hechos
   investigados originales, elimina esa afirmación de la recomendación - no la sostengas.
-- Nunca agraves la sanción solo por corregir; ajusta ÚNICAMENTE lo necesario para resolver
-  los problemas señalados, manteniendo todo lo demás que ya estaba bien.
+- Nunca agraves la sanción al corregir (nunca subas de severidad) - la corrección solo
+  puede mantener o suavizar la sanción ofrecida, nunca endurecerla.
 - Mantén EXACTAMENTE el mismo esquema JSON de la recomendación original (las mismas
   claves, con la misma estructura).
 
