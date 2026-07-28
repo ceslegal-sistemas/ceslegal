@@ -116,6 +116,26 @@ class IAResolucionImpugnacionService
         // Motivos del reglamento
         $motivosTexto = $proceso->sanciones_laborales_texto ?? 'No especificado';
 
+        // Jurisprudencia curada relevante (Corte Constitucional/Suprema) - búsqueda
+        // semántica compartida con IAAnalisisSancionService (ver JurisprudenciaService).
+        // Este es el caso de mayor peso legal para citarla: se está evaluando si
+        // revocar/confirmar una sanción ya aplicada, justo el tipo de análisis
+        // (debido proceso, proporcionalidad, riesgo de nulidad) que la jurisprudencia
+        // de estabilidad reforzada y debido proceso sustenta con más fuerza.
+        $queryJurisprudencia = 'impugnación recurso disciplinario debido proceso nulidad derecho de defensa'
+            . ' proporcionalidad revocatoria confirmación de sanción estabilidad laboral reforzada fuero'
+            . ' ' . $motivosTexto
+            . ' ' . mb_substr(strip_tags($proceso->hechos ?? ''), 0, 200)
+            . ' ' . mb_substr((string) ($impugnacion->motivos_impugnacion ?? ''), 0, 300);
+        $contextoJurisprudencia = app(\App\Services\JurisprudenciaService::class)->buscarContexto($queryJurisprudencia);
+
+        $seccionJurisprudencia = '';
+        if (!empty($contextoJurisprudencia)) {
+            $seccionJurisprudencia  = "\nJURISPRUDENCIA APLICABLE (extractos curados por el equipo jurídico):\n";
+            $seccionJurisprudencia .= $contextoJurisprudencia . "\n";
+            $seccionJurisprudencia .= "PROHIBICIÓN ABSOLUTA: Solo puedes citar sentencias que aparezcan en este bloque, con su referencia EXACTA (ej.: 'Sentencia T-1040/2006'). Nunca cites una sentencia que no esté aquí aunque la conozcas de tu entrenamiento. Úsalas para reforzar el análisis de debido proceso, proporcionalidad y riesgo de nulidad.\n";
+        }
+
         // Timeline del proceso
         $timelineTexto = '';
         $timeline = $proceso->timeline()->orderBy('created_at', 'asc')->get();
@@ -155,7 +175,7 @@ IMPUGNACIÓN DEL TRABAJADOR:
 Fecha: {$impugnacion->fecha_impugnacion?->format('d/m/Y')}
 Motivos expuestos:
 "{$impugnacion->motivos_impugnacion}"
-
+{$seccionJurisprudencia}
 INSTRUCCIONES DE ANÁLISIS:
 
 1. AUDITORÍA DEL PROCESO: Analiza cronológicamente las actuaciones y verifica que se hayan respetado el debido proceso, el derecho de defensa y los términos legales.
@@ -164,7 +184,7 @@ INSTRUCCIONES DE ANÁLISIS:
 
 3. RECOMENDACIÓN DE DECISIÓN: Sugiere la decisión más sólida jurídicamente (Confirmar, Revocar o Modificar), justificando por qué esa opción minimiza riesgos de nulidad.
 
-4. FUNDAMENTO JURÍDICO: Genera un fundamento detallado que sustente la decisión recomendada, citando el Código Sustantivo del Trabajo y principios del derecho disciplinario.
+4. FUNDAMENTO JURÍDICO: Genera un fundamento detallado que sustente la decisión recomendada, citando el Código Sustantivo del Trabajo, principios del derecho disciplinario y, si aparece en el bloque JURISPRUDENCIA APLICABLE, la sentencia pertinente con su referencia exacta.
 
 Responde EXACTAMENTE en este formato JSON (sin bloques de código markdown):
 {

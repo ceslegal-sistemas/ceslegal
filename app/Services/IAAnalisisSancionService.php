@@ -197,77 +197,12 @@ class IAAnalisisSancionService
      */
     private function obtenerContextoJurisprudencia(ProcesoDisciplinario $proceso): string
     {
-        try {
-            $sentencias = \App\Models\Jurisprudencia::query()
-                ->activas()->procesadas()
-                ->whereNotNull('embedding')
-                ->get(['referencia', 'tema', 'tesis', 'fecha', 'magistrado', 'embedding']);
+        $query = 'sanción disciplinaria debido proceso despido justa causa estabilidad laboral reforzada fuero'
+            . ' proporcionalidad reincidencia descargos'
+            . ' ' . ($proceso->sanciones_laborales_texto ?? '')
+            . ' ' . mb_substr(strip_tags($proceso->hechos ?? ''), 0, 300);
 
-            if ($sentencias->isEmpty()) {
-                return '';
-            }
-
-            $query = 'sanción disciplinaria debido proceso despido justa causa estabilidad laboral reforzada fuero'
-                . ' proporcionalidad reincidencia descargos'
-                . ' ' . ($proceso->sanciones_laborales_texto ?? '')
-                . ' ' . mb_substr(strip_tags($proceso->hechos ?? ''), 0, 300);
-
-            $queryEmb = app(\App\Services\BibliotecaLegalService::class)->embedConsulta(trim($query));
-            if (empty($queryEmb)) {
-                return '';
-            }
-
-            $scored = $sentencias
-                ->map(function ($s) use ($queryEmb) {
-                    $emb = $s->embedding;
-                    if (empty($emb)) {
-                        return null;
-                    }
-                    return ['s' => $s, 'score' => $this->cosenoSimilitud($queryEmb, $emb)];
-                })
-                ->filter(fn($x) => $x !== null && $x['score'] >= 0.45)
-                ->sortByDesc('score')
-                ->take(3)
-                ->values();
-
-            if ($scored->isEmpty()) {
-                return '';
-            }
-
-            return $scored->map(function ($x) {
-                $s    = $x['s'];
-                $meta = trim(($s->fecha?->toDateString() ? $s->fecha->toDateString() . '; ' : '') . ($s->magistrado ? 'M.P. ' . $s->magistrado : ''));
-                $head = "--- Sentencia {$s->referencia}" . ($meta ? " ({$meta})" : '') . " ---";
-                $tema = $s->tema ? "Tema: {$s->tema}\n" : '';
-                return "{$head}\n{$tema}Tesis: {$s->tesis}";
-            })->implode("\n\n");
-
-        } catch (\Throwable $e) {
-            Log::warning('IAAnalisisSancionService: no se pudo obtener jurisprudencia', [
-                'proceso_id' => $proceso->id,
-                'error'      => $e->getMessage(),
-            ]);
-            return '';
-        }
-    }
-
-    /** Similitud coseno entre dos vectores. */
-    private function cosenoSimilitud(array $a, array $b): float
-    {
-        $n = min(count($a), count($b));
-        if ($n === 0) {
-            return 0.0;
-        }
-        $dot = $na = $nb = 0.0;
-        for ($i = 0; $i < $n; $i++) {
-            $dot += $a[$i] * $b[$i];
-            $na  += $a[$i] * $a[$i];
-            $nb  += $b[$i] * $b[$i];
-        }
-        if ($na <= 0 || $nb <= 0) {
-            return 0.0;
-        }
-        return $dot / (sqrt($na) * sqrt($nb));
+        return app(\App\Services\JurisprudenciaService::class)->buscarContexto($query);
     }
 
     /**
