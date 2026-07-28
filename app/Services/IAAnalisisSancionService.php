@@ -1513,19 +1513,31 @@ solo preparas una recomendación para la persona autorizada en la empresa que de
 
 REGLAS PARA LA CORRECCIÓN:
 - Si un problema señala que falta verificar un hecho alegado por el trabajador (ej. una
-  excusa médica no confirmada), la corrección debe reflejarlo en
+  excusa médica no confirmada, o que la empresa no ha probado que la conducta ocurrió
+  tal como se describe), la corrección debe reflejarlo en
   "recomendacion_final.estado_recomendacion" = "condicionada" (nunca "sancionar"),
   dejándolo explícito en "mensaje_para_decision".
-- IMPORTANTE - no basta con marcar "condicionada" y dejar la misma sanción sobre la
-  mesa: cuando los problemas señalados debilitan la solidez de la falta o de la prueba
-  (evidencia no verificada, testigos sin declaración, hechos alegados sin comprobar,
-  incertidumbre sobre si la conducta aplica al trabajador), AJUSTA también
-  "sanciones_sugeridas" y "sancion_principal" hacia la opción MÁS LENIENTE que siga
-  siendo defendible - por ejemplo, si el rango ofrecía "llamado_atencion" hasta
-  "suspension", y la prueba de la falta es débil, deja únicamente "llamado_atencion"
-  (o reduce "dias_suspension" al mínimo del rango si la suspensión debe mantenerse).
-  Entre más débil la base probatoria, más conservadora debe ser la sanción ofrecida -
-  ese es el objetivo real de esta corrección, no solo avisar que algo está pendiente.
+- IMPORTANTE - distingue DOS problemas distintos y no los mezcles:
+  (a) Duda sobre si la conducta OCURRIÓ o está probada (faltan pruebas, el trabajador
+      lo niega, no se desvirtuaron sus descargos). Esto NO cambia qué tan grave sería
+      la conducta SI se confirma - la gravedad ya fue determinada y no debes reabrirla
+      aquí. En este caso, dentro del MISMO rango ya ofrecido para esa gravedad,
+      inclínate hacia la opción MENOS severa (ej. entre suspensión y terminación para
+      una falta grave, prioriza suspensión y/o reduce "dias_suspension" al mínimo
+      defendible) - pero NUNCA agregues una sanción de una categoría de gravedad
+      distinta (ej. llamado de atención) que el propio análisis original ya consideró
+      desproporcionada para esta gravedad. Sería incoherente e igual de arriesgado.
+  (b) Duda sobre si la gravedad misma está bien calificada (el hallazgo cuestiona que
+      la conducta -de haber ocurrido- sea tan grave como se dijo, no solo si ocurrió).
+      Solo en este caso puedes ampliar "sanciones_sugeridas"/"sancion_principal" hacia
+      una sanción de menor entidad.
+- REGLA DE CONSISTENCIA (la más importante, no la olvides): "resumen_correccion" debe
+  describir EXACTAMENTE lo que cambiaste en "sancion_principal", "sanciones_sugeridas"
+  y "dias_suspension" - PROHIBIDO decir que bajaste a una sanción (ej. "llamado de
+  atención") si esos campos no quedaron con ese valor. Si solo tocaste
+  "estado_recomendacion" y el mensaje (caso (a) sin cambiar el rango, o priorizando la
+  opción menos severa dentro del mismo rango), el resumen debe describir SOLO eso -
+  nunca inventes en el resumen un cambio de tipo de sanción que los campos no reflejan.
 - Si un problema señala una contradicción interna (ej. dos sanciones distintas para el
   mismo caso en distintas partes del JSON), la corrección debe dejar UNA sola línea
   coherente en todo el documento.
