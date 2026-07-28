@@ -454,10 +454,12 @@ class IAAnalisisSancionService
      */
     private function obtenerContextoDescargos(ProcesoDisciplinario $proceso): string
     {
+        $procesal = $this->obtenerContextoProcedimental($proceso);
+
         $diligencia = $proceso->diligenciaDescargo;
 
         if (!$diligencia) {
-            return 'No se han realizado descargos aún.';
+            return $procesal . 'No se han realizado descargos aún.';
         }
 
         $preguntas = $diligencia->preguntas()
@@ -466,7 +468,7 @@ class IAAnalisisSancionService
             ->get();
 
         if ($preguntas->isEmpty()) {
-            return 'No hay descargos registrados.';
+            return $procesal . 'No hay descargos registrados.';
         }
 
         $contexto = '';
@@ -475,7 +477,51 @@ class IAAnalisisSancionService
             $contexto .= ($index + 1) . ". {$pregunta->pregunta}\n   Respuesta: {$respuesta}\n\n";
         }
 
-        return $contexto;
+        return $procesal . $contexto;
+    }
+
+    /**
+     * Hechos PROCESALES que la plataforma ya conoce con certeza (a diferencia
+     * de los hechos SUSTANTIVOS del caso, que sí requieren análisis). Todo
+     * proceso disciplinario de CES Legal pasa por un flujo guiado: se envía
+     * una citación formal, se registra si fue leída, y el estado del proceso
+     * ('descargos_realizados'/'descargos_no_realizados') indica con certeza
+     * si el trabajador ejerció o no su derecho a ser oído. Antes esta
+     * información NUNCA llegaba al prompt, así que la IA marcaba
+     * "debido_proceso" como "no determinable" o "riesgo" aunque el sistema
+     * SÍ sabía la respuesta - un usuario real lo notó ("se supone que si
+     * está para emitir sanción fue porque el trabajador ya realizó los
+     * descargos o no los realizó en la fecha indicada").
+     */
+    private function obtenerContextoProcedimental(ProcesoDisciplinario $proceso): string
+    {
+        $lineas = [];
+
+        $tracking = $proceso->ultimo_tracking_citacion;
+        if ($tracking && $tracking->enviado_en) {
+            $lineas[] = 'El trabajador SÍ fue citado formalmente el ' . $tracking->enviado_en->format('d/m/Y')
+                . ' (comunicación de apertura enviada por la plataforma con los hechos y el motivo).';
+            $lineas[] = $proceso->citacionFueLeida()
+                ? 'La citación fue abierta/leída por el trabajador.'
+                : 'No hay confirmación de apertura del correo de la citación (esto no invalida la citación en sí, solo no hay lectura confirmada).';
+        } elseif ($proceso->fecha_descargos_programada) {
+            $lineas[] = 'Se programó fecha de descargos (' . $proceso->fecha_descargos_programada->format('d/m/Y')
+                . '), pero no hay registro de envío de la citación por la plataforma.';
+        }
+
+        if ($proceso->estado === 'descargos_realizados') {
+            $lineas[] = 'El trabajador SÍ ejerció su derecho a ser oído: completó la diligencia de descargos dentro del proceso guiado de la plataforma (ver sus respuestas más abajo).';
+        } elseif ($proceso->estado === 'descargos_no_realizados') {
+            $lineas[] = 'El trabajador fue citado y tuvo la oportunidad de ejercer su derecho a ser oído y aportar pruebas, pero NO asistió ni respondió dentro del plazo fijado (ver fecha_descargos_programada). Esto no es un defecto de procedimiento de la empresa - es la propia inasistencia del trabajador.';
+        }
+
+        if (empty($lineas)) {
+            return '';
+        }
+
+        return "HECHOS PROCESALES YA VERIFICADOS POR LA PLATAFORMA (no requieren verificación adicional - úsalos tal cual para evaluar debido_proceso, no respondas \"no determinable\" si esta información los confirma):\n"
+            . implode("\n", array_map(fn($l) => "- {$l}", $lineas))
+            . "\n\n";
     }
 
     /**
@@ -656,7 +702,7 @@ La categoría (leve/grave/muy_grave) NO determina mecánicamente la sanción: un
 
 GARANTISMO (obligatorio antes de recomendar cualquier sanción): evalúa y reporta en "verificacion_garantias":
 - TIPICIDAD/LEGALIDAD: ¿la conducta está tipificada como falta en el RIT? No se sanciona lo que no está tipificado.
-- DEBIDO PROCESO: citación previa, derecho a ser oído y a aportar pruebas (Art. 115 CST si aparece en el contexto). Un defecto de procedimiento anula la sanción.
+- DEBIDO PROCESO: citación previa, derecho a ser oído y a aportar pruebas (Art. 115 CST si aparece en el contexto). Un defecto de procedimiento anula la sanción. Si el bloque "HECHOS PROCESALES YA VERIFICADOS POR LA PLATAFORMA" (dentro de DESCARGOS DEL TRABAJADOR, más abajo) confirma la citación y la diligencia (o la inasistencia del trabajador pese a estar citado), da por cumplidos esos pasos - NO marques "no_determinable" ni adviertas falta de información sobre pasos que ese bloque ya confirma.
 - INMEDIATEZ: la sanción debe ser oportuna; advierte si los hechos podrían estar caducos.
 - NON BIS IN IDEM: no sancionar dos veces el mismo hecho.
 - PROPORCIONALIDAD y gradualidad de la medida.
