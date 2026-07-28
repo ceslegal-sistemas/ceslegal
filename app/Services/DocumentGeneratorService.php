@@ -201,49 +201,51 @@ class DocumentGeneratorService
             </ul>';
         }
 
-        // ── Tabla de sanciones del RIT (Artículo 20) - por gravedad EXACTA ───────
+        // ── Tabla de sanciones - SOLO las conductas del incidente, no el catálogo
+        //    completo del RIT. Antes se llamaba a filasTablaSanciones($rit), que
+        //    devuelve TODAS las faltas leves/graves/muy graves del reglamento -
+        //    el usuario aclaró que la citación debe mostrar únicamente la(s)
+        //    conducta(s) que corresponden al incidente concreto de este trabajador,
+        //    no el catálogo entero. Ver filasTablaSancionesDelIncidente().
         $tablaSancionesHTML = '';
-        $rit = $empresa->reglamentoInterno;
-        if ($rit) {
-            try {
-                $filas = app(ReglamentoInternoService::class)->filasTablaSanciones($rit);
+        try {
+            $filas = $this->filasTablaSancionesDelIncidente($proceso);
 
-                if (!empty($filas)) {
-                    $colorGrav = ['Leve' => '#15803d', 'Grave' => '#b91c1c', 'Muy grave' => '#7f1d1d'];
+            if (!empty($filas)) {
+                $colorGrav = ['Leve' => '#15803d', 'Grave' => '#b91c1c', 'Muy grave' => '#7f1d1d'];
 
-                    $filasHTML = '';
-                    foreach ($filas as $fila) {
-                        $color = $colorGrav[$fila['gravedad']] ?? '#374151';
-                        $items = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $fila['conductas']));
-                        $filasHTML .= '<tr>
-                            <td class="tabla-rit-tipo" style="color:' . $color . ';">' . e(mb_strtoupper($fila['gravedad'])) . '</td>
-                            <td class="tabla-rit-conductas"><ul>' . $items . '</ul></td>
-                            <td class="tabla-rit-sancion">' . e($fila['sancion']) . '</td>
-                        </tr>';
-                    }
-
-                    $tablaSancionesHTML = '<table class="tabla-rit">
-                        <tr>
-                            <td colspan="3" class="tabla-rit-header-empresa">
-                                <strong>TABLA DE SANCIONES LABORALES</strong><br>
-                                <span style="font-size:8.5pt;">(Todas las sanciones contenidas en esta tabla solo se aplicarán previa garantía del debido proceso establecido en el Reglamento Interno, conforme a la Ley 2466 de 2025.)</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td colspan="3" class="tabla-rit-empresa">' . e($empresa->nombre_completo) . ' &nbsp;|&nbsp; NIT: ' . e($empresa->nit) . '</td>
-                        </tr>
-                        <tr class="tabla-rit-thead">
-                            <th style="width:15%;">Tipo de Falta</th>
-                            <th style="width:57%;">Conductas reguladas por el Reglamento Interno</th>
-                            <th style="width:28%;">Sanción aplicable</th>
-                        </tr>
-                        ' . $filasHTML . '
-                    </table>
-                    <p class="tabla-rit-pie">Tabla conforme al Reglamento Interno de Trabajo de ' . e($empresa->nombre_completo) . ', de conformidad con la Ley 2466 de 2025. Toda sanción se aplicará previa garantía del debido proceso.</p>';
+                $filasHTML = '';
+                foreach ($filas as $fila) {
+                    $color = $colorGrav[$fila['gravedad']] ?? '#374151';
+                    $items = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $fila['conductas']));
+                    $filasHTML .= '<tr>
+                        <td class="tabla-rit-tipo" style="color:' . $color . ';">' . e(mb_strtoupper($fila['gravedad'])) . '</td>
+                        <td class="tabla-rit-conductas"><ul>' . $items . '</ul></td>
+                        <td class="tabla-rit-sancion">' . e($fila['sancion']) . '</td>
+                    </tr>';
                 }
-            } catch (\Throwable $e) {
-                // Si falla la extracción, el documento se genera sin la tabla
+
+                $tablaSancionesHTML = '<table class="tabla-rit">
+                    <tr>
+                        <td colspan="3" class="tabla-rit-header-empresa">
+                            <strong>TABLA DE SANCIONES LABORALES</strong><br>
+                            <span style="font-size:8.5pt;">(Todas las sanciones contenidas en esta tabla solo se aplicarán previa garantía del debido proceso establecido en el Reglamento Interno, conforme a la Ley 2466 de 2025.)</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" class="tabla-rit-empresa">' . e($empresa->nombre_completo) . ' &nbsp;|&nbsp; NIT: ' . e($empresa->nit) . '</td>
+                    </tr>
+                    <tr class="tabla-rit-thead">
+                        <th style="width:15%;">Tipo de Falta</th>
+                        <th style="width:57%;">Conductas reguladas por el Reglamento Interno</th>
+                        <th style="width:28%;">Sanción aplicable</th>
+                    </tr>
+                    ' . $filasHTML . '
+                </table>
+                <p class="tabla-rit-pie">Tabla conforme al Reglamento Interno de Trabajo de ' . e($empresa->nombre_completo) . ', de conformidad con la Ley 2466 de 2025. Toda sanción se aplicará previa garantía del debido proceso.</p>';
             }
+        } catch (\Throwable $e) {
+            // Si falla la construcción de la tabla, el documento se genera sin ella
         }
 
         // ── Fecha disponibilidad pruebas (día hábil siguiente, según la jornada) ──
@@ -1409,37 +1411,77 @@ PROMPT;
     }
 
     /**
+     * Filas de la tabla de sanciones SOLO para las conductas del incidente
+     * concreto de este proceso - NO el catálogo completo de faltas
+     * leves/graves/muy graves del RIT. Antes tanto la citación como el
+     * documento de sanción mostraban el RIT entero vía
+     * ReglamentoInternoService::filasTablaSanciones($rit); el usuario aclaró
+     * que la tabla debe corresponder al incidente real del trabajador, no al
+     * catálogo. Se toma de ProcesoDisciplinario::motivosDescargosNormalizados()
+     * (las conductas que YA se seleccionaron para este proceso - misma fuente
+     * que sanciones_laborales_texto en el resto del sistema).
+     *
+     * @return array<int, array{gravedad:string, conductas:array<string>, sancion:string}>
+     */
+    private function filasTablaSancionesDelIncidente(ProcesoDisciplinario $proceso): array
+    {
+        $motivos = $proceso->motivosDescargosNormalizados();
+        if (empty($motivos)) {
+            return [];
+        }
+
+        $etiquetaGravedad = ['leve' => 'Leve', 'grave' => 'Grave', 'muy_grave' => 'Muy grave'];
+        $grupos = ['leve' => ['c' => [], 's' => []], 'grave' => ['c' => [], 's' => []], 'muy_grave' => ['c' => [], 's' => []]];
+
+        foreach ($motivos as $motivo) {
+            $g = $motivo['gravedad'] ?? 'grave';
+            if (!isset($grupos[$g])) continue;
+            if (!empty($motivo['nombre'])) $grupos[$g]['c'][] = $motivo['nombre'];
+            if (!empty($motivo['medida'])) $grupos[$g]['s'][] = $motivo['medida'];
+        }
+
+        $filas = [];
+        foreach (['leve', 'grave', 'muy_grave'] as $g) {
+            if (empty($grupos[$g]['c'])) continue;
+            $filas[] = [
+                'gravedad'  => $etiquetaGravedad[$g],
+                'conductas' => array_values(array_unique($grupos[$g]['c'])),
+                'sancion'   => implode(' / ', array_values(array_unique(array_filter($grupos[$g]['s'])))),
+            ];
+        }
+
+        return $filas;
+    }
+
+    /**
      * Construye la TABLA DE SANCIONES de forma DETERMINÍSTICA (verbatim), sin IA.
-     * Las faltas salen del RIT DEL CLIENTE (generado por IA o subido manualmente),
-     * vía ReglamentoInternoService::extraerSancionesParaEmail - NO de las sanciones
-     * genéricas. Un "otro motivo" no tipificado se ancla a un artículo del CST
-     * citado textualmente (nunca se inventa la sanción).
+     * Las faltas salen de las conductas del incidente concreto de este proceso
+     * (ver filasTablaSancionesDelIncidente), no del catálogo completo del RIT.
+     * Un "otro motivo" no tipificado se ancla a un artículo del CST citado
+     * textualmente (nunca se inventa la sanción).
      */
     private function construirTablaSancionesDeterministica(ProcesoDisciplinario $proceso, $empresa): string
     {
         $otroMotivo = trim((string) $proceso->otro_motivo_descargos);
         $filasTabla = '';
 
-        // ── Faltas del RIT DEL CLIENTE por gravedad EXACTA (leve/grave/muy grave) ─
-        $rit = $empresa->reglamentoInterno;
-        if ($rit) {
-            try {
-                $filas = app(\App\Services\ReglamentoInternoService::class)->filasTablaSanciones($rit);
-            } catch (\Throwable $e) {
-                $filas = [];
-            }
-            foreach ($filas as $fila) {
-                $grav    = e($fila['gravedad']);
-                $items   = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $fila['conductas']));
-                $sancion = e($fila['sancion']);
-                $filasTabla .= <<<HTML
+        // ── Conductas del incidente por gravedad EXACTA (leve/grave/muy grave) ───
+        try {
+            $filas = $this->filasTablaSancionesDelIncidente($proceso);
+        } catch (\Throwable $e) {
+            $filas = [];
+        }
+        foreach ($filas as $fila) {
+            $grav    = e($fila['gravedad']);
+            $items   = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $fila['conductas']));
+            $sancion = e($fila['sancion']);
+            $filasTabla .= <<<HTML
     <tr>
       <td style="border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">{$grav}</td>
       <td style="border: 1px solid #000; padding: 4px 6px;"><ul style="margin:0;padding-left:16px;">{$items}</ul></td>
       <td style="border: 1px solid #000; padding: 4px 6px; text-align: center;">{$sancion}</td>
     </tr>
 HTML;
-            }
         }
 
         // "Otro motivo" no tipificado en el RIT -> se ancla a un artículo del CST,
