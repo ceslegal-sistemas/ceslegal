@@ -1583,17 +1583,90 @@ DESCARGOS DEL TRABAJADOR:
 {$contextoDescargos}
 
 Responde EXACTAMENTE con el mismo JSON de la recomendación original (todas sus claves,
-corrigiendo solo lo necesario) y agrega ADEMÁS esta clave nueva al final del objeto:
-"resumen_correccion": una frase corta (máximo 35 palabras) en español simple, sin
-tecnicismos, dirigida a una persona de Recursos Humanos, explicando QUÉ se ajustó en la
-recomendación y POR QUÉ (ej. "Se cambió la recomendación a condicionada porque no se
-había verificado la excusa médica que alegó el trabajador.").
+corrigiendo solo lo necesario en "recomendacion_final" y demás campos - los CAMPOS
+ESTRUCTURADOS son lo que de verdad se usa, no una descripción aparte de ellos) y agrega
+ADEMÁS esta clave nueva al final del objeto:
+"motivo_ajuste": una frase corta (máximo 25 palabras) en español simple, sin tecnicismos,
+explicando SOLO POR QUÉ hiciste (o no hiciste) el ajuste - NUNCA describas aquí qué
+valores quedaron en "recomendacion_final" (eso se muestra aparte, calculado directamente
+de esos campos - si lo describes aquí y no coincide con lo que de verdad pusiste en
+"recomendacion_final", se genera una contradicción grave). Ejemplo correcto: "El
+expediente no verificó la excusa médica que alegó el trabajador." Ejemplo INCORRECTO
+(no hagas esto): "Se cambió a condicionada y se redujo a 1 día" (esto describe valores,
+no el motivo).
 Genera SOLO el JSON, sin markdown ni texto fuera del objeto.
 PROMPT;
 
         $respuesta = $this->llamarGemini($prompt);
+        $corregido = $this->normalizarCoherenciaNoSancionar($this->parsearAnalisisIA($respuesta));
 
-        return $this->normalizarCoherenciaNoSancionar($this->parsearAnalisisIA($respuesta));
+        return $this->construirResumenCorreccionDeterministico($analisisOriginal, $corregido);
+    }
+
+    /**
+     * Construye "resumen_correccion" a partir de una comparación DETERMINÍSTICA
+     * (en PHP, no confiando en el modelo) entre la recomendación original y la
+     * corregida. Motivo: 3 casos reales distintos mostraron el modelo describiendo
+     * en texto un cambio ("se ajustó a condicionada", "se redujo a 1 día", "se bajó
+     * a llamado de atención") que NO aplicó de verdad en los campos estructurados -
+     * la vista y el documento final usan los campos, así que un resumen que solo
+     * describe intención sin verificar la estructura real es peor que no tener
+     * resumen. Aquí se calcula el diff real de "recomendacion_final" y se antepone
+     * el "motivo_ajuste" (solo el porqué) que pidió el prompt. Si no hubo ningún
+     * cambio estructural real, se quita "resumen_correccion" por completo - el job
+     * lo interpreta como que la corrección no aplicó nada (conserva la original).
+     */
+    private function construirResumenCorreccionDeterministico(array $analisisOriginal, array $corregido): array
+    {
+        $motivo = trim((string) ($corregido['motivo_ajuste'] ?? ''));
+        unset($corregido['motivo_ajuste']);
+
+        $of = $analisisOriginal['recomendacion_final'] ?? [];
+        $cf = $corregido['recomendacion_final'] ?? [];
+
+        $etiquetasEstado = ['sancionar' => 'proceder con la sanción', 'condicionada' => 'condicionada a verificación', 'no_sancionar' => 'no sancionar'];
+        $etiquetasSancion = ['llamado_atencion' => 'llamado de atención', 'suspension' => 'suspensión', 'multa' => 'multa', 'terminacion' => 'terminación de contrato'];
+
+        $cambios = [];
+
+        $estadoAntes = $of['estado_recomendacion'] ?? null;
+        $estadoDespues = $cf['estado_recomendacion'] ?? null;
+        if ($estadoAntes !== $estadoDespues) {
+            $cambios[] = 'el estado pasó de "' . ($etiquetasEstado[$estadoAntes] ?? ($estadoAntes ?? 'sin definir'))
+                . '" a "' . ($etiquetasEstado[$estadoDespues] ?? ($estadoDespues ?? 'sin definir')) . '"';
+        }
+
+        $principalAntes = $of['sancion_principal'] ?? null;
+        $principalDespues = $cf['sancion_principal'] ?? null;
+        if ($principalAntes !== $principalDespues) {
+            $cambios[] = 'la sanción principal pasó de "' . ($etiquetasSancion[$principalAntes] ?? ($principalAntes ?? 'ninguna'))
+                . '" a "' . ($etiquetasSancion[$principalDespues] ?? ($principalDespues ?? 'ninguna')) . '"';
+        }
+
+        $diasAntes = $of['dias_suspension'] ?? null;
+        $diasDespues = $cf['dias_suspension'] ?? null;
+        if ($diasAntes !== $diasDespues && ($diasAntes !== null || $diasDespues !== null)) {
+            $cambios[] = 'los días de suspensión pasaron de ' . ($diasAntes ?? 'sin suspensión') . ' a ' . ($diasDespues ?? 'sin suspensión');
+        }
+
+        $confAntes = $of['confianza'] ?? null;
+        $confDespues = $cf['confianza'] ?? null;
+        if ($confAntes !== $confDespues) {
+            $cambios[] = 'la confianza bajó de "' . ($confAntes ?? 'sin definir') . '" a "' . ($confDespues ?? 'sin definir') . '"';
+        }
+
+        if (empty($cambios)) {
+            // Nada cambió realmente en la estructura - no se puede afirmar que hubo
+            // corrección aunque el modelo haya devuelto un motivo. Sin
+            // resumen_correccion, el job trata este ciclo como "sin corrección".
+            unset($corregido['resumen_correccion']);
+            return $corregido;
+        }
+
+        $textoMotivo = $motivo !== '' ? rtrim($motivo, '. ') . '. ' : '';
+        $corregido['resumen_correccion'] = $textoMotivo . 'Como resultado, ' . implode('; ', $cambios) . '.';
+
+        return $corregido;
     }
 
     /**
