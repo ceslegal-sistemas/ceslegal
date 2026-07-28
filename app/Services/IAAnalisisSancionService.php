@@ -374,9 +374,17 @@ class IAAnalisisSancionService
             if (($m['tipo'] ?? '') === 'suspension' && !empty($m['dias'])) {
                 $detalle .= "   Días de suspensión según reglamento: {$m['dias']}\n";
             }
-            if (!empty($m['reincidencia'])) {
-                $detalle .= "   NOTA: Este motivo es una REINCIDENCIA (no es la primera vez)\n";
-            }
+            // NUNCA agregar aquí una nota de "reincidencia" basada en $m['reincidencia']:
+            // para el catálogo antiguo (SancionLaboral) ese campo viene de esReincidencia()
+            // = "sancion_padre_id !== null || orden_reincidencia !== null" - es un dato del
+            // CATÁLOGO (esta fila describe el escalón "2da vez" de una escala predefinida
+            // para ESTE TIPO de falta, ver ConfigurarReincidenciasSanciones), NO si el
+            // trabajador real ya reincidió. Un caso real (William Leal) mostró el análisis
+            // marcando "Reincidencia" y justificando la gravedad con eso, mientras el
+            // historial real (obtenerHistorialProcesos() más abajo en el prompt) decía
+            // correctamente "PRIMER proceso disciplinario" - una contradicción detectada
+            // por el propio motor V6 de Coherencia del Caso. La única fuente válida de
+            // reincidencia real es el historial de procesos anteriores del trabajador.
 
             $detalle .= "\n";
         }
