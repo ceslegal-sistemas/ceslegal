@@ -181,6 +181,14 @@ html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(251,113,
               <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
               Generar conductas sancionables
             </button>
+            {{-- Mismo botón que dispara la auditoría en rit-auditoria-panel.blade.php
+                 (iniciarAuditoriaManual), aquí junto al resto de acciones del RIT.
+                 Se resalta con el mismo pulso (.sl-highlight, ver rit-auditoria-panel)
+                 al llegar desde la notificación de nueva normativa. --}}
+            <button wire:click="iniciarAuditoriaManual" class="rit-btn rit-btn-secondary @if($resaltarAuditar) sl-highlight @endif">
+              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.2-5.2m1.7-4.05a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"/></svg>
+              {{ $auditoria ? 'Volver a auditar' : 'Auditar RIT' }}
+            </button>
           @endif
         @endif
       </div>
