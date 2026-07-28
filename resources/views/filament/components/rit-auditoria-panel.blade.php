@@ -74,6 +74,19 @@ html:not(.dark) .sl-mcard{background:#fff;border-color:rgba(225,29,72,.2);box-sh
 html:not(.dark) .sl-mhead{background:linear-gradient(135deg,rgba(225,29,72,.07),rgba(251,113,133,.03))}
 .sl-badge{display:inline-flex;align-items:center;gap:.35rem;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:.3rem .75rem;border-radius:2rem;background:rgba(34,197,94,.13);color:#86efac}
 html:not(.dark) .sl-badge{background:rgba(22,163,74,.1);color:#166534}
+
+/* ── Mejora con IA: en proceso (idéntico a admin/auditar-r-i-t) ── */
+.mejora-shimmer{border-radius:1rem;overflow:hidden;border:1px solid rgba(251,113,133,.25);background:linear-gradient(135deg,rgba(251,113,133,.06) 0%,rgba(251,113,133,.04) 50%,rgba(251,113,133,.06) 100%);background-size:200% 200%;animation:mejora-shine 2.4s ease-in-out infinite}
+html:not(.dark) .mejora-shimmer{border-color:rgba(225,29,72,.18);background:linear-gradient(135deg,rgba(225,29,72,.06) 0%,rgba(251,113,133,.03) 50%,rgba(225,29,72,.06) 100%);background-size:200% 200%}
+@keyframes mejora-shine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.mejora-t{color:#f5f5f4;margin:0}
+html:not(.dark) .mejora-t{color:#1c1917}
+.mejora-eyebrow{font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fb7185;margin:0 0 .15rem}
+html:not(.dark) .mejora-eyebrow{color:#be123c}
+.mejora-sub{color:#a8a29e;margin:0}
+html:not(.dark) .mejora-sub{color:#78716c}
+.mejora-pct{font-family:'Space Grotesk',ui-sans-serif,system-ui,sans-serif;font-weight:800;color:#fb7185;line-height:1}
+html:not(.dark) .mejora-pct{color:#e11d48}
 </style>
 @endverbatim
 
@@ -146,17 +159,54 @@ html:not(.dark) .sl-badge{background:rgba(22,163,74,.1);color:#166534}
         {{-- Detalle por sección --}}
         @include('filament.components.rit-detalle-secciones', ['secciones' => $secciones, 'numDone' => $numDone])
 
-        {{-- ── Mejora en proceso ── --}}
+        {{-- ── Mejora en proceso (mismo diseño que admin/auditar-r-i-t) ── --}}
         @if($mejorando)
-            <div class="sl-mcard"><div style="padding:1.25rem 1.5rem">
-                <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
-                    <svg class="sl-spin" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="40 20"/></svg>
-                    <div style="flex:1"><p class="sl-title" style="font-size:.95rem;color:#fb7185;margin:0">Generando su RIT mejorado</p>
-                        <p class="sl-muted" style="margin:.1rem 0 0">{{ $a->progreso_mejora ?: 'Iniciando mejora capítulo por capítulo…' }}</p></div>
-                    @if($capActual > 0)<span style="font-size:1.1rem;font-weight:800;color:#fb7185">{{ $capActual }}<span style="font-size:.75rem;color:#94a3b8">/{{ $capTotal }}</span></span>@endif
+            <div class="mejora-shimmer" style="padding:1.75rem 2rem">
+                {{-- Encabezado --}}
+                <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem">
+                    <div style="width:52px;height:52px;border-radius:50%;background:rgba(251,113,133,.15);border:2px solid rgba(251,113,133,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <lord-icon src="https://cdn.lordicon.com/xjsqfzte.json"
+                            trigger="loop" delay="0" stroke="bold"
+                            colors="primary:#fb7185,secondary:#fb7185"
+                            data-pt-icon
+                            data-pt-dark="primary:#fb7185,secondary:#fb7185"
+                            data-pt-light="primary:#e11d48,secondary:#f97316"
+                            style="width:32px;height:32px">
+                        </lord-icon>
+                    </div>
+                    <div style="flex:1;min-width:0">
+                        <p class="mejora-eyebrow">Mejora con IA · En proceso</p>
+                        <p class="mejora-t" style="font-size:1.05rem;font-weight:700;margin:0 0 .2rem">Generando su RIT mejorado</p>
+                        <p class="mejora-sub" style="font-size:.8125rem;line-height:1.5">
+                            {{ $a->progreso_mejora ?: 'Iniciando mejora capítulo por capítulo…' }}
+                        </p>
+                    </div>
+                    @if($capActual > 0)
+                        <div style="text-align:right;flex-shrink:0">
+                            <span class="mejora-pct" style="font-size:1.35rem">{{ $capActual }}</span>
+                            <span class="mejora-sub" style="font-size:.75rem"> / {{ $capTotal }}</span>
+                            <p class="mejora-sub" style="font-size:.62rem;margin:.15rem 0 0;text-transform:uppercase;letter-spacing:.08em">capítulos</p>
+                        </div>
+                    @endif
                 </div>
-                <div class="sl-track"><div class="sl-fill" style="width:{{ $pctMejora }}%"></div></div>
-            </div></div>
+
+                {{-- Barra de progreso --}}
+                <div style="width:100%;height:8px;border-radius:4px;background:rgba(251,113,133,.12);overflow:hidden;margin-bottom:.875rem">
+                    <div style="height:100%;border-radius:4px;background:linear-gradient(90deg,#f97316,#fb7185);width:{{ $pctMejora }}%;transition:width .6s ease"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1rem">
+                    <span class="mejora-sub" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">Progreso de mejora</span>
+                    <span class="mejora-pct" style="font-size:.95rem">{{ $pctMejora }}%</span>
+                </div>
+
+                {{-- Aviso: proceso continúa en segundo plano --}}
+                <div style="display:flex;align-items:center;gap:.6rem;padding:.65rem 1rem;border-radius:.625rem;background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.18)">
+                    <svg style="width:14px;height:14px;color:#fb7185;flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
+                    <p style="font-size:.75rem;color:#94a3b8;margin:0;line-height:1.4">
+                        Puede salir de esta página sin problema - el proceso continúa en segundo plano y recibirá una notificación cuando el RIT mejorado esté listo.
+                    </p>
+                </div>
+            </div>
 
         {{-- ── Mejora lista ── --}}
         @elseif($mejoraLista)
