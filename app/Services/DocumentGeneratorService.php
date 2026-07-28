@@ -201,15 +201,13 @@ class DocumentGeneratorService
             </ul>';
         }
 
-        // ── Tabla de sanciones - SOLO las conductas del incidente, no el catálogo
-        //    completo del RIT. Antes se llamaba a filasTablaSanciones($rit), que
-        //    devuelve TODAS las faltas leves/graves/muy graves del reglamento -
-        //    el usuario aclaró que la citación debe mostrar únicamente la(s)
-        //    conducta(s) que corresponden al incidente concreto de este trabajador,
-        //    no el catálogo entero. Ver filasTablaSancionesDelIncidente().
+        // ── Tabla de sanciones - la(s) conducta(s) del incidente concreto si
+        //    están disponibles; si no, el catálogo completo del RIT como
+        //    respaldo (ver filasTablaSancionesConFallback) para no dejar la
+        //    tabla vacía.
         $tablaSancionesHTML = '';
         try {
-            $filas = $this->filasTablaSancionesDelIncidente($proceso);
+            $filas = $this->filasTablaSancionesConFallback($proceso, $empresa);
 
             if (!empty($filas)) {
                 $colorGrav = ['Leve' => '#15803d', 'Grave' => '#b91c1c', 'Muy grave' => '#7f1d1d'];
@@ -1454,11 +1452,41 @@ PROMPT;
     }
 
     /**
+     * Filas de la tabla de sanciones con RESPALDO: intenta primero SOLO la(s)
+     * conducta(s) del incidente concreto (filasTablaSancionesDelIncidente); si
+     * viene vacío - el proceso no tiene sanciones_laborales_ids en el formato
+     * esperado, o no coincide con conductasSancionablesDeEmpresa() - cae al
+     * catálogo completo del RIT (ReglamentoInternoService::filasTablaSanciones).
+     * Un caso real (empresa con RIT subido) mostró la tabla completamente
+     * vacía tras filtrar solo por incidente - mejor mostrar el catálogo
+     * completo que no mostrar nada en un documento legal.
+     */
+    private function filasTablaSancionesConFallback(ProcesoDisciplinario $proceso, $empresa): array
+    {
+        $filas = $this->filasTablaSancionesDelIncidente($proceso);
+        if (!empty($filas)) {
+            return $filas;
+        }
+
+        $rit = $empresa->reglamentoInterno;
+        if (!$rit) {
+            return [];
+        }
+
+        try {
+            return app(\App\Services\ReglamentoInternoService::class)->filasTablaSanciones($rit);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
      * Construye la TABLA DE SANCIONES de forma DETERMINÍSTICA (verbatim), sin IA.
      * Las faltas salen de las conductas del incidente concreto de este proceso
-     * (ver filasTablaSancionesDelIncidente), no del catálogo completo del RIT.
-     * Un "otro motivo" no tipificado se ancla a un artículo del CST citado
-     * textualmente (nunca se inventa la sanción).
+     * si están disponibles, o del catálogo completo del RIT como respaldo (ver
+     * filasTablaSancionesConFallback) para no dejar la tabla vacía. Un "otro
+     * motivo" no tipificado se ancla a un artículo del CST citado textualmente
+     * (nunca se inventa la sanción).
      */
     private function construirTablaSancionesDeterministica(ProcesoDisciplinario $proceso, $empresa): string
     {
@@ -1467,7 +1495,7 @@ PROMPT;
 
         // ── Conductas del incidente por gravedad EXACTA (leve/grave/muy grave) ───
         try {
-            $filas = $this->filasTablaSancionesDelIncidente($proceso);
+            $filas = $this->filasTablaSancionesConFallback($proceso, $empresa);
         } catch (\Throwable $e) {
             $filas = [];
         }
