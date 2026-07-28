@@ -72,6 +72,15 @@ class CreateReglamentoInterno extends CreateRecord
             if (empty($saved['actividad_economica_id']) && $empresa->actividad_economica_id) {
                 $saved['actividad_economica_id'] = $empresa->actividad_economica_id;
             }
+            // Igual para el número de empleados: si el cuestionario aún no lo tiene
+            // guardado, usar el que ya se capturó en el registro/edición de la empresa
+            // - evita pedir el mismo dato dos veces. NOTA: el ->default() del campo en
+            // getSteps() NO alcanza a aplicar aquí porque este fillForm() personalizado
+            // siempre llena el formulario explícitamente (ver docblock del método), así
+            // que el fallback debe vivir en este array $saved, igual que arriba.
+            if (empty($saved['num_trabajadores']) && $empresa->numero_empleados) {
+                $saved['num_trabajadores'] = $empresa->numero_empleados;
+            }
             if (empty($saved['actividades_secundarias_ids'])) {
                 $ids = $empresa->actividadesSecundarias()->pluck('actividades_economicas.id')->toArray();
                 if (!empty($ids)) {
