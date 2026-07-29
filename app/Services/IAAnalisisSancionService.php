@@ -1245,18 +1245,51 @@ PROMPT;
 
         $todosFallaron = collect($resultados)->every(fn($r) => isset($r['error']));
 
-        // Solo se corre la batería de motores UNA vez: no hay corrección
-        // automática de la recomendación ni consolidación de hallazgos con
-        // Gemini (evita la segunda tanda de llamadas y el riesgo de que la
-        // corrección quede contradictoria con la recomendación mostrada).
-        // El detalle por motor (evaluarMotoresV6) sigue disponible tal cual
-        // en el modal - ver validaciones-v6-resumen.blade.php.
+        $analisisFinal    = $analisisSancion;
+        $analisisOriginal = null;
+        $motivoCorreccion = null;
+
+        // La corrección automática SÍ se conserva (es la que de verdad protege
+        // - ajusta la recomendación cuando un motor detecta algo grave), pero
+        // ya NO se re-corren los 8 motores sobre la versión corregida ni se
+        // consolidan los hallazgos con Gemini: esas dos llamadas (hasta 9 más)
+        // solo pulían el checklist para mostrarlo, no cambiaban la recomendación
+        // en sí. El checklist que se muestra abajo queda con el chequeo
+        // ORIGINAL (evidencia de qué disparó la corrección); el aviso "esta
+        // recomendación se ajustó automáticamente" explica el cambio arriba.
+        if (!$todosFallaron) {
+            $filas = $this->evaluarMotoresV6($resultados);
+            $hallazgosGraves = array_filter($filas, fn($f) => $f['estado'] === 'riesgo');
+
+            if (!empty($hallazgosGraves)) {
+                try {
+                    $corregido = $this->corregirRecomendacionConHallazgosV6($proceso, $analisisSancion, $hallazgosGraves);
+
+                    if (!empty($corregido) && !empty($corregido['resumen_correccion'])) {
+                        $analisisOriginal = $analisisSancion;
+                        $motivoCorreccion = $corregido['resumen_correccion'];
+                        $analisisFinal    = $corregido;
+
+                        Log::info('IAAnalisisSancionService: recomendación corregida automáticamente', [
+                            'proceso_id'     => $proceso->id,
+                            'motores_graves' => array_keys($hallazgosGraves),
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('IAAnalisisSancionService: falló la corrección automática, se conserva la recomendación original', [
+                        'proceso_id' => $proceso->id,
+                        'error'      => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
         return [
             'estado'            => $todosFallaron ? 'error' : 'completado',
             'resultados'        => $resultados,
-            'analisisFinal'     => $analisisSancion,
-            'analisisOriginal'  => null,
-            'motivoCorreccion'  => null,
+            'analisisFinal'     => $analisisFinal,
+            'analisisOriginal'  => $analisisOriginal,
+            'motivoCorreccion'  => $motivoCorreccion,
             'puntosClave'       => [],
         ];
     }

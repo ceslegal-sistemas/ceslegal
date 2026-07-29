@@ -46,6 +46,8 @@ class GenerarRecomendacionYRevisarV6Job implements ShouldQueue
 
     public function handle(IAAnalisisSancionService $servicio): void
     {
+        $inicio = microtime(true);
+
         $resultado = $servicio->analizarYSugerirSanciones($this->proceso);
         $esFallback = !($resultado['success'] ?? false)
             || str_contains($resultado['analisis']['justificacion'] ?? '', 'Análisis manual requerido');
@@ -81,9 +83,10 @@ class GenerarRecomendacionYRevisarV6Job implements ShouldQueue
         ]);
 
         Log::info('GenerarRecomendacionYRevisarV6Job: completado', [
-            'proceso_id' => $this->proceso->id,
-            'estado'     => $r['estado'],
-            'corregido'  => $r['motivoCorreccion'] !== null,
+            'proceso_id'   => $this->proceso->id,
+            'estado'       => $r['estado'],
+            'corregido'    => $r['motivoCorreccion'] !== null,
+            'duracion_s'   => round(microtime(true) - $inicio, 1),
         ]);
     }
 
