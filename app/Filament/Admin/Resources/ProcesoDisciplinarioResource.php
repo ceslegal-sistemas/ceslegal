@@ -1812,56 +1812,60 @@ class ProcesoDisciplinarioResource extends Resource
                             && array_key_exists('razones_no_recomendadas', $resultado['analisis'])
                             && isset($resultado['analisis']['razones_no_recomendadas']['no_sancion'])
                             && array_key_exists('estado_recomendacion', $resultado['analisis']['recomendacion_final'] ?? []);
-                        if (!$cacheValido) {
-                            $iaService = new \App\Services\IAAnalisisSancionService();
-                            $resultado = $iaService->analizarYSugerirSanciones($record);
-                            $esFallback = !($resultado['success'] ?? false)
-                                || str_contains($resultado['analisis']['justificacion'] ?? '', 'Análisis manual requerido');
-                            if (!$esFallback) {
-                                session([$cacheKey => $resultado]);
 
-                                // Revisión V6 (Ponderación de Evidencia, Congruencia Jurídica,
-                                // Simulación Judicial, etc.) SÍNCRONA: antes se encolaba en
-                                // segundo plano y el modal abría de inmediato mostrando
-                                // "procesando..." - el cliente esperaba dos veces (abrir el
-                                // modal y luego esperar adentro con "Continuar" bloqueado). Se
-                                // corre aquí mismo, antes de abrir el modal, para que aparezca
-                                // ya con la recomendación final (corregida si aplicó) y sin una
-                                // segunda espera visible. Con las 8 llamadas en paralelo esto
-                                // toma ~1 min en el caso típico, ~2-3 min si hubo corrección.
-                                set_time_limit(300);
-                                $record->update(['validaciones_v6_estado' => 'procesando']);
-                                try {
-                                    $revision = $iaService->ejecutarRevisionCompletaV6($record, $resultado['analisis']);
-                                    $record->update([
-                                        'validaciones_v6_estado'          => $revision['estado'],
-                                        'validaciones_v6'                 => $revision['resultados'],
-                                        'validaciones_v6_en'              => now(),
-                                        'analisis_recomendacion'          => $revision['analisisFinal'],
-                                        'analisis_recomendacion_original' => $revision['analisisOriginal'],
-                                        'correccion_v6_motivo'            => $revision['motivoCorreccion'],
-                                        'validaciones_v6_puntos_clave'    => $revision['puntosClave'],
-                                    ]);
-                                } catch (\Throwable $e) {
-                                    // Un fallo en la revisión adicional NUNCA debe bloquear la
-                                    // emisión de la sanción - la recomendación principal ya
-                                    // generada arriba sigue siendo válida sin ella.
-                                    \Illuminate\Support\Facades\Log::error('emitir_sancion: falló la revisión V6 síncrona', [
-                                        'proceso_id' => $record->id,
-                                        'error'      => $e->getMessage(),
-                                    ]);
-                                    $record->update(['validaciones_v6_estado' => 'error']);
-                                }
+                        if (!$cacheValido) {
+                            // Genera la recomendación Y corre la revisión V6 completa (motores +
+                            // posible corrección) en COLA - un intento anterior de hacerlo todo
+                            // síncrono (misma petición que abre el modal) chocó con el timeout del
+                            // servidor en producción (~2 min de espera real, el proxy corta antes).
+                            // El modal NO se abre con el formulario real hasta que termine (ver
+                            // más abajo) - una sola espera, sin mostrar contenido a medio generar.
+                            $dispatchKey = 'emitir_sancion_dispatch_v1_' . $record->id;
+                            if (!session($dispatchKey)) {
+                                $record->update([
+                                    'validaciones_v6_estado'          => 'pendiente',
+                                    'analisis_recomendacion'          => null,
+                                    'analisis_recomendacion_original' => null,
+                                    'correccion_v6_motivo'            => null,
+                                    'validaciones_v6'                 => null,
+                                    'validaciones_v6_puntos_clave'    => null,
+                                ]);
+                                \App\Jobs\GenerarRecomendacionYRevisarV6Job::dispatch($record);
+                                session([$dispatchKey => true]);
+                            }
+
+                            $analisisListo = is_array($record->analisis_recomendacion);
+                            $falloTotal    = !$analisisListo && $record->validaciones_v6_estado === 'error';
+
+                            if (!$analisisListo && !$falloTotal) {
+                                // Sigue generando - se refresca solo (wire:poll) hasta que
+                                // $analisisListo o $falloTotal sean true en un próximo render.
+                                return [
+                                    Forms\Components\Placeholder::make('generando_recomendacion')
+                                        ->hiddenLabel()
+                                        ->content(fn() => view('filament.components.emitir-sancion-generando')),
+                                ];
+                            }
+
+                            session()->forget($dispatchKey);
+
+                            if ($falloTotal) {
+                                $esFallback = true;
+                                $analisis   = [];
+                            } else {
+                                $resultado  = ['success' => true, 'analisis' => $record->analisis_recomendacion];
+                                session([$cacheKey => $resultado]);
+                                $esFallback = false;
+                                $analisis   = $resultado['analisis'];
                             }
                         } else {
                             $esFallback = false; // viene de caché = ya fue exitoso
+                            $analisis   = $resultado['analisis'];
                         }
-                        $analisis = $resultado['analisis'];
 
-                        // Si la revisión V6 (ya completada arriba, o de un ciclo anterior
-                        // todavía vigente en caché) corrigió la recomendación, se usa la
-                        // versión corregida. Nunca se reemplaza en silencio: el aviso de qué
-                        // cambió y por qué se muestra en el modal.
+                        // Si la revisión V6 corrigió la recomendación (ciclo actual, cache
+                        // vigente), usar la versión corregida. Nunca se reemplaza en silencio:
+                        // el aviso de qué cambió y por qué se muestra en el modal.
                         $correccionV6Aplicada = !$esFallback
                             && $record->validaciones_v6_estado === 'completado'
                             && !empty($record->correccion_v6_motivo)
@@ -2198,6 +2202,13 @@ class ProcesoDisciplinarioResource extends Resource
                         }
                     )
                     ->modalSubmitActionLabel('Continuar')
+                    // Mientras se genera la recomendación (ver generando_recomendacion más
+                    // arriba) el modal solo muestra el loading - deshabilitar "Continuar"
+                    // evita que se vea clicable sin hacer nada; la validación real ya existe
+                    // aparte al inicio de ->action() como red de seguridad.
+                    ->modalSubmitAction(fn($action, ProcesoDisciplinario $record) => $action->disabled(
+                        in_array($record->validaciones_v6_estado, ['pendiente', 'procesando'], true)
+                    ))
                     ->modalCancelActionLabel('Cancelar')
                     ->modalWidth('6xl')
                     ->visible(
