@@ -596,6 +596,12 @@ Reglas:
 - Si el texto no tiene información clara de faltas, devuelve arrays vacíos - NUNCA inventes una falta
   ni la aproximes con conocimiento general de derecho laboral si no está literalmente en este RIT.
 - No listes artículos del CST genéricos; solo lo que describe concretamente este RIT
+- PROHIBIDO incluir cláusulas de "Condiciones de Admisión" o "Período de Prueba" (ej. terminar el
+  contrato con justa causa si el aspirante mintió en la hoja de vida, o si no completó satisfactoriamente
+  el período de prueba) - esos son casos especiales de CONTRATACIÓN, no faltas disciplinarias generales
+  que apliquen a cualquier incidente durante la relación laboral ya vigente. Solo incluye conductas que
+  describan comportamiento del trabajador YA VINCULADO (asistencia, disciplina, seguridad, uso de
+  recursos, relación con superiores/compañeros, etc.).
 PROMPT;
 
         try {
@@ -635,6 +641,57 @@ PROMPT;
         $capitulosRef  = ['RÉGIMEN DISCIPLINARIO', 'REGIMEN DISCIPLINARIO', 'FALTAS', 'SANCIONES', 'ESCALA DE SANCIONES'];
         $palabrasClave = ['falta', 'sanc', 'disciplin', 'descargo', 'amonestac', 'suspens', 'multa'];
 
+        // Capítulos que NUNCA deben tratarse como régimen disciplinario aunque una
+        // palabra clave suelta coincida cerca - ej. "Condiciones de Admisión" suele
+        // tener una cláusula sobre terminar el contrato con justa causa si el
+        // aspirante mintió en la hoja de vida; eso es un caso especial de
+        // CONTRATACIÓN, no una falta disciplinaria general aplicable a cualquier
+        // incidente. Caso real (SARMIENTO 2.0 S.A.): esa cláusula de admisión se
+        // coló como "falta grave" en la tabla de sanciones de una citación por un
+        // motivo de calidad farmacéutica, completamente ajeno.
+        $capitulosExcluidos = ['ADMISI', 'PERIODO DE PRUEBA', 'PERÍODO DE PRUEBA'];
+
+        // Mapear el rango de líneas de cada CAPÍTULO para poder excluir los que no
+        // son de régimen disciplinario, sin importar qué estrategia los detecte.
+        $capitulos = [];
+        $actual = null;
+        foreach ($lineas as $i => $linea) {
+            if (preg_match('/CAP[IÍ]TULO/ui', $linea)) {
+                if ($actual !== null) {
+                    $actual['fin'] = $i - 1;
+                    $capitulos[] = $actual;
+                }
+                // El título descriptivo suele venir en la MISMA línea ("CAPITULO II
+                // CONDICIONES DE ADMISION") o en 1-2 líneas siguientes ("CAPITULO II" /
+                // "CONDICIONES DE ADMISION" separadas) - se juntan las próximas 2 líneas
+                // no vacías para no perder la exclusión por ese detalle de formato.
+                $titulo = mb_strtoupper($linea);
+                for ($k = $i + 1; $k <= min($i + 2, $total - 1); $k++) {
+                    if (preg_match('/CAP[IÍ]TULO/ui', $lineas[$k])) break;
+                    $titulo .= ' ' . mb_strtoupper($lineas[$k]);
+                }
+                $actual = ['inicio' => $i, 'titulo' => $titulo, 'fin' => $total - 1];
+            }
+        }
+        if ($actual !== null) {
+            $capitulos[] = $actual;
+        }
+
+        $esLineaExcluida = function (int $linea) use ($capitulos, $capitulosExcluidos): bool {
+            foreach ($capitulos as $cap) {
+                if ($linea < $cap['inicio'] || $linea > $cap['fin']) {
+                    continue;
+                }
+                foreach ($capitulosExcluidos as $ex) {
+                    if (str_contains($cap['titulo'], mb_strtoupper($ex))) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return false;
+        };
+
         // Estrategia 1: buscar encabezado CAPÍTULO
         $inicio = null;
         foreach ($lineas as $i => $linea) {
@@ -663,13 +720,16 @@ PROMPT;
             }
         }
 
-        // Estrategia 2: palabras clave con ±10 líneas de contexto
+        // Estrategia 2: palabras clave con ±10 líneas de contexto - saltando
+        // cualquier línea que caiga dentro de un capítulo excluido.
         $indices = [];
         foreach ($lineas as $i => $linea) {
+            if ($esLineaExcluida($i)) continue;
             $lineaNorm = mb_strtolower($linea);
             foreach ($palabrasClave as $clave) {
                 if (str_contains($lineaNorm, $clave)) {
                     for ($j = max(0, $i - 5); $j <= min($total - 1, $i + 10); $j++) {
+                        if ($esLineaExcluida($j)) continue;
                         $indices[$j] = true;
                     }
                     break;
