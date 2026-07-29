@@ -64,6 +64,19 @@ class IAAnalisisSancionService
             // Parsear la respuesta de la IA
             $analisis = $this->parsearAnalisisIA($analisisTexto);
 
+            // Misma red de seguridad que ya se aplicaba SOLO a la corrección
+            // automática (ver normalizarCoherenciaNoSancionar()): un caso real
+            // (RENBEL S.A.S.) mostró el análisis INICIAL con
+            // estado_recomendacion="no_sancionar" pero sancion_principal
+            // todavía en "llamado_atencion" - la UI mostraba "La IA
+            // recomienda: Llamado de Atención" a la vez que "Se recomienda
+            // no aplicar sanción". El normalizador antes solo corría después
+            // de una corrección V6; se aplica aquí también porque el propio
+            // análisis inicial puede caer en la misma inconsistencia sin que
+            // ningún motor la dispare (los 8 motores solo corrigen si marcan
+            // "riesgo", no ante cualquier desalineación menor).
+            $analisis = $this->normalizarCoherenciaNoSancionar($analisis);
+
             // Adjuntar el análisis multimodal de pruebas (para mostrarlo verbatim en la UI)
             if (!empty($contextoPruebas)) {
                 $analisis['analisis_pruebas'] = $contextoPruebas;
