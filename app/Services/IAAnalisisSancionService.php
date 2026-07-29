@@ -1762,6 +1762,17 @@ PROMPT;
             $analisis['recomendacion_final']['sancion_principal']   = null;
             $analisis['recomendacion_final']['dias_suspension']     = null;
             $analisis['recomendacion_final']['requiere_sancion']    = false;
+
+            // "sancion_recomendada" es un campo del NIVEL SUPERIOR del análisis,
+            // independiente de "recomendacion_final" - el modelo no siempre lo
+            // sincroniza al corregir. ProcesoDisciplinarioResource lo usa como
+            // ÚLTIMO respaldo para decidir qué sanción mostrar como principal
+            // cuando "recomendacion_final.sancion_principal" viene vacío - si no
+            // se limpia aquí también, la vista sigue mostrando "La IA recomienda:
+            // [el tipo viejo]" pese a que la recomendación real es no sancionar.
+            // Caso real detectado: Lorena Conde (mostraba "Llamado de Atención"
+            // como principal con estado_recomendacion="no_sancionar").
+            $analisis['sancion_recomendada'] = null;
         }
 
         return $analisis;
