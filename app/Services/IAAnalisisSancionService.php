@@ -99,7 +99,14 @@ class IAAnalisisSancionService
     /**
      * Retorna [$sancionesRIT, $contextoRITRag]:
      * - Wizard (construido_ia): $sancionesRIT = array estructurado, $contextoRITRag = ''.
-     * - Subido (DOCX/PDF):      $sancionesRIT = [],  $contextoRITRag = fragmentos RAG relevantes.
+     * - Subido (DOCX/PDF):      $sancionesRIT = conductas YA EXTRAÍDAS y cacheadas en
+     *   reglamentos_internos.sanciones_extraidas (misma fuente que usa "Mi Reglamento
+     *   Interno" y la tabla de sanciones de la citación, vía
+     *   ReglamentoInternoService::extraerSancionesParaEmail()) - NUNCA vuelve a leer el
+     *   documento completo con IA en este flujo; si no hay caché, extraerSancionesParaEmail()
+     *   ya se encarga de extraer UNA vez y persistirlo para todos los flujos futuros.
+     *   Solo si esa extracción viene vacía (RIT atípico donde no se detectó nada) se cae
+     *   al RAG sobre el texto completo como último respaldo.
      */
     private function obtenerContextoRIT($empresa, ProcesoDisciplinario $proceso): array
     {
@@ -116,7 +123,16 @@ class IAAnalisisSancionService
                 return [$service->extraerSancionesParaEmail($rit), ''];
             }
 
-            // Documento subido: usar RAG sobre el texto completo
+            // Documento subido: reutilizar las conductas ya extraídas/cacheadas
+            // (mismas que se ven en "Mi Reglamento Interno") - sin volver a leer
+            // ni re-procesar el RIT completo en este flujo.
+            $sanciones = $service->extraerSancionesParaEmail($rit);
+            if (!empty($sanciones['faltas_leves']) || !empty($sanciones['faltas_graves']) || !empty($sanciones['faltas_muy_graves'])) {
+                return [$sanciones, ''];
+            }
+
+            // Respaldo: la extracción cacheada vino vacía (RIT atípico) - RAG sobre
+            // el texto completo como último recurso, igual que antes de este cambio.
             $query    = $this->construirQueryRIT($proceso);
             $contexto = $service->buscarEnRIT($rit, $query);
 
@@ -535,8 +551,9 @@ class IAAnalisisSancionService
             $seccionRIT .= "determinar qué conductas son faltas, qué sanciones contempla y sus límites.\n";
             $seccionRIT .= "No sugieras sanciones que el RIT no prevea explícitamente.\n";
 
-        // Caso B: datos estructurados del wizard (construido_ia)
-        } elseif (!empty($sancionesRIT['faltas_leves']) || !empty($sancionesRIT['faltas_graves'])) {
+        // Caso B: datos estructurados (wizard, o RIT subido con conductas ya
+        // extraídas/cacheadas - misma fuente que "Mi Reglamento Interno")
+        } elseif (!empty($sancionesRIT['faltas_leves']) || !empty($sancionesRIT['faltas_graves']) || !empty($sancionesRIT['faltas_muy_graves'])) {
             $seccionRIT  = "\n═══════════════════════════════════════════════════════════════════\n";
             $seccionRIT .= "RÉGIMEN DISCIPLINARIO DEL RIT DE {$empresa->nombre_completo}:\n";
             $seccionRIT .= "═══════════════════════════════════════════════════════════════════\n";
@@ -546,11 +563,26 @@ class IAAnalisisSancionService
                 foreach ($sancionesRIT['faltas_leves'] as $f) {
                     $seccionRIT .= "  - {$f}\n";
                 }
+                if (!empty($sancionesRIT['sancion_leve'])) {
+                    $seccionRIT .= "  Sanción para faltas leves: {$sancionesRIT['sancion_leve']}\n";
+                }
             }
             if (!empty($sancionesRIT['faltas_graves'])) {
                 $seccionRIT .= "FALTAS GRAVES definidas en el RIT:\n";
                 foreach ($sancionesRIT['faltas_graves'] as $f) {
                     $seccionRIT .= "  - {$f}\n";
+                }
+                if (!empty($sancionesRIT['sancion_grave'])) {
+                    $seccionRIT .= "  Sanción para faltas graves: {$sancionesRIT['sancion_grave']}\n";
+                }
+            }
+            if (!empty($sancionesRIT['faltas_muy_graves'])) {
+                $seccionRIT .= "FALTAS MUY GRAVES definidas en el RIT:\n";
+                foreach ($sancionesRIT['faltas_muy_graves'] as $f) {
+                    $seccionRIT .= "  - {$f}\n";
+                }
+                if (!empty($sancionesRIT['sancion_muy_grave'])) {
+                    $seccionRIT .= "  Sanción para faltas muy graves: {$sancionesRIT['sancion_muy_grave']}\n";
                 }
             }
             if (!empty($sancionesRIT['sanciones'])) {
