@@ -761,7 +761,14 @@ PROMPT;
             'contents'         => [['parts' => [['text' => $prompt]]]],
             'generationConfig' => [
                 'temperature'      => 0.1,
-                'maxOutputTokens'  => 2048,
+                // 2048 truncaba a mitad de JSON las respuestas más largas (ej.
+                // generarConductasSancionables() pide hasta 12 conductas x 3
+                // gravedades x 5 campos con oraciones completas) - el JSON
+                // incompleto fallaba en parsearJSON() y el catch silencioso
+                // devolvía [] sin ningún error visible. Confirmado real
+                // reproduciendo la llamada: la respuesta cruda quedaba cortada
+                // en medio de un objeto, nunca cerraba el JSON.
+                'maxOutputTokens'  => 8192,
                 'responseMimeType' => 'application/json',
                 'thinkingConfig'   => ['thinkingBudget' => 0],
             ],
