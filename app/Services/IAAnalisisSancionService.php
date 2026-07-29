@@ -1245,61 +1245,19 @@ PROMPT;
 
         $todosFallaron = collect($resultados)->every(fn($r) => isset($r['error']));
 
-        $analisisFinal    = $analisisSancion;
-        $analisisOriginal = null;
-        $motivoCorreccion = null;
-        $puntosClave      = [];
-
-        if (!$todosFallaron) {
-            $filas = $this->evaluarMotoresV6($resultados);
-            $hallazgosGraves = array_filter($filas, fn($f) => $f['estado'] === 'riesgo');
-
-            if (!empty($hallazgosGraves)) {
-                try {
-                    $corregido = $this->corregirRecomendacionConHallazgosV6($proceso, $analisisSancion, $hallazgosGraves);
-
-                    if (!empty($corregido) && !empty($corregido['resumen_correccion'])) {
-                        $analisisOriginal = $analisisSancion;
-                        $motivoCorreccion = $corregido['resumen_correccion'];
-                        $analisisFinal    = $corregido;
-
-                        // Re-evaluar los 6 motores sobre la versión YA CORREGIDA para que
-                        // el checklist refleje la recomendación final, no la original.
-                        // Deliberadamente NO se vuelve a llamar a corregirRecomendacionConHallazgosV6()
-                        // aquí (tope de 1 corrección por ciclo).
-                        $resultados = $this->ejecutarValidacionesV6($proceso, $analisisFinal);
-                        $filas      = $this->evaluarMotoresV6($resultados);
-
-                        Log::info('IAAnalisisSancionService: recomendación corregida automáticamente', [
-                            'proceso_id'     => $proceso->id,
-                            'motores_graves' => array_keys($hallazgosGraves),
-                        ]);
-                    }
-                } catch (\Throwable $e) {
-                    Log::warning('IAAnalisisSancionService: falló la corrección automática, se conserva la recomendación original', [
-                        'proceso_id' => $proceso->id,
-                        'error'      => $e->getMessage(),
-                    ]);
-                }
-            }
-
-            try {
-                $puntosClave = $this->consolidarHallazgosV6($filas);
-            } catch (\Throwable $e) {
-                Log::warning('IAAnalisisSancionService: falló la consolidación de hallazgos', [
-                    'proceso_id' => $proceso->id,
-                    'error'      => $e->getMessage(),
-                ]);
-            }
-        }
-
+        // Solo se corre la batería de motores UNA vez: no hay corrección
+        // automática de la recomendación ni consolidación de hallazgos con
+        // Gemini (evita la segunda tanda de llamadas y el riesgo de que la
+        // corrección quede contradictoria con la recomendación mostrada).
+        // El detalle por motor (evaluarMotoresV6) sigue disponible tal cual
+        // en el modal - ver validaciones-v6-resumen.blade.php.
         return [
             'estado'            => $todosFallaron ? 'error' : 'completado',
             'resultados'        => $resultados,
-            'analisisFinal'     => $analisisFinal,
-            'analisisOriginal'  => $analisisOriginal,
-            'motivoCorreccion'  => $motivoCorreccion,
-            'puntosClave'       => $puntosClave,
+            'analisisFinal'     => $analisisSancion,
+            'analisisOriginal'  => null,
+            'motivoCorreccion'  => null,
+            'puntosClave'       => [],
         ];
     }
 
