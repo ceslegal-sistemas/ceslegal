@@ -1819,26 +1819,50 @@ class ProcesoDisciplinarioResource extends Resource
                                 || str_contains($resultado['analisis']['justificacion'] ?? '', 'Análisis manual requerido');
                             if (!$esFallback) {
                                 session([$cacheKey => $resultado]);
-                                // Validación V6 (Ponderación de Evidencia, Congruencia Jurídica,
-                                // Simulación Judicial, etc.) en segundo plano - no bloquea este
-                                // formulario. Se dispara una sola vez por análisis nuevo (no en
-                                // cada re-render desde caché) para no re-encolar de más.
-                                $record->update(['validaciones_v6_estado' => 'pendiente']);
-                                \App\Jobs\EjecutarValidacionesV6Job::dispatch($record, $resultado['analisis']);
+
+                                // Revisión V6 (Ponderación de Evidencia, Congruencia Jurídica,
+                                // Simulación Judicial, etc.) SÍNCRONA: antes se encolaba en
+                                // segundo plano y el modal abría de inmediato mostrando
+                                // "procesando..." - el cliente esperaba dos veces (abrir el
+                                // modal y luego esperar adentro con "Continuar" bloqueado). Se
+                                // corre aquí mismo, antes de abrir el modal, para que aparezca
+                                // ya con la recomendación final (corregida si aplicó) y sin una
+                                // segunda espera visible. Con las 8 llamadas en paralelo esto
+                                // toma ~1 min en el caso típico, ~2-3 min si hubo corrección.
+                                set_time_limit(300);
+                                $record->update(['validaciones_v6_estado' => 'procesando']);
+                                try {
+                                    $revision = $iaService->ejecutarRevisionCompletaV6($record, $resultado['analisis']);
+                                    $record->update([
+                                        'validaciones_v6_estado'          => $revision['estado'],
+                                        'validaciones_v6'                 => $revision['resultados'],
+                                        'validaciones_v6_en'              => now(),
+                                        'analisis_recomendacion'          => $revision['analisisFinal'],
+                                        'analisis_recomendacion_original' => $revision['analisisOriginal'],
+                                        'correccion_v6_motivo'            => $revision['motivoCorreccion'],
+                                        'validaciones_v6_puntos_clave'    => $revision['puntosClave'],
+                                    ]);
+                                } catch (\Throwable $e) {
+                                    // Un fallo en la revisión adicional NUNCA debe bloquear la
+                                    // emisión de la sanción - la recomendación principal ya
+                                    // generada arriba sigue siendo válida sin ella.
+                                    \Illuminate\Support\Facades\Log::error('emitir_sancion: falló la revisión V6 síncrona', [
+                                        'proceso_id' => $record->id,
+                                        'error'      => $e->getMessage(),
+                                    ]);
+                                    $record->update(['validaciones_v6_estado' => 'error']);
+                                }
                             }
                         } else {
                             $esFallback = false; // viene de caché = ya fue exitoso
                         }
                         $analisis = $resultado['analisis'];
 
-                        // Si la revisión V6 en segundo plano encontró algo grave y corrigió
-                        // la recomendación, se usa la versión corregida - pero solo si
-                        // corresponde a ESTE mismo ciclo de análisis (cache todavía vigente;
-                        // si $cacheValido es false aquí es porque se acaba de regenerar un
-                        // análisis nuevo en esta misma petición, y la corrección persistida
-                        // sería de un ciclo anterior). Nunca se reemplaza en silencio: el
-                        // aviso de qué cambió y por qué se muestra en el modal.
-                        $correccionV6Aplicada = $cacheValido
+                        // Si la revisión V6 (ya completada arriba, o de un ciclo anterior
+                        // todavía vigente en caché) corrigió la recomendación, se usa la
+                        // versión corregida. Nunca se reemplaza en silencio: el aviso de qué
+                        // cambió y por qué se muestra en el modal.
+                        $correccionV6Aplicada = !$esFallback
                             && $record->validaciones_v6_estado === 'completado'
                             && !empty($record->correccion_v6_motivo)
                             && is_array($record->analisis_recomendacion);

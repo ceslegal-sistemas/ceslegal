@@ -1174,15 +1174,12 @@ PROMPT;
      *
      * Las 8 llamadas se disparan EN PARALELO (Http::pool(), ver
      * llamarGeminiEnParalelo()) en vez de una tras otra - en serie tardaban
-     * varios minutos (el modal de "Emitir Sanción" bloquea confirmar hasta
-     * que termina, ver ProcesoDisciplinarioResource.php), lo que se sentía
-     * como una espera larga en vez de una revisión "en tiempo real". En
-     * paralelo, el tiempo total es el de la llamada más lenta de las 8
-     * (típicamente bajo un minuto), no la suma de las 8. Si alguna falla en
-     * el intento paralelo (con el modelo principal), se reintenta en serie
-     * con el cascade completo de modelos de llamarGemini() antes de darla
-     * por perdida - por eso esto sigue corriendo en un job en cola y no
-     * dentro del mismo request que genera la recomendación inicial.
+     * varios minutos, lo que se sentía como una espera larga en vez de una
+     * revisión "en tiempo real". En paralelo, el tiempo total es el de la
+     * llamada más lenta de las 8 (típicamente bajo un minuto), no la suma
+     * de las 8. Si alguna falla en el intento paralelo (con el modelo
+     * principal), se reintenta en serie con el cascade completo de modelos
+     * de llamarGemini() antes de darla por perdida.
      */
     public function ejecutarValidacionesV6(ProcesoDisciplinario $proceso, array $analisisSancion): array
     {
@@ -1226,6 +1223,84 @@ PROMPT;
         }
 
         return $resultados;
+    }
+
+    /**
+     * Orquesta el ciclo COMPLETO de revisión adicional: corre los 8 motores,
+     * decide si hace falta corregir (motores en "riesgo"), corrige una vez y
+     * re-evalúa sobre la versión corregida, y consolida los hallazgos en
+     * puntos únicos. Es la misma lógica que antes vivía solo dentro de
+     * EjecutarValidacionesV6Job::handle() - se extrajo aquí para poder
+     * llamarla tanto desde el job (uso en cola) como de forma SÍNCRONA desde
+     * ProcesoDisciplinarioResource (para que el modal "Emitir Sanción" abra
+     * ya con la recomendación final, sin una segunda espera adentro con el
+     * checklist "procesando"). El llamador es responsable de persistir el
+     * resultado en el proceso (esta función no toca la BD).
+     *
+     * @return array{estado:string,resultados:array,analisisFinal:array,analisisOriginal:?array,motivoCorreccion:?string,puntosClave:array}
+     */
+    public function ejecutarRevisionCompletaV6(ProcesoDisciplinario $proceso, array $analisisSancion): array
+    {
+        $resultados = $this->ejecutarValidacionesV6($proceso, $analisisSancion);
+
+        $todosFallaron = collect($resultados)->every(fn($r) => isset($r['error']));
+
+        $analisisFinal    = $analisisSancion;
+        $analisisOriginal = null;
+        $motivoCorreccion = null;
+        $puntosClave      = [];
+
+        if (!$todosFallaron) {
+            $filas = $this->evaluarMotoresV6($resultados);
+            $hallazgosGraves = array_filter($filas, fn($f) => $f['estado'] === 'riesgo');
+
+            if (!empty($hallazgosGraves)) {
+                try {
+                    $corregido = $this->corregirRecomendacionConHallazgosV6($proceso, $analisisSancion, $hallazgosGraves);
+
+                    if (!empty($corregido) && !empty($corregido['resumen_correccion'])) {
+                        $analisisOriginal = $analisisSancion;
+                        $motivoCorreccion = $corregido['resumen_correccion'];
+                        $analisisFinal    = $corregido;
+
+                        // Re-evaluar los 6 motores sobre la versión YA CORREGIDA para que
+                        // el checklist refleje la recomendación final, no la original.
+                        // Deliberadamente NO se vuelve a llamar a corregirRecomendacionConHallazgosV6()
+                        // aquí (tope de 1 corrección por ciclo).
+                        $resultados = $this->ejecutarValidacionesV6($proceso, $analisisFinal);
+                        $filas      = $this->evaluarMotoresV6($resultados);
+
+                        Log::info('IAAnalisisSancionService: recomendación corregida automáticamente', [
+                            'proceso_id'     => $proceso->id,
+                            'motores_graves' => array_keys($hallazgosGraves),
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('IAAnalisisSancionService: falló la corrección automática, se conserva la recomendación original', [
+                        'proceso_id' => $proceso->id,
+                        'error'      => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            try {
+                $puntosClave = $this->consolidarHallazgosV6($filas);
+            } catch (\Throwable $e) {
+                Log::warning('IAAnalisisSancionService: falló la consolidación de hallazgos', [
+                    'proceso_id' => $proceso->id,
+                    'error'      => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return [
+            'estado'            => $todosFallaron ? 'error' : 'completado',
+            'resultados'        => $resultados,
+            'analisisFinal'     => $analisisFinal,
+            'analisisOriginal'  => $analisisOriginal,
+            'motivoCorreccion'  => $motivoCorreccion,
+            'puntosClave'       => $puntosClave,
+        ];
     }
 
     /**
