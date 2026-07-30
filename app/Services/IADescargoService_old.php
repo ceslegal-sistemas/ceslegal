@@ -14,7 +14,7 @@ use App\Services\ReglamentoInternoService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class IADescargoService
+class IADescargoService_old
 {
     protected string $provider;
     protected array $config;
@@ -109,14 +109,10 @@ class IADescargoService
             $director = $this->parsearJsonIA($respuestaDirector);
 
             Log::channel('descargos')->info('[IA] Director Estratégico OK', [
-                'diligencia_id'             => $diligencia->id,
-                'pregunta_id'               => $preguntaRespondida->id,
-                'decision'                  => $director,
-                'reconocimiento_nivel'      => $director['reconocimiento_nivel'] ?? null,
-                'elementos_no_corroborados' => $director['elementos_no_corroborados'] ?? [],
-                'patron_evasivo_detectado'  => $director['patron_evasivo_detectado'] ?? false,
-                'riesgos_criticos'          => $director['riesgos_criticos'] ?? [],
-                'ms'                        => round((microtime(true) - $t0Gemini) * 1000),
+                'diligencia_id' => $diligencia->id,
+                'pregunta_id'   => $preguntaRespondida->id,
+                'decision'      => $director,
+                'ms'            => round((microtime(true) - $t0Gemini) * 1000),
             ]);
 
             // Esquema literal del Director (ver construirPromptDirectorEstrategico): autoriza
@@ -153,33 +149,11 @@ class IADescargoService
             $this->registrarTrazabilidad($diligencia->id, $promptEvaluador, $respuestaEvaluador, 'evaluador_suficiencia');
             $evaluador = $this->parsearJsonIA($respuestaEvaluador);
 
-            // Salvaguarda de código (no solo de prompt): si el propio Evaluador
-            // reporta elementos_no_corroborados o un patrón evasivo pendiente, no
-            // se acepta "expediente_suficiente=true" al pie de la letra - se trata
-            // como inconsistente y se ignora ese cierre, para no depender
-            // exclusivamente de que el modelo respete la instrucción textual.
-            $elementosNoCorroborados = is_array($evaluador['elementos_no_corroborados'] ?? null)
-                ? $evaluador['elementos_no_corroborados']
-                : [];
-            $patronEvasivoPendiente = ($evaluador['patron_evasivo_pendiente'] ?? false) === true;
-            $expedienteSuficiente = ($evaluador['expediente_suficiente'] ?? false) === true;
-
-            if ($expedienteSuficiente && (!empty($elementosNoCorroborados) || $patronEvasivoPendiente)) {
-                Log::channel('descargos')->warning('[IA] Evaluador marcó expediente_suficiente=true pero reportó elementos sin corroborar o patrón evasivo pendiente - se ignora el cierre', [
-                    'diligencia_id'            => $diligencia->id,
-                    'pregunta_id'              => $preguntaRespondida->id,
-                    'elementos_no_corroborados'=> $elementosNoCorroborados,
-                    'patron_evasivo_pendiente' => $patronEvasivoPendiente,
-                ]);
-                $expedienteSuficiente = false;
-            }
-
-            if ($expedienteSuficiente || ($evaluador['continuar'] ?? true) === false) {
+            if (($evaluador['expediente_suficiente'] ?? false) === true || ($evaluador['continuar'] ?? true) === false) {
                 Log::channel('descargos')->info('[IA] Evaluador de Suficiencia descartó la pregunta', [
-                    'diligencia_id'             => $diligencia->id,
-                    'pregunta_id'               => $preguntaRespondida->id,
-                    'evaluacion'                => $evaluador,
-                    'elementos_no_corroborados' => $elementosNoCorroborados,
+                    'diligencia_id' => $diligencia->id,
+                    'pregunta_id'   => $preguntaRespondida->id,
+                    'evaluacion'    => $evaluador,
                 ]);
                 return [];
             }
@@ -652,29 +626,6 @@ BLOQUEDATOS;
      * decisión del Director", por eso se incorporan aquí en vez de como
      * llamadas separadas a la IA - eso habría requerido inventarles un
      * contrato JSON que el documento no define).
-     *
-     * ── AUDITORÍA (fecha de este cambio) ────────────────────────────────────────
-     * Se corrigió el punto que hacía que el sistema aceptara casi cualquier
-     * respuesta del trabajador sin exigirle precisión:
-     *  1. El reconocimiento IMPLÍCITO ya NO cierra el objetivo confirmar_hecho
-     *     como si fuera EXPRESO - exige una pregunta adicional de confirmación
-     *     inequívoca (ver reconocimiento_nivel en el JSON de salida).
-     *  2. Nuevo MOTOR DE CORROBORACIÓN: toda autorización/justificación/atenuante
-     *     alegada por el trabajador sin un dato verificable (quién, cuándo, por
-     *     qué medio) queda registrada en elementos_no_corroborados en vez de
-     *     darse por acreditada solo porque el trabajador la mencionó.
-     *  3. El umbral de evasión pasó de "1 intento y se acepta" a "2 evasiones
-     *     consecutivas sobre el MISMO dato activan patron_evasivo_detectado, con
-     *     una pregunta de precisión final antes de cerrar el punto sin resolver".
-     *  4. El JSON de salida ahora es auditable: incluye evidencia_perfil,
-     *     reconocimiento_nivel, elementos_no_corroborados,
-     *     patron_evasivo_detectado, riesgos_criticos y contradicciones_materiales
-     *     - antes esos "motores" se le pedían al modelo pero no dejaban rastro
-     *     en el JSON, así que no había forma de auditar si realmente se
-     *     ejecutaron. Ver también la salvaguarda de código agregada en
-     *     generarPreguntasDinamicas() sobre expediente_suficiente, que ya no se
-     *     acepta al pie de la letra si el propio Evaluador reportó elementos sin
-     *     corroborar o un patrón evasivo pendiente.
      */
     protected function construirPromptDirectorEstrategico(
         array $contexto,
@@ -855,43 +806,20 @@ continuar=false
 ==================================================
 RECONOCIMIENTO DEL HECHO
 ==================================================
-Clasifica internamente el nivel de reconocimiento en exactamente uno:
-EXPRESO — el trabajador confirma el hecho de forma inequívoca y sin condicionamientos.
-IMPLICITO — el trabajador no niega el hecho, pero tampoco lo confirma sin ambigüedad
-   (ej. da detalles compatibles con el hecho, cambia de tema, minimiza sin negar).
-NEGACION — el trabajador niega expresamente el hecho.
-SILENCIO — no responde o responde "no sé"/"no recuerdo" sin ningún contenido.
-EVASIVA — responde algo distinto a lo preguntado o desvía el tema.
-SOLO el reconocimiento EXPRESO cierra automáticamente el objetivo confirmar_hecho y
-prohíbe seguir preguntando sobre la ocurrencia del hecho.
-Si el reconocimiento es IMPLICITO: NUNCA lo trates como si fuera EXPRESO. Mantén
-confirmar_hecho como objetivo pendiente y autoriza EXACTAMENTE UNA pregunta de
-precisión que fuerce una confirmación inequívoca (sin ser sugestiva ni acusatoria)
-antes de poder cerrarlo. Si esa pregunta produce un reconocimiento EXPRESO o una
-negación clara, recién ahí se resuelve el objetivo.
-Si el reconocimiento es EXPRESO o NEGACION consistente, las siguientes preguntas
-únicamente podrán dirigirse a: motivos, autorizaciones, justificaciones, atenuantes,
-consecuencias — sujeto siempre al MOTOR DE CORROBORACIÓN siguiente.
-==================================================
-MOTOR DE CORROBORACIÓN
-==================================================
-Este motor se ejecuta sobre toda afirmación exculpatoria o atenuante del trabajador
-(autorización, justificación, atenuante, caso fortuito, orden de un superior, falla
-ajena, etc.) antes de poder marcarla como ACREDITADA.
-PRINCIPIO: una afirmación exculpatoria nunca queda acreditada por la sola
-declaración de quien se beneficia de ella. Requiere al menos UN elemento
-verificable: quién (nombre o cargo de quien autorizó/ordenó), cuándo, por qué
-medio (verbal, escrito, correo, sistema), o una referencia contrastable (número de
-ticket, testigo, documento).
-REGLA: si la respuesta del trabajador afirma una autorización, justificación o
-atenuante SIN aportar espontáneamente ninguno de esos elementos, ese objetivo
-permanece NO_ACREDITADO (nunca ACREDITADO) y debe agregarse a
-elementos_no_corroborados. Autoriza una única pregunta de precisión pidiendo el
-elemento verificable faltante antes de cerrar ese objetivo. Si el trabajador no
-puede aportarlo tras esa pregunta, el objetivo se cierra igualmente por eficiencia,
-pero permanece registrado en elementos_no_corroborados para que quede en el
-expediente que la afirmación no fue corroborada — nunca lo elimines del reporte
-solo porque se dejó de preguntar sobre él.
+Analiza si existe:
+reconocimiento expreso
+reconocimiento implícito
+negación
+silencio
+respuesta evasiva
+Si existe reconocimiento suficiente del hecho:
+prohíbe generar nuevas preguntas destinadas a demostrar nuevamente su ocurrencia.
+Las siguientes preguntas únicamente podrán dirigirse a:
+motivos
+autorizaciones
+justificaciones
+atenuantes
+consecuencias
 ==================================================
 PERFIL DEL TRABAJADOR
 ==================================================
@@ -911,14 +839,6 @@ lenguaje
 profundidad
 precisión
 nivel técnico
-Esta clasificación NUNCA puede quedar como una simple etiqueta sin sustento.
-Identifica en el campo evidencia_perfil qué elementos concretos de las respuestas
-ya dadas (vocabulario usado, longitud de las respuestas, uso o ausencia de
-tecnicismos, estructura de las oraciones) sustentan la clasificación elegida.
-Si aún no hay respuestas suficientes para sustentarla, usa el cargo reportado
-como base provisional y dilo explícitamente en evidencia_perfil.
-Reevalúa esta clasificación en cada turno - nunca la reutilices automáticamente
-del turno anterior sin volver a mirar la respuesta más reciente.
 ==================================================
 REGLAS DE EFICIENCIA
 ==================================================
@@ -1111,26 +1031,17 @@ answer simple factual questions, repeated unnecessary expansion, repeated
 avoidance of direct answers.
 DO NOT INTERPRET stress, nervousness, silence, emotion, memory lapses,
 language ability, or communication style as evidence of deception.
-PATTERN THRESHOLD: a pattern becomes reportable once the SAME specific piece of
-information has been evaded or avoided TWICE in a row on the same objective
-(not once) - two consecutive evasions on the same concrete question, not vague
-similarity across unrelated topics. Before reporting any pattern, evaluate
-whether it can reasonably be explained by stress, confusion, poor wording,
-misunderstanding, memory limitations, educational background, or
-communication style - if any explanation is equally plausible, do not report
-manipulation, but still keep the objective open for one more precision
-question rather than closing it.
-RECOMMENDED ACTION: if two consecutive evasions on the same objective are
-detected, set patron_evasivo_detectado=true and authorize exactly ONE more
-precision question narrowing to a single verifiable fact. If that third
-attempt is still evaded, close the objective as NOT obtained (never as if it
-had been answered) and keep it recorded for the disciplinary decision-maker.
-Never recommend confrontation, pressure, or accusatory questioning at any
-point.
+PATTERN THRESHOLD: no behavioral pattern shall be reported unless it appears
+consistently across multiple interactions. Single occurrences shall be
+ignored. Before reporting any pattern, evaluate whether it can reasonably be
+explained by stress, confusion, poor wording, misunderstanding, memory
+limitations, educational background, or communication style - if any
+explanation is equally plausible, do not report manipulation.
+RECOMMENDED ACTION: if a reliable pattern exists, recommend only one
+additional clarification opportunity. Never recommend confrontation, pressure,
+or accusatory questioning.
 CONFIDENCE: internally classify VERY_LOW/LOW/MEDIUM/HIGH/VERY_HIGH - only
-HIGH or VERY_HIGH may be reported, but even LOW/MEDIUM confidence is enough to
-justify one additional precision question (it only blocks the manipulation
-LABEL, not the follow-up question itself).
+HIGH or VERY_HIGH may be reported.
 ==================================================
 CASE MEMORY ENGINE V4 (texto original en inglés)
 ==================================================
@@ -1195,12 +1106,7 @@ investigan hechos irrelevantes, se prolonga innecesariamente la diligencia, o
 se buscan confesiones repetidas.
 REGLA DE CIERRE: solo podrá autorizarse el cierre cuando no existan riesgos
 CRÍTICOS, no existan riesgos ALTOS sin tratamiento, y la decisión futura pueda
-sustentarse razonablemente con el expediente existente. Un elemento presente en
-elementos_no_corroborados NO impide el cierre por sí solo (no se busca un
-expediente perfecto), pero debe quedar registrado y NUNCA presentado como si
-estuviera acreditado. Un patron_evasivo_detectado=true en el turno actual SÍ
-impide el cierre mientras no se haya autorizado la pregunta de precisión
-adicional que exige el motor de manipulación.
+sustentarse razonablemente con el expediente existente.
 ==================================================
 MOTOR DE COBERTURA PROBATORIA V4
 ==================================================
@@ -1340,34 +1246,13 @@ Responder EXCLUSIVAMENTE el siguiente JSON.
     "estado_expediente":"",
     "nivel_interrogatorio":"",
     "perfil_trabajador":"",
-    "evidencia_perfil":"",
     "nivel_tecnico":"",
-    "reconocimiento_nivel":"",
     "continuar":true,
     "maximo_preguntas":0,
     "objetivos_pendientes":[
     ],
-    "elementos_no_corroborados":[
-    ],
-    "patron_evasivo_detectado":false,
-    "riesgos_criticos":[
-    ],
-    "contradicciones_materiales":[
-    ],
     "motivo":""
 }
-reconocimiento_nivel debe ser exactamente uno de: EXPRESO, IMPLICITO, NEGACION,
-SILENCIO, EVASIVA, NO_APLICA (usa NO_APLICA solo si el objetivo confirmar_hecho
-ya no está entre los objetivos pendientes ni fue relevante en este turno).
-elementos_no_corroborados es la lista (puede ir vacía) de afirmaciones
-exculpatorias o atenuantes que el trabajador hizo sin aportar el elemento
-verificable exigido por el MOTOR DE CORROBORACIÓN - persiste entre turnos, nunca
-elimines un elemento de esta lista salvo que el trabajador lo haya corroborado
-en una respuesta posterior.
-riesgos_criticos y contradicciones_materiales resumen en una frase corta cada
-hallazgo relevante de los motores de Riesgo Jurídico y Semantic Consistency -
-déjalos vacíos si no aplica, pero NUNCA omitas un riesgo CRÍTICO real solo por
-mantener el JSON corto.
 No agregues absolutamente ningún texto antes ni después del JSON.
 
 {$datosDelCaso}
@@ -1523,23 +1408,21 @@ riesgos
 ==================================================
 EXPERTO EN EL CARGO
 ==================================================
-Actúa como un experto en el cargo del trabajador, PERO ancla ese conocimiento
-únicamente a lo que aparece en el Reglamento Interno, las normas suministradas
-o lo que el propio trabajador ya explicó en la diligencia sobre su labor.
-Está prohibido dar por ciertos protocolos, procedimientos o estándares
-técnicos específicos de esta empresa que no estén respaldados por el RIT, las
-normas suministradas o las respuestas ya dadas - si no tienes esa fuente,
-formula la pregunta para que sea el trabajador quien describa el procedimiento
-correcto (y así puedas contrastarlo después), en vez de asumir cuál es.
+Actúa como un experto absoluto en el cargo del trabajador.
+Conoces.
+Funciones.
+Protocolos.
+Controles.
+Procesos.
+Indicadores.
+Errores comunes.
+Buenas prácticas.
+Responsabilidades.
 Nunca preguntes.
 ¿Cuáles son sus funciones?
 ¿Cómo hace normalmente su trabajo?
 ¿Qué hace en su cargo?
-Esas preguntas genéricas se reemplazan por preguntas específicas sobre el
-procedimiento aplicable al hecho investigado (ej. "¿Cuál es el paso siguiente
-después de detectar esa alerta en el sistema, según el procedimiento que
-usted sigue habitualmente?"), nunca por preguntas abiertas sobre el cargo en
-general.
+Eso ya lo conoces.
 ==================================================
 PREGUNTAS INTELIGENTES
 ==================================================
@@ -1565,23 +1448,14 @@ Nunca sugieras la respuesta correcta.
 ==================================================
 SI EXISTE RECONOCIMIENTO
 ==================================================
-Revisa el campo reconocimiento_nivel de la estrategia del Director.
-Si reconocimiento_nivel=EXPRESO, queda prohibido generar preguntas destinadas
-nuevamente a demostrar el hecho. Las siguientes preguntas únicamente podrán
-desarrollar: justificaciones, autorizaciones, atenuantes, circunstancias,
-consecuencias.
-Si reconocimiento_nivel=IMPLICITO, el objetivo confirmar_hecho sigue vivo:
-redacta UNA pregunta abierta o de precisión (nunca sugestiva) que busque una
-confirmación inequívoca del hecho antes de pasar a justificaciones o atenuantes.
-Nunca asumas que "implícito" equivale a "expreso".
-==================================================
-SI HAY ELEMENTOS SIN CORROBORAR
-==================================================
-Si el Director reporta elementos_no_corroborados no vacío para el objetivo
-actual, tu pregunta debe pedir específicamente el dato verificable faltante
-(nombre de quien autorizó, fecha, medio, referencia) - nunca una pregunta
-genérica tipo "¿puede ampliar eso?". Sé concreto: pide exactamente el dato que
-falta, en una sola pregunta.
+Si el Director informa reconocimiento expreso o implícito,
+queda prohibido generar preguntas destinadas nuevamente a demostrar el hecho.
+Las siguientes preguntas únicamente podrán desarrollar.
+justificaciones
+autorizaciones
+atenuantes
+circunstancias
+consecuencias
 ==================================================
 PREGUNTAS ACLARATORIAS
 ==================================================
@@ -1611,19 +1485,10 @@ Nunca una narración completa si solo hace falta un dato.
 ==================================================
 RESPUESTAS EVASIVAS
 ==================================================
-Si la respuesta anterior fue evasiva sobre un dato concreto.
-Formula una pregunta de precisión que reformule el mismo dato desde otro ángulo
-(nunca la misma redacción, nunca acusatoria).
-Si vuelve a ser evasiva sobre ESE MISMO dato por segunda vez consecutiva.
-El Director marcará patron_evasivo_detectado=true - en ese caso formula UNA
-última pregunta de precisión, lo más concreta y acotada posible (un solo dato,
-una sola palabra o número esperado como respuesta), dejando explícito en tu
-razonamiento interno que es el intento final sobre ese punto.
-Si tras ese tercer intento sigue evasiva, o si el Director no marcó
-patron_evasivo_detectado (ya usó su única oportunidad adicional), responde
-NO_REQUIERE - pero esto significa "no se obtuvo el dato", nunca "el dato ya
-se tiene por cierto". La ausencia de respuesta clara nunca se traduce en un
-objetivo marcado como acreditado.
+Si la respuesta anterior fue evasiva.
+Formula únicamente una pregunta de precisión.
+Si vuelve a ser evasiva.
+Devuelve NO_REQUIERE.
 ==================================================
 CONTROL DE LONGITUD
 ==================================================
@@ -1752,18 +1617,11 @@ Busca únicamente un expediente suficiente.
 CRITERIOS DE SUFICIENCIA
 ==================================================
 Verifica.
-□ El hecho principal quedó suficientemente establecido CON reconocimiento
-  EXPRESO, negación acompañada de una versión alternativa, o evidencia
-  suficiente en el expediente - nunca por un reconocimiento IMPLICITO sin
-  confirmar.
+□ El hecho principal quedó suficientemente establecido.
 □ El trabajador tuvo oportunidad real de responder.
-□ Las justificaciones relevantes fueron documentadas y, cuando fue posible
-  pedirlo sin agotar los intentos disponibles, se buscó al menos un elemento
-  verificable que las respalde.
+□ Las justificaciones relevantes fueron documentadas.
 □ Los atenuantes relevantes fueron documentados.
 □ Las contradicciones materiales fueron resueltas.
-□ Ningún patrón evasivo detectado por el Director quedó sin su pregunta de
-  precisión final pendiente.
 □ No existen vacíos capaces de modificar razonablemente la decisión disciplinaria.
 ==================================================
 VACÍOS RELEVANTES
@@ -1786,38 +1644,15 @@ Ante saturación, finalizar.
 ==================================================
 CONFESIÓN
 ==================================================
-Si existe reconocimiento EXPRESO (revisa reconocimiento_nivel del Director).
-Nunca exigir confirmaciones adicionales sobre el hecho mismo.
+Si existe reconocimiento suficiente.
+Nunca exigir confirmaciones adicionales.
 Nunca buscar una segunda confesión.
-Si el reconocimiento es IMPLICITO, NO lo trates como confesión para efectos de
-este criterio - el objetivo confirmar_hecho sigue evaluándose como cualquier
-otro objetivo pendiente.
 ==================================================
 NEGACIÓN
 ==================================================
 Si existe negación consistente.
-Preguntar únicamente si aún existe una contradicción material pendiente O si el
-trabajador no ha tenido oportunidad de explicar dónde estaba / qué hacía en el
-momento de los hechos (una negación sin ningún relato alternativo no es, por sí
-sola, un expediente suficiente - verifica que exista al menos una versión
-alternativa mínimamente concreta antes de darla por buena).
+Preguntar únicamente si aún existe una contradicción material pendiente.
 En caso contrario, finalizar.
-==================================================
-CORROBORACIÓN PENDIENTE
-==================================================
-Revisa elementos_no_corroborados del Director. Su sola existencia NO impide
-finalizar (no se busca un expediente perfecto), pero SIEMPRE debe reflejarse en
-tu propia salida en elementos_no_corroborados para que quede visible en el
-expediente - nunca la omitas ni la des por resuelta sin que el trabajador haya
-aportado el dato faltante.
-==================================================
-PATRÓN EVASIVO PENDIENTE
-==================================================
-Si el Director marcó patron_evasivo_detectado=true en este turno y todavía no
-se formuló la pregunta de precisión final que ese motor exige, NO autorices el
-cierre sobre ese objetivo específico - marca patron_evasivo_pendiente=true y
-continuar=true para ese punto puntual, aunque el resto del expediente esté
-completo.
 ==================================================
 RESPUESTAS EVASIVAS
 ==================================================
@@ -1838,14 +1673,8 @@ Responder ÚNICAMENTE con este JSON:
    "expediente_suficiente":true,
    "continuar":false,
    "motivo":"",
-   "vacios_relevantes":[],
-   "elementos_no_corroborados":[],
-   "patron_evasivo_pendiente":false
+   "vacios_relevantes":[]
 }
-elementos_no_corroborados: copia o actualiza la lista que trae la estrategia del
-Director - nunca la dejes vacía si el Director reportó elementos ahí.
-patron_evasivo_pendiente: true únicamente si hay una pregunta de precisión final
-por evasión que el motor de manipulación exige y aún no se formuló.
 Nunca agregar texto adicional.
 
 {$datosDelCaso}
