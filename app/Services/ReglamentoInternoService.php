@@ -339,13 +339,29 @@ class ReglamentoInternoService
     public function generarConductasSancionables(ReglamentoInterno $rit): array
     {
         $contexto = '';
+        $hayFuenteReal = false;
         if (!empty($rit->texto_completo)) {
             $contexto = "RÉGIMEN DISCIPLINARIO DEL RIT DE LA EMPRESA:\n"
                 . $this->extraerCapituloDisciplinario($rit->texto_completo);
+            $hayFuenteReal = trim($contexto) !== '';
         } elseif (!empty($rit->respuestas_cuestionario['sanciones_configuradas'])) {
             $contexto = "SANCIONES CONFIGURADAS EN EL RIT:\n"
                 . json_encode($rit->respuestas_cuestionario['sanciones_configuradas'], JSON_UNESCAPED_UNICODE);
+            $hayFuenteReal = true;
         }
+
+        // Con documento fuente real (texto_completo o sanciones_configuradas), esto NO
+        // es una síntesis genérica: debe reflejar TODAS las conductas que ese documento
+        // describe, sin omitir ninguna, porque alimenta el mismo catálogo que usa el
+        // análisis de sanción. Solo sin fuente real (empresa aún sin RIT) tiene sentido
+        // un catálogo base acotado conforme al CST.
+        $reglaCantidad = $hayFuenteReal
+            ? '- Cada gravedad: incluye TODAS las conductas que el contexto anterior describa para esa
+  gravedad, sin límite de cantidad ni resumen - así el contexto tenga 3 o 40 conductas por gravedad.
+  Omitir una conducta real porque "ya hay suficientes" está PROHIBIDO: este listado alimenta el
+  análisis de sanción y ninguna conducta puede faltar.'
+            : '- Sin un RIT propio de referencia: genera un catálogo base razonable, entre 5 y 12
+  conductas CONCRETAS por gravedad (no genéricas ni repetidas), conforme al CST.';
 
         $prompt = <<<PROMPT
 Eres un abogado laboralista colombiano. Genera el LISTADO DE CONDUCTAS SANCIONABLES para el Reglamento Interno de Trabajo (RIT) de una empresa, clasificadas por gravedad (leve, grave, gravísima), conforme al Código Sustantivo del Trabajo (CST) y a la legislación laboral colombiana. Este contenido será PÚBLICO dentro del RIT: debe ser claro, concreto y jurídicamente correcto.
@@ -360,7 +376,7 @@ Responde ÚNICAMENTE con un JSON válido, sin texto adicional, con esta estructu
 }
 
 Reglas:
-- Cada gravedad: entre 5 y 12 conductas CONCRETAS (no genéricas ni repetidas).
+{$reglaCantidad}
 - Proporcionalidad y gradualidad: leve → llamado de atención; grave → suspensión; gravísima → terminación del contrato con justa causa. Respeta lo que el RIT contemple si el contexto lo indica.
 - dias_suspension: entero SOLO cuando el tipo es "suspension"; en los demás casos null.
 - base_legal: cita el artículo del CST (p. ej. Art. 58, 60, 62 CST) o del RIT. NO inventes normas.
@@ -407,9 +423,13 @@ PROMPT;
             ];
         };
 
+        // Sin tope artificial de cantidad - antes se cortaba en 12 por gravedad,
+        // omitiendo conductas reales del RIT en reglamentos con listas largas. El
+        // límite de 200 es solo salvaguarda contra una respuesta corrupta/repetida
+        // de la IA, nunca pensado para recortar contenido legítimo.
         $out = [];
         foreach (['leve', 'grave', 'gravisima'] as $g) {
-            $items   = array_slice(is_array($datos[$g] ?? null) ? $datos[$g] : [], 0, 12);
+            $items   = array_slice(is_array($datos[$g] ?? null) ? $datos[$g] : [], 0, 200);
             $out[$g] = array_values(array_filter(array_map($limpiar, $items), fn($i) => $i['conducta'] !== ''));
         }
 
@@ -591,8 +611,11 @@ Reglas:
   de cada conducta/falta tal como está redactada literalmente en el Reglamento (numeral, artículo o
   viñeta completa). Si el RIT enumera una falta en una frase larga, cópiala completa - no la recortes
   para que quepa en pocos caracteres.
-- faltas_leves, faltas_graves y faltas_muy_graves: máximo 8 items cada uno, sin límite artificial de
-  caracteres - el largo lo define el propio texto del RIT, no un resumen tuyo.
+- faltas_leves, faltas_graves y faltas_muy_graves: SIN LÍMITE de cantidad ni de caracteres - incluye
+  TODAS y cada una de las faltas que el texto describa para esa gravedad, así sean 3 o sean 40. El
+  largo y la cantidad los define el propio texto del RIT, nunca un resumen ni un recorte tuyo. Omitir
+  una falta real porque "ya hay suficientes" está PROHIBIDO - esta lista se usa después para decidir
+  sanciones reales y ninguna falta puede faltar.
 - sancion_leve / sancion_grave / sancion_muy_grave: copia EXACTA (textual) de la sanción que el RIT
   asigna a cada nivel de gravedad. Si el RIT no separa "muy graves", deja faltas_muy_graves vacío y
   sancion_muy_grave en "". NO inventes la sanción: si no está clara, deja la cadena vacía.
@@ -614,10 +637,14 @@ PROMPT;
 
             $nz = fn($v) => (is_string($v) && trim($v) !== '') ? trim($v) : null;
 
+            // Sin tope artificial de cantidad - antes se cortaba en 10 por gravedad,
+            // omitiendo faltas reales del RIT en reglamentos con listas largas. El
+            // límite de 200 es solo una salvaguarda contra una respuesta corrupta/
+            // repetida de la IA, nunca pensado para recortar contenido legítimo.
             return [
-                'faltas_leves'      => array_slice($datos['faltas_leves']  ?? [], 0, 10),
-                'faltas_graves'     => array_slice($datos['faltas_graves'] ?? [], 0, 10),
-                'faltas_muy_graves' => array_slice($datos['faltas_muy_graves'] ?? [], 0, 10),
+                'faltas_leves'      => array_slice($datos['faltas_leves']  ?? [], 0, 200),
+                'faltas_graves'     => array_slice($datos['faltas_graves'] ?? [], 0, 200),
+                'faltas_muy_graves' => array_slice($datos['faltas_muy_graves'] ?? [], 0, 200),
                 'sancion_leve'      => $nz($datos['sancion_leve'] ?? null),
                 'sancion_grave'     => $nz($datos['sancion_grave'] ?? null),
                 'sancion_muy_grave' => $nz($datos['sancion_muy_grave'] ?? null),
@@ -640,7 +667,15 @@ PROMPT;
     {
         $lineas   = explode("\n", $textoRIT);
         $total    = count($lineas);
-        $maxChars = 5000;
+        // 5000 truncaba capítulos disciplinarios largos ANTES de que la IA los viera -
+        // un RIT con muchas faltas enumeradas (20-40+, común en reglamentos detallados)
+        // fácilmente supera esa cifra, así que las últimas faltas nunca llegaban a
+        // extraerSancionesConIA()/generarConductasSancionables(). El requisito es no
+        // omitir ninguna falta real del RIT, así que el techo sube a un valor muy por
+        // encima de cualquier capítulo disciplinario real (el contexto de Gemini
+        // soporta esto sin problema); sigue existiendo solo como salvaguarda contra un
+        // capítulo mal delimitado que termine abarcando el documento entero.
+        $maxChars = 60000;
 
         $capitulosRef  = ['RÉGIMEN DISCIPLINARIO', 'REGIMEN DISCIPLINARIO', 'FALTAS', 'SANCIONES', 'ESCALA DE SANCIONES'];
         $palabrasClave = ['falta', 'sanc', 'disciplin', 'descargo', 'amonestac', 'suspens', 'multa'];
@@ -771,8 +806,11 @@ PROMPT;
                 // incompleto fallaba en parsearJSON() y el catch silencioso
                 // devolvía [] sin ningún error visible. Confirmado real
                 // reproduciendo la llamada: la respuesta cruda quedaba cortada
-                // en medio de un objeto, nunca cerraba el JSON.
-                'maxOutputTokens'  => 8192,
+                // en medio de un objeto, nunca cerraba el JSON. Subido de nuevo
+                // (8192 -> 16384) al quitar los topes de cantidad de faltas/
+                // conductas por gravedad: un RIT con listas largas y sin límite
+                // artificial puede generar una respuesta bastante más extensa.
+                'maxOutputTokens'  => 16384,
                 'responseMimeType' => 'application/json',
                 'thinkingConfig'   => ['thinkingBudget' => 0],
             ],
