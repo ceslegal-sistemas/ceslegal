@@ -468,9 +468,9 @@ class EmpresaResource extends Resource
                     ->badge()
                     ->getStateUsing(
                         fn(Empresa $record): string =>
-                        match ($record->reglamentoInterno?->fuente) {
-                            'construido_ia' => 'IA generado',
-                            default         => $record->reglamentoInterno ? 'Manual' : 'Sin RIT',
+                        match (true) {
+                            in_array($record->reglamentoInterno?->fuente, ['construido_ia', 'mejora_ia'], true) => 'IA generado',
+                            default => $record->reglamentoInterno ? 'Manual' : 'Sin RIT',
                         }
                     )
                     ->color(fn(string $state): string => match ($state) {
