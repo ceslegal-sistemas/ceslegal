@@ -531,7 +531,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                                 $terminosProtegidos = [
                                                     'raza o etnia'                         => ['negro', 'negra', 'negroto', 'negrota', 'negrito', 'negrita', 'indio', 'india', 'indigena', 'zambo', 'zamba', 'mulato', 'mulata', 'afro', 'afrocolombiano', 'afrodescendiente', 'mestizo', 'mestiza', 'moreno', 'morena', 'trigueño', 'trigueña', 'gringo', 'gringa', 'cholo', 'chola', 'montañero', 'montañera'],
                                                     'orientación sexual o identidad de género' => ['gay', 'lesbiana', 'bisexual', 'travesti', 'travestido', 'travestida', 'transexual', 'transgenero', 'transgenerista', 'homosexual', 'queer', 'intersexual'],
-                                                    'discapacidad física'                  => ['invalido', 'invalida', 'impedido', 'impedida', 'lisiado', 'lisiada', 'tullido', 'tullida', 'cojo', 'coja', 'manco', 'manca', 'ciego', 'ciega', 'sordo', 'sorda', 'mudo', 'muda', 'jorobado', 'jorobada', 'paralitico', 'paralitica', 'minusvalido', 'minusvalida', 'discapacitado', 'discapacitada', 'postrado', 'postrada', 'tetraplejico', 'paraplejico'],
+                                                    'discapacidad física'                  => ['invalido', 'invalida', 'lisiado', 'lisiada', 'tullido', 'tullida', 'cojo', 'coja', 'manco', 'manca', 'ciego', 'ciega', 'sordo', 'sorda', 'mudo', 'muda', 'jorobado', 'jorobada', 'paralitico', 'paralitica', 'minusvalido', 'minusvalida', 'discapacitado', 'discapacitada', 'postrado', 'postrada', 'tetraplejico', 'paraplejico'],
                                                     'discapacidad cognitiva o mental'      => ['retrasado', 'retrasada', 'mongolito', 'mongolita', 'mogolico', 'mogolica', 'mongol', 'tarado', 'tarada', 'demente', 'loco', 'loca', 'chiflado', 'chiflada', 'perturbado', 'perturbada', 'autista', 'esquizofrenico', 'esquizofrenica'],
                                                     'religión'                             => ['judio', 'judia', 'musulman', 'musulmana', 'evangelico', 'evangelica'],
                                                     'origen nacional'                      => ['venezolano', 'venezolana', 'extranjero', 'extranjera', 'clandestino', 'clandestina', 'mojado', 'mojada'],
@@ -1326,8 +1326,6 @@ class CreateProcesoDisciplinario extends CreateRecord
                 'invalida',
                 'inválido',
                 'inválida',
-                'impedido',
-                'impedida',
                 'lisiado',
                 'lisiada',
                 'tullido',
