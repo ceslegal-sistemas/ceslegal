@@ -510,13 +510,10 @@ class FormularioDescargos extends Component
                 '¿Va a asistir acompañado(a) por alguien?',
                 '¿Qué relación tiene esa persona con usted?',
                 'Acompañante: indique su nombre completo y en qué calidad asiste a esta diligencia (apoyo moral, representante sindical, apoderado, testigo u otro).',
-                '¿Cuál es el nombre de esa empresa contratista o tercero?',
             ];
 
             // Prefijos para preguntas administrativas cuyo texto varía (contienen nombre de empresa)
-            $prefijosAdministrativos = [
-                '¿Trabaja usted para una empresa contratista o tercero diferente a',
-            ];
+            $prefijosAdministrativos = [];
 
             $esPreguntaAdministrativa = in_array($pregunta->pregunta, $preguntasAdministrativas)
                 || collect($prefijosAdministrativos)->contains(
