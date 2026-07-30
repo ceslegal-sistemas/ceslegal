@@ -72,13 +72,16 @@ class GuiaProcesoService
     /** Cálculo del roadmap para una empresa concreta. */
     public function paraEmpresa(Empresa $empresa): array
     {
-        // ── RIT (base: no la versión mejora_ia) ──
+        // ── RIT vigente ──
         // "Tiene RIT" solo si hay uno VIGENTE: activo y con contenido (no uno a medio
         // generar, con error o sin texto). Debe coincidir con "Mi Reglamento Interno",
-        // que exige texto_completo + no generando + sin error.
+        // que exige texto_completo + no generando + sin error. Incluye
+        // fuente=mejora_ia a propósito: un RIT mejorado y ya adoptado ES el
+        // reglamento vigente del cliente - excluirlo aquí mostraba "Construir o
+        // subir mi Reglamento Interno" a una empresa que ya lo tenía (caso real:
+        // RENBEL 2.0).
         $rit = ReglamentoInterno::query()
             ->where('empresa_id', $empresa->id)
-            ->where('fuente', '!=', 'mejora_ia')
             ->where('activo', true)
             ->whereNotNull('texto_completo')
             ->where('texto_completo', '!=', '')

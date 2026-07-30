@@ -1712,8 +1712,11 @@ class CreateProcesoDisciplinario extends CreateRecord
     protected function empresaTieneRit(\App\Models\Empresa $empresa): bool
     {
         // RIT vigente: activo y con contenido (coincide con la guía y Mi Reglamento).
+        // Incluye fuente=mejora_ia a propósito: un RIT mejorado por la IA y ya
+        // adoptado por el cliente ES su reglamento vigente, no algo a ignorar -
+        // antes se excluía por error y bloqueaba la creación de descargos como
+        // si la empresa no tuviera RIT (caso real: RENBEL 2.0).
         return \App\Models\ReglamentoInterno::where('empresa_id', $empresa->id)
-            ->where('fuente', '!=', 'mejora_ia')
             ->where('activo', true)
             ->whereNotNull('texto_completo')
             ->where('texto_completo', '!=', '')

@@ -448,8 +448,12 @@ PROMPT;
      */
     public function conductasSancionablesDeEmpresa(int $empresaId): array
     {
+        // Incluye fuente=mejora_ia a propósito: si el cliente ya adoptó un RIT
+        // mejorado por la IA, ES su reglamento vigente - excluirlo aquí hacía
+        // que este método volviera silenciosamente a las conductas del RIT
+        // ANTERIOR (ya reemplazado, todavía en BD con activo=false), en vez de
+        // las del RIT que realmente rige hoy (caso real: RENBEL 2.0).
         $rit = ReglamentoInterno::where('empresa_id', $empresaId)
-            ->where('fuente', '!=', 'mejora_ia')
             ->orderByDesc('activo')
             ->orderByDesc('updated_at')
             ->first();
