@@ -23,6 +23,10 @@
     $mejoraFallo  = $estadoMejora === 'fallido';
     $mejoraLista  = $estadoMejora === 'completado' && $rm;
     $mejoraPend   = $mejoraLista && ! in_array($decision, ['adoptado', 'rechazado'], true);
+    // Ya se adoptó la mejora: el score/detalle de abajo describen la auditoría del
+    // documento ANTERIOR (ya reemplazado) - mostrarlos junto al RIT vigente confunde
+    // (parece que el RIT actual todavía tuviera esos problemas, cuando ya se corrigieron).
+    $mejoraAdoptada = $mejoraLista && $decision === 'adoptado';
     $numCorreg    = $mejoraLista ? collect($secciones)->filter(fn($s) => ($s['score'] ?? 100) < 100)->count() : 0;
     // Progreso de la mejora (Capítulo X/Y)
     $capActual = 0; $capTotal = 16;
@@ -108,7 +112,7 @@ html:not(.dark) .mejora-pct{color:#e11d48}
             <p class="sl-title" style="font-size:1.05rem;margin:0">Salud legal del Reglamento Interno</p>
             <p class="sl-muted" style="margin:.1rem 0 0">Revisión contra el CST, Ley 1010/2006, Ley 2365/2024 y la biblioteca jurídica.</p>
         </div>
-        @if($completada)
+        @if($completada && !$mejoraAdoptada)
             <div class="sl-ring" style="border-color:{{ $scoreColor }};color:{{ $scoreColor }}">{{ $score }}</div>
         @endif
     </div>
@@ -147,36 +151,57 @@ html:not(.dark) .mejora-pct{color:#e11d48}
 
     {{-- ── Completada ── --}}
     @elseif($completada)
-        {{-- Resultado general --}}
-        <div class="sl-viewer">
-            <div class="sl-vh"><span class="sl-vl">Resultado general</span>
-                <span style="font-size:.75rem;color:#64748b">{{ $a->updated_at->format('d/m/Y g:i A') }}</span></div>
-            <div class="sl-vb">
-                <div style="display:flex;align-items:flex-start;gap:1.5rem">
-                    <div class="sl-ring" style="border-color:{{ $scoreColor }};color:{{ $scoreColor }}">{{ $score }}</div>
-                    <div style="flex:1;min-width:0">
-                        <p class="sl-title">
-                            @if($score >= 80) Reglamento jurídicamente actualizado
-                            @elseif($score >= 65) Reglamento aprobado - con sugerencias de mejora
-                            @elseif($score >= 50) Reglamento con observaciones
-                            @else Reglamento requiere revisión urgente @endif
-                        </p>
-                        @if($a->resumen_general)<p class="sl-muted" style="white-space:pre-line">{{ $a->resumen_general }}</p>@endif
-                        @if(($fuenteRitActivo ?? null) === 'mejora_ia')
-                            <p class="sl-muted" style="margin-top:.75rem;font-size:.8rem">Este resultado corresponde a la auditoría que generó la mejora ya adoptada - auditar de nuevo el RIT mejorado con nuestra propia IA no aporta una verificación independiente.</p>
-                        @else
-                            <button wire:click="iniciarAuditoriaManual" class="sl-btn sl-btn-ghost @if($resaltar) sl-highlight @endif" style="margin-top:.75rem">
-                                <svg style="width:14px;height:14px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
-                                Volver a auditar
-                            </button>
-                        @endif
+        @if($mejoraAdoptada)
+            {{-- Ya se adoptó la mejora: el "Resultado general" y "Detalle por sección"
+                 de abajo describen el documento ANTERIOR (ya reemplazado) - se reemplazan
+                 por una confirmación simple para no dar a entender que el RIT vigente
+                 todavía tiene esos hallazgos. --}}
+            <div class="sl-viewer"><div class="sl-vb" style="display:flex;align-items:center;gap:1rem">
+                <div style="width:44px;height:44px;border-radius:50%;background:rgba(34,197,94,.13);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <svg style="width:22px;height:22px;color:#22c55e" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                </div>
+                <div style="flex:1;min-width:0">
+                    <p class="sl-title" style="font-size:.95rem">Reglamento actualizado con IA</p>
+                    <p class="sl-muted">
+                        Su Reglamento Interno fue actualizado con IA el {{ ($a->autoridad_declarada_at ?? $a->updated_at)->format('d/m/Y g:i A') }},
+                        a partir de una auditoría que identificó {{ $numCorreg }} {{ $numCorreg === 1 ? 'sección' : 'secciones' }} a mejorar.
+                        Esta es su versión vigente.
+                    </p>
+                    <div style="margin-top:.5rem">{{ $this->verCambiosRITAction() }}</div>
+                </div>
+            </div></div>
+        @else
+            {{-- Resultado general --}}
+            <div class="sl-viewer">
+                <div class="sl-vh"><span class="sl-vl">Resultado general</span>
+                    <span style="font-size:.75rem;color:#64748b">{{ $a->updated_at->format('d/m/Y g:i A') }}</span></div>
+                <div class="sl-vb">
+                    <div style="display:flex;align-items:flex-start;gap:1.5rem">
+                        <div class="sl-ring" style="border-color:{{ $scoreColor }};color:{{ $scoreColor }}">{{ $score }}</div>
+                        <div style="flex:1;min-width:0">
+                            <p class="sl-title">
+                                @if($score >= 80) Reglamento jurídicamente actualizado
+                                @elseif($score >= 65) Reglamento aprobado - con sugerencias de mejora
+                                @elseif($score >= 50) Reglamento con observaciones
+                                @else Reglamento requiere revisión urgente @endif
+                            </p>
+                            @if($a->resumen_general)<p class="sl-muted" style="white-space:pre-line">{{ $a->resumen_general }}</p>@endif
+                            @if(($fuenteRitActivo ?? null) === 'mejora_ia')
+                                <p class="sl-muted" style="margin-top:.75rem;font-size:.8rem">Este resultado corresponde a la auditoría que generó la mejora ya adoptada - auditar de nuevo el RIT mejorado con nuestra propia IA no aporta una verificación independiente.</p>
+                            @else
+                                <button wire:click="iniciarAuditoriaManual" class="sl-btn sl-btn-ghost @if($resaltar) sl-highlight @endif" style="margin-top:.75rem">
+                                    <svg style="width:14px;height:14px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                                    Volver a auditar
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        {{-- Detalle por sección --}}
-        @include('filament.components.rit-detalle-secciones', ['secciones' => $secciones, 'numDone' => $numDone])
+            {{-- Detalle por sección --}}
+            @include('filament.components.rit-detalle-secciones', ['secciones' => $secciones, 'numDone' => $numDone])
+        @endif
 
         {{-- ── Mejora en proceso (mismo diseño que admin/auditar-r-i-t) ── --}}
         @if($mejorando)
@@ -227,8 +252,8 @@ html:not(.dark) .mejora-pct{color:#e11d48}
                 </div>
             </div>
 
-        {{-- ── Mejora lista ── --}}
-        @elseif($mejoraLista)
+        {{-- ── Mejora lista (pendiente de decidir, o rechazada) ── --}}
+        @elseif($mejoraLista && !$mejoraAdoptada)
             <div class="sl-mcard">
                 <div class="sl-mhead">
                     <lord-icon src="https://cdn.lordicon.com/xjsqfzte.json" trigger="loop" delay="1500" stroke="bold"

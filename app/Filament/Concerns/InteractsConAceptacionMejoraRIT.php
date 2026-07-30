@@ -129,10 +129,18 @@ trait InteractsConAceptacionMejoraRIT
             })
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Cerrar')
-            ->extraModalFooterActions(fn (): array => [
-                $this->aceptarSugerenciasRITAction(),
-                $this->mantenerRITAction(),
-            ]);
+            ->extraModalFooterActions(function (): array {
+                // Si la decisión ya se tomó (adoptado o rechazado), no se vuelven a
+                // ofrecer los botones de decisión - "Ver cambios" ahora es solo consulta.
+                if (($this->auditoria?->decision_mejora ?? null) !== null) {
+                    return [];
+                }
+
+                return [
+                    $this->aceptarSugerenciasRITAction(),
+                    $this->mantenerRITAction(),
+                ];
+            });
     }
 
     /** Envuelve mantenerRITActual() (ya implementado en cada página) como Action, para el pie del modal de "Ver cambios". */
