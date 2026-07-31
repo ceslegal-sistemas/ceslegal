@@ -19,6 +19,17 @@ class ReglamentoInternoResource extends Resource
 
     protected static ?string $navigationGroup = 'Empresa';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Bufete: oculto hasta seleccionar una empresa específica en el topbar
+        // (sin empresa activa, "Construir RIT" no tendría sobre qué operar).
+        if (auth()->user()?->bufeteSinEmpresaActiva()) {
+            return false;
+        }
+
+        return parent::shouldRegisterNavigation();
+    }
+
     public static function getNavigationUrl(): string
     {
         return route('filament.admin.pages.mi-reglamento-interno');

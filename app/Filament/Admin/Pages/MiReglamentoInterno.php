@@ -37,6 +37,18 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
     /** Llegó desde la notificación de "nueva normativa disponible" (?resaltar=auditar) - resalta el botón de auditar. */
     public bool $resaltarAuditar = false;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Bufete: oculto hasta seleccionar una empresa específica en el topbar
+        // (mismo criterio que ProcesoDisciplinarioResource/TrabajadorResource) -
+        // sin empresa activa, esta página solo mostraría un aviso pidiendo elegir una.
+        if (auth()->user()?->bufeteSinEmpresaActiva()) {
+            return false;
+        }
+
+        return parent::shouldRegisterNavigation();
+    }
+
     public function mount(): void
     {
         $this->resaltarAuditar = request()->query('resaltar') === 'auditar';
