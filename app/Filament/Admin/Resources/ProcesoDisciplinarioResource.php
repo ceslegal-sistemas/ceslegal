@@ -757,7 +757,7 @@ class ProcesoDisciplinarioResource extends Resource
                             // ->hintIcon('heroicon-o-sparkles')
                             ->hintColor('primary')
                             // ->hint('Generar con IA')
-                            ->hintAction(
+                            ->hintActions([
                                 Forms\Components\Actions\Action::make('generarMotivo')
                                     ->icon('heroicon-o-sparkles')
                                     ->label('Generar redacción con IA')
@@ -936,35 +936,32 @@ class ProcesoDisciplinarioResource extends Resource
                                                 'error' => $e->getMessage(),
                                             ]);
                                         }
-                                    })
-                            )
-                            ->columnSpanFull(),
+                                    }),
 
-                        // ── CLASIFICADOR DE INCIDENTE (nuevo) ─────────────────────────────
-                        // A diferencia del botón "Generar redacción con IA" de arriba (que
-                        // solo redacta en prosa lo que RRHH ya escribió, sin evaluar nada),
-                        // este SÍ analiza: primero verifica que los hechos sean suficientes
-                        // para sostener un interrogatorio con el rigor que amerite, y solo si
-                        // lo son, clasifica la gravedad usando el RIT, el CST/normativa y el
-                        // historial disciplinario real del trabajador (nunca la escala de
-                        // reincidencia del catálogo del RIT - ver
-                        // IADescargoService::obtenerHistorialDisciplinarioTrabajador()).
-                        // El resultado se guarda en clasificacion_incidente_ia y
-                        // IADescargoService lo usa como PISO MÍNIMO de rigor durante la
-                        // diligencia de descargos posterior (nunca lo baja, solo puede
-                        // subirlo según cómo responda el trabajador).
-                        Forms\Components\Actions::make([
-                            Forms\Components\Actions\Action::make('clasificarGravedadIA')
-                                ->label('Clasificar gravedad con IA')
-                                ->icon('heroicon-o-scale')
-                                ->color('info')
-                                ->size('sm')
-                                ->requiresConfirmation()
-                                ->modalHeading('Clasificar Gravedad con IA')
-                                ->modalDescription('La IA revisará el RIT, el Código Sustantivo del Trabajo y el historial disciplinario del trabajador para estimar la gravedad de la posible falta y el nivel de rigor que debería tener la diligencia de descargos. Antes de clasificar, verifica que los hechos descritos sean suficientes para sostener ese rigor.')
-                                ->modalSubmitActionLabel('Clasificar')
-                                ->action(function (Forms\Set $set, Forms\Get $get) {
-                                    $trabajadorId = $get('trabajador_id');
+                                // ── CLASIFICADOR DE INCIDENTE ──────────────────────────
+                                // A diferencia del botón de arriba (que solo redacta en
+                                // prosa lo que RRHH ya escribió, sin evaluar nada), este SÍ
+                                // analiza: primero verifica que los hechos sean suficientes
+                                // para sostener un interrogatorio con el rigor que amerite, y
+                                // solo si lo son, clasifica la gravedad usando el RIT, el
+                                // CST/normativa y el historial disciplinario real del
+                                // trabajador (nunca la escala de reincidencia del catálogo
+                                // del RIT - ver
+                                // IADescargoService::obtenerHistorialDisciplinarioTrabajador()).
+                                // El resultado se guarda en clasificacion_incidente_ia y
+                                // IADescargoService lo usa como PISO MÍNIMO de rigor durante
+                                // la diligencia de descargos posterior (nunca lo baja, solo
+                                // puede subirlo según cómo responda el trabajador).
+                                Forms\Components\Actions\Action::make('clasificarGravedadIA')
+                                    ->label('Clasificar gravedad con IA')
+                                    ->icon('heroicon-o-scale')
+                                    ->color('info')
+                                    ->requiresConfirmation()
+                                    ->modalHeading('Clasificar Gravedad con IA')
+                                    ->modalDescription('La IA revisará el RIT, el Código Sustantivo del Trabajo y el historial disciplinario del trabajador para estimar la gravedad de la posible falta y el nivel de rigor que debería tener la diligencia de descargos. Antes de clasificar, verifica que los hechos descritos sean suficientes para sostener ese rigor.')
+                                    ->modalSubmitActionLabel('Clasificar')
+                                    ->action(function (Forms\Set $set, Forms\Get $get) {
+                                        $trabajadorId = $get('trabajador_id');
                                     $empresaId = $get('empresa_id');
                                     $hechos = $get('hechos');
 
@@ -1063,7 +1060,8 @@ class ProcesoDisciplinarioResource extends Resource
                                             ->send();
                                     }
                                 }),
-                        ])->fullWidth(),
+                            ])
+                            ->columnSpanFull(),
 
                         Forms\Components\Placeholder::make('clasificacion_incidente_ia_display')
                             ->hiddenLabel()
@@ -1083,16 +1081,16 @@ class ProcesoDisciplinarioResource extends Resource
                                         $items .= '<li>' . e($f) . '</li>';
                                     }
                                     return new \Illuminate\Support\HtmlString(
-                                        '<div style="border:1px solid #f59e0b;background:#fffbeb;border-radius:8px;padding:12px 16px;margin-top:4px;">'
-                                        . '<p style="font-weight:600;color:#92400e;margin:0 0 6px;">Información insuficiente para clasificar la gravedad</p>'
-                                        . '<ul style="margin:0;padding-left:18px;color:#92400e;">' . $items . '</ul>'
+                                        '<div class="mt-1 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-400/30 dark:bg-amber-400/10">'
+                                        . '<p class="mb-1.5 font-semibold text-amber-800 dark:text-amber-300">Información insuficiente para clasificar la gravedad</p>'
+                                        . '<ul class="list-disc space-y-0.5 pl-4 text-amber-800 dark:text-amber-200">' . $items . '</ul>'
                                         . '</div>'
                                     );
                                 }
 
                                 if (($c['informacion_suficiente'] ?? null) === null) {
                                     return new \Illuminate\Support\HtmlString(
-                                        '<div style="border:1px solid #ef4444;background:#fef2f2;border-radius:8px;padding:12px 16px;color:#991b1b;margin-top:4px;">'
+                                        '<div class="mt-1 rounded-lg border border-red-300 bg-red-50 p-3 text-red-800 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-300">'
                                         . e($c['error'] ?? 'El análisis automático no estuvo disponible.')
                                         . '</div>'
                                     );
@@ -1103,15 +1101,15 @@ class ProcesoDisciplinarioResource extends Resource
                                     $factores .= '<li>' . e($f) . '</li>';
                                 }
                                 $factoresBloque = $factores
-                                    ? '<ul style="margin:6px 0 0;padding-left:18px;">' . $factores . '</ul>'
-                                    : '<p style="margin:6px 0 0;color:#6b7280;">Ninguno identificado.</p>';
+                                    ? '<ul class="mt-1.5 list-disc space-y-0.5 pl-4">' . $factores . '</ul>'
+                                    : '<p class="mt-1.5 text-gray-500 dark:text-gray-400">Ninguno identificado.</p>';
 
                                 return new \Illuminate\Support\HtmlString(
-                                    '<div style="border:1px solid #d1d5db;border-radius:8px;padding:12px 16px;margin-top:4px;">'
-                                    . '<p style="font-weight:600;margin:0 0 4px;">Gravedad estimada: ' . e(strtoupper($c['gravedad_estimada'] ?? '')) . ' (certeza: ' . e($c['certeza'] ?? '') . ')</p>'
-                                    . '<p style="margin:0 0 4px;">Nivel de interrogatorio mínimo para la diligencia: ' . e($c['nivel_interrogatorio_minimo'] ?? '') . '</p>'
-                                    . '<p style="margin:0 0 4px;color:#6b7280;font-size:13px;">' . e($c['justificacion'] ?? '') . '</p>'
-                                    . '<p style="font-weight:600;margin:8px 0 0;font-size:13px;">Factores de riesgo:</p>' . $factoresBloque
+                                    '<div class="mt-1 rounded-lg border border-gray-300 bg-white p-3 dark:border-white/10 dark:bg-white/5">'
+                                    . '<p class="mb-1 font-semibold text-gray-950 dark:text-white">Gravedad estimada: ' . e(strtoupper($c['gravedad_estimada'] ?? '')) . ' (certeza: ' . e($c['certeza'] ?? '') . ')</p>'
+                                    . '<p class="mb-1 text-gray-950 dark:text-white">Nivel de interrogatorio mínimo para la diligencia: ' . e($c['nivel_interrogatorio_minimo'] ?? '') . '</p>'
+                                    . '<p class="mb-1 text-sm text-gray-500 dark:text-gray-400">' . e($c['justificacion'] ?? '') . '</p>'
+                                    . '<p class="mt-2 text-sm font-semibold text-gray-950 dark:text-white">Factores de riesgo:</p>' . $factoresBloque
                                     . '</div>'
                                 );
                             })
