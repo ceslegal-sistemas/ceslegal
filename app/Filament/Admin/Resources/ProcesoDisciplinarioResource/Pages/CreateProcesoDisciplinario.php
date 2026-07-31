@@ -7,7 +7,6 @@ use App\Filament\Concerns\HasVerificacionFotografica;
 use App\Models\DiaNoHabil;
 use App\Models\Empresa;
 use App\Models\Trabajador;
-use App\Services\DocumentGeneratorService;
 use App\Services\EvaluacionHechosService;
 use App\Services\TerminoLegalService;
 use Filament\Actions;
@@ -1870,49 +1869,23 @@ class CreateProcesoDisciplinario extends CreateRecord
             !empty($proceso->trabajador?->email) &&
             $proceso->modalidad_descargos === 'virtual'
         ) {
-            try {
-                $documentService = new DocumentGeneratorService();
-                $resultado       = $documentService->generarYEnviarCitacion($proceso);
+            // EN COLA (no síncrono): generar el PDF, crear la diligencia, generar
+            // las preguntas iniciales con IA y enviar el correo puede tardar
+            // 15-45+ segundos - suficiente para que el proxy/PHP-FPM de
+            // producción corte la conexión antes de responder (mismo límite ya
+            // diagnosticado para "RIT mejorado" y "Emitir Sanción"). Sin
+            // confirmación clara, el usuario reintentaba el mismo formulario
+            // creyendo que no había funcionado, creando procesos duplicados
+            // para el mismo trabajador/incidente (caso real: PD-2026-0057/
+            // 0058/0059). Ver App\Jobs\GenerarYEnviarCitacionJob.
+            \App\Jobs\GenerarYEnviarCitacionJob::dispatch($proceso, auth()->id());
 
-                if ($resultado['success']) {
-                    $preguntasConIA   = $resultado['preguntas_ia_generadas'] ?? false;
-                    $formatoDocumento = $resultado['formato_documento'] ?? 'pdf';
-
-                    $mensaje = $preguntasConIA
-                        ? 'La citación fue enviada automáticamente con link de acceso web y preguntas generadas por IA.'
-                        : 'La citación fue enviada exitosamente, pero no se pudieron generar preguntas con IA. Deberá generarlas manualmente.';
-
-                    if ($formatoDocumento === 'docx') {
-                        $mensaje .= ' ADVERTENCIA: El documento fue enviado en formato DOCX (LibreOffice no está instalado).';
-                    }
-
-                    Notification::make()
-                        ->success()
-                        ->title('Proceso creado y citación enviada')
-                        ->body($mensaje)
-                        ->duration($preguntasConIA ? 5000 : 8000)
-                        ->send();
-                } else {
-                    Notification::make()
-                        ->warning()
-                        ->title('Proceso creado con advertencia')
-                        ->body('El proceso fue creado pero hubo un error al enviar la citación: ' . $resultado['message'])
-                        ->duration(8000)
-                        ->send();
-                }
-            } catch (\Exception $e) {
-                Notification::make()
-                    ->warning()
-                    ->title('Proceso creado con advertencia')
-                    ->body('El proceso fue creado pero hubo un error al enviar la citación automáticamente.')
-                    ->duration(8000)
-                    ->send();
-
-                Log::error('Excepción al enviar citación automática', [
-                    'proceso_id' => $proceso->id,
-                    'error'      => $e->getMessage(),
-                ]);
-            }
+            Notification::make()
+                ->success()
+                ->title('Proceso creado')
+                ->body('Estamos generando el PDF y enviando la citación en segundo plano. Le avisaremos aquí mismo cuando esté lista.')
+                ->duration(6000)
+                ->send();
         }
     }
 
