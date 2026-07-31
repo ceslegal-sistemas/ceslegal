@@ -574,6 +574,166 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         ))
                                         ->columnSpan(1),
                                 ]),
+
+                            // ── CLASIFICADOR DE INCIDENTE ──────────────────────────────
+                            // Mismo clasificador que ProcesoDisciplinarioResource.php (formulario
+                            // de editar) - se agrega también aquí porque esta página (el wizard
+                            // de "Crear Citación de Descargos") tiene su PROPIO formulario
+                            // duplicado con nombres de campo distintos (descripcion_hecho en vez
+                            // de hechos, fecha_hecho en vez de fecha_ocurrencia) y nunca compartió
+                            // el botón agregado en el otro archivo - por eso nunca aparecía aquí.
+                            // No hay selector de motivos del RIT en este wizard, así que
+                            // motivos_rit siempre va vacío (el prompt lo maneja sin problema).
+                            Forms\Components\Actions::make([
+                                Forms\Components\Actions\Action::make('clasificarGravedadIA')
+                                    ->label('Clasificar gravedad con IA')
+                                    ->icon('heroicon-o-scale')
+                                    ->color('info')
+                                    ->size('sm')
+                                    ->requiresConfirmation()
+                                    ->modalHeading('Clasificar Gravedad con IA')
+                                    ->modalDescription('La IA revisará el RIT, el Código Sustantivo del Trabajo y el historial disciplinario del trabajador para estimar la gravedad de la posible falta y el nivel de rigor que debería tener la diligencia de descargos. Antes de clasificar, verifica que los hechos descritos sean suficientes para sostener ese rigor.')
+                                    ->modalSubmitActionLabel('Clasificar')
+                                    ->action(function (Forms\Set $set, Forms\Get $get) {
+                                        $trabajadorId = $get('trabajador_id');
+                                        $empresaId = $get('empresa_id');
+                                        $hechos = $get('descripcion_hecho');
+
+                                        if (!$trabajadorId || !$empresaId) {
+                                            Notification::make()
+                                                ->warning()
+                                                ->title('Datos incompletos')
+                                                ->body('Seleccione primero la empresa y el trabajador.')
+                                                ->send();
+                                            return;
+                                        }
+
+                                        if (!$hechos) {
+                                            Notification::make()
+                                                ->warning()
+                                                ->title('Datos incompletos')
+                                                ->body('Describa los hechos antes de clasificar la gravedad.')
+                                                ->send();
+                                            return;
+                                        }
+
+                                        $trabajador = Trabajador::find($trabajadorId);
+
+                                        $fechas = [];
+                                        if ($get('fecha_hecho')) {
+                                            $fechas[] = Carbon::parse($get('fecha_hecho'))->format('Y-m-d');
+                                        }
+                                        foreach ($get('fechas_ocurrencia_adicionales') ?? [] as $item) {
+                                            if (!empty($item['fecha'])) {
+                                                $fechas[] = Carbon::parse($item['fecha'])->format('Y-m-d');
+                                            }
+                                        }
+
+                                        try {
+                                            $iaService = app(\App\Services\IADescargoService::class);
+                                            $resultado = $iaService->clasificarIncidente([
+                                                'empresa_id'        => (int) $empresaId,
+                                                'trabajador_id'     => (int) $trabajadorId,
+                                                'cargo'             => $trabajador?->cargo ?? 'No especificado',
+                                                'hechos'            => $hechos,
+                                                'fechas_ocurrencia' => $fechas,
+                                                'motivos_rit'       => [],
+                                            ]);
+                                        } catch (\Exception $e) {
+                                            Log::error('Error al clasificar gravedad del incidente con IA', [
+                                                'error' => $e->getMessage(),
+                                            ]);
+                                            Notification::make()
+                                                ->danger()
+                                                ->title('No se pudo clasificar')
+                                                ->body('Ocurrió un error inesperado: ' . $e->getMessage())
+                                                ->persistent()
+                                                ->send();
+                                            return;
+                                        }
+
+                                        $set('clasificacion_incidente_ia', json_encode($resultado));
+
+                                        if ($resultado['informacion_suficiente'] === false) {
+                                            Notification::make()
+                                                ->warning()
+                                                ->title('Información insuficiente para clasificar')
+                                                ->body('Complete la descripción de los hechos con lo indicado abajo y vuelva a clasificar.')
+                                                ->duration(10000)
+                                                ->send();
+                                        } elseif ($resultado['informacion_suficiente'] === null) {
+                                            Notification::make()
+                                                ->danger()
+                                                ->title('No se pudo clasificar')
+                                                ->body($resultado['error'] ?? 'El análisis automático no estuvo disponible. Intente de nuevo.')
+                                                ->persistent()
+                                                ->send();
+                                        } else {
+                                            Notification::make()
+                                                ->success()
+                                                ->title('Gravedad clasificada: ' . strtoupper($resultado['gravedad_estimada'] ?? ''))
+                                                ->body('Esta clasificación se usará como piso mínimo de rigor durante la diligencia de descargos. Revísela antes de continuar.')
+                                                ->duration(8000)
+                                                ->send();
+                                        }
+                                    }),
+                            ])->fullWidth(),
+
+                            Forms\Components\Placeholder::make('clasificacion_incidente_ia_display')
+                                ->hiddenLabel()
+                                ->content(function (Forms\Get $get) {
+                                    $raw = $get('clasificacion_incidente_ia');
+                                    if (!$raw) {
+                                        return new HtmlString('');
+                                    }
+                                    $c = json_decode($raw, true);
+                                    if (!is_array($c)) {
+                                        return new HtmlString('');
+                                    }
+
+                                    if (($c['informacion_suficiente'] ?? null) === false) {
+                                        $items = '';
+                                        foreach ($c['elementos_faltantes'] ?? [] as $f) {
+                                            $items .= '<li>' . e($f) . '</li>';
+                                        }
+                                        return new HtmlString(
+                                            '<div style="border:1px solid #f59e0b;background:#fffbeb;border-radius:8px;padding:12px 16px;margin-top:4px;">'
+                                            . '<p style="font-weight:600;color:#92400e;margin:0 0 6px;">Información insuficiente para clasificar la gravedad</p>'
+                                            . '<ul style="margin:0;padding-left:18px;color:#92400e;">' . $items . '</ul>'
+                                            . '</div>'
+                                        );
+                                    }
+
+                                    if (($c['informacion_suficiente'] ?? null) === null) {
+                                        return new HtmlString(
+                                            '<div style="border:1px solid #ef4444;background:#fef2f2;border-radius:8px;padding:12px 16px;color:#991b1b;margin-top:4px;">'
+                                            . e($c['error'] ?? 'El análisis automático no estuvo disponible.')
+                                            . '</div>'
+                                        );
+                                    }
+
+                                    $factores = '';
+                                    foreach ($c['factores_riesgo'] ?? [] as $f) {
+                                        $factores .= '<li>' . e($f) . '</li>';
+                                    }
+                                    $factoresBloque = $factores
+                                        ? '<ul style="margin:6px 0 0;padding-left:18px;">' . $factores . '</ul>'
+                                        : '<p style="margin:6px 0 0;color:#6b7280;">Ninguno identificado.</p>';
+
+                                    return new HtmlString(
+                                        '<div style="border:1px solid #d1d5db;border-radius:8px;padding:12px 16px;margin-top:4px;">'
+                                        . '<p style="font-weight:600;margin:0 0 4px;">Gravedad estimada: ' . e(strtoupper($c['gravedad_estimada'] ?? '')) . ' (certeza: ' . e($c['certeza'] ?? '') . ')</p>'
+                                        . '<p style="margin:0 0 4px;">Nivel de interrogatorio mínimo para la diligencia: ' . e($c['nivel_interrogatorio_minimo'] ?? '') . '</p>'
+                                        . '<p style="margin:0 0 4px;color:#6b7280;font-size:13px;">' . e($c['justificacion'] ?? '') . '</p>'
+                                        . '<p style="font-weight:600;margin:8px 0 0;font-size:13px;">Factores de riesgo:</p>' . $factoresBloque
+                                        . '</div>'
+                                    );
+                                })
+                                ->visible(fn(Forms\Get $get) => filled($get('clasificacion_incidente_ia')))
+                                ->columnSpanFull(),
+
+                            Forms\Components\Hidden::make('clasificacion_incidente_ia')
+                                ->dehydrated(true),
                         ]),
                 ]),
 
