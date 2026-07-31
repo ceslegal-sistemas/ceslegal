@@ -940,6 +940,187 @@ class ProcesoDisciplinarioResource extends Resource
                             )
                             ->columnSpanFull(),
 
+                        // ── CLASIFICADOR DE INCIDENTE (nuevo) ─────────────────────────────
+                        // A diferencia del botón "Generar redacción con IA" de arriba (que
+                        // solo redacta en prosa lo que RRHH ya escribió, sin evaluar nada),
+                        // este SÍ analiza: primero verifica que los hechos sean suficientes
+                        // para sostener un interrogatorio con el rigor que amerite, y solo si
+                        // lo son, clasifica la gravedad usando el RIT, el CST/normativa y el
+                        // historial disciplinario real del trabajador (nunca la escala de
+                        // reincidencia del catálogo del RIT - ver
+                        // IADescargoService::obtenerHistorialDisciplinarioTrabajador()).
+                        // El resultado se guarda en clasificacion_incidente_ia y
+                        // IADescargoService lo usa como PISO MÍNIMO de rigor durante la
+                        // diligencia de descargos posterior (nunca lo baja, solo puede
+                        // subirlo según cómo responda el trabajador).
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('clasificarGravedadIA')
+                                ->label('Clasificar gravedad con IA')
+                                ->icon('heroicon-o-scale')
+                                ->color('info')
+                                ->size('sm')
+                                ->requiresConfirmation()
+                                ->modalHeading('Clasificar Gravedad con IA')
+                                ->modalDescription('La IA revisará el RIT, el Código Sustantivo del Trabajo y el historial disciplinario del trabajador para estimar la gravedad de la posible falta y el nivel de rigor que debería tener la diligencia de descargos. Antes de clasificar, verifica que los hechos descritos sean suficientes para sostener ese rigor.')
+                                ->modalSubmitActionLabel('Clasificar')
+                                ->action(function (Forms\Set $set, Forms\Get $get) {
+                                    $trabajadorId = $get('trabajador_id');
+                                    $empresaId = $get('empresa_id');
+                                    $hechos = $get('hechos');
+
+                                    if (!$trabajadorId || !$empresaId) {
+                                        \Filament\Notifications\Notification::make()
+                                            ->warning()
+                                            ->title('Datos incompletos')
+                                            ->body('Seleccione primero la empresa y el trabajador.')
+                                            ->send();
+                                        return;
+                                    }
+
+                                    if (!$hechos) {
+                                        \Filament\Notifications\Notification::make()
+                                            ->warning()
+                                            ->title('Datos incompletos')
+                                            ->body('Describa los hechos antes de clasificar la gravedad.')
+                                            ->send();
+                                        return;
+                                    }
+
+                                    $trabajador = \App\Models\Trabajador::find($trabajadorId);
+
+                                    // Motivos ya seleccionados del RIT, con su gravedad ya
+                                    // etiquetada por la empresa - misma fuente de datos que
+                                    // alimenta el selector "Motivo de los descargos" de arriba,
+                                    // para no re-derivar la etiqueta de otra forma.
+                                    $motivosSeleccionados = $get('sanciones_laborales_ids') ?? [];
+                                    $motivosRit = [];
+                                    $conductas = app(\App\Services\ReglamentoInternoService::class)
+                                        ->conductasSancionablesDeEmpresa((int) $empresaId);
+                                    foreach (['leve', 'grave', 'gravisima'] as $g) {
+                                        foreach ($conductas[$g] ?? [] as $c) {
+                                            if (!empty($c['conducta']) && in_array($c['conducta'], $motivosSeleccionados, true)) {
+                                                $motivosRit[] = ['conducta' => $c['conducta'], 'gravedad' => $g];
+                                            }
+                                        }
+                                    }
+
+                                    // Todas las fechas de ocurrencia (principal + adicionales)
+                                    $fechas = [];
+                                    if ($get('fecha_ocurrencia')) {
+                                        $fechas[] = \Carbon\Carbon::parse($get('fecha_ocurrencia'))->format('Y-m-d');
+                                    }
+                                    foreach ($get('fechas_ocurrencia_adicionales') ?? [] as $item) {
+                                        if (!empty($item['fecha'])) {
+                                            $fechas[] = \Carbon\Carbon::parse($item['fecha'])->format('Y-m-d');
+                                        }
+                                    }
+
+                                    try {
+                                        $iaService = app(\App\Services\IADescargoService::class);
+                                        $resultado = $iaService->clasificarIncidente([
+                                            'empresa_id'        => (int) $empresaId,
+                                            'trabajador_id'     => (int) $trabajadorId,
+                                            'cargo'             => $trabajador?->cargo ?? 'No especificado',
+                                            'hechos'            => $hechos,
+                                            'fechas_ocurrencia' => $fechas,
+                                            'motivos_rit'       => $motivosRit,
+                                        ]);
+                                    } catch (\Exception $e) {
+                                        \Illuminate\Support\Facades\Log::error('Error al clasificar gravedad del incidente con IA', [
+                                            'error' => $e->getMessage(),
+                                        ]);
+                                        \Filament\Notifications\Notification::make()
+                                            ->danger()
+                                            ->title('No se pudo clasificar')
+                                            ->body('Ocurrió un error inesperado: ' . $e->getMessage())
+                                            ->persistent()
+                                            ->send();
+                                        return;
+                                    }
+
+                                    $set('clasificacion_incidente_ia', json_encode($resultado));
+
+                                    if ($resultado['informacion_suficiente'] === false) {
+                                        \Filament\Notifications\Notification::make()
+                                            ->warning()
+                                            ->title('Información insuficiente para clasificar')
+                                            ->body('Complete la descripción de los hechos con lo indicado abajo y vuelva a clasificar.')
+                                            ->duration(10000)
+                                            ->send();
+                                    } elseif ($resultado['informacion_suficiente'] === null) {
+                                        \Filament\Notifications\Notification::make()
+                                            ->danger()
+                                            ->title('No se pudo clasificar')
+                                            ->body($resultado['error'] ?? 'El análisis automático no estuvo disponible. Intente de nuevo.')
+                                            ->persistent()
+                                            ->send();
+                                    } else {
+                                        \Filament\Notifications\Notification::make()
+                                            ->success()
+                                            ->title('Gravedad clasificada: ' . strtoupper($resultado['gravedad_estimada'] ?? ''))
+                                            ->body('Esta clasificación se usará como piso mínimo de rigor durante la diligencia de descargos. Revísela antes de continuar.')
+                                            ->duration(8000)
+                                            ->send();
+                                    }
+                                }),
+                        ])->fullWidth(),
+
+                        Forms\Components\Placeholder::make('clasificacion_incidente_ia_display')
+                            ->hiddenLabel()
+                            ->content(function (Forms\Get $get) {
+                                $raw = $get('clasificacion_incidente_ia');
+                                if (!$raw) {
+                                    return new \Illuminate\Support\HtmlString('');
+                                }
+                                $c = json_decode($raw, true);
+                                if (!is_array($c)) {
+                                    return new \Illuminate\Support\HtmlString('');
+                                }
+
+                                if (($c['informacion_suficiente'] ?? null) === false) {
+                                    $items = '';
+                                    foreach ($c['elementos_faltantes'] ?? [] as $f) {
+                                        $items .= '<li>' . e($f) . '</li>';
+                                    }
+                                    return new \Illuminate\Support\HtmlString(
+                                        '<div style="border:1px solid #f59e0b;background:#fffbeb;border-radius:8px;padding:12px 16px;margin-top:4px;">'
+                                        . '<p style="font-weight:600;color:#92400e;margin:0 0 6px;">Información insuficiente para clasificar la gravedad</p>'
+                                        . '<ul style="margin:0;padding-left:18px;color:#92400e;">' . $items . '</ul>'
+                                        . '</div>'
+                                    );
+                                }
+
+                                if (($c['informacion_suficiente'] ?? null) === null) {
+                                    return new \Illuminate\Support\HtmlString(
+                                        '<div style="border:1px solid #ef4444;background:#fef2f2;border-radius:8px;padding:12px 16px;color:#991b1b;margin-top:4px;">'
+                                        . e($c['error'] ?? 'El análisis automático no estuvo disponible.')
+                                        . '</div>'
+                                    );
+                                }
+
+                                $factores = '';
+                                foreach ($c['factores_riesgo'] ?? [] as $f) {
+                                    $factores .= '<li>' . e($f) . '</li>';
+                                }
+                                $factoresBloque = $factores
+                                    ? '<ul style="margin:6px 0 0;padding-left:18px;">' . $factores . '</ul>'
+                                    : '<p style="margin:6px 0 0;color:#6b7280;">Ninguno identificado.</p>';
+
+                                return new \Illuminate\Support\HtmlString(
+                                    '<div style="border:1px solid #d1d5db;border-radius:8px;padding:12px 16px;margin-top:4px;">'
+                                    . '<p style="font-weight:600;margin:0 0 4px;">Gravedad estimada: ' . e(strtoupper($c['gravedad_estimada'] ?? '')) . ' (certeza: ' . e($c['certeza'] ?? '') . ')</p>'
+                                    . '<p style="margin:0 0 4px;">Nivel de interrogatorio mínimo para la diligencia: ' . e($c['nivel_interrogatorio_minimo'] ?? '') . '</p>'
+                                    . '<p style="margin:0 0 4px;color:#6b7280;font-size:13px;">' . e($c['justificacion'] ?? '') . '</p>'
+                                    . '<p style="font-weight:600;margin:8px 0 0;font-size:13px;">Factores de riesgo:</p>' . $factoresBloque
+                                    . '</div>'
+                                );
+                            })
+                            ->visible(fn(Forms\Get $get) => filled($get('clasificacion_incidente_ia')))
+                            ->columnSpanFull(),
+
+                        Forms\Components\Hidden::make('clasificacion_incidente_ia')
+                            ->dehydrated(true),
+
                         // Forms\Components\FileUpload::make('evidencias_empleador')
                         //     ->label('Adjuntar Evidencias (Opcional)')
                         //     ->hint('Máximo 10 archivos')

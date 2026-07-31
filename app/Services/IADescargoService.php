@@ -8,6 +8,7 @@ use App\Models\ProcesoDisciplinario;
 use App\Models\RespuestaDescargo;
 use App\Models\TrazabilidadIADescargo;
 use App\Models\ArticuloLegal;
+use App\Models\Trabajador;
 use App\Services\BibliotecaLegalService;
 use App\Services\GeminiCircuitBreaker;
 use App\Services\ReglamentoInternoService;
@@ -51,6 +52,286 @@ class IADescargoService
     {
         $this->provider = config('services.ia.provider', 'openai');
         $this->config = config("services.ia.{$this->provider}", []);
+    }
+
+    /**
+     * ── CLASIFICADOR DE INCIDENTE ────────────────────────────────────────────
+     * Se llama UNA vez, desde el formulario de creación de la citación
+     * (ProcesoDisciplinarioResource), ANTES de que exista una diligencia o
+     * incluso el ProcesoDisciplinario persistido - por eso recibe datos sueltos
+     * en vez de un modelo. Reemplaza la ausencia total de clasificación previa
+     * detectada en la auditoría: hoy el Director Estratégico de
+     * generarPreguntasDinamicas() tiene que adivinar la gravedad desde cero, en
+     * caliente, con el sesgo hacia minimizar preguntas ya identificado -
+     * arranca sin ningún piso mínimo de rigor.
+     *
+     * Hace dos cosas, EN ESTE ORDEN, en una sola llamada a la IA (evita pagar
+     * dos veces el mismo contexto de RIT/normas/historial):
+     *   1. Verifica que el relato de hechos sea suficiente para sostener un
+     *      interrogatorio con el rigor que la posible falta amerite. Si no lo
+     *      es, NUNCA fuerza una gravedad de baja confianza - devuelve qué le
+     *      falta a RRHH para completar el relato antes de continuar.
+     *   2. Solo si es suficiente, clasifica la gravedad usando el RIT y la
+     *      normativa suministrados. Si la empresa ya seleccionó una conducta
+     *      del RIT (con su propia gravedad ya etiquetada), esa etiqueta es el
+     *      PISO: el modelo puede subirla si el relato sugiere algo peor, pero
+     *      nunca bajarla sin justificarlo explícitamente.
+     *
+     * El resultado se persiste en el proceso (columna nueva, ver migración) y
+     * generarPreguntasDinamicas()/construirPromptDirectorEstrategico() lo leen
+     * como piso mínimo de rigor para la diligencia posterior - ver ese cambio
+     * en construirContexto().
+     *
+     * @param array $datos {
+     *   empresa_id: int,
+     *   trabajador_id: int|null,
+     *   cargo: string,
+     *   hechos: string (puede traer HTML del RichEditor - se limpia acá),
+     *   fechas_ocurrencia: string[] (formato Y-m-d),
+     *   motivos_rit: array<array{conducta: string, gravedad: string}> (vacío si
+     *     el único motivo elegido fue "Otro"),
+     * }
+     * @return array Ver esquema completo en construirPromptClasificacionIncidente().
+     */
+    public function clasificarIncidente(array $datos): array
+    {
+        $hechos = trim(strip_tags($datos['hechos'] ?? ''));
+        if ($hechos === '') {
+            return [
+                'informacion_suficiente'   => false,
+                'elementos_faltantes'      => ['Describa los hechos que motivan la citación antes de clasificar la gravedad.'],
+                'gravedad_estimada'        => 'no_determinable',
+                'certeza'                  => 'baja',
+                'complejidad_probatoria_estimada' => 'no_determinable',
+                'nivel_interrogatorio_minimo'     => 'CONVERSACIONAL',
+                'factores_riesgo'          => [],
+                'justificacion'            => '',
+                'error'                    => null,
+            ];
+        }
+
+        $empresaId    = $datos['empresa_id'] ?? null;
+        $trabajadorId = $datos['trabajador_id'] ?? null;
+
+        // Modo realtime (el usuario está esperando en el formulario) - igual que
+        // generarPreguntasDinamicas(): timeout corto, sin reintentos largos.
+        $this->timeoutSegundos = 25;
+        $this->maxReintentos   = 1;
+
+        $ritContexto = $empresaId ? $this->obtenerContextoRIT((int) $empresaId) : '';
+        $normasRag   = $this->buscarNormasRelevantes($hechos, $empresaId ? (int) $empresaId : null, limite: 3);
+
+        $historial = [];
+        if ($trabajadorId) {
+            $trabajador = Trabajador::find($trabajadorId);
+            if ($trabajador) {
+                $historial = $this->obtenerHistorialDisciplinarioTrabajador($trabajador);
+            }
+        }
+
+        $prompt = $this->construirPromptClasificacionIncidente(
+            hechos: $hechos,
+            cargo: $datos['cargo'] ?? 'No especificado',
+            fechasOcurrencia: $datos['fechas_ocurrencia'] ?? [],
+            motivosRit: $datos['motivos_rit'] ?? [],
+            historial: $historial,
+            ritContexto: $ritContexto,
+            normasRag: $normasRag,
+        );
+
+        try {
+            $respuesta = $this->llamarIA($prompt);
+            $resultado = $this->parsearJsonIA($respuesta);
+
+            if (empty($resultado)) {
+                throw new \Exception('La IA no devolvió una clasificación válida.');
+            }
+
+            // Salvaguarda de código (no solo de prompt): si el propio modelo
+            // marcó informacion_suficiente=false, nunca se acepta una
+            // gravedad/certeza/nivel de interrogatorio "seguros" al pie de la
+            // letra - se normalizan para que la UI nunca muestre una
+            // clasificación con apariencia de confianza sobre datos que el
+            // propio modelo dijo que eran insuficientes.
+            if (($resultado['informacion_suficiente'] ?? false) !== true) {
+                $resultado['gravedad_estimada']        = 'no_determinable';
+                $resultado['certeza']                  = 'baja';
+                $resultado['nivel_interrogatorio_minimo'] = 'CONVERSACIONAL';
+            }
+
+            $resultado['error'] = null;
+
+            Log::channel('descargos')->info('[IA] Clasificación de incidente OK', [
+                'empresa_id'    => $empresaId,
+                'trabajador_id' => $trabajadorId,
+                'resultado'     => $resultado,
+            ]);
+
+            return $resultado;
+        } catch (\Exception $e) {
+            Log::channel('descargos')->error('[IA] ERROR en clasificarIncidente', [
+                'empresa_id'    => $empresaId,
+                'trabajador_id' => $trabajadorId,
+                'error'         => $e->getMessage(),
+            ]);
+
+            // Fallback honesto: nunca inventar una gravedad ante un fallo total
+            // del análisis - mismo principio aplicado en
+            // IAAnalisisSancionService::obtenerOpcionesPorDefecto() (ver auditoría).
+            return [
+                'informacion_suficiente'   => null, // null = "no se pudo evaluar", distinto de false
+                'elementos_faltantes'      => [],
+                'gravedad_estimada'        => 'no_determinable',
+                'certeza'                  => 'baja',
+                'complejidad_probatoria_estimada' => 'no_determinable',
+                'nivel_interrogatorio_minimo'     => 'CONVERSACIONAL',
+                'factores_riesgo'          => [],
+                'justificacion'            => '',
+                'error'                    => 'El análisis automático no estuvo disponible: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Historial de procesos disciplinarios ANTERIORES de este trabajador -
+     * la única fuente válida de reincidencia real (nunca la escala de
+     * reincidencia del catálogo del RIT, que describe el escalón "2da vez" de
+     * una conducta, no si este trabajador específico ya reincidió - ver la nota
+     * de la auditoría en IAAnalisisSancionService::obtenerMotivosDescargosDetalle()).
+     */
+    private function obtenerHistorialDisciplinarioTrabajador(Trabajador $trabajador): array
+    {
+        return ProcesoDisciplinario::where('trabajador_id', $trabajador->id)
+            ->where('estado', '!=', 'archivado')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(fn($p) => [
+                'fecha'  => $p->created_at->format('Y-m-d'),
+                'hechos' => mb_substr(strip_tags($p->hechos ?? ''), 0, 300),
+                'estado' => $p->estado,
+            ])
+            ->toArray();
+    }
+
+    /**
+     * Prompt del Clasificador de Incidente. Ver la lógica y el flujo completo
+     * en clasificarIncidente() más arriba.
+     */
+    private function construirPromptClasificacionIncidente(
+        string $hechos,
+        string $cargo,
+        array $fechasOcurrencia,
+        array $motivosRit,
+        array $historial,
+        string $ritContexto,
+        string $normasRag,
+    ): string {
+        $fechasTexto = empty($fechasOcurrencia)
+            ? 'No especificada(s)'
+            : implode(', ', $fechasOcurrencia);
+
+        $motivosTexto = 'La empresa no seleccionó ninguna conducta del RIT (eligió "Otro" o dejó el campo vacío) - no hay piso de gravedad predefinido.';
+        if (!empty($motivosRit)) {
+            $motivosTexto = '';
+            foreach ($motivosRit as $m) {
+                $motivosTexto .= "- [{$m['gravedad']}] {$m['conducta']}\n";
+            }
+        }
+
+        $historialTexto = 'Este es el primer proceso disciplinario registrado para este trabajador.';
+        if (!empty($historial)) {
+            $historialTexto = '';
+            foreach ($historial as $h) {
+                $historialTexto .= "- {$h['fecha']} ({$h['estado']}): {$h['hechos']}\n";
+            }
+        }
+
+        $ritBloque = $ritContexto !== ''
+            ? $ritContexto
+            : 'ESTA EMPRESA NO TIENE REGLAMENTO INTERNO DE TRABAJO (RIT) REGISTRADO - clasifica únicamente con base en el Código Sustantivo del Trabajo y la normativa suministrada abajo.';
+
+        $normasBloque = $normasRag !== '' ? $normasRag : 'No se encontraron normas adicionales con similitud relevante.';
+
+        return <<<PROMPT
+Eres un abogado laboral colombiano experto en derecho disciplinario. Se te consulta ANTES de citar
+formalmente a un trabajador a diligencia de descargos, con el relato de hechos que la empresa tiene
+hasta ahora. Nunca inventas hechos ni citas normas que no estén en los documentos suministrados.
+
+TU TAREA tiene dos partes, EN ESTE ORDEN ESTRICTO:
+
+PARTE 1 - SUFICIENCIA DE LA INFORMACIÓN
+Evalúa si el relato permite, por sí solo, sostener un interrogatorio con el rigor que la posible
+falta amerite. Es insuficiente si falta algo que la EMPRESA debería poder aportar de antemano: qué
+ocurrió en concreto (no solo una categoría genérica), cuándo/dónde, cómo se detectó o quién lo
+reportó - o si es tan vago que ni siquiera permite ubicar la conducta dentro de una causal del RIT
+o el CST. Nunca exijas exhaustividad: los descargos existen precisamente para que el trabajador
+complete su propia versión - eso NO es una carencia de la empresa.
+
+PARTE 2 - CLASIFICACIÓN (solo si la información es suficiente)
+Determina la gravedad probable usando EXCLUSIVAMENTE el RIT y la normativa suministrados abajo -
+nunca conocimiento externo ni suposiciones sin soporte en esos documentos.
+Si la empresa ya seleccionó una o más conductas de su propio RIT (ver MOTIVOS YA SELECCIONADOS),
+esa gravedad ya etiquetada es tu PISO: solo clasificas por encima de ella si el relato sugiere algo
+más grave que lo ya seleccionado (varias conductas a la vez, un daño mayor al típico de esa causal,
+reincidencia real). Nunca la bajes salvo que el relato contradiga abiertamente la conducta
+seleccionada - en ese caso explica por qué en la justificación.
+Reincidencia: solo cuenta la del HISTORIAL DE PROCESOS ANTERIORES (procesos reales ya tramitados a
+este trabajador) - nunca la infieras del nombre o la escala de la conducta del RIT.
+
+ESCALA DE GRAVEDAD (usa EXACTAMENTE una de estas cuatro, en mayúsculas - es la misma escala que
+usará después el Director Estratégico de la diligencia, no la confundas con la escala de 3 niveles
+del RIT): LEVE, MEDIA, GRAVE, MUY_GRAVE.
+El RIT etiqueta sus conductas solo en 3 niveles (leve/grave/gravisima) - conviértelos así: "leve"
+→ LEVE o MEDIA (usa MEDIA si el relato muestra agravantes que no alcanzan a hacerla GRAVE),
+"grave" → GRAVE, "gravisima" → MUY_GRAVE. Aplica el mismo principio de piso: nunca conviertas hacia
+abajo de este mapeo salvo que el relato contradiga abiertamente la conducta seleccionada.
+NIVEL DE INTERROGATORIO MÍNIMO para la diligencia posterior (usa EXACTAMENTE una de estas tres - el
+Director Estratégico podrá subirlo según cómo responda el trabajador, pero nunca bajarlo de este
+piso): CONVERSACIONAL, INVESTIGATIVO, FORENSE.
+CONVERSACIONAL - gravedad LEVE, sin factores de riesgo.
+INVESTIGATIVO - gravedad MEDIA o GRAVE, o LEVE con factores de riesgo.
+FORENSE - gravedad MUY_GRAVE, posible causal de terminación, reincidencia real, o múltiples
+hechos/fechas.
+
+MOTIVOS YA SELECCIONADOS (RIT):
+{$motivosTexto}
+
+HECHOS RELATADOS POR LA EMPRESA:
+{$hechos}
+
+CARGO DEL TRABAJADOR: {$cargo}
+FECHA(S) DE OCURRENCIA: {$fechasTexto}
+
+HISTORIAL DE PROCESOS DISCIPLINARIOS ANTERIORES DE ESTE TRABAJADOR:
+{$historialTexto}
+
+REGLAMENTO INTERNO DE LA EMPRESA:
+{$ritBloque}
+
+NORMATIVA Y JURISPRUDENCIA RELEVANTE:
+{$normasBloque}
+
+SALIDA - responde ÚNICAMENTE este JSON:
+{
+  "informacion_suficiente": true,
+  "elementos_faltantes": [],
+  "gravedad_estimada": "GRAVE",
+  "certeza": "alta",
+  "complejidad_probatoria_estimada": "media",
+  "nivel_interrogatorio_minimo": "INVESTIGATIVO",
+  "factores_riesgo": [],
+  "justificacion": ""
+}
+Si informacion_suficiente es false: deja gravedad_estimada en "no_determinable", certeza en "baja",
+nivel_interrogatorio_minimo en "CONVERSACIONAL", y llena elementos_faltantes (máximo 4 puntos, cada
+uno una frase corta y accionable dirigida a quien está citando - ej. "Especifique la fecha exacta
+en que se detectó el faltante de inventario").
+factores_riesgo: máximo 3 puntos cortos (ej. "Posible causal de terminación según el RIT",
+"Reincidencia real registrada el 12/03/2025", "Cargo de manejo y confianza").
+justificacion: máximo 40 palabras, citando solo el RIT o la normativa suministrada.
+No agregues absolutamente ningún texto antes ni después del JSON.
+PROMPT;
     }
 
     /**
@@ -293,6 +574,11 @@ class IADescargoService
             'jurisprudencia_curada' => $jurisprudenciaCurada,
             'ancla_cubierta'      => $anclaYaCubierta,
             'total_respondidas'   => $totalRespondidas,
+            // Clasificación hecha por IAClasificacionIncidente al momento de
+            // crear la citación (ver IADescargoService::clasificarIncidente()) -
+            // null si el caso es anterior a este cambio o si nunca se clasificó.
+            // Se usa como piso mínimo de rigor en construirBloqueDatosDelCaso().
+            'clasificacion_previa' => $proceso->clasificacion_incidente_ia ?? null,
         ];
     }
 
@@ -604,6 +890,32 @@ PROMPT;
                 . " que no aparezcan aquí):\n{$contexto['jurisprudencia_curada']}"
             : '';
 
+        // Piso mínimo de rigor fijado ANTES de esta diligencia (ver
+        // IADescargoService::clasificarIncidente(), llamado al crear la
+        // citación). Sin esto, el Director tenía que adivinar la gravedad
+        // desde cero en el primer turno, con el sesgo hacia minimizar
+        // preguntas ya corregido en otra parte de este archivo - ahora arranca
+        // con un piso ya decidido con RIT, normativa e historial completos.
+        $clasificacionBloque = '';
+        $clasificacionPrevia = $contexto['clasificacion_previa'] ?? null;
+        if (!empty($clasificacionPrevia) && ($clasificacionPrevia['informacion_suficiente'] ?? false) === true) {
+            $factores = !empty($clasificacionPrevia['factores_riesgo'])
+                ? implode('; ', $clasificacionPrevia['factores_riesgo'])
+                : 'ninguno identificado';
+            $clasificacionBloque = "\n==================================================\n"
+                . "CLASIFICACIÓN PREVIA DEL INCIDENTE (hecha al citar, antes de esta diligencia)\n"
+                . "==================================================\n"
+                . "Gravedad estimada: {$clasificacionPrevia['gravedad_estimada']} (certeza: {$clasificacionPrevia['certeza']})\n"
+                . "Nivel de interrogatorio MÍNIMO exigido: {$clasificacionPrevia['nivel_interrogatorio_minimo']}\n"
+                . "Factores de riesgo identificados: {$factores}\n"
+                . "Justificación: " . ($clasificacionPrevia['justificacion'] ?? '') . "\n"
+                . "ESTA CLASIFICACIÓN ES UN PISO, NUNCA UN TECHO: puedes exigir MÁS rigor que este nivel "
+                . "según cómo responda el trabajador durante la diligencia, pero JAMÁS menos. Si tu propia "
+                . "evaluación de gravedad en este turno resultara MÁS BAJA que la de arriba, trátalo como una "
+                . "alerta a verificar con preguntas adicionales - nunca bajes el nivel de interrogatorio salvo "
+                . "que el trabajador haya aportado algo que contradiga objetivamente esta clasificación previa.";
+        }
+
         return <<<BLOQUEDATOS
 ==================================================
 DATOS DEL CASO
@@ -611,6 +923,7 @@ DATOS DEL CASO
 Trabajador: {$contexto['trabajador']}
 Cargo: {$contexto['cargo']}
 Empresa: {$contexto['empresa']}
+{$clasificacionBloque}
 
 Hechos presuntos (versión del empleador - aún no probados):
 {$contexto['hechos']}

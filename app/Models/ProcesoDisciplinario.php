@@ -23,6 +23,7 @@ class ProcesoDisciplinario extends Model
         'abogado_id',
         'estado',
         'hechos',
+        'clasificacion_incidente_ia',
         'evidencias_empleador',
         'fecha_ocurrencia',
         'fechas_ocurrencia_adicionales',
