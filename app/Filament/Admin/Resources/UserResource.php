@@ -323,12 +323,50 @@ class UserResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('Editar'),
                 Tables\Actions\DeleteAction::make()
-                    ->label('Eliminar'),
+                    ->label('Eliminar')
+                    ->action(function (\App\Models\User $record, Tables\Actions\DeleteAction $action) {
+                        try {
+                            $record->delete();
+                        } catch (\Illuminate\Database\QueryException $e) {
+                            // Por integridad del expediente legal, documentos.generado_por (y
+                            // similares) usan onDelete('restrict') a propósito - no se pierde el
+                            // rastro de quién generó un documento aunque ese usuario se retire.
+                            // La vía correcta para "quitarle acceso" es desactivarlo (ya existe el
+                            // toggle 'active' en el formulario), no borrarlo. Antes esto mostraba
+                            // la excepción SQL cruda al administrador.
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('No se puede eliminar este usuario')
+                                ->body('Este usuario generó documentos u otros registros que dependen de él - por integridad del expediente legal, no se puede eliminar. Edítelo y desmarque "Activo" para quitarle el acceso sin perder ese historial.')
+                                ->persistent()
+                                ->send();
+                            $action->halt();
+                        }
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->label('Eliminar seleccionados'),
+                        ->label('Eliminar seleccionados')
+                        ->action(function (\Illuminate\Support\Collection $records, Tables\Actions\DeleteBulkAction $action) {
+                            $bloqueados = [];
+                            foreach ($records as $record) {
+                                try {
+                                    $record->delete();
+                                } catch (\Illuminate\Database\QueryException $e) {
+                                    $bloqueados[] = $record->name;
+                                }
+                            }
+
+                            if (!empty($bloqueados)) {
+                                \Filament\Notifications\Notification::make()
+                                    ->warning()
+                                    ->title('Algunos usuarios no se pudieron eliminar')
+                                    ->body('Tienen documentos u otros registros que dependen de ellos: ' . implode(', ', $bloqueados) . '. Desactívelos en su lugar (edite cada uno y desmarque "Activo").')
+                                    ->persistent()
+                                    ->send();
+                            }
+                        }),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
