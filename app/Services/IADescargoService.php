@@ -752,8 +752,12 @@ PATRONES DE PREGUNTA SIEMPRE PROHIBIDOS (aunque cambies las palabras)
    está CUBIERTO. NUNCA vuelvas a pedir "su versión", "qué ocurrió", "describa el incidente",
    "relate los hechos" ni ninguna variante. Pedir la misma historia de nuevo viola el Art. 29 C.P.
 
-2. PRUEBAS Y TESTIGOS - Si ya se preguntó sobre pruebas, documentos o testigos en cualquier
-   forma anterior, está CUBIERTO. PROHIBIDO volver a preguntar sobre ello.
+2. PRUEBAS Y TESTIGOS - El formulario de descargos YA tiene un paso dedicado al final para
+   que el trabajador adjunte pruebas, documentos o testigos - PROHIBIDO preguntarle si tiene
+   o desea presentar pruebas/testigos en cualquier forma ("¿tiene pruebas...?", "¿desea
+   presentar testigos...?", etc.), aunque sea combinado con otra pregunta. Preguntar por el
+   CONTENIDO de una prueba que el trabajador ya mencionó espontáneamente sí está permitido
+   (ej. "¿qué decía ese mensaje?"), pero nunca preguntar POR LA EXISTENCIA de pruebas/testigos.
 
 3. CONOCIMIENTO DE NORMAS/POLÍTICAS - Si ya se preguntó si el trabajador conocía reglas,
    políticas o el reglamento, está CUBIERTO. No repetir aunque uses otras palabras.
@@ -785,12 +789,11 @@ ya fue abordado. Si fue respondido (aunque sea brevemente), está CUBIERTO → n
 2. PERSONAS INVOLUCRADAS - ¿Mencionó a otras personas? ¿Quedó claro el rol de cada una?
 3. INTENCIONALIDAD - ¿Fue deliberado, accidental, por descuido, por instrucción de otro?
 4. AUTORIZACIÓN O JUSTIFICACIÓN - ¿Tenía permiso, orden o causa justificada?
-5. EVIDENCIA A FAVOR - ¿Tiene pruebas, testigos o documentos? (solo preguntar una vez)
-6. IMPACTO Y CONSECUENCIAS - ¿Es consciente del efecto de sus actos en la empresa?
-7. FACTORES ATENUANTES - ¿Hay circunstancias que expliquen (no justifiquen) lo ocurrido?
-8. CONTRADICCIONES - ¿Hay puntos vagos o contradictorios que requieran aclaración ESPECÍFICA?
+5. IMPACTO Y CONSECUENCIAS - ¿Es consciente del efecto de sus actos en la empresa?
+6. FACTORES ATENUANTES - ¿Hay circunstancias que expliquen (no justifiquen) lo ocurrido?
+7. CONTRADICCIONES - ¿Hay puntos vagos o contradictorios que requieran aclaración ESPECÍFICA?
    (una contradicción específica, no pedir que repita todo de nuevo)
-9. OBLIGACIONES DEL CARGO - Usando tu análisis experto del cargo "{$contexto['cargo']}":
+8. OBLIGACIONES DEL CARGO - Usando tu análisis experto del cargo "{$contexto['cargo']}":
    ¿Queda claro si el trabajador siguió el procedimiento correcto para su rol?
    ¿Se sabe si actuó dentro de sus atribuciones o tomó decisiones que no le correspondían?
    ¿Se conoce si reportó o escaló la situación como debía hacerlo según su cargo?
@@ -2677,7 +2680,10 @@ Su finalidad es:
 ✓ Escuchar la versión del trabajador de forma objetiva.
 ✓ Verificar qué ocurrió realmente.
 ✓ Identificar si hubo justificación, autorización, fuerza mayor u otro eximente.
-✓ Dar al trabajador la oportunidad de presentar pruebas, testigos o documentos a su favor.
+
+El formulario YA tiene un paso dedicado, al final, para que el trabajador adjunte pruebas,
+documentos o testigos - por eso NINGUNA pregunta debe indagar si tiene o desea presentar
+pruebas/testigos (esa oportunidad ya está garantizada por ese paso, no por una pregunta tuya).
 
 NO se trata de acusar, confirmar culpabilidad ni presionar al trabajador para que admita hechos.
 
@@ -2743,8 +2749,10 @@ Genera {$cantidadPreguntas} preguntas abiertas, neutrales y breves que:
 • Permitan al trabajador explicar su versión de los hechos con sus propias palabras.
 • Indaguen sobre circunstancias atenuantes, justificaciones o contexto que pueda alegar.
 • Exploren si hubo autorización, aviso previo, fuerza mayor u otro eximente válido.
-• Den espacio para que presente pruebas, testigos o documentos a su favor.
 • Sean directamente pertinentes a los hechos presuntos descritos arriba.
+
+PROHIBIDO preguntar si el trabajador tiene o desea presentar pruebas, documentos o testigos -
+el formulario ya tiene un paso dedicado al final para adjuntarlos, no se pregunta por ello.
 
 LENGUAJE SENCILLO - sin tecnicismos jurídicos:
 ✗ "¿Tenía conocimiento de las disposiciones del reglamento?" → ✓ "¿Conocía esa regla de la empresa?"
