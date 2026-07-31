@@ -14,8 +14,9 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Str;
 
 class CreateEmpresa extends CreateRecord
 {
@@ -32,7 +33,7 @@ class CreateEmpresa extends CreateRecord
             ...EmpresaResource::formSchema(),
 
             Section::make('Usuario administrador')
-                ->description('Con estas credenciales el cliente ingresará a la plataforma para gestionar su Reglamento Interno y sus procesos disciplinarios.')
+                ->description('El cliente ingresará a la plataforma con este correo. Le enviaremos un enlace para que configure su propia contraseña - por seguridad, nadie más que él la conoce.')
                 ->icon('heroicon-o-user-plus')
                 ->schema([
                     TextInput::make('user_nombre')
@@ -46,22 +47,16 @@ class CreateEmpresa extends CreateRecord
                         ->required()
                         ->unique(table: 'users', column: 'email')
                         ->maxLength(255)
-                        ->helperText('Con este correo el cliente inicia sesión.'),
+                        ->helperText('Con este correo el cliente inicia sesión.')
+                        ->same('user_email_confirmation'),
 
-                    TextInput::make('user_password')
-                        ->label('Contraseña')
-                        ->password()
-                        ->revealable()
+                    TextInput::make('user_email_confirmation')
+                        ->label('Confirmar correo electrónico')
+                        ->email()
                         ->required()
-                        ->rule(Password::default())
-                        ->same('user_password_confirmation'),
-
-                    TextInput::make('user_password_confirmation')
-                        ->label('Confirmar contraseña')
-                        ->password()
-                        ->revealable()
-                        ->required()
-                        ->dehydrated(false),
+                        ->maxLength(255)
+                        ->dehydrated(false)
+                        ->helperText('Vuelva a escribirlo para evitar un error de tipeo - sin esto el cliente no podría acceder.'),
                 ])
                 ->columns(2),
         ]);
@@ -85,15 +80,27 @@ class CreateEmpresa extends CreateRecord
         \App\Support\EmpresaActiva::set($this->record->id);
 
         // Usuario administrador de la empresa (rol cliente) — obligatorio en el onboarding B2B.
+        // La contraseña es aleatoria y NUNCA se muestra ni se guarda en ningún lado accesible
+        // al bufete (ni en el formulario, ni en logs) - el cliente la configura él mismo con el
+        // enlace que le llega por correo (Password::sendResetLink() más abajo), el mismo flujo
+        // estándar de "olvidé mi contraseña" que ya usa este panel (->passwordReset()).
         $cliente = User::create([
             'name'       => $this->data['user_nombre'],
             'email'      => $this->data['user_email'],
-            'password'   => Hash::make($this->data['user_password']),
+            'password'   => Hash::make(Str::random(40)),
             'role'       => 'cliente',
             'empresa_id' => $this->record->id,
             'active'     => true,
         ]);
         $cliente->assignRole('cliente');
+
+        Password::sendResetLink(['email' => $cliente->email]);
+
+        Notification::make()
+            ->success()
+            ->title('Usuario administrador creado')
+            ->body("Se envió un correo a {$cliente->email} para que configure su contraseña de acceso.")
+            ->send();
 
         // Persistir el RIT subido (extrae texto + sanciones + conductas).
         // El estado del FileUpload puede venir como [uuid => ruta]; normalizar a string.
