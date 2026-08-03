@@ -716,6 +716,35 @@ class CreateProcesoDisciplinario extends CreateRecord
 
                             Forms\Components\Hidden::make('clasificacion_incidente_ia')
                                 ->dehydrated(true),
+
+                            // Aviso junto a "Siguiente" cuando la clasificación quedó
+                            // incompleta - no bloquea el avance (un caso puede ser
+                            // genuinamente leve; el sistema ya usa CONVERSACIONAL como
+                            // piso seguro cuando no logra clasificar), solo recuerda
+                            // completar los datos pedidos arriba para un expediente más
+                            // sólido. El botón "Siguiente" del Wizard no es reactivo al
+                            // estado del formulario, así que el aviso va aquí, al final
+                            // del paso, en vez de en el botón mismo.
+                            Forms\Components\Placeholder::make('clasificacion_incidente_ia_aviso_siguiente')
+                                ->hiddenLabel()
+                                ->content(function (Forms\Get $get) {
+                                    $raw = $get('clasificacion_incidente_ia');
+                                    $c = $raw ? json_decode($raw, true) : null;
+                                    if (!is_array($c) || ($c['informacion_suficiente'] ?? null) !== false) {
+                                        return new HtmlString('');
+                                    }
+
+                                    return new HtmlString(
+                                        '<div class="flex items-center gap-2 justify-end text-sm text-amber-600 dark:text-amber-400">'
+                                        . '<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">'
+                                        . '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>'
+                                        . '</svg>'
+                                        . '<span>Puede continuar, pero la clasificación de gravedad quedó incompleta - revise los datos pedidos arriba.</span>'
+                                        . '</div>'
+                                    );
+                                })
+                                ->visible(fn(Forms\Get $get) => filled($get('clasificacion_incidente_ia')))
+                                ->columnSpanFull(),
                         ]),
                 ]),
 
