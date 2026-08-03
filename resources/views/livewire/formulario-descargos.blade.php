@@ -15,7 +15,7 @@
                         </div>
                     </div>
                 </div>
-                @if ($etapa === 'formulario' && !$formularioCompletado && !$mostrarAdvertencia && !$tiempoExpiradoMostrarEvidencias)
+                @if ($etapa === 'formulario' && !$formularioCompletado && !$mostrarAdvertencia && !$tiempoExpiradoMostrarEvidencias && !$tiempoExpiradoIncompleto)
                     <div class="px-4 sm:px-6 pb-3">
                         <div class="flex items-center gap-3">
                             <div class="flex-1 bg-gray-200 rounded-full h-2">
@@ -901,9 +901,30 @@
                 {{-- ═══════════════════════════════════════════════════════════
                      ETAPAS: FORMULARIO + COMPLETADO (flujo original)
                 ════════════════════════════════════════════════════════════ --}}
-                @elseif ($etapa === 'formulario' || $etapa === 'completado' || $tiempoExpiradoMostrarEvidencias || $formularioCompletado)
+                @elseif ($etapa === 'formulario' || $etapa === 'completado' || $tiempoExpiradoMostrarEvidencias || $formularioCompletado || $tiempoExpiradoIncompleto)
 
-                @if ($tiempoExpiradoMostrarEvidencias)
+                @if ($tiempoExpiradoIncompleto)
+                    {{-- Estado: Tiempo expirado SIN completar todas las preguntas -
+                         nunca reutilizar $formularioCompletado para esto: esa
+                         bandera es para un envío genuinamente exitoso. --}}
+                    <div class="text-center py-8">
+                        <div class="mx-auto w-16 h-16 bg-warning-100 rounded-full flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-semibold text-gray-900 mb-2">Se agotó el tiempo</h2>
+                        <p class="text-gray-500 mb-6">
+                            El tiempo para completar la diligencia venció antes de que terminara de responder
+                            todas las preguntas. Sus respuestas parciales quedaron guardadas.
+                        </p>
+                        <div class="bg-gray-50 rounded-xl p-4 text-left text-sm text-gray-600">
+                            <p class="font-medium text-gray-900 mb-1">¿Qué sigue?</p>
+                            <p>Contacte al administrador del proceso para reprogramar o continuar la diligencia.</p>
+                        </div>
+                    </div>
+                @elseif ($tiempoExpiradoMostrarEvidencias)
                     {{-- Estado: Tiempo expirado pero puede subir evidencias --}}
                     <div class="space-y-6">
                         <div class="bg-warning-50 border border-warning-200 rounded-xl p-4">

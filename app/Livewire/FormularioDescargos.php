@@ -25,6 +25,7 @@ class FormularioDescargos extends Component
     public array $preguntasProcesadas = [];
     public array $archivosEvidencia = [];
     public bool $formularioCompletado = false;
+    public bool $tiempoExpiradoIncompleto = false;
     public bool $mostrarMensajeExito = false;
     public int $longitudMinimaRespuesta = 2;
     public bool $mostrarAdvertencia = true;
@@ -84,7 +85,13 @@ class FormularioDescargos extends Component
                 if ($preguntasSinResponder === 0) {
                     $this->tiempoExpiradoMostrarEvidencias = true;
                 } else {
-                    $this->formularioCompletado = true;
+                    // NUNCA usar formularioCompletado aquí: esa bandera dispara la
+                    // pantalla de "Descargos enviados - sus respuestas fueron
+                    // registradas correctamente", un mensaje falso cuando en
+                    // realidad quedaron preguntas sin responder por vencimiento
+                    // del tiempo (bug real en producción: PD-2026-0058, 12/17
+                    // preguntas respondidas, mostraba éxito de todas formas).
+                    $this->tiempoExpiradoIncompleto = true;
                     session()->flash('error', 'La fecha de la diligencia ya pasó. Contacte al administrador del proceso.');
                     return;
                 }
@@ -120,7 +127,13 @@ class FormularioDescargos extends Component
                 if ($preguntasSinResponder === 0) {
                     $this->tiempoExpiradoMostrarEvidencias = true;
                 } else {
-                    $this->formularioCompletado = true;
+                    // NUNCA usar formularioCompletado aquí: esa bandera dispara la
+                    // pantalla de "Descargos enviados - sus respuestas fueron
+                    // registradas correctamente", un mensaje falso cuando en
+                    // realidad quedaron preguntas sin responder por vencimiento
+                    // del tiempo (bug real en producción: PD-2026-0058, 12/17
+                    // preguntas respondidas, mostraba éxito de todas formas).
+                    $this->tiempoExpiradoIncompleto = true;
                     session()->flash('error', 'La fecha de la diligencia ya pasó. Contacte al administrador del proceso.');
                     return;
                 }
