@@ -3014,14 +3014,46 @@ PROMPT;
 
     /**
      * Recupera un extracto relevante del RIT de la empresa para incluir en el prompt.
+     *
+     * Bug real confirmado (caso Juan Pablo/kanban, empresa con RIT de 143.389
+     * caracteres): el recorte plano de los primeros 8000 caracteres del RIT
+     * completo dejaba el capítulo de régimen disciplinario (faltas/sanciones,
+     * el más determinante para clasificar gravedad) totalmente afuera - en
+     * ese RIT empezaba en el carácter 47625. La IA clasificaba a ciegas, sin
+     * ver la escala leve/grave/gravísima real de la empresa, y terminaba
+     * inventando una gravedad más alta (y citando artículos del CST
+     * equivocados) de lo que el RIT realmente asigna a esa conducta. En RITs
+     * largos (frecuente: 100k+ caracteres, capítulos de admisión/jornada
+     * suelen ir antes que el disciplinario) esto podía pasar en casi
+     * cualquier empresa, no solo en el caso de prueba.
+     *
+     * Ahora el capítulo disciplinario (extraerCapituloDisciplinario, la misma
+     * extracción que ya usa generarConductasSancionables()) se antepone
+     * siempre que exista, y el resto del presupuesto de 8000 caracteres se
+     * llena con el inicio del RIT completo (contexto general de la empresa)
+     * - nunca al revés.
      */
     private function obtenerContextoRIT(int $empresaId): string
     {
         try {
-            $texto = app(ReglamentoInternoService::class)->getTextoReglamento($empresaId);
-            if ($texto) {
+            $service = app(ReglamentoInternoService::class);
+            $texto = $service->getTextoReglamento($empresaId);
+            if (!$texto) {
+                return '';
+            }
+
+            $capitulo = $service->obtenerCapituloDisciplinarioTexto($empresaId);
+            if (!$capitulo) {
                 return mb_substr($texto, 0, 8000);
             }
+
+            $bloque = "RÉGIMEN DISCIPLINARIO DEL RIT (faltas y sanciones - prioritario):\n" . $capitulo;
+            $restante = 8000 - mb_strlen($bloque);
+            if ($restante > 500) {
+                $bloque .= "\n\nOTRAS DISPOSICIONES DEL RIT:\n" . mb_substr($texto, 0, $restante);
+            }
+
+            return $bloque;
         } catch (\Exception $e) {
             Log::warning('IADescargoService::obtenerContextoRIT error', ['error' => $e->getMessage()]);
         }
