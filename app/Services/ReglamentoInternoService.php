@@ -331,86 +331,36 @@ class ReglamentoInternoService
     }
 
     /**
-     * Genera con IA el LISTADO DE CONDUCTAS SANCIONABLES del RIT por gravedad
-     * (leve, grave, gravísima), con su medida disciplinaria y base legal, conforme
-     * al CST. Reemplaza el catálogo estático como fuente de conductas por empresa.
+     * Construye el LISTADO DE CONDUCTAS SANCIONABLES del RIT por gravedad
+     * (leve, grave, gravísima), con su medida disciplinaria y base legal.
+     * Reemplaza el catálogo estático como fuente de conductas por empresa.
      * Persiste el resultado en $rit->conductas_sancionables y lo devuelve.
+     *
+     * IMPORTANTE (corregido tras encontrar el problema en producción): cuando
+     * hay un RIT real (subido o construido), el texto de cada "conducta" NUNCA
+     * se le pide a la IA que lo redacte de nuevo - eso abría la puerta a
+     * parafraseo o, peor, a alucinación (inventar una falta que no está en el
+     * RIT). En su lugar se reutiliza LITERALMENTE la extracción ya validada de
+     * extraerYPersistirSanciones() (la misma que usa el botón "Re-extraer
+     * sanciones"), sustituyendo el texto directamente por código - así se
+     * garantiza, no solo se le pide por instrucción, que (a) el texto es
+     * exactamente el del RIT y (b) no se omite ninguna falta real, porque se
+     * itera sobre TODO lo que esa extracción ya encontró, sin filtrar nada.
      */
     public function generarConductasSancionables(ReglamentoInterno $rit): array
     {
-        $contexto = '';
-        $hayFuenteReal = false;
         if (!empty($rit->texto_completo)) {
-            $contexto = "RÉGIMEN DISCIPLINARIO DEL RIT DE LA EMPRESA:\n"
-                . $this->extraerCapituloDisciplinario($rit->texto_completo);
-            $hayFuenteReal = trim($contexto) !== '';
+            $conductas = $this->conductasDesdeExtraccionLiteral($rit);
         } elseif (!empty($rit->respuestas_cuestionario['sanciones_configuradas'])) {
-            $contexto = "SANCIONES CONFIGURADAS EN EL RIT:\n"
-                . json_encode($rit->respuestas_cuestionario['sanciones_configuradas'], JSON_UNESCAPED_UNICODE);
-            $hayFuenteReal = true;
-        }
-
-        // Con documento fuente real (texto_completo o sanciones_configuradas), esto NO
-        // es una síntesis genérica: debe reflejar TODAS las conductas que ese documento
-        // describe, sin omitir ninguna, porque alimenta el mismo catálogo que usa el
-        // análisis de sanción. Solo sin fuente real (empresa aún sin RIT) tiene sentido
-        // un catálogo base acotado conforme al CST.
-        $reglaCantidad = $hayFuenteReal
-            ? '- Cada gravedad: incluye TODAS las conductas que el contexto anterior describa para esa
-  gravedad, sin límite de cantidad ni resumen - así el contexto tenga 3 o 40 conductas por gravedad.
-  Omitir una conducta real porque "ya hay suficientes" está PROHIBIDO: este listado alimenta el
-  análisis de sanción y ninguna conducta puede faltar.'
-            : '- Sin un RIT propio de referencia: genera un catálogo base razonable, entre 5 y 12
-  conductas CONCRETAS por gravedad (no genéricas ni repetidas), conforme al CST.';
-
-        // Si ya hay un RIT real (subido o construido), las conductas YA ESTÁN
-        // ESCRITAS en el reglamento - esto debe comportarse como una EXTRACCIÓN
-        // fiel (mismo estándar que extraerSancionesConIA() para la tabla de
-        // sanciones), no como una síntesis libre. Antes esta regla no existía:
-        // el modelo podía parafrasear cada conducta sin que nada se lo
-        // prohibiera explícitamente - funcionaba bien la mayoría de las veces,
-        // pero sin garantía, y una paráfrasis de una falta numerada puede
-        // cambiar sutilmente su alcance real.
-        $reglaFidelidad = $hayFuenteReal
-            ? '- FIDELIDAD AL TEXTO: el campo "conducta" de cada elemento debe ser una copia LITERAL
-  (o casi literal, solo quitando la sanción específica que va aparte en "medida") de cómo el
-  Reglamento describe esa falta - PROHIBIDO resumir, parafrasear o "poner algo similar" con tus
-  propias palabras. Si el Reglamento numera 8 faltas leves, copia las 8 tal como están redactadas,
-  no una versión reescrita tuya.'
-            : '- Sin un RIT propio de referencia, sí puedes redactar cada conducta con tus propias
-  palabras (no hay texto fuente que copiar), siempre conforme al CST.';
-
-        $prompt = <<<PROMPT
-Eres un abogado laboralista colombiano. Genera el LISTADO DE CONDUCTAS SANCIONABLES para el Reglamento Interno de Trabajo (RIT) de una empresa, clasificadas por gravedad (leve, grave, gravísima), conforme al Código Sustantivo del Trabajo (CST) y a la legislación laboral colombiana. Este contenido será PÚBLICO dentro del RIT: debe ser claro, concreto y jurídicamente correcto.
-
-{$contexto}
-
-Responde ÚNICAMENTE con un JSON válido, sin texto adicional, con esta estructura exacta:
-{
-  "leve":      [{"conducta": "descripción concreta", "medida": "medida disciplinaria legible", "tipo": "llamado_atencion|suspension|multa|terminacion", "dias_suspension": null, "base_legal": "artículo del CST o del RIT que la sustenta"}],
-  "grave":     [{"conducta": "...", "medida": "...", "tipo": "...", "dias_suspension": null, "base_legal": "..."}],
-  "gravisima": [{"conducta": "...", "medida": "...", "tipo": "...", "dias_suspension": null, "base_legal": "..."}]
-}
-
-Reglas:
-{$reglaCantidad}
-{$reglaFidelidad}
-- Proporcionalidad y gradualidad: leve → llamado de atención; grave → suspensión; gravísima → terminación del contrato con justa causa. Respeta lo que el RIT contemple si el contexto lo indica.
-- dias_suspension: entero SOLO cuando el tipo es "suspension"; en los demás casos null.
-- base_legal: cita el artículo del CST (p. ej. Art. 58, 60, 62 CST) o del RIT. NO inventes normas.
-- No incluyas conductas discriminatorias ni que violen derechos fundamentales.
-- Español colombiano, claro y sin tecnicismos innecesarios.
-PROMPT;
-
-        try {
-            $datos     = $this->parsearJSON($this->llamarGeminiJSON($prompt));
-            $conductas = $this->normalizarConductas($datos);
-        } catch (\Throwable $e) {
-            Log::warning('ReglamentoInternoService: error generando conductas sancionables', [
-                'reglamento_id' => $rit->id,
-                'error'         => $e->getMessage(),
-            ]);
-            $conductas = [];
+            // Ya estructurado por el propio wizard "Construir RIT" (conducta +
+            // gravedad + sanción ya definidos) - conversión directa, tampoco
+            // hace falta otra llamada a la IA ni hay nada que "extraer".
+            $conductas = $this->conductasDesdeSancionesConfiguradas($rit->respuestas_cuestionario['sanciones_configuradas']);
+        } else {
+            // Sin RIT propio de referencia (empresa aún sin reglamento): aquí sí
+            // corresponde síntesis con IA, conforme al CST base - no hay texto
+            // fuente que copiar.
+            $conductas = $this->generarConductasSinFuenteReal();
         }
 
         if (!empty($conductas['leve']) || !empty($conductas['grave']) || !empty($conductas['gravisima'])) {
@@ -419,6 +369,198 @@ PROMPT;
         }
 
         return $conductas;
+    }
+
+    /**
+     * Construye el catálogo a partir de la extracción LITERAL ya existente
+     * (o la genera si aún no se ha corrido) - ver la nota en
+     * generarConductasSancionables(). El número de artículo se detecta por
+     * código (buscando el "ARTÍCULO N." más cercano hacia atrás en el propio
+     * texto del capítulo), nunca por la IA.
+     */
+    private function conductasDesdeExtraccionLiteral(ReglamentoInterno $rit): array
+    {
+        $sanciones = $rit->sanciones_extraidas;
+        if (empty($sanciones)) {
+            $sanciones = $this->extraerYPersistirSanciones($rit);
+        }
+
+        $vacio = ['leve' => [], 'grave' => [], 'gravisima' => []];
+        if (empty($sanciones)) {
+            return $vacio;
+        }
+
+        $capitulo = $this->extraerCapituloDisciplinario($rit->texto_completo ?? '');
+
+        $mapa = [
+            'leve'      => ['faltas' => $sanciones['faltas_leves']      ?? [], 'sancion' => $sanciones['sancion_leve']      ?? ''],
+            'grave'     => ['faltas' => $sanciones['faltas_graves']     ?? [], 'sancion' => $sanciones['sancion_grave']     ?? ''],
+            'gravisima' => ['faltas' => $sanciones['faltas_muy_graves'] ?? [], 'sancion' => $sanciones['sancion_muy_grave'] ?? ''],
+        ];
+
+        $conductas = $vacio;
+        foreach ($mapa as $gravedad => $datos) {
+            foreach ($datos['faltas'] as $faltaTexto) {
+                $faltaTexto = trim((string) $faltaTexto);
+                if ($faltaTexto === '') {
+                    continue;
+                }
+
+                [$tipo, $dias] = $this->inferirTipoYDiasDeSancion($datos['sancion'], $gravedad);
+                $articulo = $this->articuloQuePrecedeEnTexto($faltaTexto, $capitulo);
+
+                $conductas[$gravedad][] = [
+                    'conducta'        => $faltaTexto, // literal, tal cual la extracción - nunca reescrito
+                    'medida'          => $datos['sancion'] ?: $this->medidaPorDefecto($gravedad),
+                    'tipo'            => $tipo,
+                    'dias_suspension' => $dias,
+                    'base_legal'      => $articulo ?? 'RIT de la empresa',
+                ];
+            }
+        }
+
+        return $conductas;
+    }
+
+    /** Convierte sanciones_configuradas (del wizard) directamente, sin IA. */
+    private function conductasDesdeSancionesConfiguradas(array $config): array
+    {
+        $conductas    = ['leve' => [], 'grave' => [], 'gravisima' => []];
+        $mapaGravedad = ['leve' => 'leve', 'grave' => 'grave', 'muy_grave' => 'gravisima'];
+        $tiposValidos = ['llamado_atencion', 'suspension', 'multa', 'terminacion'];
+
+        foreach ($config as $s) {
+            $gravedad = $mapaGravedad[$s['tipo_falta'] ?? ''] ?? null;
+            $nombre   = trim((string) ($s['nombre'] ?? ''));
+            if (!$gravedad || $nombre === '') {
+                continue;
+            }
+
+            $tipo = in_array($s['tipo_sancion'] ?? null, $tiposValidos, true)
+                ? $s['tipo_sancion']
+                : $this->inferirTipoYDiasDeSancion(null, $gravedad)[0];
+            $dias = ($tipo === 'suspension' && is_numeric($s['dias_suspension'] ?? null))
+                ? (int) $s['dias_suspension']
+                : null;
+
+            $conductas[$gravedad][] = [
+                'conducta'        => $nombre, // literal, tal cual lo definió el wizard
+                'medida'          => $dias ? "Suspensión hasta {$dias} día(s)" : $this->medidaPorDefecto($gravedad),
+                'tipo'            => $tipo,
+                'dias_suspension' => $dias,
+                'base_legal'      => 'RIT de la empresa (constructor)',
+            ];
+        }
+
+        return $conductas;
+    }
+
+    /** Único caso donde SÍ corresponde síntesis con IA: sin ningún RIT propio de referencia. */
+    private function generarConductasSinFuenteReal(): array
+    {
+        $prompt = <<<PROMPT
+Eres un abogado laboralista colombiano. Genera el LISTADO DE CONDUCTAS SANCIONABLES para el Reglamento Interno de Trabajo (RIT) de una empresa que aún no tiene reglamento propio, clasificadas por gravedad (leve, grave, gravísima), conforme al Código Sustantivo del Trabajo (CST). Este contenido será PÚBLICO dentro del RIT: debe ser claro, concreto y jurídicamente correcto.
+
+Responde ÚNICAMENTE con un JSON válido, sin texto adicional, con esta estructura exacta:
+{
+  "leve":      [{"conducta": "descripción concreta", "medida": "medida disciplinaria legible", "tipo": "llamado_atencion|suspension|multa|terminacion", "dias_suspension": null, "base_legal": "artículo del CST que la sustenta"}],
+  "grave":     [{"conducta": "...", "medida": "...", "tipo": "...", "dias_suspension": null, "base_legal": "..."}],
+  "gravisima": [{"conducta": "...", "medida": "...", "tipo": "...", "dias_suspension": null, "base_legal": "..."}]
+}
+
+Reglas:
+- Genera un catálogo base razonable, entre 5 y 12 conductas CONCRETAS por gravedad (no genéricas ni repetidas), conforme al CST.
+- Proporcionalidad y gradualidad: leve → llamado de atención; grave → suspensión; gravísima → terminación del contrato con justa causa.
+- dias_suspension: entero SOLO cuando el tipo es "suspension"; en los demás casos null.
+- base_legal: cita el artículo del CST (p. ej. Art. 58, 60, 62 CST). NO inventes normas.
+- No incluyas conductas discriminatorias ni que violen derechos fundamentales.
+- Español colombiano, claro y sin tecnicismos innecesarios.
+PROMPT;
+
+        try {
+            $datos = $this->parsearJSON($this->llamarGeminiJSON($prompt));
+            return $this->normalizarConductas($datos);
+        } catch (\Throwable $e) {
+            Log::warning('ReglamentoInternoService: error generando conductas sancionables (sin fuente real)', [
+                'error' => $e->getMessage(),
+            ]);
+            return ['leve' => [], 'grave' => [], 'gravisima' => []];
+        }
+    }
+
+    /** Deriva tipo/días de la sanción EXTRAÍDA del RIT (texto libre) - sin IA. */
+    private function inferirTipoYDiasDeSancion(?string $sancion, string $gravedad): array
+    {
+        $texto = mb_strtolower($sancion ?? '');
+        if ($texto === '') {
+            return match ($gravedad) {
+                'gravisima' => ['terminacion', null],
+                'grave'     => ['suspension', null],
+                default     => ['llamado_atencion', null],
+            };
+        }
+
+        if (str_contains($texto, 'terminaci')) {
+            return ['terminacion', null];
+        }
+        if (str_contains($texto, 'multa')) {
+            return ['multa', null];
+        }
+        if (str_contains($texto, 'suspensi')) {
+            if (preg_match('/(\d+)\s*d[ií]as?/u', $texto, $m)) {
+                return ['suspension', (int) $m[1]];
+            }
+            return ['suspension', null];
+        }
+
+        return ['llamado_atencion', null];
+    }
+
+    private function medidaPorDefecto(string $gravedad): string
+    {
+        return match ($gravedad) {
+            'gravisima' => 'Terminación del contrato con justa causa',
+            'grave'     => 'Suspensión del trabajo',
+            default     => 'Llamado de atención escrito',
+        };
+    }
+
+    /**
+     * Busca el fragmento (literal, o por su prefijo si el texto completo no
+     * calza) dentro del capítulo disciplinario y devuelve el "ARTÍCULO N." más
+     * cercano que lo precede - determinístico, sin IA. Null si no se
+     * encuentra, en cuyo caso el llamador usa un base_legal genérico.
+     */
+    private function articuloQuePrecedeEnTexto(string $fragmento, string $texto): ?string
+    {
+        if ($texto === '' || $fragmento === '') {
+            return null;
+        }
+
+        $pos = mb_stripos($texto, $fragmento);
+        if ($pos === false) {
+            $palabras = preg_split('/\s+/u', trim($fragmento)) ?: [];
+            if (count($palabras) > 5) {
+                $prefijo = implode(' ', array_slice($palabras, 0, 5));
+                $pos = mb_stripos($texto, $prefijo);
+            }
+        }
+        if ($pos === false) {
+            return null;
+        }
+
+        $antes = mb_substr($texto, 0, $pos);
+        // Solo encabezados reales de artículo ("ARTÍCULO 45." al inicio de
+        // línea) - NO cualquier mención de "artículo" dentro de una oración,
+        // como "conforme al Artículo 112 del Código Sustantivo del Trabajo"
+        // (una referencia al CST dentro del párrafo, no el encabezado del RIT
+        // - encontrado como bug real: sin este anclaje, las faltas graves de
+        // este RIT quedaban atribuidas al "Artículo 112" en vez del 46).
+        if (preg_match_all('/^ART[IÍ]CULO\s+(\d+)\./mu', $antes, $matches) && !empty($matches[1])) {
+            return 'Artículo ' . end($matches[1]) . ' RIT';
+        }
+
+        return null;
     }
 
     /** Sanea y limita la estructura de conductas por gravedad devuelta por la IA. */
