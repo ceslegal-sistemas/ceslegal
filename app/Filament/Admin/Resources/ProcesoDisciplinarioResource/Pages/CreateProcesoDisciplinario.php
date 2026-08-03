@@ -61,6 +61,9 @@ class CreateProcesoDisciplinario extends CreateRecord
     public int    $tsUltimaVerifDiscriminacion = 0;
     /** @var array<int, array{marker: string, label: string, opciones: string[]}> */
     public array  $sugerenciasCompletado  = [];
+    /** Hash del último texto de hechos ya enviado a clasificarIncidente() -
+     *  evita reclasificar con la IA si el texto no cambió desde la última vez. */
+    public ?string $ultimoTextoAutoClasificado = null;
 
     // ──────────────────────────────────────────────────────────────────────────
     // Wizard steps
@@ -551,8 +554,17 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         ])
                                         ->rows(7)
                                         ->placeholder('Ej: El trabajador llegó dos horas tarde sin avisar y no respondió los mensajes del supervisor...')
-                                        ->live(debounce: 800)
-                                        ->afterStateUpdated(fn($livewire) => $livewire->analizarDescripcion())
+                                        // debounce en 2.5s (antes 800ms): el análisis de
+                                        // lenguaje es barato y puede seguir siendo casi
+                                        // inmediato, pero ahora este mismo evento también
+                                        // dispara autoClasificarGravedad() (llamada real a la
+                                        // IA) - un debounce más largo evita lanzarla en cada
+                                        // pausa breve mientras el usuario sigue escribiendo.
+                                        ->live(debounce: 2500)
+                                        ->afterStateUpdated(function ($livewire) {
+                                            $livewire->analizarDescripcion();
+                                            $livewire->autoClasificarGravedad();
+                                        })
                                         ->hintActions([
                                             Forms\Components\Actions\Action::make('generar_redaccion')
                                                 ->label(fn($livewire) => $livewire->mejorando ? 'Generando...' : 'Generar redacción con IA')
@@ -580,10 +592,19 @@ class CreateProcesoDisciplinario extends CreateRecord
                                                 ->modalHeading('Clasificar Gravedad con IA')
                                                 ->modalDescription('La IA revisará el RIT, el Código Sustantivo del Trabajo y el historial disciplinario del trabajador para estimar la gravedad de la posible falta y el nivel de rigor que debería tener la diligencia de descargos. Antes de clasificar, verifica que los hechos descritos sean suficientes para sostener ese rigor.')
                                                 ->modalSubmitActionLabel('Clasificar')
-                                                ->action(function (Forms\Set $set, Forms\Get $get) {
+                                                ->action(function (Forms\Set $set, Forms\Get $get, $livewire) {
                                                     $trabajadorId = $get('trabajador_id');
                                                     $empresaId = $get('empresa_id');
                                                     $hechos = $get('descripcion_hecho');
+
+                                                    // Registrar el hash aquí también, para que el
+                                                    // auto-clasificador (debounced en el campo de
+                                                    // hechos) no vuelva a llamar a la IA con el mismo
+                                                    // texto justo después de que el usuario ya lo pidió
+                                                    // manualmente.
+                                                    if ($hechos) {
+                                                        $livewire->ultimoTextoAutoClasificado = md5(trim(strip_tags($hechos)));
+                                                    }
 
                                                     if (!$trabajadorId || !$empresaId) {
                                                         Notification::make()
@@ -1277,6 +1298,64 @@ class CreateProcesoDisciplinario extends CreateRecord
         }
 
         $this->analizarDescripcion();
+    }
+
+    /**
+     * Versión automática de la acción "clasificarGravedadIA": se dispara sola
+     * cuando el usuario deja de escribir un momento (ver ->afterStateUpdated()
+     * de descripcion_hecho), en vez de esperar a que la persona haga clic en
+     * el botón. Misma llamada a IADescargoService::clasificarIncidente() que
+     * el botón manual, pero silenciosa (sin notificaciones) para no
+     * interrumpir cada vez que el texto se estabiliza, y con dos guardas para
+     * no gastar la IA de más: longitud mínima más alta que la del botón
+     * manual, y un hash del último texto ya clasificado para no repetir la
+     * llamada si el texto no cambió.
+     */
+    public function autoClasificarGravedad(): void
+    {
+        $hechos = trim(strip_tags($this->data['descripcion_hecho'] ?? ''));
+        $trabajadorId = $this->data['trabajador_id'] ?? null;
+        $empresaId = $this->data['empresa_id'] ?? null;
+
+        if (!$trabajadorId || !$empresaId || mb_strlen($hechos) < 60) {
+            return;
+        }
+
+        $hash = md5($hechos);
+        if ($this->ultimoTextoAutoClasificado === $hash) {
+            return;
+        }
+        $this->ultimoTextoAutoClasificado = $hash;
+
+        $trabajador = Trabajador::find($trabajadorId);
+
+        $fechas = [];
+        if (!empty($this->data['fecha_hecho'])) {
+            $fechas[] = Carbon::parse($this->data['fecha_hecho'])->format('Y-m-d');
+        }
+        foreach ($this->data['fechas_ocurrencia_adicionales'] ?? [] as $item) {
+            if (!empty($item['fecha'])) {
+                $fechas[] = Carbon::parse($item['fecha'])->format('Y-m-d');
+            }
+        }
+
+        try {
+            $resultado = app(\App\Services\IADescargoService::class)->clasificarIncidente([
+                'empresa_id'        => (int) $empresaId,
+                'trabajador_id'     => (int) $trabajadorId,
+                'cargo'             => $trabajador?->cargo ?? 'No especificado',
+                'hechos'            => $this->data['descripcion_hecho'] ?? '',
+                'fechas_ocurrencia' => $fechas,
+                'motivos_rit'       => [],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al auto-clasificar gravedad del incidente con IA', [
+                'error' => $e->getMessage(),
+            ]);
+            return;
+        }
+
+        $this->data['clasificacion_incidente_ia'] = json_encode($resultado);
     }
 
     public function analizarDescripcion(): void

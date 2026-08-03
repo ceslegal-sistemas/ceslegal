@@ -757,6 +757,11 @@ class ProcesoDisciplinarioResource extends Resource
                             // ->hintIcon('heroicon-o-sparkles')
                             ->hintColor('primary')
                             // ->hint('Generar con IA')
+                            // debounce en 2.5s: dispara autoClasificarGravedad() (llamada
+                            // real a la IA) cuando el usuario deja de escribir un momento,
+                            // en vez de esperar a que haga clic en el botón manual.
+                            ->live(debounce: 2500)
+                            ->afterStateUpdated(fn($livewire) => $livewire->autoClasificarGravedad())
                             ->hintActions([
                                 Forms\Components\Actions\Action::make('generarMotivo')
                                     ->icon('heroicon-o-sparkles')
@@ -960,10 +965,18 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->modalHeading('Clasificar Gravedad con IA')
                                     ->modalDescription('La IA revisará el RIT, el Código Sustantivo del Trabajo y el historial disciplinario del trabajador para estimar la gravedad de la posible falta y el nivel de rigor que debería tener la diligencia de descargos. Antes de clasificar, verifica que los hechos descritos sean suficientes para sostener ese rigor.')
                                     ->modalSubmitActionLabel('Clasificar')
-                                    ->action(function (Forms\Set $set, Forms\Get $get) {
+                                    ->action(function (Forms\Set $set, Forms\Get $get, $livewire) {
                                         $trabajadorId = $get('trabajador_id');
-                                    $empresaId = $get('empresa_id');
-                                    $hechos = $get('hechos');
+                                        $empresaId = $get('empresa_id');
+                                        $hechos = $get('hechos');
+
+                                        // Registrar el hash aquí también, para que el
+                                        // auto-clasificador (debounced en el campo de hechos)
+                                        // no vuelva a llamar a la IA con el mismo texto justo
+                                        // después de que el usuario ya lo pidió manualmente.
+                                        if ($hechos) {
+                                            $livewire->ultimoTextoAutoClasificado = md5(trim(strip_tags($hechos)));
+                                        }
 
                                     if (!$trabajadorId || !$empresaId) {
                                         \Filament\Notifications\Notification::make()
