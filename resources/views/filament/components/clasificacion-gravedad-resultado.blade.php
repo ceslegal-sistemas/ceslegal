@@ -80,10 +80,40 @@
     html:not(.dark) .cgi-card.cgi-error      { background: rgba(220,38,38,.05); border-color: rgba(220,38,38,.2); }
     html:not(.dark) .cgi-card.cgi-error .cgi-title { color: #dc2626; }
     html:not(.dark) .cgi-card.cgi-error .cgi-row   { color: #dc2626; border-bottom-color: rgba(220,38,38,.1); }
+
+    .cgi-rit-box {
+        margin-top: .75rem;
+        border: 1px solid rgba(253,230,138,.25);
+        border-radius: .5rem;
+        overflow: hidden;
+    }
+    .cgi-rit-titulo {
+        padding: .5rem .75rem;
+        font-size: .7rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: #fde68a;
+        background: rgba(253,230,138,.08);
+        border-bottom: 1px solid rgba(253,230,138,.2);
+    }
+    .cgi-rit-texto {
+        max-height: 220px;
+        overflow-y: auto;
+        padding: .75rem;
+        font-size: .8125rem;
+        line-height: 1.6;
+        color: #cbd5e1;
+        white-space: pre-line;
+    }
+    html:not(.dark) .cgi-rit-box     { border-color: rgba(180,83,9,.2); }
+    html:not(.dark) .cgi-rit-titulo  { color: #b45309; background: rgba(180,83,9,.05); border-bottom-color: rgba(180,83,9,.15); }
+    html:not(.dark) .cgi-rit-texto   { color: #374151; }
 </style>
 
 @php
     $informacionSuficiente = $clasificacion['informacion_suficiente'] ?? null;
+    $capituloRit = $capituloRit ?? null;
 @endphp
 
 @if($informacionSuficiente === false)
@@ -97,6 +127,13 @@
                 <span>{{ $elemento }}</span>
             </div>
         @endforeach
+
+        @if(!empty($capituloRit))
+            <div class="cgi-rit-box">
+                <p class="cgi-rit-titulo">Capítulo del RIT: régimen disciplinario (referencia)</p>
+                <div class="cgi-rit-texto">{{ $capituloRit }}</div>
+            </div>
+        @endif
     </div>
 @elseif($informacionSuficiente === null)
     <div class="cgi-card cgi-error">

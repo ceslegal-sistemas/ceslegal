@@ -707,8 +707,21 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         return new HtmlString('');
                                     }
 
+                                    // Capítulo del RIT ya disponible en el sistema, para
+                                    // mostrarlo como referencia en vez de que el usuario
+                                    // tenga que transcribirlo cuando el clasificador dice
+                                    // "información insuficiente" y pide ese capítulo.
+                                    $capituloRit = null;
+                                    if (($c['informacion_suficiente'] ?? null) === false && $get('empresa_id')) {
+                                        $capituloRit = app(\App\Services\ReglamentoInternoService::class)
+                                            ->obtenerCapituloDisciplinarioTexto((int) $get('empresa_id'));
+                                    }
+
                                     return new HtmlString(
-                                        view('filament.components.clasificacion-gravedad-resultado', ['clasificacion' => $c])->render()
+                                        view('filament.components.clasificacion-gravedad-resultado', [
+                                            'clasificacion' => $c,
+                                            'capituloRit' => $capituloRit,
+                                        ])->render()
                                     );
                                 })
                                 ->visible(fn(Forms\Get $get) => filled($get('clasificacion_incidente_ia')))

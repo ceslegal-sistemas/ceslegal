@@ -1062,6 +1062,33 @@ PROMPT;
     }
 
     /**
+     * Extracto del capítulo de régimen disciplinario (obligaciones, prohibiciones,
+     * faltas y sanciones) del RIT activo de la empresa - reutiliza
+     * extraerCapituloDisciplinario(), la misma extracción que ya usa
+     * generarConductasSancionables(). Pensado para mostrarlo como referencia
+     * rápida cuando el clasificador de gravedad pide "aportar el capítulo del
+     * RIT" en vez de hacer que el usuario lo transcriba a mano - ese dato ya
+     * está en el sistema. Null si la empresa no tiene RIT activo con texto.
+     */
+    public function obtenerCapituloDisciplinarioTexto(int $empresaId): ?string
+    {
+        $texto = $this->getTextoReglamento($empresaId);
+        if (!$texto) {
+            return null;
+        }
+
+        $capitulo = trim($this->extraerCapituloDisciplinario($texto));
+        if ($capitulo === '') {
+            return null;
+        }
+
+        // Tope defensivo para la vista (caja con scroll, no necesita el capítulo
+        // completo sin límite si el RIT es muy extenso) - mismo criterio de
+        // truncado que obtenerContextoRIT() en IADescargoService.
+        return mb_substr($capitulo, 0, 6000);
+    }
+
+    /**
      * Extrae texto plano de un .docx usando PhpWord.
      */
     private function extraerTextoDocx(string $rutaArchivo): string
