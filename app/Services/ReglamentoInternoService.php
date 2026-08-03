@@ -363,6 +363,23 @@ class ReglamentoInternoService
             : '- Sin un RIT propio de referencia: genera un catálogo base razonable, entre 5 y 12
   conductas CONCRETAS por gravedad (no genéricas ni repetidas), conforme al CST.';
 
+        // Si ya hay un RIT real (subido o construido), las conductas YA ESTÁN
+        // ESCRITAS en el reglamento - esto debe comportarse como una EXTRACCIÓN
+        // fiel (mismo estándar que extraerSancionesConIA() para la tabla de
+        // sanciones), no como una síntesis libre. Antes esta regla no existía:
+        // el modelo podía parafrasear cada conducta sin que nada se lo
+        // prohibiera explícitamente - funcionaba bien la mayoría de las veces,
+        // pero sin garantía, y una paráfrasis de una falta numerada puede
+        // cambiar sutilmente su alcance real.
+        $reglaFidelidad = $hayFuenteReal
+            ? '- FIDELIDAD AL TEXTO: el campo "conducta" de cada elemento debe ser una copia LITERAL
+  (o casi literal, solo quitando la sanción específica que va aparte en "medida") de cómo el
+  Reglamento describe esa falta - PROHIBIDO resumir, parafrasear o "poner algo similar" con tus
+  propias palabras. Si el Reglamento numera 8 faltas leves, copia las 8 tal como están redactadas,
+  no una versión reescrita tuya.'
+            : '- Sin un RIT propio de referencia, sí puedes redactar cada conducta con tus propias
+  palabras (no hay texto fuente que copiar), siempre conforme al CST.';
+
         $prompt = <<<PROMPT
 Eres un abogado laboralista colombiano. Genera el LISTADO DE CONDUCTAS SANCIONABLES para el Reglamento Interno de Trabajo (RIT) de una empresa, clasificadas por gravedad (leve, grave, gravísima), conforme al Código Sustantivo del Trabajo (CST) y a la legislación laboral colombiana. Este contenido será PÚBLICO dentro del RIT: debe ser claro, concreto y jurídicamente correcto.
 
@@ -377,6 +394,7 @@ Responde ÚNICAMENTE con un JSON válido, sin texto adicional, con esta estructu
 
 Reglas:
 {$reglaCantidad}
+{$reglaFidelidad}
 - Proporcionalidad y gradualidad: leve → llamado de atención; grave → suspensión; gravísima → terminación del contrato con justa causa. Respeta lo que el RIT contemple si el contexto lo indica.
 - dias_suspension: entero SOLO cuando el tipo es "suspension"; en los demás casos null.
 - base_legal: cita el artículo del CST (p. ej. Art. 58, 60, 62 CST) o del RIT. NO inventes normas.
