@@ -21,8 +21,9 @@ class EstadoProcesoService
      */
     const TRANSICIONES_VALIDAS = [
         'apertura' => ['descargos_pendientes', 'archivado'],
-        'descargos_pendientes' => ['descargos_realizados', 'descargos_no_realizados', 'archivado'],
+        'descargos_pendientes' => ['descargos_realizados', 'descargos_no_realizados', 'descargos_parcial', 'archivado'],
         'descargos_realizados' => ['sancion_emitida', 'archivado'],
+        'descargos_parcial' => ['descargos_pendientes', 'descargos_realizados', 'archivado'],
         'descargos_no_realizados' => ['descargos_realizados', 'sancion_emitida', 'archivado'],
         'sancion_emitida' => ['impugnacion_realizada', 'cerrado', 'archivado'],
         'impugnacion_realizada' => ['sancion_emitida', 'cerrado', 'archivado'],
@@ -37,6 +38,7 @@ class EstadoProcesoService
         'apertura' => 'Proceso iniciado',
         'descargos_pendientes' => 'Citación enviada - Esperando diligencia',
         'descargos_realizados' => 'Diligencia de descargos completada',
+        'descargos_parcial' => 'El trabajador respondió solo parte de las preguntas antes de que venciera el tiempo',
         'descargos_no_realizados' => 'El trabajador no asistió a la diligencia',
         'sancion_emitida' => 'Sanción emitida y notificada',
         'impugnacion_realizada' => 'Sanción impugnada por el trabajador',
@@ -158,6 +160,23 @@ class EstadoProcesoService
             $proceso,
             'descargos_no_realizados',
             'El trabajador no asistió a la diligencia de descargos programada'
+        );
+    }
+
+    /**
+     * Cuando el tiempo de la diligencia venció y el trabajador respondió SOLO
+     * PARTE de las preguntas (caso real: PD-2026-0058, 12 de 17 respondidas).
+     * Distinto de alNoAsistirDescargos() (0 respuestas) - aquí sí hubo un
+     * intento genuino de ejercer el derecho de defensa, solo que incompleto,
+     * por lo que no se cierra automáticamente: requiere revisión manual desde
+     * el panel (reprogramar la citación o decidir el curso a seguir).
+     */
+    public function alQuedarDescargosParciales(ProcesoDisciplinario $proceso): void
+    {
+        $this->cambiarEstado(
+            $proceso,
+            'descargos_parcial',
+            'El tiempo de la diligencia venció con preguntas sin responder - requiere revisión manual'
         );
     }
 

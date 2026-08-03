@@ -37,11 +37,12 @@ class ActualizarEstadosDescargos extends Command
         $this->info("  - Recordatorios enviados: {$resultadoRecordatorios['enviados']}");
         $this->info("  - Descargos realizados: {$resultadoDescargos['realizados']}");
         $this->info("  - Descargos no realizados: {$resultadoDescargos['no_realizados']}");
+        $this->info("  - Descargos parciales (requieren revisión manual): {$resultadoDescargos['parciales']}");
         $this->info("  - Notificaciones a empleadores: {$resultadoDescargos['notificaciones_empleador']}");
         $this->info("  - Diligencias abandonadas cerradas (respondió todo, nunca finalizó): {$resultadoAbandonadas['cerradas']}");
         $this->info("  - Procesos cerrados (sin impugnación): {$resultadoCierres['cerrados']}");
 
-        $total = $resultadoRecordatorios['enviados'] + $resultadoDescargos['realizados'] + $resultadoDescargos['no_realizados'] + $resultadoAbandonadas['cerradas'] + $resultadoCierres['cerrados'];
+        $total = $resultadoRecordatorios['enviados'] + $resultadoDescargos['realizados'] + $resultadoDescargos['no_realizados'] + $resultadoDescargos['parciales'] + $resultadoAbandonadas['cerradas'] + $resultadoCierres['cerrados'];
         if ($total === 0) {
             $this->info('No hubo cambios de estado ni notificaciones.');
         }
@@ -202,6 +203,7 @@ class ActualizarEstadosDescargos extends Command
 
         $actualizados = 0;
         $noRealizados = 0;
+        $parciales = 0;
         $notificacionesEmpleador = 0;
 
         // =====================================================
@@ -271,7 +273,8 @@ class ActualizarEstadosDescargos extends Command
                 continue;
             }
 
-            // Verificar que no haya respondido ninguna pregunta
+            // Verificar cuántas preguntas respondió (0, todas, o solo parte)
+            $totalPreguntas = $diligencia->preguntas()->count();
             $preguntasRespondidas = $diligencia->preguntas()->whereHas('respuesta')->count();
 
             if ($preguntasRespondidas === 0) {
@@ -312,12 +315,38 @@ class ActualizarEstadosDescargos extends Command
                     ]);
                     $this->error("   ✗ Error en {$proceso->codigo}: {$e->getMessage()}");
                 }
+            } elseif ($preguntasRespondidas < $totalPreguntas) {
+                // Caso real (PD-2026-0058): el trabajador respondió PARTE de las
+                // preguntas antes de que venciera el tiempo. No es "no asistió"
+                // (sí hubo un intento genuino) ni "realizado" (no terminó) - se
+                // deja en un estado propio para revisión manual del abogado/admin,
+                // quien decide desde el panel si reprograma la citación.
+                try {
+                    $estadoService->alQuedarDescargosParciales($proceso);
+                    $parciales++;
+
+                    Log::warning('Estado actualizado a descargos_parcial - requiere revisión manual', [
+                        'proceso_id' => $proceso->id,
+                        'codigo' => $proceso->codigo,
+                        'preguntas_respondidas' => $preguntasRespondidas,
+                        'total_preguntas' => $totalPreguntas,
+                    ]);
+
+                    $this->warn("   ⚠ {$proceso->codigo} → descargos_parcial ({$preguntasRespondidas}/{$totalPreguntas} preguntas respondidas - requiere revisión manual)");
+                } catch (\Exception $e) {
+                    Log::error('Error al actualizar estado a parcial', [
+                        'proceso_id' => $proceso->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $this->error("   ✗ Error en {$proceso->codigo}: {$e->getMessage()}");
+                }
             }
         }
 
         return [
             'realizados' => $actualizados,
             'no_realizados' => $noRealizados,
+            'parciales' => $parciales,
             'notificaciones_empleador' => $notificacionesEmpleador,
         ];
     }

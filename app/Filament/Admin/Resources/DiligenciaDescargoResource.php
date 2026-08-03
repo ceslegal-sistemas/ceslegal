@@ -241,6 +241,32 @@ class DiligenciaDescargoResource extends Resource
                     ->boolean()
                     ->sortable(),
 
+                // Caso real (PD-2026-0058): el tiempo venció con el trabajador
+                // habiendo respondido SOLO PARTE de las preguntas - ni
+                // trabajador_asistio=true (fallback normal) ni "no asistió, 0
+                // respuestas" (comando procesos:actualizar-estados-descargos)
+                // cubren este caso, así que se queda indefinidamente sin
+                // ninguna señal visible más que "Asistió: No" (igual que un
+                // caso que sí sigue vigente). Decisión del usuario: no
+                // cerrarlo automáticamente - solo hacerlo visible para que un
+                // abogado/admin decida caso por caso.
+                Tables\Columns\TextColumn::make('requiere_revision')
+                    ->label('')
+                    ->getStateUsing(function (DiligenciaDescargo $record) {
+                        if ($record->trabajador_asistio || !$record->tiempo_expirado) {
+                            return null;
+                        }
+                        $total = $record->preguntas()->count();
+                        $respondidas = $record->preguntas()->has('respuesta')->count();
+                        if ($respondidas > 0 && $respondidas < $total) {
+                            return 'Parcial - revisar';
+                        }
+                        return null;
+                    })
+                    ->badge()
+                    ->color('warning')
+                    ->placeholder(''),
+
                 // Tables\Columns\IconColumn::make('acceso_habilitado')
                 //     ->label('Acceso Web')
                 //     ->boolean()
@@ -318,6 +344,15 @@ class DiligenciaDescargoResource extends Resource
 
                 Tables\Filters\TernaryFilter::make('trabajador_asistio')
                     ->label('Trabajador Asistió'),
+
+                Tables\Filters\Filter::make('requiere_revision')
+                    ->label('Parcial - requiere revisión')
+                    ->query(fn(Builder $query) => $query
+                        ->where('trabajador_asistio', false)
+                        ->where('tiempo_expirado', true)
+                        ->whereHas('preguntas', fn($q) => $q->has('respuesta'))
+                        ->whereHas('preguntas', fn($q) => $q->doesntHave('respuesta'))
+                    ),
 
                 Tables\Filters\Filter::make('con_acceso')
                     ->label('Con Acceso del Trabajador')

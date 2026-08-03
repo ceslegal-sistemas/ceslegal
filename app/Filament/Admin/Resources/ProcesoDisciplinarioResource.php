@@ -1239,6 +1239,7 @@ class ProcesoDisciplinarioResource extends Resource
                         'apertura' => 'gray',
                         'descargos_pendientes' => 'warning',
                         'descargos_realizados' => 'info',
+                        'descargos_parcial' => 'warning',
                         'descargos_no_realizados' => 'danger',
                         'impugnacion_realizada' => 'danger',
                         'sancion_emitida' => 'primary',
@@ -1250,6 +1251,7 @@ class ProcesoDisciplinarioResource extends Resource
                         'apertura' => 'heroicon-m-folder-open',
                         'descargos_pendientes' => 'heroicon-m-clock',
                         'descargos_realizados' => 'heroicon-m-document-check',
+                        'descargos_parcial' => 'heroicon-m-exclamation-triangle',
                         'descargos_no_realizados' => 'heroicon-m-document-minus',
                         'impugnacion_realizada' => 'heroicon-m-arrow-path',
                         'sancion_emitida' => 'heroicon-m-scale',
@@ -1270,6 +1272,7 @@ class ProcesoDisciplinarioResource extends Resource
                         'apertura' => 'Apertura',
                         'descargos_pendientes' => 'Descargo Pendiente',
                         'descargos_realizados' => 'Descargo Realizado',
+                        'descargos_parcial' => 'Descargo Parcial',
                         'descargos_no_realizados' => 'Descargo No Realizado',
                         'sancion_emitida' => 'Sanción Emitida',
                         'cerrado' => 'Cerrado',
@@ -1506,6 +1509,7 @@ class ProcesoDisciplinarioResource extends Resource
                         'apertura' => 'Apertura',
                         'descargos_pendientes' => 'Descargo Pendiente',
                         'descargos_realizados' => 'Descargo Realizado',
+                        'descargos_parcial' => 'Descargo Parcial',
                         'descargos_no_realizados' => 'Descargo No Realizado',
                         'sancion_emitida' => 'Sanción Emitida',
                         'cerrado' => 'Cerrado',
@@ -1774,7 +1778,8 @@ class ProcesoDisciplinarioResource extends Resource
                     ])
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
-                        $record->estado === 'descargos_no_realizados' && !empty($record->trabajador?->email)
+                        in_array($record->estado, ['descargos_no_realizados', 'descargos_parcial'], true)
+                            && !empty($record->trabajador?->email)
                     )
                     ->action(function (ProcesoDisciplinario $record, array $data): void {
                         $nuevaFecha = \Carbon\Carbon::parse($data['fecha_temp'])
@@ -3701,6 +3706,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 'citado'                   => 'Citado',
                                 'descargos_pendientes'     => 'Descargos Pendientes',
                                 'descargos_realizados'     => 'Descargos Realizados',
+                                'descargos_parcial'        => 'Descargo Parcial',
                                 'descargos_no_realizados'  => 'Sin Descargos',
                                 'sancion_emitida'          => 'Sanción Emitida',
                                 'impugnado'                => 'Impugnado',
@@ -3713,6 +3719,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 'citado'                   => 'info',
                                 'descargos_pendientes'     => 'warning',
                                 'descargos_realizados'     => 'success',
+                                'descargos_parcial'        => 'warning',
                                 'descargos_no_realizados'  => 'danger',
                                 'sancion_emitida'          => 'danger',
                                 'impugnado'                => 'warning',
