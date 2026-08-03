@@ -122,6 +122,18 @@ class IADescargoService
         $ritContexto = $empresaId ? $this->obtenerContextoRIT((int) $empresaId) : '';
         $normasRag   = $this->buscarNormasRelevantes($hechos, $empresaId ? (int) $empresaId : null, limite: 3);
 
+        // Catálogo YA PROCESADO de conductas por gravedad (leve/grave/gravísima),
+        // el mismo que arma generarConductasSancionables() y que ya muestra el
+        // cliente en Mi Reglamento Interno - independiente de si el usuario
+        // seleccionó algo en "motivos ya seleccionados" (motivosRit abajo, que en
+        // el wizard de crear SIEMPRE llega vacío porque ahí no existe ese
+        // selector). Sin esto, el modelo solo veía el capítulo del RIT como texto
+        // corrido y tenía que inferir la escala él mismo; con el catálogo ya
+        // resumido y clasificado, el match es mucho más directo y confiable.
+        $catalogoConductas = $empresaId
+            ? app(ReglamentoInternoService::class)->conductasSancionablesDeEmpresa((int) $empresaId)
+            : [];
+
         $historial = [];
         if ($trabajadorId) {
             $trabajador = Trabajador::find($trabajadorId);
@@ -135,6 +147,7 @@ class IADescargoService
             cargo: $datos['cargo'] ?? 'No especificado',
             fechasOcurrencia: $datos['fechas_ocurrencia'] ?? [],
             motivosRit: $datos['motivos_rit'] ?? [],
+            catalogoConductas: $catalogoConductas,
             historial: $historial,
             ritContexto: $ritContexto,
             normasRag: $normasRag,
@@ -267,6 +280,7 @@ class IADescargoService
         string $cargo,
         array $fechasOcurrencia,
         array $motivosRit,
+        array $catalogoConductas,
         array $historial,
         string $ritContexto,
         string $normasRag,
@@ -282,6 +296,23 @@ class IADescargoService
                 $motivosTexto .= "- [{$m['gravedad']}] {$m['conducta']}\n";
             }
         }
+
+        // Catálogo completo por gravedad (RIT de la empresa si ya lo generó, o
+        // la escala base del CST si no) - referencia adicional para encontrar el
+        // match más específico posible, sin depender de que el usuario haya
+        // seleccionado algo en "MOTIVOS YA SELECCIONADOS" arriba.
+        $catalogoTexto = '';
+        foreach (['leve' => 'LEVE', 'grave' => 'GRAVE', 'gravisima' => 'GRAVÍSIMA'] as $clave => $etiqueta) {
+            foreach ($catalogoConductas[$clave] ?? [] as $c) {
+                if (empty($c['conducta'])) {
+                    continue;
+                }
+                $medida = $c['medida'] ?? '';
+                $base   = $c['base_legal'] ?? '';
+                $catalogoTexto .= "- [{$etiqueta}] {$c['conducta']}" . ($medida ? " → {$medida}" : '') . ($base ? " ({$base})" : '') . "\n";
+            }
+        }
+        $catalogoBloque = $catalogoTexto !== '' ? $catalogoTexto : 'No hay catálogo de conductas generado para esta empresa.';
 
         $historialTexto = 'Este es el primer proceso disciplinario registrado para este trabajador.';
         if (!empty($historial)) {
@@ -320,6 +351,11 @@ esa gravedad ya etiquetada es tu PISO: solo clasificas por encima de ella si el 
 más grave que lo ya seleccionado (varias conductas a la vez, un daño mayor al típico de esa causal,
 reincidencia real). Nunca la bajes salvo que el relato contradiga abiertamente la conducta
 seleccionada - en ese caso explica por qué en la justificación.
+Si NO hay motivos ya seleccionados (lo más común: este formulario no siempre tiene ese selector),
+busca tú mismo en el CATÁLOGO DE CONDUCTAS POR GRAVEDAD la entrada que mejor describa los hechos
+relatados y trátala como el piso, con la misma regla: solo sube de ahí si el relato lo justifica con
+algo concreto (no lo asumas sin que el relato lo respalde explícitamente), nunca inventes un
+"perjuicio significativo" u otro agravante que el relato no describa con datos concretos.
 Reincidencia: solo cuenta la del HISTORIAL DE PROCESOS ANTERIORES (procesos reales ya tramitados a
 este trabajador) - nunca la infieras del nombre o la escala de la conducta del RIT.
 
@@ -340,6 +376,9 @@ hechos/fechas.
 
 MOTIVOS YA SELECCIONADOS (RIT):
 {$motivosTexto}
+
+CATÁLOGO DE CONDUCTAS POR GRAVEDAD (RIT de la empresa si ya lo generó, o escala base del CST si no):
+{$catalogoBloque}
 
 HECHOS RELATADOS POR LA EMPRESA:
 {$hechos}
