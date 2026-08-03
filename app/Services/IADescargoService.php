@@ -423,6 +423,22 @@ PROMPT;
                 return [];
             }
 
+            // Salvaguarda de código (no solo de prompt): el Generador recibe instrucciones
+            // explícitas de nunca repetir una pregunta ya hecha ("nunca la misma redacción"),
+            // pero en la práctica puede fallar en casos reales (visto en producción: la
+            // misma pregunta repetida palabra por palabra dos veces seguidas, sobre un
+            // trabajador que además NO estaba siendo evasivo - solo un tema técnico donde
+            // el Director seguía sin darse por satisfecho). No depender solo de que el
+            // modelo respete esa instrucción cuando el historial ya es largo.
+            if ($this->esPreguntaDuplicada($preguntaTexto, $contexto['todas_las_preguntas'] ?? [])) {
+                Log::channel('descargos')->warning('[IA] Pregunta descartada por duplicada (salvaguarda de código)', [
+                    'diligencia_id' => $diligencia->id,
+                    'pregunta_id'   => $preguntaRespondida->id,
+                    'pregunta_nueva' => $preguntaTexto,
+                ]);
+                return [];
+            }
+
             // Evaluador de Suficiencia: segunda opinión independiente antes de guardar -
             // si considera el expediente ya suficiente, se descarta la pregunta aunque
             // el Director y el Generador ya la hayan producido.
@@ -477,6 +493,51 @@ PROMPT;
 
             return [];
         }
+    }
+
+    /**
+     * Compara una pregunta nueva contra el historial completo para detectar
+     * repeticiones que el Generador debía evitar por instrucción de prompt
+     * pero no siempre evita en la práctica (visto en producción: la misma
+     * pregunta repetida palabra por palabra). Normaliza (minúsculas, sin
+     * tildes, sin puntuación, espacios colapsados) antes de comparar, para
+     * que variaciones triviales de redacción no burlen la detección.
+     *
+     * Exacta tras normalizar, o ≥85% de similitud (similar_text) - umbral
+     * alto a propósito para no descartar preguntas legítimamente distintas
+     * que solo comparten vocabulario del mismo tema.
+     */
+    private function esPreguntaDuplicada(string $preguntaNueva, array $todasLasPreguntas): bool
+    {
+        $normalizar = function (string $texto): string {
+            $texto = mb_strtolower(trim($texto));
+            $texto = strtr($texto, [
+                'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n',
+            ]);
+            $texto = preg_replace('/[^\p{L}\p{N}\s]/u', '', $texto) ?? $texto;
+            return trim(preg_replace('/\s+/', ' ', $texto) ?? $texto);
+        };
+
+        $nueva = $normalizar($preguntaNueva);
+        if ($nueva === '') {
+            return false;
+        }
+
+        foreach ($todasLasPreguntas as $existente) {
+            $previa = $normalizar((string) $existente);
+            if ($previa === '') {
+                continue;
+            }
+            if ($previa === $nueva) {
+                return true;
+            }
+            similar_text($previa, $nueva, $porcentaje);
+            if ($porcentaje >= 85.0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
