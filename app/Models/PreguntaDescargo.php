@@ -16,12 +16,14 @@ class PreguntaDescargo extends Model
         'pregunta',
         'orden',
         'es_generada_por_ia',
+        'es_intento_final_evasivo',
         'pregunta_padre_id',
         'estado',
     ];
 
     protected $casts = [
         'es_generada_por_ia' => 'boolean',
+        'es_intento_final_evasivo' => 'boolean',
         'orden' => 'integer',
     ];
 

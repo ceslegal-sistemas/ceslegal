@@ -346,6 +346,24 @@ PROMPT;
         $diligencia = $preguntaRespondida->diligenciaDescargo;
         $proceso = $diligencia->proceso;
 
+        // Salvaguarda de código (no solo de prompt): si ESTA pregunta ya fue
+        // generada como el "último intento de precisión" tras una segunda
+        // respuesta evasiva consecutiva (patron_evasivo_detectado=true), el
+        // prompt del Generador ya le decía que debía rendirse (NO_REQUIERE)
+        // si la respuesta a esta pregunta seguía siendo evasiva - pero en
+        // producción no siempre lo respetó (caso real: PD-2026-0057, 25
+        // preguntas de IA sobre un mismo tema antes de chocar con el tope de
+        // 30). No depender de que el modelo recuerde su propia regla: si
+        // esta pregunta ya era el último intento, no se genera ninguna más
+        // sobre este mismo hilo, sin importar lo que diga el modelo ahora.
+        if ($preguntaRespondida->es_intento_final_evasivo) {
+            Log::channel('descargos')->info('[IA] Pregunta era el último intento de precisión - no se genera otra sobre este hilo', [
+                'diligencia_id' => $diligencia->id,
+                'pregunta_id'   => $preguntaRespondida->id,
+            ]);
+            return [];
+        }
+
         // Verificar que no se exceda el límite máximo de preguntas
         $totalPreguntasActuales = $diligencia->preguntas()->count();
         if ($totalPreguntasActuales >= self::LIMITE_MAXIMO_PREGUNTAS) {
@@ -478,7 +496,12 @@ PROMPT;
                 return [];
             }
 
-            return $this->guardarNuevasPreguntas($diligencia, [$preguntaTexto], $preguntaRespondida->id);
+            return $this->guardarNuevasPreguntas(
+                $diligencia,
+                [$preguntaTexto],
+                $preguntaRespondida->id,
+                ($director['patron_evasivo_detectado'] ?? false) === true
+            );
         } catch (\Exception $e) {
             Log::channel('descargos')->error('[IA] ERROR en pipeline de agentes', [
                 'diligencia_id' => $diligencia->id,
@@ -2517,7 +2540,8 @@ PROMPT;
     protected function guardarNuevasPreguntas(
         DiligenciaDescargo $diligencia,
         array $preguntas,
-        int $preguntaPadreId
+        int $preguntaPadreId,
+        bool $esIntentoFinalEvasivo = false
     ): array {
         $preguntasGuardadas = [];
 
@@ -2545,6 +2569,7 @@ PROMPT;
                     'pregunta' => $preguntaTexto,
                     'orden' => $ordenInsercion + $index,
                     'es_generada_por_ia' => true,
+                    'es_intento_final_evasivo' => $esIntentoFinalEvasivo,
                     'pregunta_padre_id' => $preguntaPadreId,
                     'estado' => 'activa',
                 ]);
@@ -2561,6 +2586,7 @@ PROMPT;
                     'pregunta' => $preguntaTexto,
                     'orden' => $ultimoOrden + $index + 1,
                     'es_generada_por_ia' => true,
+                    'es_intento_final_evasivo' => $esIntentoFinalEvasivo,
                     'pregunta_padre_id' => $preguntaPadreId,
                     'estado' => 'activa',
                 ]);
