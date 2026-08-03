@@ -2717,6 +2717,32 @@ PROMPT;
             ? "\nNORMAS Y JURISPRUDENCIA RELEVANTES (recuperadas de la base de datos):\n{$normasRag}\n"
             : '';
 
+        // Piso mínimo de rigor fijado ANTES de la diligencia (ver
+        // IADescargoService::clasificarIncidente(), llamado al citar). Sin
+        // esto, un caso ya clasificado como gravísima solo empezaba a
+        // recibir el rigor que amerita a partir de la SEGUNDA pregunta
+        // (cuando el Director Estratégico entra en juego tras la primera
+        // respuesta) - las preguntas iniciales generadas aquí arrancaban a
+        // ciegas, sin saber que el caso ya requería máxima rigurosidad
+        // desde la primera pregunta.
+        $clasificacionBloque = '';
+        $clasificacionPrevia = $proceso->clasificacion_incidente_ia ? json_decode($proceso->clasificacion_incidente_ia, true) : null;
+        if (is_array($clasificacionPrevia) && ($clasificacionPrevia['informacion_suficiente'] ?? false) === true) {
+            $factores = !empty($clasificacionPrevia['factores_riesgo'])
+                ? implode('; ', $clasificacionPrevia['factores_riesgo'])
+                : 'ninguno identificado';
+            $clasificacionBloque = "\n════════════════════════════════════════════════════════\n"
+                . "CLASIFICACIÓN PREVIA DEL INCIDENTE (hecha al citar, antes de esta diligencia)\n"
+                . "════════════════════════════════════════════════════════\n"
+                . "Gravedad estimada: {$clasificacionPrevia['gravedad_estimada']} (certeza: {$clasificacionPrevia['certeza']})\n"
+                . "Nivel de interrogatorio MÍNIMO exigido DESDE LA PRIMERA PREGUNTA: {$clasificacionPrevia['nivel_interrogatorio_minimo']}\n"
+                . "Factores de riesgo identificados: {$factores}\n"
+                . "Justificación: " . ($clasificacionPrevia['justificacion'] ?? '') . "\n"
+                . "ESTA CLASIFICACIÓN ES UN PISO, NUNCA UN TECHO: tus preguntas iniciales deben partir ya de "
+                . "este nivel de rigor, no ir descubriéndolo pregunta a pregunta. Nunca generes preguntas de "
+                . "un nivel más bajo que este.\n";
+        }
+
         $prompt = <<<PROMPT
 Eres un abogado laboral experto en procesos disciplinarios colombianos, con enfoque estrictamente garantista del debido proceso conforme al Art. 29 de la Constitución Política y al Art. 115 del Código Sustantivo del Trabajo (modificado por la Ley 2466 de 2025).
 
@@ -2759,7 +2785,7 @@ Hechos presuntos (versión del empleador - aún no probados):
 
 Artículos presuntamente incumplidos:
 - {$articulosText}
-{$ritBloque}{$normasBloque}
+{$ritBloque}{$normasBloque}{$clasificacionBloque}
 ════════════════════════════════════════════════════════
 PREGUNTAS ABSOLUTAMENTE PROHIBIDAS
 ════════════════════════════════════════════════════════
