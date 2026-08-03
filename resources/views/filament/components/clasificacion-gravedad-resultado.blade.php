@@ -8,7 +8,7 @@
     }
     .cgi-title {
         margin: 0 0 .625rem;
-        font-size: .75rem;
+        font-size: .8125rem;
         font-weight: 700;
         letter-spacing: .04em;
         text-transform: uppercase;
@@ -17,25 +17,26 @@
     .cgi-row {
         display: flex;
         align-items: flex-start;
-        gap: .4rem;
-        font-size: .8rem;
-        line-height: 1.5;
-        padding: .3rem 0;
-        color: #94a3b8;
+        gap: .45rem;
+        font-size: .875rem;
+        font-weight: 500;
+        line-height: 1.6;
+        padding: .35rem 0;
+        color: #cbd5e1;
         border-bottom: 1px solid rgba(56,189,248,.1);
     }
     .cgi-row:last-child { border-bottom: none; }
-    .cgi-ico { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; }
+    .cgi-ico { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; }
 
     .cgi-top { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
     .cgi-badge {
         display: inline-block;
-        font-size: .68rem;
+        font-size: .7rem;
         font-weight: 700;
         letter-spacing: .04em;
         text-transform: uppercase;
         border-radius: .3rem;
-        padding: .1rem .45rem;
+        padding: .15rem .5rem;
     }
     .cgi-badge-gravedad {
         background: rgba(56,189,248,.2);
@@ -47,11 +48,11 @@
     .cgi-badge-gravedad.cgi-gravisima { background: rgba(252,165,165,.2); color: #fca5a5; border-color: rgba(252,165,165,.35); }
     .cgi-badge-certeza {
         background: rgba(148,163,184,.15);
-        color: #94a3b8;
+        color: #cbd5e1;
         border: 1px solid rgba(148,163,184,.3);
     }
-    .cgi-justificacion { color: #64748b; font-size: .775rem; margin: .5rem 0 0; }
-    .cgi-factores-titulo { font-weight: 700; font-size: .75rem; margin: .625rem 0 .25rem; color: #cbd5e1; }
+    .cgi-justificacion { color: #cbd5e1; font-size: .875rem; font-weight: 500; line-height: 1.6; margin: .5rem 0 0; }
+    .cgi-factores-titulo { font-weight: 700; font-size: .8125rem; margin: .75rem 0 .3rem; color: #e2e8f0; }
 
     /* Estado: información insuficiente (amarillo) */
     .cgi-card.cgi-warn { background: rgba(253,230,138,.06); border-color: rgba(253,230,138,.2); }
@@ -65,14 +66,14 @@
 
     html:not(.dark) .cgi-card              { background: rgba(14,165,233,.04); border-color: rgba(14,165,233,.15); }
     html:not(.dark) .cgi-title             { color: #0284c7; }
-    html:not(.dark) .cgi-row               { color: #6b7280; border-bottom-color: rgba(14,165,233,.08); }
+    html:not(.dark) .cgi-row               { color: #1f2937; border-bottom-color: rgba(14,165,233,.08); }
     html:not(.dark) .cgi-badge-gravedad    { background: rgba(14,165,233,.1); color: #0284c7; border-color: rgba(14,165,233,.3); }
     html:not(.dark) .cgi-badge-gravedad.cgi-leve      { background: rgba(21,128,61,.1); color: #15803d; border-color: rgba(21,128,61,.3); }
     html:not(.dark) .cgi-badge-gravedad.cgi-grave     { background: rgba(180,83,9,.1); color: #b45309; border-color: rgba(180,83,9,.3); }
     html:not(.dark) .cgi-badge-gravedad.cgi-gravisima { background: rgba(220,38,38,.1); color: #dc2626; border-color: rgba(220,38,38,.3); }
-    html:not(.dark) .cgi-badge-certeza     { background: rgba(107,114,128,.1); color: #6b7280; border-color: rgba(107,114,128,.3); }
-    html:not(.dark) .cgi-justificacion     { color: #9ca3af; }
-    html:not(.dark) .cgi-factores-titulo   { color: #374151; }
+    html:not(.dark) .cgi-badge-certeza     { background: rgba(107,114,128,.1); color: #374151; border-color: rgba(107,114,128,.3); }
+    html:not(.dark) .cgi-justificacion     { color: #374151; }
+    html:not(.dark) .cgi-factores-titulo   { color: #111827; }
     html:not(.dark) .cgi-card.cgi-warn      { background: rgba(180,83,9,.05); border-color: rgba(180,83,9,.2); }
     html:not(.dark) .cgi-card.cgi-warn .cgi-title { color: #b45309; }
     html:not(.dark) .cgi-card.cgi-warn .cgi-row   { color: #b45309; border-bottom-color: rgba(180,83,9,.1); }
