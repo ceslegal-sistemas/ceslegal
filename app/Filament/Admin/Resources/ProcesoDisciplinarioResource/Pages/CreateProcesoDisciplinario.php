@@ -702,50 +702,13 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->hiddenLabel()
                                 ->content(function (Forms\Get $get) {
                                     $raw = $get('clasificacion_incidente_ia');
-                                    if (!$raw) {
-                                        return new HtmlString('');
-                                    }
-                                    $c = json_decode($raw, true);
+                                    $c = $raw ? json_decode($raw, true) : null;
                                     if (!is_array($c)) {
                                         return new HtmlString('');
                                     }
 
-                                    if (($c['informacion_suficiente'] ?? null) === false) {
-                                        $items = '';
-                                        foreach ($c['elementos_faltantes'] ?? [] as $f) {
-                                            $items .= '<li>' . e($f) . '</li>';
-                                        }
-                                        return new HtmlString(
-                                            '<div class="mt-1 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-400/30 dark:bg-amber-400/10">'
-                                            . '<p class="mb-1.5 font-semibold text-amber-800 dark:text-amber-300">Información insuficiente para clasificar la gravedad</p>'
-                                            . '<ul class="list-disc space-y-0.5 pl-4 text-amber-800 dark:text-amber-200">' . $items . '</ul>'
-                                            . '</div>'
-                                        );
-                                    }
-
-                                    if (($c['informacion_suficiente'] ?? null) === null) {
-                                        return new HtmlString(
-                                            '<div class="mt-1 rounded-lg border border-red-300 bg-red-50 p-3 text-red-800 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-300">'
-                                            . e($c['error'] ?? 'El análisis automático no estuvo disponible.')
-                                            . '</div>'
-                                        );
-                                    }
-
-                                    $factores = '';
-                                    foreach ($c['factores_riesgo'] ?? [] as $f) {
-                                        $factores .= '<li>' . e($f) . '</li>';
-                                    }
-                                    $factoresBloque = $factores
-                                        ? '<ul class="mt-1.5 list-disc space-y-0.5 pl-4">' . $factores . '</ul>'
-                                        : '<p class="mt-1.5 text-gray-500 dark:text-gray-400">Ninguno identificado.</p>';
-
                                     return new HtmlString(
-                                        '<div class="mt-1 rounded-lg border border-gray-300 bg-white p-3 dark:border-white/10 dark:bg-white/5">'
-                                        . '<p class="mb-1 font-semibold text-gray-950 dark:text-white">Gravedad estimada: ' . e(strtoupper($c['gravedad_estimada'] ?? '')) . ' (certeza: ' . e($c['certeza'] ?? '') . ')</p>'
-                                        . '<p class="mb-1 text-gray-950 dark:text-white">Nivel de interrogatorio mínimo para la diligencia: ' . e($c['nivel_interrogatorio_minimo'] ?? '') . '</p>'
-                                        . '<p class="mb-1 text-sm text-gray-500 dark:text-gray-400">' . e($c['justificacion'] ?? '') . '</p>'
-                                        . '<p class="mt-2 text-sm font-semibold text-gray-950 dark:text-white">Factores de riesgo:</p>' . $factoresBloque
-                                        . '</div>'
+                                        view('filament.components.clasificacion-gravedad-resultado', ['clasificacion' => $c])->render()
                                     );
                                 })
                                 ->visible(fn(Forms\Get $get) => filled($get('clasificacion_incidente_ia')))
