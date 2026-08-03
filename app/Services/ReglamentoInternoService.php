@@ -891,14 +891,41 @@ PROMPT;
             return false;
         };
 
-        // Estrategia 1: buscar encabezado CAPÍTULO
+        // Estrategia 1: buscar encabezado CAPÍTULO.
+        //
+        // Bug real corregido (RIT tradicional de 23 capítulos, caso SARMIENTO):
+        // esto antes comparaba $capitulosRef contra la línea SUELTA que
+        // contenía "CAPITULO", sin usar el título ya armado en $capitulos[]
+        // (que junta las 1-2 líneas siguientes - ver el bucle que arma
+        // $capitulos arriba). El formato más común es "CAPITULO XVIII" en una
+        // línea y "ESCALA DE FALTAS Y SANCIONES DISCIPLINARÍAS" en la
+        // siguiente - con la comparación de una sola línea, esto NUNCA
+        // encontraba el capítulo real (el título completo estaba en la línea
+        // de al lado, no en la que tenía "CAPITULO"), así que siempre caía a
+        // la Estrategia 2 (palabra suelta ±10 líneas) - mucho más frágil en
+        // RITs largos: agarró "sanciones" de una frase incidental dentro de
+        // OTRO capítulo ("...se aplicarán las sanciones establecidas para
+        // ausencia...", dentro del capítulo de horario/descansos) muy antes
+        // del capítulo disciplinario real, devolviendo contenido de horario/
+        // trabajo suplementario en vez de faltas y sanciones.
+        //
+        // Ahora se busca sobre $capitulos[] (título completo ya unido), y solo
+        // en capítulos NO excluidos - detecta el título real sin importar si
+        // quedó en la misma línea o en la siguiente.
         $inicio = null;
-        foreach ($lineas as $i => $linea) {
-            if (!preg_match('/CAP[IÍ]TULO/ui', $linea)) continue;
-            $lineaUp = mb_strtoupper($linea);
+        foreach ($capitulos as $cap) {
+            $esExcluido = false;
+            foreach ($capitulosExcluidos as $ex) {
+                if (str_contains($cap['titulo'], mb_strtoupper($ex))) {
+                    $esExcluido = true;
+                    break;
+                }
+            }
+            if ($esExcluido) continue;
+
             foreach ($capitulosRef as $keyword) {
-                if (str_contains($lineaUp, mb_strtoupper($keyword))) {
-                    $inicio = $i;
+                if (str_contains($cap['titulo'], mb_strtoupper($keyword))) {
+                    $inicio = $cap['inicio'];
                     break 2;
                 }
             }
