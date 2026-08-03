@@ -100,6 +100,7 @@ class IADescargoService
             return [
                 'informacion_suficiente'   => false,
                 'elementos_faltantes'      => ['Describa los hechos que motivan la citación antes de clasificar la gravedad.'],
+                'fragmentos_a_revisar'     => [],
                 'gravedad_estimada'        => 'no_determinable',
                 'certeza'                  => 'baja',
                 'complejidad_probatoria_estimada' => 'no_determinable',
@@ -159,6 +160,20 @@ class IADescargoService
                 $resultado['nivel_interrogatorio_minimo'] = 'CONVERSACIONAL';
             }
 
+            // Salvaguarda de código: solo se aceptan como "fragmento a revisar"
+            // cadenas que REALMENTE aparecen (sin distinguir mayúsculas) en el
+            // texto de hechos - si el modelo devuelve algo que no calza
+            // literalmente, resaltarlo en la UI sería engañoso (marcaría texto
+            // que no existe o el lugar equivocado), así que se descarta en vez
+            // de mostrarlo a ciegas.
+            $fragmentos = is_array($resultado['fragmentos_a_revisar'] ?? null)
+                ? $resultado['fragmentos_a_revisar']
+                : [];
+            $resultado['fragmentos_a_revisar'] = array_values(array_filter(
+                $fragmentos,
+                fn($f) => is_string($f) && $f !== '' && mb_stripos($hechos, $f) !== false
+            ));
+
             $resultado['error'] = null;
 
             Log::channel('descargos')->info('[IA] Clasificación de incidente OK', [
@@ -181,6 +196,7 @@ class IADescargoService
             return [
                 'informacion_suficiente'   => null, // null = "no se pudo evaluar", distinto de false
                 'elementos_faltantes'      => [],
+                'fragmentos_a_revisar'     => [],
                 'gravedad_estimada'        => 'no_determinable',
                 'certeza'                  => 'baja',
                 'complejidad_probatoria_estimada' => 'no_determinable',
@@ -190,6 +206,34 @@ class IADescargoService
                 'error'                    => 'El análisis automático no estuvo disponible: ' . $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Devuelve el texto de hechos con los fragmentos de clasificarIncidente()
+     * resaltados (envueltos en <mark>), ya escapado y listo para imprimir sin
+     * más procesamiento. Solo resalta fragmentos que ya fueron validados como
+     * presentes literalmente en el texto (ver el filtro en clasificarIncidente()) -
+     * aun así vuelve a verificar aquí por si se llama con datos de otro origen.
+     */
+    public function resaltarFragmentos(string $hechos, array $fragmentos): string
+    {
+        $escapado = e($hechos);
+
+        foreach (array_unique($fragmentos) as $fragmento) {
+            if (!is_string($fragmento) || $fragmento === '') {
+                continue;
+            }
+            $escapadoFragmento = e($fragmento);
+            $patron = '/' . preg_quote($escapadoFragmento, '/') . '/iu';
+            $escapado = preg_replace(
+                $patron,
+                '<mark class="cgi-highlight">$0</mark>',
+                $escapado,
+                1
+            ) ?? $escapado;
+        }
+
+        return $escapado;
     }
 
     /**
@@ -316,6 +360,7 @@ SALIDA - responde ÚNICAMENTE este JSON:
 {
   "informacion_suficiente": true,
   "elementos_faltantes": [],
+  "fragmentos_a_revisar": [],
   "gravedad_estimada": "GRAVE",
   "certeza": "alta",
   "complejidad_probatoria_estimada": "media",
@@ -327,6 +372,14 @@ Si informacion_suficiente es false: deja gravedad_estimada en "no_determinable",
 nivel_interrogatorio_minimo en "CONVERSACIONAL", y llena elementos_faltantes (máximo 4 puntos, cada
 uno una frase corta y accionable dirigida a quien está citando - ej. "Especifique la fecha exacta
 en que se detectó el faltante de inventario").
+fragmentos_a_revisar: SOLO cuando el problema está DENTRO del texto de "HECHOS RELATADOS" (una
+fecha, nombre o dato que se contradice a sí mismo dentro del relato) - copia ahí, palabra por
+palabra y SIN MODIFICAR NADA, la porción exacta del relato que genera la duda (ej. si el relato dice
+"...para el día 1 de agosto..." y esa fecha contradice la fecha de ocurrencia suministrada, copia
+exactamente "1 de agosto", no una paráfrasis ni la fecha completa reformulada). Máximo 3 fragmentos.
+Nunca uses este campo para pedir algo que NO esté ya escrito en el relato (como el capítulo del RIT
+o una causal legal) - en esos casos dejar fragmentos_a_revisar vacío, esa petición va solo en
+elementos_faltantes.
 factores_riesgo: máximo 3 puntos cortos (ej. "Posible causal de terminación según el RIT",
 "Reincidencia real registrada el 12/03/2025", "Cargo de manejo y confianza").
 justificacion: máximo 40 palabras, citando solo el RIT o la normativa suministrada.

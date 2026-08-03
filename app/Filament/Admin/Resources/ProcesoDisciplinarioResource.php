@@ -1090,15 +1090,24 @@ class ProcesoDisciplinarioResource extends Resource
                                 // tenga que transcribirlo cuando el clasificador dice
                                 // "información insuficiente" y pide ese capítulo.
                                 $capituloRit = null;
-                                if (($c['informacion_suficiente'] ?? null) === false && $get('empresa_id')) {
-                                    $capituloRit = app(\App\Services\ReglamentoInternoService::class)
-                                        ->obtenerCapituloDisciplinarioTexto((int) $get('empresa_id'));
+                                $hechosResaltado = null;
+                                if (($c['informacion_suficiente'] ?? null) === false) {
+                                    if ($get('empresa_id')) {
+                                        $capituloRit = app(\App\Services\ReglamentoInternoService::class)
+                                            ->obtenerCapituloDisciplinarioTexto((int) $get('empresa_id'));
+                                    }
+                                    $fragmentos = $c['fragmentos_a_revisar'] ?? [];
+                                    if (!empty($fragmentos)) {
+                                        $hechosResaltado = app(\App\Services\IADescargoService::class)
+                                            ->resaltarFragmentos(strip_tags($get('hechos') ?? ''), $fragmentos);
+                                    }
                                 }
 
                                 return new \Illuminate\Support\HtmlString(
                                     view('filament.components.clasificacion-gravedad-resultado', [
                                         'clasificacion' => $c,
                                         'capituloRit' => $capituloRit,
+                                        'hechosResaltado' => $hechosResaltado,
                                     ])->render()
                                 );
                             })

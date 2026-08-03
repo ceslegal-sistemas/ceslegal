@@ -109,16 +109,60 @@
     html:not(.dark) .cgi-rit-box     { border-color: rgba(180,83,9,.2); }
     html:not(.dark) .cgi-rit-titulo  { color: #b45309; background: rgba(180,83,9,.05); border-bottom-color: rgba(180,83,9,.15); }
     html:not(.dark) .cgi-rit-texto   { color: #374151; }
+
+    .cgi-hechos-box {
+        margin-top: .75rem;
+        border: 1px solid rgba(253,230,138,.25);
+        border-radius: .5rem;
+        overflow: hidden;
+    }
+    .cgi-hechos-titulo {
+        padding: .5rem .75rem;
+        font-size: .7rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: #fde68a;
+        background: rgba(253,230,138,.08);
+        border-bottom: 1px solid rgba(253,230,138,.2);
+    }
+    .cgi-hechos-texto {
+        padding: .75rem;
+        font-size: .8125rem;
+        line-height: 1.6;
+        color: #cbd5e1;
+        white-space: pre-line;
+    }
+    .cgi-highlight {
+        background: rgba(253,230,138,.35);
+        color: #fde68a;
+        border-radius: .2rem;
+        padding: 0 .2rem;
+        font-weight: 700;
+    }
+    html:not(.dark) .cgi-hechos-box    { border-color: rgba(180,83,9,.2); }
+    html:not(.dark) .cgi-hechos-titulo { color: #b45309; background: rgba(180,83,9,.05); border-bottom-color: rgba(180,83,9,.15); }
+    html:not(.dark) .cgi-hechos-texto  { color: #374151; }
+    html:not(.dark) .cgi-highlight     { background: rgba(180,83,9,.18); color: #92400e; }
 </style>
 
 @php
     $informacionSuficiente = $clasificacion['informacion_suficiente'] ?? null;
     $capituloRit = $capituloRit ?? null;
+    $hechosResaltado = $hechosResaltado ?? null;
 @endphp
 
 @if($informacionSuficiente === false)
     <div class="cgi-card cgi-warn">
         <p class="cgi-title">Información insuficiente para clasificar la gravedad</p>
+
+        @if(!empty($hechosResaltado))
+            <div class="cgi-hechos-box">
+                <p class="cgi-hechos-titulo">Lo que escribió (resaltado lo que genera la duda)</p>
+                <div class="cgi-hechos-texto">{!! $hechosResaltado !!}</div>
+            </div>
+        @endif
+
         @foreach(($clasificacion['elementos_faltantes'] ?? []) as $elemento)
             <div class="cgi-row">
                 <svg class="cgi-ico" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
