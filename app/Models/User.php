@@ -72,6 +72,19 @@ class User extends Authenticatable implements FilamentUser
             return false;
         }
 
+        // Panel 'empresa' (rol cliente) vs panel 'admin' (bufete/abogado/super_admin):
+        // el cliente nunca debe ver "/admin" en la barra de direcciones, y los demás
+        // roles no tienen nada que hacer en '/empresa' - último paso del panel
+        // separado del cliente, aplicado solo después de migrar los enlaces internos
+        // que antes apuntaban a /admin a mano (ver PanelBrandingServiceProvider y
+        // los commits del panel /empresa).
+        if ($panel->getId() === 'empresa') {
+            return $this->role === 'cliente';
+        }
+        if ($panel->getId() === 'admin') {
+            return $this->role !== 'cliente';
+        }
+
         return true;
     }
 
