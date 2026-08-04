@@ -112,7 +112,10 @@ class CreateEmpresa extends CreateRecord
         Password::sendResetLink(
             ['email' => $cliente->email],
             function (CanResetPassword $user, string $token) use ($nombreEmpresa): void {
-                $url = Filament::getResetPasswordUrl($token, $user);
+                // Quien crea la empresa (bufete/admin) navega en el panel 'admin',
+                // pero el enlace lo abre el CLIENTE - debe apuntar al panel
+                // 'empresa' explícitamente, no al panel "actual" de quien lo genera.
+                $url = Filament::getPanel('empresa')->getResetPasswordUrl($token, $user);
                 $minutos = (int) config('auth.passwords.' . config('auth.defaults.passwords') . '.expire', 60);
                 $user->notify(new ConfigurarContrasenaNotification($url, $nombreEmpresa, $minutos));
             }

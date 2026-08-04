@@ -520,13 +520,21 @@ class Register extends BaseRegister
             // Redirigir a la vista unificada "Mi Reglamento Interno", donde el RIT subido
             // se audita automáticamente y se muestra su salud legal en la misma página.
             if (empty($this->redirectUrl)) {
-                $this->redirectUrl = route('filament.admin.pages.mi-reglamento-interno');
+                // El formulario de registro se envía desde el panel 'admin', pero
+                // la cuenta creada es 'cliente' - debe navegar al panel 'empresa'
+                // explícitamente (Filament::getCurrentPanel() en este punto de la
+                // request sigue siendo 'admin', no se puede dejar sin especificar).
+                $this->redirectUrl = \App\Filament\Admin\Pages\MiReglamentoInterno::getUrl(panel: 'empresa');
             }
         } elseif ($ritOpcion === 'construir') {
             // Tras el registro, redirigir a Mi Reglamento Interno
             // (se sobreescribe solo si no hay ya redirect a PayU)
             if (empty($this->redirectUrl)) {
-                $this->redirectUrl = route('filament.admin.pages.mi-reglamento-interno');
+                // El formulario de registro se envía desde el panel 'admin', pero
+                // la cuenta creada es 'cliente' - debe navegar al panel 'empresa'
+                // explícitamente (Filament::getCurrentPanel() en este punto de la
+                // request sigue siendo 'admin', no se puede dejar sin especificar).
+                $this->redirectUrl = \App\Filament\Admin\Pages\MiReglamentoInterno::getUrl(panel: 'empresa');
             } else {
                 // Hay redirect a PayU; guardar en sesión para redirigir post-pago
                 session(['rit_construir_despues_pago' => true]);

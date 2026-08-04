@@ -116,7 +116,9 @@ class GenerarTextoRITJob implements ShouldQueue
             ->actions([
                 NotifAction::make('ver')
                     ->label('Ver Reglamento')
-                    ->url(route('filament.admin.pages.mi-reglamento-interno'))
+                    ->url(\App\Filament\Admin\Pages\MiReglamentoInterno::getUrl(
+                        panel: $user->role === 'cliente' ? 'empresa' : 'admin',
+                    ))
                     ->button(),
             ])
             ->sendToDatabase($user);
@@ -147,7 +149,9 @@ class GenerarTextoRITJob implements ShouldQueue
             ->actions([
                 NotifAction::make('reintentar')
                     ->label('Ir a reintentar')
-                    ->url(route('filament.admin.pages.mi-reglamento-interno'))
+                    ->url(\App\Filament\Admin\Pages\MiReglamentoInterno::getUrl(
+                        panel: $user->role === 'cliente' ? 'empresa' : 'admin',
+                    ))
                     ->button(),
             ])
             ->sendToDatabase($user);

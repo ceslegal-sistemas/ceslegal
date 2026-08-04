@@ -115,13 +115,19 @@ class ProcesoNotification extends Notification
             ? $notifiable->hasRole('cliente')
             : false;
 
+        // Esta notificación se dispara desde la sesión de quien HIZO la acción,
+        // no de quien la RECIBE - el panel no se puede inferir del contexto
+        // "actual", se decide explícitamente según el rol del destinatario real
+        // (cliente -> panel 'empresa', cualquier otro -> panel 'admin').
+        $base = $esCliente ? '/empresa' : '/admin';
+
         return match ($relacionadoTipo) {
             'App\Models\ProcesoDisciplinario' => $esCliente
-                ? url('/admin/proceso-disciplinarios/' . $relacionadoId)
-                : url('/admin/proceso-disciplinarios/' . $relacionadoId . '/edit'),
+                ? url($base . '/proceso-disciplinarios/' . $relacionadoId)
+                : url($base . '/proceso-disciplinarios/' . $relacionadoId . '/edit'),
             'App\Models\SolicitudContrato' => $esCliente
-                ? url('/admin/solicitud-contratos/' . $relacionadoId)
-                : url('/admin/solicitud-contratos/' . $relacionadoId . '/edit'),
+                ? url($base . '/solicitud-contratos/' . $relacionadoId)
+                : url($base . '/solicitud-contratos/' . $relacionadoId . '/edit'),
             default => null,
         };
     }

@@ -31,7 +31,7 @@ class NotificarNuevaFuncionReprogramar extends Command
             ->actions([
                 Action::make('ver')
                     ->label('Ir al Historial')
-                    ->url('/admin/proceso-disciplinarios')
+                    ->url('/empresa/proceso-disciplinarios')
                     ->button(),
             ])
             ->sendToDatabase($usuarios);

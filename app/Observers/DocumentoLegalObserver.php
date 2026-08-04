@@ -56,7 +56,7 @@ class DocumentoLegalObserver
                     // param resalta el botón "Auditar ahora" / "Volver a auditar" al llegar.
                     FilamentAction::make('auditar')
                         ->label('Auditar RIT')
-                        ->url(url('/admin/mi-reglamento-interno') . '?resaltar=auditar')
+                        ->url(url('/empresa/mi-reglamento-interno') . '?resaltar=auditar')
                         ->button(),
                 ])
                 ->sendToDatabase($user);
