@@ -27,6 +27,14 @@ use Filament\Pages\Auth\Login as BaseLogin;
  * falso. Se reimplementa el mismo flujo (rate limit, intento de credenciales,
  * mensaje de error idéntico si fallan) pero validando canAccessPanel() contra
  * el panel de DESTINO según el rol, no el panel donde vive el formulario.
+ *
+ * Para cliente el redirect NUNCA usa redirect()->intended(): esa función
+ * manda a la URL que el usuario intentó visitar ANTES de que lo mandaran a
+ * loguearse - si esa URL quedó guardada en su sesión de una visita vieja a
+ * algo bajo /admin (de cuando el cliente sí podía navegar ahí, antes de este
+ * cambio), lo reenviaría a una página que ya no le corresponde en vez de a
+ * /empresa. Se descarta cualquier valor guardado y siempre se manda directo
+ * al panel calculado por rol.
  */
 class Login extends BaseLogin
 {
@@ -35,7 +43,7 @@ class Login extends BaseLogin
     public function mount(): void
     {
         if (Filament::auth()->check()) {
-            redirect()->intended($this->urlSegunRol(auth()->user()));
+            $this->redirigirSegunRol(auth()->user());
             return;
         }
 
@@ -77,16 +85,36 @@ class Login extends BaseLogin
 
         session()->regenerate();
 
+        $esCliente = ($user->role ?? null) === 'cliente';
         $url = $this->urlSegunRol($user);
 
-        return new class ($url) implements LoginResponse {
-            public function __construct(private string $url) {}
+        return new class ($url, $esCliente) implements LoginResponse {
+            public function __construct(private string $url, private bool $esCliente) {}
 
             public function toResponse($request)
             {
+                if ($this->esCliente) {
+                    // Nunca ->intended(): cualquier URL "intentada" guardada
+                    // de antes de este cambio podría apuntar a /admin.
+                    session()->forget('url.intended');
+
+                    return redirect($this->url);
+                }
+
                 return redirect()->intended($this->url);
             }
         };
+    }
+
+    protected function redirigirSegunRol($user): void
+    {
+        if (($user->role ?? null) === 'cliente') {
+            session()->forget('url.intended');
+            redirect($this->urlSegunRol($user));
+            return;
+        }
+
+        redirect()->intended($this->urlSegunRol($user));
     }
 
     protected function urlSegunRol($user): string
