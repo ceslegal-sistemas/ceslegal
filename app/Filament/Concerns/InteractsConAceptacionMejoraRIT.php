@@ -58,9 +58,24 @@ trait InteractsConAceptacionMejoraRIT
                 Placeholder::make('foto_verificacion')
                     ->label('Verificación fotográfica')
                     ->helperText('Equivalencia funcional de su firma: confirma que usted, y no otra persona, autoriza este cambio.')
-                    ->content(fn () => view('filament.components.webcam-autorizador', [
-                        'wireTargetPath' => 'mountedActionsData.0.foto_responsable_base64',
-                    ])),
+                    ->content(function ($livewire) {
+                        // Esta acción se renderiza en dos contextos: sola (índice 0 en
+                        // mountedActionsData) o anidada dentro del modal "Ver cambios"
+                        // (extraModalFooterActions() de verCambiosRITAction()) - ahí
+                        // "Ver cambios" ya ocupa el índice 0 y esta acción queda en el
+                        // índice 1. Con la ruta fija en "mountedActionsData.0" la foto
+                        // se tomaba bien mostrarse, pero $wire.$set() escribía en los
+                        // datos de la acción equivocada ("Ver cambios", que no tiene
+                        // ese campo) - la acción real nunca recibía la foto y el
+                        // action() de abajo fallaba con "Falta la verificación
+                        // fotográfica" pese a que el cliente sí la tomó. Se calcula el
+                        // índice real según cuántas acciones hay montadas en este momento.
+                        $indice = max(0, count($livewire->mountedActions ?? []) - 1);
+
+                        return view('filament.components.webcam-autorizador', [
+                            'wireTargetPath' => "mountedActionsData.{$indice}.foto_responsable_base64",
+                        ]);
+                    }),
                 Hidden::make('foto_responsable_base64'),
             ])
             ->action(function (array $data, Action $action): void {
