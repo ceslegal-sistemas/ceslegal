@@ -1,4 +1,4 @@
-{{-- Login split-screen CES Legal - un solo nodo raíz (Livewire) --}}
+{{-- Login split-screen LUPE - un solo nodo raíz (Livewire) --}}
 <div class="ces-auth-root">
 
     <aside class="ces-auth-brand">
@@ -14,9 +14,9 @@
 
     <main class="ces-auth-main">
         <div class="ces-auth-card">
-            <img src="{{ asset('images/ces-legal-logo.png') }}" alt="CES Legal" class="ces-auth-logo-img">
+            <img src="{{ asset('images/lupe-logo.png') }}" alt="LUPE" class="ces-auth-logo-img">
             <h1 class="ces-auth-title">Bienvenido de vuelta</h1>
-            <p class="ces-auth-lead">Ingrese a su panel de CES Legal.</p>
+            <p class="ces-auth-lead">Ingrese a su panel de LUPE.</p>
 
             {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE, scopes: $this->getRenderHookScopes()) }}
 

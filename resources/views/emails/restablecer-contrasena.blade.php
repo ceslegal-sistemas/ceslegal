@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configure su contraseña - CES Legal</title>
+    <title>Configure su contraseña - LUPE</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -96,7 +96,7 @@
 
             <p style="margin:0 0 18px 0;">
                 Estimado(a) <strong>{{ $nombre }}</strong>,<br>
-                se creó su cuenta de acceso para gestionar los procesos disciplinarios de <strong>{{ $nombreEmpresa }}</strong> en la plataforma CES Legal. Para ingresar por primera vez, configure su contraseña haciendo clic en el siguiente botón.
+                se creó su cuenta de acceso para gestionar los procesos disciplinarios de <strong>{{ $nombreEmpresa }}</strong> en la plataforma LUPE. Para ingresar por primera vez, configure su contraseña haciendo clic en el siguiente botón.
             </p>
 
             <div class="cta-block">
@@ -117,7 +117,7 @@
 
         <div class="footer">
             <p style="margin:0 0 4px 0;">Este correo fue generado automáticamente. Por favor no responda.</p>
-            <p style="margin:0;">CES Legal</p>
+            <p style="margin:0;">LUPE</p>
         </div>
 
     </div>

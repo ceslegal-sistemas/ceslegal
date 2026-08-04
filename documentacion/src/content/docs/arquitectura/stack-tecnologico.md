@@ -1,6 +1,6 @@
 ---
 title: Stack Tecnológico
-description: Tecnologías utilizadas en CES Legal
+description: Tecnologías utilizadas en LUPE
 ---
 
 ## Resumen del Stack

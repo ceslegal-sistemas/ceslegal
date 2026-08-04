@@ -75,7 +75,7 @@ class GenerarInformePrompts extends Command
     {
         $s->addTextBreak(4);
         $r = $s->addTextRun(['alignment' => Jc::CENTER]);
-        $r->addText("CES LEGAL S.A.S.\n", ['name' => 'Calibri', 'size' => 22, 'bold' => true, 'color' => '1F3864']);
+        $r->addText("LUPE S.A.S.\n", ['name' => 'Calibri', 'size' => 22, 'bold' => true, 'color' => '1F3864']);
 
         $s->addTextBreak(1);
         $r2 = $s->addTextRun(['alignment' => Jc::CENTER]);
@@ -97,7 +97,7 @@ class GenerarInformePrompts extends Command
         $s->addText('1. INTRODUCCIÓN', 'H1', 'Normal');
         $this->hr($s);
 
-        $intro = "Este informe documenta todos los prompts de inteligencia artificial utilizados actualmente en la plataforma CES Legal. Para cada prompt se presenta: (1) el texto original tal como está en el código fuente, (2) un análisis crítico de su efectividad, limitaciones y riesgos, (3) una versión mejorada propuesta, y (4) una recomendación fundamentada sobre cuál versión adoptar.";
+        $intro = "Este informe documenta todos los prompts de inteligencia artificial utilizados actualmente en la plataforma LUPE. Para cada prompt se presenta: (1) el texto original tal como está en el código fuente, (2) un análisis crítico de su efectividad, limitaciones y riesgos, (3) una versión mejorada propuesta, y (4) una recomendación fundamentada sobre cuál versión adoptar.";
         $s->addText($intro, null, 'Normal');
 
         $s->addText("Metodología de evaluación:", 'Label', 'Normal');
@@ -121,7 +121,7 @@ class GenerarInformePrompts extends Command
         $s->addText('2. RESUMEN EJECUTIVO', 'H1', 'Normal');
         $this->hr($s);
 
-        $s->addText("La plataforma CES Legal utiliza 13 prompts distribuidos en 6 servicios de IA. A continuación se presenta el estado general:", null, 'Normal');
+        $s->addText("La plataforma LUPE utiliza 13 prompts distribuidos en 6 servicios de IA. A continuación se presenta el estado general:", null, 'Normal');
 
         $tabla = $s->addTable(['borderColor' => 'CCCCCC', 'borderSize' => 6, 'cellMargin' => 80]);
         $headers = ['#', 'Servicio', 'Método / Propósito', 'Modelo', 'Estado'];
@@ -530,7 +530,7 @@ PROMPT,
                 'proposito'=> 'Instrucciones persistentes para el chat de recopilación de hechos con el empleador. El modelo actúa como abogado que hace preguntas hasta tener suficiente información para redactar el descargo.',
 
                 'actual' => <<<'PROMPT'
-Eres un abogado laboralista experto de CES Legal (Colombia). Estás ayudando al empleador a documentar los hechos de un proceso disciplinario mediante conversación empática.
+Eres un abogado laboralista experto de LUPE (Colombia). Estás ayudando al empleador a documentar los hechos de un proceso disciplinario mediante conversación empática.
 
 FECHA ACTUAL: {hoy}
 TRABAJADOR: {nombre} - Cargo: {cargo}
@@ -562,7 +562,7 @@ PROMPT,
                 ],
 
                 'mejorado' => <<<'PROMPT'
-Eres un abogado laboralista senior de CES Legal Colombia. Tu tarea es ayudar al empleador a documentar los hechos para un proceso disciplinario mediante conversación empática y directa. El empleador NO conoce de leyes; tú sí.
+Eres un abogado laboralista senior de LUPE Colombia. Tu tarea es ayudar al empleador a documentar los hechos para un proceso disciplinario mediante conversación empática y directa. El empleador NO conoce de leyes; tú sí.
 
 FECHA ACTUAL DEL SISTEMA: {hoy}
 TRABAJADOR: {nombre} - Cargo: {cargo}
@@ -1004,7 +1004,7 @@ PROMPT,
                 'archivo'  => 'app/Services/InformeJuridicoExportService.php - construirPromptInformeLenguajeClaro()',
                 'metodo'   => 'construirPromptInformeLenguajeClaro()',
                 'modelo'   => 'Gemini 2.5 Flash - 16.384 tokens máx.',
-                'proposito'=> 'Genera un informe de gestión completo para el cliente empresa, explicando en lenguaje simple las gestiones realizadas por CES Legal durante el periodo.',
+                'proposito'=> 'Genera un informe de gestión completo para el cliente empresa, explicando en lenguaje simple las gestiones realizadas por LUPE durante el periodo.',
 
                 'actual' => <<<'PROMPT'
 [Prompt extenso de ~900 palabras con 8 secciones: carta de presentación, resumen ejecutivo, detalle de gestiones, resultados, análisis, recomendaciones, plan de trabajo futuro y conclusión. Incluye instrucciones de formato Calibri 11pt sin markdown.]

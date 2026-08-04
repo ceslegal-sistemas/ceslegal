@@ -1,4 +1,4 @@
-# Diseño - Bufetes (multi-tenant) para CES Legal
+# Diseño - Bufetes (multi-tenant) para LUPE
 
 - **Fecha:** 2026-07-06
 - **Estado:** Diseño aprobado (v1, pendiente de afinar antes de implementar)
@@ -53,7 +53,7 @@ Descartados:
 
 **Distinción staff plataforma vs bufete cliente** (backward-compat):
 - `super_admin` → admin global de la plataforma (sin cambios).
-- `abogado` con `bufete_id = null` → staff interno CES Legal (ve todo, como hoy).
+- `abogado` con `bufete_id = null` → staff interno LUPE (ve todo, como hoy).
 - `abogado` con `bufete_id` seteado → abogado de un bufete cliente (ve solo su bufete).
 
 ## 5. Registro (elección empresa vs bufete)

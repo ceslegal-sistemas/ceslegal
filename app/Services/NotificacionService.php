@@ -319,7 +319,7 @@ class NotificacionService
                 userId: $cliente->id,
                 tipo: 'impugnacion_realizada',
                 titulo: 'Trabajador Impugnó la Sanción',
-                mensaje: "El trabajador {$proceso->trabajador->nombre_completo} ha impugnado la sanción del proceso {$proceso->codigo}. CES Legal está revisando la impugnación.",
+                mensaje: "El trabajador {$proceso->trabajador->nombre_completo} ha impugnado la sanción del proceso {$proceso->codigo}. LUPE está revisando la impugnación.",
                 relacionadoTipo: ProcesoDisciplinario::class,
                 relacionadoId: $proceso->id,
                 prioridad: 'alta'

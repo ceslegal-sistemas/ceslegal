@@ -1,6 +1,6 @@
 ---
 title: Analisis de Sanciones
-description: Como CES Legal utiliza inteligencia artificial para analizar procesos disciplinarios y sugerir sanciones apropiadas segun la legislacion laboral colombiana
+description: Como LUPE utiliza inteligencia artificial para analizar procesos disciplinarios y sugerir sanciones apropiadas segun la legislacion laboral colombiana
 ---
 
 ## Descripcion General

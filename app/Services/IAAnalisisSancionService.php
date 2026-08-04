@@ -442,7 +442,7 @@ class IAAnalisisSancionService
     /**
      * Hechos PROCESALES que la plataforma ya conoce con certeza (a diferencia
      * de los hechos SUSTANTIVOS del caso, que sí requieren análisis). Todo
-     * proceso disciplinario de CES Legal pasa por un flujo guiado: se envía
+     * proceso disciplinario de LUPE pasa por un flujo guiado: se envía
      * una citación formal, se registra si fue leída, y el estado del proceso
      * ('descargos_realizados'/'descargos_no_realizados') indica con certeza
      * si el trabajador ejerció o no su derecho a ser oído. Antes esta

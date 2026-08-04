@@ -1,6 +1,6 @@
 ---
 title: Trabajadores
-description: Modulo de gestion de trabajadores vinculados a empresas en CES Legal
+description: Modulo de gestion de trabajadores vinculados a empresas en LUPE
 ---
 
 ## Descripcion General

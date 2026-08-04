@@ -35,7 +35,7 @@ class CorreoOficial extends Mailable
             default   => '',
         };
 
-        // El nombre del remitente es la razón social del cliente, no "CES Legal".
+        // El nombre del remitente es la razón social del cliente, no "LUPE".
         // (El fallback SMTP conserva la dirección configurada; solo cambia el nombre visible.)
         $empresa = $this->correo->empresa
             ?? $this->correo->trabajador?->empresa

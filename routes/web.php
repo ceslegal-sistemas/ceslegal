@@ -55,7 +55,7 @@ Route::get('/bufete/invitacion/{token}', [\App\Http\Controllers\BufeteInvitacion
     ->name('bufete.invitacion.aceptar')
     ->where('token', '[a-zA-Z0-9]+');
 
-// Verificación pública de documentos generados por CES Legal
+// Verificación pública de documentos generados por LUPE
 Route::get('/verificar/{token}', [VerificacionDocumentoController::class, 'verificar'])
     ->name('verificacion.documento')
     ->where('token', '[a-zA-Z0-9\-_]+');

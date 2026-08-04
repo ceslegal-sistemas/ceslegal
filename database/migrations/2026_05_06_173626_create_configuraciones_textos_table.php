@@ -51,7 +51,7 @@ Al marcar la casilla de aceptación manifiesto haber leído, entendido y aceptad
         DB::table('configuraciones_textos')->insert([
             'clave'       => 'terminos_condiciones',
             'grupo'       => 'legal',
-            'descripcion' => 'Términos y condiciones generales de uso de la plataforma CES Legal.',
+            'descripcion' => 'Términos y condiciones generales de uso de la plataforma LUPE.',
             'valor'       => 'Términos y condiciones pendientes de redacción.',
             'created_at'  => now(),
             'updated_at'  => now(),

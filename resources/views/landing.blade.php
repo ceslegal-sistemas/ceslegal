@@ -4,14 +4,14 @@
 
     <meta charset="utf-8">
 
-    <title>CES Legal - Gestión disciplinaria con respaldo jurídico</title>
+    <title>LUPE - Gestión disciplinaria con respaldo jurídico</title>
 
     <meta name="description" content="Plataforma de gestión de procesos disciplinarios laborales anclada a la Constitución, la jurisprudencia y el Código Sustantivo del Trabajo.">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 
-    <link rel="icon" type="image/png" href="/images/ces-legal-favicon.png">
-    <link rel="apple-touch-icon" href="/images/ces-legal-favicon.png"/>
+    <link rel="icon" type="image/png" href="/images/lupe-favicon.png">
+    <link rel="apple-touch-icon" href="/images/lupe-favicon.png"/>
 
     <link rel="stylesheet" href="/landing/assets/css/style.css">
     <link rel="preload" href="/landing/assets/fonts/source-sans-pro-v21-latin/source-sans-pro-v21-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
@@ -24,7 +24,7 @@
     <link rel="preload" href="/landing/assets/fonts/playfair-display-v30-latin/playfair-display-v30-latin-900.woff2" as="font" type="font/woff2" crossorigin>
 
     <style>
-        /* Logo CES Legal más grande, manteniendo proporción y centrado vertical */
+        /* Logo LUPE más grande, manteniendo proporción y centrado vertical */
         .header-brand { align-items: center; }
         .logo img { height: 56px; width: auto; display: block; }
         @media (max-width: 767px) { .logo img { height: 46px; } }
@@ -48,8 +48,8 @@
                         <rect x="5" y="21" height="2" width="14"></rect>
                         </svg>
                     </div>
-                    <a href="/" class="logo" title="CES Legal">
-                        <img src="/images/ces-legal-logo.png" width="79" height="56" alt="CES Legal">
+                    <a href="/" class="logo" title="LUPE">
+                        <img src="/images/lupe-logo.png" width="79" height="56" alt="LUPE">
                     </a>
                 </div>
             </div>
@@ -412,7 +412,7 @@
                 </li>
             </ul>
         </nav>
-        <div class="copyright">© {{ date('Y') }} - CES Legal</div>
+        <div class="copyright">© {{ date('Y') }} - LUPE</div>
     </div>
 </footer><!-- End footer -->
 

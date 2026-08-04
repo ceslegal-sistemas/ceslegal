@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Despliegue de CES Legal en producción (Hostinger).
+# Despliegue de LUPE en producción (Hostinger).
 # Uso:  bash deploy.sh
 #
 # Resuelve el problema recurrente del OPcache: tras `git pull`, el servidor web

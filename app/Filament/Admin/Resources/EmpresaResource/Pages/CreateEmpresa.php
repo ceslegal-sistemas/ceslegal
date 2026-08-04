@@ -106,7 +106,7 @@ class CreateEmpresa extends CreateRecord
         // misma URL firmada real del panel (Filament::getResetPasswordUrl(),
         // igual que usa el propio "olvidé mi contraseña" del panel), pero con
         // plantilla propia en español. La identidad del correo es la empresa
-        // del cliente (razón social), no "CES Legal" - mismo principio que
+        // del cliente (razón social), no "LUPE" - mismo principio que
         // CorreoOficial (ver resources/views/mail/correo-oficial.blade.php).
         $nombreEmpresa = $this->record->razon_social;
         Password::sendResetLink(

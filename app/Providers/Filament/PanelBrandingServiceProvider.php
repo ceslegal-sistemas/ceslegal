@@ -7,7 +7,7 @@ use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 
 /**
- * Render hooks, skeletons y ajustes de UI/UX de CES Legal que aplican a
+ * Render hooks, skeletons y ajustes de UI/UX de LUPE que aplican a
  * CUALQUIER panel de Filament (no son específicos de 'admin'). Se sacaron de
  * AdminPanelProvider::boot() al agregar el panel 'empresa' (rol cliente,
  * ver plan del panel /empresa): FilamentView::registerRenderHook() y
@@ -64,7 +64,7 @@ class PanelBrandingServiceProvider extends ServiceProvider
             fn(): string => '<style>.rit-hide-wizard-steps .fi-fo-wizard-header,.ces-hide-wizard-steps .fi-fo-wizard-header{display:none}</style>',
         );
 
-        // ── Rebrand CES Legal ────────────────────────────────────────────────
+        // ── Rebrand LUPE ────────────────────────────────────────────────
         // Gradiente de marca (rojo→naranja), Space Grotesk en títulos y el ítem
         // de sidebar activo en gradiente. Inyectado por render hook → no requiere
         // build de npm (clave para el despliegue en Hostinger).
@@ -98,7 +98,7 @@ class PanelBrandingServiceProvider extends ServiceProvider
             .fi-simple-layout{ background:#FAFAF9; }
             html.dark .fi-simple-layout{ background:#0C0A09; }
 
-            /* ── Login split-screen CES Legal ── */
+            /* ── Login split-screen LUPE ── */
             .ces-auth-root{ position:fixed; inset:0; display:flex; background:#FAFAF9; z-index:10; }
             html.dark .ces-auth-root{ background:#0C0A09; }
             .ces-auth-brand{

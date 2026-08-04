@@ -1,11 +1,11 @@
 ---
 title: Empresas
-description: Modulo de gestion de empresas que sirve como base del multi-tenancy en CES Legal
+description: Modulo de gestion de empresas que sirve como base del multi-tenancy en LUPE
 ---
 
 ## Descripcion General
 
-El modulo de **Empresas** gestiona las organizaciones registradas en CES Legal. Cada empresa es la unidad base del sistema multi-tenant: los trabajadores, procesos disciplinarios, usuarios y documentos estan vinculados a una empresa especifica. El modelo `Empresa` es la raiz del arbol de datos de cada cliente.
+El modulo de **Empresas** gestiona las organizaciones registradas en LUPE. Cada empresa es la unidad base del sistema multi-tenant: los trabajadores, procesos disciplinarios, usuarios y documentos estan vinculados a una empresa especifica. El modelo `Empresa` es la raiz del arbol de datos de cada cliente.
 
 La informacion de la empresa se utiliza directamente en la generacion de documentos legales (citaciones, sanciones) donde se requieren datos como razon social, NIT, direccion y representante legal.
 

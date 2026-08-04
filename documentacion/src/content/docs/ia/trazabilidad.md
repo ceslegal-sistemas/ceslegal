@@ -1,11 +1,11 @@
 ---
 title: Trazabilidad de IA
-description: Sistema de registro y auditoria de todas las llamadas a inteligencia artificial realizadas por CES Legal
+description: Sistema de registro y auditoria de todas las llamadas a inteligencia artificial realizadas por LUPE
 ---
 
 ## Descripcion General
 
-CES Legal implementa un sistema de **trazabilidad completa** para todas las interacciones con la inteligencia artificial. Cada llamada a la API de Google Gemini queda registrada en la base de datos, permitiendo:
+LUPE implementa un sistema de **trazabilidad completa** para todas las interacciones con la inteligencia artificial. Cada llamada a la API de Google Gemini queda registrada en la base de datos, permitiendo:
 
 - **Auditoria**: Revisar que prompts se enviaron y que respuestas se recibieron.
 - **Depuracion**: Diagnosticar problemas cuando la IA genera respuestas inesperadas.

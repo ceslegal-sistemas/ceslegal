@@ -1,11 +1,11 @@
 ---
 title: Manual del Cliente
-description: Guia completa para el usuario con rol cliente en CES Legal
+description: Guia completa para el usuario con rol cliente en LUPE
 ---
 
 ## Descripcion del Rol
 
-El **Cliente** (rol `cliente`) es el representante de la empresa que utiliza el sistema CES Legal para gestionar los procesos disciplinarios de sus trabajadores. Este rol tiene un alcance limitado a los datos de **su propia empresa**.
+El **Cliente** (rol `cliente`) es el representante de la empresa que utiliza el sistema LUPE para gestionar los procesos disciplinarios de sus trabajadores. Este rol tiene un alcance limitado a los datos de **su propia empresa**.
 
 ### Capacidades del Cliente
 
@@ -292,7 +292,7 @@ Segun el estado del proceso, podra descargar:
 - El trabajador debe tener correo electronico registrado
 
 :::caution[Plazo Legal Minimo]
-Segun la legislacion laboral colombiana, la citacion a descargos debe notificarse al trabajador con suficiente anticipacion. CES Legal requiere un minimo de **5 dias habiles** antes de la fecha programada para la diligencia.
+Segun la legislacion laboral colombiana, la citacion a descargos debe notificarse al trabajador con suficiente anticipacion. LUPE requiere un minimo de **5 dias habiles** antes de la fecha programada para la diligencia.
 :::
 
 ### Programar una Diligencia

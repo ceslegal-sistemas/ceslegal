@@ -1,6 +1,6 @@
 ---
 title: Estados del Proceso
-description: Máquina de estados del proceso disciplinario en CES Legal
+description: Máquina de estados del proceso disciplinario en LUPE
 ---
 
 ## Diagrama de Estados

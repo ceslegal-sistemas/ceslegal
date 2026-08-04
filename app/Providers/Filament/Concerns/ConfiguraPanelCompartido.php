@@ -32,10 +32,10 @@ trait ConfiguraPanelCompartido
     protected function aplicarConfigComun(Panel $panel): Panel
     {
         return $panel
-            ->brandName('CES Legal')
-            ->brandLogo(asset('images/ces-legal-logo.png'))
+            ->brandName('LUPE')
+            ->brandLogo(asset('images/lupe-logo.png'))
             ->brandLogoHeight('2.2rem')
-            ->favicon(asset('images/ces-legal-favicon.png'))
+            ->favicon(asset('images/lupe-favicon.png'))
             ->font('Inter')
             ->colors([
                 'primary' => Color::hex('#E11D48'),

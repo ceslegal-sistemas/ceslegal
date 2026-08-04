@@ -1,11 +1,11 @@
 ---
 title: Usuarios y Roles
-description: Sistema de autenticacion, autorizacion y gestion de roles con Filament Shield en CES Legal
+description: Sistema de autenticacion, autorizacion y gestion de roles con Filament Shield en LUPE
 ---
 
 ## Descripcion General
 
-El modulo de **Usuarios y Roles** gestiona la autenticacion, autorizacion y control de acceso en CES Legal. Utiliza **Filament Shield** (basado en Spatie Permission) para la gestion granular de permisos, combinado con **Policies** de Laravel para la autorizacion a nivel de modelo.
+El modulo de **Usuarios y Roles** gestiona la autenticacion, autorizacion y control de acceso en LUPE. Utiliza **Filament Shield** (basado en Spatie Permission) para la gestion granular de permisos, combinado con **Policies** de Laravel para la autorizacion a nivel de modelo.
 
 El sistema define tres roles principales con alcances de acceso diferenciados, soporta multi-tenancy por empresa y permite el cambio de contrasena personalizado.
 

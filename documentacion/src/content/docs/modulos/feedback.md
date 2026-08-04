@@ -1,6 +1,6 @@
 ---
 title: Modulo de Feedback
-description: Sistema de recoleccion y analisis de feedback de trabajadores y clientes en CES Legal
+description: Sistema de recoleccion y analisis de feedback de trabajadores y clientes en LUPE
 ---
 
 ## Descripcion General
@@ -126,7 +126,7 @@ Campos guardados en `respuestas_adicionales`: `calificacion_experiencia`, `dific
 **Campos obligatorios:**
 - NPS (0–10)
 - Aspectos mas valorados (seleccion multiple)
-- ¿Recomendaria CES Legal?
+- ¿Recomendaria LUPE?
 - Comentario libre
 
 ---

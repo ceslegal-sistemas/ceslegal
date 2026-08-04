@@ -171,7 +171,7 @@
         </div>
 
         <p>Atentamente,</p>
-        <p><strong>CES LEGAL S.A.S.</strong><br>
+        <p><strong>LUPE S.A.S.</strong><br>
             Sistema de Gestión de Procesos Disciplinarios</p>
     </div>
 

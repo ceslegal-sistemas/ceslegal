@@ -2283,7 +2283,7 @@ class ProcesoDisciplinarioResource extends Resource
                                             $html .= '<div style="flex:1;min-width:0;">';
                                             $html .= '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--exo-label);margin:0 0 4px;">Advertencia Legal</p>';
                                             $html .= '<p style="font-size:15px;font-weight:800;color:#f87171;margin:0 0 10px;line-height:1.2;">Decisión contraria a la recomendación jurídica</p>';
-                                            $html .= '<p style="font-size:13px;color:var(--exo-text);line-height:1.6;margin:0;">La decisión que está tomando va en contra de la recomendación jurídica emitida por el sistema de inteligencia artificial de CES Legal. <strong style="color:var(--exo-strong);">CES Legal no se responsabiliza por las consecuencias legales, laborales o judiciales derivadas de esta decisión.</strong></p>';
+                                            $html .= '<p style="font-size:13px;color:var(--exo-text);line-height:1.6;margin:0;">La decisión que está tomando va en contra de la recomendación jurídica emitida por el sistema de inteligencia artificial de LUPE. <strong style="color:var(--exo-strong);">LUPE no se responsabiliza por las consecuencias legales, laborales o judiciales derivadas de esta decisión.</strong></p>';
 
                                             if ($razonEspecifica) {
                                                 $html .= '<div style="margin-top:12px;padding:12px 14px;background:var(--exo-reason-bg);border-radius:10px;border:1px solid var(--exo-reason-border);">';
@@ -2303,7 +2303,7 @@ class ProcesoDisciplinarioResource extends Resource
                                         ->required(fn(Get $get) => !empty($iaSancionesRecomendadas) && !in_array($get('tipo_sancion'), $iaSancionesRecomendadas)),
 
                                     Forms\Components\Toggle::make('exoneracion_aceptada')
-                                        ->label('Confirmo que entiendo las recomendaciones jurídicas emitidas por la IA, que aun así decido aplicar una sanción diferente, y que asumo completamente la responsabilidad jurídica, laboral y judicial de esta decisión, exonerando a CES Legal de cualquier consecuencia derivada de la misma.')
+                                        ->label('Confirmo que entiendo las recomendaciones jurídicas emitidas por la IA, que aun así decido aplicar una sanción diferente, y que asumo completamente la responsabilidad jurídica, laboral y judicial de esta decisión, exonerando a LUPE de cualquier consecuencia derivada de la misma.')
                                         ->required(fn(Get $get) => !empty($iaSancionesRecomendadas) && !in_array($get('tipo_sancion'), $iaSancionesRecomendadas))
                                         ->accepted()
                                         ->onColor('danger'),

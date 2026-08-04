@@ -977,7 +977,7 @@
 
         <!-- Footer -->
         <div class="footer">
-            <div class="footer-logo">CES LEGAL</div>
+            <div class="footer-logo">LUPE</div>
             <p>Documento generado automáticamente con análisis de Business Intelligence - {{ $fechaGeneracion }}</p>
             <p>Este documento es de carácter informativo y confidencial.</p>
         </div>

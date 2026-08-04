@@ -1,11 +1,11 @@
 ---
 title: Introducción
-description: Conoce qué es CES Legal y para qué sirve
+description: Conoce qué es LUPE y para qué sirve
 ---
 
-## ¿Qué es CES Legal?
+## ¿Qué es LUPE?
 
-**CES Legal** es un bufete de abogados en Colombia que ofrece asesoría y representación legal a clientes, con un enfoque en servicios jurídicos para empresas y apoyo en materias como laboral, contractual y corporativo. Adicionalmente, ha desarrollado una plataforma web integral diseñada para **automatizar y gestionar procesos disciplinarios laborales en Colombia**, la cual permite a empresas y bufetes de abogados administrar todo el ciclo de vida de un proceso disciplinario, desde la solicitud inicial hasta el cierre del caso.
+**LUPE** es un bufete de abogados en Colombia que ofrece asesoría y representación legal a clientes, con un enfoque en servicios jurídicos para empresas y apoyo en materias como laboral, contractual y corporativo. Adicionalmente, ha desarrollado una plataforma web integral diseñada para **automatizar y gestionar procesos disciplinarios laborales en Colombia**, la cual permite a empresas y bufetes de abogados administrar todo el ciclo de vida de un proceso disciplinario, desde la solicitud inicial hasta el cierre del caso.
 
 ## Objetivo Principal
 
@@ -45,7 +45,7 @@ Reducir tiempos de tramitación, asegurar consistencia jurídica y mantener audi
 - Permisos granulares con Filament Shield
 - Aislamiento de datos por empresa (multi-tenant)
 
-## ¿Para quién es CES Legal?
+## ¿Para quién es LUPE?
 
 | Rol | Descripción |
 |-----|-------------|

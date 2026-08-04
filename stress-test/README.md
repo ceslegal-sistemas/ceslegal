@@ -1,4 +1,4 @@
-# Prueba de estrés - CES Legal
+# Prueba de estrés - LUPE
 
 Objetivo: conocer el **techo real** del plan de Hostinger compartido y estimar
 **cuántos clientes** aguanta antes de tener que migrar a VPS/Cloud.

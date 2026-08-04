@@ -1,5 +1,5 @@
 /**
- * Guías interactivas de CES Legal (Driver.js - https://driverjs.com)
+ * Guías interactivas de LUPE (Driver.js - https://driverjs.com)
  *
  * Las guías se adaptan al ROL del usuario autenticado, que llega en
  * window.CES_USER = { role, esBufete, empresaActiva, nombre } (inyectado por
@@ -117,7 +117,7 @@ document.addEventListener("DOMContentLoaded", function () {
             ];
         } else if (role === "bufete") {
             steps = [
-                { popover: { title: "Bienvenido a CES Legal", description: hola + "Como bufete, gestiona los procesos disciplinarios de varias empresas desde un mismo lugar." } },
+                { popover: { title: "Bienvenido a LUPE", description: hola + "Como bufete, gestiona los procesos disciplinarios de varias empresas desde un mismo lugar." } },
                 { element: ".se-wrap", popover: { title: "Primero elija la empresa", description: "En la barra superior seleccione la empresa sobre la que va a trabajar. Todo lo que haga aplicará a esa empresa.", side: "bottom" } },
                 { element: "[data-tour='menu-empresas']", popover: { title: "Sus empresas", description: "Cree y administre las empresas que representa.", side: "right" } },
                 { element: ".pg-wrap", popover: { title: "El proceso paso a paso", description: "Esta guía le muestra en qué punto va la empresa seleccionada y cuál es el siguiente paso.", side: "top" } },
@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", function () {
         } else {
             // cliente
             steps = [
-                { popover: { title: "Bienvenido a CES Legal", description: hola + "Aquí gestiona todo el proceso disciplinario de su empresa: desde el reglamento hasta la sanción." } },
+                { popover: { title: "Bienvenido a LUPE", description: hola + "Aquí gestiona todo el proceso disciplinario de su empresa: desde el reglamento hasta la sanción." } },
                 { element: ".pg-wrap", popover: { title: "Su proceso paso a paso", description: "Esta guía le indica en qué punto va y cuál es el siguiente paso a seguir.", side: "top" } },
                 { element: "[data-tour='menu-reglamento']", popover: { title: "Reglamento Interno", description: "Suba o construya el RIT de su empresa. Es la base para poder aplicar sanciones.", side: "right" } },
                 { element: "[data-tour='menu-crear']", popover: { title: "Crear Descargos", description: "Cite a un trabajador a descargos por un hecho ocurrido.", side: "right" } },

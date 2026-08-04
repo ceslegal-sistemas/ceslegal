@@ -18,9 +18,9 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 class InformeJuridicoExportService
 {
-    // Datos de CES LEGAL (proveedor de servicios jurídicos)
+    // Datos de LUPE (proveedor de servicios jurídicos)
     protected const CES_LEGAL = [
-        'razon_social' => 'CES LEGAL S.A.S.',
+        'razon_social' => 'LUPE S.A.S.',
         'nit' => '901.258.505-4',
         'direccion' => 'Carrera 2 #10-53',
         'telefono' => '+57 3196777103',
@@ -513,16 +513,16 @@ class InformeJuridicoExportService
         })->implode("\n");
 
         return <<<PROMPT
-Eres un abogado senior con 15 años de experiencia redactando informes de gestión jurídica. Trabajas para CES LEGAL S.A.S. y estás escribiendo un informe profesional para tu cliente {$empresa->razon_social}.
+Eres un abogado senior con 15 años de experiencia redactando informes de gestión jurídica. Trabajas para LUPE S.A.S. y estás escribiendo un informe profesional para tu cliente {$empresa->razon_social}.
 
 Tu objetivo es explicar de forma clara y completa:
 1. Qué trabajos realizamos para el cliente
 2. Cómo cada trabajo benefició a su empresa
 3. Qué áreas puede mejorar el cliente
-4. Cuál es el valor que CES LEGAL aporta
+4. Cuál es el valor que LUPE aporta
 
 INFORMACIÓN DEL INFORME:
-- Firma proveedora: CES LEGAL S.A.S. (nosotros)
+- Firma proveedora: LUPE S.A.S. (nosotros)
 - Cliente: {$empresa->razon_social}
 - Periodo del informe: {$periodoTexto}
 - Fecha de emisión: {$fechaActual}
@@ -571,7 +571,7 @@ Escribe 2-3 párrafos:
 - Saludo cordial al cliente
 - Resumen de lo más destacado del periodo
 - Agradecimiento por la confianza depositada
-- Menciona el compromiso de CES LEGAL con su empresa
+- Menciona el compromiso de LUPE con su empresa
 
 2. RESUMEN EJECUTIVO
 Escribe un párrafo sustancioso de 6-8 oraciones que incluya:
@@ -620,7 +620,7 @@ Describe:
 
 8. CONCLUSIÓN
 Escribe 3-4 oraciones finales:
-- Reafirma el compromiso de CES LEGAL
+- Reafirma el compromiso de LUPE
 - Destaca el valor de la relación con el cliente
 - Invita a contactar para cualquier duda o necesidad adicional
 - Cierre profesional y cordial
@@ -662,7 +662,7 @@ PROMPT;
 
 Estimados directivos de {$empresa->razon_social}:
 
-Es un placer presentarles el informe de gestión jurídica correspondiente al periodo actual. En CES LEGAL S.A.S. nos enorgullece trabajar como su aliado estratégico en materia legal, protegiendo los intereses de su empresa y brindando soluciones oportunas a sus necesidades jurídicas.
+Es un placer presentarles el informe de gestión jurídica correspondiente al periodo actual. En LUPE S.A.S. nos enorgullece trabajar como su aliado estratégico en materia legal, protegiendo los intereses de su empresa y brindando soluciones oportunas a sus necesidades jurídicas.
 
 Durante este periodo, nuestro equipo de abogados atendió {$metricas['total_gestiones']} gestiones jurídicas, dedicando {$metricas['tiempo_total']} de trabajo especializado a sus asuntos. Agradecemos profundamente la confianza depositada en nuestros servicios.
 
@@ -701,7 +701,7 @@ Actualmente hay {$metricas['gestiones_pendientes']} gestiones pendientes y {$met
 
 8. CONCLUSIÓN
 
-Agradecemos su confianza en CES LEGAL S.A.S. Estamos comprometidos con la protección legal de su empresa y seguiremos trabajando para brindarle el mejor servicio. No dude en contactarnos para cualquier consulta o necesidad adicional. Quedamos a su entera disposición.
+Agradecemos su confianza en LUPE S.A.S. Estamos comprometidos con la protección legal de su empresa y seguiremos trabajando para brindarle el mejor servicio. No dude en contactarnos para cualquier consulta o necesidad adicional. Quedamos a su entera disposición.
 TEXT;
     }
 
@@ -727,14 +727,14 @@ TEXT;
     ): string {
         $periodoTexto = $mes && $mes !== 'todos' ? (self::MESES[$mes] ?? $mes) . " de {$anio}" : "Año {$anio}";
         $fechaActual = Carbon::now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
-        $nombreAbogado = $abogado->name ?? 'Equipo CES LEGAL';
+        $nombreAbogado = $abogado->name ?? 'Equipo LUPE';
         $logoPath = base_path('documentacion/src/assets/logo.png');
         $logoBase64 = file_exists($logoPath)
             ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
             : '';
         $logoHtml = $logoBase64
-            ? "<img src=\"{$logoBase64}\" alt=\"CES Legal Digital\" style=\"height:28px;width:auto;display:block;\">"
-            : '<span style="font-size:9pt;font-weight:bold;color:#B71C1C;padding:0 4px;">CES LEGAL</span>';
+            ? "<img src=\"{$logoBase64}\" alt=\"LUPE Digital\" style=\"height:28px;width:auto;display:block;\">"
+            : '<span style="font-size:9pt;font-weight:bold;color:#B71C1C;padding:0 4px;">LUPE</span>';
 
         $tablaAreas = $this->construirTablaHTML($resumenPorArea, ['Área de Práctica', 'Cantidad', 'Tiempo Dedicado'], ['area', 'cantidad', 'tiempo_formateado']);
         $tablaTipos = $this->construirTablaHTML($resumenPorTipo, ['Tipo de Gestión', 'Cantidad', 'Tiempo Dedicado'], ['tipo', 'cantidad', 'tiempo_formateado']);
@@ -761,7 +761,7 @@ HTML;
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Informe de Gestión Jurídica - CES LEGAL</title>
+    <title>Informe de Gestión Jurídica - LUPE</title>
     <style>
         /* ── Página (carta: 21.59 × 27.94 cm) ────────────────────── */
         @page {
@@ -1115,7 +1115,7 @@ HTML;
         <table class="pf-table">
             <tr>
                 <td>Documento confidencial - Uso exclusivo de {$empresa->razon_social}</td>
-                <td class="pf-right">CES LEGAL S.A.S. &nbsp;·&nbsp; NIT 901.258.505-4 &nbsp;·&nbsp; {$fechaActual}</td>
+                <td class="pf-right">LUPE S.A.S. &nbsp;·&nbsp; NIT 901.258.505-4 &nbsp;·&nbsp; {$fechaActual}</td>
             </tr>
         </table>
         <div class="pf-accent"></div>
@@ -1224,7 +1224,7 @@ HTML;
         </p>
         <div class="firma-linea">
             <div class="firma-nombre">{$nombreAbogado}</div>
-            <div class="firma-cargo">Abogado - CES LEGAL S.A.S.</div>
+            <div class="firma-cargo">Abogado - LUPE S.A.S.</div>
             <div class="firma-cargo">NIT: 901.258.505-4</div>
         </div>
     </div>
@@ -1461,7 +1461,7 @@ HTML;
 
         // Encabezado
         $sheet->mergeCells('A1:D1');
-        $sheet->setCellValue('A1', 'INFORME DE GESTIÓN JURÍDICA - CES LEGAL S.A.S.');
+        $sheet->setCellValue('A1', 'INFORME DE GESTIÓN JURÍDICA - LUPE S.A.S.');
         $sheet->getStyle('A1')->applyFromArray($headerStyle);
 
         $sheet->setCellValue('A3', 'Presentado a:');

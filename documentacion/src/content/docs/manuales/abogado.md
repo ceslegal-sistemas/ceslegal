@@ -1,6 +1,6 @@
 ---
 title: Manual del Abogado
-description: Guia completa para el usuario con rol abogado en CES Legal
+description: Guia completa para el usuario con rol abogado en LUPE
 ---
 
 ## Descripcion del Rol
@@ -203,7 +203,7 @@ Si el trabajador no recibio el correo, esta opcion le permite enviarle el enlace
 
 ### Descripcion
 
-CES Legal utiliza **Google Gemini** para generar preguntas de descargos basadas en los hechos del proceso. El abogado revisa y aprueba las preguntas antes de que sean presentadas al trabajador.
+LUPE utiliza **Google Gemini** para generar preguntas de descargos basadas en los hechos del proceso. El abogado revisa y aprueba las preguntas antes de que sean presentadas al trabajador.
 
 ### Paso 1: Generar Preguntas
 

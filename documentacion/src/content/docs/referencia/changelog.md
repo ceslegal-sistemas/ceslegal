@@ -1,9 +1,9 @@
 ---
 title: Changelog
-description: Historial de cambios y versiones del sistema CES Legal
+description: Historial de cambios y versiones del sistema LUPE
 ---
 
-Todos los cambios notables del proyecto CES Legal se documentan en esta pagina. El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto utiliza [Versionado Semantico](https://semver.org/lang/es/).
+Todos los cambios notables del proyecto LUPE se documentan en esta pagina. El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto utiliza [Versionado Semantico](https://semver.org/lang/es/).
 
 ---
 
@@ -151,6 +151,6 @@ Todos los cambios notables del proyecto CES Legal se documentan en esta pagina. 
 
 ## Proximos Pasos
 
-- [Introduccion](/inicio/introduccion/) - Conoce CES Legal
+- [Introduccion](/inicio/introduccion/) - Conoce LUPE
 - [Variables de Entorno](/referencia/variables-entorno/) - Configuracion del sistema
 - [Troubleshooting](/referencia/troubleshooting/) - Solucion de problemas comunes

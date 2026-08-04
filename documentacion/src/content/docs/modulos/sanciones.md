@@ -5,7 +5,7 @@ description: Modulo de emision y gestion de sanciones disciplinarias con analisi
 
 ## Descripcion General
 
-El modulo de **Sanciones** gestiona la decision disciplinaria que se aplica a un trabajador tras la evaluacion del proceso. CES Legal integra inteligencia artificial en dos momentos clave: el analisis de la sancion apropiada (`IAAnalisisSancionService`) y la generacion del documento de sancion con lenguaje claro (`DocumentGeneratorService`).
+El modulo de **Sanciones** gestiona la decision disciplinaria que se aplica a un trabajador tras la evaluacion del proceso. LUPE integra inteligencia artificial en dos momentos clave: el analisis de la sancion apropiada (`IAAnalisisSancionService`) y la generacion del documento de sancion con lenguaje claro (`DocumentGeneratorService`).
 
 La sancion se emite desde el modulo de [Procesos Disciplinarios](/modulos/procesos-disciplinarios/) una vez que la diligencia de descargos ha sido completada (o el trabajador no se presento). El proceso completo es atomico: se ejecuta dentro de una transaccion de base de datos para garantizar que, si falla algun paso, no quede en estado inconsistente.
 
@@ -13,7 +13,7 @@ La sancion se emite desde el modulo de [Procesos Disciplinarios](/modulos/proces
 
 ### Tipos de Sancion
 
-CES Legal soporta tres tipos de sancion conforme al Codigo Sustantivo del Trabajo colombiano:
+LUPE soporta tres tipos de sancion conforme al Codigo Sustantivo del Trabajo colombiano:
 
 | Tipo                    | Codigo             | Descripcion                                          |
 | ----------------------- | ------------------ | ---------------------------------------------------- |

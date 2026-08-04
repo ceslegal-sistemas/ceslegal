@@ -1,6 +1,6 @@
 ---
 title: Base de Datos
-description: Modelo de datos y estructura de la base de datos de CES Legal
+description: Modelo de datos y estructura de la base de datos de LUPE
 ---
 
 ## Diagrama Entidad-Relación

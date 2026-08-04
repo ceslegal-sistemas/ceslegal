@@ -47,7 +47,7 @@
             </div>
         </div>
         <div class="footer">
-            CES Legal &mdash; Plataforma de gestión disciplinaria laboral
+            LUPE &mdash; Plataforma de gestión disciplinaria laboral
         </div>
     </div>
 </body>

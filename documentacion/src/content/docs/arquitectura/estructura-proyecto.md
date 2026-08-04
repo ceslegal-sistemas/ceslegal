@@ -1,6 +1,6 @@
 ---
 title: Estructura del Proyecto
-description: Organización de archivos y carpetas del proyecto CES Legal
+description: Organización de archivos y carpetas del proyecto LUPE
 ---
 
 ## Estructura General

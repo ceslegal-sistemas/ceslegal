@@ -139,12 +139,12 @@
             <p><strong>Estado actual:</strong> Descargos No Realizados</p>
         </div>
 
-        <p>Puede consultar el detalle completo del proceso y su avance a través del sistema CES Legal.</p>
+        <p>Puede consultar el detalle completo del proceso y su avance a través del sistema LUPE.</p>
 
         <p>Si tiene alguna pregunta sobre el proceso o necesita información adicional, no dude en contactarnos.</p>
 
         <p>Atentamente,</p>
-        <p><strong>Equipo CES Legal</strong><br>
+        <p><strong>Equipo LUPE</strong><br>
             Gestión de Procesos Disciplinarios</p>
     </div>
 

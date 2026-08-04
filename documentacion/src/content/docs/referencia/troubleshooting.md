@@ -1,15 +1,15 @@
 ---
 title: Troubleshooting
-description: Guia de solucion de problemas frecuentes en CES Legal
+description: Guia de solucion de problemas frecuentes en LUPE
 ---
 
-Esta guia recopila los problemas mas comunes que pueden presentarse al instalar, configurar o usar CES Legal, junto con sus soluciones.
+Esta guia recopila los problemas mas comunes que pueden presentarse al instalar, configurar o usar LUPE, junto con sus soluciones.
 
 ## LibreOffice no encontrado para conversion a PDF
 
 **Sintoma:** Al generar documentos PDF aparece un error indicando que LibreOffice no fue encontrado, o el PDF generado tiene formato incorrecto.
 
-**Causa:** CES Legal utiliza LibreOffice en modo headless para convertir documentos Word (.docx) a PDF con alta fidelidad. Si LibreOffice no esta instalado, el sistema usa **dompdf** como alternativa, que tiene limitaciones de formato.
+**Causa:** LUPE utiliza LibreOffice en modo headless para convertir documentos Word (.docx) a PDF con alta fidelidad. Si LibreOffice no esta instalado, el sistema usa **dompdf** como alternativa, que tiene limitaciones de formato.
 
 **Solucion:**
 
@@ -212,7 +212,7 @@ tail -100 storage/logs/laravel.log | grep "Error al actualizar"
 1. Aumenta el limite de memoria en `php.ini`:
 
 ```ini
-; Aumentar a 512MB (valor recomendado para CES Legal)
+; Aumentar a 512MB (valor recomendado para LUPE)
 memory_limit = 512M
 
 ; Para documentos muy grandes, hasta 1GB

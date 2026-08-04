@@ -123,7 +123,7 @@ class ListProcesoDisciplinarios extends ListRecords
                         ->inlineLabel(false),
 
                     Radio::make('recomendaria')
-                        ->label('¿Recomendarías CES Legal a otro profesional de RRHH?')
+                        ->label('¿Recomendarías LUPE a otro profesional de RRHH?')
                         ->options([
                             'si_ya_lo_hice' => 'Sí, ya lo recomendé',
                             'si_lo_haria'   => 'Sí, lo recomendaría',

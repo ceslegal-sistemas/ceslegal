@@ -1,11 +1,11 @@
 ---
 title: Instalación
-description: Guía paso a paso para instalar CES Legal en tu entorno local
+description: Guía paso a paso para instalar LUPE en tu entorno local
 ---
 
 ## Requisitos Previos
 
-Antes de instalar el aplicativo web de CES Legal, asegúrate de tener los siguientes requisitos:
+Antes de instalar el aplicativo web de LUPE, asegúrate de tener los siguientes requisitos:
 
 ### Software Requerido
 

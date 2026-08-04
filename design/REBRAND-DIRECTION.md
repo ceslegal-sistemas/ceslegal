@@ -1,4 +1,4 @@
-# CES Legal - Dirección de rebrand del panel (alineada a la marca)
+# LUPE - Dirección de rebrand del panel (alineada a la marca)
 
 Marca: **CES + Legal Digital**. Identidad = **gradiente rojo→naranja** (crimson → naranja),
 moderna, legal-**tech** (no bufete tradicional). Guía para **diseñar en Figma** y luego
@@ -124,7 +124,7 @@ ya siguen esto → el rebrand queda consistente.
 ## 8. Implementación en Filament (lo hago yo después)
 
 - `AdminPanelProvider`: `->colors(['primary' => Color::hex('#E11D48'), 'danger' => Color::hex('#DC2626'),
-  'warning' => …, 'info' => …, 'gray' => Color::Stone])`, `->brandName('CES Legal')`,
+  'warning' => …, 'info' => …, 'gray' => Color::Stone])`, `->brandName('LUPE')`,
   `->brandLogo(...)`, `->font('Inter')`.
 - **Custom theme** (Tailwind/CSS): Space Grotesk en marca/títulos, gradiente de marca en login y
   nav activo, radios/sombras/badges, neutros stone.

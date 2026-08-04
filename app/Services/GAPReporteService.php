@@ -455,7 +455,7 @@ class GAPReporteService
 
             $section->addText(
                 'Documento confidencial. Esta versión técnica está dirigida exclusivamente a los profesionales ' .
-                'de CES Legal y contiene trazabilidad normativa para uso jurídico interno.',
+                'de LUPE y contiene trazabilidad normativa para uso jurídico interno.',
                 $fItal,
                 $pNota
             );

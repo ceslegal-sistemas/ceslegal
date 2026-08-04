@@ -245,7 +245,7 @@ $top10 = array_slice($todasLasBrechas, 0, 10);
 
 <p class="nota-final">
   Documento confidencial. Esta versi&oacute;n t&eacute;cnica est&aacute; dirigida exclusivamente a los profesionales
-  de CES Legal y contiene trazabilidad normativa para uso jur&iacute;dico interno.
+  de LUPE y contiene trazabilidad normativa para uso jur&iacute;dico interno.
 </p>
 
 </body>

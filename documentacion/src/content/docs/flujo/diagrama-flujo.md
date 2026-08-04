@@ -1,6 +1,6 @@
 ---
 title: Diagrama de Flujo
-description: Flujo completo del proceso disciplinario en CES Legal
+description: Flujo completo del proceso disciplinario en LUPE
 ---
 
 ## Flujo Principal del Sistema
