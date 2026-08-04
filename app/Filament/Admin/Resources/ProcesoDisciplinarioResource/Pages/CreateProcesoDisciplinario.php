@@ -910,6 +910,21 @@ class CreateProcesoDisciplinario extends CreateRecord
                     Forms\Components\Section::make('Descripción jurídica')
                         ->description('La IA redacta los hechos en lenguaje formal para el expediente disciplinario.')
                         ->icon('heroicon-o-sparkles')
+                        // Acción en el encabezado de la sección, como texto (mismo
+                        // estilo que "Generar redacción con IA"/"Clasificar gravedad
+                        // con IA" del Paso 2, que van como hintActions del campo) - no
+                        // un botón de ancho completo.
+                        ->headerActions([
+                            Forms\Components\Actions\Action::make('generar_hechos')
+                                ->label(fn(Get $get, $livewire) => $livewire->generandoHechos
+                                    ? 'Generando...'
+                                    : (filled($get('hechos_ia')) ? 'Volver a generar con IA' : 'Generar con IA'))
+                                ->icon('heroicon-m-sparkles')
+                                ->color('gray')
+                                ->link()
+                                ->disabled(fn($livewire) => $livewire->generandoHechos)
+                                ->action(fn($livewire) => $livewire->generarHechos()),
+                        ])
                         ->schema([
                             Forms\Components\Placeholder::make('generando_hechos_aviso')
                                 ->hiddenLabel()
@@ -924,17 +939,6 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ))
                                 ->visible(fn($livewire) => $livewire->generandoHechos)
                                 ->columnSpanFull(),
-
-                            Forms\Components\Actions::make([
-                                Forms\Components\Actions\Action::make('generar_hechos')
-                                    ->label(fn(Get $get, $livewire) => $livewire->generandoHechos
-                                        ? 'Generando...'
-                                        : (filled($get('hechos_ia')) ? 'Volver a generar descripción jurídica' : 'Generar descripción jurídica'))
-                                    ->icon('heroicon-m-sparkles')
-                                    ->color(fn(Get $get) => filled($get('hechos_ia')) ? 'gray' : 'primary')
-                                    ->disabled(fn($livewire) => $livewire->generandoHechos)
-                                    ->action(fn($livewire) => $livewire->generarHechos()),
-                            ])->fullWidth()->columnSpanFull(),
 
                             Forms\Components\Textarea::make('hechos_ia')
                                 ->label('Descripción generada (editable)')
