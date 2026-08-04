@@ -36,9 +36,18 @@ class ProcesoDisciplinarioPolicy
 
     /**
      * Determine whether the user can create models.
+     *
+     * Bufete: solo consulta el historial de procesos de sus empresas clientes,
+     * nunca crea citaciones a nombre de ellas - esa decisión le corresponde a
+     * la propia empresa. Bloquear aquí también oculta el botón "Nueva
+     * Citación" en el listado (Filament lo condiciona a este mismo policy).
      */
     public function create(User $user): bool
     {
+        if ($user->esAbogadoDeBufete()) {
+            return false;
+        }
+
         return $user->can('create_proceso::disciplinario');
     }
 
