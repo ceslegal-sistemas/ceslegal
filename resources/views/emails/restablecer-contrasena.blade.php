@@ -88,15 +88,15 @@
     <div class="wrapper">
 
         <div class="header">
-            <h1>Configure su contraseña de acceso</h1>
-            <p>CES Legal &mdash; Plataforma de gestión de procesos disciplinarios</p>
+            <h1>{{ $nombreEmpresa }}</h1>
+            <p>Configure su contraseña de acceso</p>
         </div>
 
         <div class="content">
 
             <p style="margin:0 0 18px 0;">
                 Estimado(a) <strong>{{ $nombre }}</strong>,<br>
-                se creó una cuenta para usted en CES Legal. Para ingresar por primera vez, configure su contraseña haciendo clic en el siguiente botón.
+                se creó su cuenta de acceso para gestionar los procesos disciplinarios de <strong>{{ $nombreEmpresa }}</strong> en la plataforma CES Legal. Para ingresar por primera vez, configure su contraseña haciendo clic en el siguiente botón.
             </p>
 
             <div class="cta-block">

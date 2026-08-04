@@ -20,6 +20,7 @@ class ConfigurarContrasenaNotification extends Notification implements ShouldQue
 
     public function __construct(
         public readonly string $url,
+        public readonly string $nombreEmpresa,
         public readonly int $minutosExpiracion = 60,
     ) {}
 
@@ -31,9 +32,10 @@ class ConfigurarContrasenaNotification extends Notification implements ShouldQue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Configure su contraseña de acceso - CES Legal')
+            ->subject("Configure su contraseña de acceso - {$this->nombreEmpresa}")
             ->view('emails.restablecer-contrasena', [
                 'nombre'             => $notifiable->name,
+                'nombreEmpresa'      => $this->nombreEmpresa,
                 'url'                => $this->url,
                 'minutosExpiracion'  => $this->minutosExpiracion,
             ]);
