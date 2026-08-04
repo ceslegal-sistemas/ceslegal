@@ -61,7 +61,7 @@ class CreateEmpresa extends CreateRecord
                         ->dehydrated(false)
                         ->helperText('Vuelva a escribirlo para evitar un error de tipeo - sin esto el cliente no podría acceder.'),
                 ])
-                ->columns(2),
+                ->columns(['default' => 1, 'sm' => 2]),
         ]);
     }
 

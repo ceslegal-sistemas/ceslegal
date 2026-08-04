@@ -73,7 +73,7 @@ class EmpresaResource extends Resource
                         ->label('Número de empleados')->placeholder('-')->icon('heroicon-o-user-group'),
                     Infolists\Components\IconEntry::make('active')
                         ->label('Activa')->boolean(),
-                ])->columns(2),
+                ])->columns(['default' => 1, 'sm' => 2]),
 
             Infolists\Components\Section::make('Contacto y ubicación')
                 ->icon('heroicon-o-phone')
@@ -93,7 +93,7 @@ class EmpresaResource extends Resource
                         ->label('Días laborales')
                         ->state(fn(Empresa $record) => $record->dias_laborales_texto)
                         ->badge()->color('gray'),
-                ])->columns(2),
+                ])->columns(['default' => 1, 'sm' => 2]),
 
             Infolists\Components\Section::make('Reglamento Interno de Trabajo')
                 ->icon('heroicon-o-document-text')
@@ -191,7 +191,7 @@ class EmpresaResource extends Resource
                     // Se conserva el campo legado oculto como respaldo por defecto.
                     Forms\Components\Hidden::make('dias_laborales')
                         ->default('lunes_viernes'),
-                ])->columns(2),
+                ])->columns(['default' => 1, 'sm' => 2]),
 
             Forms\Components\Section::make('Información de Contacto')
                 ->description('Datos para comunicación')
@@ -227,7 +227,7 @@ class EmpresaResource extends Resource
                         ->placeholder('Ej: Calle 123 # 45-67, Edificio ABC, Piso 3')
                         ->helperText('Dirección completa de la empresa')
                         ->columnSpanFull(),
-                ])->columns(2),
+                ])->columns(['default' => 1, 'sm' => 2]),
 
             Forms\Components\Section::make('Ubicación')
                 ->description('Ciudad y departamento')
@@ -254,7 +254,7 @@ class EmpresaResource extends Resource
                         ->disabled(fn(Get $get) => empty($get('departamento')))
                         ->helperText('Seleccione primero el departamento')
                         ->placeholder('Seleccione una ciudad...'),
-                ])->columns(2),
+                ])->columns(['default' => 1, 'sm' => 2]),
 
             Forms\Components\Section::make('Actividad Económica (CIIU)')
                 ->description('Clasificación Industrial Internacional Uniforme Rev. 4 A.C. Colombia')
