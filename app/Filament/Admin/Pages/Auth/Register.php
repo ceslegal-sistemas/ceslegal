@@ -92,7 +92,7 @@ class Register extends BaseRegister
                                 ->placeholder('Ej: EMPRESA ABC')
                                 ->helperText('Nombre legal de la empresa sin tipo societario')
                                 ->extraInputAttributes(['style' => 'text-transform:uppercase'])
-                                ->columnSpan(2),
+                                ->columnSpan(['default' => 1, 'sm' => 2]),
 
                             Forms\Components\Select::make('tipo_societario')
                                 ->label('Tipo Societario')
@@ -294,7 +294,7 @@ class Register extends BaseRegister
                                 ->required(fn (Forms\Get $get) => ($get('tipo_cuenta') ?? 'empresa') === 'bufete')
                                 ->maxLength(255)
                                 ->placeholder('Ej: Rendón & Asociados')
-                                ->columnSpan(2),
+                                ->columnSpan(['default' => 1, 'sm' => 2]),
 
                             Forms\Components\TextInput::make('bufete_nit')
                                 ->label('NIT del Bufete')

@@ -143,7 +143,7 @@ class EmpresaResource extends Resource
                         ->placeholder('Ej: EMPRESA ABC')
                         ->helperText('Nombre legal sin tipo societario')
                         ->extraInputAttributes(['style' => 'text-transform:uppercase'])
-                        ->columnSpan(2),
+                        ->columnSpan(['default' => 1, 'sm' => 2]),
 
                     Forms\Components\Select::make('tipo_societario')
                         ->label('Tipo Societario')
