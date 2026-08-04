@@ -49,9 +49,10 @@ class AuditarRIT extends Page implements HasForms, HasActions
             return false;
         }
 
-        // Cliente: usa la vista unificada "Mi Reglamento Interno" (RIT + auditoría);
-        // no ve la página separada de Auditar RIT.
-        if (Auth::user()?->hasRole('cliente')) {
+        // Cliente y bufete: ambos usan la vista unificada "Mi Reglamento Interno"
+        // (RIT + auditoría) para la empresa activa; no ven la página separada de
+        // Auditar RIT - mismo criterio que ya aplicaba solo a cliente.
+        if (Auth::user()?->hasRole('cliente') || Auth::user()?->esAbogadoDeBufete()) {
             return false;
         }
 
