@@ -158,7 +158,7 @@
 
     <div class="footer">
         <p><em>Documento generado el {{fecha_generacion}} - Código: {{codigo}}</em></p>
-        <p><em>Este documento ha sido generado de manera electrónica por el Sistema de Gestión Legal CES</em></p>
+        <p><em>Este documento ha sido generado de manera electrónica por el Sistema de Gestión Legal LUPE</em></p>
     </div>
 </body>
 </html>

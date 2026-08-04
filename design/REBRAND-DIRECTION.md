@@ -1,6 +1,6 @@
 # LUPE - Dirección de rebrand del panel (alineada a la marca)
 
-Marca: **CES + Legal Digital**. Identidad = **gradiente rojo→naranja** (crimson → naranja),
+Marca: **LUPE**. Identidad = **gradiente rojo→naranja** (crimson → naranja),
 moderna, legal-**tech** (no bufete tradicional). Guía para **diseñar en Figma** y luego
 implementar en el **theming de Filament**.
 
@@ -103,7 +103,7 @@ ya siguen esto → el rebrand queda consistente.
 
 ## 6. Pantallas a diseñar en Figma (1440px + 375px)
 
-1. **Login** - split: panel con **gradiente de marca** + logo CES, derecha formulario limpio.
+1. **Login** - split: panel con **gradiente de marca** + logo LUPE, derecha formulario limpio.
 2. **Dashboard** - tarjetas de indicadores (Procesos activos, En descargos, Sanciones, RIT), actividad.
 3. **Listado** (Procesos Disciplinarios) - tabla con badges + acciones.
 4. **Formulario / wizard** (emitir sanción) - secciones, badges de sanción.

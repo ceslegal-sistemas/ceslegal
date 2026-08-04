@@ -50,7 +50,7 @@ class PanelBrandingServiceProvider extends ServiceProvider
                     'nombre'        => $user->name,
                 ];
 
-                return '<script>window.CES_USER = ' . json_encode($ctx, JSON_UNESCAPED_UNICODE) . ';</script>';
+                return '<script>window.LUPE_USER = ' . json_encode($ctx, JSON_UNESCAPED_UNICODE) . ';</script>';
             },
         );
 

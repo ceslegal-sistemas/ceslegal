@@ -17,7 +17,7 @@ return new class extends Migration
             $table->timestamp('trial_ends_at')->nullable();
             $table->timestamp('fecha_inicio')->nullable();
             $table->timestamp('fecha_fin')->nullable();
-            $table->string('payment_reference')->nullable()->unique(); // CES-{empresa_id}-{timestamp}
+            $table->string('payment_reference')->nullable()->unique(); // LUPE-{empresa_id}-{timestamp}
             $table->string('payment_transaction_id')->nullable();
             $table->decimal('monto_pagado', 10, 2)->nullable();
             $table->timestamps();

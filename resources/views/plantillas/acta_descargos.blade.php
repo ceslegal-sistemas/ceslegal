@@ -200,7 +200,7 @@
 
     <div class="footer">
         <p><strong>Código de Acta:</strong> {{codigo_acta}} | <strong>Proceso:</strong> {{codigo_proceso}}</p>
-        <p><em>Documento generado el {{fecha_generacion}} por el Sistema de Gestión Legal CES</em></p>
+        <p><em>Documento generado el {{fecha_generacion}} por el Sistema de Gestión Legal LUPE</em></p>
         <p><em>Este documento hace parte integral del proceso disciplinario y debe ser archivado en la hoja de vida del trabajador.</em></p>
     </div>
 </body>

@@ -57,7 +57,7 @@ class PayUService
 
     public function generarReferencia(int $empresaId): string
     {
-        return 'CES-' . $empresaId . '-' . time();
+        return 'LUPE-' . $empresaId . '-' . time();
     }
 
     /**

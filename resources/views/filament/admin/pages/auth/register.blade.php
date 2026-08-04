@@ -3,8 +3,7 @@
 
     <aside class="ces-auth-brand">
         <div>
-            <div class="ces-auth-logo">CES</div>
-            <div class="ces-auth-sub">LEGAL DIGITAL</div>
+            <div class="ces-auth-logo">LUPE</div>
         </div>
         <div class="ces-auth-brand__bottom">
             <p class="ces-auth-tag">Procesos disciplinarios con respaldo constitucional.</p>

@@ -2,20 +2,20 @@
  * Guías interactivas de LUPE (Driver.js - https://driverjs.com)
  *
  * Las guías se adaptan al ROL del usuario autenticado, que llega en
- * window.CES_USER = { role, esBufete, empresaActiva, nombre } (inyectado por
+ * window.LUPE_USER = { role, esBufete, empresaActiva, nombre } (inyectado por
  * AdminPanelProvider). Roles con guía: 'cliente', 'bufete', 'super_admin'.
  * El texto va en español colombiano (usted).
  */
 document.addEventListener("DOMContentLoaded", function () {
     const pathname = window.location.pathname;
 
-    const CES = window.CES_USER || {
+    const LUPE = window.LUPE_USER || {
         role: "cliente",
         esBufete: false,
         empresaActiva: false,
         nombre: "",
     };
-    const role = CES.role || "cliente";
+    const role = LUPE.role || "cliente";
 
     // ── Página actual ────────────────────────────────────────────────────────
     const isAdminDashboard = pathname === "/admin" || pathname === "/admin/";
@@ -96,7 +96,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    const hola = CES.nombre ? "Hola, " + CES.nombre + ". " : "";
+    const hola = LUPE.nombre ? "Hola, " + LUPE.nombre + ". " : "";
 
     // ══════════════════════════════════════════════════════════════════════════
     // INICIO (Dashboard) - guía por rol
@@ -149,7 +149,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // LISTA DE PROCESOS (Historial de Descargos)
     // ══════════════════════════════════════════════════════════════════════════
     if (isProcesoList) {
-        const esBufeteSinEmpresa = role === "bufete" && !CES.empresaActiva;
+        const esBufeteSinEmpresa = role === "bufete" && !LUPE.empresaActiva;
         const introDesc = esBufeteSinEmpresa
             ? "Aquí verá los procesos de la empresa que seleccione en la barra superior."
             : "Aquí gestiona todo el proceso: desde la citación hasta la sanción.";
