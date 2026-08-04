@@ -893,18 +893,57 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ]),
 
                     // ── Descripción jurídica ──────────────────────────────────
+                    // Se genera SOLA al llegar a este paso (ya no requiere que el
+                    // cliente entienda que debe darle clic a un botón): se apoya en
+                    // el mismo mecanismo ya usado para la cámara de "Verificación"
+                    // (ver memoria filament-wizard-x-init-eager) - el Wizard raíz de
+                    // Filament expone `step` como variable reactiva de Alpine, y
+                    // cualquier hijo (sin declarar su propio x-data para `step`) la
+                    // puede leer/observar. `disparado` evita reintentos si el
+                    // cliente navega de un lado a otro del wizard antes de que
+                    // termine la llamada a la IA; el botón manual sigue disponible
+                    // como "Regenerar" (o como reintento si la IA falló).
                     Forms\Components\Section::make('Descripción jurídica')
                         ->description('La IA redacta los hechos en lenguaje formal para el expediente disciplinario.')
                         ->icon('heroicon-o-sparkles')
+                        ->extraAttributes([
+                            'x-data' => '{ disparado: false }',
+                            'x-init' => <<<'JS'
+                                const intentarGenerar = () => {
+                                    if (disparado) return;
+                                    if ((($wire.data ?? {}).hechos_ia ?? '') !== '') return;
+                                    disparado = true;
+                                    $wire.generarHechos();
+                                };
+                                if (step === 'revision') intentarGenerar();
+                                $watch('step', (valor) => { if (valor === 'revision') intentarGenerar(); });
+                                JS,
+                        ])
                         ->schema([
+                            Forms\Components\Placeholder::make('generando_hechos_aviso')
+                                ->hiddenLabel()
+                                ->content(new HtmlString(
+                                    '<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">'
+                                    . '<svg class="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">'
+                                    . '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>'
+                                    . '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>'
+                                    . '</svg>'
+                                    . '<span>Redactando la descripción jurídica con IA...</span>'
+                                    . '</div>'
+                                ))
+                                ->visible(fn($livewire) => $livewire->generandoHechos)
+                                ->columnSpanFull(),
+
                             Forms\Components\Actions::make([
                                 Forms\Components\Actions\Action::make('generar_hechos')
-                                    ->label(fn($livewire) => $livewire->generandoHechos ? 'Generando...' : 'Generar descripción jurídica')
+                                    ->label(fn(Get $get) => filled($get('hechos_ia')) ? 'Regenerar descripción jurídica' : 'Generar descripción jurídica')
                                     ->icon('heroicon-m-sparkles')
-                                    ->color('primary')
-                                    ->disabled(fn($livewire) => $livewire->generandoHechos)
+                                    ->color(fn(Get $get) => filled($get('hechos_ia')) ? 'gray' : 'primary')
                                     ->action(fn($livewire) => $livewire->generarHechos()),
-                            ])->fullWidth()->columnSpanFull(),
+                            ])
+                                ->fullWidth()
+                                ->columnSpanFull()
+                                ->hidden(fn($livewire) => $livewire->generandoHechos),
 
                             Forms\Components\Textarea::make('hechos_ia')
                                 ->label('Descripción generada (editable)')
