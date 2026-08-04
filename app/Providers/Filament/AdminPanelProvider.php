@@ -33,6 +33,14 @@ class AdminPanelProvider extends PanelProvider
 
         $panel = $this->aplicarConfigComun($panel);
 
+        // Un cliente que entre a /admin por costumbre/enlace viejo ya no tiene
+        // permiso aquí (ver User::canAccessPanel()) - en vez de dejarlo con un
+        // 403 seco, se le redirige a su panel real. Solo en 'admin': en
+        // 'empresa' nunca aplica (el que entra ahí YA es cliente).
+        $panel = $panel->middleware([
+            \App\Http\Middleware\RedirigirClienteAlPanelEmpresa::class,
+        ]);
+
         // FilamentShieldPlugin solo vive en 'admin': administra roles/permisos y
         // registra su propio Resource - no debe duplicarse en el panel 'empresa'.
         return $panel->plugins([
