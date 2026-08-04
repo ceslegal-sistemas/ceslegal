@@ -18,15 +18,19 @@ use Filament\Pages\Auth\Login as BaseLogin;
  *
  * authenticate() se reescribe completo (no se puede llamar a
  * parent::authenticate() y luego decidir el panel encima): la versión base de
- * Filament valida canAccessPanel() contra Filament::getCurrentPanel() - que
- * aquí SIEMPRE es 'admin' (es donde vive este formulario) - y si falla,
- * desloguea y lanza la MISMA excepción de "credenciales incorrectas" que una
- * contraseña mal escrita. Como User::canAccessPanel() ahora niega 'admin' a
- * cliente a propósito, esa validación de la clase base bloquearía a CUALQUIER
- * cliente con contraseña correcta, mostrándole un error de credenciales
- * falso. Se reimplementa el mismo flujo (rate limit, intento de credenciales,
- * mensaje de error idéntico si fallan) pero validando canAccessPanel() contra
- * el panel de DESTINO según el rol, no el panel donde vive el formulario.
+ * Filament valida canAccessPanel() contra Filament::getCurrentPanel() - el
+ * panel donde vive el formulario que se usó (admin o empresa, esta MISMA
+ * clase Login vive registrada en los dos) - y si falla, desloguea y lanza la
+ * MISMA excepción de "credenciales incorrectas" que una contraseña mal
+ * escrita. Como User::canAccessPanel() niega cada panel al rol que no le
+ * corresponde, esa validación de la clase base bloquearía a un cliente
+ * entrando por /admin/login O a un bufete/admin entrando por /empresa/login
+ * (probó las dos direcciones), aunque la contraseña fuera correcta. Se
+ * reimplementa el mismo flujo (rate limit, intento de credenciales, mensaje
+ * de error idéntico si fallan) pero validando y redirigiendo siempre contra
+ * el panel de DESTINO según el ROL real del usuario, nunca contra
+ * Filament::getCurrentPanel()/getUrl() (que dependen de por cuál formulario
+ * entró, no de quién es).
  *
  * Para cliente el redirect NUNCA usa redirect()->intended(): esa función
  * manda a la URL que el usuario intentó visitar ANTES de que lo mandaran a
@@ -72,7 +76,7 @@ class Login extends BaseLogin
 
         $panelDestino = ($user->role ?? null) === 'cliente'
             ? Filament::getPanel('empresa')
-            : Filament::getCurrentPanel();
+            : Filament::getPanel('admin');
 
         if (
             ($user instanceof FilamentUser) &&
@@ -121,6 +125,6 @@ class Login extends BaseLogin
     {
         return ($user?->role ?? null) === 'cliente'
             ? Filament::getPanel('empresa')->getUrl()
-            : Filament::getUrl();
+            : Filament::getPanel('admin')->getUrl();
     }
 }

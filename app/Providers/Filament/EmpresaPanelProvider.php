@@ -43,6 +43,13 @@ class EmpresaPanelProvider extends PanelProvider
                 // Widgets personalizados se cargan desde el Dashboard
             ]);
 
-        return $this->aplicarConfigComun($panel);
+        $panel = $this->aplicarConfigComun($panel);
+
+        // Espejo de RedirigirClienteAlPanelEmpresa (AdminPanelProvider): un
+        // bufete/admin que entre a /empresa por error o enlace viejo se
+        // redirige solo a /admin, en vez de un 403 seco.
+        return $panel->middleware([
+            \App\Http\Middleware\RedirigirNoClienteAlPanelAdmin::class,
+        ]);
     }
 }
