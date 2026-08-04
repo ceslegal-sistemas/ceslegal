@@ -62,8 +62,11 @@ class Dashboard extends BaseDashboard
                 ->label('Crear Citación de Descargos')
                 ->icon('heroicon-o-plus-circle')
                 ->color('primary')
-                // Oculto para el bufete hasta seleccionar una empresa específica.
-                ->visible(fn() => ! (auth()->user()?->bufeteSinEmpresaActiva() ?? false))
+                // Tercer lugar con el mismo botón manual (además del menú lateral y
+                // la guía del dashboard) que no seguía el permiso real de creación -
+                // bufete solo consulta el historial, ver
+                // ProcesoDisciplinarioPolicy::create().
+                ->visible(fn() => ProcesoDisciplinarioResource::canCreate())
                 ->url(ProcesoDisciplinarioResource::getUrl('create')),
 
             Actions\Action::make('conectar_gmail')
