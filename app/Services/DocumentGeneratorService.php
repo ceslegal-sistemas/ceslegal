@@ -223,22 +223,29 @@ class DocumentGeneratorService
                     </tr>';
                 }
 
-                $tablaSancionesHTML = '<table class="tabla-rit">
-                    <tr>
-                        <td colspan="3" class="tabla-rit-header-empresa">
-                            <strong>TABLA DE SANCIONES LABORALES</strong><br>
-                            <span style="font-size:8.5pt;">(Todas las sanciones contenidas en esta tabla solo se aplicarán previa garantía del debido proceso establecido en el Reglamento Interno, conforme a la Ley 2466 de 2025.)</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="3" class="tabla-rit-empresa">' . e($empresa->nombre_completo) . ' &nbsp;|&nbsp; NIT: ' . e($empresa->nit) . '</td>
-                    </tr>
+                // El título y el nombre de la empresa van FUERA de la tabla (solo se
+                // muestran una vez); solo la fila de encabezados de columna va dentro de
+                // <thead> para que DomPDF la repita en cada página nueva si la tabla se
+                // parte. Antes las 3 filas (título, empresa, encabezados) iban dentro del
+                // <table> sin thead/tbody - eso hacía que DomPDF calculara mal el corte de
+                // página en tablas largas y el borde de la fila partida terminaba
+                // saliéndose del margen inferior en vez de respetarlo como el encabezado.
+                $tablaSancionesHTML = '<div class="tabla-rit-header-empresa">
+                    <strong>TABLA DE SANCIONES LABORALES</strong><br>
+                    <span style="font-size:8.5pt;">(Todas las sanciones contenidas en esta tabla solo se aplicarán previa garantía del debido proceso establecido en el Reglamento Interno, conforme a la Ley 2466 de 2025.)</span>
+                </div>
+                <p class="tabla-rit-empresa">' . e($empresa->nombre_completo) . ' &nbsp;|&nbsp; NIT: ' . e($empresa->nit) . '</p>
+                <table class="tabla-rit">
+                    <thead>
                     <tr class="tabla-rit-thead">
                         <th style="width:15%;">Tipo de Falta</th>
                         <th style="width:57%;">Conductas reguladas por el Reglamento Interno</th>
                         <th style="width:28%;">Sanción aplicable</th>
                     </tr>
+                    </thead>
+                    <tbody>
                     ' . $filasHTML . '
+                    </tbody>
                 </table>
                 <p class="tabla-rit-pie">Tabla conforme al Reglamento Interno de Trabajo de ' . e($empresa->nombre_completo) . ', de conformidad con la Ley 2466 de 2025. Toda sanción se aplicará previa garantía del debido proceso.</p>';
             }
@@ -318,20 +325,34 @@ class DocumentGeneratorService
             width: 100%;
             border-collapse: collapse;
             font-size: 9.5pt;
-            margin: 8px 0 4px 0;
+            margin: 0 0 4px 0;
         }
         .tabla-rit td, .tabla-rit th {
             border: 1px solid #374151;
             padding: 5px 7px;
             vertical-align: top;
         }
+        /* Cada fila de datos se mantiene entera en una sola página - evita que
+           DomPDF corte una fila a la mitad y su borde termine saliéndose del
+           margen inferior en vez de respetarlo. */
+        .tabla-rit tbody tr {
+            page-break-inside: avoid;
+        }
         .tabla-rit-header-empresa {
             text-align: center;
             background-color: #f3f4f6;
+            border: 1px solid #374151;
+            border-bottom: none;
+            padding: 5px 7px;
+            margin: 8px 0 0 0;
         }
         .tabla-rit-empresa {
             text-align: center;
             font-size: 9pt;
+            border: 1px solid #374151;
+            border-top: none;
+            padding: 5px 7px;
+            margin: 0;
         }
         .tabla-rit-thead th {
             background-color: #e5e7eb;
@@ -1504,7 +1525,7 @@ PROMPT;
             $items   = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $fila['conductas']));
             $sancion = e($fila['sancion']);
             $filasTabla .= <<<HTML
-    <tr>
+    <tr style="page-break-inside: avoid;">
       <td style="border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">{$grav}</td>
       <td style="border: 1px solid #000; padding: 4px 6px;"><ul style="margin:0;padding-left:16px;">{$items}</ul></td>
       <td style="border: 1px solid #000; padding: 4px 6px; text-align: center;">{$sancion}</td>
@@ -1528,7 +1549,7 @@ HTML;
             }
 
             $filasTabla .= <<<HTML
-    <tr>
+    <tr style="page-break-inside: avoid;">
       <td style="border: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">{$tipoCol}</td>
       <td style="border: 1px solid #000; padding: 4px 6px;">{$conducta}</td>
       <td style="border: 1px solid #000; padding: 4px 6px;">{$fundamentoCol}</td>
@@ -1540,27 +1561,32 @@ HTML;
             $filasTabla = '<tr><td colspan="3" style="border: 1px solid #000; padding: 6px; text-align: center;">No se encontró el cuadro de faltas en el Reglamento Interno de Trabajo de esta empresa.</td></tr>';
         }
 
-        // Construir la tabla completa
+        // Construir la tabla completa. Título/empresa van FUERA del <table> (se
+        // muestran una sola vez); solo la fila de encabezados va en <thead> para
+        // que DomPDF la repita si la tabla se parte entre páginas, y las filas de
+        // datos van en <tbody> con page-break-inside:avoid - mismo fix aplicado a
+        // generarHTMLCitacionDescargos() para que el borde de una fila partida no
+        // se salga del margen inferior de la página.
         return <<<HTML
-  <table style="width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 10pt;">
-    <tr>
-      <td colspan="3" style="border: 1px solid #000; padding: 6px; text-align: center; background-color: #f5f5f5;">
-        <strong>TABLA DE SANCIONES LABORALES</strong><br>
-        <span style="font-size: 9pt;">(Todas las sanciones contenidas en esta tabla solo se aplicarán previa garantía del debido proceso establecido en este Reglamento, conforme a la Ley 2466 de 2025.)</span>
-      </td>
-    </tr>
-    <tr>
-      <td colspan="3" style="border: 1px solid #000; padding: 4px 6px; text-align: center;">
-        <strong>{$empresa->nombre_completo}</strong><br>
-        NIT: {$empresa->nit}
-      </td>
-    </tr>
+  <div style="border: 1px solid #000; border-bottom: none; padding: 6px; text-align: center; background-color: #f5f5f5; margin: 8px 0 0 0;">
+    <strong>TABLA DE SANCIONES LABORALES</strong><br>
+    <span style="font-size: 9pt;">(Todas las sanciones contenidas en esta tabla solo se aplicarán previa garantía del debido proceso establecido en este Reglamento, conforme a la Ley 2466 de 2025.)</span>
+  </div>
+  <p style="border: 1px solid #000; border-top: none; padding: 4px 6px; text-align: center; margin: 0;">
+    <strong>{$empresa->nombre_completo}</strong><br>
+    NIT: {$empresa->nit}
+  </p>
+  <table style="width: 100%; border-collapse: collapse; margin: 0 0 4px 0; font-size: 10pt;">
+    <thead>
     <tr style="background-color: #e0e0e0;">
       <th style="border: 1px solid #000; padding: 4px 6px; text-align: center; width: 20%;">Tipo de Falta</th>
       <th style="border: 1px solid #000; padding: 4px 6px; text-align: center; width: 55%;">Descripción de la conducta</th>
       <th style="border: 1px solid #000; padding: 4px 6px; text-align: center; width: 25%;">Sanción</th>
     </tr>
+    </thead>
+    <tbody style="page-break-inside: auto;">
     {$filasTabla}
+    </tbody>
   </table>
 HTML;
     }
