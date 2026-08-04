@@ -1629,14 +1629,14 @@ class CreateReglamentoInterno extends CreateRecord
     public function getBreadcrumbs(): array
     {
         return [
-            route('filament.admin.pages.dashboard') => 'Panel',
+            \App\Filament\Admin\Pages\Dashboard::getUrl() => 'Panel',
             'Construir Reglamento Interno de Trabajo',
         ];
     }
 
     protected function getRedirectUrl(): string
     {
-        return route('filament.admin.pages.mi-reglamento-interno');
+        return \App\Filament\Admin\Pages\MiReglamentoInterno::getUrl();
     }
 
     private function getEmpresa(): ?Empresa

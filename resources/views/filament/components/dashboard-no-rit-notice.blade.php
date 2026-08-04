@@ -65,7 +65,7 @@ html:not(.dark) .norit-cta:hover { background: #92400e; }
 
         </div>
 
-        <a href="{{ route('filament.admin.resources.reglamento-internos.create') }}" class="norit-cta">
+        <a href="{{ \App\Filament\Admin\Resources\ReglamentoInternoResource::getUrl('create') }}" class="norit-cta">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
                 style="width:16px;height:16px;flex-shrink:0">
                 <path stroke-linecap="round" stroke-linejoin="round"

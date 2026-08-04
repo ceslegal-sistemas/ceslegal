@@ -166,7 +166,7 @@ class GuiaProcesoService
             return [
                 'tipo' => 'primary',
                 'label' => 'Construir o subir mi Reglamento Interno',
-                'url' => route('filament.admin.pages.mi-reglamento-interno'),
+                'url' => \App\Filament\Admin\Pages\MiReglamentoInterno::getUrl(),
                 'nota' => 'Con su Reglamento Interno podrá aplicar distintos tipos de sanciones según lo que este contemple. Sin reglamento, solo podrá terminar el contrato con justa causa.',
             ];
         }

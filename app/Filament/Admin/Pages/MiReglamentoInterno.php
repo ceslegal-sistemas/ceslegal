@@ -55,7 +55,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
 
         $user = Auth::user();
         if (!$user) {
-            $this->redirect(route('filament.admin.pages.dashboard'));
+            $this->redirect(\App\Filament\Admin\Pages\Dashboard::getUrl());
             return;
         }
 

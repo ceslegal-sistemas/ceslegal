@@ -32,7 +32,7 @@ class ReglamentoInternoResource extends Resource
 
     public static function getNavigationUrl(): string
     {
-        return route('filament.admin.pages.mi-reglamento-interno');
+        return \App\Filament\Admin\Pages\MiReglamentoInterno::getUrl();
     }
 
     public static function getEloquentQuery(): Builder

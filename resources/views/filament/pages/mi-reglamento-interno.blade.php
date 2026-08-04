@@ -5,7 +5,7 @@
     $tiene = $reglamento && !empty($reglamento->texto_completo) && !$estaGenerando && !$tieneError;
     $eIA   = in_array($reglamento?->fuente, ['construido_ia', 'mejora_ia']);
     $fecha = $reglamento?->updated_at?->format('d/m/Y \a \l\a\s g:i A');
-    $wizardUrl  = route('filament.admin.resources.reglamento-internos.create');
+    $wizardUrl  = \App\Filament\Admin\Resources\ReglamentoInternoResource::getUrl('create');
     $esAdmin = auth()->user()?->hasRole('super_admin') || auth()->user()?->hasRole('abogado');
     // Bufete sin empresa seleccionada: no puede subir/construir hasta elegir una.
     $necesitaSeleccion = (auth()->user()?->esAbogadoDeBufete() ?? false) && ! $empresa;

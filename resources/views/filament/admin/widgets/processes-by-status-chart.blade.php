@@ -8,7 +8,7 @@
 
     // Obtener datos para los botones
     $estadosData = $this->getEstadosParaBotones();
-    $baseUrl = route('filament.admin.resources.proceso-disciplinarios.index');
+    $baseUrl = \App\Filament\Admin\Resources\ProcesoDisciplinarioResource::getUrl('index');
 @endphp
 
 <x-filament-widgets::widget class="fi-wi-chart">

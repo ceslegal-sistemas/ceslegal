@@ -139,9 +139,9 @@ class ExpiringTermsWidget extends BaseWidget
                     ->icon('heroicon-m-arrow-top-right-on-square')
                     ->url(function (TerminoLegal $record): ?string {
                         if ($record->proceso_tipo === 'proceso_disciplinario') {
-                            return route('filament.admin.resources.proceso-disciplinarios.edit', $record->proceso_id);
+                            return \App\Filament\Admin\Resources\ProcesoDisciplinarioResource::getUrl('edit', ['record' => $record->proceso_id]);
                         } else {
-                            return route('filament.admin.resources.solicitud-contratos.edit', $record->proceso_id);
+                            return \App\Filament\Admin\Resources\SolicitudContratoResource::getUrl('edit', ['record' => $record->proceso_id]);
                         }
                     })
                     ->openUrlInNewTab(),

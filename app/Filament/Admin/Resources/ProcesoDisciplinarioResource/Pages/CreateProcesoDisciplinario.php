@@ -1956,7 +1956,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                     ->persistent()
                     ->send();
 
-                $this->redirect(route('filament.admin.pages.mi-reglamento-interno'));
+                $this->redirect(\App\Filament\Admin\Pages\MiReglamentoInterno::getUrl());
 
                 return;
             }
