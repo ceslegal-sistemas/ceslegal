@@ -6,12 +6,12 @@ use App\Filament\Admin\Resources\EmpresaResource;
 use App\Jobs\ProcesarAuditoriaRIT;
 use App\Models\User;
 use App\Services\AuditoriaRITService;
+use App\Notifications\ConfigurarContrasenaNotification;
 use App\Services\ReglamentoInternoService;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
-use Filament\Notifications\Auth\ResetPassword as FilamentResetPasswordNotification;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Contracts\Auth\CanResetPassword;
@@ -99,20 +99,19 @@ class CreateEmpresa extends CreateRecord
 
         // Password::sendResetLink() con la notificación DEFAULT de Laravel
         // arma la URL con route('password.reset', ...) - una ruta que no
-        // existe en esta app (solo Filament, sin Auth::routes() de Laravel).
-        // Reventaba con RouteNotFoundException justo aquí, después de ya
-        // haber creado la empresa y el usuario, dejando la cuenta sin forma
-        // de configurar su contraseña. Se reemplaza por el mismo callback
-        // que usa el propio "olvidé mi contraseña" del panel
-        // (RequestPasswordReset::request()), que arma la URL con
-        // Filament::getResetPasswordUrl() apuntando a la ruta real del
-        // panel (filament.admin.auth.password-reset.reset).
+        // existe en esta app (solo Filament, sin Auth::routes() de Laravel) -
+        // y además su contenido va en inglés (Lang::get() sobre frases
+        // literales nunca traducidas en este proyecto, ver lang/es.json
+        // inexistente). Se reemplaza por ConfigurarContrasenaNotification:
+        // misma URL firmada real del panel (Filament::getResetPasswordUrl(),
+        // igual que usa el propio "olvidé mi contraseña" del panel), pero con
+        // plantilla propia en español y la identidad visual de CES Legal.
         Password::sendResetLink(
             ['email' => $cliente->email],
             function (CanResetPassword $user, string $token): void {
-                $notification = app(FilamentResetPasswordNotification::class, ['token' => $token]);
-                $notification->url = Filament::getResetPasswordUrl($token, $user);
-                $user->notify($notification);
+                $url = Filament::getResetPasswordUrl($token, $user);
+                $minutos = (int) config('auth.passwords.' . config('auth.defaults.passwords') . '.expire', 60);
+                $user->notify(new ConfigurarContrasenaNotification($url, $minutos));
             }
         );
 
