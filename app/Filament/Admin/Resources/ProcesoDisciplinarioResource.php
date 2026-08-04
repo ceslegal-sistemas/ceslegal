@@ -64,20 +64,29 @@ class ProcesoDisciplinarioResource extends Resource
             return [];
         }
 
-        return [
-            NavigationItem::make('Crear Citación de Descargos')
+        $items = [];
+
+        // "Crear Citación de Descargos" es un enlace manual, independiente del
+        // botón "Nueva Citación" estándar de Filament - por eso no seguía el
+        // permiso de ProcesoDisciplinarioPolicy::create() (bufete no puede
+        // crear, solo consultar el historial) hasta ahora: static::canCreate()
+        // consulta el mismo policy, una sola fuente de verdad.
+        if (static::canCreate()) {
+            $items[] = NavigationItem::make('Crear Citación de Descargos')
                 ->icon('heroicon-o-plus-circle')
                 ->url(static::getUrl('create'))
                 // ->color('success')
-                ->sort(0),
+                ->sort(0);
             // ->badge(fn() => 'Nuevo', 'success'),
+        }
 
-            NavigationItem::make('Historial de Descargos')
+        $items[] = NavigationItem::make('Historial de Descargos')
                 ->icon(static::getNavigationIcon())
                 ->url(static::getUrl('index'))
                 ->sort(1)
-                ->isActiveWhen(fn() => request()->routeIs(static::getRouteBaseName() . '.*') && !request()->routeIs(static::getRouteBaseName() . '.create')),
-        ];
+                ->isActiveWhen(fn() => request()->routeIs(static::getRouteBaseName() . '.*') && !request()->routeIs(static::getRouteBaseName() . '.create'));
+
+        return $items;
     }
 
     public static function getEloquentQuery(): Builder

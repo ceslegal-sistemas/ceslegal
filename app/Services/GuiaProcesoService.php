@@ -66,11 +66,11 @@ class GuiaProcesoService
             return ['estado' => 'sin_seleccion'];
         }
 
-        return $this->paraEmpresa($empresa) + ['estado' => 'ok', 'empresa' => $empresa];
+        return $this->paraEmpresa($empresa, $user) + ['estado' => 'ok', 'empresa' => $empresa];
     }
 
     /** Cálculo del roadmap para una empresa concreta. */
-    public function paraEmpresa(Empresa $empresa): array
+    public function paraEmpresa(Empresa $empresa, ?User $user = null): array
     {
         // ── RIT vigente ──
         // "Tiene RIT" solo si hay uno VIGENTE: activo y con contenido (no uno a medio
@@ -136,7 +136,15 @@ class GuiaProcesoService
         ];
 
         // ── Acción siguiente ──
-        $accion = $this->accionSiguiente($tieneRit, $ritSubido, $total, $esperando, $listos);
+        // Bufete solo consulta el historial (ProcesoDisciplinarioPolicy::create()
+        // le niega crear citaciones) - la guía no debe sugerirle una acción que
+        // termina en 403. $user->can() consulta la MISMA fuente de verdad que ya
+        // oculta el botón "Nueva Citación" del menú (ver
+        // ProcesoDisciplinarioResource::getNavigationItems()).
+        $puedeCrearDescargo = $user
+            ? $user->can('create', ProcesoDisciplinario::class)
+            : true;
+        $accion = $this->accionSiguiente($tieneRit, $ritSubido, $total, $esperando, $listos, $puedeCrearDescargo);
 
         return [
             'rit' => ['tiene' => $tieneRit, 'subido' => $ritSubido, 'auditado' => $ritAuditado],
@@ -160,7 +168,7 @@ class GuiaProcesoService
         return 'pending';
     }
 
-    private function accionSiguiente(bool $tieneRit, bool $ritSubido, int $total, int $esperando, array $listos): array
+    private function accionSiguiente(bool $tieneRit, bool $ritSubido, int $total, int $esperando, array $listos, bool $puedeCrearDescargo = true): array
     {
         if (! $tieneRit) {
             return [
@@ -172,6 +180,15 @@ class GuiaProcesoService
         }
 
         if ($total === 0) {
+            if (! $puedeCrearDescargo) {
+                return [
+                    'tipo' => 'info',
+                    'label' => 'Sin descargos registrados',
+                    'url' => \App\Filament\Admin\Resources\ProcesoDisciplinarioResource::getUrl('index'),
+                    'nota' => 'La empresa aún no ha creado ningún proceso disciplinario. Podrá consultarlos aquí cuando existan.',
+                ];
+            }
+
             return [
                 'tipo' => 'primary',
                 'label' => 'Crear el primer descargo',
