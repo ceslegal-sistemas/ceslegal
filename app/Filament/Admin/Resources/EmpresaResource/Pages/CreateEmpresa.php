@@ -7,11 +7,14 @@ use App\Jobs\ProcesarAuditoriaRIT;
 use App\Models\User;
 use App\Services\AuditoriaRITService;
 use App\Services\ReglamentoInternoService;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Auth\ResetPassword as FilamentResetPasswordNotification;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
@@ -94,7 +97,24 @@ class CreateEmpresa extends CreateRecord
         ]);
         $cliente->assignRole('cliente');
 
-        Password::sendResetLink(['email' => $cliente->email]);
+        // Password::sendResetLink() con la notificación DEFAULT de Laravel
+        // arma la URL con route('password.reset', ...) - una ruta que no
+        // existe en esta app (solo Filament, sin Auth::routes() de Laravel).
+        // Reventaba con RouteNotFoundException justo aquí, después de ya
+        // haber creado la empresa y el usuario, dejando la cuenta sin forma
+        // de configurar su contraseña. Se reemplaza por el mismo callback
+        // que usa el propio "olvidé mi contraseña" del panel
+        // (RequestPasswordReset::request()), que arma la URL con
+        // Filament::getResetPasswordUrl() apuntando a la ruta real del
+        // panel (filament.admin.auth.password-reset.reset).
+        Password::sendResetLink(
+            ['email' => $cliente->email],
+            function (CanResetPassword $user, string $token): void {
+                $notification = app(FilamentResetPasswordNotification::class, ['token' => $token]);
+                $notification->url = Filament::getResetPasswordUrl($token, $user);
+                $user->notify($notification);
+            }
+        );
 
         Notification::make()
             ->success()
