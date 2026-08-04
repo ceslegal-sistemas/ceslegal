@@ -2061,6 +2061,20 @@ class CreateProcesoDisciplinario extends CreateRecord
         $data['modalidad_descargos'] = 'virtual';
         $data['hechos'] = $data['hechos_ia'] ?? $this->datosExtraidos['hechos'] ?? '';
 
+        // sanciones_laborales_ids: este wizard nunca tuvo el selector manual
+        // "Motivo de los descargos" que sí existe al editar (ver
+        // ProcesoDisciplinarioResource::formSchema()) - sin ese dato, la tabla
+        // de sanciones del documento generado cae siempre al catálogo COMPLETO
+        // del RIT en vez de mostrar solo la conducta del incidente. Se toma
+        // automáticamente de clasificacion_incidente_ia.conducta_rit_aplicable
+        // (ya validado en IADescargoService::clasificarIncidente() como copia
+        // literal de una entrada real del catálogo - nunca inventado).
+        $clasificacion = json_decode($data['clasificacion_incidente_ia'] ?? '', true);
+        $conductaRit   = is_array($clasificacion) ? ($clasificacion['conducta_rit_aplicable'] ?? '') : '';
+        if (is_string($conductaRit) && $conductaRit !== '') {
+            $data['sanciones_laborales_ids'] = [$conductaRit];
+        }
+
         // fecha_ocurrencia: preferir la fecha explícita del formulario
         if (!empty($data['fecha_hecho'])) {
             $data['fecha_ocurrencia'] = $data['fecha_hecho'];

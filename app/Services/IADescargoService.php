@@ -106,6 +106,7 @@ class IADescargoService
                 'complejidad_probatoria_estimada' => 'no_determinable',
                 'nivel_interrogatorio_minimo'     => 'CONVERSACIONAL',
                 'factores_riesgo'          => [],
+                'conducta_rit_aplicable'   => '',
                 'justificacion'            => '',
                 'error'                    => null,
             ];
@@ -187,6 +188,27 @@ class IADescargoService
                 fn($f) => is_string($f) && $f !== '' && mb_stripos($hechos, $f) !== false
             ));
 
+            // Salvaguarda de código: conducta_rit_aplicable solo se conserva si
+            // coincide EXACTAMENTE (literal) con una entrada real del catálogo
+            // que se le pasó al prompt - nunca se confía en el modelo para esto,
+            // igual que fragmentos_a_revisar arriba. Sirve para poblar
+            // automáticamente sanciones_laborales_ids en el proceso (ver
+            // CreateProcesoDisciplinario::mutateFormDataBeforeCreate()), que de
+            // lo contrario queda vacío y la tabla de sanciones del documento cae
+            // al catálogo completo.
+            $conductaPropuesta = $resultado['conducta_rit_aplicable'] ?? '';
+            $conductasValidas  = [];
+            foreach (['leve', 'grave', 'gravisima'] as $g) {
+                foreach ($catalogoConductas[$g] ?? [] as $c) {
+                    if (!empty($c['conducta'])) {
+                        $conductasValidas[] = $c['conducta'];
+                    }
+                }
+            }
+            $resultado['conducta_rit_aplicable'] = (is_string($conductaPropuesta) && in_array($conductaPropuesta, $conductasValidas, true))
+                ? $conductaPropuesta
+                : '';
+
             $resultado['error'] = null;
 
             Log::channel('descargos')->info('[IA] Clasificación de incidente OK', [
@@ -215,6 +237,7 @@ class IADescargoService
                 'complejidad_probatoria_estimada' => 'no_determinable',
                 'nivel_interrogatorio_minimo'     => 'CONVERSACIONAL',
                 'factores_riesgo'          => [],
+                'conducta_rit_aplicable'   => '',
                 'justificacion'            => '',
                 'error'                    => 'El análisis automático no estuvo disponible: ' . $e->getMessage(),
             ];
@@ -405,12 +428,21 @@ SALIDA - responde ÚNICAMENTE este JSON:
   "complejidad_probatoria_estimada": "media",
   "nivel_interrogatorio_minimo": "INVESTIGATIVO",
   "factores_riesgo": [],
+  "conducta_rit_aplicable": "",
   "justificacion": ""
 }
 Si informacion_suficiente es false: deja gravedad_estimada en "no_determinable", certeza en "baja",
 nivel_interrogatorio_minimo en "CONVERSACIONAL", y llena elementos_faltantes (máximo 4 puntos, cada
 uno una frase corta y accionable dirigida a quien está citando - ej. "Especifique la fecha exacta
 en que se detectó el faltante de inventario").
+conducta_rit_aplicable: copia aquí, LITERAL y SIN CAMBIAR NI UNA LETRA, el texto completo de UNA
+entrada del CATÁLOGO DE CONDUCTAS POR GRAVEDAD de arriba (la que usaste como piso en la PARTE 2) -
+esta cadena se usa para armar la tabla de sanciones del documento legal, así que debe coincidir
+EXACTAMENTE (carácter por carácter, incluida puntuación) con una de las líneas del catálogo, sin el
+prefijo "[LEVE]"/"[GRAVE]"/"[GRAVÍSIMA]" ni la flecha de la sanción/base legal. Dejar en cadena vacía
+si informacion_suficiente es false, si el catálogo está vacío, o si ninguna entrada del catálogo
+corresponde razonablemente a los hechos - nunca inventes ni parafrasees una conducta que no esté
+copiada tal cual del catálogo.
 fragmentos_a_revisar: SOLO cuando el problema está DENTRO del texto de "HECHOS RELATADOS" (una
 fecha, nombre o dato que se contradice a sí mismo dentro del relato) - copia ahí, palabra por
 palabra y SIN MODIFICAR NADA, la porción exacta del relato que genera la duda (ej. si el relato dice
