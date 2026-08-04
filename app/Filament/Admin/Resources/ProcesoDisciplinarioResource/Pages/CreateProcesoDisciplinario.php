@@ -893,32 +893,23 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ]),
 
                     // ── Descripción jurídica ──────────────────────────────────
-                    // Se genera SOLA al llegar a este paso (ya no requiere que el
-                    // cliente entienda que debe darle clic a un botón): se apoya en
-                    // el mismo mecanismo ya usado para la cámara de "Verificación"
-                    // (ver memoria filament-wizard-x-init-eager) - el Wizard raíz de
-                    // Filament expone `step` como variable reactiva de Alpine, y
-                    // cualquier hijo (sin declarar su propio x-data para `step`) la
-                    // puede leer/observar. `disparado` evita reintentos si el
-                    // cliente navega de un lado a otro del wizard antes de que
-                    // termine la llamada a la IA; el botón manual sigue disponible
-                    // como "Regenerar" (o como reintento si la IA falló).
+                    // Se genera SOLA al llegar a este paso (mismo patrón que el
+                    // clasificador de gravedad del Paso 2: se dispara automático, pero
+                    // la acción manual se deja siempre visible por si el cliente quiere
+                    // volver a ejecutarla). El disparador va en un componente Blade
+                    // propio (auto-generar-hechos), no en ->extraAttributes() de la
+                    // Section: un primer intento con extraAttributes() en la Section no
+                    // disparaba (la Section envuelve su contenido en marcado propio que
+                    // aparentemente rompe el anidamiento que necesita el x-init) - un
+                    // <div> propio, igual que el de la cámara de "Verificación", sí
+                    // funciona (ver memoria filament-wizard-x-init-eager).
+                    Forms\Components\View::make('filament.components.auto-generar-hechos')
+                        ->key('proc_auto_generar_hechos')
+                        ->columnSpanFull(),
+
                     Forms\Components\Section::make('Descripción jurídica')
                         ->description('La IA redacta los hechos en lenguaje formal para el expediente disciplinario.')
                         ->icon('heroicon-o-sparkles')
-                        ->extraAttributes([
-                            'x-data' => '{ disparado: false }',
-                            'x-init' => <<<'JS'
-                                const intentarGenerar = () => {
-                                    if (disparado) return;
-                                    if ((($wire.data ?? {}).hechos_ia ?? '') !== '') return;
-                                    disparado = true;
-                                    $wire.generarHechos();
-                                };
-                                if (step === 'revision') intentarGenerar();
-                                $watch('step', (valor) => { if (valor === 'revision') intentarGenerar(); });
-                                JS,
-                        ])
                         ->schema([
                             Forms\Components\Placeholder::make('generando_hechos_aviso')
                                 ->hiddenLabel()
@@ -936,14 +927,14 @@ class CreateProcesoDisciplinario extends CreateRecord
 
                             Forms\Components\Actions::make([
                                 Forms\Components\Actions\Action::make('generar_hechos')
-                                    ->label(fn(Get $get) => filled($get('hechos_ia')) ? 'Regenerar descripción jurídica' : 'Generar descripción jurídica')
+                                    ->label(fn(Get $get, $livewire) => $livewire->generandoHechos
+                                        ? 'Generando...'
+                                        : (filled($get('hechos_ia')) ? 'Volver a generar descripción jurídica' : 'Generar descripción jurídica'))
                                     ->icon('heroicon-m-sparkles')
                                     ->color(fn(Get $get) => filled($get('hechos_ia')) ? 'gray' : 'primary')
+                                    ->disabled(fn($livewire) => $livewire->generandoHechos)
                                     ->action(fn($livewire) => $livewire->generarHechos()),
-                            ])
-                                ->fullWidth()
-                                ->columnSpanFull()
-                                ->hidden(fn($livewire) => $livewire->generandoHechos),
+                            ])->fullWidth()->columnSpanFull(),
 
                             Forms\Components\Textarea::make('hechos_ia')
                                 ->label('Descripción generada (editable)')
