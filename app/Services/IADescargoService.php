@@ -33,6 +33,8 @@ class IADescargoService
         /* 0 */ '¿Va a asistir acompañado(a) por alguien?',
         /* 1 */ '¿Qué relación tiene esa persona con usted?',
         /* 2 */ 'Acompañante: indique su nombre completo y en qué calidad asiste a esta diligencia (apoyo moral, representante sindical, apoderado, testigo u otro).',
+        /* 3 */ '¿Trabaja usted para una empresa contratista o tercero diferente a {empresa}?',
+        /* 4 */ '¿Cuál es el nombre de esa empresa contratista o tercero?',
     ];
 
     // Mapa de dependencias entre preguntas iniciales: índice_hijo => índice_padre
@@ -40,6 +42,7 @@ class IADescargoService
     const DEPENDENCIAS_INICIALES = [
         1 => 0,   // relación acompañante  → ¿va acompañado?
         2 => 0,   // identificación acomp. → ¿va acompañado?
+        4 => 3,   // nombre contratista    → ¿trabaja para contratista?
     ];
 
     // Preguntas estándar de cierre
@@ -547,6 +550,24 @@ PROMPT;
                 ? $director['objetivos_pendientes']
                 : [];
 
+            // AUDITORÍA (caso real de campo - proceso PD-2026-0055): el trabajador dijo
+            // explícitamente "no quiero continuar los descargos, asumo mi responsabilidad" y
+            // el sistema igual generó 2 preguntas casi idénticas más. A diferencia de la
+            // salvaguarda de corroboración (que SIEMPRE es seguro bloquear porque solo
+            // suaviza), acá NO se fuerza el cierre por código - podría haber un objetivo
+            // legalmente indispensable real (fuero, por ejemplo) - pero si el Director decide
+            // continuar=true de todas formas, queda registrado con nivel WARNING para poder
+            // auditar si la regla del prompt (SOLICITUD EXPLÍCITA DE FINALIZAR) se está
+            // respetando en producción.
+            if (($director['trabajador_solicito_finalizar'] ?? false) === true && $continuar) {
+                Log::channel('descargos')->warning('[IA] Trabajador solicitó finalizar pero el Director decidió continuar - verificar que el objetivo pendiente sea realmente indispensable', [
+                    'diligencia_id'        => $diligencia->id,
+                    'pregunta_id'          => $preguntaRespondida->id,
+                    'objetivos_pendientes' => $objetivosPendientes,
+                    'motivo'               => $director['motivo'] ?? null,
+                ]);
+            }
+
             if (empty($director) || !$continuar || empty($objetivosPendientes)) {
                 return [];
             }
@@ -709,9 +730,22 @@ PROMPT;
         }
 
         // Preguntas YA RESPONDIDAS - historial completo para contexto íntegro
+        //
+        // BUG REAL CONFIRMADO (caso PD-2026-0057, Juan Pablo/kanban): esta consulta
+        // usaba ->activas() (estado='activa', "todavía SIN responder") combinado con
+        // ->whereHas('respuesta') (exige que SÍ tenga respuesta) - una contradicción
+        // que SIEMPRE devolvía vacío, porque al responderse una pregunta su estado
+        // pasa a 'respondida'. El bloque "PREGUNTAS REALIZADAS Y SUS RESPUESTAS" que
+        // reciben los 3 agentes (Director/Generador/Evaluador) llegaba vacío en TODOS
+        // los turnos, sin excepción - por eso el Evaluador repetía en cada turno el
+        // mismo razonamiento genérico ("expediente en etapa inicial", "el trabajador
+        // no ha tenido oportunidad real de responder") incluso después de 20+
+        // respuestas reales: desde su punto de vista el historial genuinamente
+        // estaba vacío. Confirmado leyendo el prompt real guardado en
+        // trazabilidad_ia_descargos para esa diligencia.
         $preguntasYRespuestas = $diligencia->preguntas()
             ->with('respuesta')
-            ->activas()
+            ->respondidas()
             ->whereHas('respuesta')
             ->get()
             ->map(function ($pregunta) {
@@ -746,9 +780,10 @@ PROMPT;
             ->pluck('pregunta')
             ->toArray();
 
-        // Lista completa de preguntas para anti-repetición secundaria
+        // Lista completa de preguntas para anti-repetición secundaria - TODAS,
+        // respondidas y pendientes (mismo bug de ->activas() que arriba: dejaba
+        // afuera las ya respondidas, la mitad de los casos que debía cubrir).
         $todasLasPreguntas = $diligencia->preguntas()
-            ->activas()
             ->pluck('pregunta')
             ->toArray();
 
@@ -1374,6 +1409,33 @@ ese objetivo sea relevante para la decisión disciplinaria.
 Si no existe ningún objetivo pendiente:
 continuar=false
 ==================================================
+SOLICITUD EXPLÍCITA DE FINALIZAR (caso real que motivó esta regla: un trabajador que dijo "no
+quiero continuar los descargos, asumo mi responsabilidad, me equivoqué" recibió 2 preguntas más
+casi idénticas sobre el mismo error ya admitido, y luego 3 preguntas más generadas sobre su
+silencio total - una ineficiencia real detectada en pruebas de campo, no hipotética)
+==================================================
+Revisa la respuesta MÁS RECIENTE, sin importar a qué objetivo pertenecía la pregunta que la
+originó: ¿el trabajador expresó, de cualquier forma, que no desea continuar respondiendo? (ej.
+"no quiero continuar", "ya le dije todo", "que más quiere que le diga", frustración explícita
+ante preguntas que percibe como repetidas) - marca trabajador_solicito_finalizar=true.
+Cuando trabajador_solicito_finalizar=true, ELEVA DRÁSTICAMENTE el umbral para seguir: solo
+autoriza una pregunta más si existe un objetivo LEGALMENTE INDISPENSABLE para la decisión (ej.
+verificar fuero, identificar a quien autorizó algo que cambiaría materialmente la sanción, un
+riesgo CRÍTICO del motor de riesgo jurídico) - NUNCA para obtener más detalle sobre algo que el
+trabajador ya intentó explicar o ya reconoció, sin importar cuántas veces lo haya reformulado
+antes. Ante la duda, cierra: insistir después de una solicitud explícita de finalizar es en sí
+mismo un riesgo de debido proceso, no solo un problema de eficiencia. Esto aplica incluso en
+casos FORENSES o con nivel de interrogatorio mínimo EXHAUSTIVO fijado al citar - ni el caso más
+grave autoriza ignorar una solicitud explícita de finalizar salvo objetivo indispensable real.
+==================================================
+SILENCIO CONSECUTIVO
+==================================================
+Si las DOS respuestas más recientes están vacías o son silencio total (SILENCIO real - un campo
+sin ningún contenido, distinto de "no recuerdo" que sí es una respuesta con contenido), trata
+esto como el fin práctico de la participación del trabajador: continuar=false, y registra los
+objetivos que quedaron pendientes como "no se pudieron obtener por falta de respuesta" en el
+campo motivo - nunca generes una pregunta nueva sobre un silencio que ya se repitió.
+==================================================
 RECONOCIMIENTO DEL HECHO
 ==================================================
 Clasifica internamente el nivel de reconocimiento en exactamente uno:
@@ -1864,6 +1926,7 @@ Responder EXCLUSIVAMENTE el siguiente JSON.
     "evidencia_perfil":"",
     "nivel_tecnico":"",
     "reconocimiento_nivel":"",
+    "trabajador_solicito_finalizar":false,
     "continuar":true,
     "maximo_preguntas":0,
     "objetivos_pendientes":[
@@ -1880,6 +1943,10 @@ Responder EXCLUSIVAMENTE el siguiente JSON.
 reconocimiento_nivel debe ser exactamente uno de: EXPRESO, IMPLICITO, NEGACION,
 SILENCIO, EVASIVA, NO_APLICA (usa NO_APLICA solo si el objetivo confirmar_hecho
 ya no está entre los objetivos pendientes ni fue relevante en este turno).
+trabajador_solicito_finalizar: true si la respuesta más reciente expresó, de
+cualquier forma, que el trabajador no desea continuar - ver la regla SOLICITUD
+EXPLÍCITA DE FINALIZAR arriba. Es independiente de reconocimiento_nivel y de a
+qué objetivo pertenecía la pregunta.
 elementos_no_corroborados es la lista (puede ir vacía) de afirmaciones
 exculpatorias o atenuantes que el trabajador hizo sin aportar el elemento
 verificable exigido por el MOTOR DE CORROBORACIÓN - persiste entre turnos, nunca
@@ -2103,6 +2170,14 @@ actual, tu pregunta debe pedir específicamente el dato verificable faltante
 (nombre de quien autorizó, fecha, medio, referencia) - nunca una pregunta
 genérica tipo "¿puede ampliar eso?". Sé concreto: pide exactamente el dato que
 falta, en una sola pregunta.
+==================================================
+SI EL TRABAJADOR YA PIDIÓ FINALIZAR
+==================================================
+Si trabajador_solicito_finalizar=true, el Director solo te habrá dejado un objetivo si es
+legalmente indispensable (ver su regla SOLICITUD EXPLÍCITA DE FINALIZAR) - nunca lo trates como
+una oportunidad para insistir en algo ya explicado. Formula esa única pregunta de la forma más
+breve y directa posible, reconociendo explícitamente que es la última: nunca la redactes como
+una reformulación de una pregunta anterior ya respondida o ya reconocida.
 ==================================================
 PREGUNTAS ACLARATORIAS
 ==================================================
@@ -2340,6 +2415,16 @@ cierre sobre ese objetivo específico - marca patron_evasivo_pendiente=true y
 continuar=true para ese punto puntual, aunque el resto del expediente esté
 completo.
 ==================================================
+SOLICITUD EXPLÍCITA DE FINALIZAR (PRIORIDAD SOBRE LOS DEMÁS CRITERIOS)
+==================================================
+Si el Director marcó trabajador_solicito_finalizar=true, esta regla tiene prioridad sobre
+CORROBORACIÓN PENDIENTE y PATRÓN EVASIVO PENDIENTE: expediente_suficiente=true y continuar=false
+salvo que exista un objetivo LEGALMENTE INDISPENSABLE sin resolver (fuero, identidad de quien
+autorizó algo que cambiaría materialmente la sanción, un riesgo CRÍTICO). Nunca mantengas la
+diligencia abierta solo para completar una corroboración menor o una precisión adicional sobre
+algo que el trabajador ya reconoció - eso es exactamente el patrón detectado en pruebas de campo
+que motivó esta regla (ver caso real citado en el Director Estratégico).
+==================================================
 RESPUESTAS EVASIVAS
 ==================================================
 Si después de dos oportunidades razonables el trabajador continúa respondiendo evasivamente.
@@ -2528,27 +2613,41 @@ PROMPT;
             'gemini-2.5-flash-lite',
         ]));
 
-        $payload = [
-            'contents' => [
-                [
-                    'parts' => [
-                        [
-                            'text' => "Eres un abogado laboral experto en procesos disciplinarios en Colombia. Respondes de forma concisa y profesional pero entendible para cualquier persona.\n\n" . $prompt
-                        ]
-                    ]
-                ]
-            ],
-            'generationConfig' => [
-                'temperature'     => 0.7,
-                'maxOutputTokens' => $this->maxSalidaTokens ?: ($this->config['max_tokens'] ?? 1024),
-                'topP'            => 0.95,
-            ],
+        $generationConfig = [
+            'temperature'     => 0.7,
+            'maxOutputTokens' => $this->maxSalidaTokens ?: ($this->config['max_tokens'] ?? 1024),
+            'topP'            => 0.95,
         ];
 
         $response = null;
 
         foreach ($modelos as $modelo) {
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent?key={$apiKey}";
+
+            // thinkingBudget:0 = respuesta inmediata, sin "pensar" antes de responder.
+            // Mismo patrón ya usado en AuditoriaRITService para esta familia de modelos.
+            // Confirmado con datos reales (diligencia PD-2026-0057): el Director
+            // Estratégico tardaba ~27-28s por turno sin este ajuste, siendo el mayor
+            // contribuyente a los ~45-60s de espera por cada pregunta dinámica (3
+            // llamadas secuenciales: Director + Generador + Evaluador). gemini-2.5-pro
+            // REQUIERE thinking mode (budget >= 1), por eso solo se aplica a flash.
+            $generationConfigModelo = $generationConfig;
+            if (str_contains($modelo, 'flash')) {
+                $generationConfigModelo['thinkingConfig'] = ['thinkingBudget' => 0];
+            }
+
+            $payload = [
+                'contents' => [
+                    [
+                        'parts' => [
+                            [
+                                'text' => "Eres un abogado laboral experto en procesos disciplinarios en Colombia. Respondes de forma concisa y profesional pero entendible para cualquier persona.\n\n" . $prompt
+                            ]
+                        ]
+                    ]
+                ],
+                'generationConfig' => $generationConfigModelo,
+            ];
 
             try {
                 $response = Http::withHeaders([
@@ -2567,6 +2666,13 @@ PROMPT;
             // En 503/404 pasar al siguiente modelo y registrar fallo
             if (in_array($response->status(), [503, 404])) {
                 Log::warning("IADescargoService: Gemini {$response->status()} en {$modelo}, intentando siguiente modelo");
+                GeminiCircuitBreaker::recordFailure($modelo);
+                continue;
+            }
+
+            // 400 por incompatibilidad de thinkingBudget con el modelo → cascade
+            if ($response->status() === 400 && str_contains($response->body(), 'thinking')) {
+                Log::warning("IADescargoService: {$modelo} rechazó thinkingBudget, cascadeando");
                 GeminiCircuitBreaker::recordFailure($modelo);
                 continue;
             }
@@ -3283,9 +3389,12 @@ PROMPT;
     public function analizarAutenticidadRespuestas(DiligenciaDescargo $diligencia): ?array
     {
         try {
+            // Mismo bug de ->activas() que en construirContexto(): dejaba esta
+            // consulta siempre vacía (< 3 filas), así que este análisis nunca se
+            // ejecutaba realmente - solo retornaba null en silencio.
             $preguntas = $diligencia->preguntas()
                 ->with('respuesta')
-                ->activas()
+                ->respondidas()
                 ->whereHas('respuesta')
                 ->ordenadas()
                 ->get();
