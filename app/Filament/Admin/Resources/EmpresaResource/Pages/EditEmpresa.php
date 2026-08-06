@@ -3,11 +3,17 @@
 namespace App\Filament\Admin\Resources\EmpresaResource\Pages;
 
 use App\Filament\Admin\Resources\EmpresaResource;
-use App\Services\ReglamentoInternoService;
+use App\Models\ActividadEconomica;
 use Filament\Actions;
-use Filament\Notifications\Notification;
+use Filament\Forms;
+use Filament\Forms\Components\View as FormView;
+use Filament\Forms\Components\Wizard;
+use Filament\Forms\Components\Wizard\Step;
+use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 
 class EditEmpresa extends EditRecord
 {
@@ -37,60 +43,288 @@ class EditEmpresa extends EditRecord
     }
 
     /**
-     * Interceptar los datos antes de guardar en el modelo Empresa:
-     * - Si se subió un RIT, procesarlo y guardarlo en reglamentos_internos.
-     * - Eliminar el campo temporal para que no intente guardarse en la tabla empresas.
+     * Wizard de 5 pasos (una sola pantalla, siempre editable - ya no hay
+     * "Ver" separado, ver ViewEmpresa eliminado). Reutiliza los mismos campos
+     * de EmpresaResource::formSchema() para los pasos 1-4 (copiados aquí, no
+     * se toca formSchema() para no afectar el wizard de alta en CreateEmpresa),
+     * con el header visual real (step-header.blade.php) que ya usan los
+     * wizards de RIT y de creación de citación de descargos. El paso 5 no
+     * duplica el uploader de RIT - solo resume el estado y enlaza a
+     * "Mi Reglamento Interno".
      */
-    protected function mutateFormDataBeforeSave(array $data): array
+    public function form(Form $form): Form
     {
-        $raw = $data['reglamento_docx_temp'] ?? null;
+        return $form->schema([
+            Wizard::make([
+                Step::make('datos')
+                    ->label('Datos de la Empresa')
+                    ->icon('heroicon-o-building-office')
+                    ->schema([
+                        FormView::make('filament.components.step-header')
+                            ->key('me_step_header_datos')
+                            ->viewData([
+                                'step' => 1,
+                                'total' => 5,
+                                'title' => 'Datos de la Empresa',
+                                'accent' => '#e11d48',
+                                'lord' => 'https://cdn.lordicon.com/moedrfvp.json',
+                                'subtitle' => 'Razón social, tipo societario, NIT y estado de la empresa.',
+                            ])
+                            ->columnSpanFull(),
 
-        // Filament FileUpload devuelve array incluso para archivos individuales
-        if (is_array($raw)) {
-            $raw = $raw[0] ?? null;
-        }
+                        Forms\Components\Section::make()
+                            ->schema([
+                                Forms\Components\TextInput::make('razon_social')
+                                    ->label('Razón Social')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->placeholder('Ej: EMPRESA ABC')
+                                    ->helperText('Nombre legal sin tipo societario')
+                                    ->extraInputAttributes(['style' => 'text-transform:uppercase'])
+                                    ->columnSpan(['default' => 1, 'sm' => 2]),
 
-        if ($raw) {
-            $basename       = basename($raw);
-            $dirDestino     = "rits/{$this->record->id}";
-            $rutaPermanente = "{$dirDestino}/{$basename}";
+                                Forms\Components\Select::make('tipo_societario')
+                                    ->label('Tipo Societario')
+                                    ->options(\App\Models\Empresa::TIPOS_SOCIETARIOS)
+                                    ->searchable()
+                                    ->placeholder('Seleccione...')
+                                    ->helperText('Forma jurídica')
+                                    ->live(),
 
-            // Crear directorio si no existe y mover el archivo a ubicación permanente
-            try {
-                Storage::disk('local')->makeDirectory($dirDestino);
-                Storage::disk('local')->move($raw, $rutaPermanente);
-            } catch (\Throwable $e) {
-                // Si el move falla, continuar con la ruta temporal
-                \Illuminate\Support\Facades\Log::warning('EditEmpresa: no se pudo mover RIT a permanente', [
-                    'from'  => $raw,
-                    'to'    => $rutaPermanente,
-                    'error' => $e->getMessage(),
-                ]);
-                $rutaPermanente = Storage::disk('local')->exists($raw) ? $raw : null;
-            }
+                                Forms\Components\TextInput::make('nit')
+                                    ->label('NIT')
+                                    ->required()
+                                    ->unique(ignoreRecord: true)
+                                    ->maxLength(50)
+                                    ->mask(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                                        ? '999999999-9'
+                                        : null)
+                                    ->placeholder(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                                        ? 'Ej: 900123456-7'
+                                        : 'Ej: 1023456789')
+                                    ->helperText(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                                        ? 'Incluya el dígito de verificación separado por guion'
+                                        : 'Número de cédula de ciudadanía')
+                                    ->rules(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                                        ? ['regex:/^\d{6,12}-\d$/']
+                                        : [])
+                                    ->validationMessages(['regex' => 'El NIT debe incluir el dígito de verificación (ej: 900123456-7).'])
+                                    ->suffixIcon('heroicon-o-identification'),
 
-            $rutaAbsoluta = $rutaPermanente
-                ? Storage::disk('local')->path($rutaPermanente)
-                : null;
+                                Forms\Components\TextInput::make('representante_legal')
+                                    ->label('Representante Legal')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->placeholder('Ej: Juan Pérez García')
+                                    ->helperText('Nombre del representante legal')
+                                    ->suffixIcon('heroicon-o-user'),
 
-            if ($rutaAbsoluta && file_exists($rutaAbsoluta)) {
-                app(ReglamentoInternoService::class)->procesarDocumento(
-                    $rutaAbsoluta,
-                    $this->record->id,
-                    $basename,
-                    $rutaPermanente,
-                );
-            }
+                                Forms\Components\Toggle::make('active')
+                                    ->label('Empresa Activa')
+                                    ->default(true)
+                                    ->helperText('Desactive si la empresa ya no está en servicio')
+                                    ->inline(false)
+                                    // Solo bufete/super_admin/abogado deciden si una empresa
+                                    // queda activa - un cliente no puede auto-desactivarse.
+                                    ->disabled(fn() => auth()->user()?->isCliente() ?? false),
 
-            Notification::make()
-                ->success()
-                ->title('Reglamento Interno guardado')
-                ->body('El RIT fue registrado correctamente en el sistema.')
-                ->send();
-        }
+                                Forms\Components\Hidden::make('dias_laborales')
+                                    ->default('lunes_viernes'),
+                            ])->columns(['default' => 1, 'sm' => 2]),
+                    ]),
 
-        unset($data['reglamento_docx_temp']);
+                Step::make('contacto')
+                    ->label('Contacto')
+                    ->icon('heroicon-o-phone')
+                    ->schema([
+                        FormView::make('filament.components.step-header')
+                            ->key('me_step_header_contacto')
+                            ->viewData([
+                                'step' => 2,
+                                'total' => 5,
+                                'title' => 'Contacto',
+                                'accent' => '#f97316',
+                                'lord' => 'https://cdn.lordicon.com/rhvddzym.json',
+                                'subtitle' => 'Teléfono, email y dirección para comunicarnos con la empresa.',
+                            ])
+                            ->columnSpanFull(),
 
-        return $data;
+                        Forms\Components\Section::make()
+                            ->schema([
+                                Forms\Components\TextInput::make('telefono')
+                                    ->label('Teléfono / Celular')
+                                    ->tel()
+                                    ->mask('9999999999')
+                                    ->maxLength(10)
+                                    ->rules(['nullable', 'regex:/^[0-9]{10}$/'])
+                                    ->validationMessages([
+                                        'regex' => 'El teléfono debe tener exactamente 10 dígitos numéricos (sin +57, espacios, guiones ni letras).',
+                                    ])
+                                    ->placeholder('3001234567')
+                                    ->helperText('10 dígitos, solo números. Se usa para las notificaciones por WhatsApp.')
+                                    ->suffixIcon('heroicon-o-phone'),
+
+                                Forms\Components\TextInput::make('email_contacto')
+                                    ->label('Email de Contacto')
+                                    ->email()
+                                    ->maxLength(255)
+                                    ->placeholder('contacto@empresa.com')
+                                    ->helperText('Correo electrónico principal')
+                                    ->suffixIcon('heroicon-o-envelope'),
+
+                                Forms\Components\Textarea::make('direccion')
+                                    ->label('Dirección')
+                                    ->rows(2)
+                                    ->placeholder('Ej: Calle 123 # 45-67, Edificio ABC, Piso 3')
+                                    ->helperText('Dirección completa de la empresa')
+                                    ->columnSpanFull(),
+                            ])->columns(['default' => 1, 'sm' => 2]),
+                    ]),
+
+                Step::make('ubicacion')
+                    ->label('Ubicación')
+                    ->icon('heroicon-o-map-pin')
+                    ->schema([
+                        FormView::make('filament.components.step-header')
+                            ->key('me_step_header_ubicacion')
+                            ->viewData([
+                                'step' => 3,
+                                'total' => 5,
+                                'title' => 'Ubicación',
+                                'accent' => '#eab308',
+                                'lord' => 'https://cdn.lordicon.com/hrjifpbq.json',
+                                'subtitle' => 'Departamento y ciudad donde opera la empresa.',
+                            ])
+                            ->columnSpanFull(),
+
+                        Forms\Components\Section::make()
+                            ->schema([
+                                Forms\Components\Select::make('departamento')
+                                    ->label('Departamento')
+                                    ->required()
+                                    ->searchable()
+                                    ->options(EmpresaResource::getDepartamentos())
+                                    ->live()
+                                    ->afterStateUpdated(fn(Set $set) => $set('ciudad', null))
+                                    ->helperText('Seleccione el departamento'),
+
+                                Forms\Components\Select::make('ciudad')
+                                    ->label('Ciudad')
+                                    ->required()
+                                    ->searchable()
+                                    ->options(function (Get $get) {
+                                        $departamento = $get('departamento');
+                                        return EmpresaResource::getCiudadesPorDepartamento($departamento);
+                                    })
+                                    ->disabled(fn(Get $get) => empty($get('departamento')))
+                                    ->helperText('Seleccione primero el departamento')
+                                    ->placeholder('Seleccione una ciudad...'),
+                            ])->columns(['default' => 1, 'sm' => 2]),
+                    ]),
+
+                Step::make('ciiu')
+                    ->label('Actividad Económica')
+                    ->icon('heroicon-o-chart-bar')
+                    ->schema([
+                        FormView::make('filament.components.step-header')
+                            ->key('me_step_header_ciiu')
+                            ->viewData([
+                                'step' => 4,
+                                'total' => 5,
+                                'title' => 'Actividad Económica (CIIU)',
+                                'accent' => '#84cc16',
+                                'lord' => 'https://cdn.lordicon.com/vuiyjaf9.json',
+                                'subtitle' => 'Clasificación CIIU y número de empleados (determina la obligación de RIT).',
+                            ])
+                            ->columnSpanFull(),
+
+                        Forms\Components\Section::make()
+                            ->schema([
+                                Forms\Components\Select::make('actividad_economica_id')
+                                    ->label('Actividad Económica Principal')
+                                    ->relationship('actividadEconomica', 'nombre')
+                                    ->getOptionLabelFromRecordUsing(fn(ActividadEconomica $record) => "{$record->codigo} - {$record->nombre}")
+                                    ->getOptionLabelUsing(function ($value): ?string {
+                                        $a = ActividadEconomica::find($value);
+                                        return $a ? "{$a->codigo} - {$a->nombre}" : null;
+                                    })
+                                    ->searchable(['codigo', 'nombre'])
+                                    ->preload(false)
+                                    ->nullable()
+                                    ->live()
+                                    ->placeholder('Buscar por código o nombre...')
+                                    ->helperText('Actividad principal según el RUT de la empresa')
+                                    ->columnSpanFull(),
+
+                                Forms\Components\TextInput::make('numero_empleados')
+                                    ->label('Número de empleados')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->live(onBlur: true)
+                                    ->placeholder('Ej: 12')
+                                    ->helperText('Empleados permanentes. Determina si la empresa está obligada a tener RIT.')
+                                    ->suffixIcon('heroicon-o-user-group'),
+
+                                Forms\Components\Placeholder::make('obligacion_rit')
+                                    ->hiddenLabel()
+                                    ->content(function (Get $get) {
+                                        $seccion = $get('actividad_economica_id')
+                                            ? ActividadEconomica::find($get('actividad_economica_id'))?->seccion
+                                            : null;
+                                        $n = $get('numero_empleados');
+                                        $n = is_numeric($n) ? (int) $n : null;
+
+                                        return new HtmlString(
+                                            \App\Support\ObligacionRit::avisoHtml($n, $seccion)
+                                        );
+                                    })
+                                    ->columnSpanFull(),
+
+                                Forms\Components\Select::make('actividadesSecundarias')
+                                    ->label('Actividades Secundarias')
+                                    ->relationship('actividadesSecundarias', 'nombre')
+                                    ->getOptionLabelFromRecordUsing(fn(ActividadEconomica $record) => "{$record->codigo} - {$record->nombre}")
+                                    ->getOptionLabelUsing(function ($value): ?string {
+                                        $a = ActividadEconomica::find($value);
+                                        return $a ? "{$a->codigo} - {$a->nombre}" : null;
+                                    })
+                                    ->searchable(['codigo', 'nombre'])
+                                    ->preload(false)
+                                    ->multiple()
+                                    ->nullable()
+                                    ->placeholder('Buscar por código o nombre...')
+                                    ->helperText('Actividades complementarias que también ejerce la empresa')
+                                    ->columnSpanFull(),
+                            ]),
+                    ]),
+
+                Step::make('rit')
+                    ->label('Reglamento Interno')
+                    ->icon('heroicon-o-document-text')
+                    ->schema([
+                        FormView::make('filament.components.step-header')
+                            ->key('me_step_header_rit')
+                            ->viewData([
+                                'step' => 5,
+                                'total' => 5,
+                                'title' => 'Reglamento Interno',
+                                'accent' => '#22c55e',
+                                'lord' => 'https://cdn.lordicon.com/edcgvlnw.json',
+                                'subtitle' => 'Estado de su RIT. Para subirlo, mejorarlo o auditarlo, use Mi Reglamento Interno.',
+                            ])
+                            ->columnSpanFull(),
+
+                        Forms\Components\Section::make()
+                            ->schema([
+                                FormView::make('filament.components.mi-empresa-paso-rit')
+                                    ->key('me_paso_rit_contenido')
+                                    ->viewData(fn() => ['empresa' => $this->record])
+                                    ->columnSpanFull(),
+                            ]),
+                    ]),
+            ])
+                ->persistStepInQueryString('paso')
+                ->columnSpanFull(),
+        ]);
     }
 }

@@ -664,7 +664,8 @@ class EmpresaResource extends Resource
         return [
             'index' => Pages\ListEmpresas::route('/'),
             'create' => Pages\CreateEmpresa::route('/create'),
-            'view' => Pages\ViewEmpresa::route('/{record}'),
+            // Sin 'view' separado: EditEmpresa ahora es el wizard de 5 pasos,
+            // siempre editable, la única pantalla para ver/editar una empresa.
             'edit' => Pages\EditEmpresa::route('/{record}/edit'),
         ];
     }
