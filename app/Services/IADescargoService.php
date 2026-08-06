@@ -33,8 +33,6 @@ class IADescargoService
         /* 0 */ '¿Va a asistir acompañado(a) por alguien?',
         /* 1 */ '¿Qué relación tiene esa persona con usted?',
         /* 2 */ 'Acompañante: indique su nombre completo y en qué calidad asiste a esta diligencia (apoyo moral, representante sindical, apoderado, testigo u otro).',
-        /* 3 */ '¿Trabaja usted para una empresa contratista o tercero diferente a {empresa}?',
-        /* 4 */ '¿Cuál es el nombre de esa empresa contratista o tercero?',
     ];
 
     // Mapa de dependencias entre preguntas iniciales: índice_hijo => índice_padre
@@ -42,7 +40,6 @@ class IADescargoService
     const DEPENDENCIAS_INICIALES = [
         1 => 0,   // relación acompañante  → ¿va acompañado?
         2 => 0,   // identificación acomp. → ¿va acompañado?
-        4 => 3,   // nombre contratista    → ¿trabaja para contratista?
     ];
 
     // Preguntas estándar de cierre
