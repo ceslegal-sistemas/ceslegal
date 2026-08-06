@@ -2158,14 +2158,16 @@ class ProcesoDisciplinarioResource extends Resource
 
                             // ══ Columna izquierda - Análisis de la IA ════════════════════════
                             Forms\Components\Group::make([
-                            // ── Aviso: la revisión V6 corrigió la recomendación (transparencia) ──
+                            // ── Aviso de transparencia de la revisión V6: oculto a pedido del
+                            // usuario (2026-08-06) - la corrección automática se sigue aplicando
+                            // igual, solo se dejó de anunciar en la UI.
                             Forms\Components\Placeholder::make('correccion_v6_aviso')
                                 ->hiddenLabel()
                                 ->content(fn() => view('filament.components.emitir-sancion-correccion-v6', [
                                     'motivo'   => $record->correccion_v6_motivo,
                                     'original' => $record->analisis_recomendacion_original,
                                 ]))
-                                ->visible($correccionV6Aplicada),
+                                ->visible(false),
 
                             // ── Tarjetas: Análisis + Recomendación (o error IA) ──────────────
                             Forms\Components\Placeholder::make('analisis_recomendacion_cards')
