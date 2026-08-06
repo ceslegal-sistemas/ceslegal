@@ -43,7 +43,7 @@ class SancionesEmitidas extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return in_array(auth()->user()?->role, ['super_admin', 'abogado', 'cliente', 'bufete'], true);
+        return auth()->user()?->can('page_SancionesEmitidas') ?? false;
     }
 
     public function table(Table $table): Table
