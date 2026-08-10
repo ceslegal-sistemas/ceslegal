@@ -15,6 +15,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
 
 class EditEmpresa extends EditRecord
@@ -47,6 +48,15 @@ class EditEmpresa extends EditRecord
             // La visibilidad la controla Shield (permiso delete_empresa vía policy).
             Actions\DeleteAction::make(),
         ];
+    }
+
+    // Se quita la barra de acciones estándar de EditRecord (quedaba "por
+    // fuera" del wizard, visible en todos los pasos). "Guardar cambios" y
+    // "Cancelar" ahora viven dentro del propio wizard, en el pie del último
+    // paso (ver ->submitAction() más abajo).
+    protected function getFormActions(): array
+    {
+        return [];
     }
 
     /**
@@ -197,7 +207,8 @@ class EditEmpresa extends EditRecord
                                 'total' => 5,
                                 'title' => 'Contacto',
                                 'accent' => '#f97316',
-                                'lord' => 'https://cdn.lordicon.com/rhvddzym.json',
+                                'lord' => asset('lordicons/wired-outline-3095-mail-open-bell-hover-pinch.json'),
+                                'lordState' => 'hover-pinch',
                                 'subtitle' => 'Teléfono, email y dirección para comunicarnos con la empresa.',
                             ])
                             ->columnSpanFull(),
@@ -377,6 +388,23 @@ class EditEmpresa extends EditRecord
                     ]),
             ])
                 ->persistStepInQueryString('paso')
+                ->submitAction(new HtmlString(
+                    Blade::render(<<<'BLADE'
+                        <div class="flex items-center gap-3">
+                            <x-filament::button
+                                tag="a"
+                                href="{{ $cancelUrl }}"
+                                color="gray"
+                            >
+                                Cancelar
+                            </x-filament::button>
+
+                            <x-filament::button type="submit">
+                                Guardar cambios
+                            </x-filament::button>
+                        </div>
+                    BLADE, ['cancelUrl' => static::getResource()::getUrl('index')])
+                ))
                 ->columnSpanFull(),
         ]);
     }

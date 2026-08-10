@@ -9,6 +9,9 @@
       $title    string       - título del paso
       $accent   string       - color hex de acento (coincide con la tarjeta del hero)
       $lord     string|null  - src del lord-icon (opcional)
+      $lordState string|null - atributo state del lord-icon, para iconos
+                                "wired"/hover-x que necesitan seleccionar
+                                una composición específica (opcional)
       $subtitle string|null  - descripción corta (opcional)
 --}}
 @include('filament.components.pinfo-styles')
@@ -21,6 +24,7 @@
     }
     $rgb = hexdec(substr($hex, 0, 2)) . ',' . hexdec(substr($hex, 2, 2)) . ',' . hexdec(substr($hex, 4, 2));
     $lord = $lord ?? null;
+    $lordState = $lordState ?? null;
     $subtitle = $subtitle ?? null;
 @endphp
 
@@ -156,6 +160,7 @@
         @if ($lord)
             <span class="sh-ic">
                 <lord-icon src="{{ $lord }}" trigger="loop" delay="800" stroke="bold"
+                    @if ($lordState) state="{{ $lordState }}" @endif
                     colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
                     data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                     data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
