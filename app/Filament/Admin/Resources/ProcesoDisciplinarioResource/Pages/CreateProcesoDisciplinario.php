@@ -101,17 +101,20 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ])
                         ->columnSpanFull(),
 
+                    // Los 2 cards informativos de este paso (antes uno dentro de cada
+                    // Section) se fusionan en una sola tarjeta aquí arriba; las Sections
+                    // de abajo conservan su encabezado y sus campos sin cambios.
+                    Forms\Components\Placeholder::make('info_paso_trabajador_cuando')
+                        ->label('')
+                        ->content(fn() => new HtmlString(
+                            view('filament.components.paso-trabajador-cuando-info', [
+                                'esCliente' => auth()->user()?->isCliente() ?? false,
+                            ])->render()
+                        ))
+                        ->columnSpanFull(),
+
                     Forms\Components\Section::make('Trabajador')
                         ->schema([
-                            Forms\Components\Placeholder::make('info_paso_trabajador')
-                                ->label('')
-                                ->content(fn() => new HtmlString(
-                                    view('filament.components.paso-trabajador-info', [
-                                        'esCliente' => auth()->user()?->isCliente() ?? false,
-                                    ])->render()
-                                ))
-                                ->columnSpanFull(),
-
                             Forms\Components\Select::make('empresa_id')
                                 ->label('¿A qué empresa pertenece el trabajador?')
                                 ->relationship(
@@ -356,13 +359,6 @@ class CreateProcesoDisciplinario extends CreateRecord
 
                     Forms\Components\Section::make('Cuándo ocurrió')
                         ->schema([
-                            Forms\Components\Placeholder::make('info_paso_cuando')
-                                ->label('')
-                                ->content(fn() => new HtmlString(
-                                    view('filament.components.paso-cuando-info')->render()
-                                ))
-                                ->columnSpanFull(),
-
                             Forms\Components\DatePicker::make('fecha_hecho')
                                 ->label('¿Cuándo ocurrió?')
                                 ->required()
@@ -414,15 +410,18 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ])
                         ->columnSpanFull(),
 
+                    // Los 2 cards informativos de este paso se fusionan en una sola
+                    // tarjeta aquí arriba; las Sections de abajo conservan su
+                    // encabezado y sus campos sin cambios.
+                    Forms\Components\Placeholder::make('info_paso_hechos_pruebas')
+                        ->label('')
+                        ->content(fn() => new HtmlString(
+                            view('filament.components.paso-hechos-pruebas-info')->render()
+                        ))
+                        ->columnSpanFull(),
+
                     Forms\Components\Section::make('Hechos')
                         ->schema([
-                            Forms\Components\Placeholder::make('info_paso_hechos')
-                                ->label('')
-                                ->content(fn() => new HtmlString(
-                                    view('filament.components.paso-hechos-info')->render()
-                                ))
-                                ->columnSpanFull(),
-
                             Forms\Components\TextInput::make('quien_reporta')
                                 ->label('¿Quién reporta el incidente?')
                                 ->helperText('Indique el cargo y/o nombre de quien notificó el hecho. Ejemplos: "Supervisor de turno Carlos Ruiz", "El propio empleador", "Jefa de Recursos Humanos María García", "Compañero del área de logística".')
@@ -749,13 +748,6 @@ class CreateProcesoDisciplinario extends CreateRecord
 
                     Forms\Components\Section::make('Evidencias y testigos')
                         ->schema([
-                            Forms\Components\Placeholder::make('info_paso_pruebas')
-                                ->label('')
-                                ->content(fn() => new HtmlString(
-                                    view('filament.components.paso-pruebas-info')->render()
-                                ))
-                                ->columnSpanFull(),
-
                             Forms\Components\Radio::make('tiene_evidencias')
                                 ->label('¿Existe evidencia del hecho?')
                                 ->options(['si' => 'Sí', 'no' => 'No'])
