@@ -256,7 +256,8 @@ class EditEmpresa extends EditRecord
                                 'total' => 5,
                                 'title' => 'Ubicación',
                                 'accent' => '#eab308',
-                                'lord' => 'https://cdn.lordicon.com/hrjifpbq.json',
+                                'lord' => asset('lordicons/wired-outline-18-location-pin-hover-jump-roll.json'),
+                                'lordState' => 'hover-jump-roll',
                                 'subtitle' => 'Departamento y ciudad donde opera la empresa.',
                             ])
                             ->columnSpanFull(),
