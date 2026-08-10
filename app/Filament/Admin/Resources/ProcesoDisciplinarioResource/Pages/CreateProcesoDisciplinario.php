@@ -808,22 +808,22 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ]),
                 ]),
 
-            // ── Paso 5: Revisión y envío ─────────────────────────────────────
+            // ── Paso 3: Revisión y envío (revision + verificacion fusionados) ──
             Step::make('revision')
-                ->label('Revisión')
-                ->description('Confirme y genere la citación')
+                ->label('Revisión y envío')
+                ->description('Confirme, autorice y programe la audiencia')
                 ->icon('heroicon-o-check-circle')
                 ->schema([
 
                     Forms\Components\View::make('filament.components.step-header')
                         ->key('proc_step_header_revision')
                         ->viewData([
-                            'step' => 5,
-                            'total' => 6,
-                            'title' => 'Revisión',
+                            'step' => 3,
+                            'total' => 3,
+                            'title' => 'Revisión y envío',
                             'accent' => '#22c55e',
                             'lord' => 'https://cdn.lordicon.com/fikcyfpp.json',
-                            'subtitle' => 'Revise la información y programe la audiencia de descargos.',
+                            'subtitle' => 'Revise, autorice con su verificación de identidad, y programe la audiencia.',
                         ])
                         ->columnSpanFull(),
 
@@ -980,28 +980,9 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ])
                         ->columns(2),
 
-                ]),
-
-            // ── Paso 6: Verificación (equivalencia funcional de firma) ────────
-            Step::make('verificacion')
-                ->label('Verificación')
-                ->description('Confirme su identidad para crear la citación')
-                ->icon('heroicon-o-finger-print')
-                ->schema([
-
-                    Forms\Components\View::make('filament.components.step-header')
-                        ->key('proc_step_header_verificacion')
-                        ->viewData([
-                            'step' => 6,
-                            'total' => 6,
-                            'title' => 'Verificación de identidad',
-                            'accent' => '#f43f5e',
-                            'lord' => 'https://cdn.lordicon.com/lecprnjb.json',
-                            'subtitle' => 'Equivalencia funcional de su firma: declaración + verificación fotográfica.',
-                        ])
-                        ->columnSpanFull(),
-
-                    Forms\Components\Section::make()
+                    Forms\Components\Section::make('Verificación de identidad')
+                        ->description('Equivalencia funcional de su firma: declaración + verificación fotográfica.')
+                        ->icon('heroicon-o-finger-print')
                         ->schema([
                             Forms\Components\Grid::make(1)
                                 ->schema([
@@ -1035,7 +1016,11 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->label('Foto de verificación')
                                 ->content(fn() => view('filament.components.webcam-autorizador', [
                                     'wireTargetPath' => 'data.foto_citante_base64',
-                                    'wizardStepId'   => 'verificacion',
+                                    // El paso ahora se llama 'revision' (fusionado con
+                                    // verificación) - el componente de la cámara necesita
+                                    // este slug para arrancar sola al llegar aquí (ver
+                                    // memoria filament-wizard-x-init-eager).
+                                    'wizardStepId'   => 'revision',
                                 ])),
 
                             // La obligatoriedad se valida en mutateFormDataBeforeCreate() con
