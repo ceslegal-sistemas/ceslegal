@@ -351,9 +351,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                     );
                                 })
                                 ->columnSpanFull(),
-                    ])->extraAttributes(['class' => 'pt-card']),
 
-                    Forms\Components\Group::make([
                             Forms\Components\Placeholder::make('info_paso_cuando')
                                 ->label('')
                                 ->content(fn() => new HtmlString(
@@ -361,18 +359,22 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ))
                                 ->columnSpanFull(),
 
-                            Forms\Components\DatePicker::make('fecha_hecho')
-                                ->label('¿Cuándo ocurrió?')
-                                ->required()
-                                ->native(false)
-                                ->displayFormat('d/m/Y')
-                                ->maxDate(now())
-                                ->disabledDates(fn(Get $get) => self::fechasInhabilesHecho($get('empresa_id')))
-                                ->helperText(fn(Get $get) => self::textoDiasHabilesHecho($get('empresa_id'))),
+                            Forms\Components\Group::make([
+                                    Forms\Components\DatePicker::make('fecha_hecho')
+                                        ->label('¿Cuándo ocurrió?')
+                                        ->required()
+                                        ->native(false)
+                                        ->displayFormat('d/m/Y')
+                                        ->maxDate(now())
+                                        ->disabledDates(fn(Get $get) => self::fechasInhabilesHecho($get('empresa_id')))
+                                        ->helperText(fn(Get $get) => self::textoDiasHabilesHecho($get('empresa_id'))),
 
-                            TimePickerField::make('hora_aproximada_hecho')
-                                ->label('Hora aproximada (opcional)')
-                                ->helperText('Horario Colombia (UTC-5)'),
+                                    TimePickerField::make('hora_aproximada_hecho')
+                                        ->label('Hora aproximada (opcional)')
+                                        ->helperText('Horario Colombia (UTC-5)'),
+                                ])
+                                ->columns(2)
+                                ->columnSpanFull(),
 
                             // Varias fechas: el hecho pudo ocurrir en más de un día laboral.
                             Forms\Components\Repeater::make('fechas_ocurrencia_adicionales')
@@ -390,9 +392,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->defaultItems(0)
                                 ->reorderable(false)
                                 ->columnSpanFull(),
-                        ])
-                        ->columns(2)
-                        ->extraAttributes(['class' => 'pt-card']),
+                    ])->extraAttributes(['class' => 'pt-card']),
                 ]),
 
             // ── Paso 2: Qué pasó (hechos + pruebas fusionados) ───────────────
@@ -743,9 +743,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 })
                                 ->visible(fn(Forms\Get $get) => filled($get('clasificacion_incidente_ia')))
                                 ->columnSpanFull(),
-                        ])->extraAttributes(['class' => 'pt-card']),
 
-                    Forms\Components\Group::make([
                             Forms\Components\Placeholder::make('info_paso_pruebas')
                                 ->label('')
                                 ->content(fn() => new HtmlString(
