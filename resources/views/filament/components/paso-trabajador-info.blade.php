@@ -1,6 +1,6 @@
 @include('filament.components.pinfo-styles')
 
-<div>
+<div class="pt-card">
 
     <div style="display:flex;align-items:center;gap:.625rem;margin-bottom:.625rem;">
         <lord-icon src="https://cdn.lordicon.com/bushiqea.json" trigger="loop" delay="500" stroke="bold"

@@ -1,6 +1,6 @@
 @include('filament.components.pinfo-styles')
 
-<div>
+<div class="pt-card">
 
     <div style="display:flex;align-items:center;gap:.625rem;margin-bottom:.625rem;">
         <lord-icon
@@ -48,7 +48,7 @@
     </div>
 
     <p class="pt-footer">
-        Las evidencias y los testigos se registran más abajo, en este mismo paso.
+        La fecha, el lugar y los testigos se recopilarán en los pasos siguientes.
     </p>
 
 </div>

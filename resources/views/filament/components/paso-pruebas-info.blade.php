@@ -4,7 +4,7 @@
     $razon_social = auth()->user()?->empresa?->razon_social ?? 'su organización';
 @endphp
 
-<div>
+<div class="pt-card">
 
     <div style="display:flex;align-items:center;gap:.625rem;margin-bottom:.625rem;">
         <lord-icon

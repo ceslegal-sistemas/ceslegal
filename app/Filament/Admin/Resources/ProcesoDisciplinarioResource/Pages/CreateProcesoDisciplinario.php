@@ -101,7 +101,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ])
                         ->columnSpanFull(),
 
-                    Forms\Components\Group::make([
+                    Forms\Components\Section::make('Trabajador')
+                        ->schema([
                             Forms\Components\Placeholder::make('info_paso_trabajador')
                                 ->label('')
                                 ->content(fn() => new HtmlString(
@@ -351,7 +352,10 @@ class CreateProcesoDisciplinario extends CreateRecord
                                     );
                                 })
                                 ->columnSpanFull(),
+                        ]),
 
+                    Forms\Components\Section::make('Cuándo ocurrió')
+                        ->schema([
                             Forms\Components\Placeholder::make('info_paso_cuando')
                                 ->label('')
                                 ->content(fn() => new HtmlString(
@@ -359,22 +363,18 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ))
                                 ->columnSpanFull(),
 
-                            Forms\Components\Group::make([
-                                    Forms\Components\DatePicker::make('fecha_hecho')
-                                        ->label('¿Cuándo ocurrió?')
-                                        ->required()
-                                        ->native(false)
-                                        ->displayFormat('d/m/Y')
-                                        ->maxDate(now())
-                                        ->disabledDates(fn(Get $get) => self::fechasInhabilesHecho($get('empresa_id')))
-                                        ->helperText(fn(Get $get) => self::textoDiasHabilesHecho($get('empresa_id'))),
+                            Forms\Components\DatePicker::make('fecha_hecho')
+                                ->label('¿Cuándo ocurrió?')
+                                ->required()
+                                ->native(false)
+                                ->displayFormat('d/m/Y')
+                                ->maxDate(now())
+                                ->disabledDates(fn(Get $get) => self::fechasInhabilesHecho($get('empresa_id')))
+                                ->helperText(fn(Get $get) => self::textoDiasHabilesHecho($get('empresa_id'))),
 
-                                    TimePickerField::make('hora_aproximada_hecho')
-                                        ->label('Hora aproximada (opcional)')
-                                        ->helperText('Horario Colombia (UTC-5)'),
-                                ])
-                                ->columns(2)
-                                ->columnSpanFull(),
+                            TimePickerField::make('hora_aproximada_hecho')
+                                ->label('Hora aproximada (opcional)')
+                                ->helperText('Horario Colombia (UTC-5)'),
 
                             // Varias fechas: el hecho pudo ocurrir en más de un día laboral.
                             Forms\Components\Repeater::make('fechas_ocurrencia_adicionales')
@@ -392,7 +392,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->defaultItems(0)
                                 ->reorderable(false)
                                 ->columnSpanFull(),
-                    ])->extraAttributes(['class' => 'pt-card']),
+                        ])
+                        ->columns(2),
                 ]),
 
             // ── Paso 2: Qué pasó (hechos + pruebas fusionados) ───────────────
@@ -413,7 +414,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ])
                         ->columnSpanFull(),
 
-                    Forms\Components\Group::make([
+                    Forms\Components\Section::make('Hechos')
+                        ->schema([
                             Forms\Components\Placeholder::make('info_paso_hechos')
                                 ->label('')
                                 ->content(fn() => new HtmlString(
@@ -743,7 +745,10 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 })
                                 ->visible(fn(Forms\Get $get) => filled($get('clasificacion_incidente_ia')))
                                 ->columnSpanFull(),
+                        ]),
 
+                    Forms\Components\Section::make('Evidencias y testigos')
+                        ->schema([
                             Forms\Components\Placeholder::make('info_paso_pruebas')
                                 ->label('')
                                 ->content(fn() => new HtmlString(
@@ -802,7 +807,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->minItems(1)
                                 ->visible(fn(Get $get) => $get('hubo_testigos') === 'si')
                                 ->columnSpanFull(),
-                        ])->extraAttributes(['class' => 'pt-card']),
+                        ]),
                 ]),
 
             // ── Paso 3: Revisión y envío (revision + verificacion fusionados) ──
