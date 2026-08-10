@@ -286,7 +286,7 @@ class EditEmpresa extends EditRecord
                                 'total' => 5,
                                 'title' => 'Actividad Económica (CIIU)',
                                 'accent' => '#84cc16',
-                                'lord' => 'https://cdn.lordicon.com/vuiyjaf9.json',
+                                'lord' => 'https://cdn.lordicon.com/vgwutnhw.json',
                                 'subtitle' => 'Clasificación CIIU y número de empleados (determina la obligación de RIT).',
                             ])
                             ->columnSpanFull(),
