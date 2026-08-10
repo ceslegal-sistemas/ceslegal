@@ -76,6 +76,8 @@ class RolePermissionSeeder extends Seeder
             'force_delete_any_reglamento::interno',
             // Página "Mi Reglamento Interno"
             'page_MiReglamentoInterno',
+            // Página "Sanciones Emitidas"
+            'page_SancionesEmitidas',
 
             // Role permissions (only for super_admin)
             'view_role',
@@ -90,6 +92,11 @@ class RolePermissionSeeder extends Seeder
             'widget_RecentProcessesWidget',
             'widget_ExpiringTermsWidget',
             'widget_ProcessesByStatusChart',
+
+            // Solicitudes de cambio de empresa (solo super_admin las gestiona)
+            'view_any_solicitud::cambio::empresa',
+            'view_solicitud::cambio::empresa',
+            'update_solicitud::cambio::empresa',
         ];
 
         foreach ($permissions as $permission) {
@@ -179,9 +186,10 @@ class RolePermissionSeeder extends Seeder
             'delete_trabajador',
             'delete_any_trabajador',
 
-            // Can VIEW disciplinary processes
+            // Can VIEW AND CREATE disciplinary processes (Crear Citación de Descargos)
             'view_proceso::disciplinario',
             'view_any_proceso::disciplinario',
+            'create_proceso::disciplinario',
 
             // Can VIEW AND CREATE contract requests (initiates the process)
             'view_solicitud::contrato',
@@ -196,6 +204,9 @@ class RolePermissionSeeder extends Seeder
             'create_reglamento::interno',
             'update_reglamento::interno',
             'page_MiReglamentoInterno',
+
+            // Reporte "Sanciones Emitidas" (ver App\Filament\Admin\Pages\SancionesEmitidas)
+            'page_SancionesEmitidas',
 
             // Access to widgets
             'widget_StatsOverviewWidget',
