@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\ProcesoDisciplinario;
 use App\Models\SolicitudContrato;
+use App\Models\SolicitudCambioEmpresa;
 use App\Notifications\ProcesoNotification;
 use Filament\Notifications\Actions\Action as FilamentAction;
 use Filament\Notifications\Notification as FilamentNotification;
@@ -49,6 +50,7 @@ class NotificacionService
             'impugnacion_realizada'  => 'heroicon-o-arrow-path',
             'cerrado'                => 'heroicon-o-check-badge',
             'contrato_generado'      => 'heroicon-o-document-check',
+            'solicitud_cambio_empresa' => 'heroicon-o-pencil-square',
             default                  => 'heroicon-o-bell',
         };
 
@@ -563,5 +565,47 @@ class NotificacionService
                 prioridad: 'alta'
             );
         }
+    }
+
+    /**
+     * Notifica a todos los super_admin cuando un cliente solicita cambiar un
+     * dato legal bloqueado de su empresa (razón social, NIT, etc.)
+     */
+    public function notificarSolicitudCambioEmpresa(SolicitudCambioEmpresa $solicitud): void
+    {
+        $superAdmins = User::where('role', 'super_admin')->where('active', true)->get();
+        if ($superAdmins->isEmpty()) {
+            $superAdmins = User::where('role', 'super_admin')->get();
+        }
+
+        foreach ($superAdmins as $admin) {
+            $this->crear(
+                userId: $admin->id,
+                tipo: 'solicitud_cambio_empresa',
+                titulo: 'Solicitud de cambio de datos de empresa',
+                mensaje: "{$solicitud->empresa->razon_social} solicitó cambiar un dato legal: \"{$solicitud->mensaje}\"",
+                relacionadoTipo: SolicitudCambioEmpresa::class,
+                relacionadoId: $solicitud->id,
+                prioridad: 'media'
+            );
+        }
+    }
+
+    /**
+     * Notifica al cliente que solicitó el cambio si fue aprobado o rechazado.
+     */
+    public function notificarResultadoSolicitudCambioEmpresa(SolicitudCambioEmpresa $solicitud): void
+    {
+        $aprobada = $solicitud->estado === 'aprobada';
+
+        $this->crear(
+            userId: $solicitud->user_id,
+            tipo: 'solicitud_cambio_empresa',
+            titulo: $aprobada ? 'Su solicitud de cambio fue aprobada' : 'Su solicitud de cambio fue rechazada',
+            mensaje: $aprobada
+                ? 'Actualizamos los datos de su empresa según lo solicitado.'
+                : 'No se pudo aprobar su solicitud. Motivo: ' . ($solicitud->motivo_rechazo ?: 'no especificado'),
+            prioridad: $aprobada ? 'baja' : 'media'
+        );
     }
 }
