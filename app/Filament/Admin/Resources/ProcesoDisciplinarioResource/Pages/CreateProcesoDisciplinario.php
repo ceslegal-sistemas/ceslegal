@@ -101,8 +101,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ])
                         ->columnSpanFull(),
 
-                    Forms\Components\Section::make('Trabajador')
-                        ->schema([
+                    Forms\Components\Group::make([
                             Forms\Components\Placeholder::make('info_paso_trabajador')
                                 ->label('')
                                 ->content(fn() => new HtmlString(
@@ -352,10 +351,9 @@ class CreateProcesoDisciplinario extends CreateRecord
                                     );
                                 })
                                 ->columnSpanFull(),
-                        ]),
+                    ]),
 
-                    Forms\Components\Section::make('Cuándo ocurrió')
-                        ->schema([
+                    Forms\Components\Group::make([
                             Forms\Components\Placeholder::make('info_paso_cuando')
                                 ->label('')
                                 ->content(fn() => new HtmlString(
@@ -414,8 +412,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ])
                         ->columnSpanFull(),
 
-                    Forms\Components\Section::make('Hechos')
-                        ->schema([
+                    Forms\Components\Group::make([
                             Forms\Components\Placeholder::make('info_paso_hechos')
                                 ->label('')
                                 ->content(fn() => new HtmlString(
@@ -747,8 +744,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->columnSpanFull(),
                         ]),
 
-                    Forms\Components\Section::make('Evidencias y testigos')
-                        ->schema([
+                    Forms\Components\Group::make([
                             Forms\Components\Placeholder::make('info_paso_pruebas')
                                 ->label('')
                                 ->content(fn() => new HtmlString(
