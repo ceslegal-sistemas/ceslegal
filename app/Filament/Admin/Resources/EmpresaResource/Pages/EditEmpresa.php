@@ -21,6 +21,11 @@ class EditEmpresa extends EditRecord
 {
     protected static string $resource = EmpresaResource::class;
 
+    // Vista custom: oculta el stepper nativo de Filament (misma clase
+    // ces-hide-wizard-steps que ya usa el wizard de citación de descargos) -
+    // este wizard usa su propio encabezado "Paso X de Y" (step-header).
+    protected static string $view = 'filament.admin.resources.empresas.pages.edit-empresa';
+
     public function getTitle(): string
     {
         // Para el cliente es "su" empresa; para staff, el nombre de la empresa.
