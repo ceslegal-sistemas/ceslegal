@@ -75,6 +75,7 @@ class EditEmpresa extends EditRecord
                             ->columnSpanFull(),
 
                         Forms\Components\Section::make()
+                            ->key('me_section_datos')
                             ->headerActions([
                                 Forms\Components\Actions\Action::make('solicitar_cambio')
                                     ->label('Solicitar cambio')
