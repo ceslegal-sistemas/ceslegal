@@ -4,6 +4,8 @@ namespace App\Filament\Admin\Resources\EmpresaResource\Pages;
 
 use App\Filament\Admin\Resources\EmpresaResource;
 use App\Models\ActividadEconomica;
+use App\Models\SolicitudCambioEmpresa;
+use App\Services\NotificacionService;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Components\View as FormView;
@@ -73,6 +75,39 @@ class EditEmpresa extends EditRecord
                             ->columnSpanFull(),
 
                         Forms\Components\Section::make()
+                            ->headerActions([
+                                Forms\Components\Actions\Action::make('solicitar_cambio')
+                                    ->label('Solicitar cambio')
+                                    ->icon('heroicon-o-pencil-square')
+                                    ->color('gray')
+                                    ->link()
+                                    ->visible(fn() => auth()->user()?->isCliente() ?? false)
+                                    ->form([
+                                        Forms\Components\Textarea::make('mensaje')
+                                            ->label('¿Qué dato quiere cambiar y a qué valor?')
+                                            ->placeholder('Ej: La razón social debe decir "MI EMPRESA S.A.S." en vez de "MI EMPRESA SAS"')
+                                            ->required()
+                                            ->rows(3),
+                                    ])
+                                    ->modalHeading('Solicitar cambio de datos de la empresa')
+                                    ->modalSubmitActionLabel('Enviar solicitud')
+                                    ->action(function (array $data): void {
+                                        $solicitud = SolicitudCambioEmpresa::create([
+                                            'empresa_id' => $this->record->id,
+                                            'user_id' => auth()->id(),
+                                            'mensaje' => $data['mensaje'],
+                                            'estado' => 'pendiente',
+                                        ]);
+
+                                        app(NotificacionService::class)->notificarSolicitudCambioEmpresa($solicitud);
+
+                                        \Filament\Notifications\Notification::make()
+                                            ->success()
+                                            ->title('Solicitud enviada')
+                                            ->body('Le avisaremos cuando sea revisada.')
+                                            ->send();
+                                    }),
+                            ])
                             ->schema([
                                 Forms\Components\TextInput::make('razon_social')
                                     ->label('Razón Social')
