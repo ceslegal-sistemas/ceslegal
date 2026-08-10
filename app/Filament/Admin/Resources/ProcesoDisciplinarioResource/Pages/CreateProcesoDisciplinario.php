@@ -394,25 +394,25 @@ class CreateProcesoDisciplinario extends CreateRecord
                         ->columns(2),
                 ]),
 
-            // ── Paso 3: Hechos ───────────────────────────────────────────────
+            // ── Paso 2: Qué pasó (hechos + pruebas fusionados) ───────────────
             Step::make('hechos')
-                ->label('Hechos')
-                ->description('¿Qué ocurrió?')
+                ->label('Qué pasó')
+                ->description('Hechos, evidencias y testigos')
                 ->icon('heroicon-o-document-text')
                 ->schema([
                     Forms\Components\View::make('filament.components.step-header')
                         ->key('proc_step_header_hechos')
                         ->viewData([
-                            'step' => 3,
-                            'total' => 6,
-                            'title' => 'Hechos',
-                            'accent' => '#eab308',
+                            'step' => 2,
+                            'total' => 3,
+                            'title' => 'Qué pasó',
+                            'accent' => '#f97316',
                             'lord' => 'https://cdn.lordicon.com/bpptgtfr.json',
-                            'subtitle' => 'Descripción objetiva y verificable de lo ocurrido.',
+                            'subtitle' => 'Descripción de los hechos, evidencias y testigos.',
                         ])
                         ->columnSpanFull(),
 
-                    Forms\Components\Section::make()
+                    Forms\Components\Section::make('Hechos')
                         ->schema([
                             Forms\Components\Placeholder::make('info_paso_hechos')
                                 ->label('')
@@ -744,27 +744,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->visible(fn(Forms\Get $get) => filled($get('clasificacion_incidente_ia')))
                                 ->columnSpanFull(),
                         ]),
-                ]),
 
-            // ── Paso 4: Pruebas (Evidencias + Testigos) ──────────────────────
-            Step::make('pruebas')
-                ->label('Pruebas')
-                ->description('Evidencias y testigos del hecho')
-                ->icon('heroicon-o-paper-clip')
-                ->schema([
-                    Forms\Components\View::make('filament.components.step-header')
-                        ->key('proc_step_header_pruebas')
-                        ->viewData([
-                            'step' => 4,
-                            'total' => 6,
-                            'title' => 'Pruebas',
-                            'accent' => '#84cc16',
-                            'lord' => 'https://cdn.lordicon.com/fqbvgezn.json',
-                            'subtitle' => 'Evidencias, archivos y testigos del hecho.',
-                        ])
-                        ->columnSpanFull(),
-
-                    Forms\Components\Section::make()
+                    Forms\Components\Section::make('Evidencias y testigos')
                         ->schema([
                             Forms\Components\Placeholder::make('info_paso_pruebas')
                                 ->label('')
