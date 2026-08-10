@@ -79,8 +79,11 @@ class EditEmpresa extends EditRecord
                                     ->required()
                                     ->maxLength(255)
                                     ->placeholder('Ej: EMPRESA ABC')
-                                    ->helperText('Nombre legal sin tipo societario')
+                                    ->helperText(fn() => (auth()->user()?->isCliente() ?? false)
+                                        ? 'Nombre legal sin tipo societario. Para corregirlo, contacte a soporte.'
+                                        : 'Nombre legal sin tipo societario')
                                     ->extraInputAttributes(['style' => 'text-transform:uppercase'])
+                                    ->disabled(fn() => auth()->user()?->isCliente() ?? false)
                                     ->columnSpan(['default' => 1, 'sm' => 2]),
 
                                 Forms\Components\Select::make('tipo_societario')
@@ -88,8 +91,11 @@ class EditEmpresa extends EditRecord
                                     ->options(\App\Models\Empresa::TIPOS_SOCIETARIOS)
                                     ->searchable()
                                     ->placeholder('Seleccione...')
-                                    ->helperText('Forma jurídica')
-                                    ->live(),
+                                    ->helperText(fn() => (auth()->user()?->isCliente() ?? false)
+                                        ? 'Forma jurídica. Para corregirla, contacte a soporte.'
+                                        : 'Forma jurídica')
+                                    ->live()
+                                    ->disabled(fn() => auth()->user()?->isCliente() ?? false),
 
                                 Forms\Components\TextInput::make('nit')
                                     ->label('NIT')
@@ -102,22 +108,28 @@ class EditEmpresa extends EditRecord
                                     ->placeholder(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
                                         ? 'Ej: 900123456-7'
                                         : 'Ej: 1023456789')
-                                    ->helperText(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
-                                        ? 'Incluya el dígito de verificación separado por guion'
-                                        : 'Número de cédula de ciudadanía')
+                                    ->helperText(fn(Get $get) => (auth()->user()?->isCliente() ?? false)
+                                        ? 'Para corregirlo, contacte a soporte.'
+                                        : (($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
+                                            ? 'Incluya el dígito de verificación separado por guion'
+                                            : 'Número de cédula de ciudadanía'))
                                     ->rules(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
                                         ? ['regex:/^\d{6,12}-\d$/']
                                         : [])
                                     ->validationMessages(['regex' => 'El NIT debe incluir el dígito de verificación (ej: 900123456-7).'])
-                                    ->suffixIcon('heroicon-o-identification'),
+                                    ->suffixIcon('heroicon-o-identification')
+                                    ->disabled(fn() => auth()->user()?->isCliente() ?? false),
 
                                 Forms\Components\TextInput::make('representante_legal')
                                     ->label('Representante Legal')
                                     ->required()
                                     ->maxLength(255)
                                     ->placeholder('Ej: Juan Pérez García')
-                                    ->helperText('Nombre del representante legal')
-                                    ->suffixIcon('heroicon-o-user'),
+                                    ->helperText(fn() => (auth()->user()?->isCliente() ?? false)
+                                        ? 'Nombre del representante legal. Para corregirlo, contacte a soporte.'
+                                        : 'Nombre del representante legal')
+                                    ->suffixIcon('heroicon-o-user')
+                                    ->disabled(fn() => auth()->user()?->isCliente() ?? false),
 
                                 Forms\Components\Toggle::make('active')
                                     ->label('Empresa Activa')
