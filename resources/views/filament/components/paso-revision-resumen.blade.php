@@ -402,18 +402,11 @@
             color: #9ca3af
         }
 
-        /* ── Document summary (mismo lenguaje visual que el hero) ───── */
+        /* ── Document summary: ahora vive dentro del mismo .er-hero,
+           sin tarjeta ni fondo propio (solo agrupa el contenido) ──── */
         .er-doc {
-            border-radius: 1rem;
-            border: 1px solid rgba(255, 255, 255, .09);
+            border-radius: .75rem;
             overflow: hidden;
-            background: linear-gradient(150deg, #1a0f0c 0%, #241319 55%, #170d0a 100%);
-        }
-
-        html:not(.dark) .er-doc {
-            border: 1px solid rgba(0, 0, 0, .07);
-            box-shadow: 0 4px 28px rgba(0, 0, 0, .07);
-            background: #ffffff;
         }
 
         /* Cada sección del documento */
@@ -567,10 +560,6 @@
             color: #be123c
         }
 
-        /* Color accent bar por sección (borde izquierdo) */
-        .er-section[data-color] {
-            border-left: 3px solid var(--sc, rgba(251,113,133, .5));
-        }
     </style>
 @endverbatim
 
@@ -681,18 +670,15 @@
                 </span>
             @endif
 
-        </div>
-    </div>
+            {{-- ══════════ RESUMEN DEL EXPEDIENTE (mismo hero, sin corte) ══════════ --}}
+            <div class="er-a4" style="text-align:left;margin-top:1.125rem;">
+                <div class="er-rule">
+                    <div class="er-rule-line"></div>
+                    <span class="er-rule-txt">Resumen del expediente</span>
+                    <div class="er-rule-line"></div>
+                </div>
 
-    {{-- ══════════════════ RESUMEN DEL EXPEDIENTE ══════════════════ --}}
-    <div class="er-a4">
-        <div class="er-rule">
-            <div class="er-rule-line"></div>
-            <span class="er-rule-txt">Resumen del expediente</span>
-            <div class="er-rule-line"></div>
-        </div>
-
-        <div class="er-doc">
+                <div class="er-doc">
 
             {{-- Hechos --}}
             <div class="er-section" data-color style="--sc:#fb7185;--sc-rgb:251,113,133;background:rgba(251,113,133,.05)">
@@ -793,6 +779,9 @@
                         <p class="er-sec-val empty">No indicado</p>
                     @endif
                 </div>
+            </div>
+
+        </div>
             </div>
 
         </div>
