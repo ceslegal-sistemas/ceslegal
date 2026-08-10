@@ -351,7 +351,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                     );
                                 })
                                 ->columnSpanFull(),
-                    ]),
+                    ])->extraAttributes(['class' => 'pt-card']),
 
                     Forms\Components\Group::make([
                             Forms\Components\Placeholder::make('info_paso_cuando')
@@ -391,7 +391,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->reorderable(false)
                                 ->columnSpanFull(),
                         ])
-                        ->columns(2),
+                        ->columns(2)
+                        ->extraAttributes(['class' => 'pt-card']),
                 ]),
 
             // ── Paso 2: Qué pasó (hechos + pruebas fusionados) ───────────────
@@ -742,7 +743,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 })
                                 ->visible(fn(Forms\Get $get) => filled($get('clasificacion_incidente_ia')))
                                 ->columnSpanFull(),
-                        ]),
+                        ])->extraAttributes(['class' => 'pt-card']),
 
                     Forms\Components\Group::make([
                             Forms\Components\Placeholder::make('info_paso_pruebas')
@@ -803,7 +804,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->minItems(1)
                                 ->visible(fn(Get $get) => $get('hubo_testigos') === 'si')
                                 ->columnSpanFull(),
-                        ]),
+                        ])->extraAttributes(['class' => 'pt-card']),
                 ]),
 
             // ── Paso 3: Revisión y envío (revision + verificacion fusionados) ──
