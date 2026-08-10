@@ -402,18 +402,18 @@
             color: #9ca3af
         }
 
-        /* ── Document summary ──────────────────────────────── */
+        /* ── Document summary (mismo lenguaje visual que el hero) ───── */
         .er-doc {
             border-radius: 1rem;
             border: 1px solid rgba(255, 255, 255, .09);
             overflow: hidden;
-            background: linear-gradient(160deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, .008));
+            background: linear-gradient(150deg, #1a0f0c 0%, #241319 55%, #170d0a 100%);
         }
 
         html:not(.dark) .er-doc {
-            border-color: rgba(0, 0, 0, .08);
-            box-shadow: 0 1px 6px rgba(0, 0, 0, .05);
-            background: linear-gradient(160deg, #ffffff, #fafafa);
+            border: 1px solid rgba(0, 0, 0, .07);
+            box-shadow: 0 4px 28px rgba(0, 0, 0, .07);
+            background: #ffffff;
         }
 
         /* Cada sección del documento */
@@ -481,8 +481,8 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             flex-shrink: 0;
             background: rgba(var(--sc-rgb, 251, 113, 133), .16);
@@ -490,8 +490,8 @@
         }
 
         .er-sec-ico {
-            width: 14px;
-            height: 14px;
+            width: 19px;
+            height: 19px;
             flex-shrink: 0;
         }
 
@@ -698,11 +698,9 @@
             <div class="er-section" data-color style="--sc:#fb7185;--sc-rgb:251,113,133;background:rgba(251,113,133,.05)">
                 <div class="er-sec-header">
                     <span class="er-sec-ico-badge">
-                        <svg class="er-sec-ico" style="color:#fb7185" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                        </svg>
+                        <lord-icon class="er-sec-ico" src="https://cdn.lordicon.com/bpptgtfr.json"
+                            trigger="loop" delay="500" stroke="bold" colors="primary:#fb7185,secondary:#fb7185">
+                        </lord-icon>
                     </span>
                     <p class="er-sec-label">Hechos reportados</p>
                 </div>
@@ -718,11 +716,9 @@
                 <div class="er-section" data-color style="--sc:#34d399;--sc-rgb:52,211,153;background:rgba(52,211,153,.05)">
                     <div class="er-sec-header">
                         <span class="er-sec-ico-badge">
-                            <svg class="er-sec-ico" style="color:#34d399" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                            </svg>
+                            <lord-icon class="er-sec-ico" src="https://cdn.lordicon.com/uphbloed.json"
+                                trigger="loop" delay="500" stroke="bold" colors="primary:#34d399,secondary:#34d399">
+                            </lord-icon>
                         </span>
                         <p class="er-sec-label">Cuándo</p>
                     </div>
@@ -742,11 +738,9 @@
                 <div class="er-section" data-color style="--sc:#60a5fa;--sc-rgb:96,165,250;background:rgba(96,165,250,.05)">
                     <div class="er-sec-header">
                         <span class="er-sec-ico-badge">
-                            <svg class="er-sec-ico" style="color:#60a5fa" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                            </svg>
+                            <lord-icon class="er-sec-ico" src="https://cdn.lordicon.com/okqjaags.json"
+                                trigger="loop" delay="500" stroke="bold" colors="primary:#60a5fa,secondary:#60a5fa">
+                            </lord-icon>
                         </span>
                         <p class="er-sec-label">Reportado por</p>
                     </div>
@@ -761,11 +755,9 @@
                 <div class="er-section" data-color style="--sc:#fb923c;--sc-rgb:251,146,60;background:rgba(251,146,60,.05)">
                     <div class="er-sec-header">
                         <span class="er-sec-ico-badge">
-                            <svg class="er-sec-ico" style="color:#fb923c" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
-                            </svg>
+                            <lord-icon class="er-sec-ico" src="https://cdn.lordicon.com/hmpomorl.json"
+                                trigger="loop" delay="500" stroke="bold" colors="primary:#fb923c,secondary:#fb923c">
+                            </lord-icon>
                         </span>
                         <p class="er-sec-label">Evidencias</p>
                     </div>
@@ -781,11 +773,10 @@
                 <div class="er-section" data-color style="--sc:#f472b6;--sc-rgb:244,114,182;background:rgba(244,114,182,.05)">
                     <div class="er-sec-header">
                         <span class="er-sec-ico-badge">
-                            <svg class="er-sec-ico" style="color:#f472b6" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                            </svg>
+                            <lord-icon class="er-sec-ico" src="https://cdn.lordicon.com/fqbvgezn.json"
+                                trigger="loop" delay="500" stroke="bold" state="hover-roll"
+                                colors="primary:#f472b6,secondary:#f472b6">
+                            </lord-icon>
                         </span>
                         <p class="er-sec-label">Testigos</p>
                     </div>
