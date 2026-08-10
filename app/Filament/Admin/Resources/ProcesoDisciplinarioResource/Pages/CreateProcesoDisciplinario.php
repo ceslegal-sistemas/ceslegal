@@ -72,39 +72,34 @@ class CreateProcesoDisciplinario extends CreateRecord
     protected function getSteps(): array
     {
         return [
-            // ── Paso 0: Bienvenida ────────────────────────────────────────────
-            Step::make('bienvenida')
-                ->label('Bienvenida')
-                ->description('Lea antes de empezar')
-                ->icon('heroicon-o-information-circle')
-                ->schema([
-                    Forms\Components\Placeholder::make('bienvenida_contenido')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.bienvenida-proceso')->render()
-                        ))
-                        ->columnSpanFull(),
-                ]),
-
-            // ── Paso 1: Empresa y Trabajador ─────────────────────────────────
+            // ── Paso 1: Quién y cuándo (bienvenida + trabajador + cuando fusionados) ──
             Step::make('trabajador')
-                ->label('Trabajador')
-                ->description('¿Con qué trabajador?')
+                ->label('Quién y cuándo')
+                ->description('Trabajador involucrado, fecha y hora del hecho')
                 ->icon('heroicon-o-user')
                 ->schema([
                     Forms\Components\View::make('filament.components.step-header')
                         ->key('proc_step_header_trabajador')
                         ->viewData([
                             'step' => 1,
-                            'total' => 6,
-                            'title' => 'Trabajador',
+                            'total' => 3,
+                            'title' => 'Quién y cuándo',
                             'accent' => '#e11d48',
                             'lord' => 'https://cdn.lordicon.com/bushiqea.json',
-                            'subtitle' => 'Empresa y datos del trabajador involucrado.',
+                            'subtitle' => 'Empresa, trabajador involucrado, y fecha/hora del hecho.',
                         ])
                         ->columnSpanFull(),
 
-                    Forms\Components\Section::make()
+                    // Intro que antes vivía en el paso "bienvenida" propio - ahora es
+                    // solo el primer bloque de este paso, sin pantalla dedicada.
+                    Forms\Components\Placeholder::make('bienvenida_contenido')
+                        ->label('')
+                        ->content(fn() => new HtmlString(
+                            view('filament.components.bienvenida-proceso')->render()
+                        ))
+                        ->columnSpanFull(),
+
+                    Forms\Components\Section::make('Trabajador')
                         ->schema([
                             Forms\Components\Placeholder::make('info_paso_trabajador')
                                 ->label('')
@@ -356,27 +351,8 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 })
                                 ->columnSpanFull(),
                         ]),
-                ]),
 
-            // ── Paso 2: Cuándo ocurrió ──────────────────────────────────────
-            Step::make('cuando')
-                ->label('Cuándo')
-                ->description('Fecha y hora del hecho')
-                ->icon('heroicon-o-clock')
-                ->schema([
-                    Forms\Components\View::make('filament.components.step-header')
-                        ->key('proc_step_header_cuando')
-                        ->viewData([
-                            'step' => 2,
-                            'total' => 6,
-                            'title' => 'Cuándo',
-                            'accent' => '#f97316',
-                            'lord' => 'https://cdn.lordicon.com/uphbloed.json',
-                            'subtitle' => 'Fecha, hora y contexto del incidente.',
-                        ])
-                        ->columnSpanFull(),
-
-                    Forms\Components\Section::make()
+                    Forms\Components\Section::make('Cuándo ocurrió')
                         ->schema([
                             Forms\Components\Placeholder::make('info_paso_cuando')
                                 ->label('')
