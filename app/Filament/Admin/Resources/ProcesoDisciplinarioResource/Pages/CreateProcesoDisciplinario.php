@@ -72,7 +72,18 @@ class CreateProcesoDisciplinario extends CreateRecord
     protected function getSteps(): array
     {
         return [
-            // ── Paso 1: Quién y cuándo (bienvenida + trabajador + cuando fusionados) ──
+            // ── Paso 0: Bienvenida (pantalla propia, no cuenta en "Paso X de 3") ──
+            Step::make('bienvenida')
+                ->label('Bienvenida')
+                ->description('Lea antes de empezar')
+                ->icon('heroicon-o-information-circle')
+                ->schema([
+                    Forms\Components\View::make('filament.components.bienvenida-proceso')
+                        ->key('proc_bienvenida_contenido')
+                        ->columnSpanFull(),
+                ]),
+
+            // ── Paso 1: Quién y cuándo (trabajador + cuando fusionados) ──
             Step::make('trabajador')
                 ->label('Quién y cuándo')
                 ->description('Trabajador involucrado, fecha y hora del hecho')
@@ -88,15 +99,6 @@ class CreateProcesoDisciplinario extends CreateRecord
                             'lord' => 'https://cdn.lordicon.com/bushiqea.json',
                             'subtitle' => 'Empresa, trabajador involucrado, y fecha/hora del hecho.',
                         ])
-                        ->columnSpanFull(),
-
-                    // Intro que antes vivía en el paso "bienvenida" propio - ahora es
-                    // solo el primer bloque de este paso, sin pantalla dedicada.
-                    Forms\Components\Placeholder::make('bienvenida_contenido')
-                        ->label('')
-                        ->content(fn() => new HtmlString(
-                            view('filament.components.bienvenida-proceso')->render()
-                        ))
                         ->columnSpanFull(),
 
                     Forms\Components\Section::make('Trabajador')

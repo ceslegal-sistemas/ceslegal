@@ -15,12 +15,9 @@
     );
 
     $steps = [
-        ['n' => '1', 'sc' => '#60a5fa', 'ib' => 'rgba(96,165,250,.12)', 'ibc' => 'rgba(96,165,250,.25)', 'tag' => 'Paso 1', 'title' => 'Datos del trabajador', 'body' => 'Identifique al trabajador y su cargo. El empleado presentará sus descargos en línea durante la audiencia y sus respuestas quedarán registradas.'],
-        ['n' => '2', 'sc' => '#34d399', 'ib' => 'rgba(52,211,153,.12)', 'ibc' => 'rgba(52,211,153,.25)', 'tag' => 'Paso 2', 'title' => 'Cuándo y dónde', 'body' => 'Confirme la fecha, hora aproximada, lugar del hecho y si ocurrió dentro del horario laboral.'],
-        ['n' => '3', 'sc' => '#c9a84c', 'ib' => 'rgba(201,168,76,.12)', 'ibc' => 'rgba(201,168,76,.25)', 'tag' => 'Paso 3', 'title' => 'Hechos reportados', 'body' => '¿Quién reporta el incidente? Describa lo ocurrido - la IA verifica que no falte alguna acción concreta.'],
-        ['n' => '4', 'sc' => '#fb7185', 'ib' => 'rgba(251,113,133,.12)', 'ibc' => 'rgba(251,113,133,.25)', 'tag' => 'Paso 4', 'title' => 'Evidencias', 'body' => '¿Existe evidencia? Correos, registros de asistencia, cámaras, documentos, testigos... suba los archivos disponibles.'],
-        ['n' => '5', 'sc' => '#fb923c', 'ib' => 'rgba(251,146,60,.12)', 'ibc' => 'rgba(251,146,60,.25)', 'tag' => 'Paso 5', 'title' => 'Testigos', 'body' => '¿Hubo personas que presenciaron el hecho? Registre el nombre y cargo de cada testigo.'],
-        ['n' => '6', 'sc' => '#f472b6', 'ib' => 'rgba(244,114,182,.12)', 'ibc' => 'rgba(244,114,182,.25)', 'tag' => 'Paso 6', 'title' => 'Revisión y envío', 'body' => 'Revise el resumen completo, previsualice la citación y confirme el envío de los descargos.'],
+        ['n' => '1', 'sc' => '#e11d48', 'ib' => 'rgba(225,29,72,.12)', 'ibc' => 'rgba(225,29,72,.25)', 'tag' => 'Paso 1', 'title' => 'Quién y cuándo', 'body' => 'Identifique al trabajador involucrado y confirme la fecha y hora aproximada del hecho.'],
+        ['n' => '2', 'sc' => '#f97316', 'ib' => 'rgba(249,115,22,.12)', 'ibc' => 'rgba(249,115,22,.25)', 'tag' => 'Paso 2', 'title' => 'Qué pasó', 'body' => 'Describa los hechos, adjunte evidencias y registre testigos - la IA verifica que no falte alguna acción concreta.'],
+        ['n' => '3', 'sc' => '#22c55e', 'ib' => 'rgba(34,197,94,.12)', 'ibc' => 'rgba(34,197,94,.25)', 'tag' => 'Paso 3', 'title' => 'Revisión y envío', 'body' => 'Revise el resumen completo, autorice con su verificación de identidad y programe la audiencia de descargos.'],
     ];
 @endphp
 
@@ -28,7 +25,7 @@
     'eyebrow'   => 'Proceso Disciplinario Laboral',
     'title'     => 'Asistente de Gestión Jurídica',
     'subtitle'  => $subtitle,
-    'ruleLabel' => 'El proceso completo - 6 pasos',
+    'ruleLabel' => 'El proceso completo - 3 pasos',
     'steps'     => $steps,
     'nextHint'  => $nextHint,
 ])
