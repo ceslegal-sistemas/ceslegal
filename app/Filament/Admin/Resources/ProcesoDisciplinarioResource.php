@@ -2158,6 +2158,11 @@ class ProcesoDisciplinarioResource extends Resource
 
                             // ══ Columna izquierda - Análisis de la IA ════════════════════════
                             Forms\Components\Group::make([
+                            Forms\Components\View::make('livewire.emitir-sancion-pasos-wrapper')
+                                ->key('emitir_sancion_pasos_wrapper')
+                                ->viewData(['procesoId' => $record->id])
+                                ->columnSpanFull(),
+
                             // ── Aviso de transparencia de la revisión V6: oculto a pedido del
                             // usuario (2026-08-06) - la corrección automática se sigue aplicando
                             // igual, solo se dejó de anunciar en la UI.
