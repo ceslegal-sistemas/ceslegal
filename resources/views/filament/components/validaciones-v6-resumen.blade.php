@@ -102,8 +102,9 @@
                                 'ok' => '#16a34a', 'atencion' => '#d97706', 'riesgo' => '#dc2626', default => '#9ca3af',
                             };
                             $tieneDetalle = !empty($fila['hallazgos']);
+                            $esMotorRiesgo = ($onRiskOpen ?? false) && $fila['titulo'] === 'Resistencia ante una revisión judicial';
                         @endphp
-                        <{{ $tieneDetalle ? 'details' : 'div' }} class="v6chk-item" style="border-left-color:{{ $color }};">
+                        <{{ $tieneDetalle ? 'details' : 'div' }} class="v6chk-item" style="border-left-color:{{ $color }};" @if($esMotorRiesgo) wire:click="acknowledgeRisk" @endif>
                             <{{ $tieneDetalle ? 'summary' : 'div' }} class="v6chk-head">
                                 @if($fila['estado'] === 'ok')
                                     <svg style="width:16px;height:16px;flex-shrink:0;color:{{ $color }};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>

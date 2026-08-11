@@ -14,6 +14,15 @@ class EmitirSancionPasos extends Component
     public string $razonDivergencia = '';
     public bool $exoneracionAceptada = false;
 
+    public array $analisis = [];
+    public bool $esFallback = false;
+    public array $opcionesSancion = [];
+    public array $iaSancionesRecomendadas = [];
+    public ?string $validacionesV6Estado = null;
+    public ?array $validacionesV6Resultados = null;
+    public ?array $validacionesV6PuntosClave = null;
+    public ?\Illuminate\Support\Carbon $validacionesV6En = null;
+
     public function acknowledgeRisk(): void
     {
         if ($this->riskAcknowledged) {
@@ -32,6 +41,14 @@ class EmitirSancionPasos extends Component
     public function irAPaso2(): void
     {
         if (! $this->riskAcknowledged) {
+            return;
+        }
+        // Guarda del lado del servidor: el @disabled del botón es solo UX, un
+        // cliente malicioso podría llamar irAPaso2 directo por la red mientras
+        // la revisión V6 sigue en curso. Nunca se avanza mientras esté
+        // pendiente/procesando (mismo criterio que bloquea "Continuar" en el
+        // ->action() de la acción emitir_sancion).
+        if (in_array($this->validacionesV6Estado, ['pendiente', 'procesando'], true)) {
             return;
         }
         $this->paso = 2;

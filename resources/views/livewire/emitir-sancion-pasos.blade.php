@@ -1,12 +1,30 @@
 <div>
     @if ($paso === 1)
         <div>
-            <p>PASO 1: Revisar el caso (contenido real en Task 4)</p>
-            <button type="button" wire:click="acknowledgeRisk">Marcar riesgo revisado (prueba)</button>
+            @if ($esFallback)
+                @include('filament.components.emitir-sancion-ia-error')
+            @else
+                @include('filament.components.emitir-sancion-analisis', [
+                    'analisis' => $analisis,
+                    'recomendacion' => $analisis['recomendacion_final'] ?? null,
+                    'opcionesSancion' => $opcionesSancion,
+                    'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
+                    'modoDecision' => false,
+                ])
+            @endif
+
+            @include('filament.components.validaciones-v6-resumen', [
+                'estado' => $validacionesV6Estado,
+                'resultados' => $validacionesV6Resultados,
+                'en' => $validacionesV6En,
+                'puntosClave' => $validacionesV6PuntosClave,
+                'onRiskOpen' => true,
+            ])
+
             <button
                 type="button"
                 wire:click="irAPaso2"
-                @disabled(! $riskAcknowledged)
+                @disabled(! $riskAcknowledged || in_array($validacionesV6Estado, ['pendiente', 'procesando'], true))
             >
                 Continuar a Decisión &rarr;
             </button>

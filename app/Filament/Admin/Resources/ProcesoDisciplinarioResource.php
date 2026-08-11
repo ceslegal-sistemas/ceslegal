@@ -2160,7 +2160,17 @@ class ProcesoDisciplinarioResource extends Resource
                             Forms\Components\Group::make([
                             Forms\Components\View::make('livewire.emitir-sancion-pasos-wrapper')
                                 ->key('emitir_sancion_pasos_wrapper')
-                                ->viewData(['procesoId' => $record->id])
+                                ->viewData([
+                                    'procesoId' => $record->id,
+                                    'analisis' => $analisis,
+                                    'esFallback' => $esFallback,
+                                    'opcionesSancion' => $opcionesSancion,
+                                    'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
+                                    'validacionesV6Estado' => $record->validaciones_v6_estado,
+                                    'validacionesV6Resultados' => $record->validaciones_v6,
+                                    'validacionesV6PuntosClave' => $record->validaciones_v6_puntos_clave,
+                                    'validacionesV6En' => $record->validaciones_v6_en,
+                                ])
                                 ->columnSpanFull(),
 
                             // ── Aviso de transparencia de la revisión V6: oculto a pedido del
