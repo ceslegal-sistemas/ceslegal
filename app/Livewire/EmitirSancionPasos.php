@@ -18,6 +18,7 @@ class EmitirSancionPasos extends Component
     public bool $esFallback = false;
     public array $opcionesSancion = [];
     public array $iaSancionesRecomendadas = [];
+    public ?array $recomendacionFinal = null;
     public ?string $validacionesV6Estado = null;
     public ?array $validacionesV6Resultados = null;
     public ?array $validacionesV6PuntosClave = null;
@@ -40,15 +41,21 @@ class EmitirSancionPasos extends Component
 
     public function irAPaso2(): void
     {
-        if (! $this->riskAcknowledged) {
-            return;
-        }
         // Guarda del lado del servidor: el @disabled del botón es solo UX, un
         // cliente malicioso podría llamar irAPaso2 directo por la red mientras
         // la revisión V6 sigue en curso. Nunca se avanza mientras esté
         // pendiente/procesando (mismo criterio que bloquea "Continuar" en el
         // ->action() de la acción emitir_sancion).
         if (in_array($this->validacionesV6Estado, ['pendiente', 'procesando'], true)) {
+            return;
+        }
+        // El reconocimiento del riesgo solo se exige cuando la revisión V6
+        // terminó y realmente produjo un motor de riesgo para reconocer (fila
+        // "Resistencia ante una revisión judicial" en validaciones-v6-resumen.blade.php).
+        // Si el estado es null/'error' (p.ej. falla de cuota de Gemini) esa fila
+        // nunca se renderiza, así que exigir el acknowledge dejaría al usuario
+        // bloqueado para siempre sin forma de avanzar.
+        if ($this->validacionesV6Estado === 'completado' && ! $this->riskAcknowledged) {
             return;
         }
         $this->paso = 2;

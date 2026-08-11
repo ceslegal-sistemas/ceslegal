@@ -4,6 +4,7 @@
     'esFallback' => $esFallback,
     'opcionesSancion' => $opcionesSancion,
     'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
+    'recomendacionFinal' => $recomendacionFinal,
     'validacionesV6Estado' => $validacionesV6Estado,
     'validacionesV6Resultados' => $validacionesV6Resultados,
     'validacionesV6PuntosClave' => $validacionesV6PuntosClave,

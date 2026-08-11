@@ -6,7 +6,7 @@
             @else
                 @include('filament.components.emitir-sancion-analisis', [
                     'analisis' => $analisis,
-                    'recomendacion' => $analisis['recomendacion_final'] ?? null,
+                    'recomendacion' => $recomendacionFinal,
                     'opcionesSancion' => $opcionesSancion,
                     'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
                     'modoDecision' => false,
@@ -24,7 +24,10 @@
             <button
                 type="button"
                 wire:click="irAPaso2"
-                @disabled(! $riskAcknowledged || in_array($validacionesV6Estado, ['pendiente', 'procesando'], true))
+                @disabled(
+                    in_array($validacionesV6Estado, ['pendiente', 'procesando'], true)
+                    || ($validacionesV6Estado === 'completado' && ! $riskAcknowledged)
+                )
             >
                 Continuar a Decisión &rarr;
             </button>

@@ -2166,6 +2166,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     'esFallback' => $esFallback,
                                     'opcionesSancion' => $opcionesSancion,
                                     'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
+                                    'recomendacionFinal' => $recomendacionFinal,
                                     'validacionesV6Estado' => $record->validaciones_v6_estado,
                                     'validacionesV6Resultados' => $record->validaciones_v6,
                                     'validacionesV6PuntosClave' => $record->validaciones_v6_puntos_clave,
