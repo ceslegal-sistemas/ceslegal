@@ -34,3 +34,4 @@ tmp_*.py
 *.xml
 diagrama_*.xml
 docs/superpowers/
+.worktrees/
