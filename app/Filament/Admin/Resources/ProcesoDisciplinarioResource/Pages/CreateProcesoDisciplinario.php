@@ -758,7 +758,7 @@ class CreateProcesoDisciplinario extends CreateRecord
 
                             Forms\Components\FileUpload::make('evidencias_empleador')
                                 ->label('Adjuntar archivos (opcional)')
-                                ->helperText('Máx. 5 archivos · 10 MB c/u · PDF, imágenes, Word.')
+                                ->helperText('Máx. 5 archivos · 10 MB c/u · PDF, imágenes, Word, Excel, video o audio.')
                                 ->multiple()
                                 ->maxFiles(5)
                                 ->maxSize(10240)
@@ -769,8 +769,16 @@ class CreateProcesoDisciplinario extends CreateRecord
                                     'image/jpeg',
                                     'image/png',
                                     'image/webp',
+                                    'image/gif',
+                                    'image/heic',
                                     'application/msword',
                                     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                    'application/vnd.ms-excel',
+                                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                    'video/mp4',
+                                    'video/quicktime',
+                                    'audio/mpeg',
+                                    'audio/wav',
                                 ])
                                 ->visible(fn(Get $get) => $get('tiene_evidencias') === 'si')
                                 ->columnSpanFull(),
