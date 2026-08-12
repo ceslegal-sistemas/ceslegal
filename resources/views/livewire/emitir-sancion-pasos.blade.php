@@ -21,7 +21,15 @@
                 'onRiskOpen' => true,
             ])
 
-            <div class="mt-4 flex justify-end">
+            <div class="mt-4 flex items-center justify-between">
+                <x-filament::button
+                    type="button"
+                    x-on:click="$wire.$parent.unmountAction(false, false)"
+                    color="gray"
+                >
+                    Cancelar
+                </x-filament::button>
+
                 <x-filament::button
                     type="button"
                     wire:click="irAPaso2"
@@ -76,14 +84,24 @@
             @endif
 
             <div class="mt-4 flex items-center justify-between">
-                <x-filament::button
-                    type="button"
-                    wire:click="irAPaso1"
-                    color="gray"
-                    icon="heroicon-o-arrow-left"
-                >
-                    Volver a Análisis
-                </x-filament::button>
+                <div class="flex items-center gap-2">
+                    <x-filament::button
+                        type="button"
+                        x-on:click="$wire.$parent.unmountAction(false, false)"
+                        color="gray"
+                    >
+                        Cancelar
+                    </x-filament::button>
+
+                    <x-filament::button
+                        type="button"
+                        wire:click="irAPaso1"
+                        color="gray"
+                        icon="heroicon-o-arrow-left"
+                    >
+                        Volver a Análisis
+                    </x-filament::button>
+                </div>
 
                 <x-filament::button
                     type="button"

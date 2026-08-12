@@ -2406,6 +2406,15 @@ class ProcesoDisciplinarioResource extends Resource
                         ->hidden(($livewire->mountedTableActionsData[0]['paso_actual'] ?? 1) < 3)
                     )
                     ->modalCancelActionLabel('Cancelar')
+                    // Igual que el botón nativo "Continuar": la barra nativa de Cancelar
+                    // solo se muestra en el Paso 3 (Verificación del Autorizador). En los
+                    // Pasos 1-2 el propio wizard Livewire ya trae su botón "Cancelar" al
+                    // lado de "Continuar a Decisión"/"Continuar a Autorizar" (ver
+                    // emitir-sancion-pasos.blade.php), para que se vean juntos en una
+                    // sola fila en vez de un botón suelto arriba y la barra nativa abajo.
+                    ->modalCancelAction(fn($action, $livewire) => $action
+                        ->hidden(($livewire->mountedTableActionsData[0]['paso_actual'] ?? 1) < 3)
+                    )
                     ->modalWidth('6xl')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
