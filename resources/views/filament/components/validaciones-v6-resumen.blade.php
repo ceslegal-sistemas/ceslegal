@@ -109,8 +109,10 @@
                             };
                             $tieneDetalle = !empty($fila['hallazgos']);
                             $esMotorRiesgo = ($onRiskOpen ?? false) && $fila['titulo'] === 'Resistencia ante una revisión judicial';
+                            $riskAcknowledged = $riskAcknowledged ?? false;
+                            $resaltarMotorRiesgo = $esMotorRiesgo && !$riskAcknowledged;
                         @endphp
-                        <{{ $tieneDetalle ? 'details' : 'div' }} class="v6chk-item" style="border-left-color:{{ $color }};" @if($esMotorRiesgo) wire:click="acknowledgeRisk" @endif>
+                        <{{ $tieneDetalle ? 'details' : 'div' }} class="v6chk-item @if($resaltarMotorRiesgo) v6chk-item-pulse @endif" style="border-left-color:{{ $color }};" @if($esMotorRiesgo) wire:click="acknowledgeRisk" @endif>
                             <{{ $tieneDetalle ? 'summary' : 'div' }} class="v6chk-head">
                                 @if($fila['estado'] === 'ok')
                                     <svg style="width:16px;height:16px;flex-shrink:0;color:{{ $color }};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
@@ -122,6 +124,9 @@
                                     <svg style="width:16px;height:16px;flex-shrink:0;color:{{ $color }};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                                 @endif
                                 <span style="flex:1;min-width:0;font-size:12.5px;font-weight:600;color:var(--esa-text);{{ $fila['estado'] === 'ok' ? 'opacity:.8' : '' }}">{{ $fila['titulo'] }}</span>
+                                @if($resaltarMotorRiesgo)
+                                    <span class="v6chk-clickhint">Haga clic aquí ↓</span>
+                                @endif
                                 @if($fila['estado'] === 'na')
                                     <span style="font-size:11px;color:var(--esa-muted);">no disponible</span>
                                 @elseif(!$tieneDetalle)
@@ -170,5 +175,20 @@ div.v6chk-head{cursor:default;}
 .v6chk-spinner{flex-shrink:0;width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,0,0,.12);border-top-color:#2563eb;animation:v6chkspin .8s linear infinite;}
 html.dark .v6chk-spinner{border-color:rgba(255,255,255,.15);border-top-color:#60a5fa;}
 @keyframes v6chkspin{to{transform:rotate(360deg);}}
+
+/* Resalta la fila "Resistencia ante una revisión judicial" mientras el
+   riesgo no ha sido reconocido (wire:click="acknowledgeRisk"), para que el
+   usuario vea de una vez cuál punto debe abrir - no esperar a leer el texto
+   de ayuda debajo del botón deshabilitado. Se retira solo al reconocer. */
+.v6chk-item-pulse{outline:2px solid rgba(217,119,6,.55);outline-offset:1px;animation:v6chkpulse 2s ease-in-out infinite;}
+@keyframes v6chkpulse{
+    0%, 100% { box-shadow: 0 0 0 0 rgba(217,119,6,.35); }
+    50% { box-shadow: 0 0 0 5px rgba(217,119,6,0); }
+}
+.v6chk-clickhint{flex-shrink:0;font-size:10.5px;font-weight:700;color:#b45309;background:rgba(217,119,6,.12);border-radius:999px;padding:2px 8px;white-space:nowrap;}
+html.dark .v6chk-clickhint{color:#fbbf24;background:rgba(217,119,6,.18);}
+@media (prefers-reduced-motion: reduce) {
+    .v6chk-item-pulse{animation:none;}
+}
 </style>
 @endif
