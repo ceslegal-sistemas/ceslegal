@@ -21,17 +21,6 @@
                 'onRiskOpen' => true,
             ])
 
-            {{-- <button type="button" @click="canal = 'email'"
-                :class="canal === 'email' ? 'border-primary-500 bg-primary-50 text-primary-700' :
-                    'border-gray-200 text-gray-600'"
-                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-sm font-medium transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                Email
-            </button> --}}
-
             <button type="button" wire:click="irAPaso2"
                 :disabled="canal !== 'email' || in_array('{{ $validacionesV6Estado }}', ['pendiente', 'procesando'], true) ||
                     ('{{ $validacionesV6Estado }}'
@@ -42,7 +31,7 @@
                     ($validacionesV6Estado === 'completado' && !$riskAcknowledged)
                         ? 'bg-gray-100 text-gray-400 border-gray-200'
                         : 'bg-primary-500 text-white hover:bg-primary-600 border-primary-500' }}">
-                Continuar a Decisión;
+                Continuar a Decisión
             </button>
             <div class="mt-2 text-sm text-gray-500">
                 @if (in_array($validacionesV6Estado, ['pendiente', 'procesando'], true))
@@ -55,22 +44,11 @@
             </div>
         </div>
 
-
-        {{-- @elseif ($paso === 2)
-        <div>
-            @include('filament.components.emitir-sancion-analisis', [
-                'analisis' => $analisis,
-                'recomendacion' => $recomendacionFinal,
-                'opcionesSancion' => $opcionesSancion,
-                'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
-                'modoDecision' => true,
-            ])
-
-            <button type="button" wire:click="irAPaso2" @disabled(in_array($validacionesV6Estado, ['pendiente', 'procesando'], true) ||
+        {{-- <button type="button" wire:click="irAPaso2" @disabled(in_array($validacionesV6Estado, ['pendiente', 'procesando'], true) ||
                     ($validacionesV6Estado === 'completado' && !$riskAcknowledged))>
                 Continuar a Decisión &rarr;
             </button>
-        </div> --}}
+        </div>  --}}
     @elseif ($paso === 2)
         <div>
             @include('filament.components.emitir-sancion-analisis', [
@@ -103,13 +81,34 @@
                 </label>
             @endif
 
-            <button type="button" wire:click="confirmarDecision" @disabled(
+            <button type="button" wire:click="irAPaso1">
+                &larr; Volver a Análisis
+            </button>
+
+            <button type="button" wire:click="confirmarDecision"
+                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-sm font-medium transition-colors
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    {{ !$decision ||
+                    (!empty($iaSancionesRecomendadas) &&
+                        !in_array($decision, $iaSancionesRecomendadas) &&
+                        (strlen(trim($razonDivergencia)) < 5 || !$exoneracionAceptada))
+                        ? 'bg-gray-100 text-gray-400 border-gray-200'
+                        : 'bg-primary-500 text-white hover:bg-primary-600 border-primary-500' }}"
+                @disabled(
+                    !$decision ||
+                        (!empty($iaSancionesRecomendadas) &&
+                            !in_array($decision, $iaSancionesRecomendadas) &&
+                            (strlen(trim($razonDivergencia)) < 5 || !$exoneracionAceptada)))>
+                Continuar a Autorizar
+            </button>
+
+            {{-- <button type="button" wire:click="confirmarDecision" @disabled(
                 !$decision ||
                     (!empty($iaSancionesRecomendadas) &&
                         !in_array($decision, $iaSancionesRecomendadas) &&
                         (strlen(trim($razonDivergencia)) < 5 || !$exoneracionAceptada)))>
                 Continuar a Autorizar &rarr;
-            </button>
+            </button> --}}
         </div>
     @endif
 </div>
