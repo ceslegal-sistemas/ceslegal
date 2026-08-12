@@ -9,6 +9,11 @@
     // botones "Aplicar esta sanción" y la tarjeta de "Otras sanciones".
     $opcionesSancion         = $opcionesSancion ?? [];
     $iaSancionesRecomendadas = $iaSancionesRecomendadas ?? [];
+    // Modo de solo lectura (Paso 1 "Revisar el caso" del wizard de Emitir Sanción):
+    // se muestra el análisis y la recomendación, pero sin botones para elegir la
+    // sanción - eso ocurre en el Paso 2 ("Decidir la sanción"). Por defecto true
+    // (uso histórico: la tarjeta completa, con botones, en el formulario viejo).
+    $modoDecision = $modoDecision ?? true;
     // Ícono (heroicon) y color por tipo de sanción - los mismos de "Decisión de Sanción".
     $sancionMeta = [
         'llamado_atencion' => ['icon' => 'heroicon-o-chat-bubble-bottom-center-text', 'c' => '#2563eb'],
@@ -454,6 +459,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
 
                         {{-- Botón badge: aplicar esta sanción --}}
                         @php $m = $sancionMeta[$s] ?? ['icon' => 'heroicon-o-scale', 'c' => '#6b7280']; @endphp
+                        @if($modoDecision)
                         <button type="button"
                             x-on:click="sancionSel = @js($s); $wire.$set('mountedTableActionsData.0.tipo_sancion', @js($s))"
                             class="esa-badge-btn"
@@ -464,6 +470,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                             @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
                             <span x-text="sancionSel === @js($s) ? 'Sanción seleccionada' : 'Aplicar esta sanción'"></span>
                         </button>
+                        @endif
                     </div>
 
                     {{-- Desplegable: base jurídica argumentada --}}
@@ -532,6 +539,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
         <div style="display:flex;flex-wrap:wrap;gap:8px;padding:11px 18px 16px;">
             @foreach($otrasSanciones as $val => $label)
                 @php $m = $sancionMeta[$val] ?? ['icon' => 'heroicon-o-scale', 'c' => '#6b7280']; @endphp
+                @if($modoDecision)
                 <button type="button"
                     x-on:click="sancionSel = @js($val); $wire.$set('mountedTableActionsData.0.tipo_sancion', @js($val))"
                     class="esa-badge-btn"
@@ -542,6 +550,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                     @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
                     <span x-text="sancionSel === @js($val) ? 'Sanción seleccionada' : @js($val === 'no_sancion' ? $label : 'Aplicar: ' . $label)"></span>
                 </button>
+                @endif
             @endforeach
         </div>
     </div>
@@ -574,7 +583,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                     @endif
 
                     {{-- Botón: aplicar "No Aplicar Sanción" (la decisión recomendada) --}}
-                    @if(array_key_exists('no_sancion', $opcionesSancion))
+                    @if(array_key_exists('no_sancion', $opcionesSancion) && $modoDecision)
                         <button type="button"
                             x-on:click="sancionSel = 'no_sancion'; $wire.$set('mountedTableActionsData.0.tipo_sancion', 'no_sancion')"
                             class="esa-badge-btn"

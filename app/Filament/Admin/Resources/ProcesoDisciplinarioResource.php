@@ -2186,6 +2186,10 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->visible(false),
 
                             // ── Tarjetas: Análisis + Recomendación (o error IA) ──────────────
+                            //    Superseded por el Paso 1 del wizard (livewire.emitir-sancion-pasos-wrapper,
+                            //    más arriba en este mismo Group), que ya muestra este mismo contenido.
+                            //    Oculto para no duplicarlo - se elimina del todo en una tarea posterior
+                            //    cuando se termine de recortar esta columna derecha "vieja".
                             Forms\Components\Placeholder::make('analisis_recomendacion_cards')
                                 ->hiddenLabel()
                                 ->content(fn() => $esFallback
@@ -2195,13 +2199,15 @@ class ProcesoDisciplinarioResource extends Resource
                                         'recomendacion'           => $recomendacionFinal,
                                         'opcionesSancion'         => $opcionesSancion,
                                         'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
-                                    ])),
+                                    ]))
+                                ->visible(false),
 
                             // ── Validaciones V6 (auditoría en segundo plano) ─────────────────
                             //    Se calculan cuando se genera un análisis NUEVO (no desde caché)
                             //    vía EjecutarValidacionesV6Job; se leen aquí desde la BD. El
                             //    panel se refresca solo (wire:poll) mientras está pendiente, y
                             //    "Continuar" queda bloqueado en el servidor hasta que termine.
+                            //    Superseded por el Paso 1 del wizard - ver nota arriba.
                             Forms\Components\Placeholder::make('validaciones_v6_resumen')
                                 ->hiddenLabel()
                                 ->content(fn() => view('filament.components.validaciones-v6-resumen', [
@@ -2210,7 +2216,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     'en'          => $record->validaciones_v6_en,
                                     'puntosClave' => $record->validaciones_v6_puntos_clave,
                                 ]))
-                                ->visible(!$esFallback),
+                                ->visible(false),
                             ])->columnSpan(['default' => 1, 'lg' => 7]),
 
                             // ══ Columna derecha - Decisión y verificación ════════════════════
