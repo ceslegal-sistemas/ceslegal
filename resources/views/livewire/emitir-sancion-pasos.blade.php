@@ -33,7 +33,7 @@
                         : 'bg-primary-500 text-white hover:bg-primary-600 border-primary-500' }}">
                 Continuar a Decisión
             </button>
-            <div class="mt-2 text-sm text-gray-500">
+            {{-- <div class="mt-2 text-sm text-gray-500">
                 @if (in_array($validacionesV6Estado, ['pendiente', 'procesando'], true))
                     <span>Las validaciones de riesgo están en proceso. Por favor, espere a que se completen antes de
                         continuar.</span>
@@ -41,7 +41,7 @@
                     <span>Debe reconocer los riesgos antes de continuar. Por favor, revise los resultados de las
                         validaciones y confirme que entiende los riesgos.</span>
                 @endif
-            </div>
+            </div> --}}
         </div>
 
         {{-- <button type="button" wire:click="irAPaso2" @disabled(in_array($validacionesV6Estado, ['pendiente', 'procesando'], true) ||
