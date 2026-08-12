@@ -318,6 +318,28 @@ class UserResource extends Resource
                     ->falseLabel('Solo inactivos'),
             ])
             ->actions([
+                Tables\Actions\Action::make('reenviar_enlace_contrasena')
+                    ->label('Reenviar enlace')
+                    ->icon('heroicon-o-envelope')
+                    ->color('gray')
+                    ->visible(fn(User $record) => $record->role === 'cliente')
+                    ->requiresConfirmation()
+                    ->modalHeading('Reenviar enlace para configurar contraseña')
+                    ->modalDescription(fn(User $record) => "Se enviará un correo nuevo a {$record->email} con un enlace para configurar su contraseña. El enlace anterior (si lo había) dejará de funcionar.")
+                    ->modalSubmitActionLabel('Enviar')
+                    ->action(function (User $record) {
+                        \App\Notifications\ConfigurarContrasenaNotification::enviarA(
+                            $record,
+                            $record->empresa?->razon_social ?? config('app.name'),
+                        );
+
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Enlace reenviado')
+                            ->body("Se envió un correo nuevo a {$record->email}.")
+                            ->send();
+                    }),
+
                 Tables\Actions\ViewAction::make()
                     ->label('Ver'),
                 Tables\Actions\EditAction::make()

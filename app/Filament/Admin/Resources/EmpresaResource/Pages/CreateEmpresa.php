@@ -8,16 +8,13 @@ use App\Models\User;
 use App\Services\AuditoriaRITService;
 use App\Notifications\ConfigurarContrasenaNotification;
 use App\Services\ReglamentoInternoService;
-use Filament\Facades\Filament;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -82,7 +79,7 @@ class CreateEmpresa extends CreateRecord
         // La empresa recién creada queda seleccionada como activa (para las herramientas de RIT).
         \App\Support\EmpresaActiva::set($this->record->id);
 
-        // Usuario administrador de la empresa (rol cliente) — obligatorio en el onboarding B2B.
+        // Usuario administrador de la empresa (rol cliente) - obligatorio en el onboarding B2B.
         // La contraseña es aleatoria y NUNCA se muestra ni se guarda en ningún lado accesible
         // al bufete (ni en el formulario, ni en logs) - el cliente la configura él mismo con el
         // enlace que le llega por correo (Password::sendResetLink() más abajo), el mismo flujo
@@ -102,24 +99,11 @@ class CreateEmpresa extends CreateRecord
         // existe en esta app (solo Filament, sin Auth::routes() de Laravel) -
         // y además su contenido va en inglés (Lang::get() sobre frases
         // literales nunca traducidas en este proyecto, ver lang/es.json
-        // inexistente). Se reemplaza por ConfigurarContrasenaNotification:
-        // misma URL firmada real del panel (Filament::getResetPasswordUrl(),
-        // igual que usa el propio "olvidé mi contraseña" del panel), pero con
-        // plantilla propia en español. La identidad del correo es la empresa
-        // del cliente (razón social), no "LUPE" - mismo principio que
-        // CorreoOficial (ver resources/views/mail/correo-oficial.blade.php).
-        $nombreEmpresa = $this->record->razon_social;
-        Password::sendResetLink(
-            ['email' => $cliente->email],
-            function (CanResetPassword $user, string $token) use ($nombreEmpresa): void {
-                // Quien crea la empresa (bufete/admin) navega en el panel 'admin',
-                // pero el enlace lo abre el CLIENTE - debe apuntar al panel
-                // 'empresa' explícitamente, no al panel "actual" de quien lo genera.
-                $url = Filament::getPanel('empresa')->getResetPasswordUrl($token, $user);
-                $minutos = (int) config('auth.passwords.' . config('auth.defaults.passwords') . '.expire', 60);
-                $user->notify(new ConfigurarContrasenaNotification($url, $nombreEmpresa, $minutos));
-            }
-        );
+        // inexistente). Se reemplaza por ConfigurarContrasenaNotification
+        // (misma URL firmada real del panel, plantilla propia en español) -
+        // lógica compartida con el botón "Reenviar enlace" de UserResource,
+        // ver ConfigurarContrasenaNotification::enviarA().
+        ConfigurarContrasenaNotification::enviarA($cliente, $this->record->razon_social);
 
         Notification::make()
             ->success()
