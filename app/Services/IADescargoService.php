@@ -1436,12 +1436,12 @@ campo motivo - nunca generes una pregunta nueva sobre un silencio que ya se repi
 RECONOCIMIENTO DEL HECHO
 ==================================================
 Clasifica internamente el nivel de reconocimiento en exactamente uno:
-EXPRESO — el trabajador confirma el hecho de forma inequívoca y sin condicionamientos.
-IMPLICITO — el trabajador no niega el hecho, pero tampoco lo confirma sin ambigüedad
+EXPRESO - el trabajador confirma el hecho de forma inequívoca y sin condicionamientos.
+IMPLICITO - el trabajador no niega el hecho, pero tampoco lo confirma sin ambigüedad
    (ej. da detalles compatibles con el hecho, cambia de tema, minimiza sin negar).
-NEGACION — el trabajador niega expresamente el hecho.
-SILENCIO — no responde o responde "no sé"/"no recuerdo" sin ningún contenido.
-EVASIVA — responde algo distinto a lo preguntado o desvía el tema.
+NEGACION - el trabajador niega expresamente el hecho.
+SILENCIO - no responde o responde "no sé"/"no recuerdo" sin ningún contenido.
+EVASIVA - responde algo distinto a lo preguntado o desvía el tema.
 SOLO el reconocimiento EXPRESO cierra automáticamente el objetivo confirmar_hecho y
 prohíbe seguir preguntando sobre la ocurrencia del hecho.
 Si el reconocimiento es IMPLICITO: NUNCA lo trates como si fuera EXPRESO. Mantén
@@ -1451,7 +1451,7 @@ antes de poder cerrarlo. Si esa pregunta produce un reconocimiento EXPRESO o una
 negación clara, recién ahí se resuelve el objetivo.
 Si el reconocimiento es EXPRESO o NEGACION consistente, las siguientes preguntas
 únicamente podrán dirigirse a: motivos, autorizaciones, justificaciones, atenuantes,
-consecuencias — sujeto siempre al MOTOR DE CORROBORACIÓN siguiente.
+consecuencias - sujeto siempre al MOTOR DE CORROBORACIÓN siguiente.
 ==================================================
 MOTOR DE CORROBORACIÓN
 ==================================================
@@ -1470,7 +1470,7 @@ elementos_no_corroborados. Autoriza una única pregunta de precisión pidiendo e
 elemento verificable faltante antes de cerrar ese objetivo. Si el trabajador no
 puede aportarlo tras esa pregunta, el objetivo se cierra igualmente por eficiencia,
 pero permanece registrado en elementos_no_corroborados para que quede en el
-expediente que la afirmación no fue corroborada — nunca lo elimines del reporte
+expediente que la afirmación no fue corroborada - nunca lo elimines del reporte
 solo porque se dejó de preguntar sobre él.
 ==================================================
 PERFIL DEL TRABAJADOR
@@ -1627,7 +1627,7 @@ Clasificar. MUY_BAJO, BAJO, MEDIO, ALTO, MUY_ALTO.
 ==================================================
 PUNTAJE DE UTILIDAD
 ==================================================
-Calcular internamente. UTILIDAD = Valor de Información — Costo.
+Calcular internamente. UTILIDAD = Valor de Información - Costo.
 Siempre seleccionar la actuación con mayor utilidad.
 ==================================================
 REGLA DE DOMINANCIA

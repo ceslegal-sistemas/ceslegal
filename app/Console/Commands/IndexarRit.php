@@ -98,7 +98,7 @@ class IndexarRit extends Command
             ArticuloLegal::create([
                 'empresa_id'     => $empresaId,
                 'codigo'         => $codigo,
-                'titulo'         => "Reglamento Interno — Sección {$orden}",
+                'titulo'         => "Reglamento Interno - Sección {$orden}",
                 'descripcion'    => mb_substr($chunk, 0, 255),
                 'texto_completo' => $chunk,
                 'categoria'      => 'reglamento_interno',
@@ -165,7 +165,7 @@ class IndexarRit extends Command
             ]);
 
             if (!$response->successful()) {
-                Log::warning('rit:indexar — embedding fallido', [
+                Log::warning('rit:indexar - embedding fallido', [
                     'status' => $response->status(),
                     'body'   => $response->body(),
                 ]);
@@ -175,7 +175,7 @@ class IndexarRit extends Command
             $values = $response->json('embedding.values');
             return is_array($values) && !empty($values) ? $values : null;
         } catch (\Exception $e) {
-            Log::error('rit:indexar — excepción embedding', ['error' => $e->getMessage()]);
+            Log::error('rit:indexar - excepción embedding', ['error' => $e->getMessage()]);
             return null;
         }
     }

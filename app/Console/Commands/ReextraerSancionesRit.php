@@ -47,7 +47,7 @@ class ReextraerSancionesRit extends Command
         $ok = 0; $vacios = 0; $err = 0;
 
         foreach ($rits as $rit) {
-            $this->line("  · RIT #{$rit->id} ({$rit->fuente}) — " . ($rit->nombre ?: 's/n'));
+            $this->line("  · RIT #{$rit->id} ({$rit->fuente}) - " . ($rit->nombre ?: 's/n'));
             try {
                 $datos = $service->extraerYPersistirSanciones($rit);
                 if (empty($datos)) {
@@ -55,10 +55,10 @@ class ReextraerSancionesRit extends Command
                     $this->warn('    sin cuadro de faltas claro');
                 } else {
                     $ok++;
-                    $leve = $datos['sancion_leve'] ?? '—';
-                    $grave = $datos['sancion_grave'] ?? '—';
-                    $muy = $datos['sancion_muy_grave'] ?? '—';
-                    $this->info("    OK — leve: {$leve} | grave: {$grave} | muy grave: {$muy}");
+                    $leve = $datos['sancion_leve'] ?? '-';
+                    $grave = $datos['sancion_grave'] ?? '-';
+                    $muy = $datos['sancion_muy_grave'] ?? '-';
+                    $this->info("    OK - leve: {$leve} | grave: {$grave} | muy grave: {$muy}");
                 }
             } catch (\Throwable $e) {
                 $err++;

@@ -1767,6 +1767,7 @@ INSTRUCCIONES DE FORMATO - CRÍTICAS, INCUMPLIRLAS INVALIDA EL DOCUMENTO:
    ENCABEZADO: Columna 1 | Columna 2 | Columna 3
    FILA: dato1 | dato2 | dato3
    FIN_TABLA
+   
    Las tablas van inmediatamente después del párrafo de ARTÍCULO al que pertenecen.
    USA TABLAS OBLIGATORIAMENTE en: horario de trabajo, escala de sanciones disciplinarias, etapas del proceso disciplinario.
 

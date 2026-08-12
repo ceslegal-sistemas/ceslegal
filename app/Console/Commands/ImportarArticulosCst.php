@@ -26,11 +26,11 @@ class ImportarArticulosCst extends Command
     private array $articulos = [
 
         // ──────────────────────────────────────────────────────────────────────
-        // CONTRATO DE TRABAJO — Elementos, buena fe, obligaciones generales
+        // CONTRATO DE TRABAJO - Elementos, buena fe, obligaciones generales
         // ──────────────────────────────────────────────────────────────────────
         [
             'codigo'         => 'Art. 10 CST',
-            'titulo'         => 'Igualdad de los trabajadores — no discriminación',
+            'titulo'         => 'Igualdad de los trabajadores - no discriminación',
             'categoria'      => 'principios',
             'fuente'         => 'CST',
             'orden'          => 10,
@@ -110,7 +110,7 @@ class ImportarArticulosCst extends Command
         // ──────────────────────────────────────────────────────────────────────
         [
             'codigo'         => 'Art. 61 CST',
-            'titulo'         => 'Terminación del contrato de trabajo — modos',
+            'titulo'         => 'Terminación del contrato de trabajo - modos',
             'categoria'      => 'terminacion',
             'fuente'         => 'CST',
             'orden'          => 61,
@@ -118,7 +118,7 @@ class ImportarArticulosCst extends Command
         ],
         [
             'codigo'         => 'Art. 62 CST',
-            'titulo'         => 'Terminación del contrato por justa causa — causales del empleador',
+            'titulo'         => 'Terminación del contrato por justa causa - causales del empleador',
             'categoria'      => 'terminacion',
             'fuente'         => 'CST',
             'orden'          => 62,
@@ -126,7 +126,7 @@ class ImportarArticulosCst extends Command
         ],
         [
             'codigo'         => 'Art. 64 CST',
-            'titulo'         => 'Terminación unilateral del contrato de trabajo sin justa causa — indemnización (Ley 789/2002)',
+            'titulo'         => 'Terminación unilateral del contrato de trabajo sin justa causa - indemnización (Ley 789/2002)',
             'categoria'      => 'terminacion',
             'fuente'         => 'CST',
             'orden'          => 64,
@@ -162,7 +162,7 @@ class ImportarArticulosCst extends Command
         ],
         [
             'codigo'         => 'Art. 111 CST',
-            'titulo'         => 'Sanciones disciplinarias — límites y dignidad del trabajador',
+            'titulo'         => 'Sanciones disciplinarias - límites y dignidad del trabajador',
             'categoria'      => 'procedimiento_disciplinario',
             'fuente'         => 'CST',
             'orden'          => 111,
@@ -170,7 +170,7 @@ class ImportarArticulosCst extends Command
         ],
         [
             'codigo'         => 'Art. 112 CST',
-            'titulo'         => 'Suspensión del trabajo — límites de duración',
+            'titulo'         => 'Suspensión del trabajo - límites de duración',
             'categoria'      => 'procedimiento_disciplinario',
             'fuente'         => 'CST',
             'orden'          => 112,
@@ -178,7 +178,7 @@ class ImportarArticulosCst extends Command
         ],
         [
             'codigo'         => 'Art. 113 CST',
-            'titulo'         => 'Multas disciplinarias — límites y destinación',
+            'titulo'         => 'Multas disciplinarias - límites y destinación',
             'categoria'      => 'procedimiento_disciplinario',
             'fuente'         => 'CST',
             'orden'          => 113,
@@ -186,7 +186,7 @@ class ImportarArticulosCst extends Command
         ],
         [
             'codigo'         => 'Art. 114 CST',
-            'titulo'         => 'Sanciones no previstas — prohibición al empleador',
+            'titulo'         => 'Sanciones no previstas - prohibición al empleador',
             'categoria'      => 'procedimiento_disciplinario',
             'fuente'         => 'CST',
             'orden'          => 114,
@@ -194,17 +194,17 @@ class ImportarArticulosCst extends Command
         ],
         [
             'codigo'         => 'Art. 115 CST',
-            'titulo'         => 'Procedimiento para sanciones disciplinarias — debido proceso (Ley 2466 de 2025)',
+            'titulo'         => 'Procedimiento para sanciones disciplinarias - debido proceso (Ley 2466 de 2025)',
             'categoria'      => 'procedimiento_disciplinario',
             'fuente'         => 'CST',
             'orden'          => 115,
             'texto_completo' => 'ARTICULO 115. PROCEDIMIENTO PARA SANCIONES. <Artículo modificado por el artículo 7 de la Ley 2466 de 2025.> En todas las actuaciones para aplicar sanciones disciplinarias, se deberán aplicar las garantías del debido proceso, esto es, como mínimo los siguientes principios: dignidad, presunción de inocencia, in dubio pro disciplinado, proporcionalidad, derecho a la defensa, contradicción y controversia de las pruebas, intimidad, lealtad y buena fe, imparcialidad, respeto al buen nombre y a la honra, y non bis in idem. También se deberá aplicar como mínimo el siguiente procedimiento: 1. Comunicación formal de la apertura del proceso al trabajador o trabajadora. 2. La indicación de hechos, conductas u omisiones que motivan el proceso, la cual deberá ser por escrito. 3. El traslado al trabajador o trabajadora de todas y cada una de las pruebas que fundamentan los hechos, conductas u omisiones del proceso. 4. La indicación de un término durante el cual el trabajador o trabajadora pueda manifestarse frente a los motivos del proceso, controvertir las pruebas y allegar las que considere necesarias para sustentar su defensa, el cual en todo caso no podrá ser inferior a 5 días. En caso de que la defensa del trabajador frente a los hechos, conductas u omisiones que motivaron el proceso sea verbal, se hará un acta en la que se transcribirá la versión o descargos rendidos por el trabajador. 5. El pronunciamiento definitivo debidamente motivado identificando específicamente la(s) causa(s) o motivo(s) de la decisión. 6. De ser el caso, la imposición de una sanción proporcional a los hechos u omisiones que la motivaron. 7. La posibilidad del trabajador de impugnar la decisión. PARÁGRAFO 1o. Este procedimiento deberá realizarse en un término razonable atendiendo al principio de inmediatez, sin perjuicio de que esté estipulado un término diferente en Convención Colectiva, Laudo Arbitral o Reglamento Interno de Trabajo. PARÁGRAFO 2o. Si el trabajador o trabajadora se encuentra afiliado a una organización sindical, podrá estar asistido o acompañado por uno (1) o dos (2) representantes del sindicato que sean trabajadores de la empresa y se encuentren presentes al momento de la diligencia, y estos tendrán el derecho de velar por el cumplimiento de los principios de derecho de defensa y debido proceso del trabajador sindicalizado, dando fe de ellos al final del procedimiento. PARÁGRAFO 3o. El trabajador con discapacidad deberá contar con medidas y ajustes razonables que garanticen la comunicación y comprensión recíproca en el marco del debido proceso. PARÁGRAFO 4o. El empleador deberá actualizar el Reglamento Interno de Trabajo, acorde con los parámetros descritos dentro de los doce (12) meses siguientes a la entrada en vigencia de la presente Ley. PARÁGRAFO 5o. Este procedimiento podrá realizarse utilizando las tecnologías de la información y las comunicaciones, siempre y cuando el trabajador cuente con estas herramientas a disposición. PARÁGRAFO 6o. Este procedimiento no aplicará a los trabajadores del hogar, ni a las micro y pequeñas empresas de menos de diez (10) trabajadores, definidas en el Decreto 957 de 2019. Este tipo de empleadores solo tendrá la obligación de escuchar previamente al trabajador sobre los hechos que se le imputan, respetando las garantías del derecho de defensa y del debido proceso. Dentro de los doce (12) meses siguientes a la entrada en vigencia de la presente ley, el Ministerio del Trabajo impulsará un programa de acompañamiento y fortalecimiento a micro y pequeñas empresas para garantizar la aplicación del debido proceso.',
         ],
-        // Art. 116 CST — DEROGADO por el parágrafo 3o. del Art. 65 de la Ley 1429 de 2010.
+        // Art. 116 CST - DEROGADO por el parágrafo 3o. del Art. 65 de la Ley 1429 de 2010.
         // No se incluye para evitar que la IA cite legislación derogada como vigente.
 
         // ──────────────────────────────────────────────────────────────────────
-        // GRUPOS PROTEGIDOS — MATERNIDAD
+        // GRUPOS PROTEGIDOS - MATERNIDAD
         // ──────────────────────────────────────────────────────────────────────
         [
             'codigo'         => 'Art. 236 CST',
@@ -216,7 +216,7 @@ class ImportarArticulosCst extends Command
         ],
         [
             'codigo'         => 'Art. 239 CST',
-            'titulo'         => 'Prohibición de despido por embarazo o lactancia — fuero de maternidad',
+            'titulo'         => 'Prohibición de despido por embarazo o lactancia - fuero de maternidad',
             'categoria'      => 'grupos_protegidos',
             'fuente'         => 'CST',
             'orden'          => 239,
@@ -232,7 +232,7 @@ class ImportarArticulosCst extends Command
         ],
 
         // ──────────────────────────────────────────────────────────────────────
-        // GRUPOS PROTEGIDOS — FUERO SINDICAL
+        // GRUPOS PROTEGIDOS - FUERO SINDICAL
         // ──────────────────────────────────────────────────────────────────────
         [
             'codigo'         => 'Art. 405 CST',
@@ -244,7 +244,7 @@ class ImportarArticulosCst extends Command
         ],
         [
             'codigo'         => 'Art. 408 CST',
-            'titulo'         => 'Proceso de levantamiento del fuero sindical — calificación judicial',
+            'titulo'         => 'Proceso de levantamiento del fuero sindical - calificación judicial',
             'categoria'      => 'grupos_protegidos',
             'fuente'         => 'CST',
             'orden'          => 408,
@@ -252,7 +252,7 @@ class ImportarArticulosCst extends Command
         ],
 
         // ──────────────────────────────────────────────────────────────────────
-        // LEY 1010 DE 2006 — ACOSO LABORAL
+        // LEY 1010 DE 2006 - ACOSO LABORAL
         // ──────────────────────────────────────────────────────────────────────
         [
             'codigo'         => 'Art. 2 Ley 1010/2006',
@@ -280,11 +280,11 @@ class ImportarArticulosCst extends Command
         ],
 
         // ──────────────────────────────────────────────────────────────────────
-        // LEY 361 DE 1997 — ESTABILIDAD REFORZADA POR DISCAPACIDAD
+        // LEY 361 DE 1997 - ESTABILIDAD REFORZADA POR DISCAPACIDAD
         // ──────────────────────────────────────────────────────────────────────
         [
             'codigo'         => 'Art. 26 Ley 361/1997',
-            'titulo'         => 'No discriminación a persona en situación de discapacidad — estabilidad laboral reforzada',
+            'titulo'         => 'No discriminación a persona en situación de discapacidad - estabilidad laboral reforzada',
             'categoria'      => 'grupos_protegidos',
             'fuente'         => 'Ley 361/1997',
             'orden'          => 1,
@@ -346,7 +346,7 @@ class ImportarArticulosCst extends Command
             $this->info("  {$estado} {$codigo}");
             $ok++;
 
-            usleep(300_000); // 300 ms — respetar rate-limit Gemini
+            usleep(300_000); // 300 ms - respetar rate-limit Gemini
         }
 
         $this->info("Listo. {$ok} importados, {$skip} omitidos (ya existían), {$total} total.");
@@ -364,7 +364,7 @@ class ImportarArticulosCst extends Command
             ]);
 
             if (!$response->successful()) {
-                Log::warning('cst:importar — embedding fallido', [
+                Log::warning('cst:importar - embedding fallido', [
                     'codigo' => mb_substr($texto, 0, 50),
                     'status' => $response->status(),
                     'body'   => $response->body(),
@@ -375,7 +375,7 @@ class ImportarArticulosCst extends Command
             $values = $response->json('embedding.values');
             return is_array($values) && !empty($values) ? $values : null;
         } catch (\Exception $e) {
-            Log::error('cst:importar — excepción embedding', ['error' => $e->getMessage()]);
+            Log::error('cst:importar - excepción embedding', ['error' => $e->getMessage()]);
             return null;
         }
     }

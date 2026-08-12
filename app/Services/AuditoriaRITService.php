@@ -462,7 +462,7 @@ Si el contexto es insuficiente, describe el hallazgo en términos generales SIN 
 PROHIBICIÓN 2 - REVELACIÓN DE CONTEXTO: NUNCA uses en "hallazgo" o "recomendacion"
 frases como "no fue proporcionado", "no está en el contexto", "no aparece en el contexto",
 "mencionado/a en el contexto", "el contexto legal no especifica", "según el contexto",
-"CONTEXTO LEGAL", "BASE NORMATIVA", ni ninguna referencia — directa o indirecta — a que tu
+"CONTEXTO LEGAL", "BASE NORMATIVA", ni ninguna referencia - directa o indirecta - a que tu
 información viene de un material que se te proporcionó o que tiene límites. El lector de
 este hallazgo es la empresa auditada: para ella, "el contexto" no significa nada y revela
 el mecanismo interno de la auditoría. Si el RIT cita un artículo que no puedes verificar con

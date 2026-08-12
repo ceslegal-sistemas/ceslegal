@@ -35,7 +35,7 @@ class IndexarEjemplosRit extends Command
 
     private const CHUNK_SIZE      = 1500;
     private const CHUNK_OVERLAP   = 200;
-    private const EMBEDDING_PAUSE = 400; // ms — margen seguro para rate limit de Gemini
+    private const EMBEDDING_PAUSE = 400; // ms - margen seguro para rate limit de Gemini
 
     private const FUENTES = [
         'excelente' => 'RIT-EJEMPLO-EXCELENTE',
@@ -84,7 +84,7 @@ class IndexarEjemplosRit extends Command
                 continue;
             }
 
-            $this->line("\n[{$tipo}] {$fuente} — " . count($archivos) . ' archivo(s)');
+            $this->line("\n[{$tipo}] {$fuente} - " . count($archivos) . ' archivo(s)');
 
             foreach ($archivos as $ruta) {
                 $chunks = $this->procesarArchivo($ruta, $fuente, $apiKey, $sinEmbeddings);
@@ -183,7 +183,7 @@ class IndexarEjemplosRit extends Command
 
             return trim($texto);
         } catch (\Exception $e) {
-            Log::warning('rit:indexar-ejemplos — error PDF', [
+            Log::warning('rit:indexar-ejemplos - error PDF', [
                 'archivo' => basename($ruta),
                 'error'   => $e->getMessage(),
             ]);
@@ -206,7 +206,7 @@ class IndexarEjemplosRit extends Command
 
             return trim(implode("\n", array_filter($lineas)));
         } catch (\Exception $e) {
-            Log::warning('rit:indexar-ejemplos — error DOCX', [
+            Log::warning('rit:indexar-ejemplos - error DOCX', [
                 'archivo' => basename($ruta),
                 'error'   => $e->getMessage(),
             ]);
@@ -297,7 +297,7 @@ class IndexarEjemplosRit extends Command
             ]);
 
             if (!$response->successful()) {
-                Log::warning('rit:indexar-ejemplos — embedding fallido', [
+                Log::warning('rit:indexar-ejemplos - embedding fallido', [
                     'status' => $response->status(),
                 ]);
                 return null;
@@ -306,7 +306,7 @@ class IndexarEjemplosRit extends Command
             $values = $response->json('embedding.values');
             return is_array($values) && !empty($values) ? $values : null;
         } catch (\Exception $e) {
-            Log::error('rit:indexar-ejemplos — excepción embedding', ['error' => $e->getMessage()]);
+            Log::error('rit:indexar-ejemplos - excepción embedding', ['error' => $e->getMessage()]);
             return null;
         }
     }
@@ -329,6 +329,6 @@ class IndexarEjemplosRit extends Command
     {
         $calidad   = str_contains($fuente, 'EXCELENTE') ? 'Excelente calidad' : 'Mala calidad';
         $empresa   = pathinfo($nombreArchivo, PATHINFO_FILENAME);
-        return "RIT Referencia ({$calidad}) — {$empresa} § {$seccion}";
+        return "RIT Referencia ({$calidad}) - {$empresa} § {$seccion}";
     }
 }

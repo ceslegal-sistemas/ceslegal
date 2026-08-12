@@ -1,13 +1,13 @@
 {{--
-    Panel compartido "Detalle por sección" de la auditoría del RIT — análisis de brechas
+    Panel compartido "Detalle por sección" de la auditoría del RIT - análisis de brechas
     (gap analysis) por ítem del checklist (App\Support\RitGoldStandard), no listas sueltas
     de hallazgos/recomendaciones. Usado por la vista unificada del cliente
     (rit-auditoria-panel.blade.php) y por la página admin (auditar-rit.blade.php) para que
     ambas se vean exactamente igual.
 
     Espera:
-      $secciones : array  — $auditoria->secciones (keyed por clave de sección)
-      $numDone   : int    — secciones ya revisadas (para el contador del encabezado)
+      $secciones : array  - $auditoria->secciones (keyed por clave de sección)
+      $numDone   : int    - secciones ya revisadas (para el contador del encabezado)
 
     Auditorías anteriores a este cambio no tienen la clave "items" (solo el formato viejo
     de hallazgos/recomendaciones en listas sueltas); esas se siguen mostrando con el

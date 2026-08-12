@@ -106,7 +106,7 @@ class NotificacionService
                     ? 'Nuevo Proceso - Sin Abogado Asignado'
                     : 'Nuevo Proceso Disciplinario Creado',
                 mensaje: $sinAbogado
-                    ? "Se creó el proceso {$proceso->codigo} para {$proceso->trabajador->nombre_completo} (empresa: {$proceso->empresa->razon_social}). No tiene abogado asignado."
+                    ? "Se creó el proceso {$proceso->codigo} para {$proceso->trabajador->nombre_completo} (empresa: {$proceso->empresa->razon_social})."
                     : "Se creó el proceso {$proceso->codigo} para {$proceso->trabajador->nombre_completo} y fue asignado al abogado.",
                 relacionadoTipo: ProcesoDisciplinario::class,
                 relacionadoId: $proceso->id,

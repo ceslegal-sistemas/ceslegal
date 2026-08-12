@@ -1,15 +1,15 @@
 {{--
-    Panel compartido "Progreso del análisis" (auditoría del RIT en proceso) — usado por la
+    Panel compartido "Progreso del análisis" (auditoría del RIT en proceso) - usado por la
     vista unificada del cliente (rit-auditoria-panel.blade.php) y por la página admin
     (auditar-rit.blade.php), reemplazando el spinner+barra simple que tenía la vista del
     cliente por el mismo diseño rico de la vista admin (lista de secciones con su estado).
 
     Espera:
-      $secciones  : array   — $auditoria->secciones (keyed por clave de sección)
-      $numDone    : int     — secciones ya completadas
-      $numTotal   : int     — total de secciones
-      $titulos    : array   — App\Services\AuditoriaRITService::getTitulosSecciones()
-      $pollMethod : string  — método Livewire a invocar cada 2s mientras esta tarjeta esté visible
+      $secciones  : array   - $auditoria->secciones (keyed por clave de sección)
+      $numDone    : int     - secciones ya completadas
+      $numTotal   : int     - total de secciones
+      $titulos    : array   - App\Services\AuditoriaRITService::getTitulosSecciones()
+      $pollMethod : string  - método Livewire a invocar cada 2s mientras esta tarjeta esté visible
 --}}
 @php
     $progreso = $numTotal > 0 ? round($numDone / $numTotal * 100) : 0;

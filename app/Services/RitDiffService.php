@@ -17,7 +17,7 @@ namespace App\Services;
  * palabras (LCS clásico) para marcar exactamente qué cambió, en vez de resaltar
  * el artículo completo.
  *
- * Es una comparación de PRESENTACIÓN (para revisión humana antes de aceptar) — no
+ * Es una comparación de PRESENTACIÓN (para revisión humana antes de aceptar) - no
  * se persiste ni se usa como fuente de verdad; el texto final adoptado siempre es
  * el texto plano del RIT mejorado.
  */
@@ -34,7 +34,7 @@ class RitDiffService
      * diff de palabras, que muestra el texto completo) porque su alta frecuencia en
      * CUALQUIER frase legal produce falsos positivos entre artículos no relacionados.
      */
-    // NOTA: sin tildes a propósito — tokenizarParaSimilitud() quita acentos del texto
+    // NOTA: sin tildes a propósito - tokenizarParaSimilitud() quita acentos del texto
     // ANTES de comparar contra esta lista, así que debe estar ya normalizada igual.
     private const STOPWORDS = [
         'de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'unos', 'unas', 'y', 'o', 'u', 'a', 'al',
@@ -126,7 +126,7 @@ class RitDiffService
     /**
      * Construye la salida en el orden del documento MEJORADO (igual/modificado/agregado),
      * e inserta los bloques "eliminado" (originales sin pareja) en la posición correcta
-     * según SU PROPIO orden en el original — no en el orden en que el emparejamiento por
+     * según SU PROPIO orden en el original - no en el orden en que el emparejamiento por
      * similitud los fue resolviendo (que no es secuencial: el mejor score puede emparejar
      * primero un bloque muy posterior). Recorrer cada documento en su propio orden natural
      * garantiza que cada bloque se visite y emita EXACTAMENTE una vez.

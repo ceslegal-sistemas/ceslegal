@@ -9,7 +9,7 @@ use App\Services\VerificacionFacialService;
  * mascarilla, gorra, etc.) para cualquier flujo que use el componente Alpine/Livewire
  * `filament.components.webcam-autorizador`. El componente llama
  * `$wire.verificarAccesoriosAutorizador(fotoBase64)` y lee `$wire.alertaAccesoriosAutorizador`
- * directamente sobre CUALQUIER componente Livewire que use este trait — sin importar si es
+ * directamente sobre CUALQUIER componente Livewire que use este trait - sin importar si es
  * una Table Action, una Page Action o un formulario de Wizard.
  */
 trait HasVerificacionFotografica
