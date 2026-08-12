@@ -169,6 +169,19 @@ html.dark {
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--esa-shimmer), transparent);
 }
+/* Secciones "de apoyo" (puntos a revisar, chequeo de calidad): se piden menos
+   densas/menos "tarjeta oscura flotante" que se repite - en vez de su propio
+   recuadro con fondo y borde completo, quedan como continuación del documento:
+   solo una línea divisoria arriba, sin fondo ni radio, más aire alrededor.
+   Se agrega como clase adicional junto a "esa-card" (no la reemplaza), así
+   conserva su padding/estructura interna y solo se le quita el "look" de caja. */
+.esa-card-soft {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    border-top: 1px solid var(--esa-divider);
+}
+.esa-card-soft::before { display: none; }
 .esa-label {
     font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
     font-size: 10px;
@@ -253,7 +266,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
 }
 </style>
 
-<div class="space-y-2" wire:ignore x-data="{ sancionSel: null }">
+<div class="space-y-3" wire:ignore x-data="{ sancionSel: null }">
 
     {{-- ── Tarjeta 1: Gravedad de la falta ────────────────────────────── --}}
     <div class="esa-card"
@@ -608,7 +621,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
         // Solo se muestran las garantías que NO se cumplen (riesgo / por verificar).
         $gRiesgos = collect($gEtiquetas)->filter(fn($lbl, $k) => isset($garantias[$k]) && ($garantias[$k]['estado'] ?? '') !== 'cumple');
     @endphp
-    <div class="esa-card">
+    <div class="esa-card esa-card-soft">
         <div style="padding:14px 18px;">
             <p class="esa-label">¿La sanción se sostiene? - puntos a revisar</p>
             @if($gRiesgos->isEmpty())

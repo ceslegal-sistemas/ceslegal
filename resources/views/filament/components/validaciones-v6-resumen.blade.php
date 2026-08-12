@@ -48,9 +48,15 @@
 @endphp
 
 @if($estado)
-<div class="esa-card v6chk-wrap" style="margin-top:10px;" @if(in_array($estado, ['pendiente', 'procesando'], true)) wire:poll.4000ms @endif>
+{{-- esa-card-soft (definida en emitir-sancion-analisis.blade.php, siempre incluida
+     antes de este parcial en el Paso 1 del wizard): mismo look "sección del
+     documento" que el resto, en vez de otra tarjeta oscura apilada. --}}
+<div class="esa-card v6chk-wrap esa-card-soft" style="margin-top:6px;" @if(in_array($estado, ['pendiente', 'procesando'], true)) wire:poll.4000ms @endif>
     <div style="padding:14px 18px;">
         <p class="esa-label">Revisión de calidad de la recomendación</p>
+        <p style="font-size:11px;color:var(--esa-muted);line-height:1.5;margin:2px 0 0;">
+            Chequeo automático aparte, no reemplaza los puntos anteriores.
+        </p>
 
         @if(in_array($estado, ['pendiente', 'procesando'], true))
             <div style="display:flex;align-items:center;gap:8px;margin:8px 0 0;">

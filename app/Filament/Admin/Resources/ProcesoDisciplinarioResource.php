@@ -2149,13 +2149,11 @@ class ProcesoDisciplinarioResource extends Resource
                         // mediante la sección de exoneración (más abajo).
 
                         return [
-                          // Estructura de dos columnas en computador (análisis | decisión);
-                          // en celular se apila en una sola columna (responsive).
-                          Forms\Components\Grid::make(['default' => 1, 'lg' => 12])
-                            ->schema([
-
-                            // ══ Columna izquierda - Análisis de la IA ════════════════════════
-                            Forms\Components\Group::make([
+                          // Una sola columna vertical (pedido del usuario 2026-08-12: el
+                          // layout de 2 columnas dejaba el "potestad_card" de la derecha
+                          // duplicado con el Paso 2 del wizard, y sin nada al lado en el
+                          // Paso 1 (hueco gris grande). Todo se apila top-to-bottom ahora.
+                          Forms\Components\Group::make([
                             Forms\Components\View::make('livewire.emitir-sancion-pasos-wrapper')
                                 ->key('emitir_sancion_pasos_wrapper')
                                 ->viewData([
@@ -2217,10 +2215,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     'puntosClave' => $record->validaciones_v6_puntos_clave,
                                 ]))
                                 ->visible(false),
-                            ])->columnSpan(['default' => 1, 'lg' => 7]),
 
-                            // ══ Columna derecha - Decisión y verificación ════════════════════
-                            Forms\Components\Group::make([
                             // ── Aviso sin RIT ─────────────────────────────────────────────────
                             Forms\Components\Section::make('Empresa sin Reglamento Interno de Trabajo')
                                 ->icon('heroicon-o-exclamation-triangle')
@@ -2298,13 +2293,22 @@ class ProcesoDisciplinarioResource extends Resource
                             Forms\Components\Hidden::make('exoneracion_aceptada'),
 
                             // ── Potestad Disciplinaria según el RIT ───────────────────────────
+                            //    Oculto siempre: el Paso 2 del wizard Livewire
+                            //    (emitir-sancion-pasos.blade.php) YA incluye este mismo parcial
+                            //    con los mismos datos ($autoridadRit, $opcionesSancion) - este era
+                            //    el duplicado legado que además se veía en el Paso 1 sin nada al
+                            //    lado (columna derecha vacía). El paso_actual del padre solo
+                            //    transiciona 1→3 (nunca pasa por el literal 2, ese estado vive
+                            //    solo en la propiedad interna $paso del hijo), así que no hay forma
+                            //    de gatillarlo "solo en paso 2" desde aquí - queda redundante en
+                            //    todo momento y se retira.
                             Forms\Components\Placeholder::make('potestad_card')
                                 ->hiddenLabel()
                                 ->content(fn() => view('filament.components.emitir-sancion-potestad', [
                                     'autoridadRit'   => $autoridadRit,
                                     'opcionesSancion' => $opcionesSancion,
                                 ]))
-                                ->hidden(empty($autoridadRit)),
+                                ->hidden(true),
 
                             // ── Verificación del Autorizador ──────────────────────────────────
                             Forms\Components\Section::make('Verificación del Autorizador')
@@ -2358,9 +2362,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     Forms\Components\Hidden::make('foto_autorizador_base64'),
                                 ])
                                 ->visible(fn(Get $get) => ($get('paso_actual') ?? 1) >= 3),
-                            ])->columnSpan(['default' => 1, 'lg' => 5]),
-
-                            ]), // fin Grid de dos columnas
+                          ]), // fin Group (columna única)
                         ];
                     })
                     ->requiresConfirmation()
