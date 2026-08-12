@@ -2269,13 +2269,21 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->default(json_encode($iaRazonesNoRecomendadas)),
 
                             // ── Decisión de Sanción ───────────────────────────────────────────
-                            //    La elige el usuario con los botones badge de las tarjetas de
-                            //    análisis ("Aplicar esta sanción" / "Otras sanciones"). El campo
-                            //    queda oculto para conservar estado y validación (lo setean los
-                            //    badges vía $wire.$set('mountedTableActionsData.0.tipo_sancion')).
+                            //    La elige el usuario en el Paso 2 del wizard Livewire
+                            //    (emitir-sancion-pasos, método selectDecision() + botón "Continuar
+                            //    a Autorizar"). Al confirmar, EmitirSancionPasos::confirmarDecision()
+                            //    despacha el evento de navegador 'emitir-sancion-paso2-completo'; el
+                            //    listener Alpine en emitir-sancion-pasos-wrapper.blade.php lo captura
+                            //    y hace el puente hacia este formulario padre vía
+                            //    $wire.$set('mountedTableActionsData.0.tipo_sancion', ...). El campo
+                            //    queda oculto porque solo existe para conservar ese estado y su
+                            //    validación en el ->action() de abajo.
                             Forms\Components\Hidden::make('tipo_sancion')
                                 ->live()
                                 ->required(),
+
+                            Forms\Components\Hidden::make('paso_actual')
+                                ->default(1),
 
                             // razon_divergencia / exoneracion_aceptada: antes eran campos
                             // Filament visibles (Section "Decisión Contraria a la Recomendación
@@ -2339,7 +2347,8 @@ class ProcesoDisciplinarioResource extends Resource
                                     // notificación visible: al ser un campo oculto (base64),
                                     // el error de "requerido" no se mostraría al usuario.
                                     Forms\Components\Hidden::make('foto_autorizador_base64'),
-                                ]),
+                                ])
+                                ->visible(fn(Get $get) => ($get('paso_actual') ?? 1) >= 3),
                             ])->columnSpan(['default' => 1, 'lg' => 5]),
 
                             ]), // fin Grid de dos columnas
@@ -2378,10 +2387,15 @@ class ProcesoDisciplinarioResource extends Resource
                     // Mientras se genera la recomendación (ver generando_recomendacion más
                     // arriba) el modal solo muestra el loading - deshabilitar "Continuar"
                     // evita que se vea clicable sin hacer nada; la validación real ya existe
-                    // aparte al inicio de ->action() como red de seguridad.
-                    ->modalSubmitAction(fn($action, ProcesoDisciplinario $record) => $action->disabled(
-                        in_array($record->validaciones_v6_estado, ['pendiente', 'procesando'], true)
-                    ))
+                    // aparte al inicio de ->action() como red de seguridad. Además, el botón
+                    // nativo del modal solo debe existir cuando el wizard llegó al Paso 3
+                    // (Verificación del Autorizador): se usa $livewire en vez de Get $get
+                    // porque Get $get lanza "Typed property ...Component::$container must
+                    // not be accessed before initialization" dentro de este closure.
+                    ->modalSubmitAction(fn($action, ProcesoDisciplinario $record, $livewire) => $action
+                        ->disabled(in_array($record->validaciones_v6_estado, ['pendiente', 'procesando'], true))
+                        ->hidden(($livewire->mountedTableActionsData[0]['paso_actual'] ?? 1) < 3)
+                    )
                     ->modalCancelActionLabel('Cancelar')
                     ->modalWidth('6xl')
                     ->visible(
