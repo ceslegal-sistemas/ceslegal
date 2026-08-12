@@ -2189,7 +2189,7 @@ class ProcesoDisciplinarioResource extends Resource
                             //    Superseded por el Paso 1 del wizard (livewire.emitir-sancion-pasos-wrapper,
                             //    más arriba en este mismo Group), que ya muestra este mismo contenido.
                             //    Oculto para no duplicarlo - se elimina del todo en una tarea posterior
-                            //    cuando se termine de recortar esta columna derecha "vieja".
+                            //    cuando se termine de recortar esta columna izquierda "vieja".
                             Forms\Components\Placeholder::make('analisis_recomendacion_cards')
                                 ->hiddenLabel()
                                 ->content(fn() => $esFallback
@@ -2274,7 +2274,6 @@ class ProcesoDisciplinarioResource extends Resource
                             //    queda oculto para conservar estado y validación (lo setean los
                             //    badges vía $wire.$set('mountedTableActionsData.0.tipo_sancion')).
                             Forms\Components\Hidden::make('tipo_sancion')
-                                ->default($iaRecomendada)
                                 ->live()
                                 ->required(),
 

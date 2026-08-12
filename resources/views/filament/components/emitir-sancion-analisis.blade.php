@@ -253,7 +253,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
 }
 </style>
 
-<div class="space-y-2" wire:ignore x-data="{ sancionSel: @js($sancionPrincipal) }">
+<div class="space-y-2" wire:ignore x-data="{ sancionSel: null }">
 
     {{-- ── Tarjeta 1: Gravedad de la falta ────────────────────────────── --}}
     <div class="esa-card"
@@ -460,16 +460,16 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                         {{-- Botón badge: aplicar esta sanción --}}
                         @php $m = $sancionMeta[$s] ?? ['icon' => 'heroicon-o-scale', 'c' => '#6b7280']; @endphp
                         @if($modoDecision)
-                        <button type="button"
-                            x-on:click="sancionSel = @js($s); $wire.$set('mountedTableActionsData.0.tipo_sancion', @js($s))"
-                            class="esa-badge-btn"
-                            :style="sancionSel === @js($s)
-                                ? 'background:{{ $m['c'] }};border-color:{{ $m['c'] }};color:#fff;'
-                                : 'background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
-                            style="flex-shrink:0;background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
-                            @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
-                            <span x-text="sancionSel === @js($s) ? 'Sanción seleccionada' : 'Aplicar esta sanción'"></span>
-                        </button>
+                            <button type="button"
+                                x-on:click="sancionSel = @js($s); $wire.$set('mountedTableActionsData.0.tipo_sancion', @js($s))"
+                                class="esa-badge-btn"
+                                :style="sancionSel === @js($s)
+                                    ? 'background:{{ $m['c'] }};border-color:{{ $m['c'] }};color:#fff;'
+                                    : 'background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
+                                style="flex-shrink:0;background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
+                                @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
+                                <span x-text="sancionSel === @js($s) ? 'Sanción seleccionada' : 'Aplicar esta sanción'"></span>
+                            </button>
                         @endif
                     </div>
 
@@ -528,7 +528,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                 || ($recomiendaNoSancion && $val === 'no_sancion'))
             ->all();
     @endphp
-    @if(!empty($otrasSanciones))
+    @if(!empty($otrasSanciones) && $modoDecision)
     <div class="esa-card">
         <div style="padding:14px 18px 2px;">
             <p class="esa-label">Otras sanciones - no recomendadas por la IA</p>
@@ -540,16 +540,16 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
             @foreach($otrasSanciones as $val => $label)
                 @php $m = $sancionMeta[$val] ?? ['icon' => 'heroicon-o-scale', 'c' => '#6b7280']; @endphp
                 @if($modoDecision)
-                <button type="button"
-                    x-on:click="sancionSel = @js($val); $wire.$set('mountedTableActionsData.0.tipo_sancion', @js($val))"
-                    class="esa-badge-btn"
-                    :style="sancionSel === @js($val)
-                        ? 'background:{{ $m['c'] }};border-color:{{ $m['c'] }};color:#fff;'
-                        : 'background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
-                    style="background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
-                    @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
-                    <span x-text="sancionSel === @js($val) ? 'Sanción seleccionada' : @js($val === 'no_sancion' ? $label : 'Aplicar: ' . $label)"></span>
-                </button>
+                    <button type="button"
+                        x-on:click="sancionSel = @js($val); $wire.$set('mountedTableActionsData.0.tipo_sancion', @js($val))"
+                        class="esa-badge-btn"
+                        :style="sancionSel === @js($val)
+                            ? 'background:{{ $m['c'] }};border-color:{{ $m['c'] }};color:#fff;'
+                            : 'background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
+                        style="background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
+                        @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
+                        <span x-text="sancionSel === @js($val) ? 'Sanción seleccionada' : @js($val === 'no_sancion' ? $label : 'Aplicar: ' . $label)"></span>
+                    </button>
                 @endif
             @endforeach
         </div>
