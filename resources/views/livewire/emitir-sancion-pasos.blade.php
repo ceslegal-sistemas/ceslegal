@@ -32,7 +32,7 @@
                 Email
             </button> --}}
 
-            <button type="button" @click="irAPaso2"
+            <button type="button" wire:click="irAPaso2"
                 :disabled="canal !== 'email' || in_array('{{ $validacionesV6Estado }}', ['pendiente', 'procesando'], true) ||
                     ('{{ $validacionesV6Estado }}'
                         === 'completado' && !{{ $riskAcknowledged ? 'true' : 'false' }})"
@@ -42,7 +42,7 @@
                     ($validacionesV6Estado === 'completado' && !$riskAcknowledged)
                         ? 'bg-gray-100 text-gray-400 border-gray-200'
                         : 'bg-primary-500 text-white hover:bg-primary-600 border-primary-500' }}">
-                Continuar a Decisión &rarr;
+                Continuar a Decisión;
             </button>
             <div class="mt-2 text-sm text-gray-500">
                 @if (in_array($validacionesV6Estado, ['pendiente', 'procesando'], true))
@@ -55,7 +55,7 @@
             </div>
         </div>
 
-        
+
         {{-- @elseif ($paso === 2)
         <div>
             @include('filament.components.emitir-sancion-analisis', [
