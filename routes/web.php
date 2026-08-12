@@ -157,7 +157,7 @@ Route::get('/descargar/rit', function () {
 // Descarga del RIT para super admin (por empresa_id)
 Route::get('/descargar/rit/admin/{empresa}', function (\App\Models\Empresa $empresa) {
     $user = auth()->user();
-    if (!$user || (!$user->hasRole('super_admin') && !$user->hasRole('abogado'))) {
+    if (!$user || (!$user->hasRole('super_admin') && !$user->hasRole('abogado') && !$user->esAbogadoDeBufete())) {
         abort(403, 'No autorizado');
     }
 
