@@ -461,7 +461,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                         @php $m = $sancionMeta[$s] ?? ['icon' => 'heroicon-o-scale', 'c' => '#6b7280']; @endphp
                         @if($modoDecision)
                             <button type="button"
-                                x-on:click="sancionSel = @js($s); $wire.$set('mountedTableActionsData.0.tipo_sancion', @js($s))"
+                                x-on:click="sancionSel = @js($s); $wire.selectDecision(@js($s))"
                                 class="esa-badge-btn"
                                 :style="sancionSel === @js($s)
                                     ? 'background:{{ $m['c'] }};border-color:{{ $m['c'] }};color:#fff;'
@@ -541,7 +541,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                 @php $m = $sancionMeta[$val] ?? ['icon' => 'heroicon-o-scale', 'c' => '#6b7280']; @endphp
                 @if($modoDecision)
                     <button type="button"
-                        x-on:click="sancionSel = @js($val); $wire.$set('mountedTableActionsData.0.tipo_sancion', @js($val))"
+                        x-on:click="sancionSel = @js($val); $wire.selectDecision(@js($val))"
                         class="esa-badge-btn"
                         :style="sancionSel === @js($val)
                             ? 'background:{{ $m['c'] }};border-color:{{ $m['c'] }};color:#fff;'
@@ -585,7 +585,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                     {{-- Botón: aplicar "No Aplicar Sanción" (la decisión recomendada) --}}
                     @if(array_key_exists('no_sancion', $opcionesSancion) && $modoDecision)
                         <button type="button"
-                            x-on:click="sancionSel = 'no_sancion'; $wire.$set('mountedTableActionsData.0.tipo_sancion', 'no_sancion')"
+                            x-on:click="sancionSel = 'no_sancion'; $wire.selectDecision('no_sancion')"
                             class="esa-badge-btn"
                             :style="sancionSel === 'no_sancion'
                                 ? 'background:#16a34a;border-color:#16a34a;color:#fff;'

@@ -19,6 +19,8 @@ class EmitirSancionPasos extends Component
     public array $opcionesSancion = [];
     public array $iaSancionesRecomendadas = [];
     public ?array $recomendacionFinal = null;
+    public array $autoridadRit = [];
+    public array $iaRazonesNoRecomendadas = [];
     public ?string $validacionesV6Estado = null;
     public ?array $validacionesV6Resultados = null;
     public ?array $validacionesV6PuntosClave = null;
@@ -66,9 +68,18 @@ class EmitirSancionPasos extends Component
         if (! $this->decision) {
             return;
         }
-        // La validación de exoneración (si $decision no está entre las
-        // recomendadas por la IA) se agrega en la Task 6, una vez el
-        // componente reciba esa lista.
+        // Guarda del lado del servidor (mismo criterio que irAPaso2): el
+        // @disabled del botón "Continuar a Autorizar" es solo UX, un cliente
+        // malicioso podría llamar confirmarDecision directo por la red. Si la
+        // decisión no está entre las sanciones recomendadas por la IA, exige
+        // razón de divergencia (mínimo 5 caracteres) y la exoneración aceptada.
+        if (
+            ! empty($this->iaSancionesRecomendadas)
+            && ! in_array($this->decision, $this->iaSancionesRecomendadas, true)
+            && (strlen(trim($this->razonDivergencia)) < 5 || ! $this->exoneracionAceptada)
+        ) {
+            return;
+        }
         $this->dispatch('emitir-sancion-paso2-completo',
             tipoSancion: $this->decision,
             razonDivergencia: $this->razonDivergencia,

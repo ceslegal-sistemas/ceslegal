@@ -34,12 +34,40 @@
         </div>
     @elseif ($paso === 2)
         <div>
-            <p>PASO 2: Decidir la sanción (contenido real en Task 5)</p>
-            <button type="button" wire:click="selectDecision('llamado_atencion')">Elegir llamado_atencion (prueba)</button>
+            @include('filament.components.emitir-sancion-analisis', [
+                'analisis' => $analisis,
+                'recomendacion' => $recomendacionFinal,
+                'opcionesSancion' => $opcionesSancion,
+                'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
+                'modoDecision' => true,
+            ])
+
+            @if(!empty($autoridadRit))
+                @include('filament.components.emitir-sancion-potestad', [
+                    'autoridadRit' => $autoridadRit,
+                    'opcionesSancion' => $opcionesSancion,
+                ])
+            @endif
+
+            @if($decision && !empty($iaSancionesRecomendadas) && !in_array($decision, $iaSancionesRecomendadas))
+                @include('filament.components.emitir-sancion-exoneracion-aviso', [
+                    'tipoSeleccionado' => $decision,
+                    'iaRazonesNoRecomendadas' => $iaRazonesNoRecomendadas,
+                ])
+                <textarea wire:model="razonDivergencia" placeholder="Razón por la cual se elige esta sanción en lugar de las recomendadas por la IA"></textarea>
+                <label>
+                    <input type="checkbox" wire:model="exoneracionAceptada">
+                    Confirmo que entiendo las recomendaciones jurídicas emitidas por la IA, que aun así decido aplicar una sanción diferente, y que asumo completamente la responsabilidad jurídica, laboral y judicial de esta decisión, exonerando a LUPE de cualquier consecuencia derivada de la misma.
+                </label>
+            @endif
+
             <button
                 type="button"
                 wire:click="confirmarDecision"
-                @disabled(! $decision)
+                @disabled(
+                    ! $decision
+                    || (! empty($iaSancionesRecomendadas) && ! in_array($decision, $iaSancionesRecomendadas) && (strlen(trim($razonDivergencia)) < 5 || ! $exoneracionAceptada))
+                )
             >
                 Continuar a Autorizar &rarr;
             </button>

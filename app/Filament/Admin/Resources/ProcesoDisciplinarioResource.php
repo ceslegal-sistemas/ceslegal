@@ -2139,8 +2139,6 @@ class ProcesoDisciplinarioResource extends Resource
                         $autoridadRit               = $esFallback ? [] : ($analisis['autoridad_sancion'] ?? []);
                         $iaRazonesNoRecomendadas    = $esFallback ? [] : ($analisis['razones_no_recomendadas'] ?? []);
 
-                        $labelsMap = ['llamado_atencion' => 'Llamado de Atención', 'suspension' => 'Suspensión Laboral', 'multa' => 'Multa', 'terminacion' => 'Terminación de Contrato', 'no_sancion' => 'No Aplicar Sanción'];
-
                         // Caso "condicionada": la IA ofrece el rango PERO la decisión está
                         // sujeta a verificar las pruebas del trabajador. Guiamos al cliente a
                         // "No Aplicar Sanción" cuando la justificación se confirma.
@@ -2167,6 +2165,8 @@ class ProcesoDisciplinarioResource extends Resource
                                     'opcionesSancion' => $opcionesSancion,
                                     'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
                                     'recomendacionFinal' => $recomendacionFinal,
+                                    'autoridadRit' => $autoridadRit,
+                                    'iaRazonesNoRecomendadas' => $iaRazonesNoRecomendadas,
                                     'validacionesV6Estado' => $record->validaciones_v6_estado,
                                     'validacionesV6Resultados' => $record->validaciones_v6,
                                     'validacionesV6PuntosClave' => $record->validaciones_v6_puntos_clave,
@@ -2277,6 +2277,18 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->live()
                                 ->required(),
 
+                            // razon_divergencia / exoneracion_aceptada: antes eran campos
+                            // Filament visibles (Section "Decisión Contraria a la Recomendación
+                            // Jurídica", eliminada - ese contenido ahora vive en el Paso 2 del
+                            // wizard, livewire.emitir-sancion-pasos-wrapper). Se conservan aquí
+                            // como Hidden para que $data['razon_divergencia'] y
+                            // $data['exoneracion_aceptada'] sigan llegando al ->action() de
+                            // abajo; los popula el puente de la Tarea 7
+                            // ($wire.$set('mountedTableActionsData.0.razon_divergencia', ...)
+                            // al completar el Paso 2).
+                            Forms\Components\Hidden::make('razon_divergencia'),
+                            Forms\Components\Hidden::make('exoneracion_aceptada'),
+
                             // ── Potestad Disciplinaria según el RIT ───────────────────────────
                             Forms\Components\Placeholder::make('potestad_card')
                                 ->hiddenLabel()
@@ -2285,59 +2297,6 @@ class ProcesoDisciplinarioResource extends Resource
                                     'opcionesSancion' => $opcionesSancion,
                                 ]))
                                 ->hidden(empty($autoridadRit)),
-
-                            // ── Sección de Exoneración ─────────────────────────────────────────
-                            Forms\Components\Section::make('Decisión Contraria a la Recomendación Jurídica')
-                                ->icon('heroicon-o-exclamation-triangle')
-                                ->iconColor('danger')
-                                ->schema([
-                                    Forms\Components\Placeholder::make('exoneracion_aviso')
-                                        ->hiddenLabel()
-                                        ->content(function (Get $get) use ($labelsMap, $iaRazonesNoRecomendadas) {
-                                            $tipoSeleccionado  = $get('tipo_sancion');
-                                            $razonEspecifica   = $iaRazonesNoRecomendadas[$tipoSeleccionado] ?? null;
-                                            $labelSeleccionado = $labelsMap[$tipoSeleccionado] ?? ucfirst(str_replace('_', ' ', $tipoSeleccionado ?? ''));
-
-                                            $html  = '<style>:root{--exo-label:rgba(0,0,0,0.45);--exo-text:rgba(17,24,39,0.78);--exo-strong:#b91c1c;--exo-reason-bg:rgba(239,68,68,0.06);--exo-reason-border:rgba(239,68,68,0.18);}';
-                                            $html .= 'html.dark{--exo-label:rgba(255,255,255,0.35);--exo-text:rgba(255,255,255,0.70);--exo-strong:rgba(255,160,160,0.95);--exo-reason-bg:rgba(239,68,68,0.10);--exo-reason-border:rgba(248,113,113,0.25);}</style>';
-                                            $html .= '<div style="padding:16px 18px;background:rgba(239,68,68,0.11);border-radius:14px;border:1px solid rgba(239,68,68,0.22);border-left:3px solid #f87171;">';
-                                            $html .= '<div style="display:flex;align-items:flex-start;gap:12px;">';
-                                            $html .= '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="800" stroke="bold" colors="primary:#f87171,secondary:#fca5a5" style="width:36px;height:36px;flex-shrink:0;margin-top:-2px"></lord-icon>';
-                                            $html .= '<div style="flex:1;min-width:0;">';
-                                            $html .= '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--exo-label);margin:0 0 4px;">Advertencia Legal</p>';
-                                            $html .= '<p style="font-size:15px;font-weight:800;color:#f87171;margin:0 0 10px;line-height:1.2;">Decisión contraria a la recomendación jurídica</p>';
-                                            $html .= '<p style="font-size:13px;color:var(--exo-text);line-height:1.6;margin:0;">La decisión que está tomando va en contra de la recomendación jurídica emitida por el sistema de inteligencia artificial de LUPE. <strong style="color:var(--exo-strong);">LUPE no se responsabiliza por las consecuencias legales, laborales o judiciales derivadas de esta decisión.</strong></p>';
-
-                                            if ($razonEspecifica) {
-                                                $html .= '<div style="margin-top:12px;padding:12px 14px;background:var(--exo-reason-bg);border-radius:10px;border:1px solid var(--exo-reason-border);">';
-                                                $html .= '<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--exo-label);margin:0 0 5px;">Por qué la IA no recomienda «' . e($labelSeleccionado) . '»</p>';
-                                                $html .= '<p style="font-size:13px;color:var(--exo-text);line-height:1.6;margin:0;">' . e($razonEspecifica) . '</p>';
-                                                $html .= '</div>';
-                                            }
-
-                                            $html .= '</div></div></div>';
-
-                                            return new \Illuminate\Support\HtmlString($html);
-                                        }),
-
-                                    Forms\Components\Textarea::make('razon_divergencia')
-                                        ->label('Razón por la cual se elige esta sanción en lugar de las recomendadas por la IA')
-                                        ->rows(3)
-                                        ->required(fn(Get $get) => !empty($iaSancionesRecomendadas) && !in_array($get('tipo_sancion'), $iaSancionesRecomendadas)),
-
-                                    Forms\Components\Toggle::make('exoneracion_aceptada')
-                                        ->label('Confirmo que entiendo las recomendaciones jurídicas emitidas por la IA, que aun así decido aplicar una sanción diferente, y que asumo completamente la responsabilidad jurídica, laboral y judicial de esta decisión, exonerando a LUPE de cualquier consecuencia derivada de la misma.')
-                                        ->required(fn(Get $get) => !empty($iaSancionesRecomendadas) && !in_array($get('tipo_sancion'), $iaSancionesRecomendadas))
-                                        ->accepted()
-                                        ->onColor('danger'),
-                                ])
-                                ->hidden(
-                                    fn(Get $get) =>
-                                    empty($get('tipo_sancion')) ||
-                                        empty($iaSancionesRecomendadas) ||
-                                        in_array($get('tipo_sancion'), $iaSancionesRecomendadas)
-                                )
-                                ->collapsible(false),
 
                             // ── Verificación del Autorizador ──────────────────────────────────
                             Forms\Components\Section::make('Verificación del Autorizador')
