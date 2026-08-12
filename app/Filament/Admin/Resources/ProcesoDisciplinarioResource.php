@@ -2337,7 +2337,16 @@ class ProcesoDisciplinarioResource extends Resource
                                     Forms\Components\Checkbox::make('declaracion_aceptada')
                                         ->label('Acepto y confirmo la declaración anterior como persona autorizada para emitir esta sanción')
                                         ->required()
-                                        ->accepted(),
+                                        ->accepted()
+                                        ->afterStateUpdated(function ($state, ProcesoDisciplinario $record) {
+                                            if ($state) {
+                                                \App\Models\SancionProcessEvent::create([
+                                                    'proceso_id' => $record->id,
+                                                    'user_id' => auth()->id(),
+                                                    'event_type' => 'authorized',
+                                                ]);
+                                            }
+                                        }),
 
                                     Forms\Components\Placeholder::make('webcam_autorizador')
                                         ->label('Foto de verificación del autorizador')
@@ -2412,6 +2421,13 @@ class ProcesoDisciplinarioResource extends Resource
                         )
                     )
                     ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
+                        \App\Models\SancionProcessEvent::create([
+                            'proceso_id' => $record->id,
+                            'user_id' => auth()->id(),
+                            'event_type' => 'submitted',
+                            'meta' => ['tipo_sancion' => $data['tipo_sancion'] ?? null],
+                        ]);
+
                         // No permitir confirmar mientras la revisión de calidad adicional
                         // (motores V6 + posible auto-corrección) sigue en curso: si el cliente
                         // pudiera confirmar antes de que termine, una corrección grave (ej.
