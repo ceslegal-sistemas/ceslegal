@@ -2878,9 +2878,20 @@ class ProcesoDisciplinarioResource extends Resource
                             ->label('Pruebas Adicionales')
                             ->multiple()
                             ->directory('impugnaciones')
-                            ->acceptedFileTypes(['application/pdf', 'image/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
+                            ->acceptedFileTypes([
+                                'application/pdf',
+                                'image/*',
+                                'application/msword',
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                'application/vnd.ms-excel',
+                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                'video/mp4',
+                                'video/quicktime',
+                                'audio/mpeg',
+                                'audio/wav',
+                            ])
                             ->maxSize(10240)
-                            ->helperText('Archivos aportados por el trabajador (opcional). Máximo 10MB por archivo.'),
+                            ->helperText('Archivos aportados por el trabajador (opcional). PDF, imágenes, Word, Excel, video o audio. Máximo 10MB por archivo.'),
                     ])
                     ->modalHeading('Registrar Impugnación del Trabajador')
                     ->modalDescription(
