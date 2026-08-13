@@ -43,8 +43,19 @@
             'ocultos'   => max(0, $totalHallazgos - $maxHallazgosV6),
         ];
     }
-    $numOk = collect($filas)->where('estado', 'ok')->count();
-    $numRevisables = collect($filas)->whereIn('estado', ['riesgo', 'atencion'])->count();
+    // Mismo criterio que usa cada fila para decidir si muestra "Sin
+    // observaciones" o el detalle desplegable (!$tieneDetalle más abajo, en
+    // el foreach) - así el resumen de arriba nunca puede contradecir lo que
+    // el cliente ve fila por fila. Antes se contaba por severidad (estado
+    // ok vs atencion/riesgo), lo que podía decir "N con observaciones"
+    // aunque varias de esas filas mostraran "Sin observaciones" al no tener
+    // texto - la severidad igual se ve en el color/ícono de cada fila.
+    $numRevisables = collect($filas)->filter(fn($f) => !empty($f['hallazgos']))->count();
+    // No cuenta las filas 'na' (motor sin dato disponible - muestran "no
+    // disponible", no "Sin observaciones"): si se sumaran aquí, el badge
+    // verde diría "sin observaciones" de algo que en realidad no se pudo
+    // evaluar.
+    $numOk = collect($filas)->filter(fn($f) => empty($f['hallazgos']) && $f['estado'] !== 'na')->count();
 @endphp
 
 @if($estado)

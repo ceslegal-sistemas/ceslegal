@@ -2156,7 +2156,7 @@ class ProcesoDisciplinarioResource extends Resource
                           Forms\Components\Group::make([
                             Forms\Components\View::make('livewire.emitir-sancion-pasos-wrapper')
                                 ->key('emitir_sancion_pasos_wrapper')
-                                ->viewData([
+                                ->viewData(fn(Get $get) => [
                                     'procesoId' => $record->id,
                                     'analisis' => $analisis,
                                     'esFallback' => $esFallback,
@@ -2169,6 +2169,12 @@ class ProcesoDisciplinarioResource extends Resource
                                     'validacionesV6Resultados' => $record->validaciones_v6,
                                     'validacionesV6PuntosClave' => $record->validaciones_v6_puntos_clave,
                                     'validacionesV6En' => $record->validaciones_v6_en,
+                                    // Si el cliente ya había elegido una sanción y le da "Volver" desde
+                                    // Verificación del Autorizador, este wizard se remonta desde cero
+                                    // (ver ->visible() de abajo) - se le pasa la decisión que el padre
+                                    // ya tenía guardada para que EmitirSancionPasos::mount() la
+                                    // restaure y abra directo en el Paso 2.
+                                    'decision' => $get('tipo_sancion'),
                                 ])
                                 ->columnSpanFull()
                                 // Al llegar al Paso 3 (Verificación del Autorizador, ->visible()
@@ -2321,6 +2327,10 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->iconColor('primary')
                                 ->description('Registre los datos de quien autoriza esta sanción y tome una foto de verificación.')
                                 ->schema([
+                                    Forms\Components\Placeholder::make('volver_a_decision')
+                                        ->hiddenLabel()
+                                        ->content(fn() => view('filament.components.emitir-sancion-volver-autorizacion')),
+
                                     Forms\Components\Grid::make(2)->schema([
                                         Forms\Components\TextInput::make('autorizador_nombre')
                                             ->label('Nombre completo')

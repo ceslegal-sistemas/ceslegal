@@ -26,6 +26,47 @@ class EmitirSancionPasos extends Component
     public ?array $validacionesV6PuntosClave = null;
     public ?\Illuminate\Support\Carbon $validacionesV6En = null;
 
+    public function mount(
+        int $procesoId,
+        array $analisis = [],
+        bool $esFallback = false,
+        array $opcionesSancion = [],
+        array $iaSancionesRecomendadas = [],
+        ?array $recomendacionFinal = null,
+        array $autoridadRit = [],
+        array $iaRazonesNoRecomendadas = [],
+        ?string $validacionesV6Estado = null,
+        ?array $validacionesV6Resultados = null,
+        ?array $validacionesV6PuntosClave = null,
+        ?\Illuminate\Support\Carbon $validacionesV6En = null,
+        ?string $decision = null,
+    ): void {
+        $this->procesoId = $procesoId;
+        $this->analisis = $analisis;
+        $this->esFallback = $esFallback;
+        $this->opcionesSancion = $opcionesSancion;
+        $this->iaSancionesRecomendadas = $iaSancionesRecomendadas;
+        $this->recomendacionFinal = $recomendacionFinal;
+        $this->autoridadRit = $autoridadRit;
+        $this->iaRazonesNoRecomendadas = $iaRazonesNoRecomendadas;
+        $this->validacionesV6Estado = $validacionesV6Estado;
+        $this->validacionesV6Resultados = $validacionesV6Resultados;
+        $this->validacionesV6PuntosClave = $validacionesV6PuntosClave;
+        $this->validacionesV6En = $validacionesV6En;
+
+        // Al hacer clic en "Volver" desde Verificación del Autorizador, el
+        // padre oculta este wizard (paso_actual<3) y vuelve a mostrarlo -
+        // como Filament ya no lo tenía en el árbol, este componente se
+        // remonta desde cero (pierde su $paso/$decision anteriores). Si el
+        // padre ya tenía guardada una decisión (tipo_sancion), se restaura
+        // aquí y se abre directo en el Paso 2, en vez de mandar al cliente
+        // otra vez al Paso 1 como si nada se hubiera elegido.
+        if ($decision) {
+            $this->decision = $decision;
+            $this->paso = 2;
+        }
+    }
+
     // No bloquea el avance del wizard (ver irAPaso2) - solo deja registro en
     // sancion_process_events de que el usuario abrió el punto "Resistencia
     // ante una revisión judicial" de la revisión de calidad V6, para el

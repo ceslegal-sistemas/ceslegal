@@ -20,5 +20,6 @@
         'validacionesV6Resultados' => $validacionesV6Resultados,
         'validacionesV6PuntosClave' => $validacionesV6PuntosClave,
         'validacionesV6En' => $validacionesV6En,
+        'decision' => $decision ?? null,
     ], key('emitir-sancion-pasos-' . $procesoId))
 </div>
