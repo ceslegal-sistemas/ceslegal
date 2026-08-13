@@ -13,18 +13,6 @@
                 ])
             @endif
 
-            @if ($validacionesV6Estado === 'completado' && !$riskAcknowledged)
-                <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-400 dark:border-amber-600 space-y-3">
-                    <div class="flex items-start gap-3">
-                        <lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:36px;height:36px;flex-shrink:0;margin-top:2px"></lord-icon>
-                        <div>
-                            <p class="font-semibold text-amber-900 dark:text-amber-100 text-base">Falta reconocer un riesgo</p>
-                            <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">Abra el punto <strong>"Resistencia ante una revisión judicial"</strong> en la lista de abajo para marcarlo como revisado.</p>
-                        </div>
-                    </div>
-                </div>
-            @endif
-
             @include('filament.components.validaciones-v6-resumen', [
                 'estado' => $validacionesV6Estado,
                 'resultados' => $validacionesV6Resultados,
@@ -42,7 +30,7 @@
                     icon="heroicon-o-arrow-right"
                     icon-position="after"
                     class="w-full justify-center py-3 text-base"
-                    :disabled="in_array($validacionesV6Estado, ['pendiente', 'procesando'], true) || ($validacionesV6Estado === 'completado' && !$riskAcknowledged)"
+                    :disabled="in_array($validacionesV6Estado, ['pendiente', 'procesando'], true)"
                 >
                     Continuar a Decisión
                 </x-filament::button>
@@ -51,8 +39,6 @@
                 @if (in_array($validacionesV6Estado, ['pendiente', 'procesando'], true))
                     <span>Las validaciones de riesgo están en proceso. Por favor, espere a que se completen antes de
                         continuar.</span>
-                @elseif ($validacionesV6Estado === 'completado' && !$riskAcknowledged)
-                    <span>Debe reconocer los riesgos antes de continuar.</span>
                 @endif
             </div>
         </div>

@@ -26,6 +26,10 @@ class EmitirSancionPasos extends Component
     public ?array $validacionesV6PuntosClave = null;
     public ?\Illuminate\Support\Carbon $validacionesV6En = null;
 
+    // No bloquea el avance del wizard (ver irAPaso2) - solo deja registro en
+    // sancion_process_events de que el usuario abrió el punto "Resistencia
+    // ante una revisión judicial" de la revisión de calidad V6, para el
+    // historial de auditoría del proceso.
     public function acknowledgeRisk(): void
     {
         if ($this->riskAcknowledged) {
@@ -51,15 +55,6 @@ class EmitirSancionPasos extends Component
         if (in_array($this->validacionesV6Estado, ['pendiente', 'procesando'], true)) {
             return;
         }
-        // El reconocimiento del riesgo solo se exige cuando la revisión V6
-        // terminó y realmente produjo un motor de riesgo para reconocer (fila
-        // "Resistencia ante una revisión judicial" en validaciones-v6-resumen.blade.php).
-        // Si el estado es null/'error' (p.ej. falla de cuota de Gemini) esa fila
-        // nunca se renderiza, así que exigir el acknowledge dejaría al usuario
-        // bloqueado para siempre sin forma de avanzar.
-        if ($this->validacionesV6Estado === 'completado' && ! $this->riskAcknowledged) {
-            return;
-        }
         $this->paso = 1;
     }
     public function irAPaso2(): void
@@ -68,17 +63,10 @@ class EmitirSancionPasos extends Component
         // cliente malicioso podría llamar irAPaso2 directo por la red mientras
         // la revisión V6 sigue en curso. Nunca se avanza mientras esté
         // pendiente/procesando (mismo criterio que bloquea "Continuar" en el
-        // ->action() de la acción emitir_sancion).
+        // ->action() de la acción emitir_sancion). La revisión de calidad V6
+        // en sí (motores, incluido el de riesgo) es solo informativa - no se
+        // exige abrirla ni reconocerla para avanzar, ver acknowledgeRisk().
         if (in_array($this->validacionesV6Estado, ['pendiente', 'procesando'], true)) {
-            return;
-        }
-        // El reconocimiento del riesgo solo se exige cuando la revisión V6
-        // terminó y realmente produjo un motor de riesgo para reconocer (fila
-        // "Resistencia ante una revisión judicial" en validaciones-v6-resumen.blade.php).
-        // Si el estado es null/'error' (p.ej. falla de cuota de Gemini) esa fila
-        // nunca se renderiza, así que exigir el acknowledge dejaría al usuario
-        // bloqueado para siempre sin forma de avanzar.
-        if ($this->validacionesV6Estado === 'completado' && ! $this->riskAcknowledged) {
             return;
         }
         $this->paso = 2;

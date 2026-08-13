@@ -72,15 +72,26 @@
                 la recomendación principal de arriba sigue siendo válida.
             </p>
         @elseif($estado === 'completado')
-            <div style="display:flex;align-items:center;gap:.625rem;margin:8px 0 12px;">
-                <span style="font-size:12px;color:var(--esa-muted);white-space:nowrap;font-weight:600;">
-                    {{ $numOk }} de {{ count($filas) }} en orden
-                </span>
-                <div class="v6chk-track"><div class="v6chk-fill" style="width:{{ round($numOk / max(1, count($filas)) * 100) }}%;"></div></div>
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 0 4px;">
+                @if($numOk > 0)
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#16a34a;background:rgba(22,163,74,.1);border-radius:999px;padding:3px 9px;">
+                        <svg style="width:12px;height:12px;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                        {{ $numOk }} sin observaciones
+                    </span>
+                @endif
+                @if($numRevisables > 0)
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#b45309;background:rgba(217,119,6,.1);border-radius:999px;padding:3px 9px;">
+                        <svg style="width:12px;height:12px;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                        {{ $numRevisables }} con observaciones para revisar (opcional)
+                    </span>
+                @endif
                 @if($en)
                     <span style="font-size:11px;color:var(--esa-muted);opacity:.75;white-space:nowrap;">{{ $en->diffForHumans() }}</span>
                 @endif
             </div>
+            <p style="font-size:11.5px;color:var(--esa-muted);line-height:1.5;margin:0 0 12px;">
+                Esto es un apoyo adicional, no reemplaza su criterio. Puede confirmar la sanción sin necesidad de abrir estos puntos - ábralos abajo solo si quiere ver el detalle.
+            </p>
 
             @if(!empty($puntosClave))
                 <div class="v6chk-item" style="border-left-color:#d97706;margin-bottom:8px;">
@@ -109,22 +120,18 @@
                             };
                             $tieneDetalle = !empty($fila['hallazgos']);
                             $esMotorRiesgo = ($onRiskOpen ?? false) && $fila['titulo'] === 'Resistencia ante una revisión judicial';
-                            $riskAcknowledged = $riskAcknowledged ?? false;
-                            $resaltarMotorRiesgo = $esMotorRiesgo && !$riskAcknowledged;
                         @endphp
-                        {{-- El wrapper carga la clase de resalte (sl-highlight, ver <style> abajo)
-                             para que Livewire pueda quitarla libremente al re-renderizar tras
-                             acknowledgeRisk(). El <details>/<div> interno NO la lleva porque,
-                             cuando es <details> y es el motor de riesgo, tiene wire:ignore.self
-                             (ver comentario más abajo) - si la clase viviera ahí, quedaría
-                             congelada junto con el atributo "open" y el resalte nunca se quitaría
-                             una vez reconocido el riesgo. --}}
-                        <div @if($resaltarMotorRiesgo) class="sl-highlight" @endif>
                         {{--
-                            Bug corregido: wire:click directo sobre un <details> hace que,
-                            al llegar la respuesta de Livewire, el morph del DOM borre el
-                            atributo "open" (el HTML renderizado en el servidor nunca lo
-                            incluye) y la fila se cierra sola justo después de abrirse.
+                            Esta fila ya no bloquea el avance del wizard - solo se deja
+                            registro de auditoría si el cliente decide abrirla (ver
+                            acknowledgeRisk() en EmitirSancionPasos.php). Por eso no lleva
+                            ningún resalte/pulso: es lectura opcional, igual que las demás.
+
+                            Bug corregido (se mantiene el fix aunque ya no sea obligatoria):
+                            wire:click directo sobre un <details> hace que, al llegar la
+                            respuesta de Livewire, el morph del DOM borre el atributo "open"
+                            (el HTML renderizado en el servidor nunca lo incluye) y la fila
+                            se cierra sola justo después de abrirse.
 
                             Fix de dos partes, ambas necesarias:
                             1) x-on:toggle en vez de wire:click: el toggle nativo del
@@ -135,11 +142,10 @@
                                ($event.target.open), no al cerrar.
                             2) wire:ignore.self en el <details>: aunque (1) ya desacopla el
                                toggle de la petición, la petición de todos modos dispara un
-                               re-render (cambia el aviso de arriba, la clase del wrapper,
-                               etc.) y ESE morph seguiría pisando "open" si no se protege el
-                               elemento. wire:ignore.self congela los atributos propios del
-                               <details> (incluido "open") sin congelar sus hijos, que se
-                               siguen actualizando con normalidad.
+                               re-render y ESE morph seguiría pisando "open" si no se
+                               protege el elemento. wire:ignore.self congela los atributos
+                               propios del <details> (incluido "open") sin congelar sus
+                               hijos, que se siguen actualizando con normalidad.
                         --}}
                         <{{ $tieneDetalle ? 'details' : 'div' }} class="v6chk-item" style="border-left-color:{{ $color }};"
                             @if($esMotorRiesgo && $tieneDetalle)
@@ -179,24 +185,14 @@
                                 </div>
                             @endif
                         </{{ $tieneDetalle ? 'details' : 'div' }}>
-                        </div>
                     @endforeach
                 </div>
             </details>
-
-            @if($numRevisables > 0)
-                <p style="font-size:11.5px;color:var(--esa-muted);line-height:1.5;margin:10px 0 0;">
-                    Esto es un apoyo adicional, no reemplaza su criterio - puede confirmar la sanción igual si considera que los puntos señalados no cambian la decisión.
-                </p>
-            @endif
         @endif
     </div>
 </div>
 
 <style>
-.v6chk-track{flex:1;height:5px;border-radius:3px;background:rgba(0,0,0,.08);overflow:hidden;min-width:60px;}
-html.dark .v6chk-track{background:rgba(255,255,255,.1);}
-.v6chk-fill{height:100%;border-radius:3px;background:#16a34a;transition:width .5s ease;}
 .v6chk-item{border-left:3px solid;border-radius:.5rem;background:rgba(0,0,0,.02);}
 html.dark .v6chk-item{background:rgba(255,255,255,.03);}
 .v6chk-head{padding:8px 10px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;}
@@ -209,18 +205,5 @@ div.v6chk-head{cursor:default;}
 .v6chk-spinner{flex-shrink:0;width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,0,0,.12);border-top-color:#2563eb;animation:v6chkspin .8s linear infinite;}
 html.dark .v6chk-spinner{border-color:rgba(255,255,255,.15);border-top-color:#60a5fa;}
 @keyframes v6chkspin{to{transform:rotate(360deg);}}
-
-/* Resalta la fila "Resistencia ante una revisión judicial" mientras el
-   riesgo no ha sido reconocido (acknowledgeRisk, ver x-on:toggle arriba),
-   para que el usuario vea de una vez cuál punto debe abrir. Se retira solo
-   al reconocer. Mismo patrón sl-highlight/sl-pulse que
-   rit-auditoria-panel.blade.php (color primario de marca, pulso finito de
-   4 veces, no infinito) - definido localmente porque este bloque de estilos
-   es propio de este archivo, no se comparte entre vistas. */
-.sl-highlight{animation:sl-pulse 1.4s ease-in-out 4;position:relative}
-@keyframes sl-pulse{0%,100%{box-shadow:0 0 0 0 rgba(251,113,133,.55)}50%{box-shadow:0 0 0 8px rgba(251,113,133,0)}}
-@media (prefers-reduced-motion: reduce) {
-    .sl-highlight{animation:none;}
-}
 </style>
 @endif
