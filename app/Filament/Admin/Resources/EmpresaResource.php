@@ -158,19 +158,21 @@ class EmpresaResource extends Resource
                         ->required()
                         ->unique(ignoreRecord: true)
                         ->maxLength(50)
-                        ->mask(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
-                            ? '999999999-9'
-                            : null)
+                        // Sin ->mask(): un mask fijo tipo '999999999-9' obliga a escribir
+                        // exactamente 9 dígitos antes del guion, pero NITs antiguos
+                        // (sobretodo de empresas grandes/de larga data) pueden tener
+                        // menos - la regex de abajo ya acepta entre 6 y 12 dígitos, el
+                        // guion lo escribe el usuario donde corresponda.
                         ->placeholder(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
                             ? 'Ej: 900123456-7'
                             : 'Ej: 1023456789')
                         ->helperText(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
-                            ? 'Incluya el dígito de verificación separado por guion'
+                            ? 'Incluya el dígito de verificación separado por guion. Los NIT antiguos pueden tener menos de 9 dígitos antes del guion.'
                             : 'Número de cédula de ciudadanía')
                         ->rules(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
                             ? ['regex:/^\d{6,12}-\d$/']
                             : [])
-                        ->validationMessages(['regex' => 'El NIT debe incluir el dígito de verificación (ej: 900123456-7).'])
+                        ->validationMessages(['regex' => 'El NIT debe incluir el dígito de verificación separado por guion (ej: 900123456-7). Puede tener entre 6 y 12 dígitos antes del guion.'])
                         ->suffixIcon('heroicon-o-identification'),
 
                     Forms\Components\TextInput::make('representante_legal')

@@ -59,9 +59,11 @@ class BufeteResource extends Resource
                         ->required()
                         ->unique(ignoreRecord: true)
                         ->maxLength(50)
-                        ->mask('999999999-9')
+                        // Sin ->mask(): ver nota en EmpresaResource.php - un mask fijo
+                        // obligaba a escribir exactamente 9 dígitos antes del guion, pero
+                        // NITs antiguos pueden tener menos.
                         ->placeholder('Ej: 900123456-7')
-                        ->helperText('Incluya el dígito de verificación separado por guion')
+                        ->helperText('Incluya el dígito de verificación separado por guion. Los NIT antiguos pueden tener menos de 9 dígitos antes del guion.')
                         ->rules(['regex:/^\d{6,12}-\d$/'])
                         ->validationMessages([
                             'regex'  => 'El NIT debe incluir el dígito de verificación (ej: 900123456-7).',

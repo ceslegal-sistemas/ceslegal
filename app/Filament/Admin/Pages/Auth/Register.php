@@ -107,19 +107,19 @@ class Register extends BaseRegister
                                 ->required()
                                 ->unique('empresas', 'nit')
                                 ->maxLength(50)
-                                ->mask(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
-                                    ? '999999999-9'
-                                    : null)
+                                // Sin ->mask(): ver nota en EmpresaResource.php - un mask fijo
+                                // obligaba a escribir exactamente 9 dígitos antes del guion,
+                                // pero NITs antiguos pueden tener menos.
                                 ->placeholder(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
                                     ? 'Ej: 900123456-7'
                                     : 'Ej: 1023456789')
                                 ->helperText(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
-                                    ? 'Incluya el dígito de verificación separado por guion'
+                                    ? 'Incluya el dígito de verificación separado por guion. Los NIT antiguos pueden tener menos de 9 dígitos antes del guion.'
                                     : '')
                                 ->rules(fn(Get $get) => ($get('tipo_societario') && $get('tipo_societario') !== 'Persona Natural')
                                     ? ['regex:/^\d{6,12}-\d$/']
                                     : [])
-                                ->validationMessages(['regex' => 'El NIT debe incluir el dígito de verificación (ej: 900123456-7).'])
+                                ->validationMessages(['regex' => 'El NIT debe incluir el dígito de verificación separado por guion (ej: 900123456-7). Puede tener entre 6 y 12 dígitos antes del guion.'])
                                 ->suffixIcon('heroicon-o-identification'),
 
                             Forms\Components\TextInput::make('representante_legal')
@@ -301,13 +301,17 @@ class Register extends BaseRegister
                                 ->nullable()
                                 ->maxLength(50)
                                 ->live(onBlur: true)
-                                ->mask('999999999-9')
+                                // Sin ->mask(): ver nota en EmpresaResource.php - un mask fijo
+                                // obligaba a escribir exactamente 9 dígitos antes del guion,
+                                // pero NITs antiguos pueden tener menos. La regex de abajo
+                                // también se relaja de 9 fijos a 6-12, igual que el resto de
+                                // los campos de NIT del sistema.
                                 ->placeholder('Ej: 900111222-3')
-                                // ->helperText('Solo números: 9 dígitos y el dígito de verificación (el guion se agrega solo).')
+                                ->helperText('Incluya el dígito de verificación separado por guion. Los NIT antiguos pueden tener menos de 9 dígitos antes del guion.')
                                 ->extraInputAttributes(['inputmode' => 'numeric'])
-                                ->rule('regex:/^\d{9}-\d$/')
+                                ->rule('regex:/^\d{6,12}-\d$/')
                                 ->validationMessages([
-                                    'regex' => 'El NIT debe ser solo números con el dígito de verificación separado por un guion (ej: 900111222-3).',
+                                    'regex' => 'El NIT debe ser solo números con el dígito de verificación separado por un guion (ej: 900111222-3). Puede tener entre 6 y 12 dígitos antes del guion.',
                                 ])
                                 ->unique('bufetes', 'nit')
                                 ->suffixIcon('heroicon-o-identification'),

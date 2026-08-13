@@ -45,7 +45,14 @@ class Empresa extends Model
         'S.C.S.'         => 'S.C.S. - Sociedad en Comandita Simple',
         'E.U.'           => 'E.U. - Empresa Unipersonal',
         'E.S.P.'         => 'E.S.P. - Empresa de Servicios Públicos',
-        'S.B.I.C.'       => 'S.B.I.C. - Sociedad de Beneficio e Interés Colectivo',
+        // No es una forma jurídica aparte (una Sociedad BIC sigue siendo, de
+        // fondo, una S.A.S./S.A./etc.) sino una calidad adicional que la
+        // empresa adopta voluntariamente al comprometerse por estatutos a
+        // generar impacto social/ambiental positivo, no solo lucro (Ley 1901
+        // de 2018). Se deja como opción aparte en este selector porque así
+        // suele aparecer escrita en la razón social ("... S.A.S. BIC").
+        'S.B.I.C.'       => 'S.B.I.C. - Sociedad de Beneficio e Interés Colectivo (empresa con compromiso social/ambiental formal, Ley 1901 de 2018)',
+        'ESAL'           => 'ESAL - Entidad Sin Ánimo de Lucro (fundación, corporación o asociación)',
         'Persona Natural' => 'Persona Natural',
     ];
 
@@ -56,7 +63,7 @@ class Empresa extends Model
      * misma sigla escrita distinto, y las tres deben detectarse).
      * Orden: más largo primero para evitar coincidencias parciales (S.A.S. antes de S.A.).
      */
-    private const TIPO_SOCIETARIO_PATRON = '/\s+(?:PERSONA\s+NATURAL|S\.?\s*B\.?\s*I\.?\s*C\.?|S\.?\s*C\.?\s*A\.?|S\.?\s*C\.?\s*S\.?|E\.?\s*S\.?\s*P\.?|S\.?\s*A\.?\s*S\.?|S\.?\s*A\.?|LTDA\.?|E\.?\s*U\.?)\s*$/iu';
+    private const TIPO_SOCIETARIO_PATRON = '/\s+(?:PERSONA\s+NATURAL|ESAL|S\.?\s*B\.?\s*I\.?\s*C\.?|S\.?\s*C\.?\s*A\.?|S\.?\s*C\.?\s*S\.?|E\.?\s*S\.?\s*P\.?|S\.?\s*A\.?\s*S\.?|S\.?\s*A\.?|LTDA\.?|E\.?\s*U\.?)\s*$/iu';
 
     /** Almacena la razón social en mayúsculas y sin tipo societario al final */
     protected function razonSocial(): Attribute
