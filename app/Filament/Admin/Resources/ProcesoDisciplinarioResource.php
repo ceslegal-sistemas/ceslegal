@@ -2170,7 +2170,12 @@ class ProcesoDisciplinarioResource extends Resource
                                     'validacionesV6PuntosClave' => $record->validaciones_v6_puntos_clave,
                                     'validacionesV6En' => $record->validaciones_v6_en,
                                 ])
-                                ->columnSpanFull(),
+                                ->columnSpanFull()
+                                // Al llegar al Paso 3 (Verificación del Autorizador, ->visible()
+                                // más abajo con la condición inversa) se oculta todo el wizard de
+                                // análisis/decisión: antes se quedaba visible arriba del todo,
+                                // duplicando la pantalla con el paso de autorización.
+                                ->visible(fn(Get $get) => ($get('paso_actual') ?? 1) < 3),
 
                             // ── Aviso de transparencia de la revisión V6: oculto a pedido del
                             // usuario (2026-08-06) - la corrección automática se sigue aplicando
