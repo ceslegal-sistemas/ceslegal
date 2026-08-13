@@ -106,6 +106,18 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                 $this->auditoria = app(\App\Services\AuditoriaRITService::class)->iniciar($this->empresa, null);
                 \App\Jobs\ProcesarAuditoriaRIT::dispatch($this->auditoria, (int) Auth::id());
             }
+
+            // Respaldo perezoso: RIT con texto pero sin sanciones_extraidas todavía
+            // (dato legado de antes de que subirRITAction() lo disparara solo, o una
+            // extracción que falló). El cliente ya no depende de un botón manual
+            // para esto - ver ExtraerSancionesRITJob y el punto equivalente en
+            // subirRITAction().
+            if ($this->reglamento
+                && ! empty($this->reglamento->texto_completo)
+                && empty($this->reglamento->sanciones_extraidas)
+            ) {
+                \App\Jobs\ExtraerSancionesRITJob::dispatch($this->reglamento);
+            }
         }
 
         // Confeti de bienvenida: solo la primera vez tras registrarse (flag de un solo uso).
@@ -223,6 +235,11 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
      * Re-extrae las faltas y su sanción EXACTA por gravedad (leve/grave/muy grave)
      * del RIT, releyendo el texto con IA. Útil para RIT subidos antes de esta mejora,
      * cuya extracción guardada no separaba la sanción por gravedad.
+     *
+     * Ya NO es el único disparador: ExtraerSancionesRITJob corre solo al subir un
+     * RIT y como respaldo perezoso en mount() (ver ambos). El cliente/bufete no
+     * debería necesitar esto nunca en el flujo normal, así que el botón manual
+     * queda solo para super_admin como herramienta de reintento/soporte.
      */
     public function reextraerSancionesAction(): Action
     {
@@ -230,7 +247,9 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             ->label('Re-extraer sanciones')
             ->icon('heroicon-o-arrow-path')
             ->color('gray')
-            ->visible(fn() => $this->reglamento && !empty($this->reglamento->texto_completo))
+            ->visible(fn() => $this->reglamento
+                && !empty($this->reglamento->texto_completo)
+                && (Auth::user()?->hasRole('super_admin') ?? false))
             ->requiresConfirmation()
             ->modalHeading('Re-extraer la tabla de sanciones')
             ->modalDescription('Vuelve a leer el Reglamento con IA para extraer las faltas y su sanción exacta por gravedad (leve, grave, muy grave). Úselo si la tabla de sanciones de los documentos no coincide con su RIT.')
@@ -263,7 +282,12 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             });
     }
 
-    /** Genera (o regenera) el listado de conductas sancionables del RIT con IA. */
+    /**
+     * Genera (o regenera) el listado de conductas sancionables del RIT con IA.
+     * Solo super_admin: para bufete/cliente confundía verlo como un botón
+     * pendiente de usar incluso cuando las conductas ya estaban generadas -
+     * queda como herramienta de generación/regeneración para el equipo interno.
+     */
     public function generarConductasAction(): Action
     {
         return Action::make('generarConductas')
@@ -273,7 +297,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             ->visible(fn() => $this->reglamento && (
                 !empty($this->reglamento->texto_completo)
                 || !empty($this->reglamento->respuestas_cuestionario['sanciones_configuradas'])
-            ))
+            ) && (Auth::user()?->hasRole('super_admin') ?? false))
             ->requiresConfirmation()
             ->modalHeading('Generar conductas sancionables')
             ->modalDescription('La IA construye el listado de conductas sancionables por gravedad (leve, grave, gravísima) con su medida disciplinaria, conforme al CST. Este contenido es público dentro del RIT. Si ya existe, se reemplaza.')
@@ -315,7 +339,12 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             ->icon('heroicon-o-arrow-up-tray')
             ->modalHeading('Subir Reglamento Interno')
             ->modalDescription('Suba su propio Reglamento Interno en formato PDF o Word. El texto será extraído y guardado como versión vigente.')
-            ->modalSubmitActionLabel('Guardar RIT')
+            // "Subir Reglamento" en vez de "Guardar RIT": el jefe reportó que el
+            // cliente se confundía y pensaba que el RIT aún no quedaba guardado
+            // (porque después de este modal solo ve el visor de texto plano, sin
+            // nada que diga explícitamente "guardado") - ver también el label del
+            // visor en mi-reglamento-interno.blade.php ("...vigente").
+            ->modalSubmitActionLabel('Subir Reglamento')
             ->form([
                 FileUpload::make('archivo')
                     ->label('Documento (PDF o Word)')
@@ -380,6 +409,10 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                 // panel de esta misma página (vista unificada).
                 $this->auditoria = app(\App\Services\AuditoriaRITService::class)->iniciar($this->empresa, null);
                 \App\Jobs\ProcesarAuditoriaRIT::dispatch($this->auditoria, (int) Auth::id());
+
+                // Extraer las sanciones por gravedad en segundo plano - el cliente ya
+                // no depende de hacer clic en "Re-extraer sanciones" (ver job).
+                \App\Jobs\ExtraerSancionesRITJob::dispatch($ritCreado);
 
                 Notification::make()
                     ->success()

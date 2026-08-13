@@ -173,14 +173,22 @@ html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(251,113,
             Subir RIT
           </button>
           @if($tiene)
-            <button wire:click="mountAction('reextraerSanciones')" class="rit-btn rit-btn-secondary">
-              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
-              Re-extraer sanciones
-            </button>
-            <button wire:click="mountAction('generarConductas')" class="rit-btn rit-btn-secondary">
-              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
-              Generar conductas sancionables
-            </button>
+            {{-- Ambos botones son herramientas internas de soporte, no pasos que el
+                 cliente/bufete deba hacer: la extracción de sanciones ya corre sola
+                 (ExtraerSancionesRITJob, al subir el RIT y como respaldo perezoso en
+                 mount()) y las conductas sancionables, si aún no existen, caen a un
+                 respaldo genérico del CST (conductasSancionablesDeEmpresa()) sin que
+                 el cliente vea un botón a medio hacer. --}}
+            @if(auth()->user()?->hasRole('super_admin'))
+              <button wire:click="mountAction('reextraerSanciones')" class="rit-btn rit-btn-secondary">
+                <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                Re-extraer sanciones
+              </button>
+              <button wire:click="mountAction('generarConductas')" class="rit-btn rit-btn-secondary">
+                <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+                Generar conductas sancionables
+              </button>
+            @endif
             {{-- Mismo botón que dispara la auditoría en rit-auditoria-panel.blade.php
                  (iniciarAuditoriaManual), aquí junto al resto de acciones del RIT.
                  Se resalta con el mismo pulso (.sl-highlight, ver rit-auditoria-panel)
@@ -266,7 +274,12 @@ html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(251,113,
   @elseif($tiene)
     <div class="rit-viewer">
       <div class="rit-viewer-header">
-        <span class="rit-viewer-label">Texto del reglamento</span>
+        {{-- "vigente" deja claro que este texto YA está guardado, no es un
+             borrador pendiente - el jefe reportó que el cliente, tras subir
+             el RIT, dudaba si de verdad había quedado guardado porque lo
+             único que veía después era este visor sin ninguna palabra que
+             lo confirmara. --}}
+        <span class="rit-viewer-label">Texto del reglamento vigente</span>
         <span style="font-size:.75rem;color:#64748b">
           {{ number_format(strlen($reglamento->texto_completo)) }} caracteres
         </span>
