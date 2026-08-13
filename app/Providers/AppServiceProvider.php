@@ -32,6 +32,14 @@ class AppServiceProvider extends ServiceProvider
         ProcesoDisciplinario::observe(ProcesoDisciplinarioObserver::class);
         SolicitudContrato::observe(SolicitudContratoObserver::class);
 
+        // Quita el botón "Crear y crear otro" de TODOS los formularios de
+        // creación del panel (pedido del usuario 2026-08-13). $canCreateAnother
+        // es una propiedad static declarada una sola vez en la clase base
+        // Filament\Resources\Pages\CreateRecord - como ninguna página
+        // CreateXxx propia la redeclara, esta única llamada la desactiva en
+        // todas a la vez (misma storage por herencia de static properties).
+        \Filament\Resources\Pages\CreateRecord::disableCreateAnother();
+
         // Rate limiter para llamadas a Gemini API desde la cola
         // 800/min deja margen sobre el límite de 1,000 RPM con billing habilitado
         RateLimiter::for('gemini-api', function () {
