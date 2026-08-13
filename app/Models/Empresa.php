@@ -51,10 +51,12 @@ class Empresa extends Model
 
     /**
      * Patrón regex para detectar tipos societarios escritos de distintas formas
-     * al final de una cadena (con o sin puntos, mayúsculas/minúsculas).
+     * al final de una cadena (con o sin puntos, mayúsculas/minúsculas, CON o
+     * SIN espacio entre cada letra - "S.A.S.", "SAS" y "S. A. S." son la
+     * misma sigla escrita distinto, y las tres deben detectarse).
      * Orden: más largo primero para evitar coincidencias parciales (S.A.S. antes de S.A.).
      */
-    private const TIPO_SOCIETARIO_PATRON = '/\s+(?:PERSONA\s+NATURAL|S\.?B\.?I\.?C\.?|S\.?C\.?A\.?|S\.?C\.?S\.?|E\.?S\.?P\.?|S\.?A\.?S\.?|S\.?A\.?|LTDA\.?|E\.?U\.?)\s*$/iu';
+    private const TIPO_SOCIETARIO_PATRON = '/\s+(?:PERSONA\s+NATURAL|S\.?\s*B\.?\s*I\.?\s*C\.?|S\.?\s*C\.?\s*A\.?|S\.?\s*C\.?\s*S\.?|E\.?\s*S\.?\s*P\.?|S\.?\s*A\.?\s*S\.?|S\.?\s*A\.?|LTDA\.?|E\.?\s*U\.?)\s*$/iu';
 
     /** Almacena la razón social en mayúsculas y sin tipo societario al final */
     protected function razonSocial(): Attribute
@@ -76,16 +78,26 @@ class Empresa extends Model
      */
     public function getNombreCompletoAttribute(): string
     {
+        $razon = trim($this->razon_social ?? '');
         if (!$this->tipo_societario) {
-            return $this->razon_social ?? '';
+            return $razon;
         }
-        // Si razón social ya termina con el tipo societario, no duplicar
-        $razon = mb_strtoupper(trim($this->razon_social ?? ''));
-        $tipo  = mb_strtoupper(trim($this->tipo_societario));
-        if (str_ends_with($razon, $tipo)) {
-            return trim($this->razon_social);
+        $tipo = trim($this->tipo_societario);
+
+        // Compara solo letras (sin espacios ni puntos) para detectar el
+        // mismo sufijo societario escrito de formas distintas ("S.A.S.",
+        // "S. A. S.", "SAS"...) que el usuario ya haya dejado en la razón
+        // social - la comparación literal fallaba porque "S. A. S." (con
+        // espacios) nunca es igual a "S.A.S." aunque digan lo mismo. Esto es
+        // la red de seguridad para datos legacy; el mutator de razonSocial()
+        // ya evita que se guarde así de nuevo.
+        $razonNormalizada = preg_replace('/[^A-Z]/u', '', mb_strtoupper($razon));
+        $tipoNormalizado  = preg_replace('/[^A-Z]/u', '', mb_strtoupper($tipo));
+
+        if ($tipoNormalizado !== '' && str_ends_with($razonNormalizada, $tipoNormalizado)) {
+            return $razon;
         }
-        return trim($this->razon_social . ' ' . $this->tipo_societario);
+        return trim($razon . ' ' . $tipo);
     }
 
     protected $casts = [
