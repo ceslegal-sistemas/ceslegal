@@ -14,9 +14,14 @@
             @endif
 
             @if ($validacionesV6Estado === 'completado' && !$riskAcknowledged)
-                <div class="esa-hint-callout">
-                    <svg style="width:18px;height:18px;flex-shrink:0;color:#d97706;margin-top:1px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
-                    <span>Antes de continuar: abra el punto <strong>"Resistencia ante una revisión judicial"</strong> en la lista de abajo para marcarlo como revisado.</span>
+                <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-400 dark:border-amber-600 space-y-3">
+                    <div class="flex items-start gap-3">
+                        <lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:36px;height:36px;flex-shrink:0;margin-top:2px"></lord-icon>
+                        <div>
+                            <p class="font-semibold text-amber-900 dark:text-amber-100 text-base">Falta reconocer un riesgo</p>
+                            <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">Abra el punto <strong>"Resistencia ante una revisión judicial"</strong> en la lista de abajo para marcarlo como revisado.</p>
+                        </div>
+                    </div>
                 </div>
             @endif
 
@@ -54,9 +59,14 @@
     @elseif ($paso === 2)
         <div>
             @if (!$decision)
-                <div class="esa-hint-callout">
-                    <svg style="width:18px;height:18px;flex-shrink:0;color:#d97706;margin-top:1px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
-                    <span>Seleccione una de las opciones de sanción abajo (haciendo clic en <strong>"Aplicar esta sanción"</strong> o una de las alternativas) para continuar.</span>
+                <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-400 dark:border-amber-600 space-y-3">
+                    <div class="flex items-start gap-3">
+                        <lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:36px;height:36px;flex-shrink:0;margin-top:2px"></lord-icon>
+                        <div>
+                            <p class="font-semibold text-amber-900 dark:text-amber-100 text-base">Falta elegir la sanción</p>
+                            <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">Seleccione una opción abajo (<strong>"Aplicar esta sanción"</strong> o una de las alternativas) para continuar.</p>
+                        </div>
+                    </div>
                 </div>
             @endif
 
@@ -123,23 +133,4 @@
             </div>
         </div>
     @endif
-
-    <style>
-    .esa-hint-callout {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        margin: 0 0 10px;
-        padding: 10px 14px;
-        border-radius: .5rem;
-        border: 1px solid rgba(217,119,6,.35);
-        background: rgba(217,119,6,.08);
-        font-size: 12.5px;
-        line-height: 1.55;
-        color: var(--esa-text, rgba(17,24,39,0.78));
-    }
-    html.dark .esa-hint-callout { background: rgba(217,119,6,.12); border-color: rgba(217,119,6,.4); }
-    .esa-hint-callout strong { color: #b45309; }
-    html.dark .esa-hint-callout strong { color: #fbbf24; }
-    </style>
 </div>

@@ -112,7 +112,43 @@
                             $riskAcknowledged = $riskAcknowledged ?? false;
                             $resaltarMotorRiesgo = $esMotorRiesgo && !$riskAcknowledged;
                         @endphp
-                        <{{ $tieneDetalle ? 'details' : 'div' }} class="v6chk-item @if($resaltarMotorRiesgo) v6chk-item-pulse @endif" style="border-left-color:{{ $color }};" @if($esMotorRiesgo) wire:click="acknowledgeRisk" @endif>
+                        {{-- El wrapper carga la clase de resalte (sl-highlight, ver <style> abajo)
+                             para que Livewire pueda quitarla libremente al re-renderizar tras
+                             acknowledgeRisk(). El <details>/<div> interno NO la lleva porque,
+                             cuando es <details> y es el motor de riesgo, tiene wire:ignore.self
+                             (ver comentario más abajo) - si la clase viviera ahí, quedaría
+                             congelada junto con el atributo "open" y el resalte nunca se quitaría
+                             una vez reconocido el riesgo. --}}
+                        <div @if($resaltarMotorRiesgo) class="sl-highlight" @endif>
+                        {{--
+                            Bug corregido: wire:click directo sobre un <details> hace que,
+                            al llegar la respuesta de Livewire, el morph del DOM borre el
+                            atributo "open" (el HTML renderizado en el servidor nunca lo
+                            incluye) y la fila se cierra sola justo después de abrirse.
+
+                            Fix de dos partes, ambas necesarias:
+                            1) x-on:toggle en vez de wire:click: el toggle nativo del
+                               <details> ya ocurrió (100% del lado del cliente) antes de
+                               llamar a $wire.acknowledgeRisk(), así que abrir/cerrar ya no
+                               depende de que la petición a Livewire tenga éxito o de cuándo
+                               vuelva. Solo se llama cuando efectivamente quedó abierto
+                               ($event.target.open), no al cerrar.
+                            2) wire:ignore.self en el <details>: aunque (1) ya desacopla el
+                               toggle de la petición, la petición de todos modos dispara un
+                               re-render (cambia el aviso de arriba, la clase del wrapper,
+                               etc.) y ESE morph seguiría pisando "open" si no se protege el
+                               elemento. wire:ignore.self congela los atributos propios del
+                               <details> (incluido "open") sin congelar sus hijos, que se
+                               siguen actualizando con normalidad.
+                        --}}
+                        <{{ $tieneDetalle ? 'details' : 'div' }} class="v6chk-item" style="border-left-color:{{ $color }};"
+                            @if($esMotorRiesgo && $tieneDetalle)
+                                wire:ignore.self
+                                x-on:toggle="if ($event.target.open) { $wire.acknowledgeRisk() }"
+                            @elseif($esMotorRiesgo)
+                                wire:click="acknowledgeRisk"
+                            @endif
+                        >
                             <{{ $tieneDetalle ? 'summary' : 'div' }} class="v6chk-head">
                                 @if($fila['estado'] === 'ok')
                                     <svg style="width:16px;height:16px;flex-shrink:0;color:{{ $color }};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
@@ -124,9 +160,6 @@
                                     <svg style="width:16px;height:16px;flex-shrink:0;color:{{ $color }};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                                 @endif
                                 <span style="flex:1;min-width:0;font-size:12.5px;font-weight:600;color:var(--esa-text);{{ $fila['estado'] === 'ok' ? 'opacity:.8' : '' }}">{{ $fila['titulo'] }}</span>
-                                @if($resaltarMotorRiesgo)
-                                    <span class="v6chk-clickhint">Haga clic aquí ↓</span>
-                                @endif
                                 @if($fila['estado'] === 'na')
                                     <span style="font-size:11px;color:var(--esa-muted);">no disponible</span>
                                 @elseif(!$tieneDetalle)
@@ -146,6 +179,7 @@
                                 </div>
                             @endif
                         </{{ $tieneDetalle ? 'details' : 'div' }}>
+                        </div>
                     @endforeach
                 </div>
             </details>
@@ -177,18 +211,16 @@ html.dark .v6chk-spinner{border-color:rgba(255,255,255,.15);border-top-color:#60
 @keyframes v6chkspin{to{transform:rotate(360deg);}}
 
 /* Resalta la fila "Resistencia ante una revisión judicial" mientras el
-   riesgo no ha sido reconocido (wire:click="acknowledgeRisk"), para que el
-   usuario vea de una vez cuál punto debe abrir - no esperar a leer el texto
-   de ayuda debajo del botón deshabilitado. Se retira solo al reconocer. */
-.v6chk-item-pulse{outline:2px solid rgba(217,119,6,.55);outline-offset:1px;animation:v6chkpulse 2s ease-in-out infinite;}
-@keyframes v6chkpulse{
-    0%, 100% { box-shadow: 0 0 0 0 rgba(217,119,6,.35); }
-    50% { box-shadow: 0 0 0 5px rgba(217,119,6,0); }
-}
-.v6chk-clickhint{flex-shrink:0;font-size:10.5px;font-weight:700;color:#b45309;background:rgba(217,119,6,.12);border-radius:999px;padding:2px 8px;white-space:nowrap;}
-html.dark .v6chk-clickhint{color:#fbbf24;background:rgba(217,119,6,.18);}
+   riesgo no ha sido reconocido (acknowledgeRisk, ver x-on:toggle arriba),
+   para que el usuario vea de una vez cuál punto debe abrir. Se retira solo
+   al reconocer. Mismo patrón sl-highlight/sl-pulse que
+   rit-auditoria-panel.blade.php (color primario de marca, pulso finito de
+   4 veces, no infinito) - definido localmente porque este bloque de estilos
+   es propio de este archivo, no se comparte entre vistas. */
+.sl-highlight{animation:sl-pulse 1.4s ease-in-out 4;position:relative}
+@keyframes sl-pulse{0%,100%{box-shadow:0 0 0 0 rgba(251,113,133,.55)}50%{box-shadow:0 0 0 8px rgba(251,113,133,0)}}
 @media (prefers-reduced-motion: reduce) {
-    .v6chk-item-pulse{animation:none;}
+    .sl-highlight{animation:none;}
 }
 </style>
 @endif
