@@ -6,6 +6,8 @@ use App\Filament\Admin\Resources\ContratoLaboralResource\Pages;
 use App\Models\ContratoLaboral;
 use App\Support\EmpresaActiva;
 use Filament\Forms\Form;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -40,6 +42,30 @@ class ContratoLaboralResource extends Resource
         // form() base queda vacío a propósito, igual que otros Resources de
         // este proyecto cuyo Create real usa getSteps()/HasWizard.
         return $form->schema([]);
+    }
+
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        // Usado por ViewContratoLaboral (Filament reutiliza form() para las
+        // páginas Create/Edit, pero Ver usa infolist() si está definido) -
+        // sin esto la página de vista quedaría en blanco, ya que form() se
+        // deja vacío a propósito (los campos reales viven en el wizard).
+        return $infolist->schema([
+            TextEntry::make('trabajador.nombre_completo')->label('Trabajador'),
+            TextEntry::make('tipo')
+                ->label('Tipo de contrato')
+                ->formatStateUsing(fn (string $state) => ContratoLaboral::TIPOS[$state] ?? $state),
+            TextEntry::make('salario')->label('Salario')->money('COP'),
+            TextEntry::make('periodicidad_pago')->label('Periodicidad de pago'),
+            TextEntry::make('jornada')->label('Jornada')->placeholder('—'),
+            TextEntry::make('funciones_cargo')->label('Funciones del cargo')->columnSpanFull(),
+            TextEntry::make('fecha_inicio')->label('Fecha de inicio')->date('d/m/Y'),
+            TextEntry::make('fecha_fin')->label('Fecha de fin')->date('d/m/Y')->placeholder('—'),
+            TextEntry::make('estado')->label('Estado')->badge(),
+            TextEntry::make('clausulas_generadas')
+                ->label('Cláusulas (Objeto, Duración, Terminación)')
+                ->columnSpanFull(),
+        ]);
     }
 
     public static function table(Table $table): Table
