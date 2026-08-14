@@ -3,8 +3,11 @@
 namespace App\Services;
 
 use App\Models\ContratoLaboral;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ContratoLaboralGeneratorService
 {
@@ -43,6 +46,67 @@ class ContratoLaboralGeneratorService
         ]);
 
         return $clausulas;
+    }
+
+    public function generarPDF(ContratoLaboral $contrato): string
+    {
+        $html = $this->generarHTML($contrato);
+
+        $directorioRelativo = "contratos-laborales/{$contrato->empresa_id}";
+        Storage::disk('local')->makeDirectory($directorioRelativo);
+
+        $rutaRelativa = "{$directorioRelativo}/contrato_{$contrato->id}.pdf";
+        $rutaAbsoluta = Storage::disk('local')->path($rutaRelativa);
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('defaultFont', 'Arial');
+        $options->set('isFontSubsettingEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('letter', 'portrait');
+        $dompdf->render();
+
+        file_put_contents($rutaAbsoluta, $dompdf->output());
+
+        $contrato->update([
+            'documento_path' => $rutaRelativa,
+            'estado'         => 'generado',
+        ]);
+
+        return $rutaRelativa;
+    }
+
+    private function generarHTML(ContratoLaboral $contrato): string
+    {
+        $trabajador = $contrato->trabajador;
+        $empresa    = $contrato->empresa;
+        $tipoLabel  = ContratoLaboral::TIPOS[$contrato->tipo] ?? $contrato->tipo;
+        $clausulas  = nl2br(e($contrato->clausulas_generadas ?? ''));
+
+        return <<<HTML
+        <html>
+        <head><style>
+            body { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.6; }
+            h1 { font-size: 16px; text-align: center; }
+            .datos { margin: 20px 0; }
+            .datos p { margin: 4px 0; }
+        </style></head>
+        <body>
+            <h1>CONTRATO INDIVIDUAL DE TRABAJO A {$tipoLabel}</h1>
+            <div class="datos">
+                <p><strong>Empresa:</strong> {$empresa->nombre_completo}</p>
+                <p><strong>NIT:</strong> {$empresa->nit}</p>
+                <p><strong>Trabajador:</strong> {$trabajador->nombre_completo}</p>
+                <p><strong>Documento:</strong> {$trabajador->tipo_documento} {$trabajador->numero_documento}</p>
+                <p><strong>Cargo:</strong> {$trabajador->cargo}</p>
+                <p><strong>Salario:</strong> \${$contrato->salario} ({$contrato->periodicidad_pago})</p>
+            </div>
+            <div class="clausulas">{$clausulas}</div>
+        </body>
+        </html>
+        HTML;
     }
 
     private function construirPrompt(ContratoLaboral $contrato, string $articulosCst): string
