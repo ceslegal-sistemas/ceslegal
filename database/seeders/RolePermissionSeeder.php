@@ -97,6 +97,12 @@ class RolePermissionSeeder extends Seeder
             'view_any_solicitud::cambio::empresa',
             'view_solicitud::cambio::empresa',
             'update_solicitud::cambio::empresa',
+
+            // ContratoLaboral permissions (Lupe Organiza)
+            'view_contrato::laboral',
+            'view_any_contrato::laboral',
+            'create_contrato::laboral',
+            'update_contrato::laboral',
         ];
 
         foreach ($permissions as $permission) {
@@ -160,6 +166,12 @@ class RolePermissionSeeder extends Seeder
             'widget_RecentProcessesWidget',
             'widget_ExpiringTermsWidget',
             'widget_ProcessesByStatusChart',
+
+            // Lupe Organiza: contratos laborales
+            'view_contrato::laboral',
+            'view_any_contrato::laboral',
+            'create_contrato::laboral',
+            'update_contrato::laboral',
         ]);
 
         // ==============================
