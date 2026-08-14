@@ -7,6 +7,7 @@ use App\Models\ContratoLaboral;
 use App\Models\Trabajador;
 use App\Support\EmpresaActiva;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -85,7 +86,7 @@ class CreateContratoLaboral extends CreateRecord
                         ->label('Fecha de fin')
                         ->visible(fn (Get $get) => $get('tipo') === 'fijo')
                         ->required(fn (Get $get) => $get('tipo') === 'fijo')
-                        ->helperText('Máximo 3 años, renovable (Art. 46 CST).'),
+                        ->helperText('Máximo 4 años (Art. 46 CST, modificado por la Ley 2466 de 2025).'),
 
                     Textarea::make('descripcion_obra')
                         ->label('Descripción de la obra o labor')
@@ -93,7 +94,45 @@ class CreateContratoLaboral extends CreateRecord
                         ->required(fn (Get $get) => $get('tipo') === 'obra_labor'),
                 ]),
 
-            // Paso 3 se agrega en Task 8...
+            Step::make('datos_contrato')
+                ->label('Datos del contrato')
+                ->schema([
+                    TextInput::make('salario')
+                        ->label('Salario')
+                        ->numeric()
+                        ->prefix('$')
+                        ->required(),
+
+                    Select::make('periodicidad_pago')
+                        ->label('Periodicidad de pago')
+                        ->options([
+                            'mensual'   => 'Mensual',
+                            'quincenal' => 'Quincenal',
+                        ])
+                        ->default('mensual')
+                        ->required(),
+
+                    TextInput::make('jornada')
+                        ->label('Jornada')
+                        ->placeholder('Ej: Lunes a viernes, 8:00am - 5:00pm'),
+
+                    Textarea::make('funciones_cargo')
+                        ->label('Funciones del cargo')
+                        ->required()
+                        ->helperText('Este texto es el insumo principal para que la IA redacte el objeto del contrato en el siguiente paso.')
+                        ->rows(4),
+
+                    Section::make('Seguridad social (opcional)')
+                        ->collapsed()
+                        ->schema([
+                            TextInput::make('eps')->label('EPS'),
+                            TextInput::make('arl')->label('ARL'),
+                            TextInput::make('fondo_pension')->label('Fondo de pensión'),
+                            TextInput::make('caja_compensacion')->label('Caja de compensación'),
+                        ]),
+                ]),
+
+            // Paso 4 se agrega en Task 9...
         ];
     }
 }
