@@ -3,11 +3,16 @@
 namespace App\Filament\Admin\Resources\ContratoLaboralResource\Pages;
 
 use App\Filament\Admin\Resources\ContratoLaboralResource;
+use App\Models\ContratoLaboral;
 use App\Models\Trabajador;
 use App\Support\EmpresaActiva;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Components\Wizard\Step;
+use Filament\Forms\Get;
 use Filament\Resources\Pages\Concerns\HasWizard;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -61,7 +66,34 @@ class CreateContratoLaboral extends CreateRecord
                         }),
                 ]),
 
-            // Paso 2 se agrega en Task 7...
+            Step::make('tipo_contrato')
+                ->label('Tipo de contrato')
+                ->schema([
+                    ToggleButtons::make('tipo')
+                        ->label('Tipo de contrato')
+                        ->options(ContratoLaboral::TIPOS)
+                        ->inline()
+                        ->required()
+                        ->live(),
+
+                    DatePicker::make('fecha_inicio')
+                        ->label('Fecha de inicio')
+                        ->required()
+                        ->default(now()),
+
+                    DatePicker::make('fecha_fin')
+                        ->label('Fecha de fin')
+                        ->visible(fn (Get $get) => $get('tipo') === 'fijo')
+                        ->required(fn (Get $get) => $get('tipo') === 'fijo')
+                        ->helperText('Máximo 3 años, renovable (Art. 46 CST).'),
+
+                    Textarea::make('descripcion_obra')
+                        ->label('Descripción de la obra o labor')
+                        ->visible(fn (Get $get) => $get('tipo') === 'obra_labor')
+                        ->required(fn (Get $get) => $get('tipo') === 'obra_labor'),
+                ]),
+
+            // Paso 3 se agrega en Task 8...
         ];
     }
 }
