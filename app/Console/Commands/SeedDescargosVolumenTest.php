@@ -41,7 +41,8 @@ class SeedDescargosVolumenTest extends Command
 
     protected $description = 'Prueba de volumen end-to-end: crea procesos disciplinarios ficticios distribuidos entre 3 correos reales y dispara la citación real (IA + PDF + correo) para cada uno.';
 
-    private const NIT_EMPRESA_TEST = '900000001-1';
+    /** Público para que ReenviarCitacionesVolumenTest use el mismo identificador de la empresa ficticia. */
+    public const NIT_EMPRESA_TEST = '900000001-1';
 
     /** @var array<int, array{cargo: string, hecho: string}> */
     private const ESCENARIOS = [
