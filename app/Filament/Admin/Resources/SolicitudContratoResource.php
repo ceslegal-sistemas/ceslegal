@@ -244,6 +244,15 @@ class SolicitudContratoResource extends Resource
                             //     ->suffixIcon('heroicon-o-briefcase')
                             //     ->columnSpanFull(),
 
+                            // CORRECCIÓN: la tabla solicitudes_contrato NO tiene columna
+                            // 'cargo' (solo 'cargo_contrato') - el Hidden::make('cargo') de
+                            // abajo (ya retirado) intentaba guardar en una columna
+                            // inexistente y reventaba con "Unknown column 'cargo'" en
+                            // CUALQUIER intento real de guardar la solicitud (crear o
+                            // editar, con cualquier cargo). cargo_contrato pasa a ser el
+                            // único campo real: sigue mostrando la lista + "Otro", pero
+                            // ahora si dehidrata (guarda) directo a la columna que sí
+                            // existe.
                             Forms\Components\Select::make('cargo_contrato')
                                 ->label('Cargo')
                                 ->searchable()
@@ -258,27 +267,20 @@ class SolicitudContratoResource extends Resource
                                     return $cargos;
                                 })
                                 ->live()
-                                ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                                    if ($state !== '__otro__') {
-                                        $set('cargo', $state);
-                                        $set('cargo_otro', null);
-                                    } else {
-                                        $set('cargo', null);
-                                    }
-                                })
-                                ->afterStateHydrated(function (Set $set, Get $get, ?string $state) {
-                                    // Al cargar el registro (edición), establecer cargo_select basado en el valor de cargo
-                                    $cargo = $get('cargo');
-                                    if ($cargo && in_array($cargo, self::getCargos())) {
-                                        $set('cargo_contrato', $cargo);
-                                    } elseif ($cargo) {
+                                ->afterStateUpdated(fn(Set $set) => $set('cargo_otro', null))
+                                ->afterStateHydrated(function (Set $set, ?string $state) {
+                                    // $state ya es el valor real guardado en cargo_contrato.
+                                    // Si no está en la lista predefinida, es un cargo
+                                    // personalizado: mostrar el selector en "Otro" y
+                                    // precargar el texto en cargo_otro.
+                                    if ($state && !in_array($state, self::getCargos())) {
+                                        $set('cargo_otro', $state);
                                         $set('cargo_contrato', '__otro__');
                                     }
                                 })
-                                ->dehydrated(false)
+                                ->dehydrateStateUsing(fn(Get $get, ?string $state) => $state === '__otro__' ? $get('cargo_otro') : $state)
                                 ->helperText('Seleccione un cargo de la lista o elija "Otro" para personalizar')
                                 ->placeholder('Seleccione el cargo...')
-                                ->suffixIcon('heroicon-o-briefcase')
                                 ->required(fn(Get $get) => empty($get('cargo_otro'))),
 
                             Forms\Components\TextInput::make('cargo_otro')
@@ -288,21 +290,7 @@ class SolicitudContratoResource extends Resource
                                 ->required(fn(Get $get) => $get('cargo_contrato') === '__otro__')
                                 ->placeholder('Ej: Jefe de Proyectos Especiales')
                                 ->helperText('Escriba el nombre del cargo personalizado')
-                                ->afterStateHydrated(function (Set $set, Get $get, ?string $state) {
-                                    // Al cargar el registro (edición), si el cargo no está en la lista, establecer cargo_otro
-                                    $cargo = $get('cargo');
-                                    if ($cargo && !in_array($cargo, self::getCargos())) {
-                                        $set('cargo_otro', $cargo);
-                                    }
-                                }),
-
-                            Forms\Components\Hidden::make('cargo')
-                                ->required()
-                                ->dehydrateStateUsing(function (Get $get) {
-                                    return $get('cargo_contrato') === '__otro__'
-                                        ? $get('cargo_otro')
-                                        : $get('cargo_contrato');
-                                }),
+                                ->dehydrated(false),
 
                             Forms\Components\RichEditor::make('responsabilidades')
                                 ->label('Responsabilidades del Cargo')
@@ -360,7 +348,12 @@ class SolicitudContratoResource extends Resource
                             Forms\Components\TextInput::make('salario_propuesto')
                                 ->label('Salario Propuesto')
                                 ->numeric()
-                                ->integer()
+                                // Sin ->integer(): el modelo castea esta columna como
+                                // 'decimal:2', así que un registro ya guardado siempre
+                                // hidrata como "2200000.00" - ->integer() rechazaba ese
+                                // formato aunque el valor sí fuera un número entero,
+                                // bloqueando el guardado de CUALQUIER solicitud ya
+                                // existente (no solo desde el código nuevo de IA).
                                 ->minValue(0)
                                 ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
                                 ->prefix('$')
@@ -462,6 +455,9 @@ class SolicitudContratoResource extends Resource
                     ->description('Observaciones y objeto jurídico')
                     ->icon('heroicon-o-document-text')
                     ->schema([
+                        Forms\Components\View::make('filament.components.solicitud-contrato-ia-botones')
+                            ->columnSpanFull(),
+
                         Forms\Components\RichEditor::make('objeto_juridico_redactado')
                             ->label('Objeto Jurídico Redactado')
                             ->toolbarButtons([
