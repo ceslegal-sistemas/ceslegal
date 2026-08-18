@@ -15,6 +15,18 @@ class SolicitudContrato extends Model
 
     protected $table = 'solicitudes_contrato';
 
+    /**
+     * Propiedades PHP explícitas (NO columnas) usadas por
+     * SolicitudContratoObserver para pasar datos entre updating()/updated()
+     * sin que Eloquent las trate como atributos a persistir. Sin esta
+     * declaración, $solicitud->_cambioEstado = [...] cae en el __set()
+     * mágico de Eloquent (setAttribute()), que las incluye en el UPDATE SQL
+     * y revienta con "Unknown column '_cambioEstado'" - pasaba con
+     * CUALQUIER cambio de estado, no solo desde código nuevo.
+     */
+    public $_cambioEstado = null;
+    public $_abogadoAsignado = null;
+
     protected $fillable = [
         'codigo',
         'empresa_id',
