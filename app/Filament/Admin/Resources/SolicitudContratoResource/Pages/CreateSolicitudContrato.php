@@ -3,11 +3,14 @@
 namespace App\Filament\Admin\Resources\SolicitudContratoResource\Pages;
 
 use App\Filament\Admin\Resources\SolicitudContratoResource;
+use App\Filament\Admin\Resources\SolicitudContratoResource\Concerns\CompletaDetallesCargoConIA;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateSolicitudContrato extends CreateRecord
 {
+    use CompletaDetallesCargoConIA;
+
     protected static string $resource = SolicitudContratoResource::class;
 
     /**
