@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Jobs\GenerarYEnviarCitacionJob;
 use App\Models\Empresa;
 use App\Models\ProcesoDisciplinario;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 
 /**
@@ -14,6 +15,13 @@ use Illuminate\Console\Command;
  * comando NO crea procesos nuevos - solo vuelve a disparar
  * GenerarYEnviarCitacionJob para los procesos YA CREADOS de la empresa
  * ficticia de pruebas, ahora que el link se genera con el dominio correcto.
+ *
+ * También corrige fecha_descargos_programada antes de reenviar: quedó fijada
+ * (aleatoria, 3-8 días desde la fecha del corrido original) varios días en
+ * el futuro, y DiligenciaDescargo::puedeAccederHoy() BLOQUEA el formulario
+ * hasta ese día exacto (app/Models/DiligenciaDescargo.php:140-168). Sin este
+ * ajuste el link llegaría pero el formulario seguiría bloqueado hasta esa
+ * fecha, impidiendo probar el flujo hoy mismo.
  *
  * Seguro de re-ejecutar sin gastar cuota extra de Gemini: DocumentGeneratorService
  * ::generarYEnviarCitacion() reutiliza el token de acceso si ya existe y solo
@@ -26,6 +34,7 @@ use Illuminate\Console\Command;
 class ReenviarCitacionesVolumenTest extends Command
 {
     protected $signature = 'test:reenviar-citaciones-volumen
+        {--fecha= : Fecha (Y-m-d) para fecha_descargos_programada antes de reenviar. Por defecto hoy, para habilitar acceso inmediato al formulario}
         {--dry-run : Solo lista los procesos que se reenviarían, sin disparar nada}
         {--force : No pedir confirmación antes de reenviar}';
 
@@ -49,30 +58,38 @@ class ReenviarCitacionesVolumenTest extends Command
             return self::SUCCESS;
         }
 
+        $fecha = $this->option('fecha') ? Carbon::parse($this->option('fecha')) : Carbon::today();
+
         $this->info("Se encontraron {$procesos->count()} procesos de prueba en \"{$empresa->razon_social}\":");
         $this->table(
-            ['ID', 'Código', 'Trabajador', 'Correo de envío', 'Cargo'],
+            ['ID', 'Código', 'Trabajador', 'Correo de envío', 'Cargo', 'Fecha actual', 'Fecha nueva'],
             $procesos->map(fn (ProcesoDisciplinario $p) => [
                 $p->id,
                 $p->codigo,
                 $p->trabajador?->nombre_completo,
                 $p->trabajador?->email,
                 $p->trabajador?->cargo,
+                optional($p->fecha_descargos_programada)->toDateString(),
+                $fecha->toDateString(),
             ])
         );
 
         if ($this->option('dry-run')) {
-            $this->comment('--dry-run activo: no se disparó ningún job.');
+            $this->comment('--dry-run activo: no se disparó ningún job ni se cambió ninguna fecha.');
             return self::SUCCESS;
         }
 
-        if (!$this->option('force') && !$this->confirm("¿Reenviar la citación real (PDF + correo) a los {$procesos->count()} procesos listados arriba?")) {
+        if (!$this->option('force') && !$this->confirm("¿Actualizar la fecha de descargos a {$fecha->toDateString()} y reenviar la citación real (PDF + correo) a los {$procesos->count()} procesos listados arriba?")) {
             $this->comment('Cancelado.');
             return self::SUCCESS;
         }
 
         $bar = $this->output->createProgressBar($procesos->count());
         foreach ($procesos as $proceso) {
+            $proceso->update([
+                'fecha_descargos_programada' => $fecha,
+                'hora_descargos_programada'  => '00:00:00',
+            ]);
             GenerarYEnviarCitacionJob::dispatch($proceso, $proceso->abogado_id);
             $bar->advance();
         }
