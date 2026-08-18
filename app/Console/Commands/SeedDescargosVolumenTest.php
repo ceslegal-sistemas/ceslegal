@@ -225,7 +225,7 @@ class SeedDescargosVolumenTest extends Command
             'empresa_id'                  => $empresa->id,
             'trabajador_id'               => $trabajador->id,
             'abogado_id'                  => $abogado?->id,
-            'hechos'                      => "Según los registros internos de la empresa, el trabajador {$trabajador->nombre_completo}, quien se desempeña en el cargo de {$trabajador->cargo}, presuntamente incurrió en {$hecho}, situación que se registró el " . $fechaOcurrencia->translatedFormat('d \d\e F \d\e Y') . '. [CASO DE PRUEBA - QA volumen, no es un incidente real.]',
+            'hechos'                      => "Según los registros internos de la empresa, el trabajador {$trabajador->nombre_completo}, quien se desempeña en el cargo de {$trabajador->cargo}, presuntamente incurrió en {$hecho}, situación que se registró el " . $fechaOcurrencia->translatedFormat('d \d\e F \d\e Y') . '.',
             'fecha_ocurrencia'            => $fechaOcurrencia,
             'modalidad_descargos'         => 'virtual',
             'fecha_descargos_programada'  => $fechaDescargos,
