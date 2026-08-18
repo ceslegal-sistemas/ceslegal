@@ -92,6 +92,9 @@ class SolicitudContratoResource extends Resource
                                 ])
                                 ->native(false)
                                 ->searchable()
+                                // live(): la visibilidad de "Orden de Compra" (paso
+                                // Documentos) depende de este valor.
+                                ->live()
                                 ->helperText('Tipo de contrato laboral a generar')
                                 ->placeholder('Seleccione el tipo de contrato...')
                                 ->suffixIcon('heroicon-o-document-duplicate'),
@@ -309,6 +312,9 @@ class SolicitudContratoResource extends Resource
                                 ->helperText('Escriba el nombre del cargo personalizado')
                                 ->dehydrated(false),
 
+                            Forms\Components\View::make('filament.components.solicitud-contrato-detalles-cargo-ia-boton')
+                                ->columnSpanFull(),
+
                             Forms\Components\RichEditor::make('responsabilidades')
                                 ->label('Responsabilidades del Cargo')
                                 ->required()
@@ -403,6 +409,15 @@ class SolicitudContratoResource extends Resource
                                 ->helperText('Adjunte la orden de compra o autorización (PDF, JPG, PNG - Máx. 5MB)')
                                 ->downloadable()
                                 ->openable()
+                                // En la práctica una orden de compra autoriza el gasto
+                                // ante un proveedor externo (Prestación de Servicios,
+                                // Obra o Labor) - no aplica a un empleado directo a
+                                // Término Fijo/Indefinido/Aprendizaje.
+                                ->visible(fn(Get $get) => in_array($get('tipo_contrato'), [
+                                    'Contrato de Prestación de Servicios',
+                                    'Contrato de Obra o Labor',
+                                ]))
+                                ->dehydrated()
                                 ->columnSpanFull(),
 
                             Forms\Components\FileUpload::make('ruta_manual_funciones')

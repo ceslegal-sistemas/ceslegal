@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ReglamentoInterno;
 use App\Models\SolicitudContrato;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -82,6 +83,91 @@ class SolicitudContratoIAService
         provistos), sin markdown ni asteriscos. No repitas los datos en
         formato de lista - redáctalos como un objeto contractual coherente.
         PROMPT;
+    }
+
+    /**
+     * Genera un borrador de los 3 campos del paso "Detalles del Cargo"
+     * (responsabilidades, objeto comercial, manual de funciones) a partir
+     * del cargo, los datos del trabajador y el RIT vigente de la empresa -
+     * NO existe ningún archivo de "manual de funciones" subido en ningún
+     * punto del sistema (al crear el RIT solo hay un toggle sí/no, sin
+     * adjunto real), así que este método lo REDACTA, no lo copia de
+     * ninguna parte. No persiste - el llamador decide (funciona igual en
+     * creación, antes de que exista el registro, que en edición).
+     *
+     * @return array{responsabilidades: string, objeto_comercial: string, manual_funciones: string}
+     */
+    public function completarDetallesCargo(SolicitudContrato $solicitud): array
+    {
+        $textoRit = ReglamentoInterno::where('empresa_id', $solicitud->empresa_id)
+            ->where('activo', true)
+            ->value('texto_completo') ?? '(La empresa no tiene un Reglamento Interno de Trabajo cargado)';
+
+        $prompt = $this->construirPromptDetallesCargo($solicitud, $textoRit);
+        $respuesta = $this->llamarGemini($prompt, $solicitud->empresa_id);
+
+        return $this->parsearDetallesCargo($respuesta);
+    }
+
+    private function construirPromptDetallesCargo(SolicitudContrato $solicitud, string $textoRit): string
+    {
+        $nombreTrabajador = trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}") ?: 'No especificado';
+        $cargo            = $solicitud->cargo_contrato ?: 'No especificado';
+
+        return <<<PROMPT
+        Eres un analista de RRHH colombiano redactando un BORRADOR (que el
+        abogado revisará y editará) de 3 campos de una solicitud de contrato,
+        con base ÚNICAMENTE en el cargo y el Reglamento Interno de Trabajo
+        (RIT) de la empresa provistos abajo.
+
+        PROHIBICIÓN ABSOLUTA: No inventes funciones, sanciones ni cláusulas
+        que no se deriven razonablemente del cargo o del RIT provisto.
+
+        CARGO: {$cargo}
+        TRABAJADOR: {$nombreTrabajador}
+        TIPO DE CONTRATO: {$solicitud->tipo_contrato}
+
+        REGLAMENTO INTERNO DE TRABAJO DE LA EMPRESA:
+        {$textoRit}
+
+        Redacta los 3 campos siguientes, cada uno en HTML simple (solo
+        <p>, <ul>, <li>, <strong> - sin markdown, sin asteriscos), separados
+        EXACTAMENTE por los marcadores indicados (una línea con el marcador
+        solo, nada más en esa línea):
+
+        ###RESPONSABILIDADES###
+        (Lista de 4-8 responsabilidades y funciones típicas del cargo
+        "{$cargo}", en una lista <ul><li>, coherentes con las obligaciones
+        del trabajador que ya aparecen en el RIT si aplica.)
+
+        ###OBJETO_COMERCIAL###
+        (1 párrafo <p> describiendo el objeto comercial/alcance del
+        contrato para este cargo dentro del giro ordinario de la empresa,
+        a partir de lo que el RIT indique sobre la actividad de la
+        empresa.)
+
+        ###MANUAL_FUNCIONES###
+        (Descripción detallada en <ul><li> de las funciones específicas
+        del puesto "{$cargo}", más extensa y concreta que las
+        responsabilidades generales de arriba.)
+        PROMPT;
+    }
+
+    /** @return array{responsabilidades: string, objeto_comercial: string, manual_funciones: string} */
+    private function parsearDetallesCargo(string $respuesta): array
+    {
+        $extraer = function (string $marcador, string $siguienteMarcadorORegexFin) use ($respuesta): string {
+            if (!preg_match('/' . preg_quote($marcador, '/') . '(.*?)' . $siguienteMarcadorORegexFin . '/s', $respuesta, $m)) {
+                return '';
+            }
+            return trim($m[1]);
+        };
+
+        return [
+            'responsabilidades' => $extraer('###RESPONSABILIDADES###', '(?=###OBJETO_COMERCIAL###)'),
+            'objeto_comercial'  => $extraer('###OBJETO_COMERCIAL###', '(?=###MANUAL_FUNCIONES###)'),
+            'manual_funciones'  => $extraer('###MANUAL_FUNCIONES###', '$'),
+        ];
     }
 
     public function generarContratoPDF(SolicitudContrato $solicitud): string

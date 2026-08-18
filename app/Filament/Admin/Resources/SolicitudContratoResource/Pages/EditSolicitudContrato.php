@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\SolicitudContratoResource\Pages;
 
 use App\Filament\Admin\Resources\SolicitudContratoResource;
+use App\Filament\Admin\Resources\SolicitudContratoResource\Concerns\CompletaDetallesCargoConIA;
 use App\Services\SolicitudContratoIAService;
 use Filament\Actions;
 use Filament\Notifications\Notification;
@@ -11,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class EditSolicitudContrato extends EditRecord
 {
+    use CompletaDetallesCargoConIA;
+
     protected static string $resource = SolicitudContratoResource::class;
 
     protected function getHeaderActions(): array
