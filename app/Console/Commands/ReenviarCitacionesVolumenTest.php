@@ -34,7 +34,7 @@ use Illuminate\Console\Command;
 class ReenviarCitacionesVolumenTest extends Command
 {
     protected $signature = 'test:reenviar-citaciones-volumen
-        {--fecha= : Fecha (Y-m-d) para fecha_descargos_programada antes de reenviar. Por defecto hoy, para habilitar acceso inmediato al formulario}
+        {--fecha= : Fuerza una sola fecha (Y-m-d) para TODOS los procesos. Por defecto, sin esta opción, la mitad queda para hoy y la otra mitad para mañana}
         {--dry-run : Solo lista los procesos que se reenviarían, sin disparar nada}
         {--force : No pedir confirmación antes de reenviar}';
 
@@ -58,19 +58,31 @@ class ReenviarCitacionesVolumenTest extends Command
             return self::SUCCESS;
         }
 
-        $fecha = $this->option('fecha') ? Carbon::parse($this->option('fecha')) : Carbon::today();
+        // Sin --fecha: la mitad queda programada para hoy y la otra mitad para mañana
+        // (mismo criterio "mitad hoy, mitad mañana" del corrido original).
+        $fechaUnica = $this->option('fecha') ? Carbon::parse($this->option('fecha')) : null;
+        $hoy        = Carbon::today();
+        $manana     = Carbon::tomorrow();
+        $mitad      = intdiv($procesos->count(), 2);
+
+        $fechaPara = function (int $indice) use ($fechaUnica, $hoy, $manana, $mitad): Carbon {
+            if ($fechaUnica) {
+                return $fechaUnica;
+            }
+            return $indice < $mitad ? $hoy : $manana;
+        };
 
         $this->info("Se encontraron {$procesos->count()} procesos de prueba en \"{$empresa->razon_social}\":");
         $this->table(
             ['ID', 'Código', 'Trabajador', 'Correo de envío', 'Cargo', 'Fecha actual', 'Fecha nueva'],
-            $procesos->map(fn (ProcesoDisciplinario $p) => [
+            $procesos->values()->map(fn (ProcesoDisciplinario $p, int $i) => [
                 $p->id,
                 $p->codigo,
                 $p->trabajador?->nombre_completo,
                 $p->trabajador?->email,
                 $p->trabajador?->cargo,
                 optional($p->fecha_descargos_programada)->toDateString(),
-                $fecha->toDateString(),
+                $fechaPara($i)->toDateString(),
             ])
         );
 
@@ -79,15 +91,19 @@ class ReenviarCitacionesVolumenTest extends Command
             return self::SUCCESS;
         }
 
-        if (!$this->option('force') && !$this->confirm("¿Actualizar la fecha de descargos a {$fecha->toDateString()} y reenviar la citación real (PDF + correo) a los {$procesos->count()} procesos listados arriba?")) {
+        $resumenFechas = $fechaUnica
+            ? "todos con fecha {$fechaUnica->toDateString()}"
+            : "{$mitad} con fecha {$hoy->toDateString()} y " . ($procesos->count() - $mitad) . " con fecha {$manana->toDateString()}";
+
+        if (!$this->option('force') && !$this->confirm("¿Actualizar la fecha de descargos ({$resumenFechas}) y reenviar la citación real (PDF + correo) a los {$procesos->count()} procesos listados arriba?")) {
             $this->comment('Cancelado.');
             return self::SUCCESS;
         }
 
         $bar = $this->output->createProgressBar($procesos->count());
-        foreach ($procesos as $proceso) {
+        foreach ($procesos->values() as $indice => $proceso) {
             $proceso->update([
-                'fecha_descargos_programada' => $fecha,
+                'fecha_descargos_programada' => $fechaPara($indice),
                 'hora_descargos_programada'  => '00:00:00',
             ]);
             GenerarYEnviarCitacionJob::dispatch($proceso, $proceso->abogado_id);
