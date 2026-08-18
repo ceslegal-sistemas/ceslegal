@@ -151,19 +151,31 @@ class SolicitudContratoResource extends Resource
                             Forms\Components\Section::make('Datos Personales del Trabajador')
                                 ->visible(fn(Get $get) => !$get('_usar_trabajador_existente'))
                                 ->schema([
+                                    // ->dehydrated() en cada campo: al usar un trabajador
+                                    // existente esta Section queda oculta, y Filament NO
+                                    // incluye en el guardado los campos de un componente
+                                    // oculto por defecto - aunque afterStateUpdated() ya
+                                    // los haya poblado con $set(). Sin esto, trabajador_id
+                                    // se guardaba pero trabajador_nombres/apellidos/etc.
+                                    // quedaban totalmente fuera del INSERT, y esas columnas
+                                    // no admiten NULL: SQLSTATE 1364 "Field 'trabajador_nombres'
+                                    // doesn't have a default value" en CUALQUIER creación con
+                                    // trabajador existente.
                                     Forms\Components\TextInput::make('trabajador_nombres')
                                         ->label('Nombres')
                                         ->required()
                                         ->maxLength(255)
                                         ->placeholder('Ej: Juan Carlos')
-                                        ->helperText('Nombres completos del trabajador'),
+                                        ->helperText('Nombres completos del trabajador')
+                                        ->dehydrated(),
 
                                     Forms\Components\TextInput::make('trabajador_apellidos')
                                         ->label('Apellidos')
                                         ->required()
                                         ->maxLength(255)
                                         ->placeholder('Ej: Pérez García')
-                                        ->helperText('Apellidos completos del trabajador'),
+                                        ->helperText('Apellidos completos del trabajador')
+                                        ->dehydrated(),
 
                                     Forms\Components\Select::make('trabajador_documento_tipo')
                                         ->label('Tipo de Documento')
@@ -177,7 +189,8 @@ class SolicitudContratoResource extends Resource
                                         ->default('CC')
                                         ->native(false)
                                         ->live()
-                                        ->suffixIcon('heroicon-o-identification'),
+                                        ->suffixIcon('heroicon-o-identification')
+                                        ->dehydrated(),
 
                                     Forms\Components\TextInput::make('trabajador_documento_numero')
                                         ->label('Número de Documento')
@@ -193,7 +206,8 @@ class SolicitudContratoResource extends Resource
                                             'PASS' => 'Ej: AB123456',
                                             default => 'Ingrese el número',
                                         })
-                                        ->helperText('Número de identificación del trabajador'),
+                                        ->helperText('Número de identificación del trabajador')
+                                        ->dehydrated(),
 
                                     Forms\Components\TextInput::make('trabajador_email')
                                         ->label('Correo Electrónico')
@@ -202,7 +216,8 @@ class SolicitudContratoResource extends Resource
                                         ->maxLength(255)
                                         ->placeholder('trabajador@empresa.com')
                                         ->helperText('Email de contacto del trabajador')
-                                        ->suffixIcon('heroicon-o-envelope'),
+                                        ->suffixIcon('heroicon-o-envelope')
+                                        ->dehydrated(),
 
                                     Forms\Components\TextInput::make('trabajador_telefono')
                                         ->label('Teléfono / Celular')
@@ -210,14 +225,16 @@ class SolicitudContratoResource extends Resource
                                         ->maxLength(50)
                                         ->placeholder('Ej: +57 300 123 4567')
                                         ->helperText('Número de contacto')
-                                        ->suffixIcon('heroicon-o-phone'),
+                                        ->suffixIcon('heroicon-o-phone')
+                                        ->dehydrated(),
 
                                     Forms\Components\Textarea::make('trabajador_direccion')
                                         ->label('Dirección de Residencia')
                                         ->rows(2)
                                         ->placeholder('Ej: Calle 123 # 45-67')
                                         ->helperText('Dirección completa (opcional)')
-                                        ->columnSpanFull(),
+                                        ->columnSpanFull()
+                                        ->dehydrated(),
                                 ])->columns(2),
                         ]),
 
@@ -339,7 +356,11 @@ class SolicitudContratoResource extends Resource
                             Forms\Components\DatePicker::make('fecha_inicio_propuesta')
                                 ->label('Fecha de Inicio Propuesta')
                                 ->native(false)
-                                ->minDate(now())
+                                // today() en vez de now(): now() trae hora exacta
+                                // (H:i:s), y el mensaje de validación terminaba
+                                // mostrando "...posterior o igual a 2026-08-18
+                                // 10:16:14" en un campo que solo pide una fecha.
+                                ->minDate(today())
                                 ->displayFormat('d/m/Y')
                                 ->helperText('Fecha propuesta para iniciar el contrato')
                                 ->placeholder('Seleccione la fecha...')
@@ -347,17 +368,25 @@ class SolicitudContratoResource extends Resource
 
                             Forms\Components\TextInput::make('salario_propuesto')
                                 ->label('Salario Propuesto')
-                                ->numeric()
-                                // Sin ->integer(): el modelo castea esta columna como
-                                // 'decimal:2', así que un registro ya guardado siempre
-                                // hidrata como "2200000.00" - ->integer() rechazaba ese
-                                // formato aunque el valor sí fuera un número entero,
-                                // bloqueando el guardado de CUALQUIER solicitud ya
-                                // existente (no solo desde el código nuevo de IA).
+                                // Sin ->numeric(): fuerza <input type="number">, que
+                                // rechaza puntos de mil como separador (solo admite un
+                                // punto decimal). El punto de mil se agrega vía
+                                // afterStateUpdated() abajo - x-mask/$money (la forma
+                                // documentada por Filament) NO está compilado en los
+                                // assets JS de este proyecto (verificado: 0 ocurrencias
+                                // de "money"/"mask" en public/js/filament/support/support.js
+                                // incluso tras `artisan filament:assets`), así que en vez
+                                // de usarlo silenciosamente sin efecto, se resuelve con
+                                // el mismo mecanismo Livewire ya usado en este archivo.
+                                ->rule('numeric')
                                 ->minValue(0)
+                                ->live(debounce: '500ms')
+                                ->afterStateHydrated(fn(Set $set, $state) => $set('salario_propuesto', self::formatearMiles($state)))
+                                ->afterStateUpdated(fn(Set $set, ?string $state) => $set('salario_propuesto', self::formatearMiles($state)))
+                                ->stripCharacters('.')
                                 ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
                                 ->prefix('$')
-                                ->placeholder('Ej: 2500000')
+                                ->placeholder('Ej: 2.500.000')
                                 ->helperText('Salario mensual propuesto para el cargo')
                                 ->suffixIcon('heroicon-o-currency-dollar'),
                         ])->columns(2),
@@ -689,6 +718,29 @@ class SolicitudContratoResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         return 'warning';
+    }
+
+    /**
+     * Deja solo dígitos y los agrupa de a 3 con punto (ej. "2200000" o
+     * "2.500.000" → "2.500.000"). El cast 'decimal:2' del modelo siempre
+     * hidrata como "2200000.00" - un separador de miles agrupa SIEMPRE de a
+     * 3 dígitos hacia la derecha, así que una cola de EXACTAMENTE 2 dígitos
+     * tras un solo punto solo puede ser el decimal del cast, nunca un grupo
+     * de miles real (eso habría producido 220.000.000, 10x el valor real).
+     */
+    protected static function formatearMiles(?string $state): ?string
+    {
+        $state = (string) $state;
+
+        $digitos = preg_match('/^(\d+)\.\d{2}$/', $state, $m)
+            ? $m[1]
+            : preg_replace('/\D/', '', $state);
+
+        if ($digitos === '' || $digitos === null) {
+            return null;
+        }
+
+        return number_format((int) $digitos, 0, ',', '.');
     }
 
     protected static function getCargos(): array
