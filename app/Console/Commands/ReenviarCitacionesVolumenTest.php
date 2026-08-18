@@ -21,7 +21,11 @@ use Illuminate\Console\Command;
  * el futuro, y DiligenciaDescargo::puedeAccederHoy() BLOQUEA el formulario
  * hasta ese día exacto (app/Models/DiligenciaDescargo.php:140-168). Sin este
  * ajuste el link llegaría pero el formulario seguiría bloqueado hasta esa
- * fecha, impidiendo probar el flujo hoy mismo.
+ * fecha, impidiendo probar el flujo hoy mismo. Los procesos que este comando
+ * encuentra en un momento dado YA SON un lote completo de "hoy" o de "mañana"
+ * (creados con test:seed-descargos-volumen en corridas separadas por día,
+ * por persona) - todos los que aparezcan en una misma corrida de este
+ * comando reciben la MISMA fecha, no se dividen entre sí.
  *
  * Seguro de re-ejecutar sin gastar cuota extra de Gemini: DocumentGeneratorService
  * ::generarYEnviarCitacion() reutiliza el token de acceso si ya existe y solo
@@ -34,7 +38,7 @@ use Illuminate\Console\Command;
 class ReenviarCitacionesVolumenTest extends Command
 {
     protected $signature = 'test:reenviar-citaciones-volumen
-        {--fecha= : Fuerza una sola fecha (Y-m-d) para TODOS los procesos. Por defecto, sin esta opción, la mitad queda para hoy y la otra mitad para mañana}
+        {--fecha= : Fecha (Y-m-d) para fecha_descargos_programada de TODOS los procesos encontrados. Por defecto, hoy}
         {--dry-run : Solo lista los procesos que se reenviarían, sin disparar nada}
         {--force : No pedir confirmación antes de reenviar}';
 
@@ -58,31 +62,19 @@ class ReenviarCitacionesVolumenTest extends Command
             return self::SUCCESS;
         }
 
-        // Sin --fecha: la mitad queda programada para hoy y la otra mitad para mañana
-        // (mismo criterio "mitad hoy, mitad mañana" del corrido original).
-        $fechaUnica = $this->option('fecha') ? Carbon::parse($this->option('fecha')) : null;
-        $hoy        = Carbon::today();
-        $manana     = Carbon::tomorrow();
-        $mitad      = intdiv($procesos->count(), 2);
-
-        $fechaPara = function (int $indice) use ($fechaUnica, $hoy, $manana, $mitad): Carbon {
-            if ($fechaUnica) {
-                return $fechaUnica;
-            }
-            return $indice < $mitad ? $hoy : $manana;
-        };
+        $fecha = $this->option('fecha') ? Carbon::parse($this->option('fecha')) : Carbon::today();
 
         $this->info("Se encontraron {$procesos->count()} procesos de prueba en \"{$empresa->razon_social}\":");
         $this->table(
             ['ID', 'Código', 'Trabajador', 'Correo de envío', 'Cargo', 'Fecha actual', 'Fecha nueva'],
-            $procesos->values()->map(fn (ProcesoDisciplinario $p, int $i) => [
+            $procesos->map(fn (ProcesoDisciplinario $p) => [
                 $p->id,
                 $p->codigo,
                 $p->trabajador?->nombre_completo,
                 $p->trabajador?->email,
                 $p->trabajador?->cargo,
                 optional($p->fecha_descargos_programada)->toDateString(),
-                $fechaPara($i)->toDateString(),
+                $fecha->toDateString(),
             ])
         );
 
@@ -91,19 +83,15 @@ class ReenviarCitacionesVolumenTest extends Command
             return self::SUCCESS;
         }
 
-        $resumenFechas = $fechaUnica
-            ? "todos con fecha {$fechaUnica->toDateString()}"
-            : "{$mitad} con fecha {$hoy->toDateString()} y " . ($procesos->count() - $mitad) . " con fecha {$manana->toDateString()}";
-
-        if (!$this->option('force') && !$this->confirm("¿Actualizar la fecha de descargos ({$resumenFechas}) y reenviar la citación real (PDF + correo) a los {$procesos->count()} procesos listados arriba?")) {
+        if (!$this->option('force') && !$this->confirm("¿Actualizar la fecha de descargos a {$fecha->toDateString()} y reenviar la citación real (PDF + correo) a los {$procesos->count()} procesos listados arriba?")) {
             $this->comment('Cancelado.');
             return self::SUCCESS;
         }
 
         $bar = $this->output->createProgressBar($procesos->count());
-        foreach ($procesos->values() as $indice => $proceso) {
+        foreach ($procesos as $proceso) {
             $proceso->update([
-                'fecha_descargos_programada' => $fechaPara($indice),
+                'fecha_descargos_programada' => $fecha,
                 'hora_descargos_programada'  => '00:00:00',
             ]);
             GenerarYEnviarCitacionJob::dispatch($proceso, $proceso->abogado_id);
