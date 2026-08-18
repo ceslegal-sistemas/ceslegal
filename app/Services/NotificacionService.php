@@ -103,7 +103,7 @@ class NotificacionService
                 userId: $admin->id,
                 tipo: 'apertura',
                 titulo: $sinAbogado
-                    ? 'Nuevo Proceso - Sin Abogado Asignado'
+                    ? 'Nuevo Proceso'
                     : 'Nuevo Proceso Disciplinario Creado',
                 mensaje: $sinAbogado
                     ? "Se creó el proceso {$proceso->codigo} para {$proceso->trabajador->nombre_completo} (empresa: {$proceso->empresa->razon_social})."
