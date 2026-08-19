@@ -43,6 +43,7 @@ class SolicitudContrato extends Model
         'trabajador_telefono',
         'trabajador_direccion',
         'cargo_contrato',
+        'jornada',
         'responsabilidades',
         'objeto_comercial',
         'manual_funciones',
