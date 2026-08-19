@@ -194,7 +194,7 @@ class SolicitudContratoIAService
             limite: 6,
         );
 
-        $textoRit = \App\Models\ReglamentoInterno::where('empresa_id', $modificacion->empresa_id)
+        $textoRit = ReglamentoInterno::where('empresa_id', $modificacion->empresa_id)
             ->where('activo', true)
             ->value('texto_completo') ?? '(La empresa no tiene un Reglamento Interno de Trabajo cargado)';
 
@@ -211,6 +211,9 @@ class SolicitudContratoIAService
     ): string {
         $nombreTrabajador = trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}");
         $tipoLabel        = ModificacionContractual::TIPOS[$modificacion->tipo_modificacion] ?? $modificacion->tipo_modificacion;
+        $valorAnterior    = $modificacion->valor_anterior ?? 'No especificado';
+        $fechaEfectiva    = $modificacion->fecha_efectiva?->format('Y-m-d') ?? 'No especificada';
+        $justificacion    = $modificacion->justificacion ?? 'No especificada';
 
         return <<<PROMPT
         Eres un abogado laboralista colombiano redactando un OTROSÍ (documento
@@ -232,10 +235,10 @@ class SolicitudContratoIAService
 
         MODIFICACIÓN A FORMALIZAR:
         - Tipo de cambio: {$tipoLabel}
-        - Valor anterior: {$modificacion->valor_anterior}
+        - Valor anterior: {$valorAnterior}
         - Valor nuevo: {$modificacion->valor_nuevo}
-        - Fecha efectiva: {$modificacion->fecha_efectiva?->format('Y-m-d')}
-        - Justificación: {$modificacion->justificacion}
+        - Fecha efectiva: {$fechaEfectiva}
+        - Justificación: {$justificacion}
 
         REGLAMENTO INTERNO DE TRABAJO DE LA EMPRESA (contexto):
         {$textoRit}
