@@ -325,6 +325,92 @@ class SolicitudContratoIAService
     }
 
     /**
+     * Genera el PDF del otrosí y actualiza el campo correspondiente en la
+     * SolicitudContrato original con el valor nuevo - el contrato siempre
+     * refleja el estado VIGENTE; esta tabla (modificaciones_contractuales)
+     * guarda el historial de cómo se llegó ahí.
+     */
+    public function generarOtrosiPDF(ModificacionContractual $modificacion): string
+    {
+        $html = $this->generarHTMLOtrosi($modificacion);
+
+        $directorioRelativo = "solicitudes-contrato/{$modificacion->empresa_id}/otrosies";
+        Storage::disk('local')->makeDirectory($directorioRelativo);
+
+        $rutaRelativa = "{$directorioRelativo}/otrosi_{$modificacion->id}.pdf";
+        $rutaAbsoluta = Storage::disk('local')->path($rutaRelativa);
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('defaultFont', 'Arial');
+        $options->set('isFontSubsettingEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('letter', 'portrait');
+        $dompdf->render();
+
+        file_put_contents($rutaAbsoluta, $dompdf->output());
+
+        $modificacion->update([
+            'ruta_otrosi'             => $rutaRelativa,
+            'fecha_generacion_otrosi' => now(),
+            'estado'                  => 'otrosi_generado',
+        ]);
+
+        $campoPorTipo = [
+            'salario'       => 'salario_propuesto',
+            'cargo'         => 'cargo_contrato',
+            'jornada'       => 'jornada',
+            'tipo_contrato' => 'tipo_contrato',
+        ];
+
+        if ($campo = $campoPorTipo[$modificacion->tipo_modificacion] ?? null) {
+            $modificacion->solicitudContrato->update([$campo => $modificacion->valor_nuevo]);
+        }
+
+        return $rutaRelativa;
+    }
+
+    private function generarHTMLOtrosi(ModificacionContractual $modificacion): string
+    {
+        $solicitud        = $modificacion->solicitudContrato;
+        $empresa          = $solicitud->empresa;
+        $nombreEmpresa    = e($empresa?->nombre_completo ?? '');
+        $nit              = e($empresa?->nit ?? '');
+        $nombreTrabajador = e(trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}"));
+        $tipoLabel        = e(ModificacionContractual::TIPOS[$modificacion->tipo_modificacion] ?? $modificacion->tipo_modificacion);
+        $valorAnterior    = e($modificacion->valor_anterior ?? 'No especificado');
+        $valorNuevo       = e($modificacion->valor_nuevo);
+        $fechaEfectiva    = e($modificacion->fecha_efectiva?->format('d/m/Y') ?? 'No especificada');
+        $textoOtrosi      = nl2br(e(strip_tags($modificacion->texto_otrosi_redactado ?? '')));
+
+        return <<<HTML
+        <html>
+        <head><style>
+            body { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.6; }
+            h1 { font-size: 16px; text-align: center; }
+            .datos { margin: 20px 0; }
+            .datos p { margin: 4px 0; }
+        </style></head>
+        <body>
+            <h1>OTROSÍ AL CONTRATO INDIVIDUAL DE TRABAJO {$solicitud->codigo}</h1>
+            <div class="datos">
+                <p><strong>Empresa:</strong> {$nombreEmpresa}</p>
+                <p><strong>NIT:</strong> {$nit}</p>
+                <p><strong>Trabajador:</strong> {$nombreTrabajador}</p>
+                <p><strong>Tipo de modificación:</strong> {$tipoLabel}</p>
+                <p><strong>Valor anterior:</strong> {$valorAnterior}</p>
+                <p><strong>Valor nuevo:</strong> {$valorNuevo}</p>
+                <p><strong>Fecha efectiva:</strong> {$fechaEfectiva}</p>
+            </div>
+            <div class="objeto">{$textoOtrosi}</div>
+        </body>
+        </html>
+        HTML;
+    }
+
+    /**
      * Copiado del mismo patrón usado en RITGeneratorService::llamarGemini()
      * (y otros servicios de este proyecto) - sin trait compartido, es la
      * convención ya establecida en el repo.
