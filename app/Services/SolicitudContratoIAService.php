@@ -384,6 +384,7 @@ class SolicitudContratoIAService
         $valorNuevo       = e($modificacion->valor_nuevo);
         $fechaEfectiva    = e($modificacion->fecha_efectiva?->format('d/m/Y') ?? 'No especificada');
         $textoOtrosi      = nl2br(e(strip_tags($modificacion->texto_otrosi_redactado ?? '')));
+        $codigo           = e($solicitud->codigo);
 
         return <<<HTML
         <html>
@@ -394,7 +395,7 @@ class SolicitudContratoIAService
             .datos p { margin: 4px 0; }
         </style></head>
         <body>
-            <h1>OTROSÍ AL CONTRATO INDIVIDUAL DE TRABAJO {$solicitud->codigo}</h1>
+            <h1>OTROSÍ AL CONTRATO INDIVIDUAL DE TRABAJO {$codigo}</h1>
             <div class="datos">
                 <p><strong>Empresa:</strong> {$nombreEmpresa}</p>
                 <p><strong>NIT:</strong> {$nit}</p>
