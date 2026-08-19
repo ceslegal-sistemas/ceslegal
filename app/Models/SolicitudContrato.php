@@ -102,4 +102,10 @@ class SolicitudContrato extends Model
         return $this->hasMany(TerminoLegal::class, 'proceso_id')
             ->where('proceso_tipo', 'contrato');
     }
+
+    public function modificaciones(): HasMany
+    {
+        return $this->hasMany(ModificacionContractual::class)
+            ->orderBy('fecha_efectiva', 'desc');
+    }
 }
