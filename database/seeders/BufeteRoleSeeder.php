@@ -8,10 +8,11 @@ use Spatie\Permission\Models\Role;
 
 /**
  * Rol "bufete" (firma de abogados que gestiona empresas). Whitelist de permisos:
- * solo Empresa, Trabajador, Proceso Disciplinario, Diligencia de Descargos y
- * Reglamento Interno, más las páginas de RIT/auditoría. Todo lo demás (usuarios,
- * gestión jurídica, contratos, informes, configuración, comunicaciones) queda
- * oculto porque Shield no le concede esos permisos.
+ * solo Empresa, Trabajador, Proceso Disciplinario, Diligencia de Descargos,
+ * Reglamento Interno y Modificaciones Contractuales, más las páginas de
+ * RIT/auditoría. Todo lo demás (usuarios, gestión jurídica, Solicitudes de
+ * Contrato, informes, configuración, comunicaciones) queda oculto porque
+ * Shield no le concede esos permisos.
  *
  * El bufete gestiona el RIT del cliente, pero NO decide sus procesos disciplinarios:
  * puede ver/actualizar/eliminar procesos existentes (auditoría, seguimiento), pero
@@ -24,7 +25,7 @@ class BufeteRoleSeeder extends Seeder
     {
         $role = Role::firstOrCreate(['name' => 'bufete', 'guard_name' => 'web']);
 
-        $recursos = ['empresa', 'trabajador', 'proceso::disciplinario', 'reglamento::interno'];
+        $recursos = ['empresa', 'trabajador', 'proceso::disciplinario', 'reglamento::interno', 'modificacion::contractual'];
         $acciones = ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'];
 
         // Permisos que NUNCA se le conceden al bufete, aunque el resto del recurso sí.

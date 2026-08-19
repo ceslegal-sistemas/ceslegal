@@ -65,6 +65,16 @@ class RolePermissionSeeder extends Seeder
             'force_delete_solicitud::contrato',
             'force_delete_any_solicitud::contrato',
 
+            // ModificacionContractual permissions
+            'view_modificacion::contractual',
+            'view_any_modificacion::contractual',
+            'create_modificacion::contractual',
+            'update_modificacion::contractual',
+            'delete_modificacion::contractual',
+            'delete_any_modificacion::contractual',
+            'force_delete_modificacion::contractual',
+            'force_delete_any_modificacion::contractual',
+
             // ReglamentoInterno (RIT) permissions
             'view_reglamento::interno',
             'view_any_reglamento::interno',
@@ -146,6 +156,13 @@ class RolePermissionSeeder extends Seeder
             'update_solicitud::contrato',
             'delete_solicitud::contrato',
             'delete_any_solicitud::contrato',
+
+            // Full access to modificaciones contractuales
+            'view_modificacion::contractual',
+            'view_any_modificacion::contractual',
+            'create_modificacion::contractual',
+            'update_modificacion::contractual',
+            'delete_modificacion::contractual',
 
             // Reglamento Interno: puede construir/ver/editar el RIT de la empresa
             // seleccionada (opera con el selector de empresa del topbar).
