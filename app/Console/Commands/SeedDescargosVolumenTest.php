@@ -217,10 +217,13 @@ class SeedDescargosVolumenTest extends Command
     private function crearProcesoTest(Empresa $empresa, Trabajador $trabajador, ?User $abogado, string $hecho): ProcesoDisciplinario
     {
         $fechaOcurrencia = now()->subDays(random_int(2, 10));
-        $fechaDescargos  = now()->addDays(random_int(3, 8));
-        while ($fechaDescargos->isWeekend()) {
-            $fechaDescargos->addDay();
-        }
+        // fecha_descargos_programada = hoy (no un rango aleatorio a futuro):
+        // DiligenciaDescargo::puedeAccederHoy() BLOQUEA el formulario hasta
+        // el día exacto de esta fecha (app/Models/DiligenciaDescargo.php:140-168) -
+        // el propósito de esta prueba QA es completar el flujo el mismo día
+        // de la corrida, no esperar 3-8 días. hora en 00:00:00 para no
+        // depender de a qué hora del día se ejecute el comando.
+        $fechaDescargos = today();
 
         $proceso = ProcesoDisciplinario::create([
             'empresa_id'                  => $empresa->id,
@@ -230,7 +233,7 @@ class SeedDescargosVolumenTest extends Command
             'fecha_ocurrencia'            => $fechaOcurrencia,
             'modalidad_descargos'         => 'virtual',
             'fecha_descargos_programada'  => $fechaDescargos,
-            'hora_descargos_programada'   => '10:00:00',
+            'hora_descargos_programada'   => '00:00:00',
             'citante_nombre'              => 'Sistema de Pruebas QA',
             'citante_cargo'               => 'Automatización de Pruebas',
         ]);

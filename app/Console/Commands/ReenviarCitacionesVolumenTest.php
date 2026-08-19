@@ -21,11 +21,21 @@ use Illuminate\Console\Command;
  * el futuro, y DiligenciaDescargo::puedeAccederHoy() BLOQUEA el formulario
  * hasta ese día exacto (app/Models/DiligenciaDescargo.php:140-168). Sin este
  * ajuste el link llegaría pero el formulario seguiría bloqueado hasta esa
- * fecha, impidiendo probar el flujo hoy mismo. Los procesos que este comando
- * encuentra en un momento dado YA SON un lote completo de "hoy" o de "mañana"
- * (creados con test:seed-descargos-volumen en corridas separadas por día,
- * por persona) - todos los que aparezcan en una misma corrida de este
- * comando reciben la MISMA fecha, no se dividen entre sí.
+ * fecha, impidiendo probar el flujo hoy mismo.
+ *
+ * Por defecto SOLO toca los procesos cuya fecha_descargos_programada no
+ * coincide todavía con --fecha (o con hoy) - así una misma empresa de
+ * prueba puede acumular varios lotes creados en días distintos sin que
+ * cada corrida reenvíe también los lotes de días anteriores que ya
+ * quedaron corregidos (--todos fuerza incluirlos igual).
+ *
+ * 2026-08-19: además de "el link llegó roto" (requiere reenviar correo),
+ * apareció un segundo caso - el link SÍ llega bien pero
+ * test:seed-descargos-volumen puso una fecha mala y el correo YA SE ENVIÓ
+ * con esa fecha en el PDF. Reenviar el correo de nuevo sería redundante;
+ * --sin-reenviar corrige fecha_descargos_programada del proceso Y
+ * fecha_acceso_permitida de su DiligenciaDescargo (el campo que de verdad
+ * evalúa puedeAccederHoy()) sin tocar el correo ni regenerar el PDF.
  *
  * Seguro de re-ejecutar sin gastar cuota extra de Gemini: DocumentGeneratorService
  * ::generarYEnviarCitacion() reutiliza el token de acceso si ya existe y solo
@@ -38,31 +48,38 @@ use Illuminate\Console\Command;
 class ReenviarCitacionesVolumenTest extends Command
 {
     protected $signature = 'test:reenviar-citaciones-volumen
-        {--fecha= : Fecha (Y-m-d) para fecha_descargos_programada de TODOS los procesos encontrados. Por defecto, hoy}
-        {--dry-run : Solo lista los procesos que se reenviarían, sin disparar nada}
-        {--force : No pedir confirmación antes de reenviar}';
+        {--fecha= : Fecha (Y-m-d) para fecha_descargos_programada de los procesos encontrados. Por defecto, hoy}
+        {--todos : Incluye también los procesos cuya fecha ya coincide con --fecha (por defecto se saltan, ya no tienen nada que corregir)}
+        {--sin-reenviar : Solo corrige la fecha (proceso + diligencia) sin reenviar el correo ni regenerar el PDF}
+        {--dry-run : Solo lista los procesos que se afectarían, sin cambiar ni disparar nada}
+        {--force : No pedir confirmación}';
 
-    protected $description = 'Reenvía la citación (PDF + correo, sin gastar cuota extra de IA) de los procesos de la empresa ficticia de pruebas QA, tras corregir el link roto por APP_URL.';
+    protected $description = 'Corrige fecha_descargos_programada (y opcionalmente reenvía la citación) de los procesos de la empresa ficticia de pruebas QA que aún no quedaron programados para la fecha correcta.';
 
     public function handle(): int
     {
         $empresa = Empresa::where('nit', SeedDescargosVolumenTest::NIT_EMPRESA_TEST)->first();
 
         if (!$empresa) {
-            $this->error('No existe la empresa ficticia de pruebas (NIT ' . SeedDescargosVolumenTest::NIT_EMPRESA_TEST . '). Nada que reenviar.');
+            $this->error('No existe la empresa ficticia de pruebas (NIT ' . SeedDescargosVolumenTest::NIT_EMPRESA_TEST . '). Nada que hacer.');
             return self::FAILURE;
         }
 
-        $procesos = ProcesoDisciplinario::with('trabajador')
-            ->where('empresa_id', $empresa->id)
-            ->get();
+        $fecha = $this->option('fecha') ? Carbon::parse($this->option('fecha')) : Carbon::today();
 
-        if ($procesos->isEmpty()) {
-            $this->warn('La empresa ficticia de pruebas no tiene procesos disciplinarios. Nada que reenviar.');
-            return self::SUCCESS;
+        $query = ProcesoDisciplinario::with(['trabajador', 'diligenciaDescargo'])
+            ->where('empresa_id', $empresa->id);
+
+        if (!$this->option('todos')) {
+            $query->whereDate('fecha_descargos_programada', '!=', $fecha->toDateString());
         }
 
-        $fecha = $this->option('fecha') ? Carbon::parse($this->option('fecha')) : Carbon::today();
+        $procesos = $query->get();
+
+        if ($procesos->isEmpty()) {
+            $this->warn('No hay procesos de prueba con fecha distinta a ' . $fecha->toDateString() . '. Nada que hacer (use --todos para incluir los que ya coinciden).');
+            return self::SUCCESS;
+        }
 
         $this->info("Se encontraron {$procesos->count()} procesos de prueba en \"{$empresa->razon_social}\":");
         $this->table(
@@ -83,7 +100,12 @@ class ReenviarCitacionesVolumenTest extends Command
             return self::SUCCESS;
         }
 
-        if (!$this->option('force') && !$this->confirm("¿Actualizar la fecha de descargos a {$fecha->toDateString()} y reenviar la citación real (PDF + correo) a los {$procesos->count()} procesos listados arriba?")) {
+        $sinReenviar = $this->option('sin-reenviar');
+        $accion = $sinReenviar
+            ? 'corregir SOLO la fecha (sin reenviar correo ni regenerar PDF)'
+            : 'actualizar la fecha y reenviar la citación real (PDF + correo)';
+
+        if (!$this->option('force') && !$this->confirm("¿Va a {$accion} de los {$procesos->count()} procesos listados arriba, con fecha {$fecha->toDateString()}?")) {
             $this->comment('Cancelado.');
             return self::SUCCESS;
         }
@@ -94,14 +116,32 @@ class ReenviarCitacionesVolumenTest extends Command
                 'fecha_descargos_programada' => $fecha,
                 'hora_descargos_programada'  => '00:00:00',
             ]);
-            GenerarYEnviarCitacionJob::dispatch($proceso, $proceso->abogado_id);
+
+            if ($sinReenviar) {
+                // Sin esto la fecha del proceso queda corregida pero
+                // DiligenciaDescargo::puedeAccederHoy() sigue bloqueando el
+                // formulario - ese método compara contra fecha_acceso_permitida
+                // de la diligencia, no contra el proceso directamente
+                // (ver DocumentGeneratorService::generarYEnviarCitacion()).
+                $proceso->diligenciaDescargo?->update([
+                    'fecha_acceso_permitida' => $fecha->toDateString(),
+                    'acceso_habilitado'      => true,
+                ]);
+            } else {
+                GenerarYEnviarCitacionJob::dispatch($proceso, $proceso->abogado_id);
+            }
+
             $bar->advance();
         }
         $bar->finish();
         $this->newLine(2);
 
-        $this->info("Se encolaron {$procesos->count()} reenvíos de citación.");
-        $this->warn('Los jobs quedaron en la cola "gemini" - requiere `php artisan queue:work --queue=gemini` corriendo para procesarse.');
+        if ($sinReenviar) {
+            $this->info("Fecha corregida en {$procesos->count()} procesos (sin reenviar correo).");
+        } else {
+            $this->info("Se encolaron {$procesos->count()} reenvíos de citación.");
+            $this->warn('Los jobs quedaron en la cola "gemini" - requiere `php artisan queue:work --queue=gemini` corriendo para procesarse.');
+        }
 
         return self::SUCCESS;
     }
