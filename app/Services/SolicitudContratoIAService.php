@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ModificacionContractual;
 use App\Models\ReglamentoInterno;
 use App\Models\SolicitudContrato;
 use Dompdf\Dompdf;
@@ -168,6 +169,87 @@ class SolicitudContratoIAService
             'objeto_comercial'  => $extraer('###OBJETO_COMERCIAL###', '(?=###MANUAL_FUNCIONES###)'),
             'manual_funciones'  => $extraer('###MANUAL_FUNCIONES###', '$'),
         ];
+    }
+
+    /**
+     * Redacta el otrosí (documento que modifica el contrato original sin
+     * reemplazarlo) para una modificación contractual, anclado en el RIT
+     * vigente de la empresa y en los artículos del CST relevantes al tipo de
+     * cambio. NO persiste - el llamador decide (el abogado/bufete revisa el
+     * borrador antes de generar el PDF final).
+     */
+    public function redactarOtrosi(ModificacionContractual $modificacion): string
+    {
+        $solicitud = $modificacion->solicitudContrato;
+
+        $temasPorTipo = [
+            'salario'       => 'modificación salario remuneración contrato trabajo',
+            'cargo'         => 'cambio cargo funciones contrato trabajo',
+            'jornada'       => 'jornada laboral horario trabajo modalidad',
+            'tipo_contrato' => 'término fijo indefinido duración contrato trabajo',
+        ];
+
+        $articulosCst = $this->ritGeneratorService->buscarArticulosPorTema(
+            $temasPorTipo[$modificacion->tipo_modificacion] ?? 'contrato trabajo',
+            limite: 6,
+        );
+
+        $textoRit = \App\Models\ReglamentoInterno::where('empresa_id', $modificacion->empresa_id)
+            ->where('activo', true)
+            ->value('texto_completo') ?? '(La empresa no tiene un Reglamento Interno de Trabajo cargado)';
+
+        $prompt = $this->construirPromptOtrosi($modificacion, $solicitud, $articulosCst, $textoRit);
+
+        return $this->llamarGemini($prompt, $modificacion->empresa_id);
+    }
+
+    private function construirPromptOtrosi(
+        ModificacionContractual $modificacion,
+        SolicitudContrato $solicitud,
+        string $articulosCst,
+        string $textoRit,
+    ): string {
+        $nombreTrabajador = trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}");
+        $tipoLabel        = ModificacionContractual::TIPOS[$modificacion->tipo_modificacion] ?? $modificacion->tipo_modificacion;
+
+        return <<<PROMPT
+        Eres un abogado laboralista colombiano redactando un OTROSÍ (documento
+        que modifica un contrato de trabajo existente sin reemplazarlo), con
+        base ÚNICAMENTE en los datos provistos y los artículos del Código
+        Sustantivo del Trabajo (CST) listados abajo.
+
+        PROHIBICIÓN ABSOLUTA: Solo puedes citar artículos del CST que
+        aparezcan en la sección "ARTÍCULOS DEL CST DISPONIBLES" de abajo. Si
+        ninguno aplica exactamente, redacta sin citar número de artículo en
+        vez de inventar uno.
+
+        PROHIBICIÓN ABSOLUTA: No inventes datos que no estén explícitamente
+        provistos abajo.
+
+        DATOS DEL CONTRATO ORIGINAL:
+        - Trabajador: {$nombreTrabajador}
+        - Contrato: {$solicitud->codigo} ({$solicitud->tipo_contrato})
+
+        MODIFICACIÓN A FORMALIZAR:
+        - Tipo de cambio: {$tipoLabel}
+        - Valor anterior: {$modificacion->valor_anterior}
+        - Valor nuevo: {$modificacion->valor_nuevo}
+        - Fecha efectiva: {$modificacion->fecha_efectiva?->format('Y-m-d')}
+        - Justificación: {$modificacion->justificacion}
+
+        REGLAMENTO INTERNO DE TRABAJO DE LA EMPRESA (contexto):
+        {$textoRit}
+
+        ARTÍCULOS DEL CST DISPONIBLES:
+        {$articulosCst}
+
+        Redacta el otrosí en HTML simple (solo <p>, <strong> - sin markdown,
+        sin asteriscos), con: (1) un párrafo identificando el contrato
+        original que se modifica, (2) una cláusula formalizando el cambio
+        específico (valor anterior → valor nuevo), (3) un párrafo aclarando
+        que el resto de las cláusulas del contrato original permanecen
+        vigentes sin modificación.
+        PROMPT;
     }
 
     public function generarContratoPDF(SolicitudContrato $solicitud): string
