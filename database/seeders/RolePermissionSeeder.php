@@ -157,7 +157,11 @@ class RolePermissionSeeder extends Seeder
             'delete_solicitud::contrato',
             'delete_any_solicitud::contrato',
 
-            // Full access to modificaciones contractuales
+            // Modificaciones contractuales: sin delete_any a propósito (a
+            // diferencia de solicitud::contrato arriba) - abogado elimina de
+            // a una, el borrado masivo queda reservado para bufete (que sí
+            // tiene delete_any en BufeteRoleSeeder.php) por ser quien
+            // gestiona el historial completo de un cliente.
             'view_modificacion::contractual',
             'view_any_modificacion::contractual',
             'create_modificacion::contractual',
