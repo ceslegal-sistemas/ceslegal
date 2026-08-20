@@ -214,7 +214,14 @@ class ModificacionContractualResource extends Resource
                         ->openable()
                         ->columnSpanFull(),
                 ])
-                ->hiddenOn('create')
+                // 'view' además de 'create': esta sección tiene botones reales
+                // (redactarOtrosiConIA()/generarOtrosiAction() vía wire:click crudo)
+                // - la página "Ver" renderiza el form con ->disabled(), que no
+                // neutraliza un View::make() con HTML embebido. Sin este fix esos
+                // botones quedaban clicables ahí y llamaban métodos que
+                // ViewModificacionContractual no define, tumbando la página con un
+                // error de Livewire (mismo hallazgo aplicado a SolicitudContratoResource).
+                ->hiddenOn(['create', 'view'])
                 ->collapsed(),
         ]);
     }

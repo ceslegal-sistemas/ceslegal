@@ -540,7 +540,14 @@ class SolicitudContratoResource extends Resource
                             ->openable()
                             ->columnSpanFull(),
                     ])
-                    ->hiddenOn('create')
+                    // 'view' además de 'create': esta sección tiene botones reales
+                    // (redactarObjetoConIA()/generarContratoAction() vía wire:click
+                    // crudo en solicitud-contrato-ia-botones.blade.php) - la página
+                    // "Ver" renderiza el form con ->disabled(), que no neutraliza un
+                    // View::make() con HTML embebido. Sin este fix esos botones
+                    // quedaban clicables ahí y llamaban métodos que ViewSolicitudContrato
+                    // no define, tumbando la página con un error de Livewire.
+                    ->hiddenOn(['create', 'view'])
                     ->collapsed(),
             ]);
     }
