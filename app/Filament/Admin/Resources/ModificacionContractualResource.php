@@ -1,0 +1,235 @@
+<?php
+
+namespace App\Filament\Admin\Resources;
+
+use App\Filament\Admin\Resources\ModificacionContractualResource\Pages;
+use App\Filament\Admin\Resources\SolicitudContratoResource;
+use App\Models\ModificacionContractual;
+use App\Models\SolicitudContrato;
+use App\Support\EmpresaActiva;
+use App\Support\FormateoNumerico;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+
+class ModificacionContractualResource extends Resource
+{
+    protected static ?string $model = ModificacionContractual::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-document-arrow-up';
+
+    protected static ?string $navigationLabel = 'Modificaciones Contractuales';
+
+    protected static ?string $modelLabel = 'Modificación Contractual';
+
+    protected static ?string $pluralModelLabel = 'Modificaciones Contractuales';
+
+    protected static ?string $navigationGroup = 'Gestión de Contratos';
+
+    protected static ?int $navigationSort = 2;
+
+    /** Mismas 6 opciones de SolicitudContratoResource::form() (tipo_contrato) - mantener sincronizadas si cambian ahí. */
+    protected static function getTiposContrato(): array
+    {
+        return [
+            'Contrato a Término Fijo' => 'Contrato a Término Fijo',
+            'Contrato a Término Indefinido' => 'Contrato a Término Indefinido',
+            'Contrato de Obra o Labor' => 'Contrato de Obra o Labor',
+            'Contrato de Prestación de Servicios' => 'Contrato de Prestación de Servicios',
+            'Contrato de Aprendizaje' => 'Contrato de Aprendizaje',
+            'Contrato Ocasional o Transitorio' => 'Contrato Ocasional o Transitorio',
+        ];
+    }
+
+    public static function form(Form $form): Form
+    {
+        return $form->schema([
+            Forms\Components\Wizard::make([
+                Forms\Components\Wizard\Step::make('Contrato a Modificar')
+                    ->icon('heroicon-o-document-text')
+                    ->schema([
+                        Forms\Components\Select::make('solicitud_contrato_id')
+                            ->label('Contrato')
+                            ->relationship(
+                                name: 'solicitudContrato',
+                                titleAttribute: 'codigo',
+                                modifyQueryUsing: fn (Builder $query) => $query
+                                    ->whereIn('estado', ['contrato_generado', 'enviado_rrhh', 'finalizado'])
+                                    ->when(EmpresaActiva::id(), fn (Builder $q, int $empresaId) => $q->where('empresa_id', $empresaId)),
+                            )
+                            ->getOptionLabelFromRecordUsing(
+                                fn (SolicitudContrato $record): string =>
+                                "{$record->codigo} — {$record->trabajador_nombres} {$record->trabajador_apellidos}"
+                            )
+                            ->searchable(['codigo', 'trabajador_nombres', 'trabajador_apellidos'])
+                            ->preload()
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, ?int $state) {
+                                if (!$state) {
+                                    $set('empresa_id', null);
+                                    return;
+                                }
+                                $solicitud = SolicitudContrato::find($state);
+                                $set('empresa_id', $solicitud?->empresa_id);
+                            })
+                            ->columnSpanFull(),
+
+                        Forms\Components\Placeholder::make('resumen_contrato')
+                            ->label('Datos vigentes del contrato')
+                            ->content(function (Get $get) {
+                                $solicitud = SolicitudContrato::find($get('solicitud_contrato_id'));
+                                if (!$solicitud) {
+                                    return 'Seleccione un contrato para ver sus datos vigentes.';
+                                }
+
+                                return sprintf(
+                                    'Cargo: %s | Salario: $%s | Jornada: %s | Tipo: %s',
+                                    $solicitud->cargo_contrato ?: '—',
+                                    number_format((float) $solicitud->salario_propuesto, 0, ',', '.'),
+                                    $solicitud->jornada ?: '—',
+                                    $solicitud->tipo_contrato ?: '—',
+                                );
+                            })
+                            ->columnSpanFull(),
+                    ]),
+
+                Forms\Components\Wizard\Step::make('El Cambio')
+                    ->icon('heroicon-o-pencil-square')
+                    ->schema([
+                        Forms\Components\Hidden::make('empresa_id'),
+
+                        Forms\Components\Select::make('tipo_modificacion')
+                            ->label('Tipo de Modificación')
+                            ->options(\App\Models\ModificacionContractual::TIPOS)
+                            ->required()
+                            ->live()
+                            ->native(false),
+
+                        Forms\Components\TextInput::make('valor_nuevo')
+                            ->label('Nuevo Salario')
+                            ->visible(fn (Get $get) => $get('tipo_modificacion') === 'salario')
+                            ->required(fn (Get $get) => $get('tipo_modificacion') === 'salario')
+                            ->live(debounce: '500ms')
+                            ->afterStateUpdated(fn (Set $set, ?string $state) => $set('valor_nuevo', FormateoNumerico::miles($state)))
+                            ->stripCharacters('.')
+                            ->rule('numeric')
+                            ->prefix('$'),
+
+                        Forms\Components\Select::make('valor_nuevo')
+                            ->label('Nuevo Cargo')
+                            ->visible(fn (Get $get) => $get('tipo_modificacion') === 'cargo')
+                            ->required(fn (Get $get) => $get('tipo_modificacion') === 'cargo')
+                            ->searchable()
+                            ->options(fn () => array_combine(
+                                SolicitudContratoResource::getCargos(),
+                                SolicitudContratoResource::getCargos(),
+                            )),
+
+                        Forms\Components\Select::make('valor_nuevo')
+                            ->label('Nueva Jornada / Modalidad')
+                            ->visible(fn (Get $get) => $get('tipo_modificacion') === 'jornada')
+                            ->required(fn (Get $get) => $get('tipo_modificacion') === 'jornada')
+                            ->options([
+                                'Tiempo completo' => 'Tiempo completo',
+                                'Medio tiempo' => 'Medio tiempo',
+                                'Por horas' => 'Por horas',
+                            ]),
+
+                        Forms\Components\Select::make('valor_nuevo')
+                            ->label('Nuevo Tipo de Contrato')
+                            ->visible(fn (Get $get) => $get('tipo_modificacion') === 'tipo_contrato')
+                            ->required(fn (Get $get) => $get('tipo_modificacion') === 'tipo_contrato')
+                            ->options(self::getTiposContrato()),
+
+                        Forms\Components\Textarea::make('justificacion')
+                            ->label('Justificación')
+                            ->rows(3)
+                            ->columnSpanFull(),
+
+                        Forms\Components\DatePicker::make('fecha_efectiva')
+                            ->label('Fecha Efectiva')
+                            ->required()
+                            ->native(false)
+                            ->displayFormat('d/m/Y'),
+                    ])->columns(2),
+            ])
+                ->columnSpanFull()
+                ->persistStepInQueryString()
+                // Sin esto, el último paso del Wizard queda con el slot de
+                // envío vacío (Filament\Wizard::getSubmitAction() es null
+                // por defecto) - el formulario no tendría ninguna forma de
+                // enviarse, ya que CreateModificacionContractual también
+                // quita los botones nativos de la página (mismo patrón ya
+                // usado en SolicitudContratoResource).
+                ->submitAction(new \Illuminate\Support\HtmlString('<button type="submit" class="filament-button filament-button-size-md inline-flex items-center justify-center py-1 gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset dark:focus:ring-offset-0 min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700">Guardar Modificación</button>')),
+        ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('solicitudContrato.codigo')
+                    ->label('Contrato')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('solicitudContrato.trabajador_nombres')
+                    ->label('Trabajador')
+                    ->formatStateUsing(fn ($record) => "{$record->solicitudContrato?->trabajador_nombres} {$record->solicitudContrato?->trabajador_apellidos}"),
+
+                Tables\Columns\TextColumn::make('empresa.razon_social')
+                    ->label('Empresa')
+                    ->searchable()
+                    ->toggleable(),
+
+                Tables\Columns\BadgeColumn::make('tipo_modificacion')
+                    ->label('Tipo')
+                    ->formatStateUsing(fn (string $state) => \App\Models\ModificacionContractual::TIPOS[$state] ?? $state),
+
+                Tables\Columns\TextColumn::make('valor_anterior')
+                    ->label('Antes'),
+
+                Tables\Columns\TextColumn::make('valor_nuevo')
+                    ->label('Después'),
+
+                Tables\Columns\TextColumn::make('fecha_efectiva')
+                    ->label('Fecha Efectiva')
+                    ->date('d/m/Y')
+                    ->sortable(),
+
+                Tables\Columns\BadgeColumn::make('estado')
+                    ->colors(['secondary' => 'borrador', 'success' => 'otrosi_generado']),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('empresa')
+                    ->relationship('empresa', 'razon_social')
+                    ->searchable()
+                    ->preload(),
+
+                Tables\Filters\SelectFilter::make('tipo_modificacion')
+                    ->options(\App\Models\ModificacionContractual::TIPOS),
+            ])
+            ->actions([
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+            ])
+            ->defaultSort('fecha_efectiva', 'desc');
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListModificacionContractuals::route('/'),
+            'create' => Pages\CreateModificacionContractual::route('/create'),
+            'edit' => Pages\EditModificacionContractual::route('/{record}/edit'),
+        ];
+    }
+}

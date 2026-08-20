@@ -735,7 +735,7 @@ class SolicitudContratoResource extends Resource
         return 'warning';
     }
 
-    protected static function getCargos(): array
+    public static function getCargos(): array
     {
         return [
             'Gerente General',
