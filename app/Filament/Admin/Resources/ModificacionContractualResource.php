@@ -58,6 +58,16 @@ class ModificacionContractualResource extends Resource
                             ->relationship(
                                 name: 'solicitudContrato',
                                 titleAttribute: 'codigo',
+                                // El scoping real ya lo hace el global scope de
+                                // SolicitudContrato (ScopedToBufeteOrEmpresa): filtra
+                                // a bufete por su(s) empresa(s), y no filtra nada para
+                                // super_admin/abogado (ven todas las empresas, igual
+                                // que en SolicitudContratoResource::form() con
+                                // empresa_id). EmpresaActiva::id() solo se popula para
+                                // bufete (SelectorEmpresa::permitidas()), así que este
+                                // ->when() es un no-op siempre - se deja explícito por
+                                // si en el futuro EmpresaActiva se habilita para otros
+                                // roles, no porque hoy filtre algo.
                                 modifyQueryUsing: fn (Builder $query) => $query
                                     ->whereIn('estado', ['contrato_generado', 'enviado_rrhh', 'finalizado'])
                                     ->when(EmpresaActiva::id(), fn (Builder $q, int $empresaId) => $q->where('empresa_id', $empresaId)),
@@ -106,19 +116,35 @@ class ModificacionContractualResource extends Resource
 
                         Forms\Components\Select::make('tipo_modificacion')
                             ->label('Tipo de Modificación')
-                            ->options(\App\Models\ModificacionContractual::TIPOS)
+                            ->options(ModificacionContractual::TIPOS)
                             ->required()
                             ->live()
-                            ->native(false),
+                            ->native(false)
+                            // Sin esto, cambiar de tipo (ej. de "salario" a "cargo")
+                            // deja el valor anterior en el estado ("3.000.000")
+                            // aunque ya no se vea en pantalla - el Select de "Nuevo
+                            // Cargo" no tendría ninguna opción que calce con eso,
+                            // pero ->required() solo valida "no vacío", así que se
+                            // guardaría igual. Mismo patrón ya usado en
+                            // SolicitudContratoResource para cargo_contrato/cargo_otro.
+                            ->afterStateUpdated(fn (Set $set) => $set('valor_nuevo', null)),
 
                         Forms\Components\TextInput::make('valor_nuevo')
                             ->label('Nuevo Salario')
                             ->visible(fn (Get $get) => $get('tipo_modificacion') === 'salario')
                             ->required(fn (Get $get) => $get('tipo_modificacion') === 'salario')
                             ->live(debounce: '500ms')
+                            // Sin afterStateHydrated a propósito: los 4 campos
+                            // "valor_nuevo" (este + los 3 Select de abajo) comparten
+                            // el mismo nombre de estado, así que un hydrator acá se
+                            // dispararía SIEMPRE al abrir el formulario, sin importar
+                            // la visibilidad - si el valor real fuera un cargo (texto),
+                            // FormateoNumerico::miles() lo trataría como número y
+                            // corrompería el dato antes de guardar.
                             ->afterStateUpdated(fn (Set $set, ?string $state) => $set('valor_nuevo', FormateoNumerico::miles($state)))
                             ->stripCharacters('.')
                             ->rule('numeric')
+                            ->minValue(0)
                             ->prefix('$'),
 
                         Forms\Components\Select::make('valor_nuevo')
@@ -191,7 +217,7 @@ class ModificacionContractualResource extends Resource
 
                 Tables\Columns\BadgeColumn::make('tipo_modificacion')
                     ->label('Tipo')
-                    ->formatStateUsing(fn (string $state) => \App\Models\ModificacionContractual::TIPOS[$state] ?? $state),
+                    ->formatStateUsing(fn (string $state) => ModificacionContractual::TIPOS[$state] ?? $state),
 
                 Tables\Columns\TextColumn::make('valor_anterior')
                     ->label('Antes'),
@@ -214,7 +240,7 @@ class ModificacionContractualResource extends Resource
                     ->preload(),
 
                 Tables\Filters\SelectFilter::make('tipo_modificacion')
-                    ->options(\App\Models\ModificacionContractual::TIPOS),
+                    ->options(ModificacionContractual::TIPOS),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -229,6 +255,7 @@ class ModificacionContractualResource extends Resource
         return [
             'index' => Pages\ListModificacionContractuals::route('/'),
             'create' => Pages\CreateModificacionContractual::route('/create'),
+            'view' => Pages\ViewModificacionContractual::route('/{record}'),
             'edit' => Pages\EditModificacionContractual::route('/{record}/edit'),
         ];
     }
