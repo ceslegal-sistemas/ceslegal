@@ -53,8 +53,8 @@ class RitDiffService
      */
     public function compararDocumentos(string $original, string $mejorado): array
     {
-        $bloquesOrig = $this->partirEnBloques($original);
-        $bloquesMej  = $this->partirEnBloques($mejorado);
+        $bloquesOrig = self::partirEnBloques($original);
+        $bloquesMej  = self::partirEnBloques($mejorado);
 
         $matchMejADeOrig = array_fill(0, count($bloquesMej), null);
         $matchOrigAMej   = array_fill(0, count($bloquesOrig), null);
@@ -182,7 +182,7 @@ class RitDiffService
     }
 
     /** Bloques diffables: una línea no vacía = un artículo, parágrafo o encabezado. */
-    private function partirEnBloques(string $texto): array
+    public static function partirEnBloques(string $texto): array
     {
         $lineas   = preg_split('/\r?\n/', trim($texto));
         $bloques = [];
