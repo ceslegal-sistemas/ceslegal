@@ -194,6 +194,28 @@ class ModificacionContractualResource extends Resource
                 // quita los botones nativos de la página (mismo patrón ya
                 // usado en SolicitudContratoResource).
                 ->submitAction(new \Illuminate\Support\HtmlString('<button type="submit" class="filament-button filament-button-size-md inline-flex items-center justify-center py-1 gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset dark:focus:ring-offset-0 min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700">Guardar Modificación</button>')),
+
+            Forms\Components\Section::make('Otrosí')
+                ->description('Redacción y documento final de la modificación')
+                ->schema([
+                    Forms\Components\View::make('filament.components.modificacion-contractual-ia-botones')
+                        ->columnSpanFull(),
+
+                    Forms\Components\RichEditor::make('texto_otrosi_redactado')
+                        ->label('Texto del Otrosí')
+                        ->toolbarButtons(['bold', 'bulletList', 'orderedList', 'italic', 'undo', 'redo'])
+                        ->columnSpanFull(),
+
+                    Forms\Components\FileUpload::make('ruta_otrosi')
+                        ->label('Otrosí Generado')
+                        ->directory('solicitudes-contrato/otrosies')
+                        ->disk('local')
+                        ->downloadable()
+                        ->openable()
+                        ->columnSpanFull(),
+                ])
+                ->hiddenOn('create')
+                ->collapsed(),
         ]);
     }
 
