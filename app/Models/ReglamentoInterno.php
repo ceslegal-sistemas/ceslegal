@@ -32,6 +32,8 @@ class ReglamentoInterno extends Model
         'ruta_pdf',
         'progreso_generacion',
         'tipos_contrato',
+        'bloques_texto_hash',
+        'bloques_generados_en',
     ];
 
     protected $casts = [
@@ -41,6 +43,7 @@ class ReglamentoInterno extends Model
         'conductas_sancionables' => 'array',
         'tipos_contrato'         => 'array',
         'dias_habiles'           => 'array',
+        'bloques_generados_en'   => 'datetime',
     ];
 
     public function empresa(): BelongsTo
@@ -61,6 +64,11 @@ class ReglamentoInterno extends Model
     public function reglamentoOrigen(): BelongsTo
     {
         return $this->belongsTo(self::class, 'reglamento_origen_id');
+    }
+
+    public function bloques(): HasMany
+    {
+        return $this->hasMany(BloqueReglamentoInterno::class)->orderBy('orden');
     }
 
     public function esMejorado(): bool
