@@ -46,7 +46,17 @@ class ModificacionContractualResource extends Resource
         ];
     }
 
-    /** Mapa tipo_modificacion -> columna real en SolicitudContrato. Usado por Create/Edit para calcular valor_anterior, y por SolicitudContratoIAService::generarOtrosiPDF() para actualizar el contrato vigente - mantener los 3 sincronizados si se agrega un tipo nuevo. */
+    /**
+     * Mapa tipo_modificacion -> columna real en SolicitudContrato. Usado por
+     * Create/Edit para calcular valor_anterior.
+     *
+     * OJO: SolicitudContratoIAService::generarOtrosiPDF() tiene su PROPIA
+     * copia idéntica de este mismo mapa (para actualizar el contrato
+     * vigente al generar el PDF) - no la llama a este método (un Service no
+     * debería depender de una clase de Filament\Admin\Resources). Si se
+     * agrega un tipo_modificacion nuevo, hay que actualizar los 2 mapas a
+     * mano, no solo este.
+     */
     public static function campoPorTipo(): array
     {
         return [
