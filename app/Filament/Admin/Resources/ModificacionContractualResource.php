@@ -182,15 +182,38 @@ class ModificacionContractualResource extends Resource
                             ->minValue(0)
                             ->prefix('$'),
 
+                        // Patrón "Otro" igual al de cargo_contrato/cargo_otro en
+                        // SolicitudContratoResource, adaptado a un campo temporal
+                        // propio (cargo_otro_temp) en vez de reusar cargo_otro,
+                        // porque acá "valor_nuevo" ya es el nombre compartido por
+                        // los 4 tipos - no se puede usar afterStateHydrated para
+                        // detectar "es un valor personalizado" al editar (mismo
+                        // riesgo ya documentado en el campo de salario: correría
+                        // sin importar la visibilidad y podría malinterpretar el
+                        // valor de otro tipo_modificacion). Al editar un registro
+                        // con un cargo/jornada personalizado, el Select simplemente
+                        // no mostrará ninguna opción marcada - limitación conocida,
+                        // más segura que arriesgar corromper otros tipos.
                         Forms\Components\Select::make('valor_nuevo')
                             ->label('Nuevo Cargo')
                             ->visible(fn (Get $get) => $get('tipo_modificacion') === 'cargo')
                             ->required(fn (Get $get) => $get('tipo_modificacion') === 'cargo')
                             ->searchable()
-                            ->options(fn () => array_combine(
-                                SolicitudContratoResource::getCargos(),
-                                SolicitudContratoResource::getCargos(),
-                            )),
+                            ->options(function () {
+                                $cargos = array_combine(SolicitudContratoResource::getCargos(), SolicitudContratoResource::getCargos());
+                                $cargos['__otro__'] = '--- Otro (personalizado) ---';
+                                return $cargos;
+                            })
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set) => $set('cargo_otro_temp', null))
+                            ->dehydrateStateUsing(fn (Get $get, ?string $state) => $state === '__otro__' ? $get('cargo_otro_temp') : $state),
+
+                        Forms\Components\TextInput::make('cargo_otro_temp')
+                            ->label('Especifique el Cargo')
+                            ->visible(fn (Get $get) => $get('tipo_modificacion') === 'cargo' && $get('valor_nuevo') === '__otro__')
+                            ->required(fn (Get $get) => $get('tipo_modificacion') === 'cargo' && $get('valor_nuevo') === '__otro__')
+                            ->placeholder('Ej: Jefe de Proyectos Especiales')
+                            ->dehydrated(false),
 
                         Forms\Components\Select::make('valor_nuevo')
                             ->label('Nueva Jornada / Modalidad')
@@ -200,7 +223,18 @@ class ModificacionContractualResource extends Resource
                                 'Tiempo completo' => 'Tiempo completo',
                                 'Medio tiempo' => 'Medio tiempo',
                                 'Por horas' => 'Por horas',
-                            ]),
+                                '__otro__' => '--- Otro (personalizado) ---',
+                            ])
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set) => $set('jornada_otro_temp', null))
+                            ->dehydrateStateUsing(fn (Get $get, ?string $state) => $state === '__otro__' ? $get('jornada_otro_temp') : $state),
+
+                        Forms\Components\TextInput::make('jornada_otro_temp')
+                            ->label('Especifique la Jornada')
+                            ->visible(fn (Get $get) => $get('tipo_modificacion') === 'jornada' && $get('valor_nuevo') === '__otro__')
+                            ->required(fn (Get $get) => $get('tipo_modificacion') === 'jornada' && $get('valor_nuevo') === '__otro__')
+                            ->placeholder('Ej: Turnos rotativos')
+                            ->dehydrated(false),
 
                         Forms\Components\Select::make('valor_nuevo')
                             ->label('Nuevo Tipo de Contrato')
