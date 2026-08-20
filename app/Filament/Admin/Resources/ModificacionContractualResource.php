@@ -46,6 +46,41 @@ class ModificacionContractualResource extends Resource
         ];
     }
 
+    /** Mapa tipo_modificacion -> columna real en SolicitudContrato. Usado por Create/Edit para calcular valor_anterior, y por SolicitudContratoIAService::generarOtrosiPDF() para actualizar el contrato vigente - mantener los 3 sincronizados si se agrega un tipo nuevo. */
+    public static function campoPorTipo(): array
+    {
+        return [
+            'salario'       => 'salario_propuesto',
+            'cargo'         => 'cargo_contrato',
+            'jornada'       => 'jornada',
+            'tipo_contrato' => 'tipo_contrato',
+        ];
+    }
+
+    /**
+     * valor_anterior no lo edita el usuario directamente - se calcula del
+     * dato VIGENTE en el contrato según el tipo_modificacion elegido.
+     * Compartido entre Create y Edit: en Edit, el usuario puede cambiar
+     * tipo_modificacion (el Wizard completo es editable), y sin recalcular
+     * acá el valor_anterior quedaba pegado al tipo original - un dato
+     * incorrecto que termina redactado en el otrosí real.
+     */
+    public static function calcularValorAnterior(?int $solicitudContratoId, ?string $tipoModificacion): ?string
+    {
+        if (!$solicitudContratoId || !$tipoModificacion) {
+            return null;
+        }
+
+        $campo = self::campoPorTipo()[$tipoModificacion] ?? null;
+        if (!$campo) {
+            return null;
+        }
+
+        $solicitud = SolicitudContrato::find($solicitudContratoId);
+
+        return $solicitud ? (string) $solicitud->{$campo} : null;
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -275,6 +310,14 @@ class ModificacionContractualResource extends Resource
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                // bufete tiene delete_any_modificacion::contractual (whitelist en
+                // BufeteRoleSeeder.php) - sin esto el permiso no tenía forma de
+                // usarse, Filament nunca muestra la acción sin bulkActions().
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ])
             ->defaultSort('fecha_efectiva', 'desc');
     }

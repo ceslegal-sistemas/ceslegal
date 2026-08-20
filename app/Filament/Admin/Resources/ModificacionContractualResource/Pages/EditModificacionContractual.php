@@ -36,15 +36,43 @@ class EditModificacionContractual extends EditRecord
         }
     }
 
+    /**
+     * El Wizard completo (incluido tipo_modificacion) es editable en esta
+     * página - sin recalcular acá, valor_anterior quedaba pegado al tipo
+     * con el que se creó el registro originalmente, aunque el usuario
+     * cambiara de "salario" a "cargo" antes de guardar. Ese dato
+     * desactualizado terminaba redactado tal cual en el otrosí real.
+     */
+    private function recalcularValorAnterior(array $data): array
+    {
+        $data['valor_anterior'] = ModificacionContractualResource::calcularValorAnterior(
+            $data['solicitud_contrato_id'] ?? $this->record->solicitud_contrato_id,
+            $data['tipo_modificacion'] ?? $this->record->tipo_modificacion,
+        );
+
+        return $data;
+    }
+
     public function redactarOtrosiConIA(): void
     {
         $data = $this->obtenerEstadoValidadoOFallar();
         if ($data === null) {
             return;
         }
-        $this->record->update($data);
+        $this->record->update($this->recalcularValorAnterior($data));
 
-        $texto = app(SolicitudContratoIAService::class)->redactarOtrosi($this->record);
+        try {
+            $texto = app(SolicitudContratoIAService::class)->redactarOtrosi($this->record);
+        } catch (\Throwable $e) {
+            Notification::make()
+                ->danger()
+                ->title('No se pudo redactar el otrosí')
+                ->body('Intente de nuevo en unos minutos. Si el problema persiste, contacte a soporte.')
+                ->send();
+
+            return;
+        }
+
         $this->data['texto_otrosi_redactado'] = $texto;
 
         Notification::make()->success()->title('Otrosí redactado')->send();
@@ -56,11 +84,21 @@ class EditModificacionContractual extends EditRecord
         if ($data === null) {
             return;
         }
-        $this->record->update($data);
+        $this->record->update($this->recalcularValorAnterior($data));
 
-        app(SolicitudContratoIAService::class)->generarOtrosiPDF($this->record);
+        try {
+            app(SolicitudContratoIAService::class)->generarOtrosiPDF($this->record);
+        } catch (\Throwable $e) {
+            Notification::make()
+                ->danger()
+                ->title('No se pudo generar el PDF del otrosí')
+                ->body('Intente de nuevo en unos minutos. Si el problema persiste, contacte a soporte.')
+                ->send();
 
-        $this->refreshFormData(['estado', 'ruta_otrosi', 'fecha_generacion_otrosi']);
+            return;
+        }
+
+        $this->refreshFormData(['estado', 'ruta_otrosi', 'fecha_generacion_otrosi', 'valor_anterior']);
 
         Notification::make()->success()->title('Otrosí generado')->send();
     }

@@ -3,7 +3,6 @@
 namespace App\Filament\Admin\Resources\ModificacionContractualResource\Pages;
 
 use App\Filament\Admin\Resources\ModificacionContractualResource;
-use App\Models\SolicitudContrato;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateModificacionContractual extends CreateRecord
@@ -26,20 +25,17 @@ class CreateModificacionContractual extends CreateRecord
      * dato vigente en el contrato seleccionado, según el tipo_modificacion
      * elegido (ej. "salario" -> salario_propuesto). Sin esto quedaría
      * siempre null y "Antes"/"Después" en la tabla no tendría sentido.
+     * abogado_id: quien crea la modificación, para el rastro de auditoría
+     * (no hay campo en el form - se captura solo, igual que en otros
+     * flujos de este proyecto donde el usuario actual = responsable).
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $solicitud = SolicitudContrato::find($data['solicitud_contrato_id']);
-
-        $campoPorTipo = [
-            'salario'       => 'salario_propuesto',
-            'cargo'         => 'cargo_contrato',
-            'jornada'       => 'jornada',
-            'tipo_contrato' => 'tipo_contrato',
-        ];
-
-        $campo = $campoPorTipo[$data['tipo_modificacion']] ?? null;
-        $data['valor_anterior'] = $campo ? (string) $solicitud?->{$campo} : null;
+        $data['valor_anterior'] = ModificacionContractualResource::calcularValorAnterior(
+            $data['solicitud_contrato_id'] ?? null,
+            $data['tipo_modificacion'] ?? null,
+        );
+        $data['abogado_id'] = auth()->id();
 
         return $data;
     }
