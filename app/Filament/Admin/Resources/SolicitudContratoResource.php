@@ -449,7 +449,20 @@ class SolicitudContratoResource extends Resource
                 ])
                     ->columnSpanFull()
                     ->persistStepInQueryString()
-                    ->submitAction(new \Illuminate\Support\HtmlString('<button type="submit" class="filament-button filament-button-size-md inline-flex items-center justify-center py-1 gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset dark:focus:ring-offset-0 min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700">Crear Solicitud</button>')),
+                    // ->disabled() de la página "Ver" NO neutraliza este botón: es un
+                    // HtmlString crudo dentro de submitAction(), no un Componente real
+                    // de Filament, así que no responde a hiddenOn()/disabled(). Bug real
+                    // reportado por el usuario viendo /admin/solicitud-contratos/1 -
+                    // "Crear Solicitud" aparecía clicable en el último paso de una
+                    // solicitud que ya existe. $form->getOperation() (misma fuente que ya
+                    // usa hiddenOn() internamente) sí está disponible en este punto,
+                    // porque la Page (View/Edit/CreateRecord) configura el operation
+                    // ANTES de llamar a este form() estático.
+                    ->submitAction(
+                        $form->getOperation() === 'view'
+                            ? null
+                            : new \Illuminate\Support\HtmlString('<button type="submit" class="filament-button filament-button-size-md inline-flex items-center justify-center py-1 gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset dark:focus:ring-offset-0 min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700">Crear Solicitud</button>')
+                    ),
 
                 // Campos solo para edición - Estado del proceso
                 Forms\Components\Section::make('Estado de la Solicitud')
