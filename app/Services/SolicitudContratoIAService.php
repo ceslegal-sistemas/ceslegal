@@ -42,34 +42,92 @@ class SolicitudContratoIAService
      * Bug real encontrado con Livewire::test() usando IA real, no teórico.
      */
     private const DESCRIPCION_TIPO_CONTRATO = [
-        'Contrato a Término Fijo'             => ['descripcion' => 'a término fijo', 'tema_cst' => 'contrato trabajo término fijo duración renovación'],
-        'Contrato a Término Indefinido'       => ['descripcion' => 'a término indefinido', 'tema_cst' => 'contrato trabajo término indefinido'],
-        'Contrato de Obra o Labor'            => ['descripcion' => 'por obra o labor determinada', 'tema_cst' => 'contrato trabajo obra labor determinada duración'],
-        'Contrato de Prestación de Servicios' => ['descripcion' => 'de prestación de servicios (independiente, sin subordinación)', 'tema_cst' => 'contrato prestación servicios independiente sin subordinación'],
-        'Contrato de Aprendizaje'             => ['descripcion' => 'de aprendizaje', 'tema_cst' => 'contrato aprendizaje SENA estudiante'],
-        'Contrato Ocasional o Transitorio'    => ['descripcion' => 'ocasional o transitorio (máximo 30 días)', 'tema_cst' => 'contrato trabajo ocasional accidental transitorio'],
+        'Contrato a Término Fijo'             => ['descripcion' => 'a término fijo', 'tema_cst' => 'contrato trabajo término fijo duración renovación', 'regimen' => 'laboral'],
+        'Contrato a Término Indefinido'       => ['descripcion' => 'a término indefinido', 'tema_cst' => 'contrato trabajo término indefinido', 'regimen' => 'laboral'],
+        'Contrato de Obra o Labor'            => ['descripcion' => 'por obra o labor determinada', 'tema_cst' => 'contrato trabajo obra labor determinada duración', 'regimen' => 'laboral'],
+        // 'civil', no 'laboral': un contrato de prestación de servicios NO es
+        // una relación laboral (no hay subordinación) - se rige por el Código
+        // Civil/Comercio, no por el CST. La tabla articulos_legales (1472
+        // registros verificados) SOLO tiene CST + Ley 1010 + Res. 652/2012,
+        // ningún artículo civil/comercial real - buscar en el CST para este
+        // tipo no solo es inútil, es contraproducente: citar subordinación en
+        // un contrato que por definición no la tiene es el argumento típico
+        // que usan los jueces para reclasificarlo como "contrato realidad"
+        // (relación laboral disfrazada), con toda la carga prestacional
+        // retroactiva que eso implica para el cliente. Pregunta real del
+        // usuario la que hizo notar este gap - la prueba empírica de hoy no
+        // citó CST por suerte (el buscador no encontró coincidencias), no
+        // por diseño; sin este fix el riesgo seguía latente.
+        'Contrato de Prestación de Servicios' => ['descripcion' => 'de prestación de servicios (civil/comercial, independiente, sin subordinación)', 'tema_cst' => null, 'regimen' => 'civil'],
+        'Contrato de Aprendizaje'             => ['descripcion' => 'de aprendizaje', 'tema_cst' => 'contrato aprendizaje SENA estudiante', 'regimen' => 'laboral'],
+        'Contrato Ocasional o Transitorio'    => ['descripcion' => 'ocasional o transitorio (máximo 30 días)', 'tema_cst' => 'contrato trabajo ocasional accidental transitorio', 'regimen' => 'laboral'],
     ];
 
     public function redactarObjetoJuridico(SolicitudContrato $solicitud): string
     {
         $infoTipo = self::DESCRIPCION_TIPO_CONTRATO[$solicitud->tipo_contrato]
-            ?? ['descripcion' => 'de trabajo', 'tema_cst' => 'contrato trabajo'];
+            ?? ['descripcion' => 'de trabajo', 'tema_cst' => 'contrato trabajo', 'regimen' => 'laboral'];
 
-        $articulosCst = $this->ritGeneratorService->buscarArticulosPorTema(
-            $infoTipo['tema_cst'],
-            limite: 6,
-        );
+        $articulosCst = $infoTipo['tema_cst']
+            ? $this->ritGeneratorService->buscarArticulosPorTema($infoTipo['tema_cst'], limite: 6)
+            : '';
 
-        $prompt = $this->construirPromptObjeto($solicitud, $articulosCst, $infoTipo['descripcion']);
+        $prompt = $this->construirPromptObjeto($solicitud, $articulosCst, $infoTipo['descripcion'], $infoTipo['regimen']);
 
         return $this->llamarGemini($prompt, $solicitud->empresa_id);
     }
 
-    private function construirPromptObjeto(SolicitudContrato $solicitud, string $articulosCst, string $descripcionTipo): string
+    private function construirPromptObjeto(SolicitudContrato $solicitud, string $articulosCst, string $descripcionTipo, string $regimen): string
     {
         $nombreTrabajador = trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}");
         $fechaInicio       = $solicitud->fecha_inicio_propuesta?->format('Y-m-d') ?? 'No especificada';
         $salario           = $solicitud->salario_propuesto ?? 'No especificado';
+
+        if ($regimen === 'civil') {
+            // Sin sección de artículos del CST a propósito: este sistema no
+            // tiene ningún artículo del Código Civil/Comercio cargado, y
+            // buscar en el CST (pensado para relaciones laborales) es
+            // legalmente contraproducente para un contrato que por
+            // definición no tiene subordinación - ver comentario en
+            // DESCRIPCION_TIPO_CONTRATO arriba.
+            return <<<PROMPT
+            Eres un abogado colombiano redactando el OBJETO JURÍDICO de un
+            contrato {$descripcionTipo}, con base ÚNICAMENTE en los datos
+            provistos abajo.
+
+            PROHIBICIÓN ABSOLUTA: No inventes cargo, funciones, honorarios,
+            fechas ni ningún dato que no esté explícitamente en "DATOS DE LA
+            SOLICITUD" abajo.
+
+            PROHIBICIÓN ABSOLUTA: No cites artículos del Código Sustantivo del
+            Trabajo ni ninguna otra norma - este es un contrato civil/
+            comercial, no una relación laboral, y no hay una fuente jurídica
+            civil verificada disponible para citar con precisión.
+
+            OBLIGATORIO: El texto debe dejar explícito que la relación es
+            independiente, sin subordinación ni relación laboral, sin horario
+            fijo impuesto por el contratante más allá de los entregables
+            acordados - es la característica que distingue este contrato de
+            uno laboral, y omitirla es un riesgo real de que la relación se
+            reclasifique como "contrato realidad" (relación laboral
+            disfrazada).
+
+            DATOS DE LA SOLICITUD:
+            - Contratista: {$nombreTrabajador}, calidad: {$solicitud->cargo_contrato}
+            - Responsabilidades/servicios: {$solicitud->responsabilidades}
+            - Objeto comercial (contexto del negocio que RRHH describió): {$solicitud->objeto_comercial}
+            - Alcance detallado: {$solicitud->manual_funciones}
+            - Honorarios propuestos: {$salario}
+            - Fecha de inicio propuesta: {$fechaInicio}
+
+            Redacta el objeto jurídico del contrato {$descripcionTipo} en 1-3
+            párrafos de prosa jurídica formal, en tercera persona, describiendo
+            con precisión el servicio que se contrata (a partir del objeto
+            comercial y el alcance provistos), sin markdown ni asteriscos. No
+            repitas los datos en formato de lista - redáctalos como un objeto
+            contractual coherente.
+            PROMPT;
+        }
 
         return <<<PROMPT
         Eres un abogado laboralista colombiano redactando el OBJETO JURÍDICO
