@@ -186,7 +186,27 @@ class ModificacionContractualResource extends Resource
                             // la visibilidad - si el valor real fuera un cargo (texto),
                             // FormateoNumerico::miles() lo trataría como número y
                             // corrompería el dato antes de guardar.
-                            ->afterStateUpdated(fn (Set $set, ?string $state) => $set('valor_nuevo', FormateoNumerico::miles($state)))
+                            //
+                            // Guarda con Get $get: el mismo riesgo de arriba aplica
+                            // también a afterStateUpdated, no solo a
+                            // afterStateHydrated - HasState::callAfterStateUpdated()
+                            // recorre TODOS los componentes con
+                            // getComponents(withHidden: true) y ejecuta el
+                            // afterStateUpdated del PRIMERO que coincida con el
+                            // statePath 'valor_nuevo', sin importar cuál esté
+                            // realmente visible. Como este TextInput de Salario es
+                            // el primero de los 4 definido en el schema, su
+                            // formateador numérico se disparaba SIEMPRE - cualquier
+                            // usuario que eligiera cargo/jornada/tipo_contrato veía
+                            // su valor real corrompido a null en cuanto lo escribía.
+                            // Bug real confirmado con Livewire::test() + lectura del
+                            // código fuente de Filament, no solo un hallazgo teórico.
+                            ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
+                                if ($get('tipo_modificacion') !== 'salario') {
+                                    return;
+                                }
+                                $set('valor_nuevo', FormateoNumerico::miles($state));
+                            })
                             ->stripCharacters('.')
                             ->rule('numeric')
                             ->minValue(0)
