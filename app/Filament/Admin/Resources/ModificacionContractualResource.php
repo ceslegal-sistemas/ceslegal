@@ -178,7 +178,10 @@ class ModificacionContractualResource extends Resource
                             ->label('Nuevo Salario')
                             ->visible(fn (Get $get) => $get('tipo_modificacion') === 'salario')
                             ->required(fn (Get $get) => $get('tipo_modificacion') === 'salario')
-                            ->live(debounce: '500ms')
+                            // 150ms (no 500ms como antes) - mismo ajuste que
+                            // SolicitudContratoResource, a pedido del usuario, para que el
+                            // separador de miles aparezca casi en tiempo real al digitar.
+                            ->live(debounce: '150ms')
                             // Sin afterStateHydrated a propósito: los 4 campos
                             // "valor_nuevo" (este + los 3 Select de abajo) comparten
                             // el mismo nombre de estado, así que un hydrator acá se

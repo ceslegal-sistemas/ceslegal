@@ -399,7 +399,10 @@ class SolicitudContratoResource extends Resource
                                 // el mismo mecanismo Livewire ya usado en este archivo.
                                 ->rule('numeric')
                                 ->minValue(0)
-                                ->live(debounce: '500ms')
+                                // 150ms (no 500ms como antes) - a pedido del usuario, para
+                                // que el separador de miles aparezca prácticamente en tiempo
+                                // real mientras digita, no tras una pausa notoria.
+                                ->live(debounce: '150ms')
                                 ->afterStateHydrated(fn(Set $set, $state) => $set('salario_propuesto', \App\Support\FormateoNumerico::miles($state)))
                                 ->afterStateUpdated(fn(Set $set, ?string $state) => $set('salario_propuesto', \App\Support\FormateoNumerico::miles($state)))
                                 ->stripCharacters('.')
