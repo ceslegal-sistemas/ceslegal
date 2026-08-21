@@ -85,8 +85,13 @@ class RitBloqueEmbeddingService
      *
      * @return Collection<int, int> IDs de empresa, sin duplicados
      */
-    public function empresasCandidatas(DocumentoLegal $documento, float $umbral = 0.75): Collection
+    public function empresasCandidatas(DocumentoLegal $documento, ?float $umbral = null): Collection
     {
+        // Umbral en config, no hardcodeado: filtro barato = generoso a propósito
+        // (prioriza no descartar nada relevante sobre precisión) - ajustable sin
+        // deploy mientras se calibra con datos reales de producción.
+        $umbral ??= (float) config('ces.rit_filtro_umbral_similitud', 0.5);
+
         $fragmentosEmbeddings = $documento->fragmentos()
             ->whereNotNull('embedding')
             ->pluck('embedding');
@@ -113,15 +118,35 @@ class RitBloqueEmbeddingService
                 continue;
             }
 
-            foreach ($fragmentosEmbeddings as $embFragmento) {
-                $hayCoincidencia = $bloques->contains(
-                    fn (array $embBloque) => VectorSearch::cosine($embFragmento, $embBloque) >= $umbral
-                );
+            // Score máximo visto para este RIT, aunque no cruce el umbral - sin
+            // esto es imposible saber después si el umbral está bien calibrado
+            // (¿los casos que no pasaron estaban lejos, o rozando 0.74?).
+            $scoreMaximo = 0.0;
+            $huboCoincidencia = false;
 
-                if ($hayCoincidencia) {
-                    $empresasCandidatas->push($rit->empresa_id);
-                    break; // un bloque ya bastó para marcar esta empresa como candidata
+            foreach ($fragmentosEmbeddings as $embFragmento) {
+                foreach ($bloques as $embBloque) {
+                    $score = VectorSearch::cosine($embFragmento, $embBloque);
+                    if ($score > $scoreMaximo) {
+                        $scoreMaximo = $score;
+                    }
+                    if ($score >= $umbral) {
+                        $huboCoincidencia = true;
+                    }
                 }
+            }
+
+            Log::info('RitBloqueEmbeddingService: score de similitud evaluado', [
+                'documento_legal_id' => $documento->id,
+                'reglamento_interno_id' => $rit->id,
+                'empresa_id' => $rit->empresa_id,
+                'score_maximo' => round($scoreMaximo, 4),
+                'umbral' => $umbral,
+                'paso_filtro' => $huboCoincidencia,
+            ]);
+
+            if ($huboCoincidencia) {
+                $empresasCandidatas->push($rit->empresa_id);
             }
         }
 
