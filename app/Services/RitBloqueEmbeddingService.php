@@ -101,15 +101,24 @@ class RitBloqueEmbeddingService
         foreach ($ritsActivos as $rit) {
             $this->asegurarBloques($rit);
 
+            // Traer los bloques del RIT UNA sola vez (no por cada fragmento del
+            // documento) - el set de bloques no cambia entre fragmentos, así que
+            // repetir la consulta ahí adentro era O(RITs × fragmentos) round-trips
+            // en vez de O(RITs).
+            $bloques = BloqueReglamentoInterno::where('reglamento_interno_id', $rit->id)
+                ->whereNotNull('embedding')
+                ->pluck('embedding');
+
+            if ($bloques->isEmpty()) {
+                continue;
+            }
+
             foreach ($fragmentosEmbeddings as $embFragmento) {
-                $coincidencias = VectorSearch::topK(
-                    query: BloqueReglamentoInterno::where('reglamento_interno_id', $rit->id)->whereNotNull('embedding'),
-                    queryEmb: $embFragmento,
-                    k: 1,
-                    umbral: $umbral,
+                $hayCoincidencia = $bloques->contains(
+                    fn (array $embBloque) => VectorSearch::cosine($embFragmento, $embBloque) >= $umbral
                 );
 
-                if (!empty($coincidencias)) {
+                if ($hayCoincidencia) {
                     $empresasCandidatas->push($rit->empresa_id);
                     break; // un bloque ya bastó para marcar esta empresa como candidata
                 }
