@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Dompdf\Dompdf;
 use Dompdf\Options;
-use Dompdf\Adapter\CPDF as CpdfAdapter;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Shared\Converter;
 use PhpOffice\PhpWord\SimpleType\Jc;
@@ -812,9 +811,8 @@ PROMPT;
         $dompdf->render();
 
         // Cifrar solo RIT de IA (solo impresión). Los subidos por el cliente, sin protección.
-        $canvas = $dompdf->getCanvas();
-        if ($proteger && $canvas instanceof CpdfAdapter) {
-            $canvas->get_cpdf()->setEncryption('', $this->ownerPassword($empresa), ['print']);
+        if ($proteger) {
+            \App\Support\PdfProteccion::proteger($dompdf, $this->ownerPassword($empresa));
         }
 
         $tmpPath = tempnam(sys_get_temp_dir(), 'rit_') . '.pdf';
