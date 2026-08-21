@@ -153,16 +153,29 @@ class SolicitudContratoResource extends Resource
 
                             Forms\Components\Section::make('Datos Personales del Trabajador')
                                 ->visible(fn(Get $get) => !$get('_usar_trabajador_existente'))
+                                // ->dehydratedWhenHidden() AQUÍ, en la Section, no solo en los
+                                // campos hijos: CanBeValidated::getValidationRules() (y por
+                                // extensión getState()) recorre los componentes de nivel
+                                // superior del Step y hace `continue` si el propio componente
+                                // (aquí la Section) es isHiddenAndNotDehydrated() - eso pasa
+                                // ANTES de siquiera mirar sus hijos, así que el
+                                // dehydratedWhenHidden() de los TextInput internos nunca se
+                                // llega a evaluar si la Section misma no lo tiene también.
+                                // Confirmado leyendo vendor/filament/forms/src/Concerns/
+                                // CanBeValidated.php y reproduciendo con Livewire::test() el
+                                // INSERT real que fallaba en producción (un intento previo con
+                                // solo ->dehydrated() en los campos, y luego uno con solo
+                                // ->dehydratedWhenHidden() en los campos sin tocar la Section,
+                                // ambos seguían sin incluir trabajador_nombres en getState()).
+                                ->dehydratedWhenHidden()
                                 ->schema([
-                                    // ->dehydrated() en cada campo: al usar un trabajador
-                                    // existente esta Section queda oculta, y Filament NO
-                                    // incluye en el guardado los campos de un componente
-                                    // oculto por defecto - aunque afterStateUpdated() ya
-                                    // los haya poblado con $set(). Sin esto, trabajador_id
-                                    // se guardaba pero trabajador_nombres/apellidos/etc.
-                                    // quedaban totalmente fuera del INSERT, y esas columnas
-                                    // no admiten NULL: SQLSTATE 1364 "Field 'trabajador_nombres'
-                                    // doesn't have a default value" en CUALQUIER creación con
+                                    // dehydratedWhenHidden() en cada campo también, por
+                                    // consistencia con la Section - sin esto, al usar un
+                                    // trabajador existente esta Section queda oculta y
+                                    // trabajador_id se guardaba pero trabajador_nombres/
+                                    // apellidos/etc. quedaban fuera del INSERT: esas columnas
+                                    // no admiten NULL, SQLSTATE 1364 "Field 'trabajador_nombres'
+                                    // doesn't have a default value" en cualquier creación con
                                     // trabajador existente.
                                     Forms\Components\TextInput::make('trabajador_nombres')
                                         ->label('Nombres')
@@ -170,7 +183,7 @@ class SolicitudContratoResource extends Resource
                                         ->maxLength(255)
                                         ->placeholder('Ej: Juan Carlos')
                                         ->helperText('Nombres completos del trabajador')
-                                        ->dehydrated(),
+                                        ->dehydratedWhenHidden(),
 
                                     Forms\Components\TextInput::make('trabajador_apellidos')
                                         ->label('Apellidos')
@@ -178,7 +191,7 @@ class SolicitudContratoResource extends Resource
                                         ->maxLength(255)
                                         ->placeholder('Ej: Pérez García')
                                         ->helperText('Apellidos completos del trabajador')
-                                        ->dehydrated(),
+                                        ->dehydratedWhenHidden(),
 
                                     Forms\Components\Select::make('trabajador_documento_tipo')
                                         ->label('Tipo de Documento')
@@ -193,7 +206,7 @@ class SolicitudContratoResource extends Resource
                                         ->native(false)
                                         ->live()
                                         ->suffixIcon('heroicon-o-identification')
-                                        ->dehydrated(),
+                                        ->dehydratedWhenHidden(),
 
                                     Forms\Components\TextInput::make('trabajador_documento_numero')
                                         ->label('Número de Documento')
@@ -210,7 +223,7 @@ class SolicitudContratoResource extends Resource
                                             default => 'Ingrese el número',
                                         })
                                         ->helperText('Número de identificación del trabajador')
-                                        ->dehydrated(),
+                                        ->dehydratedWhenHidden(),
 
                                     Forms\Components\TextInput::make('trabajador_email')
                                         ->label('Correo Electrónico')
@@ -220,7 +233,7 @@ class SolicitudContratoResource extends Resource
                                         ->placeholder('trabajador@empresa.com')
                                         ->helperText('Email de contacto del trabajador')
                                         ->suffixIcon('heroicon-o-envelope')
-                                        ->dehydrated(),
+                                        ->dehydratedWhenHidden(),
 
                                     Forms\Components\TextInput::make('trabajador_telefono')
                                         ->label('Teléfono / Celular')
@@ -229,7 +242,7 @@ class SolicitudContratoResource extends Resource
                                         ->placeholder('Ej: +57 300 123 4567')
                                         ->helperText('Número de contacto')
                                         ->suffixIcon('heroicon-o-phone')
-                                        ->dehydrated(),
+                                        ->dehydratedWhenHidden(),
 
                                     Forms\Components\Textarea::make('trabajador_direccion')
                                         ->label('Dirección de Residencia')
@@ -237,7 +250,7 @@ class SolicitudContratoResource extends Resource
                                         ->placeholder('Ej: Calle 123 # 45-67')
                                         ->helperText('Dirección completa (opcional)')
                                         ->columnSpanFull()
-                                        ->dehydrated(),
+                                        ->dehydratedWhenHidden(),
                                 ])->columns(2),
                         ]),
 
