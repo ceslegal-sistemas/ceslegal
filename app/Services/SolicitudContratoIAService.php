@@ -356,6 +356,13 @@ class SolicitudContratoIAService
         $dompdf->setPaper('letter', 'portrait');
         $dompdf->render();
 
+        // Protección real (no de interfaz): solo permiso de impresión, mismo
+        // mecanismo ya usado para el RIT generado con IA - ver App\Support\PdfProteccion.
+        \App\Support\PdfProteccion::proteger(
+            $dompdf,
+            \App\Support\PdfProteccion::ownerPassword($solicitud->empresa_id, 'contrato')
+        );
+
         file_put_contents($rutaAbsoluta, $dompdf->output());
 
         $solicitud->update([
