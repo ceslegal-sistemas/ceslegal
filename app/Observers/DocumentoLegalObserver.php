@@ -68,6 +68,18 @@ class DocumentoLegalObserver
         // existentes). Por ahora solo se loguea para verificación - Plan B usará
         // este resultado para la sugerencia de IA + notificación específica, que
         // reemplazará la notificación genérica de arriba.
+        //
+        // Apagado por defecto (config('ces.rit_filtro_impacto_habilitado')):
+        // mientras ningún RIT tenga bloques_texto_hash poblado, el primer
+        // documento que se procese dispararía una regeneración COMPLETA y
+        // SÍNCRONA de embeddings de TODOS los RIT activos (RIT reales locales
+        // de hasta 425 bloques cada uno) - riesgo real de agotar la cuota
+        // compartida de Gemini. Correr `php artisan rit:precalentar-bloques`
+        // primero, en horario de bajo tráfico, y solo después habilitar esto.
+        if (!config('ces.rit_filtro_impacto_habilitado')) {
+            return;
+        }
+
         try {
             $candidatas = app(\App\Services\RitBloqueEmbeddingService::class)->empresasCandidatas($documento);
             \Illuminate\Support\Facades\Log::info('DocumentoLegalObserver: filtro de impacto RIT', [
