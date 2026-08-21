@@ -438,6 +438,15 @@ class SolicitudContratoIAService
         $dompdf->setPaper('letter', 'portrait');
         $dompdf->render();
 
+        // Protección real (no de interfaz): solo permiso de impresión, mismo
+        // mecanismo ya usado para el RIT y el contrato - ver App\Support\PdfProteccion.
+        // Sal distinta a 'contrato' a propósito: contraseñas de propietario
+        // independientes por tipo de documento, aunque sea la misma empresa.
+        \App\Support\PdfProteccion::proteger(
+            $dompdf,
+            \App\Support\PdfProteccion::ownerPassword($modificacion->empresa_id, 'otrosi')
+        );
+
         file_put_contents($rutaAbsoluta, $dompdf->output());
 
         $modificacion->update([
