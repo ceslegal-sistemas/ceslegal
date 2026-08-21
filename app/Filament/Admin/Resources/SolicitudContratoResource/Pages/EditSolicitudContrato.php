@@ -16,9 +16,49 @@ class EditSolicitudContrato extends EditRecord
 
     protected static string $resource = SolicitudContratoResource::class;
 
+    /**
+     * Quitar el Select crudo de "Estado" (Task 5) dejó sin forma de llegar a
+     * rechazado/finalizado - ningún flujo automático los asigna (confirmado
+     * por grep). Estas 2 acciones son el único camino a esos 2 estados
+     * terminales ahora.
+     */
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('rechazar')
+                ->label('Rechazar Solicitud')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalDescription('¿Está seguro de rechazar esta solicitud de contrato? Esta acción no se puede deshacer desde la interfaz.')
+                ->visible(fn() => !in_array($this->record->estado, ['finalizado', 'rechazado'], true))
+                ->action(function () {
+                    $this->record->update(['estado' => 'rechazado']);
+                    $this->refreshFormData(['estado']);
+
+                    Notification::make()
+                        ->success()
+                        ->title('Solicitud rechazada')
+                        ->send();
+                }),
+
+            Actions\Action::make('finalizar')
+                ->label('Marcar como Finalizada')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalDescription('¿Confirma que esta solicitud de contrato quedó finalizada?')
+                ->visible(fn() => $this->record->estado === 'contrato_generado')
+                ->action(function () {
+                    $this->record->update(['estado' => 'finalizado', 'fecha_cierre' => now()]);
+                    $this->refreshFormData(['estado']);
+
+                    Notification::make()
+                        ->success()
+                        ->title('Solicitud finalizada')
+                        ->send();
+                }),
+
             Actions\DeleteAction::make(),
         ];
     }

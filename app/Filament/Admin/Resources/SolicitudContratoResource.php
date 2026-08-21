@@ -465,26 +465,26 @@ class SolicitudContratoResource extends Resource
                     ),
 
                 // Campos solo para edición - Estado del proceso
-                Forms\Components\Section::make('Estado de la Solicitud')
-                    ->description('Información sobre el estado actual')
+                Forms\Components\Section::make('Progreso de la Solicitud')
+                    ->description('En qué paso va su solicitud y qué sigue')
                     ->icon('heroicon-o-clipboard-document-check')
                     ->schema([
-                        Forms\Components\Select::make('estado')
-                            ->label('Estado')
-                            ->options([
-                                'pendiente' => 'Pendiente de Asignación',
-                                'en_analisis' => 'En Análisis Jurídico',
-                                'contrato_generado' => 'Contrato Generado',
-                                'enviado_rrhh' => 'Enviado a RRHH',
-                                'finalizado' => 'Finalizado',
-                                'rechazado' => 'Rechazado',
-                            ])
-                            ->required()
-                            ->default('pendiente')
-                            ->native(false)
-                            ->helperText('Estado actual de la solicitud')
-                            ->suffixIcon('heroicon-o-flag'),
+                        Forms\Components\Hidden::make('estado')
+                            ->default('pendiente'),
 
+                        Forms\Components\View::make('filament.components.solicitud-contrato-progreso')
+                            ->viewData(fn(Get $get, $record) => [
+                                'estadoActual' => $get('estado') ?? 'pendiente',
+                                'solicitudId' => $record?->id,
+                                'rutaContratoExiste' => filled($record?->ruta_contrato),
+                            ]),
+                    ])
+                    ->hiddenOn('create'),
+
+                Forms\Components\Section::make('Asignación interna')
+                    ->description('Solo visible para el equipo de CES Legal')
+                    ->icon('heroicon-o-user-circle')
+                    ->schema([
                         Forms\Components\Select::make('abogado_id')
                             ->label('Abogado Asignado')
                             ->relationship('abogado', 'name', fn(Builder $query) => $query->where('role', 'abogado'))
@@ -493,36 +493,9 @@ class SolicitudContratoResource extends Resource
                             ->helperText('Abogado responsable del análisis')
                             ->placeholder('Seleccione un abogado...')
                             ->suffixIcon('heroicon-o-scale'),
-
-                        Forms\Components\DateTimePicker::make('fecha_analisis')
-                            ->label('Fecha de Análisis')
-                            ->native(false)
-                            ->displayFormat('d/m/Y H:i')
-                            ->helperText('Fecha en que se realizó el análisis jurídico')
-                            ->suffixIcon('heroicon-o-calendar'),
-
-                        Forms\Components\DateTimePicker::make('fecha_generacion_contrato')
-                            ->label('Fecha de Generación del Contrato')
-                            ->native(false)
-                            ->displayFormat('d/m/Y H:i')
-                            ->helperText('Fecha en que se generó el contrato')
-                            ->suffixIcon('heroicon-o-calendar'),
-
-                        Forms\Components\DateTimePicker::make('fecha_envio_rrhh')
-                            ->label('Fecha de Envío a RRHH')
-                            ->native(false)
-                            ->displayFormat('d/m/Y H:i')
-                            ->helperText('Fecha en que se envió a Recursos Humanos')
-                            ->suffixIcon('heroicon-o-calendar'),
-
-                        Forms\Components\DateTimePicker::make('fecha_cierre')
-                            ->label('Fecha de Cierre')
-                            ->native(false)
-                            ->displayFormat('d/m/Y H:i')
-                            ->helperText('Fecha de finalización del proceso')
-                            ->suffixIcon('heroicon-o-calendar'),
-                    ])->columns(2)
-                    ->hiddenOn('create'),
+                    ])
+                    ->collapsed()
+                    ->hiddenOn(['create', 'view']),
 
                 Forms\Components\Section::make('Análisis Jurídico')
                     ->description('Observaciones y objeto jurídico')
