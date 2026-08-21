@@ -3,7 +3,10 @@
 namespace App\Services;
 
 use App\Models\BloqueReglamentoInterno;
+use App\Models\DocumentoLegal;
 use App\Models\ReglamentoInterno;
+use App\Support\VectorSearch;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -72,6 +75,48 @@ class RitBloqueEmbeddingService
             'bloques_texto_hash'    => $hashActual,
             'bloques_generados_en'  => now(),
         ]);
+    }
+
+    /**
+     * Dado un DocumentoLegal recién procesado, devuelve los IDs de empresa
+     * cuyo RIT activo tiene al menos un bloque con similitud alta contra
+     * algún fragmento del documento - candidatas a revisión con IA (Plan B).
+     * Sin llamada generativa: solo compara embeddings ya calculados.
+     *
+     * @return Collection<int, int> IDs de empresa, sin duplicados
+     */
+    public function empresasCandidatas(DocumentoLegal $documento, float $umbral = 0.75): Collection
+    {
+        $fragmentosEmbeddings = $documento->fragmentos()
+            ->whereNotNull('embedding')
+            ->pluck('embedding');
+
+        if ($fragmentosEmbeddings->isEmpty()) {
+            return collect();
+        }
+
+        $ritsActivos = ReglamentoInterno::where('activo', true)->get();
+        $empresasCandidatas = collect();
+
+        foreach ($ritsActivos as $rit) {
+            $this->asegurarBloques($rit);
+
+            foreach ($fragmentosEmbeddings as $embFragmento) {
+                $coincidencias = VectorSearch::topK(
+                    query: BloqueReglamentoInterno::where('reglamento_interno_id', $rit->id)->whereNotNull('embedding'),
+                    queryEmb: $embFragmento,
+                    k: 1,
+                    umbral: $umbral,
+                );
+
+                if (!empty($coincidencias)) {
+                    $empresasCandidatas->push($rit->empresa_id);
+                    break; // un bloque ya bastó para marcar esta empresa como candidata
+                }
+            }
+        }
+
+        return $empresasCandidatas->unique()->values();
     }
 
     private function obtenerEmbedding(string $texto, int $ritId, int $orden): ?array
