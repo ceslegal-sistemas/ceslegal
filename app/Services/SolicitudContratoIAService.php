@@ -12,15 +12,14 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * IA para el flujo de SolicitudContrato (contratos por obra o labor,
- * gestión interna de CES Legal - "Análisis Jurídico" en
- * SolicitudContratoResource): redacta un borrador del objeto jurídico
- * anclado en el CST (mismo principio que LUPE - la IA no razona desde su
- * propio criterio, cita solo artículos realmente provistos) y genera el
- * PDF final del contrato. No usa DocumentoService (framework de plantillas
- * sin ninguna referencia real en el proyecto) - usa el mismo patrón
- * HTML+Dompdf de DocumentGeneratorService, que sí es el que se usa en todo
- * el sistema.
+ * IA para el flujo de SolicitudContrato (los 6 tipos de contrato de
+ * SolicitudContratoResource, gestión interna de CES Legal - "Análisis
+ * Jurídico"): redacta un borrador del objeto jurídico anclado en el CST
+ * (mismo principio que LUPE - la IA no razona desde su propio criterio,
+ * cita solo artículos realmente provistos) y genera el PDF final del
+ * contrato. No usa DocumentoService (framework de plantillas sin ninguna
+ * referencia real en el proyecto) - usa el mismo patrón HTML+Dompdf de
+ * DocumentGeneratorService, que sí es el que se usa en todo el sistema.
  */
 class SolicitudContratoIAService
 {
@@ -33,19 +32,40 @@ class SolicitudContratoIAService
      * el llamador decide (el abogado revisa/edita el borrador en el
      * RichEditor antes de guardar el formulario).
      */
+    /**
+     * Descripción legal + tema de búsqueda CST por tipo_contrato. Antes este
+     * prompt tenía "obra o labor determinada" HARDCODEADO sin importar el
+     * tipo_contrato real de la solicitud (el servicio nació pensado solo
+     * para ese tipo, según su propio docblock de clase) - producía un
+     * objeto jurídico legalmente INCORRECTO para cualquiera de los otros 5
+     * tipos (ej. describía "obra o labor" en un contrato a Término Fijo).
+     * Bug real encontrado con Livewire::test() usando IA real, no teórico.
+     */
+    private const DESCRIPCION_TIPO_CONTRATO = [
+        'Contrato a Término Fijo'             => ['descripcion' => 'a término fijo', 'tema_cst' => 'contrato trabajo término fijo duración renovación'],
+        'Contrato a Término Indefinido'       => ['descripcion' => 'a término indefinido', 'tema_cst' => 'contrato trabajo término indefinido'],
+        'Contrato de Obra o Labor'            => ['descripcion' => 'por obra o labor determinada', 'tema_cst' => 'contrato trabajo obra labor determinada duración'],
+        'Contrato de Prestación de Servicios' => ['descripcion' => 'de prestación de servicios (independiente, sin subordinación)', 'tema_cst' => 'contrato prestación servicios independiente sin subordinación'],
+        'Contrato de Aprendizaje'             => ['descripcion' => 'de aprendizaje', 'tema_cst' => 'contrato aprendizaje SENA estudiante'],
+        'Contrato Ocasional o Transitorio'    => ['descripcion' => 'ocasional o transitorio (máximo 30 días)', 'tema_cst' => 'contrato trabajo ocasional accidental transitorio'],
+    ];
+
     public function redactarObjetoJuridico(SolicitudContrato $solicitud): string
     {
+        $infoTipo = self::DESCRIPCION_TIPO_CONTRATO[$solicitud->tipo_contrato]
+            ?? ['descripcion' => 'de trabajo', 'tema_cst' => 'contrato trabajo'];
+
         $articulosCst = $this->ritGeneratorService->buscarArticulosPorTema(
-            'contrato trabajo obra labor determinada duración',
+            $infoTipo['tema_cst'],
             limite: 6,
         );
 
-        $prompt = $this->construirPromptObjeto($solicitud, $articulosCst);
+        $prompt = $this->construirPromptObjeto($solicitud, $articulosCst, $infoTipo['descripcion']);
 
         return $this->llamarGemini($prompt, $solicitud->empresa_id);
     }
 
-    private function construirPromptObjeto(SolicitudContrato $solicitud, string $articulosCst): string
+    private function construirPromptObjeto(SolicitudContrato $solicitud, string $articulosCst, string $descripcionTipo): string
     {
         $nombreTrabajador = trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}");
         $fechaInicio       = $solicitud->fecha_inicio_propuesta?->format('Y-m-d') ?? 'No especificada';
@@ -53,9 +73,9 @@ class SolicitudContratoIAService
 
         return <<<PROMPT
         Eres un abogado laboralista colombiano redactando el OBJETO JURÍDICO
-        de un contrato de trabajo por obra o labor determinada, con base
-        ÚNICAMENTE en los datos provistos y los artículos del Código
-        Sustantivo del Trabajo (CST) listados abajo.
+        de un contrato de trabajo {$descripcionTipo}, con base ÚNICAMENTE en
+        los datos provistos y los artículos del Código Sustantivo del
+        Trabajo (CST) listados abajo.
 
         PROHIBICIÓN ABSOLUTA: Solo puedes citar artículos del CST que
         aparezcan en la sección "ARTÍCULOS DEL CST DISPONIBLES" de abajo. Si
@@ -67,6 +87,7 @@ class SolicitudContratoIAService
         abajo.
 
         DATOS DE LA SOLICITUD:
+        - Tipo de contrato: {$solicitud->tipo_contrato}
         - Trabajador: {$nombreTrabajador}, cargo: {$solicitud->cargo_contrato}
         - Responsabilidades: {$solicitud->responsabilidades}
         - Objeto comercial (contexto del negocio que RRHH describió): {$solicitud->objeto_comercial}
@@ -77,12 +98,14 @@ class SolicitudContratoIAService
         ARTÍCULOS DEL CST DISPONIBLES:
         {$articulosCst}
 
-        Redacta el objeto jurídico del contrato de trabajo por obra o labor
-        determinada en 1-3 párrafos de prosa jurídica formal, en tercera
-        persona, describiendo con precisión la obra o labor que se
-        contrata (a partir del objeto comercial y el manual de funciones
-        provistos), sin markdown ni asteriscos. No repitas los datos en
-        formato de lista - redáctalos como un objeto contractual coherente.
+        Redacta el objeto jurídico del contrato de trabajo {$descripcionTipo}
+        en 1-3 párrafos de prosa jurídica formal, en tercera persona,
+        describiendo con precisión la labor que se contrata (a partir del
+        objeto comercial y el manual de funciones provistos), sin markdown
+        ni asteriscos. No repitas los datos en formato de lista - redáctalos
+        como un objeto contractual coherente. El texto debe ser consistente
+        con el tipo de contrato indicado arriba - nunca describir una
+        modalidad distinta a la señalada.
         PROMPT;
     }
 

@@ -136,8 +136,15 @@ class SolicitudContratoObserver
         $anio = now()->year;
         $prefijo = "SC-{$anio}-";
 
-        // Obtener el último número del año actual
-        $ultimaSolicitud = SolicitudContrato::where('codigo', 'like', "{$prefijo}%")
+        // withTrashed(): SolicitudContrato usa SoftDeletes, así que sin esto la
+        // consulta excluye los códigos ya borrados - la BD sí los sigue
+        // bloqueando por la restricción única de la columna, así que cualquier
+        // solicitud borrada dejaba su código "libre" para la lógica pero
+        // ocupado para la BD real, reventando con UniqueConstraintViolationException
+        // en la siguiente solicitud del mismo año (bug real, reproducido con
+        // Livewire::test() al borrar una solicitud de prueba y crear otra después).
+        $ultimaSolicitud = SolicitudContrato::withTrashed()
+            ->where('codigo', 'like', "{$prefijo}%")
             ->orderBy('codigo', 'desc')
             ->first();
 
