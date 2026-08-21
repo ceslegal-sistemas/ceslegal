@@ -61,5 +61,25 @@ class DocumentoLegalObserver
                 ])
                 ->sendToDatabase($user);
         }
+
+        // Filtro nuevo (Plan A de la actualización automática del RIT) - calcula
+        // qué empresas tienen un RIT realmente afectado por este documento, sin
+        // gastar ninguna llamada generativa (solo comparación de embeddings ya
+        // existentes). Por ahora solo se loguea para verificación - Plan B usará
+        // este resultado para la sugerencia de IA + notificación específica, que
+        // reemplazará la notificación genérica de arriba.
+        try {
+            $candidatas = app(\App\Services\RitBloqueEmbeddingService::class)->empresasCandidatas($documento);
+            \Illuminate\Support\Facades\Log::info('DocumentoLegalObserver: filtro de impacto RIT', [
+                'documento_legal_id' => $documento->id,
+                'empresas_candidatas' => $candidatas->all(),
+            ]);
+        } catch (\Throwable $e) {
+            // No debe tumbar el flujo de notificación existente si el filtro nuevo falla.
+            \Illuminate\Support\Facades\Log::warning('DocumentoLegalObserver: fallo en filtro de impacto RIT (no crítico)', [
+                'documento_legal_id' => $documento->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
