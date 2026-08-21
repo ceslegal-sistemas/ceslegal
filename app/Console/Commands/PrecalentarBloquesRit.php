@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\ReglamentoInterno;
 use App\Services\RitBloqueEmbeddingService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Genera de una vez los bloques+embeddings de todos los RIT activos que
@@ -18,8 +19,7 @@ use Illuminate\Console\Command;
 class PrecalentarBloquesRit extends Command
 {
     protected $signature = 'rit:precalentar-bloques
-        {--solo-pendientes : Solo procesa RIT sin bloques_texto_hash (por defecto). Usar --todos para forzar la regeneración de todos.}
-        {--todos : Regenera los bloques de TODOS los RIT activos, incluso los que ya tienen bloques_texto_hash al día.}';
+        {--todos : Por defecto solo procesa RIT sin bloques_texto_hash. Con esta opción, regenera los bloques de TODOS los RIT activos, incluso los que ya tienen bloques_texto_hash al día.}';
 
     protected $description = 'Precalienta los bloques+embeddings de los RIT activos, antes de habilitar el filtro de impacto de Biblioteca Legal.';
 
@@ -48,7 +48,16 @@ class PrecalentarBloquesRit extends Command
 
         $bar = $this->output->createProgressBar($rits->count());
         foreach ($rits as $rit) {
-            $service->asegurarBloques($rit);
+            try {
+                $service->asegurarBloques($rit);
+            } catch (\Throwable $e) {
+                // No debe abortar el lote completo por la falla de un solo RIT -
+                // se loguea y se sigue con los demás, revisando el resumen final.
+                Log::warning('rit:precalentar-bloques: fallo al precalentar un RIT, se continúa con los demás', [
+                    'reglamento_interno_id' => $rit->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
             $bar->advance();
         }
         $bar->finish();

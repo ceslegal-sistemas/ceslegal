@@ -5,8 +5,10 @@ namespace App\Observers;
 use App\Models\DocumentoLegal;
 use App\Models\ReglamentoInterno;
 use App\Models\User;
+use App\Services\RitBloqueEmbeddingService;
 use Filament\Notifications\Actions\Action as FilamentAction;
 use Filament\Notifications\Notification as FilamentNotification;
+use Illuminate\Support\Facades\Log;
 
 class DocumentoLegalObserver
 {
@@ -81,14 +83,14 @@ class DocumentoLegalObserver
         }
 
         try {
-            $candidatas = app(\App\Services\RitBloqueEmbeddingService::class)->empresasCandidatas($documento);
-            \Illuminate\Support\Facades\Log::info('DocumentoLegalObserver: filtro de impacto RIT', [
+            $candidatas = app(RitBloqueEmbeddingService::class)->empresasCandidatas($documento);
+            Log::info('DocumentoLegalObserver: filtro de impacto RIT', [
                 'documento_legal_id' => $documento->id,
                 'empresas_candidatas' => $candidatas->all(),
             ]);
         } catch (\Throwable $e) {
             // No debe tumbar el flujo de notificación existente si el filtro nuevo falla.
-            \Illuminate\Support\Facades\Log::warning('DocumentoLegalObserver: fallo en filtro de impacto RIT (no crítico)', [
+            Log::warning('DocumentoLegalObserver: fallo en filtro de impacto RIT (no crítico)', [
                 'documento_legal_id' => $documento->id,
                 'error' => $e->getMessage(),
             ]);
