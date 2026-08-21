@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\BloqueReglamentoInterno;
 use App\Models\ReglamentoInterno;
-use App\Services\RitDiffService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -40,13 +39,33 @@ class RitBloqueEmbeddingService
         $rit->bloques()->delete();
 
         $bloques = RitDiffService::partirEnBloques($rit->texto_completo);
+        $conExito = 0;
         foreach ($bloques as $orden => $contenido) {
+            $embedding = $this->obtenerEmbedding($contenido, $rit->id, $orden + 1);
+            if ($embedding) {
+                $conExito++;
+            }
+
             BloqueReglamentoInterno::create([
                 'reglamento_interno_id' => $rit->id,
                 'orden'                 => $orden + 1,
                 'contenido'             => $contenido,
-                'embedding'             => $this->obtenerEmbedding($contenido) ?: null,
+                'embedding'             => $embedding ?: null,
             ]);
+        }
+
+        // Si NINGÚN bloque logró embedding (falla sistémica: API key mala,
+        // cuota agotada, 429/timeout) no se marca el hash como "al día" - de
+        // lo contrario esta corrida queda permanentemente atascada con
+        // embeddings en null, sin ningún reintento futuro, hasta que el
+        // texto del RIT vuelva a cambiar. Con al menos 1 bloque exitoso sí
+        // se marca (evita reintentar toda la cuota si solo falló uno o dos).
+        if ($conExito === 0 && count($bloques) > 0) {
+            Log::warning('RitBloqueEmbeddingService: ningún bloque obtuvo embedding, hash NO marcado como al día (se reintentará en la próxima corrida)', [
+                'reglamento_interno_id' => $rit->id,
+                'total_bloques' => count($bloques),
+            ]);
+            return;
         }
 
         $rit->update([
@@ -55,11 +74,11 @@ class RitBloqueEmbeddingService
         ]);
     }
 
-    private function obtenerEmbedding(string $texto): ?array
+    private function obtenerEmbedding(string $texto, int $ritId, int $orden): ?array
     {
         $cacheKey = 'rit_bloque_emb_' . md5($texto);
 
-        return Cache::remember($cacheKey, 86400, function () use ($texto) {
+        return Cache::remember($cacheKey, 86400, function () use ($texto, $ritId, $orden) {
             $apiKey = config('services.ia.gemini.api_key', '');
             $url    = "https://generativelanguage.googleapis.com/v1beta/models/"
                     . self::EMBEDDING_MODEL . ":embedContent?key={$apiKey}";
@@ -74,6 +93,8 @@ class RitBloqueEmbeddingService
 
             if (!$response->successful()) {
                 Log::warning('RitBloqueEmbeddingService: error generando embedding', [
+                    'reglamento_interno_id' => $ritId,
+                    'orden' => $orden,
                     'status' => $response->status(),
                 ]);
                 return null;
