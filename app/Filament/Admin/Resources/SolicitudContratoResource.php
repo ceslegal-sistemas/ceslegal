@@ -531,16 +531,6 @@ class SolicitudContratoResource extends Resource
                             ->placeholder('Ingrese observaciones jurídicas...')
                             ->helperText('Notas y observaciones del análisis jurídico')
                             ->columnSpanFull(),
-
-                        Forms\Components\FileUpload::make('ruta_contrato')
-                            ->label('Contrato Generado')
-                            ->directory('solicitudes-contratos/contratos-generados')
-                            ->acceptedFileTypes(['application/pdf'])
-                            ->maxSize(10240)
-                            ->helperText('Contrato final generado (PDF - Máx. 10MB)')
-                            ->downloadable()
-                            ->openable()
-                            ->columnSpanFull(),
                     ])
                     // 'view' además de 'create': esta sección tiene botones reales
                     // (redactarObjetoConIA()/generarContratoAction() vía wire:click

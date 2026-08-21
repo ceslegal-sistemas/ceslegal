@@ -172,6 +172,11 @@ Route::get('/biblioteca-legal/{documento}/descargar', function (\App\Models\Docu
     return response()->download($path, $documento->archivo_nombre_original ?? basename($documento->archivo_path));
 })->middleware(['auth'])->name('biblioteca.descargar');
 
+// Descarga del contrato generado de una Solicitud de Contrato (PDF protegido solo-impresión)
+Route::get('/solicitud-contrato/{solicitud}/descargar', [\App\Http\Controllers\SolicitudContratoDescargaController::class, 'contrato'])
+    ->middleware(['auth'])
+    ->name('solicitud-contrato.descargar');
+
 // Rutas de Email Tracking
 Route::get('/email/track/{token}.gif', [EmailTrackingController::class, 'pixel'])
     ->name('email.tracking.pixel');
