@@ -180,12 +180,6 @@ class SolicitudContratoObserver
                 $this->notificacionService->notificarContratoGenerado($solicitud);
                 break;
 
-            case 'enviado_rrhh':
-                if (empty($solicitud->fecha_envio_rrhh)) {
-                    $solicitud->fecha_envio_rrhh = now();
-                }
-                break;
-
             case 'cerrado':
                 if (empty($solicitud->fecha_cierre)) {
                     $solicitud->fecha_cierre = now();

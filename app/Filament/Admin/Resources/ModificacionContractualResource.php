@@ -114,7 +114,7 @@ class ModificacionContractualResource extends Resource
                                 // si en el futuro EmpresaActiva se habilita para otros
                                 // roles, no porque hoy filtre algo.
                                 modifyQueryUsing: fn (Builder $query) => $query
-                                    ->whereIn('estado', ['contrato_generado', 'enviado_rrhh', 'finalizado'])
+                                    ->whereIn('estado', ['contrato_generado', 'finalizado'])
                                     ->when(EmpresaActiva::id(), fn (Builder $q, int $empresaId) => $q->where('empresa_id', $empresaId)),
                             )
                             ->getOptionLabelFromRecordUsing(

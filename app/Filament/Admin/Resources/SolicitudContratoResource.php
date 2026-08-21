@@ -562,7 +562,6 @@ class SolicitudContratoResource extends Resource
                         'secondary' => 'pendiente',
                         'warning' => 'en_analisis',
                         'info' => 'contrato_generado',
-                        'primary' => 'enviado_rrhh',
                         'success' => 'finalizado',
                         'danger' => 'rechazado',
                     ])
@@ -570,7 +569,6 @@ class SolicitudContratoResource extends Resource
                         'heroicon-o-clock' => 'pendiente',
                         'heroicon-o-document-magnifying-glass' => 'en_analisis',
                         'heroicon-o-document-check' => 'contrato_generado',
-                        'heroicon-o-paper-airplane' => 'enviado_rrhh',
                         'heroicon-o-check-circle' => 'finalizado',
                         'heroicon-o-x-circle' => 'rechazado',
                     ])
@@ -578,7 +576,6 @@ class SolicitudContratoResource extends Resource
                         'pendiente' => 'Pendiente',
                         'en_analisis' => 'En Análisis',
                         'contrato_generado' => 'Contrato Generado',
-                        'enviado_rrhh' => 'Enviado a RRHH',
                         'finalizado' => 'Finalizado',
                         'rechazado' => 'Rechazado',
                         default => $state,
@@ -658,7 +655,6 @@ class SolicitudContratoResource extends Resource
                         'pendiente' => 'Pendiente',
                         'en_analisis' => 'En Análisis',
                         'contrato_generado' => 'Contrato Generado',
-                        'enviado_rrhh' => 'Enviado a RRHH',
                         'finalizado' => 'Finalizado',
                         'rechazado' => 'Rechazado',
                     ])
