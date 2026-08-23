@@ -411,6 +411,65 @@ class SolicitudContratoResource extends Resource
                                 ->placeholder('Ej: 2.500.000')
                                 ->helperText('Salario mensual propuesto para el cargo')
                                 ->suffixIcon('heroicon-o-currency-dollar'),
+
+                            Forms\Components\DatePicker::make('fecha_fin_contrato')
+                                ->label('Fecha de Terminación del Contrato')
+                                ->native(false)
+                                ->displayFormat('d/m/Y')
+                                ->afterOrEqual('fecha_inicio_propuesta')
+                                ->helperText('Fecha en que termina el contrato a término fijo')
+                                ->placeholder('Seleccione la fecha...')
+                                ->suffixIcon('heroicon-o-calendar'),
+
+                            // Mismas opciones/iconos/colores que el Select de
+                            // periodicidad de pago del wizard del RIT
+                            // (CreateReglamentoInterno.php:904-928) - se
+                            // reutilizan tal cual para no inventar un segundo
+                            // vocabulario de periodicidad en la misma app. A
+                            // diferencia del RIT (que permite varias
+                            // periodicidades por empresa con ->multiple()),
+                            // acá es una sola opción: un contrato individual
+                            // tiene un solo período de pago. Se usa
+                            // ToggleButtons y no Select porque ->colors()/
+                            // ->icons() no existen en Select (verificado
+                            // contra el código de Filament).
+                            Forms\Components\ToggleButtons::make('periodo_pago')
+                                ->label('Período de Pago')
+                                ->options([
+                                    'mensual'   => 'Mensual (último día hábil del mes)',
+                                    'quincenal' => 'Quincenal (días 15 y último)',
+                                    'semanal'   => 'Semanal',
+                                    'diario'    => 'Diario / jornaleros',
+                                    'destajo'   => 'Por obra o destajo (según producción)',
+                                ])
+                                ->colors([
+                                    'mensual'   => 'primary',
+                                    'quincenal' => 'success',
+                                    'semanal'   => 'warning',
+                                    'diario'    => 'danger',
+                                    'destajo'   => 'info',
+                                ])
+                                ->icons([
+                                    'mensual'   => 'heroicon-o-calendar',
+                                    'quincenal' => 'heroicon-o-calendar-date-range',
+                                    'semanal'   => 'heroicon-o-calendar-days',
+                                    'diario'    => 'heroicon-o-calendar-days',
+                                    'destajo'   => 'heroicon-o-cube-transparent',
+                                ])
+                                ->default('quincenal')
+                                ->inline()
+                                ->columnSpanFull(),
+
+                            Forms\Components\TextInput::make('lugar_labores')
+                                ->label('Lugar Donde Desempeñará Labores')
+                                ->maxLength(255)
+                                ->default(function (Get $get) {
+                                    $empresa = \App\Models\Empresa::find($get('empresa_id'));
+
+                                    return collect([$empresa?->ciudad, $empresa?->departamento])->filter()->implode(', ');
+                                })
+                                ->helperText('Por defecto, la ciudad y departamento de la empresa - edítelo si el trabajador labora en otro sitio')
+                                ->suffixIcon('heroicon-o-map-pin'),
                         ])->columns(2),
 
                     Forms\Components\Wizard\Step::make('Documentos')
