@@ -50,7 +50,10 @@ class SolicitudContrato extends Model
         'ruta_orden_compra',
         'ruta_manual_funciones',
         'fecha_inicio_propuesta',
+        'fecha_fin_contrato',
         'salario_propuesto',
+        'periodo_pago',
+        'lugar_labores',
         'fecha_analisis',
         'objeto_juridico_redactado',
         'observaciones_juridicas',
@@ -63,6 +66,7 @@ class SolicitudContrato extends Model
     protected $casts = [
         'fecha_solicitud' => 'datetime',
         'fecha_inicio_propuesta' => 'date',
+        'fecha_fin_contrato' => 'date',
         'salario_propuesto' => 'decimal:2',
         'fecha_analisis' => 'datetime',
         'fecha_generacion_contrato' => 'datetime',
