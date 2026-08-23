@@ -374,7 +374,82 @@ class SolicitudContratoIAService
         return $rutaRelativa;
     }
 
+    /**
+     * Vista Blade dedicada por tipo_contrato (mismo string literal que
+     * DESCRIPCION_TIPO_CONTRATO arriba). Si el tipo no está acá, generarHTML()
+     * cae a generarHTMLMinima() - los otros 5 tipos siguen con el documento
+     * mínimo actual hasta que se retomen con sus propias plantillas reales.
+     */
+    private const VISTA_POR_TIPO = [
+        'Contrato a Término Fijo' => 'pdfs.contratos.termino-fijo',
+    ];
+
+    private const DOCUMENTO_LABEL = [
+        'CC'   => 'cédula de ciudadanía',
+        'CE'   => 'cédula de extranjería',
+        'TI'   => 'tarjeta de identidad',
+        'PASS' => 'pasaporte',
+    ];
+
+    private const PERIODO_PAGO_FRASE = [
+        'quincenal' => 'cada quince (15) días',
+        'mensual'   => 'cada mes',
+        'semanal'   => 'cada semana',
+        'diario'    => 'cada día',
+        'destajo'   => 'según la obra o labor ejecutada',
+    ];
+
     private function generarHTML(SolicitudContrato $solicitud): string
+    {
+        if ($vista = self::VISTA_POR_TIPO[$solicitud->tipo_contrato] ?? null) {
+            return $this->generarHTMLDesdeVista($solicitud, $vista);
+        }
+
+        return $this->generarHTMLMinima($solicitud);
+    }
+
+    /**
+     * Motor de plantillas real (hoy solo Término Fijo) - las 29 cláusulas
+     * viven en la vista Blade, acá solo se preparan los datos variables.
+     */
+    private function generarHTMLDesdeVista(SolicitudContrato $solicitud, string $vista): string
+    {
+        $empresa           = $solicitud->empresa;
+        $periodoPago       = $solicitud->periodo_pago ?: 'quincenal';
+        $lugarContratacion = trim(collect([$empresa?->ciudad, $empresa?->departamento])->filter()->implode(', '), ', ');
+        $salario           = (float) ($solicitud->salario_propuesto ?? 0);
+
+        return view($vista, [
+            'nombreEmpresa'            => $empresa?->nombre_completo ?? '',
+            'nit'                      => $empresa?->nit ?? '',
+            'direccionEmpresa'         => $empresa?->direccion ?? '',
+            'telefonoEmpresa'          => $empresa?->telefono ?? '',
+            'representanteLegal'       => $empresa?->representante_legal ?? '',
+            'representanteLegalCedula' => $empresa?->representante_legal_cedula,
+            'nombreTrabajador'         => trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}"),
+            'tipoDocumentoLabel'       => self::DOCUMENTO_LABEL[$solicitud->trabajador_documento_tipo] ?? 'documento de identidad',
+            'numeroDocumento'          => $solicitud->trabajador_documento_numero,
+            'direccionTrabajador'      => $solicitud->trabajador_direccion,
+            'telefonoTrabajador'       => $solicitud->trabajador_telefono,
+            'cargo'                    => $solicitud->cargo_contrato,
+            'salarioFormateado'        => number_format($salario, 0, ',', '.'),
+            'salarioEnLetras'          => \App\Support\MontoEnLetras::pesos($salario),
+            'periodoPagoLabel'         => mb_strtoupper($periodoPago),
+            'periodoPagoFrase'         => self::PERIODO_PAGO_FRASE[$periodoPago] ?? self::PERIODO_PAGO_FRASE['quincenal'],
+            'lugarLabores'             => $solicitud->lugar_labores ?: $lugarContratacion,
+            'lugarContratacion'        => $lugarContratacion,
+            'fechaInicio'              => $solicitud->fecha_inicio_propuesta?->format('d/m/Y') ?? 'No especificada',
+            'fechaFin'                 => $solicitud->fecha_fin_contrato?->format('d/m/Y') ?? 'No especificada',
+            'duracionTexto'            => ($solicitud->fecha_inicio_propuesta && $solicitud->fecha_fin_contrato)
+                ? $solicitud->fecha_inicio_propuesta->diffForHumans($solicitud->fecha_fin_contrato, true)
+                : 'No especificada',
+            'fechaFirma'               => now()->locale('es')->translatedFormat('d \d\e F \d\e Y'),
+            'objetoJuridico'           => nl2br(e(strip_tags($solicitud->objeto_juridico_redactado ?? ''))),
+        ])->render();
+    }
+
+    /** Documento mínimo actual - fallback para los tipos sin plantilla propia todavía. */
+    private function generarHTMLMinima(SolicitudContrato $solicitud): string
     {
         $empresa          = $solicitud->empresa;
         $nombreEmpresa    = e($empresa?->nombre_completo ?? '');
