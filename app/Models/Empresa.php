@@ -27,6 +27,7 @@ class Empresa extends Model
         'ciudad',
         'departamento',
         'representante_legal',
+        'representante_legal_cedula',
         'active',
         'dias_laborales',
         'dias_habiles',
