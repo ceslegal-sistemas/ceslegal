@@ -67,6 +67,8 @@ class EmpresaResource extends Resource
                         ->label('Tipo societario')->placeholder('-'),
                     Infolists\Components\TextEntry::make('representante_legal')
                         ->label('Representante legal')->placeholder('-')->icon('heroicon-o-user'),
+                    Infolists\Components\TextEntry::make('representante_legal_cedula')
+                        ->label('Cédula representante legal')->placeholder('-')->icon('heroicon-o-identification'),
                     Infolists\Components\TextEntry::make('actividadEconomica.nombre')
                         ->label('Actividad económica')->placeholder('-'),
                     Infolists\Components\TextEntry::make('numero_empleados')
@@ -182,6 +184,13 @@ class EmpresaResource extends Resource
                         ->placeholder('Ej: Juan Pérez García')
                         ->helperText('Nombre del representante legal')
                         ->suffixIcon('heroicon-o-user'),
+
+                    Forms\Components\TextInput::make('representante_legal_cedula')
+                        ->label('Cédula del Representante Legal')
+                        ->maxLength(50)
+                        ->placeholder('Ej: 1234567890')
+                        ->helperText('Necesaria para generar contratos de trabajo a término fijo')
+                        ->suffixIcon('heroicon-o-identification'),
 
                     Forms\Components\Toggle::make('active')
                         ->label('Empresa Activa')

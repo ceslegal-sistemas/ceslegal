@@ -181,6 +181,14 @@ class EditEmpresa extends EditRecord
                                     ->suffixIcon('heroicon-o-user')
                                     ->disabled(fn() => auth()->user()?->isCliente() ?? false),
 
+                                Forms\Components\TextInput::make('representante_legal_cedula')
+                                    ->label('Cédula del Representante Legal')
+                                    ->maxLength(50)
+                                    ->placeholder('Ej: 1234567890')
+                                    ->helperText('Necesaria para generar contratos de trabajo a término fijo')
+                                    ->suffixIcon('heroicon-o-identification')
+                                    ->disabled(fn() => auth()->user()?->isCliente() ?? false),
+
                                 Forms\Components\Toggle::make('active')
                                     ->label('Empresa Activa')
                                     ->default(true)
