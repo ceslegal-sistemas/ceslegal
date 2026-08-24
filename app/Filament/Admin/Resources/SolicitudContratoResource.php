@@ -417,7 +417,24 @@ class SolicitudContratoResource extends Resource
                                 ->native(false)
                                 ->displayFormat('d/m/Y')
                                 ->afterOrEqual('fecha_inicio_propuesta')
-                                ->helperText('Fecha en que termina el contrato a término fijo')
+                                // "Contrato Ocasional o Transitorio" tiene un límite legal de
+                                // máximo 30 días (Art. 6 C.S.T.) - se acota la fecha máxima
+                                // seleccionable en vez de dejar que el abogado escriba
+                                // cualquier fecha y descubrir el error después. Sin fecha de
+                                // inicio todavía, no hay base para calcular el límite - se
+                                // comporta igual que los otros 5 tipos hasta que se elija.
+                                ->maxDate(function (Get $get) {
+                                    if ($get('tipo_contrato') !== 'Contrato Ocasional o Transitorio') {
+                                        return null;
+                                    }
+
+                                    $fechaInicio = $get('fecha_inicio_propuesta');
+
+                                    return $fechaInicio ? \Carbon\Carbon::parse($fechaInicio)->addDays(30) : null;
+                                })
+                                ->helperText(fn(Get $get) => $get('tipo_contrato') === 'Contrato Ocasional o Transitorio'
+                                    ? 'Este tipo de contrato tiene un máximo legal de 30 días desde la fecha de inicio'
+                                    : 'Fecha en que termina el contrato')
                                 ->placeholder('Seleccione la fecha...')
                                 ->suffixIcon('heroicon-o-calendar'),
 
