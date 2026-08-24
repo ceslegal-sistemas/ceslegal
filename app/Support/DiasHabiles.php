@@ -126,18 +126,32 @@ class DiasHabiles
             return [1, 2, 3, 4, 5, 6, 7];
         }
 
+        // Muchos RIT fijan una jornada base ("lunes a viernes"/"lunes a
+        // sábado") pero aclaran en otra frase que ciertas áreas SÍ laboran
+        // sábado y/o domingo (turnos rotativos, vigilancia, etc.) - se
+        // detecta aparte para que ambas ramas de abajo puedan escalar el
+        // conjunto de días, no solo la de "lunes a sábado" como antes.
+        // Bidireccional (día...verbo Y verbo...día) porque en español ambos
+        // órdenes son comunes: "domingos se labora" y "también labora los
+        // domingos" significan lo mismo. Ventana de 40 caracteres para no
+        // cruzar hacia otra oración/cláusula del documento.
+        $sabadoLabora  = self::mencionaTrabajaEn($t, 'sabado');
+        $domingoLabora = self::mencionaTrabajaEn($t, 'domingo');
+
         // Lunes a sábado
         if (preg_match('/lunes\s+a\s+sabado|hasta\s+el\s+sabado|inclu[ií]d[oa]s?\s+(el\s+|los\s+)?sabado|seis\s*\(?\s*6\s*\)?\s*d[ií]as/u', $t)) {
-            // ¿Además menciona domingo como laborable? → semana completa
-            if (preg_match('/domingo[s]?\s+(y\s+festivos\s+)?(labora|se\s+labora|se\s+trabaja|h[aá]bil)/u', $t)) {
-                return [1, 2, 3, 4, 5, 6, 7];
-            }
-
-            return [1, 2, 3, 4, 5, 6];
+            return $domingoLabora ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5, 6];
         }
 
         // Lunes a viernes
         if (preg_match('/lunes\s+a\s+viernes|cinco\s*\(?\s*5\s*\)?\s*d[ií]as/u', $t)) {
+            if ($domingoLabora) {
+                return [1, 2, 3, 4, 5, 6, 7];
+            }
+            if ($sabadoLabora) {
+                return [1, 2, 3, 4, 5, 6];
+            }
+
             return [1, 2, 3, 4, 5];
         }
 
@@ -148,6 +162,20 @@ class DiasHabiles
     public static function opciones(): array
     {
         return self::LABELS;
+    }
+
+    /**
+     * ¿El texto (ya en minúsculas/ASCII) menciona que se labora en $dia
+     * ("sabado"|"domingo")? Busca un verbo de labor cerca de la palabra del
+     * día, en cualquier orden ("domingos se labora" o "también labora los
+     * domingos"), dentro de una ventana de 40 caracteres para no cruzar
+     * hacia otra oración del RIT.
+     */
+    private static function mencionaTrabajaEn(string $texto, string $dia): bool
+    {
+        $verbo = '(?:labora|trabaja|h[aá]bil)';
+
+        return (bool) preg_match("/{$dia}[a-z]*.{0,40}{$verbo}|{$verbo}[a-z]*.{0,40}{$dia}/u", $texto);
     }
 
     private static function esContiguo(array $set): bool
