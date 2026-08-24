@@ -5,6 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Descargos - {{ $diligencia->proceso->codigo ?? config('app.name') }}</title>
 
+    <link rel="icon" type="image/png" href="{{ asset('images/lupe-favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/lupe-favicon.png') }}">
+
+    {{-- Vista previa al compartir el enlace por WhatsApp/redes - sin exponer
+    el código del proceso ni datos del trabajador en el texto visible del
+    enlace, solo el nombre de la plataforma. --}}
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="LUPE Legal">
+    <meta property="og:title" content="LUPE Legal - Citación a Descargos">
+    <meta property="og:description" content="Acceda de forma segura para presentar sus descargos ante la empresa.">
+    <meta property="og:image" content="{{ asset('images/lupe-og-image.png') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="LUPE Legal - Citación a Descargos">
+    <meta name="twitter:description" content="Acceda de forma segura para presentar sus descargos ante la empresa.">
+    <meta name="twitter:image" content="{{ asset('images/lupe-og-image.png') }}">
+
     {{-- Tailwind con colores personalizados --}}
     <script src="https://cdn.tailwindcss.com"></script>
     <script>

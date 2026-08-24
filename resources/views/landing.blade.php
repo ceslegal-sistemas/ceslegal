@@ -10,6 +10,20 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 
+    {{-- Vista previa al compartir el enlace (WhatsApp, redes sociales, etc.) --}}
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="LUPE Legal">
+    <meta property="og:title" content="LUPE Legal - Gestión disciplinaria con respaldo jurídico">
+    <meta property="og:description" content="Plataforma de gestión de procesos disciplinarios laborales anclada a la Constitución, la jurisprudencia y el Código Sustantivo del Trabajo.">
+    <meta property="og:image" content="{{ asset('images/lupe-og-image.png') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="LUPE Legal - Gestión disciplinaria con respaldo jurídico">
+    <meta name="twitter:description" content="Plataforma de gestión de procesos disciplinarios laborales anclada a la Constitución, la jurisprudencia y el Código Sustantivo del Trabajo.">
+    <meta name="twitter:image" content="{{ asset('images/lupe-og-image.png') }}">
+
     <link rel="icon" type="image/png" href="/images/lupe-favicon.png">
     <link rel="apple-touch-icon" href="/images/lupe-favicon.png"/>
 
