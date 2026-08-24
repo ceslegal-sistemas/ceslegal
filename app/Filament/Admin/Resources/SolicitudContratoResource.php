@@ -470,6 +470,59 @@ class SolicitudContratoResource extends Resource
                                 })
                                 ->helperText('Por defecto, la ciudad y departamento de la empresa - edítelo si el trabajador labora en otro sitio')
                                 ->suffixIcon('heroicon-o-map-pin'),
+
+                            // Mismas 3 opciones que ya usa ModificacionContractualResource.php
+                            // para "Nueva Jornada/Modalidad" (tipo_modificacion='jornada') -
+                            // se reutilizan tal cual para que el valor inicial y el valor tras
+                            // una modificación posterior hablen el mismo vocabulario.
+                            // ToggleButtons (no Select) a pedido del usuario, mismo patrón
+                            // visual que periodo_pago arriba.
+                            Forms\Components\ToggleButtons::make('jornada')
+                                ->label('Jornada')
+                                ->options([
+                                    'Tiempo completo' => 'Tiempo completo',
+                                    'Medio tiempo'    => 'Medio tiempo',
+                                    'Por horas'       => 'Por horas',
+                                    '__otro__'        => '--- Otro (personalizado) ---',
+                                ])
+                                ->colors([
+                                    'Tiempo completo' => 'primary',
+                                    'Medio tiempo'    => 'warning',
+                                    'Por horas'       => 'info',
+                                    '__otro__'        => 'gray',
+                                ])
+                                ->icons([
+                                    'Tiempo completo' => 'heroicon-o-clock',
+                                    'Medio tiempo'    => 'heroicon-o-clock',
+                                    'Por horas'       => 'heroicon-o-calendar-days',
+                                    '__otro__'        => 'heroicon-o-ellipsis-horizontal-circle',
+                                ])
+                                ->live()
+                                ->afterStateUpdated(fn(Set $set) => $set('jornada_otro', null))
+                                // Igual round-trip que cargo_contrato/cargo_otro (arriba en este
+                                // mismo archivo): jornada YA puede tener un valor de texto libre
+                                // arbitrario guardado por ModificacionContractualResource
+                                // (tipo_modificacion='jornada', campo jornada_otro_temp) - sin
+                                // este afterStateHydrated(), editar una Solicitud con ese tipo de
+                                // valor mostraría el ToggleButtons sin ninguna opción marcada.
+                                ->afterStateHydrated(function (Set $set, ?string $state) {
+                                    if ($state && !in_array($state, ['Tiempo completo', 'Medio tiempo', 'Por horas'], true)) {
+                                        $set('jornada_otro', $state);
+                                        $set('jornada', '__otro__');
+                                    }
+                                })
+                                ->dehydrateStateUsing(fn(Get $get, ?string $state) => $state === '__otro__' ? $get('jornada_otro') : $state)
+                                ->inline()
+                                ->columnSpanFull(),
+
+                            Forms\Components\TextInput::make('jornada_otro')
+                                ->label('Especifique la Jornada')
+                                ->columnSpanFull()
+                                ->visible(fn(Get $get) => $get('jornada') === '__otro__')
+                                ->required(fn(Get $get) => $get('jornada') === '__otro__')
+                                ->placeholder('Ej: Turnos rotativos')
+                                ->helperText('Escriba la jornada personalizada')
+                                ->dehydrated(false),
                         ])->columns(2),
 
                     Forms\Components\Wizard\Step::make('Documentos')
