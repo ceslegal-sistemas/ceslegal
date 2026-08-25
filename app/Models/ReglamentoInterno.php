@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\ScopedToBufeteOrEmpresa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ReglamentoInterno extends Model
@@ -34,6 +35,8 @@ class ReglamentoInterno extends Model
         'tipos_contrato',
         'bloques_texto_hash',
         'bloques_generados_en',
+        'temas_texto_hash',
+        'temas_clasificados_en',
     ];
 
     protected $casts = [
@@ -44,6 +47,7 @@ class ReglamentoInterno extends Model
         'tipos_contrato'         => 'array',
         'dias_habiles'           => 'array',
         'bloques_generados_en'   => 'datetime',
+        'temas_clasificados_en'  => 'datetime',
     ];
 
     public function empresa(): BelongsTo
@@ -69,6 +73,11 @@ class ReglamentoInterno extends Model
     public function bloques(): HasMany
     {
         return $this->hasMany(BloqueReglamentoInterno::class)->orderBy('orden');
+    }
+
+    public function temasNormativos(): BelongsToMany
+    {
+        return $this->belongsToMany(TemaNormativo::class, 'reglamento_interno_tema');
     }
 
     public function esMejorado(): bool

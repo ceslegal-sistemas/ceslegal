@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DocumentoLegal extends Model
@@ -44,6 +45,11 @@ class DocumentoLegal extends Model
     public function fragmentos(): HasMany
     {
         return $this->hasMany(FragmentoDocumento::class)->orderBy('orden');
+    }
+
+    public function temasNormativos(): BelongsToMany
+    {
+        return $this->belongsToMany(TemaNormativo::class, 'documento_legal_tema');
     }
 
     public function getTipoLabelAttribute(): string
