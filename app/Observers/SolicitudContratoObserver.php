@@ -160,30 +160,32 @@ class SolicitudContratoObserver
     }
 
     /**
-     * Aplica lógica específica según el nuevo estado
+     * Aplica lógica específica según el nuevo estado.
+     *
+     * 'en_analisis'/'cerrado' se retiraron con la simplificación de
+     * estados (migración 2026_08_24_000001) - 'cerrado' ya era código
+     * muerto desde antes (legado inalcanzable, confirmado en sesiones
+     * anteriores), 'en_analisis' se retira ahora.
      */
     private function aplicarLogicaEstado(SolicitudContrato $solicitud, string $nuevoEstado): void
     {
         switch ($nuevoEstado) {
-            case 'en_analisis':
-                if (empty($solicitud->fecha_analisis)) {
-                    $solicitud->fecha_analisis = now();
-                }
-                break;
-
-            case 'contrato_generado':
+            case 'borrador':
                 if (empty($solicitud->fecha_generacion_contrato)) {
                     $solicitud->fecha_generacion_contrato = now();
                 }
-
-                // Notificar que el contrato está listo
-                $this->notificacionService->notificarContratoGenerado($solicitud);
                 break;
 
-            case 'cerrado':
+            case 'aprobado':
                 if (empty($solicitud->fecha_cierre)) {
                     $solicitud->fecha_cierre = now();
                 }
+
+                // Notificar que el contrato está listo (abogado asignado +
+                // RRHH/cliente de la empresa) - CRÍTICO: sin este case, esta
+                // notificación dejaría de dispararse en silencio, porque
+                // 'estado' ya nunca vuelve a valer 'contrato_generado'.
+                $this->notificacionService->notificarContratoGenerado($solicitud);
                 break;
         }
     }
