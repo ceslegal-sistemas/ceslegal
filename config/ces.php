@@ -61,36 +61,6 @@ Al marcar la casilla de aceptación manifiesto haber leído, entendido y aceptad
 
     /*
     |--------------------------------------------------------------------------
-    | Filtro de impacto RIT (Plan A de actualización automática por Biblioteca Legal)
-    |--------------------------------------------------------------------------
-    | Apagado por defecto a propósito: mientras esté en false, ningún RIT
-    | activo tiene bloques_texto_hash poblado todavía. Habilitarlo antes de
-    | correr `php artisan rit:precalentar-bloques` dispararía, en el primer
-    | DocumentoLegal que se procese, una regeneración completa y SÍNCRONA de
-    | embeddings de TODOS los RIT activos (esta sesión encontró RIT locales
-    | reales con 375-425 bloques cada uno) - riesgo real de agotar la cuota
-    | compartida de Gemini (ver memoria del proyecto:
-    | gemini-limite-gasto-mensual-produccion.md) y de que ese mismo request
-    | supere el timeout del job que lo disparó. Correr el precalentamiento
-    | primero, en horario de bajo tráfico, y solo después poner esto en true.
-    */
-    'rit_filtro_impacto_habilitado' => env('RIT_FILTRO_IMPACTO_HABILITADO', false),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Umbral de similitud del filtro de impacto RIT
-    |--------------------------------------------------------------------------
-    | A propósito BAJO (generoso): el filtro barato no necesita ser preciso,
-    | necesita no descartar nada relevante - la decisión fina la hace la IA
-    | en la siguiente etapa (Plan B), que sí cuesta pero solo corre para los
-    | candidatos que ya pasaron aquí. Ajustar sin deploy una vez haya datos
-    | reales de producción (ver el log "score de similitud evaluado" de
-    | RitBloqueEmbeddingService::empresasCandidatas() para calibrar).
-    */
-    'rit_filtro_umbral_similitud' => (float) env('RIT_FILTRO_UMBRAL_SIMILITUD', 0.5),
-
-    /*
-    |--------------------------------------------------------------------------
     | Planes de suscripción
     |--------------------------------------------------------------------------
     | precio_anual_cop = precio_mensual_cop × 12 × 0.85 (15 % dto. anual)
