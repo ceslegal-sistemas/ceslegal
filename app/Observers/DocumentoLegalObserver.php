@@ -5,20 +5,26 @@ namespace App\Observers;
 use App\Models\DocumentoLegal;
 use App\Models\ReglamentoInterno;
 use App\Models\User;
-use App\Services\RitBloqueEmbeddingService;
+use App\Services\TemaClasificadorService;
 use Filament\Notifications\Actions\Action as FilamentAction;
 use Filament\Notifications\Notification as FilamentNotification;
-use Illuminate\Support\Facades\Log;
 
 class DocumentoLegalObserver
 {
+    public function __construct(
+        protected TemaClasificadorService $clasificador
+    ) {
+    }
+
     /**
-     * Cuando un documento legal pasa a estado 'procesado', notifica a los usuarios
-     * cliente de las empresas que tienen un RIT activo para que re-auditen.
+     * Cuando un documento legal pasa a estado 'procesado', clasifica sus
+     * temas y notifica solo a los clientes cuyo RIT activo comparte al
+     * menos un tema con el documento - reemplaza la notificación genérica
+     * anterior ("vaya audite su RIT" a TODOS los clientes con RIT activo,
+     * sin ningún filtro de relevancia real).
      */
     public function updated(DocumentoLegal $documento): void
     {
-        // Solo reaccionar cuando el estado cambia a 'procesado' por primera vez
         if (!$documento->wasChanged('estado')
             || $documento->estado !== 'procesado'
             || !$documento->activo) {
@@ -30,70 +36,54 @@ class DocumentoLegalObserver
             return;
         }
 
-        // Empresas con al menos un RIT activo
-        $empresaIds = ReglamentoInterno::where('activo', true)
-            ->distinct()
-            ->pluck('empresa_id');
+        $this->clasificador->clasificarDocumento($documento);
+        $documento->refresh();
 
-        if ($empresaIds->isEmpty()) {
+        $temaIds = $documento->temasNormativos()->pluck('temas_normativos.id');
+        if ($temaIds->isEmpty()) {
             return;
         }
 
-        // Notificar a usuarios 'cliente' activos de esas empresas
-        $usuarios = User::whereIn('empresa_id', $empresaIds)
-            ->where('active', true)
-            ->where('role', 'cliente')
-            ->get();
+        $ritsAfectados = ReglamentoInterno::where('activo', true)->get();
 
-        foreach ($usuarios as $user) {
-            FilamentNotification::make()
-                ->title('Nueva normativa disponible: ' . $documento->titulo)
-                ->body('Recomendamos auditar su RIT para verificar el cumplimiento con la normativa actualizada.')
-                ->icon('heroicon-o-scale')
-                ->iconColor('warning')
-                ->actions([
-                    // Antes apuntaba a /admin/auditar-r-i-t, pero esa página está oculta
-                    // para el rol 'cliente' (usa la vista unificada "Mi Reglamento
-                    // Interno" - ver AuditarRIT::shouldRegisterNavigation()). El query
-                    // param resalta el botón "Auditar ahora" / "Volver a auditar" al llegar.
-                    FilamentAction::make('auditar')
-                        ->label('Auditar RIT')
-                        ->url(url('/empresa/mi-reglamento-interno') . '?resaltar=auditar')
-                        ->button(),
-                ])
-                ->sendToDatabase($user);
+        // Defensivo: un RIT activo que nunca haya sido clasificado (ej.
+        // creado antes de este despliegue, backfill pendiente) se
+        // clasifica aquí mismo antes de comparar.
+        foreach ($ritsAfectados as $rit) {
+            if (empty($rit->temas_texto_hash)) {
+                $this->clasificador->asegurarTemas($rit);
+                $rit->refresh();
+            }
         }
 
-        // Filtro nuevo (Plan A de la actualización automática del RIT) - calcula
-        // qué empresas tienen un RIT realmente afectado por este documento, sin
-        // gastar ninguna llamada generativa (solo comparación de embeddings ya
-        // existentes). Por ahora solo se loguea para verificación - Plan B usará
-        // este resultado para la sugerencia de IA + notificación específica, que
-        // reemplazará la notificación genérica de arriba.
-        //
-        // Apagado por defecto (config('ces.rit_filtro_impacto_habilitado')):
-        // mientras ningún RIT tenga bloques_texto_hash poblado, el primer
-        // documento que se procese dispararía una regeneración COMPLETA y
-        // SÍNCRONA de embeddings de TODOS los RIT activos (RIT reales locales
-        // de hasta 425 bloques cada uno) - riesgo real de agotar la cuota
-        // compartida de Gemini. Correr `php artisan rit:precalentar-bloques`
-        // primero, en horario de bajo tráfico, y solo después habilitar esto.
-        if (!config('ces.rit_filtro_impacto_habilitado')) {
-            return;
-        }
+        foreach ($ritsAfectados as $rit) {
+            $temasComunes = $rit->temasNormativos()
+                ->whereIn('temas_normativos.id', $temaIds)
+                ->pluck('nombre');
 
-        try {
-            $candidatas = app(RitBloqueEmbeddingService::class)->empresasCandidatas($documento);
-            Log::info('DocumentoLegalObserver: filtro de impacto RIT', [
-                'documento_legal_id' => $documento->id,
-                'empresas_candidatas' => $candidatas->all(),
-            ]);
-        } catch (\Throwable $e) {
-            // No debe tumbar el flujo de notificación existente si el filtro nuevo falla.
-            Log::warning('DocumentoLegalObserver: fallo en filtro de impacto RIT (no crítico)', [
-                'documento_legal_id' => $documento->id,
-                'error' => $e->getMessage(),
-            ]);
+            if ($temasComunes->isEmpty()) {
+                continue;
+            }
+
+            $usuarios = User::where('empresa_id', $rit->empresa_id)
+                ->where('active', true)
+                ->where('role', 'cliente')
+                ->get();
+
+            foreach ($usuarios as $user) {
+                FilamentNotification::make()
+                    ->title('Nueva normativa disponible: ' . $documento->titulo)
+                    ->body('Aplica a su RIT por: ' . $temasComunes->implode(', ') . '. Recomendamos auditar su RIT para verificar el cumplimiento.')
+                    ->icon('heroicon-o-scale')
+                    ->iconColor('warning')
+                    ->actions([
+                        FilamentAction::make('auditar')
+                            ->label('Auditar RIT')
+                            ->url(url('/empresa/mi-reglamento-interno') . '?resaltar=auditar')
+                            ->button(),
+                    ])
+                    ->sendToDatabase($user);
+            }
         }
     }
 }
