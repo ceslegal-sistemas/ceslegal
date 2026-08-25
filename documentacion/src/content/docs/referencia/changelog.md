@@ -1,9 +1,9 @@
 ---
 title: Changelog
-description: Historial de cambios y versiones del sistema LUPE
+description: Historial de cambios y versiones del sistema LUPE Legal
 ---
 
-Todos los cambios notables del proyecto LUPE se documentan en esta pagina. El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto utiliza [Versionado Semantico](https://semver.org/lang/es/).
+Todos los cambios notables del proyecto LUPE Legal se documentan en esta pagina. El formato esta basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto utiliza [Versionado Semantico](https://semver.org/lang/es/).
 
 ---
 
@@ -151,6 +151,6 @@ Todos los cambios notables del proyecto LUPE se documentan en esta pagina. El fo
 
 ## Proximos Pasos
 
-- [Introduccion](/inicio/introduccion/) - Conoce LUPE
+- [Introduccion](/inicio/introduccion/) - Conoce LUPE Legal
 - [Variables de Entorno](/referencia/variables-entorno/) - Configuracion del sistema
 - [Troubleshooting](/referencia/troubleshooting/) - Solucion de problemas comunes

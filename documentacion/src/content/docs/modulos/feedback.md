@@ -1,6 +1,6 @@
 ---
 title: Modulo de Feedback
-description: Sistema de recoleccion y analisis de feedback de trabajadores y clientes en LUPE
+description: Sistema de recoleccion y analisis de feedback de trabajadores y clientes en LUPE Legal
 ---
 
 ## Descripcion General
@@ -126,7 +126,7 @@ Campos guardados en `respuestas_adicionales`: `calificacion_experiencia`, `dific
 **Campos obligatorios:**
 - NPS (0–10)
 - Aspectos mas valorados (seleccion multiple)
-- ¿Recomendaria LUPE?
+- ¿Recomendaria LUPE Legal?
 - Comentario libre
 
 ---

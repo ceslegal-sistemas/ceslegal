@@ -20,7 +20,7 @@ trait ScopedToBufeteOrEmpresa
                 ? $model->getQualifiedKeyName()
                 : $model->qualifyColumn('empresa_id');
 
-            // super_admin y abogado interno (staff LUPE) ven todo.
+            // super_admin y abogado interno (staff LUPE Legal) ven todo.
             if ($user->role === 'super_admin' || $user->role === 'abogado') {
                 return;
             }

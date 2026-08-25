@@ -47,7 +47,7 @@
             </div>
         </div>
         <div class="footer">
-            LUPE &mdash; Plataforma de gestión disciplinaria laboral
+            LUPE Legal &mdash; Plataforma de gestión disciplinaria laboral
         </div>
     </div>
 </body>

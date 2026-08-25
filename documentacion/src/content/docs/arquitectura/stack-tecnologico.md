@@ -1,6 +1,6 @@
 ---
 title: Stack Tecnológico
-description: Tecnologías utilizadas en LUPE
+description: Tecnologías utilizadas en LUPE Legal
 ---
 
 ## Resumen del Stack

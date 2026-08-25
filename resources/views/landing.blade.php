@@ -4,7 +4,7 @@
 
     <meta charset="utf-8">
 
-    <title>LUPE - Gestión disciplinaria con respaldo jurídico</title>
+    <title>LUPE Legal - Gestión disciplinaria con respaldo jurídico</title>
 
     <meta name="description" content="Plataforma de gestión de procesos disciplinarios laborales anclada a la Constitución, la jurisprudencia y el Código Sustantivo del Trabajo.">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -38,7 +38,7 @@
     <link rel="preload" href="/landing/assets/fonts/playfair-display-v30-latin/playfair-display-v30-latin-900.woff2" as="font" type="font/woff2" crossorigin>
 
     <style>
-        /* Logo LUPE más grande, manteniendo proporción y centrado vertical */
+        /* Logo LUPE Legal más grande, manteniendo proporción y centrado vertical */
         .header-brand { align-items: center; }
         .logo img { height: 56px; width: auto; display: block; }
         @media (max-width: 767px) { .logo img { height: 46px; } }
@@ -62,8 +62,8 @@
                         <rect x="5" y="21" height="2" width="14"></rect>
                         </svg>
                     </div>
-                    <a href="/" class="logo" title="LUPE">
-                        <img src="/images/lupe-logo.png" width="79" height="56" alt="LUPE">
+                    <a href="/" class="logo" title="LUPE Legal">
+                        <img src="/images/lupe-logo.png" width="79" height="56" alt="LUPE Legal">
                     </a>
                 </div>
             </div>
@@ -426,7 +426,7 @@
                 </li>
             </ul>
         </nav>
-        <div class="copyright">© {{ date('Y') }} - LUPE</div>
+        <div class="copyright">© {{ date('Y') }} - LUPE Legal</div>
     </div>
 </footer><!-- End footer -->
 

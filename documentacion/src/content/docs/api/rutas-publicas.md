@@ -1,11 +1,11 @@
 ---
 title: Rutas Publicas
-description: Endpoints publicos del sistema LUPE que no requieren autenticacion
+description: Endpoints publicos del sistema LUPE Legal que no requieren autenticacion
 ---
 
 ## Descripcion General
 
-LUPE expone un conjunto reducido de rutas publicas que no requieren autenticacion. Estas rutas permiten a los trabajadores interactuar con el proceso disciplinario sin necesidad de tener una cuenta en el sistema, y proporcionan funcionalidades de monitoreo.
+LUPE Legal expone un conjunto reducido de rutas publicas que no requieren autenticacion. Estas rutas permiten a los trabajadores interactuar con el proceso disciplinario sin necesidad de tener una cuenta en el sistema, y proporcionan funcionalidades de monitoreo.
 
 Todas las rutas publicas se definen en `routes/web.php`.
 

@@ -1,11 +1,11 @@
 ---
 title: Rutas Protegidas
-description: Endpoints protegidos del panel de administracion Filament en LUPE
+description: Endpoints protegidos del panel de administracion Filament en LUPE Legal
 ---
 
 ## Descripcion General
 
-Todas las rutas protegidas de LUPE estan gestionadas por el panel de administracion **Filament 3.2**. Requieren autenticacion y autorizacion mediante el sistema de roles y permisos **Filament Shield** (basado en Spatie Permission).
+Todas las rutas protegidas de LUPE Legal estan gestionadas por el panel de administracion **Filament 3.2**. Requieren autenticacion y autorizacion mediante el sistema de roles y permisos **Filament Shield** (basado en Spatie Permission).
 
 El panel es accesible en `/admin` y utiliza el middleware de autenticacion de Filament junto con politicas (Policies) por recurso.
 

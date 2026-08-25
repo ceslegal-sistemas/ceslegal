@@ -38,7 +38,7 @@
 <body>
     @php
         // El correo se envía desde la cuenta del propio cliente: la identidad es la
-        // razón social de la empresa, NUNCA "LUPE".
+        // razón social de la empresa, NUNCA "LUPE Legal".
         $empresa   = $correo->empresa ?? $correo->trabajador?->empresa ?? $correo->proceso?->empresa;
         $remitente = $empresa?->razon_social
             ?? $empresa?->nombre_completo

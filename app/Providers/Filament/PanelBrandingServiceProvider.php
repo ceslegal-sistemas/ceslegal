@@ -7,7 +7,7 @@ use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 
 /**
- * Render hooks, skeletons y ajustes de UI/UX de LUPE que aplican a
+ * Render hooks, skeletons y ajustes de UI/UX de LUPE Legal que aplican a
  * CUALQUIER panel de Filament (no son específicos de 'admin'). Se sacaron de
  * AdminPanelProvider::boot() al agregar el panel 'empresa' (rol cliente,
  * ver plan del panel /empresa): FilamentView::registerRenderHook() y

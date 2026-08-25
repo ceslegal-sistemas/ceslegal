@@ -1,6 +1,6 @@
 ---
 title: Trabajadores
-description: Modulo de gestion de trabajadores vinculados a empresas en LUPE
+description: Modulo de gestion de trabajadores vinculados a empresas en LUPE Legal
 ---
 
 ## Descripcion General

@@ -1,11 +1,11 @@
 ---
 title: Google Gemini
-description: Integración de LUPE con la API de Google Gemini para funcionalidades de Inteligencia Artificial
+description: Integración de LUPE Legal con la API de Google Gemini para funcionalidades de Inteligencia Artificial
 ---
 
 ## Descripcion General
 
-LUPE utiliza **Google Gemini** (modelo `gemini-2.5-flash`) como proveedor principal de inteligencia artificial para asistir en los procesos disciplinarios laborales. La integracion permite:
+LUPE Legal utiliza **Google Gemini** (modelo `gemini-2.5-flash`) como proveedor principal de inteligencia artificial para asistir en los procesos disciplinarios laborales. La integracion permite:
 
 - **Generacion de preguntas** para diligencias de descargos.
 - **Analisis de sanciones** basado en los hechos, descargos e historial del trabajador.
@@ -137,7 +137,7 @@ Los parametros enviados a Gemini controlan el comportamiento y la calidad de las
 
 ## Como funciona la llamada a Gemini
 
-El flujo completo de una llamada a la API de Gemini dentro de LUPE sigue estos pasos:
+El flujo completo de una llamada a la API de Gemini dentro de LUPE Legal sigue estos pasos:
 
 ```
 1. El servicio (IADescargoService o IAAnalisisSancionService) construye el prompt
@@ -258,7 +258,7 @@ Google Gemini aplica limites de uso segun el plan contratado:
 | **Gratuito** | 15 RPM | 1,000,000 TPM |
 | **Pay-as-you-go** | 1,000 RPM | 4,000,000 TPM |
 
-### Consideraciones en LUPE
+### Consideraciones en LUPE Legal
 
 - **Uso tipico**: Cada proceso disciplinario genera entre 1 y 3 llamadas a la API (preguntas iniciales, preguntas dinamicas, analisis de sancion).
 - **No se implementa rate limiting del lado del cliente**: El volumen actual de procesos no requiere control de tasa. Si el sistema escala, se recomienda implementar un middleware o queue.

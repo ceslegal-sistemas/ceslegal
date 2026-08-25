@@ -1,9 +1,9 @@
 ---
 title: Comandos Artisan
-description: Referencia de comandos Artisan personalizados y estandar utilizados en LUPE
+description: Referencia de comandos Artisan personalizados y estandar utilizados en LUPE Legal
 ---
 
-LUPE incluye comandos Artisan personalizados para la automatizacion de procesos disciplinarios, ademas de los comandos estandar de Laravel. A continuacion se documentan todos los comandos relevantes.
+LUPE Legal incluye comandos Artisan personalizados para la automatizacion de procesos disciplinarios, ademas de los comandos estandar de Laravel. A continuacion se documentan todos los comandos relevantes.
 
 ## Comandos Personalizados
 

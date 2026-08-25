@@ -1,11 +1,11 @@
 ---
 title: Procesos Disciplinarios
-description: Modulo principal para la gestion integral de procesos disciplinarios laborales en LUPE
+description: Modulo principal para la gestion integral de procesos disciplinarios laborales en LUPE Legal
 ---
 
 ## Descripcion General
 
-El modulo de **Procesos Disciplinarios** es el nucleo central de LUPE. Permite gestionar el ciclo de vida completo de un proceso disciplinario laboral colombiano, desde la apertura hasta el cierre o archivo. Integra inteligencia artificial para la generacion de preguntas de descargos y el analisis de sanciones, generacion automatica de documentos legales, envio de citaciones por correo electronico con tracking de lectura, y un timeline completo de auditoria.
+El modulo de **Procesos Disciplinarios** es el nucleo central de LUPE Legal. Permite gestionar el ciclo de vida completo de un proceso disciplinario laboral colombiano, desde la apertura hasta el cierre o archivo. Integra inteligencia artificial para la generacion de preguntas de descargos y el analisis de sanciones, generacion automatica de documentos legales, envio de citaciones por correo electronico con tracking de lectura, y un timeline completo de auditoria.
 
 El recurso principal es `ProcesoDisciplinarioResource`, ubicado en:
 

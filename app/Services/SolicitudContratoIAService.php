@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
  * IA para el flujo de SolicitudContrato (los 6 tipos de contrato de
  * SolicitudContratoResource, gestión interna de CES Legal - "Análisis
  * Jurídico"): redacta un borrador del objeto jurídico anclado en el CST
- * (mismo principio que LUPE - la IA no razona desde su propio criterio,
+ * (mismo principio que LUPE Legal - la IA no razona desde su propio criterio,
  * cita solo artículos realmente provistos) y genera el PDF final del
  * contrato. No usa DocumentoService (framework de plantillas sin ninguna
  * referencia real en el proyecto) - usa el mismo patrón HTML+Dompdf de

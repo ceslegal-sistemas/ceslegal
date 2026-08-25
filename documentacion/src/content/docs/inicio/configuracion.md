@@ -10,7 +10,7 @@ El archivo `.env` contiene todas las configuraciones del sistema. A continuació
 ### Configuración de Aplicación
 
 ```ini
-APP_NAME="LUPE"
+APP_NAME="LUPE Legal"
 APP_ENV=local
 APP_KEY=base64:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 APP_DEBUG=true
@@ -185,7 +185,7 @@ php artisan db:seed --class=DiaNoHabilSeeder
 
 ```ini
 # Aplicación
-APP_NAME="LUPE"
+APP_NAME="LUPE Legal"
 APP_ENV=production
 APP_KEY=base64:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 APP_DEBUG=false

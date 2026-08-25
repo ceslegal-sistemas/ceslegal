@@ -32,7 +32,7 @@ trait ConfiguraPanelCompartido
     protected function aplicarConfigComun(Panel $panel): Panel
     {
         return $panel
-            ->brandName('LUPE')
+            ->brandName('LUPE Legal')
             ->brandLogo(asset('images/lupe-logo.png'))
             ->brandLogoHeight('2.2rem')
             ->favicon(asset('images/lupe-favicon.png'))

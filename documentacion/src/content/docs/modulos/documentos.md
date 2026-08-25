@@ -58,7 +58,7 @@ Las citaciones se generan usando **PHPWord TemplateProcessor** a partir de un HT
 | `${MES}`                 | Mes actual en texto         | enero              |
 | `${AÑO}`                 | Anio actual                 | 2026               |
 | `${DIA_LETRA}`           | Dia en texto                | miercoles          |
-| `${NOMBRE_EMPRESA}`      | Razon social                | LUPE S.A.S.   |
+| `${NOMBRE_EMPRESA}`      | Razon social                | LUPE Legal S.A.S.   |
 | `${NIT}`                 | NIT de la empresa           | 900.123.456-7      |
 | `${NOMBRES}`             | Nombres del trabajador      | Juan Carlos        |
 | `${APELLIDOS}`           | Apellidos del trabajador    | Perez Lopez        |

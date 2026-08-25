@@ -82,7 +82,7 @@
                     <input type="checkbox" wire:model="exoneracionAceptada">
                     Confirmo que entiendo las recomendaciones jurídicas emitidas por la IA, que aun así decido aplicar
                     una sanción diferente, y que asumo completamente la responsabilidad jurídica, laboral y judicial de
-                    esta decisión, exonerando a LUPE de cualquier consecuencia derivada de la misma.
+                    esta decisión, exonerando a LUPE Legal de cualquier consecuencia derivada de la misma.
                 </label>
             @endif
 

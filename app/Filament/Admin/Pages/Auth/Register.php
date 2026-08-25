@@ -615,7 +615,7 @@ class Register extends BaseRegister
             'payment_reference' => $referencia,
         ]);
 
-        $descripcion = "LUPE - Plan {$nombrePlan} ({$ciclo})";
+        $descripcion = "LUPE Legal - Plan {$nombrePlan} ({$ciclo})";
 
         $this->redirectUrl = $payu->getCheckoutUrl($suscripcion, $buyerEmail, $descripcion);
     }

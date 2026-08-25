@@ -1,11 +1,11 @@
 ---
 title: Servicios
-description: Servicios de negocio que encapsulan la lógica principal de LUPE
+description: Servicios de negocio que encapsulan la lógica principal de LUPE Legal
 ---
 
 ## Visión General
 
-Los servicios encapsulan la lógica de negocio compleja, manteniéndola separada de los controladores y modelos. LUPE cuenta con **9 servicios** que totalizan aproximadamente **5,600 líneas de código**.
+Los servicios encapsulan la lógica de negocio compleja, manteniéndola separada de los controladores y modelos. LUPE Legal cuenta con **9 servicios** que totalizan aproximadamente **5,600 líneas de código**.
 
 ```
 app/Services/

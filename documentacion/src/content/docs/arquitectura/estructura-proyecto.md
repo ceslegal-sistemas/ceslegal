@@ -1,6 +1,6 @@
 ---
 title: Estructura del Proyecto
-description: Organización de archivos y carpetas del proyecto LUPE
+description: Organización de archivos y carpetas del proyecto LUPE Legal
 ---
 
 ## Estructura General

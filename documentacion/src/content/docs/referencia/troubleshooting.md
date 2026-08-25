@@ -1,15 +1,15 @@
 ---
 title: Troubleshooting
-description: Guia de solucion de problemas frecuentes en LUPE
+description: Guia de solucion de problemas frecuentes en LUPE Legal
 ---
 
-Esta guia recopila los problemas mas comunes que pueden presentarse al instalar, configurar o usar LUPE, junto con sus soluciones.
+Esta guia recopila los problemas mas comunes que pueden presentarse al instalar, configurar o usar LUPE Legal, junto con sus soluciones.
 
 ## LibreOffice no encontrado para conversion a PDF
 
 **Sintoma:** Al generar documentos PDF aparece un error indicando que LibreOffice no fue encontrado, o el PDF generado tiene formato incorrecto.
 
-**Causa:** LUPE utiliza LibreOffice en modo headless para convertir documentos Word (.docx) a PDF con alta fidelidad. Si LibreOffice no esta instalado, el sistema usa **dompdf** como alternativa, que tiene limitaciones de formato.
+**Causa:** LUPE Legal utiliza LibreOffice en modo headless para convertir documentos Word (.docx) a PDF con alta fidelidad. Si LibreOffice no esta instalado, el sistema usa **dompdf** como alternativa, que tiene limitaciones de formato.
 
 **Solucion:**
 
@@ -212,7 +212,7 @@ tail -100 storage/logs/laravel.log | grep "Error al actualizar"
 1. Aumenta el limite de memoria en `php.ini`:
 
 ```ini
-; Aumentar a 512MB (valor recomendado para LUPE)
+; Aumentar a 512MB (valor recomendado para LUPE Legal)
 memory_limit = 512M
 
 ; Para documentos muy grandes, hasta 1GB

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documento no encontrado · LUPE</title>
+    <title>Documento no encontrado · LUPE Legal</title>
     <link rel="icon" href="/images/lupe-logo.png" type="image/png">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -42,7 +42,7 @@
     {{-- ── Header ── --}}
     <header class="bg-white border-b border-gray-200">
         <div class="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-            <img src="/images/lupe-logo.png" alt="LUPE" class="h-8 w-auto">
+            <img src="/images/lupe-logo.png" alt="LUPE Legal" class="h-8 w-auto">
             <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
                 <lord-icon
                     src="https://cdn.lordicon.com/fihkmkwt.json"
@@ -82,7 +82,7 @@
 
                     <p class="text-sm text-gray-500 leading-relaxed mb-1">
                         El código de verificación no corresponde a ningún documento
-                        registrado en la plataforma LUPE.
+                        registrado en la plataforma LUPE Legal.
                     </p>
                     <p class="text-sm text-gray-400 leading-relaxed">
                         El documento puede haber sido revocado o el enlace puede estar incorrecto.
@@ -102,7 +102,7 @@
             <p class="text-center text-xs text-gray-400 mt-4">
                 Plataforma de Gestión Disciplinaria Laboral ·
                 <a href="https://www.ceslegal.co" target="_blank" rel="noopener"
-                   class="hover:underline">LUPE</a>
+                   class="hover:underline">LUPE Legal</a>
             </p>
         </div>
     </main>

@@ -46,7 +46,7 @@ html.dark {
         <div style="flex:1;min-width:0;">
             <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--exo-label);margin:0 0 4px;">Advertencia Legal</p>
             <p style="font-size:15px;font-weight:800;color:#f87171;margin:0 0 10px;line-height:1.2;">Decisión contraria a la recomendación jurídica</p>
-            <p style="font-size:13px;color:var(--exo-text);line-height:1.6;margin:0;">La decisión que está tomando va en contra de la recomendación jurídica emitida por el sistema de inteligencia artificial de LUPE. <strong style="color:var(--exo-strong);">LUPE no se responsabiliza por las consecuencias legales, laborales o judiciales derivadas de esta decisión.</strong></p>
+            <p style="font-size:13px;color:var(--exo-text);line-height:1.6;margin:0;">La decisión que está tomando va en contra de la recomendación jurídica emitida por el sistema de inteligencia artificial de LUPE Legal. <strong style="color:var(--exo-strong);">LUPE Legal no se responsabiliza por las consecuencias legales, laborales o judiciales derivadas de esta decisión.</strong></p>
 
             @if($razonEspecifica)
                 <div style="margin-top:12px;padding:12px 14px;background:var(--exo-reason-bg);border-radius:10px;border:1px solid var(--exo-reason-border);">

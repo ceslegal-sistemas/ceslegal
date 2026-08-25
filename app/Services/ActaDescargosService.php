@@ -100,7 +100,7 @@ class ActaDescargosService
                 "dentro del proceso disciplinario N.° {$proceso->codigo}, adelantado por {$razonSocial} " .
                 "con NIT {$nit}, en ejercicio de su potestad disciplinaria interna conforme al Reglamento " .
                 "Interno de Trabajo y la legislación laboral vigente. " .
-                "La presente diligencia fue gestionada a través de la plataforma tecnológica LUPE " .
+                "La presente diligencia fue gestionada a través de la plataforma tecnológica LUPE Legal " .
                 "(www.ceslegal.co), empresa que actúa exclusivamente como proveedora del servicio tecnológico " .
                 "de gestión disciplinaria y no tiene participación, intervención ni responsabilidad alguna " .
                 "en las decisiones disciplinarias adoptadas por el empleador. " .
@@ -197,7 +197,7 @@ class ActaDescargosService
 
             $textoCierre =
                 "Se da por terminada la presente Diligencia Administrativa a las {$horaFin} del {$fechaCierreTexto}. " .
-                "{$nombreTrab} participó en calidad de {$g['investigado']} a través de la plataforma digital LUPE, " .
+                "{$nombreTrab} participó en calidad de {$g['investigado']} a través de la plataforma digital LUPE Legal, " .
                 "ejerciendo su derecho de defensa y contradicción, respondió las preguntas formuladas " .
                 "y manifestó lo que tuvo a bien en su defensa. " .
                 "Se le informa que la empresa procederá al análisis jurídico de los hechos, los descargos " .

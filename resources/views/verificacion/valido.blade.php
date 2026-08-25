@@ -23,7 +23,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verificación de Autenticidad · LUPE</title>
+    <title>Verificación de Autenticidad · LUPE Legal</title>
     <link rel="icon" href="/images/lupe-logo.png" type="image/png">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -249,7 +249,7 @@
     {{-- ── Header ── --}}
     <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div class="max-w-2xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-            <img src="/images/lupe-logo.png" alt="LUPE" class="h-8 w-auto">
+            <img src="/images/lupe-logo.png" alt="LUPE Legal" class="h-8 w-auto">
             <div class="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
                 <lord-icon
                     src="https://cdn.lordicon.com/fihkmkwt.json"
@@ -320,7 +320,7 @@
 
                 <p style="color:#334155;font-size:.875rem;font-weight:500;line-height:1.65;
                            margin:0 auto;max-width:420px;">
-                    Este documento fue generado por la plataforma LUPE y su autenticidad ha sido confirmada.
+                    Este documento fue generado por la plataforma LUPE Legal y su autenticidad ha sido confirmada.
                     La identidad del participante fue validada mediante
                     <span style="color:#92710d;font-weight:600;">OTP</span>
                     y verificación
@@ -339,7 +339,7 @@
             </lord-icon>
             <p style="margin:0;">
                 <strong>Nota:</strong>
-                LUPE actúa exclusivamente como proveedora del servicio tecnológico de gestión disciplinaria.
+                LUPE Legal actúa exclusivamente como proveedora del servicio tecnológico de gestión disciplinaria.
                 La decisión disciplinaria es responsabilidad exclusiva de
                 <strong>{{ $empresa->razon_social ?? 'el empleador' }}</strong>.
                 Válido conforme a la <strong>Ley 527/1999</strong>
@@ -552,7 +552,7 @@
         <p class="text-xs leading-relaxed" style="color:#94a3b8;">
             Verificación provista por
             <a href="https://www.ceslegal.co" target="_blank" rel="noopener"
-               class="text-primary-600 hover:underline font-medium">LUPE</a>
+               class="text-primary-600 hover:underline font-medium">LUPE Legal</a>
             · Plataforma de Gestión Disciplinaria Laboral<br>
             Ley 527/1999 (Comercio Electrónico) · Decreto 2364/2012 (Firma Electrónica)
         </p>

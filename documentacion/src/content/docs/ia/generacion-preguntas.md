@@ -1,6 +1,6 @@
 ---
 title: Generacion de Preguntas
-description: Como LUPE utiliza inteligencia artificial para generar preguntas en las diligencias de descargos laborales
+description: Como LUPE Legal utiliza inteligencia artificial para generar preguntas en las diligencias de descargos laborales
 ---
 
 ## Descripcion General

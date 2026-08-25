@@ -84,7 +84,7 @@ table { border-collapse: collapse; width: 100%; }
 
 <p class="text-justify">
     La identidad {{ $g['del'] }} {{ $g['trabajador'] }} fue verificada mediante los siguientes
-    mecanismos de seguridad de la plataforma LUPE, conforme a lo previsto en la
+    mecanismos de seguridad de la plataforma LUPE Legal, conforme a lo previsto en la
     Ley 527 de 1999 (Comercio Electrónico) y el Decreto 2364 de 2012 (Firma Electrónica):
 </p>
 
@@ -146,7 +146,7 @@ table { border-collapse: collapse; width: 100%; }
 <p class="text-justify">
     A continuación se transcriben las preguntas formuladas {{ $g['al'] }} {{ $g['trabajador'] }}
     y las respuestas que {{ $g['este'] }} suministró de manera escrita a través de la
-    plataforma LUPE:
+    plataforma LUPE Legal:
 </p>
 
 @if($preguntas->isEmpty())
@@ -257,12 +257,12 @@ table { border-collapse: collapse; width: 100%; }
 
 {{-- Nota aclaratoria --}}
 <p style="margin-top:14pt;" class="footer-note">
-    NOTA: La plataforma LUPE actúa únicamente como proveedora del servicio tecnológico
+    NOTA: La plataforma LUPE Legal actúa únicamente como proveedora del servicio tecnológico
     de gestión disciplinaria. La identidad {{ $g['del'] }} {{ $g['trabajador'] }} fue verificada
     mediante código OTP y doble reconocimiento facial con inteligencia artificial, lo que
     constituye su participación válida y consentida conforme a la Ley 527 de 1999 y el
     Decreto 2364 de 2012. Los registros de autenticación reposan en el expediente digital
-    del proceso y están disponibles como prueba. LUPE no asume responsabilidad alguna
+    del proceso y están disponibles como prueba. LUPE Legal no asume responsabilidad alguna
     sobre las decisiones disciplinarias adoptadas por el empleador.
 </p>
 
@@ -313,11 +313,11 @@ table { border-collapse: collapse; width: 100%; }
 <p style="margin-top:24pt;" class="footer-note">
     Documento con firma electrónica simple conforme a la Ley 527 de 1999 y el Decreto 2364 de 2012
     de la República de Colombia. La autenticidad de este documento puede ser verificada en cualquier
-    momento mediante el código QR o la URL indicada. LUPE actúa como proveedor tecnológico del
+    momento mediante el código QR o la URL indicada. LUPE Legal actúa como proveedor tecnológico del
     servicio de gestión disciplinaria y no como parte en el proceso disciplinario.
 </p>
 <p style="text-align:center; font-size:8pt; color:#888888; margin-top:8pt;">
-    LUPE · www.ceslegal.co · Plataforma de Gestión Disciplinaria Laboral
+    LUPE Legal · www.ceslegal.co · Plataforma de Gestión Disciplinaria Laboral
 </p>
 
 </div>

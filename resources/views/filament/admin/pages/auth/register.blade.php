@@ -1,9 +1,10 @@
-{{-- Register split-screen LUPE - un solo nodo raíz (Livewire) --}}
+{{-- Register split-screen LUPE Legal - un solo nodo raíz (Livewire) --}}
 <div class="ces-auth-root">
 
     <aside class="ces-auth-brand">
         <div>
             <div class="ces-auth-logo">LUPE</div>
+            <div class="ces-auth-sub">LEGAL</div>
         </div>
         <div class="ces-auth-brand__bottom">
             <p class="ces-auth-tag">Procesos disciplinarios con respaldo constitucional.</p>
@@ -13,9 +14,9 @@
 
     <main class="ces-auth-main">
         <div class="ces-auth-card ces-auth-card--wide">
-            <img src="{{ asset('images/lupe-logo.png') }}" alt="LUPE" class="ces-auth-logo-img">
+            <img src="{{ asset('images/lupe-logo.png') }}" alt="LUPE Legal" class="ces-auth-logo-img">
             <h1 class="ces-auth-title">Cree su cuenta</h1>
-            <p class="ces-auth-lead">Configure su empresa para empezar a operar en LUPE.</p>
+            <p class="ces-auth-lead">Configure su empresa para empezar a operar en LUPE Legal.</p>
 
             {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::AUTH_REGISTER_FORM_BEFORE, scopes: $this->getRenderHookScopes()) }}
 

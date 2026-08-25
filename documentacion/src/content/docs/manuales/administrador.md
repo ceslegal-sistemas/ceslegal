@@ -1,11 +1,11 @@
 ---
 title: Manual del Administrador
-description: Guia completa para el usuario con rol super_admin en LUPE
+description: Guia completa para el usuario con rol super_admin en LUPE Legal
 ---
 
 ## Descripcion del Rol
 
-El **Administrador** (rol `super_admin`) tiene acceso total al sistema LUPE. Es responsable de la configuracion general, gestion de usuarios, administracion de empresas y supervision de todos los procesos disciplinarios del sistema.
+El **Administrador** (rol `super_admin`) tiene acceso total al sistema LUPE Legal. Es responsable de la configuracion general, gestion de usuarios, administracion de empresas y supervision de todos los procesos disciplinarios del sistema.
 
 ### Capacidades del Administrador
 
@@ -309,7 +309,7 @@ El sistema incluye un catalogo de **63 tipos de sanciones** laborales predefinid
 
 ### Descripcion
 
-LUPE utiliza **Filament Shield** (basado en Spatie Laravel Permission) para gestionar permisos granulares por recurso.
+LUPE Legal utiliza **Filament Shield** (basado en Spatie Laravel Permission) para gestionar permisos granulares por recurso.
 
 ### Acceder a la Gestion de Permisos
 

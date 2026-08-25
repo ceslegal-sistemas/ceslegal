@@ -1,6 +1,6 @@
 ---
 title: Base de Datos
-description: Modelo de datos y estructura de la base de datos de LUPE
+description: Modelo de datos y estructura de la base de datos de LUPE Legal
 ---
 
 ## Diagrama Entidad-Relación

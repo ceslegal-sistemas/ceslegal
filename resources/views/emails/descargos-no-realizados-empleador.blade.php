@@ -139,12 +139,12 @@
             <p><strong>Estado actual:</strong> Descargos No Realizados</p>
         </div>
 
-        <p>Puede consultar el detalle completo del proceso y su avance a través del sistema LUPE.</p>
+        <p>Puede consultar el detalle completo del proceso y su avance a través del sistema LUPE Legal.</p>
 
         <p>Si tiene alguna pregunta sobre el proceso o necesita información adicional, no dude en contactarnos.</p>
 
         <p>Atentamente,</p>
-        <p><strong>Equipo LUPE</strong><br>
+        <p><strong>Equipo LUPE Legal</strong><br>
             Gestión de Procesos Disciplinarios</p>
     </div>
 

@@ -1,11 +1,11 @@
 ---
 title: Visión General
-description: Arquitectura general del sistema LUPE
+description: Arquitectura general del sistema LUPE Legal
 ---
 
 ## Descripción del Sistema
 
-LUPE es una aplicación web monolítica construida con **Laravel 12** y **Filament 3.2**, diseñada para gestionar procesos disciplinarios laborales en Colombia con asistencia de Inteligencia Artificial.
+LUPE Legal es una aplicación web monolítica construida con **Laravel 12** y **Filament 3.2**, diseñada para gestionar procesos disciplinarios laborales en Colombia con asistencia de Inteligencia Artificial.
 
 ## Arquitectura de Alto Nivel
 

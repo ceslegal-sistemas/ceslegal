@@ -173,7 +173,7 @@
 
     <div class="footer">
         <p><em>Documento generado el {{fecha_generacion}} - Código: {{codigo}}</em></p>
-        <p><em>Este documento ha sido generado de manera electrónica por el Sistema de Gestión Legal LUPE</em></p>
+        <p><em>Este documento ha sido generado de manera electrónica por el Sistema de Gestión Legal LUPE Legal</em></p>
         <p><strong>IMPORTANTE:</strong> Este documento debe ser firmado por ambas partes como constancia de notificación.</p>
     </div>
 </body>

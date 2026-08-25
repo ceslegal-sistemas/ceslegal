@@ -1,6 +1,6 @@
 ---
 title: Notificaciones
-description: Sistema de notificaciones en tiempo real con tracking de correos electronicos en LUPE
+description: Sistema de notificaciones en tiempo real con tracking de correos electronicos en LUPE Legal
 ---
 
 ## Descripcion General

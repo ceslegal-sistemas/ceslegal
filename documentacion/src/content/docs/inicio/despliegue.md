@@ -1,6 +1,6 @@
 ---
 title: Despliegue
-description: Guía para desplegar LUPE en un servidor de producción
+description: Guía para desplegar LUPE Legal en un servidor de producción
 ---
 
 ## Requisitos del Servidor

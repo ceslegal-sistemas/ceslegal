@@ -9,7 +9,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Pages\Auth\Login as BaseLogin;
 
 /**
- * Login con diseño split-screen de marca LUPE (panel con gradiente + formulario).
+ * Login con diseño split-screen de marca LUPE Legal (panel con gradiente + formulario).
  * Un solo formulario de login (siempre vive en el panel 'admin', enlazado desde
  * landing.blade.php y suscripcion/retorno.blade.php) que redirige según el rol
  * tras autenticar: cliente -> panel 'empresa', cualquier otro -> panel de

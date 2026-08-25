@@ -1,6 +1,6 @@
 ---
 title: Variables de Entorno
-description: Referencia completa de todas las variables de entorno del sistema LUPE
+description: Referencia completa de todas las variables de entorno del sistema LUPE Legal
 ---
 
 El archivo `.env` en la raiz del proyecto controla toda la configuracion del sistema. A continuacion se documenta cada variable agrupada por categoria.
@@ -9,7 +9,7 @@ El archivo `.env` en la raiz del proyecto controla toda la configuracion del sis
 
 | Variable | Descripcion | Requerida | Valor por defecto | Ejemplo |
 |----------|-------------|-----------|-------------------|---------|
-| `APP_NAME` | Nombre de la aplicacion mostrado en la interfaz y correos | Si | `Laravel` | `"LUPE"` |
+| `APP_NAME` | Nombre de la aplicacion mostrado en la interfaz y correos | Si | `Laravel` | `"LUPE Legal"` |
 | `APP_ENV` | Entorno de ejecucion | Si | `local` | `production` |
 | `APP_KEY` | Clave de cifrado de la aplicacion (generada con `php artisan key:generate`) | Si | - | `base64:abc123...` |
 | `APP_DEBUG` | Activa el modo de depuracion con mensajes de error detallados | Si | `true` | `false` |
@@ -19,7 +19,7 @@ El archivo `.env` en la raiz del proyecto controla toda la configuracion del sis
 | `APP_FALLBACK_LOCALE` | Idioma de respaldo si no se encuentra una traduccion | No | `en` | `es` |
 
 ```ini
-APP_NAME="LUPE"
+APP_NAME="LUPE Legal"
 APP_ENV=production
 APP_KEY=base64:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 APP_DEBUG=false
@@ -75,7 +75,7 @@ En produccion, crea un usuario de base de datos dedicado con permisos limitados 
 | `MAIL_PASSWORD` | Contrasena o contrasena de aplicacion SMTP | Si (SMTP) | `null` | `abcd efgh ijkl mnop` |
 | `MAIL_ENCRYPTION` | Protocolo de cifrado del correo | No | `null` | `tls` |
 | `MAIL_FROM_ADDRESS` | Direccion de remitente por defecto | Si | `hello@example.com` | `notificaciones@ceslegal.com` |
-| `MAIL_FROM_NAME` | Nombre de remitente por defecto | Si | `${APP_NAME}` | `"LUPE"` |
+| `MAIL_FROM_NAME` | Nombre de remitente por defecto | Si | `${APP_NAME}` | `"LUPE Legal"` |
 
 ```ini
 MAIL_MAILER=smtp
@@ -208,7 +208,7 @@ En produccion usa `LOG_LEVEL=error` o `LOG_LEVEL=warning` para evitar llenar los
 
 ```ini
 # ── Aplicacion ──────────────────────────────────────────
-APP_NAME="LUPE"
+APP_NAME="LUPE Legal"
 APP_ENV=production
 APP_KEY=base64:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 APP_DEBUG=false

@@ -196,7 +196,7 @@
 
     <div class="footer">
         <p><strong>CONTRATO No. {{codigo_contrato}}</strong></p>
-        <p><em>Documento generado el {{fecha_generacion}} por el Sistema de Gestión Legal LUPE</em></p>
+        <p><em>Documento generado el {{fecha_generacion}} por el Sistema de Gestión Legal LUPE Legal</em></p>
         <p><em>Este contrato se rige por las disposiciones del Código Sustantivo del Trabajo de Colombia</em></p>
     </div>
 </body>
