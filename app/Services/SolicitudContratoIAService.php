@@ -336,9 +336,39 @@ class SolicitudContratoIAService
         PROMPT;
     }
 
-    public function generarContratoPDF(SolicitudContrato $solicitud): string
+    /**
+     * Marca de agua "BORRADOR" - se inyecta en el HTML ANTES de renderizar
+     * con Dompdf, vía str_replace('</body>', ...). position: fixed es una
+     * característica real de Dompdf que repite el elemento en TODAS las
+     * páginas del PDF (importante: el contrato de Término Fijo ya ocupa
+     * varias páginas con las 29 cláusulas reales) - verificado
+     * empíricamente en las pruebas de esta tarea, no asumido.
+     */
+    private const MARCA_AGUA_BORRADOR = <<<HTML
+    <div style="position: fixed; top: 45%; left: 0; width: 100%; text-align: center;
+        transform: rotate(-35deg); font-size: 110px; font-weight: bold;
+        color: rgba(200, 0, 0, 0.18); z-index: 9999;">BORRADOR</div>
+    HTML;
+
+    /**
+     * $borrador = true: genera un PDF de revisión con marca de agua
+     * "BORRADOR", SIN la protección real de solo-impresión (más fácil de
+     * leer/anotar mientras se decide) - usado por afterCreate() al crear
+     * la solicitud y por la Table Action "Regenerar Borrador".
+     *
+     * $borrador = false: genera el documento FINAL, sin marca de agua, con
+     * la protección real de PdfProteccion - usado por la Table Action
+     * "Aprobar". Dejar estado = 'aprobado' es responsabilidad de este
+     * método (no del llamador), para que "Aprobar" no necesite un
+     * ->update() de estado aparte.
+     */
+    public function generarContratoPDF(SolicitudContrato $solicitud, bool $borrador = false): string
     {
         $html = $this->generarHTML($solicitud);
+
+        if ($borrador) {
+            $html = str_replace('</body>', self::MARCA_AGUA_BORRADOR . '</body>', $html);
+        }
 
         $directorioRelativo = "solicitudes-contrato/{$solicitud->empresa_id}";
         Storage::disk('local')->makeDirectory($directorioRelativo);
@@ -356,19 +386,24 @@ class SolicitudContratoIAService
         $dompdf->setPaper('letter', 'portrait');
         $dompdf->render();
 
-        // Protección real (no de interfaz): solo permiso de impresión, mismo
-        // mecanismo ya usado para el RIT generado con IA - ver App\Support\PdfProteccion.
-        \App\Support\PdfProteccion::proteger(
-            $dompdf,
-            \App\Support\PdfProteccion::ownerPassword($solicitud->empresa_id, 'contrato')
-        );
+        if (!$borrador) {
+            // Protección real (no de interfaz): solo permiso de impresión,
+            // mismo mecanismo ya usado para el RIT generado con IA - ver
+            // App\Support\PdfProteccion. SOLO en el documento final - el
+            // borrador se deja sin proteger para que sea fácil de revisar.
+            \App\Support\PdfProteccion::proteger(
+                $dompdf,
+                \App\Support\PdfProteccion::ownerPassword($solicitud->empresa_id, 'contrato')
+            );
+        }
 
         file_put_contents($rutaAbsoluta, $dompdf->output());
 
         $solicitud->update([
             'ruta_contrato'             => $rutaRelativa,
             'fecha_generacion_contrato' => now(),
-            'estado'                    => 'contrato_generado',
+            'estado'                    => $borrador ? 'borrador' : 'aprobado',
+            'fecha_cierre'              => $borrador ? null : now(),
         ]);
 
         return $rutaRelativa;
