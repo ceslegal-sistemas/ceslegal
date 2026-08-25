@@ -65,10 +65,20 @@ class TemaClasificadorService
         $prompt = <<<PROMPT
         Eres un asistente legal especializado en derecho laboral colombiano.
         Dado el siguiente texto, identifica cuáles de estos temas normativos
-        aplican realmente al contenido (puede ser ninguno, uno, o varios).
-        No inventes temas que no estén en la lista. Responde ÚNICAMENTE con
-        un array JSON de los IDs numéricos aplicables, sin texto adicional,
-        sin markdown. Ejemplo de respuesta válida: [3, 7, 12]
+        son tratados de forma SUSTANCIAL en el contenido (el texto les
+        dedica una sección, capítulo, artículo o párrafo de desarrollo
+        propio) - NO incluyas un tema solo porque se lo menciona de paso,
+        como contexto legal secundario, o como referencia incidental
+        dentro del razonamiento de otro tema. Sé selectivo: un documento
+        angosto (ej. una sentencia sobre un solo problema jurídico) debe
+        arrojar pocos temas, no todos los que aparecen mencionados en su
+        texto. Un reglamento interno completo sí puede arrojar muchos
+        temas, porque legítimamente dedica un capítulo a cada uno.
+
+        Puede ser ninguno, uno, o varios. No inventes temas que no estén
+        en la lista. Responde ÚNICAMENTE con un array JSON de los IDs
+        numéricos aplicables, sin texto adicional, sin markdown. Ejemplo
+        de respuesta válida: [3, 7, 12]
 
         TEMAS DISPONIBLES:
         {$listaTemas}
