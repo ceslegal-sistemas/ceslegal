@@ -379,7 +379,12 @@ class SolicitudContratoResource extends Resource
                                 // (H:i:s), y el mensaje de validación terminaba
                                 // mostrando "...posterior o igual a 2026-08-18
                                 // 10:16:14" en un campo que solo pide una fecha.
-                                ->minDate(today())
+                                // Solo al crear: si se evalúa siempre, cualquier
+                                // solicitud ya guardada se vuelve "inválida" apenas
+                                // pasa su fecha propuesta, mostrando el mensaje de
+                                // validación incluso en modo Ver (bug real
+                                // reportado por el usuario, 2026-08-25).
+                                ->minDate(fn (string $operation) => $operation === 'create' ? today() : null)
                                 ->displayFormat('d/m/Y')
                                 ->helperText('Fecha propuesta para iniciar el contrato')
                                 ->placeholder('Seleccione la fecha...')
@@ -790,6 +795,21 @@ class SolicitudContratoResource extends Resource
                     ->label('Editar'),
                 Tables\Actions\DeleteAction::make()
                     ->label('Eliminar'),
+
+                // Faltaba tras retirar la Section "Progreso de la Solicitud"
+                // (que tenía el único enlace de descarga) - sin esto, Aprobar/
+                // Regenerar Borrador generaban el PDF correctamente pero no
+                // había ninguna forma de verlo desde la interfaz (bug real
+                // reportado por el usuario, 2026-08-25). Muestra tanto el
+                // borrador con marca de agua como el aprobado ya protegido,
+                // según el estado actual.
+                Tables\Actions\Action::make('verContrato')
+                    ->label('Ver Contrato')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('info')
+                    ->visible(fn (SolicitudContrato $record) => filled($record->ruta_contrato))
+                    ->url(fn (SolicitudContrato $record) => route('solicitud-contrato.descargar', $record))
+                    ->openUrlInNewTab(),
 
                 Tables\Actions\Action::make('regenerarBorrador')
                     ->label('Regenerar Borrador')
