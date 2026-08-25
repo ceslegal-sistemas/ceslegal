@@ -593,23 +593,6 @@ class SolicitudContratoResource extends Resource
                             : new \Illuminate\Support\HtmlString('<button type="submit" class="filament-button filament-button-size-md inline-flex items-center justify-center py-1 gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset dark:focus:ring-offset-0 min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700">Crear Solicitud</button>')
                     ),
 
-                // Campos solo para edición - Estado del proceso
-                Forms\Components\Section::make('Progreso de la Solicitud')
-                    ->description('En qué paso va su solicitud y qué sigue')
-                    ->icon('heroicon-o-clipboard-document-check')
-                    ->schema([
-                        Forms\Components\Hidden::make('estado')
-                            ->default('pendiente'),
-
-                        Forms\Components\View::make('filament.components.solicitud-contrato-progreso')
-                            ->viewData(fn(Get $get, $record) => [
-                                'estadoActual' => $get('estado') ?? 'pendiente',
-                                'solicitudId' => $record?->id,
-                                'rutaContratoExiste' => filled($record?->ruta_contrato),
-                            ]),
-                    ])
-                    ->hiddenOn('create'),
-
                 Forms\Components\Section::make('Asignación interna')
                     ->description('Solo visible para el equipo de CES Legal')
                     ->icon('heroicon-o-user-circle')
@@ -630,9 +613,6 @@ class SolicitudContratoResource extends Resource
                     ->description('Observaciones y objeto jurídico')
                     ->icon('heroicon-o-document-text')
                     ->schema([
-                        Forms\Components\View::make('filament.components.solicitud-contrato-ia-botones')
-                            ->columnSpanFull(),
-
                         Forms\Components\RichEditor::make('objeto_juridico_redactado')
                             ->label('Objeto Jurídico Redactado')
                             ->toolbarButtons([
@@ -661,13 +641,9 @@ class SolicitudContratoResource extends Resource
                             ->helperText('Notas y observaciones del análisis jurídico')
                             ->columnSpanFull(),
                     ])
-                    // 'view' además de 'create': esta sección tiene botones reales
-                    // (redactarObjetoConIA()/generarContratoAction() vía wire:click
-                    // crudo en solicitud-contrato-ia-botones.blade.php) - la página
-                    // "Ver" renderiza el form con ->disabled(), que no neutraliza un
-                    // View::make() con HTML embebido. Sin este fix esos botones
-                    // quedaban clicables ahí y llamaban métodos que ViewSolicitudContrato
-                    // no define, tumbando la página con un error de Livewire.
+                    // Sección de uso interno (redacción/observaciones jurídicas) -
+                    // no aplica a la experiencia de creación/visualización simple
+                    // del cliente, que ahora ve el borrador automático directamente.
                     ->hiddenOn(['create', 'view'])
                     ->collapsed(),
             ]);
@@ -688,24 +664,18 @@ class SolicitudContratoResource extends Resource
                 Tables\Columns\BadgeColumn::make('estado')
                     ->label('Estado')
                     ->colors([
-                        'secondary' => 'pendiente',
-                        'warning' => 'en_analisis',
-                        'info' => 'contrato_generado',
-                        'success' => 'finalizado',
+                        'gray' => 'borrador',
+                        'success' => 'aprobado',
                         'danger' => 'rechazado',
                     ])
                     ->icons([
-                        'heroicon-o-clock' => 'pendiente',
-                        'heroicon-o-document-magnifying-glass' => 'en_analisis',
-                        'heroicon-o-document-check' => 'contrato_generado',
-                        'heroicon-o-check-circle' => 'finalizado',
+                        'heroicon-o-document-text' => 'borrador',
+                        'heroicon-o-check-circle' => 'aprobado',
                         'heroicon-o-x-circle' => 'rechazado',
                     ])
                     ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'pendiente' => 'Pendiente',
-                        'en_analisis' => 'En Análisis',
-                        'contrato_generado' => 'Contrato Generado',
-                        'finalizado' => 'Finalizado',
+                        'borrador' => 'Borrador',
+                        'aprobado' => 'Aprobado',
                         'rechazado' => 'Rechazado',
                         default => $state,
                     })
@@ -781,10 +751,8 @@ class SolicitudContratoResource extends Resource
                 Tables\Filters\SelectFilter::make('estado')
                     ->label('Estado')
                     ->options([
-                        'pendiente' => 'Pendiente',
-                        'en_analisis' => 'En Análisis',
-                        'contrato_generado' => 'Contrato Generado',
-                        'finalizado' => 'Finalizado',
+                        'borrador' => 'Borrador',
+                        'aprobado' => 'Aprobado',
                         'rechazado' => 'Rechazado',
                     ])
                     ->multiple(),
@@ -822,6 +790,61 @@ class SolicitudContratoResource extends Resource
                     ->label('Editar'),
                 Tables\Actions\DeleteAction::make()
                     ->label('Eliminar'),
+
+                Tables\Actions\Action::make('regenerarBorrador')
+                    ->label('Regenerar Borrador')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('gray')
+                    ->visible(fn (SolicitudContrato $record) => $record->estado === 'borrador')
+                    ->requiresConfirmation()
+                    ->modalDescription('Se generará un nuevo borrador del contrato con los datos actuales.')
+                    ->action(function (SolicitudContrato $record) {
+                        $service = app(\App\Services\SolicitudContratoIAService::class);
+
+                        if (empty($record->objeto_juridico_redactado)) {
+                            $texto = $service->redactarObjetoJuridico($record);
+                            $record->update(['objeto_juridico_redactado' => $texto]);
+                        }
+
+                        $service->generarContratoPDF($record, borrador: true);
+
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Borrador regenerado')
+                            ->send();
+                    }),
+
+                Tables\Actions\Action::make('aprobar')
+                    ->label('Aprobar')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn (SolicitudContrato $record) => $record->estado === 'borrador')
+                    ->requiresConfirmation()
+                    ->modalDescription('Se generará el contrato final (protegido, sin marca de agua) y quedará aprobado.')
+                    ->action(function (SolicitudContrato $record) {
+                        app(\App\Services\SolicitudContratoIAService::class)->generarContratoPDF($record, borrador: false);
+
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Solicitud aprobada')
+                            ->send();
+                    }),
+
+                Tables\Actions\Action::make('rechazar')
+                    ->label('Rechazar')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->visible(fn (SolicitudContrato $record) => $record->estado === 'borrador')
+                    ->requiresConfirmation()
+                    ->modalDescription('¿Está seguro de rechazar esta solicitud? Esta acción no se puede deshacer desde la interfaz.')
+                    ->action(function (SolicitudContrato $record) {
+                        $record->update(['estado' => 'rechazado']);
+
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Solicitud rechazada')
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -851,7 +874,7 @@ class SolicitudContratoResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::where('estado', 'pendiente')->count();
+        return static::getModel()::where('estado', 'borrador')->count();
     }
 
     public static function getNavigationBadgeColor(): ?string
