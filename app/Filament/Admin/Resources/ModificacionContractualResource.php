@@ -113,8 +113,12 @@ class ModificacionContractualResource extends Resource
                                 // ->when() es un no-op siempre - se deja explícito por
                                 // si en el futuro EmpresaActiva se habilita para otros
                                 // roles, no porque hoy filtre algo.
+                                // Solo contratos ya 'aprobado': un otrosí debe aplicar
+                                // sobre un contrato aprobado, no sobre un borrador
+                                // ('contrato_generado'/'finalizado' se retiraron con la
+                                // simplificación de estados a borrador/aprobado/rechazado).
                                 modifyQueryUsing: fn (Builder $query) => $query
-                                    ->whereIn('estado', ['contrato_generado', 'finalizado'])
+                                    ->whereIn('estado', ['aprobado'])
                                     ->when(EmpresaActiva::id(), fn (Builder $q, int $empresaId) => $q->where('empresa_id', $empresaId)),
                             )
                             ->getOptionLabelFromRecordUsing(
