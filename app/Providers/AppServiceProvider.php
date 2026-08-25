@@ -7,9 +7,11 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Cache\RateLimiting\Limit;
 use App\Models\DocumentoLegal;
 use App\Models\ProcesoDisciplinario;
+use App\Models\ReglamentoInterno;
 use App\Models\SolicitudContrato;
 use App\Observers\DocumentoLegalObserver;
 use App\Observers\ProcesoDisciplinarioObserver;
+use App\Observers\ReglamentoInternoObserver;
 use App\Observers\SolicitudContratoObserver;
 
 class AppServiceProvider extends ServiceProvider
@@ -31,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
         DocumentoLegal::observe(DocumentoLegalObserver::class);
         ProcesoDisciplinario::observe(ProcesoDisciplinarioObserver::class);
         SolicitudContrato::observe(SolicitudContratoObserver::class);
+        ReglamentoInterno::observe(ReglamentoInternoObserver::class);
 
         // Quita el botón "Crear y crear otro" de TODOS los formularios de
         // creación del panel (pedido del usuario 2026-08-13). $canCreateAnother
