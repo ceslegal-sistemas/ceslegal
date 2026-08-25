@@ -598,6 +598,10 @@ class SolicitudContratoResource extends Resource
                             : new \Illuminate\Support\HtmlString('<button type="submit" class="filament-button filament-button-size-md inline-flex items-center justify-center py-1 gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset dark:focus:ring-offset-0 min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700">Crear Solicitud</button>')
                     ),
 
+                // Oculta a pedido del usuario (2026-08-25) mientras se retira el
+                // rol "abogado" del sistema (tarea aparte, todavía sin agendar) -
+                // no se borró el campo/relación para no perder la asignación ya
+                // guardada en registros existentes.
                 Forms\Components\Section::make('Asignación interna')
                     ->description('Solo visible para el equipo de CES Legal')
                     ->icon('heroicon-o-user-circle')
@@ -612,7 +616,7 @@ class SolicitudContratoResource extends Resource
                             ->suffixIcon('heroicon-o-scale'),
                     ])
                     ->collapsed()
-                    ->hiddenOn(['create', 'view']),
+                    ->hidden(),
 
                 Forms\Components\Section::make('Análisis Jurídico')
                     ->description('Observaciones y objeto jurídico')
@@ -721,13 +725,15 @@ class SolicitudContratoResource extends Resource
                     ->toggleable()
                     ->icon('heroicon-o-briefcase'),
 
+                // Oculta a pedido del usuario (2026-08-25), mismo motivo que la
+                // Section "Asignación interna" del formulario.
                 Tables\Columns\TextColumn::make('abogado.name')
                     ->label('Abogado')
                     ->searchable()
                     ->sortable()
-                    ->toggleable()
                     ->default('Sin asignar')
-                    ->icon('heroicon-o-scale'),
+                    ->icon('heroicon-o-scale')
+                    ->hidden(),
 
                 Tables\Columns\TextColumn::make('salario_propuesto')
                     ->label('Salario')
@@ -781,12 +787,15 @@ class SolicitudContratoResource extends Resource
                     ->preload()
                     ->multiple(),
 
+                // Oculto a pedido del usuario (2026-08-25), mismo motivo que la
+                // columna y la Section "Asignación interna".
                 Tables\Filters\SelectFilter::make('abogado')
                     ->label('Abogado')
                     ->relationship('abogado', 'name')
                     ->searchable()
                     ->preload()
-                    ->multiple(),
+                    ->multiple()
+                    ->hidden(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
