@@ -1,6 +1,19 @@
 <div>
     @if ($paso === 1)
-        <div class="space-y-6">
+        {{--
+            wire:key REQUERIDO: sin esto, el morph de Livewire (sin keys)
+            intenta reutilizar/reordenar nodos entre este bloque y el de
+            $paso===2 (que comparten el mismo partial emitir-sancion-analisis
+            pero con modoDecision distinto, produciendo árboles similares
+            pero no idénticos) - causaba contenido duplicado y secciones
+            que desaparecían al hacer "Volver" (bug real reportado por el
+            usuario, confirmado leyendo vendor/livewire/livewire/dist/livewire.js:
+            sin key, el algoritmo cae en un "lookahead" que compara nodos por
+            posición/igualdad en vez de por identidad). Mismo patrón ya usado
+            en este proyecto para el mismo problema: formulario-descargos.blade.php
+            usa wire:key="feedback-paso-" + el número de paso, ver línea 1221.
+        --}}
+        <div class="space-y-6" wire:key="emitir-sancion-paso-{{ $paso }}">
             @if ($esFallback)
                 @include('filament.components.emitir-sancion-ia-error')
             @else
@@ -43,7 +56,7 @@
             </div>
         </div>
     @elseif ($paso === 2)
-        <div class="space-y-6">
+        <div class="space-y-6" wire:key="emitir-sancion-paso-{{ $paso }}">
             @if (!$decision)
                 <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-400 dark:border-amber-600 space-y-3">
                     <div class="flex items-start gap-3">
@@ -72,6 +85,9 @@
             @endif
 
             @if ($decision && !empty($iaSancionesRecomendadas) && !in_array($decision, $iaSancionesRecomendadas))
+                @php
+                    $razonCompleta = strlen(trim($razonDivergencia)) >= 5;
+                @endphp
                 <div class="space-y-4">
                     @include('filament.components.emitir-sancion-exoneracion-aviso', [
                         'tipoSeleccionado' => $decision,
@@ -80,7 +96,7 @@
                     <div class="space-y-3">
                         <x-filament::input.wrapper>
                             <textarea
-                                wire:model="razonDivergencia"
+                                wire:model.live.debounce.500ms="razonDivergencia"
                                 rows="3"
                                 placeholder="Razón por la cual se elige esta sanción en lugar de las recomendadas por la IA"
                                 class="fi-input block w-full resize-y border-none bg-white/0 py-1.5 text-base text-gray-950 transition duration-75 placeholder:text-gray-400 focus:ring-0 dark:text-white dark:placeholder:text-gray-500 sm:text-sm sm:leading-6"
@@ -88,7 +104,7 @@
                         </x-filament::input.wrapper>
 
                         <label class="flex items-start gap-x-3 text-sm text-gray-600 dark:text-gray-300">
-                            <x-filament::input.checkbox wire:model="exoneracionAceptada" class="mt-1" />
+                            <x-filament::input.checkbox wire:model.live="exoneracionAceptada" class="mt-1 shrink-0" />
                             <span>
                                 Confirmo que entiendo las recomendaciones jurídicas emitidas por la IA, que aun así
                                 decido aplicar una sanción diferente, y que asumo completamente la responsabilidad
@@ -96,6 +112,32 @@
                                 consecuencia derivada de la misma.
                             </span>
                         </label>
+
+                        {{--
+                            Checklist visible de lo que falta para poder continuar - antes el
+                            botón quedaba deshabilitado sin ninguna pista de por qué (bug real
+                            reportado: "no entiendo porque no deja continuar"). wire:model.live
+                            arriba asegura que esto (y el :disabled del botón) se recalculen en
+                            cada tecla/clic, no solo en el próximo request de otro elemento.
+                        --}}
+                        @unless ($razonCompleta && $exoneracionAceptada)
+                            <ul class="space-y-1 text-sm">
+                                <li class="flex items-center gap-2 {{ $razonCompleta ? 'text-success-600 dark:text-success-400' : 'text-gray-500 dark:text-gray-400' }}">
+                                    <x-filament::icon
+                                        :icon="$razonCompleta ? 'heroicon-o-check-circle' : 'heroicon-o-minus-circle'"
+                                        class="h-4 w-4 shrink-0"
+                                    />
+                                    Escriba la razón (mínimo 5 caracteres)
+                                </li>
+                                <li class="flex items-center gap-2 {{ $exoneracionAceptada ? 'text-success-600 dark:text-success-400' : 'text-gray-500 dark:text-gray-400' }}">
+                                    <x-filament::icon
+                                        :icon="$exoneracionAceptada ? 'heroicon-o-check-circle' : 'heroicon-o-minus-circle'"
+                                        class="h-4 w-4 shrink-0"
+                                    />
+                                    Marque la casilla de confirmación
+                                </li>
+                            </ul>
+                        @endunless
                     </div>
                 </div>
             @endif
