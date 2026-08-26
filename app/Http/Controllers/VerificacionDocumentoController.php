@@ -9,11 +9,27 @@ class VerificacionDocumentoController extends Controller
 {
     public function verificar(string $token)
     {
+        // Ruta pública por QR (sin middleware auth) - la autorización real es
+        // poseer el token, no la sesión. ProcesoDisciplinario/Empresa/Trabajador
+        // tienen el scope global ScopedToBufeteOrEmpresa, que filtra por la
+        // empresa/bufete del usuario AUTENTICADO en la sesión actual - si quien
+        // escanea el QR tiene una cookie "recordarme" activa de un bufete/cliente
+        // distinto al dueño real del proceso, el scope descartaba el registro en
+        // silencio y `proceso` quedaba null (bug real reportado en producción,
+        // reproducido desde un Android con sesión de otro bufete todavía activa).
         $diligencia = DiligenciaDescargo::where('verificacion_token', $token)
-            ->with(['proceso.trabajador', 'proceso.empresa'])
+            ->with([
+                'proceso' => function ($query) {
+                    $query->withoutGlobalScope('bufeteOrEmpresa')
+                        ->with([
+                            'trabajador' => fn ($q) => $q->withoutGlobalScope('bufeteOrEmpresa'),
+                            'empresa'    => fn ($q) => $q->withoutGlobalScope('bufeteOrEmpresa'),
+                        ]);
+                },
+            ])
             ->first();
 
-        if (!$diligencia || !$diligencia->verificacion_generada_en) {
+        if (!$diligencia || !$diligencia->verificacion_generada_en || !$diligencia->proceso) {
             return view('verificacion.invalido');
         }
 
