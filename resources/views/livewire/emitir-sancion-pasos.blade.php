@@ -76,14 +76,26 @@
                     'tipoSeleccionado' => $decision,
                     'iaRazonesNoRecomendadas' => $iaRazonesNoRecomendadas,
                 ])
-                <textarea wire:model="razonDivergencia"
-                    placeholder="Razón por la cual se elige esta sanción en lugar de las recomendadas por la IA"></textarea>
-                <label>
-                    <input type="checkbox" wire:model="exoneracionAceptada">
-                    Confirmo que entiendo las recomendaciones jurídicas emitidas por la IA, que aun así decido aplicar
-                    una sanción diferente, y que asumo completamente la responsabilidad jurídica, laboral y judicial de
-                    esta decisión, exonerando a LUPE Legal de cualquier consecuencia derivada de la misma.
-                </label>
+                <div class="mt-4 space-y-3">
+                    <x-filament::input.wrapper>
+                        <textarea
+                            wire:model="razonDivergencia"
+                            rows="3"
+                            placeholder="Razón por la cual se elige esta sanción en lugar de las recomendadas por la IA"
+                            class="fi-input block w-full resize-y border-none bg-white/0 py-1.5 text-base text-gray-950 transition duration-75 placeholder:text-gray-400 focus:ring-0 dark:text-white dark:placeholder:text-gray-500 sm:text-sm sm:leading-6"
+                        ></textarea>
+                    </x-filament::input.wrapper>
+
+                    <label class="flex items-start gap-x-3 text-sm text-gray-600 dark:text-gray-300">
+                        <x-filament::input.checkbox wire:model="exoneracionAceptada" class="mt-1" />
+                        <span>
+                            Confirmo que entiendo las recomendaciones jurídicas emitidas por la IA, que aun así decido
+                            aplicar una sanción diferente, y que asumo completamente la responsabilidad jurídica,
+                            laboral y judicial de esta decisión, exonerando a LUPE Legal de cualquier consecuencia
+                            derivada de la misma.
+                        </span>
+                    </label>
+                </div>
             @endif
 
             <div class="mt-6 flex items-center gap-4">
