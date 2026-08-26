@@ -13,7 +13,22 @@ class DescargoPublicoController extends Controller
      */
     public function mostrarAcceso(string $token)
     {
-        $diligencia = DiligenciaDescargo::where('token_acceso', $token)->first();
+        // Ruta pública (sin middleware auth) - la autorización real es poseer el
+        // token, no la sesión. ProcesoDisciplinario/Trabajador tienen el scope
+        // global ScopedToBufeteOrEmpresa, que filtra por la empresa/bufete del
+        // usuario AUTENTICADO en la sesión actual - si el trabajador que abre
+        // este enlace tiene en su navegador una cookie "recordarme" activa de
+        // un bufete/cliente distinto al dueño real del proceso, el scope
+        // descartaba `proceso` en silencio (mismo bug real ya corregido en
+        // VerificacionDocumentoController).
+        $diligencia = DiligenciaDescargo::where('token_acceso', $token)
+            ->with([
+                'proceso' => function ($query) {
+                    $query->withoutGlobalScope('bufeteOrEmpresa')
+                        ->with(['trabajador' => fn ($q) => $q->withoutGlobalScope('bufeteOrEmpresa')]);
+                },
+            ])
+            ->first();
 
         if (!$diligencia) {
             return view('descargos.acceso-invalido', [
@@ -56,8 +71,8 @@ class DescargoPublicoController extends Controller
 
             Log::info('Trabajador accedió a descargos', [
                 'diligencia_id' => $diligencia->id,
-                'proceso_codigo' => $diligencia->proceso->codigo,
-                'trabajador' => $diligencia->proceso->trabajador->nombre_completo,
+                'proceso_codigo' => $diligencia->proceso?->codigo,
+                'trabajador' => $diligencia->proceso?->trabajador?->nombre_completo,
                 'ip' => request()->ip(),
             ]);
         }
