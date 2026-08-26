@@ -143,13 +143,16 @@
             @endif
 
             <div>
-                <div class="flex items-center gap-4">
+                {{-- flex-col en móvil: "Continuar a Autorizar" es un texto largo y con
+                     "Volver" al lado quedaba apretado en pantallas angostas (podía
+                     partirse en 2 líneas dentro del botón). En sm+ vuelven a la fila. --}}
+                <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:gap-4">
                     <x-filament::button
                         type="button"
                         wire:click="irAPaso1"
                         color="gray"
                         icon="heroicon-o-arrow-left"
-                        class="py-3"
+                        class="justify-center py-3 sm:justify-start"
                     >
                         Volver
                     </x-filament::button>
@@ -160,7 +163,7 @@
                         color="primary"
                         icon="heroicon-o-arrow-right"
                         icon-position="after"
-                        class="flex-1 justify-center py-3 text-base"
+                        class="justify-center py-3 text-base sm:flex-1"
                         :disabled="!$decision ||
                             (!empty($iaSancionesRecomendadas) &&
                                 !in_array($decision, $iaSancionesRecomendadas) &&

@@ -263,6 +263,10 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
 @media (max-width: 640px) {
     .esa-rec-row { flex-wrap: wrap; row-gap: 10px; }
     .esa-rec-row > .esa-badge-btn { flex: 1 0 100%; justify-content: center; }
+    /* Objetivo táctil mínimo recomendado (~44px) - en escritorio el padding
+       de 8px/13px + fuente 12.5px se ve bien, pero en celular es difícil de
+       tocar con precisión con el dedo. */
+    .esa-badge-btn { padding: 12px 16px; font-size: 13.5px; }
 }
 </style>
 
