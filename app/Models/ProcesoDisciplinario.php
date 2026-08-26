@@ -431,6 +431,46 @@ class ProcesoDisciplinario extends Model
     }
 
     /**
+     * Respaldo de motivosDescargosNormalizados() cuando sanciones_laborales_ids
+     * no fue seleccionado manualmente (ej. el proceso se editó sin pasar por
+     * "Motivo de los descargos"). Usa clasificacion_incidente_ia.conducta_rit_aplicable
+     * (IADescargoService::clasificarIncidente(), que sí analiza los hechos reales
+     * + el RIT completo del caso) en vez de mostrar el catálogo entero de faltas
+     * sin relación con el incidente. conducta_rit_aplicable ya viene validado por
+     * IADescargoService como copia LITERAL de una entrada real del catálogo - por
+     * eso aquí NO se inventa una gravedad por defecto si no hace match exacto,
+     * se devuelve vacío (misma forma que motivosDescargosNormalizados()).
+     */
+    public function motivosDescargosDesdeClasificacionIA(): array
+    {
+        $clasificacion = $this->clasificacion_incidente_ia ? json_decode($this->clasificacion_incidente_ia, true) : null;
+        $conductaRit = is_array($clasificacion) ? ($clasificacion['conducta_rit_aplicable'] ?? '') : '';
+        if (!is_string($conductaRit) || $conductaRit === '') {
+            return [];
+        }
+
+        $conductas = app(\App\Services\ReglamentoInternoService::class)
+            ->conductasSancionablesDeEmpresa((int) $this->empresa_id);
+
+        foreach (['leve' => 'leve', 'grave' => 'grave', 'gravisima' => 'muy_grave'] as $g => $gv) {
+            foreach ($conductas[$g] ?? [] as $c) {
+                if (($c['conducta'] ?? null) === $conductaRit) {
+                    return [[
+                        'nombre'       => $conductaRit,
+                        'gravedad'     => $gv,
+                        'medida'       => $c['medida'] ?? '',
+                        'tipo'         => $c['tipo'] ?? '',
+                        'dias'         => $c['dias_suspension'] ?? null,
+                        'reincidencia' => false,
+                    ]];
+                }
+            }
+        }
+
+        return [];
+    }
+
+    /**
      * Texto de los motivos para la citación (nombre + medida por conducta).
      */
     public function getSancionesLaboralesTextoAttribute(): string

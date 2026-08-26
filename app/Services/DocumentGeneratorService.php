@@ -1449,6 +1449,15 @@ PROMPT;
             return [];
         }
 
+        return $this->agruparMotivosPorGravedad($motivos);
+    }
+
+    /**
+     * Agrupa un arreglo de motivos (forma de motivosDescargosNormalizados()/
+     * motivosDescargosDesdeClasificacionIA()) en filas de tabla por gravedad.
+     */
+    private function agruparMotivosPorGravedad(array $motivos): array
+    {
         $etiquetaGravedad = ['leve' => 'Leve', 'grave' => 'Grave', 'muy_grave' => 'Muy grave'];
         $grupos = ['leve' => ['c' => [], 's' => []], 'grave' => ['c' => [], 's' => []], 'muy_grave' => ['c' => [], 's' => []]];
 
@@ -1487,6 +1496,18 @@ PROMPT;
         $filas = $this->filasTablaSancionesDelIncidente($proceso);
         if (!empty($filas)) {
             return $filas;
+        }
+
+        // Respaldo intermedio (bug real reportado: la tabla mostraba TODAS las
+        // faltas leves/graves/muy graves del RIT sin relación con el incidente,
+        // porque sanciones_laborales_ids no venía poblado - ej. proceso editado
+        // sin pasar por "Motivo de los descargos"). Antes de rendirse al
+        // catálogo completo, se usa la clasificación de la IA
+        // (clasificacion_incidente_ia.conducta_rit_aplicable), que sí analizó
+        // los hechos reales de este proceso + el RIT completo.
+        $filasIA = $this->agruparMotivosPorGravedad($proceso->motivosDescargosDesdeClasificacionIA());
+        if (!empty($filasIA)) {
+            return $filasIA;
         }
 
         $rit = $empresa->reglamentoInterno;
