@@ -357,6 +357,15 @@ class SolicitudContratoResource extends Resource
                                 ->helperText('Objetivo comercial y alcance del contrato')
                                 ->columnSpanFull(),
 
+                            Forms\Components\Textarea::make('descripcion_obra_labor')
+                                ->label('Descripción de la obra o labor contratada')
+                                ->placeholder('Ej: Construcción de la bodega de almacenamiento ubicada en...')
+                                ->helperText('Describa la obra o labor específica - la IA la usará para redactar las cláusulas de Duración y Terminación de este contrato.')
+                                ->rows(3)
+                                ->visible(fn (Get $get) => $get('tipo_contrato') === 'Contrato de Obra o Labor')
+                                ->required(fn (Get $get) => $get('tipo_contrato') === 'Contrato de Obra o Labor')
+                                ->columnSpanFull(),
+
                             Forms\Components\RichEditor::make('manual_funciones')
                                 ->label('Manual de Funciones')
                                 ->required()
