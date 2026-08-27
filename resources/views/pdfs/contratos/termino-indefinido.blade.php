@@ -26,7 +26,7 @@
 <style>
     @page { margin: 2.5cm 3cm; }
     * { box-sizing: border-box; }
-    body { font-family: 'DejaVu Sans', Arial, sans-serif; font-size: 11pt; line-height: 1.55; color: #111111; margin: 0; padding: 0; }
+    body { font-family: 'Tahoma', 'DejaVu Sans', Arial, sans-serif; font-size: 9pt; line-height: 1.55; color: #111111; margin: 0; padding: 0; }
     h1 { font-size: 14pt; text-align: center; margin: 0 0 4pt; text-transform: uppercase; }
     h2 { font-size: 11pt; text-align: center; font-weight: normal; margin: 0 0 16pt; }
     table.datos { width: 100%; border-collapse: collapse; margin: 0 0 16pt; }
