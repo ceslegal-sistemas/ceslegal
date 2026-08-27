@@ -51,6 +51,7 @@ class NotificacionService
             'cerrado'                => 'heroicon-o-check-badge',
             'contrato_generado'      => 'heroicon-o-document-check',
             'solicitud_cambio_empresa' => 'heroicon-o-pencil-square',
+            'sugerencia_actualizacion_rit' => 'heroicon-o-document-text',
             default                  => 'heroicon-o-bell',
         };
 
@@ -412,6 +413,47 @@ class NotificacionService
                 mensaje: "El contrato {$solicitud->codigo} está listo. Trabajador: {$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}",
                 relacionadoTipo: SolicitudContrato::class,
                 relacionadoId: $solicitud->id,
+                prioridad: 'alta'
+            );
+        }
+    }
+
+    /**
+     * Notifica a bufete y cliente de la empresa afectada que hay una
+     * sugerencia de actualización del RIT lista para aprobar (Plan B de
+     * actualización automática del RIT). Primer método de este servicio
+     * que notifica al rol bufete - la relación real es
+     * Empresa.bufete_id -> Bufete, y los usuarios bufete son
+     * User::where('role','bufete')->where('bufete_id', $bufete->id).
+     * Si la empresa no tiene bufete asignado (bufete_id null), se
+     * notifica solo a cliente - no es un error, es un caso válido.
+     */
+    public function notificarSugerenciaActualizacionRit(\App\Models\SugerenciaActualizacionRit $sugerencia): void
+    {
+        $empresa = $sugerencia->empresa;
+
+        $destinatarios = User::where('empresa_id', $empresa->id)
+            ->where('active', true)
+            ->where('role', 'cliente')
+            ->get();
+
+        if ($empresa->bufete_id) {
+            $destinatarios = $destinatarios->merge(
+                User::where('bufete_id', $empresa->bufete_id)
+                    ->where('active', true)
+                    ->where('role', 'bufete')
+                    ->get()
+            );
+        }
+
+        foreach ($destinatarios as $user) {
+            $this->crear(
+                userId: $user->id,
+                tipo: 'sugerencia_actualizacion_rit',
+                titulo: 'Cambio sugerido para su Reglamento Interno',
+                mensaje: "Un documento legal nuevo justifica un ajuste puntual en su RIT: {$sugerencia->justificacion_ia}",
+                relacionadoTipo: \App\Models\SugerenciaActualizacionRit::class,
+                relacionadoId: $sugerencia->id,
                 prioridad: 'alta'
             );
         }

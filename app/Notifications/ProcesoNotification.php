@@ -128,6 +128,7 @@ class ProcesoNotification extends Notification
             'App\Models\SolicitudContrato' => $esCliente
                 ? url($base . '/solicitud-contratos/' . $relacionadoId)
                 : url($base . '/solicitud-contratos/' . $relacionadoId . '/edit'),
+            'App\Models\SugerenciaActualizacionRit' => url('/admin/sugerencia-actualizacion-rits/' . $relacionadoId . '/edit'),
             default => null,
         };
     }
