@@ -2415,8 +2415,29 @@ class ProcesoDisciplinarioResource extends Resource
                     // porque Get $get lanza "Typed property ...Component::$container must
                     // not be accessed before initialization" dentro de este closure.
                     ->modalSubmitAction(fn($action, ProcesoDisciplinario $record, $livewire) => $action
-                        ->disabled(in_array($record->validaciones_v6_estado, ['pendiente', 'procesando'], true))
+                        ->disabled(
+                            in_array($record->validaciones_v6_estado, ['pendiente', 'procesando'], true)
+                            // Sin esto, el usuario podía darle "Continuar" sin haber
+                            // tomado la foto de verificación y recién ahí enterarse
+                            // por una notificación de error (el ->action() real ya
+                            // lo bloqueaba del lado del servidor, NO se toca esa
+                            // validación) - generaba confusión (pedido explícito
+                            // del usuario, con captura de pantalla). Get $get no
+                            // funciona en este closure ("Typed property ...
+                            // Component::$container must not be accessed before
+                            // initialization"), por eso se lee directo de
+                            // $livewire->mountedTableActionsData, igual que
+                            // paso_actual.
+                            || empty($livewire->mountedTableActionsData[0]['foto_autorizador_base64'] ?? null)
+                        )
                         ->hidden(($livewire->mountedTableActionsData[0]['paso_actual'] ?? 1) < 3)
+                        // La Action raíz usa ->color('danger') (para el botón que
+                        // ABRE el modal) - sin esto el submit final heredaba ese
+                        // mismo rojo "danger" en vez del rojo de marca "primary"
+                        // (#E11D48, ver ConfiguraPanelCompartido.php), inconsistente
+                        // con "Continuar a Decisión"/"Continuar a Autorizar" del
+                        // wizard interno, que sí usan primary.
+                        ->color('primary')
                     )
                     ->modalCancelActionLabel('Cancelar')
                     // Mismo criterio que ->modalSubmitAction() de arriba: mientras el
