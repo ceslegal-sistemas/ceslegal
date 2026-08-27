@@ -416,7 +416,8 @@ class SolicitudContratoIAService
      * mínimo actual hasta que se retomen con sus propias plantillas reales.
      */
     private const VISTA_POR_TIPO = [
-        'Contrato a Término Fijo' => 'pdfs.contratos.termino-fijo',
+        'Contrato a Término Fijo'       => 'pdfs.contratos.termino-fijo',
+        'Contrato a Término Indefinido' => 'pdfs.contratos.termino-indefinido',
     ];
 
     private const DOCUMENTO_LABEL = [
@@ -480,6 +481,7 @@ class SolicitudContratoIAService
                 : 'No especificada',
             'fechaFirma'               => now()->locale('es')->translatedFormat('d \d\e F \d\e Y'),
             'objetoJuridico'           => nl2br(e(strip_tags($solicitud->objeto_juridico_redactado ?? ''))),
+            'diaDescansoObligatorio'   => $empresa?->diaDescansoObligatorio() ?? 'domingo',
         ])->render();
     }
 
