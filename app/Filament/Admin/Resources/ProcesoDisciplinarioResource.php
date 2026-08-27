@@ -2441,14 +2441,14 @@ class ProcesoDisciplinarioResource extends Resource
                         ? [
                             // NOTA: usar \Filament\Tables\Actions\Action (no el generico
                             // \Filament\Actions\Action) es obligatorio aqui - confirmado con
-                            // Livewire::test(): la version generica genera un click handler
-                            // mountAction() (sistema de acciones de PAGINA, no de tabla) y
-                            // ademas Filament\Tables\Table\Concerns\HasActions::
-                            // getMountableModalActionFromAction() solo llama ->record() sobre
-                            // instancias de Tables\Actions\Action; con la clase generica el
-                            // registro nunca queda enlazado, mountTableAction() ve
-                            // getRecord()===null y desmonta la accion en silencio SIN
-                            // ejecutar su ->action() (paso_actual nunca vuelve a 1).
+                            // Livewire::test() (incluido un contraejemplo real: con la clase
+                            // generica el boton queda muerto en silencio). Causa raiz exacta,
+                            // leyendo vendor/filament/tables/src/Table/Concerns/HasActions.php:
+                            // getMountableModalActionFromAction() tiene un gate explicito
+                            // `if (! $action instanceof Action) return null;` contra la clase
+                            // de Tables\Actions - con la clase generica retorna null antes de
+                            // montar nada, mountTableAction() desmonta de inmediato SIN
+                            // ejecutar ->action() (paso_actual nunca vuelve a 1).
                             \Filament\Tables\Actions\Action::make('volver_a_decision')
                                 ->label('Volver a Decisión')
                                 ->color('gray')
