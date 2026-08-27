@@ -77,6 +77,68 @@ class SolicitudContratoIAService
         return $this->llamarGemini($prompt, $solicitud->empresa_id);
     }
 
+    /**
+     * Redacta las cláusulas de DURACIÓN y TERMINACIÓN para un Contrato de
+     * Obra o Labor - en el documento real ambas están literalmente en
+     * blanco ("DILIGENCIAR"), porque dependen de CUÁL obra/labor específica
+     * se contrata. Mismo patrón anclado que redactarObjetoJuridico(): la IA
+     * NO razona desde su propio criterio, solo redacta a partir de la
+     * descripción provista + artículos del CST realmente recuperados.
+     */
+    public function redactarDuracionTerminacionObraLabor(SolicitudContrato $solicitud): string
+    {
+        $articulosCst = $this->ritGeneratorService->buscarArticulosPorTema(
+            'contrato trabajo obra labor determinada duración terminación',
+            limite: 6
+        );
+
+        $prompt = $this->construirPromptDuracionTerminacionObraLabor($solicitud, $articulosCst);
+
+        return $this->llamarGemini($prompt, $solicitud->empresa_id);
+    }
+
+    private function construirPromptDuracionTerminacionObraLabor(SolicitudContrato $solicitud, string $articulosCst): string
+    {
+        $descripcionObra = trim((string) $solicitud->descripcion_obra_labor);
+        $fechaInicio      = $solicitud->fecha_inicio_propuesta?->format('Y-m-d') ?? 'No especificada';
+
+        return <<<PROMPT
+        Eres un abogado colombiano redactando las cláusulas de DURACIÓN y
+        TERMINACIÓN de un contrato de trabajo POR OBRA O LABOR DETERMINADA,
+        con base ÚNICAMENTE en los datos provistos abajo.
+
+        PROHIBICIÓN ABSOLUTA: No inventes una fecha de finalización fija,
+        un plazo en días/meses/años, ni ningún dato que no esté
+        explícitamente en "DATOS DE LA SOLICITUD" abajo. La duración de un
+        contrato por obra o labor NUNCA es una fecha calendario fija -
+        está atada a la finalización de la obra/labor descrita.
+
+        PROHIBICIÓN ABSOLUTA: Solo puedes citar artículos del CST que
+        aparezcan en la sección "ARTÍCULOS DEL CST DISPONIBLES" abajo. Si
+        ninguno aplica exactamente a lo que estás redactando, redacta sin
+        citar ningún número de artículo en vez de inventar uno.
+
+        DATOS DE LA SOLICITUD:
+        - Obra o labor contratada: {$descripcionObra}
+        - Fecha de inicio de labores: {$fechaInicio}
+
+        ARTÍCULOS DEL CST DISPONIBLES:
+        {$articulosCst}
+
+        Redacta el texto de 2 cláusulas, EXACTAMENTE en este formato (dos
+        párrafos HTML, cada uno con su número de cláusula real - el
+        sistema NO agrega ningún título, tu salida se inserta tal cual en
+        el documento final):
+
+        <p class="clausula"><span class="clausula-titulo">NOVENA: DURACIÓN DEL CONTRATO.</span> [texto que ate la duración a la finalización de la obra/labor descrita arriba, mencionando la fecha de inicio de labores si fue provista]</p>
+
+        <p class="clausula"><span class="clausula-titulo">DÉCIMA: TERMINACIÓN DEL CONTRATO.</span> [texto que establezca que el contrato termina a la finalización de la obra/labor descrita, sin fecha fija]</p>
+
+        No agregues ningún comentario, explicación ni texto fuera de estas
+        2 cláusulas.
+        PROMPT;
+    }
+
     private function construirPromptObjeto(SolicitudContrato $solicitud, string $articulosCst, string $descripcionTipo, string $regimen): string
     {
         $nombreTrabajador = trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}");
