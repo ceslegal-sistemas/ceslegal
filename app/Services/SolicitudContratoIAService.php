@@ -480,6 +480,7 @@ class SolicitudContratoIAService
     private const VISTA_POR_TIPO = [
         'Contrato a Término Fijo'       => 'pdfs.contratos.termino-fijo',
         'Contrato a Término Indefinido' => 'pdfs.contratos.termino-indefinido',
+        'Contrato de Obra o Labor'      => 'pdfs.contratos.obra-labor',
     ];
 
     private const DOCUMENTO_LABEL = [
@@ -544,6 +545,17 @@ class SolicitudContratoIAService
             'fechaFirma'               => now()->locale('es')->translatedFormat('d \d\e F \d\e Y'),
             'objetoJuridico'           => nl2br(e(strip_tags($solicitud->objeto_juridico_redactado ?? ''))),
             'diaDescansoObligatorio'   => $empresa?->diaDescansoObligatorio() ?? 'domingo',
+            'descripcionObraLabor'          => $solicitud->descripcion_obra_labor ?: 'No especificada',
+            // OJO: a diferencia de $objetoJuridico (que usa
+            // nl2br(e(strip_tags(...))) porque es texto simple envuelto en
+            // UN <p> por la vista), este campo SÍ debe llegar como HTML
+            // real - el prompt de una tarea previa le pide a la IA que
+            // devuelva sus propios bloques <p class="clausula"><span class="clausula-titulo">...
+            // completos. strip_tags() aquí borraría exactamente esas
+            // etiquetas antes de insertarlas con {!! !!}, dejando el texto
+            // sin negrita ni el espaciado del resto de cláusulas -
+            // confirmado como hallazgo real de la revisión de este plan.
+            'duracionTerminacionRedactada'  => $solicitud->duracion_terminacion_obra_redactada ?? '',
         ])->render();
     }
 
