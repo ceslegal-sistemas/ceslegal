@@ -543,6 +543,16 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
             ->reject(fn($label, $val) =>
                 in_array($val, $sancionesValidas, true)
                 || ($recomiendaNoSancion && $val === 'no_sancion'))
+            // Orden explícito por severidad (de menor a mayor), con "No Aplicar
+            // Sanción" siempre al final - no es "otra sanción punitiva", es la
+            // salida contraria, y no debe competir visualmente con las demás
+            // (queja real del usuario: "no me gusta el orden de los botones").
+            ->sortBy(fn($label, $val) => match ($val) {
+                'suspension' => 1,
+                'terminacion' => 2,
+                'no_sancion' => 99,
+                default => 50,
+            })
             ->all();
     @endphp
     @if(!empty($otrasSanciones) && $modoDecision)
@@ -563,7 +573,11 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                         :style="sancionSel === @js($val)
                             ? 'background:{{ $m['c'] }};border-color:{{ $m['c'] }};color:#fff;'
                             : 'background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
-                        style="background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
+                        @if($val === 'no_sancion')
+                            style="margin-left:10px;padding-left:16px;border-left:1px solid var(--esa-border);background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
+                        @else
+                            style="background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
+                        @endif
                         @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
                         <span x-text="sancionSel === @js($val) ? 'Sanción seleccionada' : @js($val === 'no_sancion' ? $label : 'Aplicar: ' . $label)"></span>
                     </button>
