@@ -165,6 +165,37 @@ class Empresa extends Model
     }
 
     /**
+     * Día de descanso obligatorio (Art. 179 CST, modificado por la Ley 2466
+     * de 2025) derivado del conjunto real de días hábiles de la empresa -
+     * usado en las cláusulas de contrato que exigen fijar este día (Término
+     * Indefinido, Obra o Labor). diasHabilesSet() admite CUALQUIER
+     * combinación (confirmado en CreateReglamentoInterno.php, CheckboxList
+     * sin restricción) - por eso la regla cubre TODOS los casos, no solo
+     * "6 días hábiles" o "7 días hábiles".
+     */
+    public function diaDescansoObligatorio(): string
+    {
+        $habiles = $this->diasHabilesSet();
+
+        // Domingo (ISO 7) no es día hábil -> domingo es el descanso.
+        if (!in_array(7, $habiles, true)) {
+            return 'domingo';
+        }
+
+        // Domingo SÍ es hábil: usar el primer día (lunes primero) que NO
+        // esté en el conjunto de días hábiles.
+        foreach ([1, 2, 3, 4, 5, 6, 7] as $isoDay) {
+            if (!in_array($isoDay, $habiles, true)) {
+                return mb_strtolower(\App\Support\DiasHabiles::LABELS[$isoDay]);
+            }
+        }
+
+        // Los 7 días son hábiles (24/7, sin día libre definido) -> domingo
+        // por defecto.
+        return 'domingo';
+    }
+
+    /**
      * Verifica si la empresa trabaja los sábados (según el conjunto efectivo).
      * Se mantiene por compatibilidad con el código que aún razona en binario.
      */
