@@ -2327,10 +2327,6 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->iconColor('primary')
                                 ->description('Registre los datos de quien autoriza esta sanción y tome una foto de verificación.')
                                 ->schema([
-                                    Forms\Components\Placeholder::make('volver_a_decision')
-                                        ->hiddenLabel()
-                                        ->content(fn() => view('filament.components.emitir-sancion-volver-autorizacion')),
-
                                     Forms\Components\Grid::make(2)->schema([
                                         Forms\Components\TextInput::make('autorizador_nombre')
                                             ->label('Nombre completo')
@@ -2431,6 +2427,37 @@ class ProcesoDisciplinarioResource extends Resource
                     // el usuario con capturas de pantalla).
                     ->modalCancelAction(fn($action, $livewire) => $action
                         ->hidden(($livewire->mountedTableActionsData[0]['paso_actual'] ?? 1) < 3)
+                    )
+                    // Reemplaza el Placeholder 'volver_a_decision' (retirado) - vive
+                    // ahora en el footer nativo, junto a Cancelar/Continuar, en vez de
+                    // suelto arriba del formulario (bug de UI reportado por el
+                    // usuario con capturas de pantalla: "aquí igual" comparando el
+                    // Paso 2 y el Paso 3). Es una Action real con su propio ->action()
+                    // del lado del servidor (no un botón puramente Alpine/cliente),
+                    // así que SÍ se puede probar con Livewire::test() - más robusto
+                    // que el $wire.$set(...) que usaba el partial original, con el
+                    // mismo resultado visible para el usuario.
+                    ->extraModalFooterActions(fn($livewire) => ($livewire->mountedTableActionsData[0]['paso_actual'] ?? 1) >= 3
+                        ? [
+                            // NOTA: usar \Filament\Tables\Actions\Action (no el generico
+                            // \Filament\Actions\Action) es obligatorio aqui - confirmado con
+                            // Livewire::test(): la version generica genera un click handler
+                            // mountAction() (sistema de acciones de PAGINA, no de tabla) y
+                            // ademas Filament\Tables\Table\Concerns\HasActions::
+                            // getMountableModalActionFromAction() solo llama ->record() sobre
+                            // instancias de Tables\Actions\Action; con la clase generica el
+                            // registro nunca queda enlazado, mountTableAction() ve
+                            // getRecord()===null y desmonta la accion en silencio SIN
+                            // ejecutar su ->action() (paso_actual nunca vuelve a 1).
+                            \Filament\Tables\Actions\Action::make('volver_a_decision')
+                                ->label('Volver a Decisión')
+                                ->color('gray')
+                                ->icon('heroicon-o-arrow-left')
+                                ->action(function ($livewire) {
+                                    $livewire->mountedTableActionsData[0]['paso_actual'] = 1;
+                                }),
+                        ]
+                        : []
                     )
                     ->modalWidth('6xl')
                     ->visible(
