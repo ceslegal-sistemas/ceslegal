@@ -547,9 +547,16 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
             // Sanción" siempre al final - no es "otra sanción punitiva", es la
             // salida contraria, y no debe competir visualmente con las demás
             // (queja real del usuario: "no me gusta el orden de los botones").
+            // Rangos alineados con el universo real de $sancionMeta (arriba) y con
+            // el orden de construcción de $opcionesSancion en
+            // ProcesoDisciplinarioResource.php (llamado_atencion, suspension,
+            // multa, terminacion, no_sancion) - ese orden ES la semántica de
+            // severidad ya establecida en el codebase.
             ->sortBy(fn($label, $val) => match ($val) {
-                'suspension' => 1,
-                'terminacion' => 2,
+                'llamado_atencion' => 1,
+                'suspension' => 2,
+                'multa' => 3,
+                'terminacion' => 4,
                 'no_sancion' => 99,
                 default => 50,
             })
@@ -570,12 +577,15 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                     <button type="button"
                         x-on:click="sancionSel = @js($val); $wire.selectDecision(@js($val))"
                         class="esa-badge-btn"
-                        :style="sancionSel === @js($val)
-                            ? 'background:{{ $m['c'] }};border-color:{{ $m['c'] }};color:#fff;'
-                            : 'background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
                         @if($val === 'no_sancion')
+                            :style="sancionSel === @js($val)
+                                ? 'margin-left:10px;padding-left:16px;border-left:1px solid var(--esa-border);background:{{ $m['c'] }};border-color:{{ $m['c'] }};color:#fff;'
+                                : 'margin-left:10px;padding-left:16px;border-left:1px solid var(--esa-border);background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
                             style="margin-left:10px;padding-left:16px;border-left:1px solid var(--esa-border);background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
                         @else
+                            :style="sancionSel === @js($val)
+                                ? 'background:{{ $m['c'] }};border-color:{{ $m['c'] }};color:#fff;'
+                                : 'background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
                             style="background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
                         @endif
                         @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
