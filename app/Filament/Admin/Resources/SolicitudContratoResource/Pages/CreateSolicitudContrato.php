@@ -48,6 +48,12 @@ class CreateSolicitudContrato extends CreateRecord
                 $this->record->update(['objeto_juridico_redactado' => $texto]);
             }
 
+            if ($this->record->tipo_contrato === 'Contrato de Obra o Labor'
+                && empty($this->record->duracion_terminacion_obra_redactada)) {
+                $duracionTerminacion = $service->redactarDuracionTerminacionObraLabor($this->record);
+                $this->record->update(['duracion_terminacion_obra_redactada' => $duracionTerminacion]);
+            }
+
             $service->generarContratoPDF($this->record, borrador: true);
         } catch (\Throwable $e) {
             Log::error('SolicitudContrato: falló la generación automática del borrador', [

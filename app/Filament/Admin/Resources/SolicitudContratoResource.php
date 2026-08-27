@@ -844,6 +844,12 @@ class SolicitudContratoResource extends Resource
                             $record->update(['objeto_juridico_redactado' => $texto]);
                         }
 
+                        if ($record->tipo_contrato === 'Contrato de Obra o Labor'
+                            && empty($record->duracion_terminacion_obra_redactada)) {
+                            $duracionTerminacion = $service->redactarDuracionTerminacionObraLabor($record);
+                            $record->update(['duracion_terminacion_obra_redactada' => $duracionTerminacion]);
+                        }
+
                         $service->generarContratoPDF($record, borrador: true);
 
                         \Filament\Notifications\Notification::make()
