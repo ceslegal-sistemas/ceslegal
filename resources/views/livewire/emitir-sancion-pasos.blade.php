@@ -36,17 +36,41 @@
             ])
 
             <div>
-                <x-filament::button
-                    type="button"
-                    wire:click="irAPaso2"
-                    color="primary"
-                    icon="heroicon-o-arrow-right"
-                    icon-position="after"
-                    class="w-full justify-center py-3 text-base"
-                    :disabled="in_array($validacionesV6Estado, ['pendiente', 'procesando'], true)"
-                >
-                    Continuar a Decisión
-                </x-filament::button>
+                {{--
+                    Cancelar aquí es NECESARIO: el Cancelar nativo de Filament está
+                    oculto mientras paso_actual < 3 (Task 1), así que sin esto no
+                    habría ninguna forma de cerrar el modal desde el Paso 1. Usa
+                    Alpine close() (la misma función que usa el Cancelar nativo,
+                    definida en el x-data del propio modal - confirmado leyendo
+                    vendor/filament/actions/src/StaticAction.php y
+                    vendor/filament/support/resources/views/components/modal/index.blade.php),
+                    NO $wire.$set(...): $wire aquí resolvería al componente hijo, no
+                    al padre, así que no cerraría nada - Alpine sí cruza el límite
+                    del componente Livewire anidado porque sus cadenas de scope son
+                    del DOM, no de Livewire.
+                --}}
+                <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:gap-4">
+                    <x-filament::button
+                        type="button"
+                        x-on:click="close()"
+                        color="gray"
+                        class="justify-center py-3 sm:justify-start"
+                    >
+                        Cancelar
+                    </x-filament::button>
+
+                    <x-filament::button
+                        type="button"
+                        wire:click="irAPaso2"
+                        color="primary"
+                        icon="heroicon-o-arrow-right"
+                        icon-position="after"
+                        class="justify-center py-3 text-base sm:flex-1"
+                        :disabled="in_array($validacionesV6Estado, ['pendiente', 'procesando'], true)"
+                    >
+                        Continuar a Decisión
+                    </x-filament::button>
+                </div>
                 <div class="mt-2 text-sm text-gray-500">
                     @if (in_array($validacionesV6Estado, ['pendiente', 'procesando'], true))
                         <span>Las validaciones de riesgo están en proceso. Por favor, espere a que se completen antes de
@@ -147,6 +171,15 @@
                      "Volver" al lado quedaba apretado en pantallas angostas (podía
                      partirse en 2 líneas dentro del botón). En sm+ vuelven a la fila. --}}
                 <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:gap-4">
+                    <x-filament::button
+                        type="button"
+                        x-on:click="close()"
+                        color="gray"
+                        class="justify-center py-3 sm:justify-start"
+                    >
+                        Cancelar
+                    </x-filament::button>
+
                     <x-filament::button
                         type="button"
                         wire:click="irAPaso1"
