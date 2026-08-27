@@ -2459,6 +2459,14 @@ class ProcesoDisciplinarioResource extends Resource
                         ]
                         : []
                     )
+                    // Filament arma el arreglo de acciones del footer como
+                    // [submit, ...extra, cancel] (confirmado en
+                    // vendor/filament/actions/src/Concerns/CanOpenModal.php). Sin
+                    // alineación explícita el orden visual queda indeterminado
+                    // (hallazgo real de la revisión del spec de este plan) - End
+                    // aplica flex-row-reverse, produciendo el orden deseado
+                    // izquierda-a-derecha: Cancelar → Volver a Decisión → Continuar.
+                    ->modalFooterActionsAlignment(\Filament\Support\Enums\Alignment::End)
                     ->modalWidth('6xl')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
