@@ -260,31 +260,54 @@ class SolicitudContratoIAService
         $nombreTrabajador = trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}") ?: 'No especificado';
         $cargo            = $solicitud->cargo_contrato ?: 'No especificado';
 
-        // Dato real de la empresa (Empresa.actividad_economica_id +
-        // actividadesSecundarias) - sin esto, el prompt solo tenía el RIT
-        // como contexto, y el RIT normalmente no repite el detalle de la
-        // actividad económica registrada. Bug real encontrado empíricamente:
-        // sin este dato, la IA seguía al pie de la letra la PROHIBICIÓN
-        // ABSOLUTA de no inventar, pero en vez de omitir la parte que no
-        // sabía, escribía corchetes tipo "[Actividad Económica Principal de
-        // {empresa}]" - técnicamente "no inventado", pero un documento legal
-        // final no puede tener placeholders sin llenar.
+        // Contexto REAL y completo de la empresa - antes el prompt solo
+        // tenía el RIT, y el RIT normalmente no repite datos de perfil de
+        // la empresa (actividad económica, tamaño, ubicación). Bug real
+        // encontrado empíricamente (caso RENBEL S.A.S.): sin estos datos,
+        // la IA seguía al pie de la letra la PROHIBICIÓN ABSOLUTA de no
+        // inventar, pero en vez de omitir la parte que no sabía, escribía
+        // corchetes tipo "[Actividad Económica Principal de RENBEL S.A.S.]"
+        // - técnicamente "no inventado", pero inutilizable en un documento
+        // legal final. Se profundiza el contexto a TODO lo real disponible
+        // de empresa/trabajador/contrato (pedido explícito del usuario tras
+        // ver el resultado), no solo el dato puntual que causó el bug.
         $actividadPrincipal = $empresa?->actividadEconomica?->nombre;
         $actividadesSecundarias = $empresa?->actividadesSecundarias?->pluck('nombre')->filter()->implode('; ');
 
-        $actividadEconomicaTexto = $actividadPrincipal
-            ? "Actividad económica principal: {$actividadPrincipal}."
-                . ($actividadesSecundarias ? " Actividades secundarias: {$actividadesSecundarias}." : ' Sin actividades secundarias registradas.')
-            : '(La empresa no tiene actividad económica registrada en el sistema - NO menciones actividad económica principal/secundaria en el objeto comercial, describe el objeto del contrato de forma genérica a partir del cargo y el RIT solamente.)';
+        $datosEmpresa = collect([
+            'Nombre'               => $empresa?->nombre_completo,
+            'NIT'                  => $empresa?->nit,
+            'Ciudad/Departamento'  => trim(collect([$empresa?->ciudad, $empresa?->departamento])->filter()->implode(', '), ', ') ?: null,
+            'Número de empleados'  => $empresa?->numero_empleados,
+            'Representante legal'  => $empresa?->representante_legal,
+            'Actividad económica principal'  => $actividadPrincipal,
+            'Actividades económicas secundarias' => $actividadesSecundarias ?: null,
+        ])->filter()->map(fn ($valor, $campo) => "- {$campo}: {$valor}")->implode("\n");
+
+        if ($datosEmpresa === '') {
+            $datosEmpresa = '(Sin datos de perfil de la empresa registrados en el sistema.)';
+        }
+
+        $datosContrato = collect([
+            'Trabajador'                  => $nombreTrabajador,
+            'Cargo'                       => $cargo,
+            'Tipo de contrato'            => $solicitud->tipo_contrato,
+            'Jornada'                     => $solicitud->jornada,
+            'Lugar de labores'            => $solicitud->lugar_labores,
+            'Salario mensual propuesto'   => $solicitud->salario_propuesto ? ('$' . number_format((float) $solicitud->salario_propuesto, 0, ',', '.') . ' COP') : null,
+            'Período de pago'             => $solicitud->periodo_pago,
+            'Fecha de inicio propuesta'   => $solicitud->fecha_inicio_propuesta?->format('Y-m-d'),
+        ])->filter()->map(fn ($valor, $campo) => "- {$campo}: {$valor}")->implode("\n");
 
         return <<<PROMPT
         Eres un analista de RRHH colombiano redactando un BORRADOR (que el
         abogado revisará y editará) de 3 campos de una solicitud de contrato,
-        con base ÚNICAMENTE en el cargo, la actividad económica de la
-        empresa y el Reglamento Interno de Trabajo (RIT) provistos abajo.
+        con base ÚNICAMENTE en los datos de la empresa, del trabajador/
+        contrato, y el Reglamento Interno de Trabajo (RIT) provistos abajo.
 
-        PROHIBICIÓN ABSOLUTA: No inventes funciones, sanciones ni cláusulas
-        que no se deriven razonablemente del cargo o del RIT provisto.
+        PROHIBICIÓN ABSOLUTA: No inventes funciones, sanciones, cifras ni
+        cláusulas que no se deriven razonablemente de los datos provistos o
+        del RIT.
 
         PROHIBICIÓN ABSOLUTA: Nunca escribas placeholders ni texto entre
         corchetes (ej. "[Actividad Económica Principal de la empresa]") para
@@ -293,12 +316,11 @@ class SolicitudContratoIAService
         forma genérica sin necesitar ese dato específico. Un documento legal
         final no puede contener texto sin llenar.
 
-        CARGO: {$cargo}
-        TRABAJADOR: {$nombreTrabajador}
-        TIPO DE CONTRATO: {$solicitud->tipo_contrato}
+        DATOS DE LA EMPRESA:
+        {$datosEmpresa}
 
-        ACTIVIDAD ECONÓMICA DE LA EMPRESA:
-        {$actividadEconomicaTexto}
+        DATOS DEL TRABAJADOR Y DEL CONTRATO:
+        {$datosContrato}
 
         REGLAMENTO INTERNO DE TRABAJO DE LA EMPRESA:
         {$textoRit}
@@ -311,19 +333,23 @@ class SolicitudContratoIAService
         ###RESPONSABILIDADES###
         (Lista de 4-8 responsabilidades y funciones típicas del cargo
         "{$cargo}", en una lista <ul><li>, coherentes con las obligaciones
-        del trabajador que ya aparecen en el RIT si aplica.)
+        del trabajador que ya aparecen en el RIT si aplica, y con la
+        jornada/lugar de labores provistos si aplica - ej. si el lugar de
+        labores es remoto, reflejarlo donde sea relevante.)
 
         ###OBJETO_COMERCIAL###
         (1 párrafo <p> describiendo el objeto comercial/alcance del
         contrato para este cargo dentro del giro ordinario de la empresa,
-        usando la actividad económica real provista arriba - si no hay
-        actividad económica registrada, redacta este párrafo sin
-        mencionarla, de forma genérica a partir del cargo y el RIT.)
+        usando el nombre real de la empresa y su actividad económica real
+        provistos arriba - si algún dato de empresa no está disponible,
+        redacta esa parte sin mencionarlo, de forma genérica a partir del
+        cargo y el RIT.)
 
         ###MANUAL_FUNCIONES###
         (Descripción detallada en <ul><li> de las funciones específicas
         del puesto "{$cargo}", más extensa y concreta que las
-        responsabilidades generales de arriba.)
+        responsabilidades generales de arriba, coherente con el tamaño y
+        la actividad real de la empresa si esos datos están disponibles.)
         PROMPT;
     }
 
