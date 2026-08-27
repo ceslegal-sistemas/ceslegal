@@ -247,29 +247,58 @@ class SolicitudContratoIAService
             ->where('activo', true)
             ->value('texto_completo') ?? '(La empresa no tiene un Reglamento Interno de Trabajo cargado)';
 
-        $prompt = $this->construirPromptDetallesCargo($solicitud, $textoRit);
+        $empresa = $solicitud->empresa()->with(['actividadEconomica', 'actividadesSecundarias'])->first();
+
+        $prompt = $this->construirPromptDetallesCargo($solicitud, $textoRit, $empresa);
         $respuesta = $this->llamarGemini($prompt, $solicitud->empresa_id);
 
         return $this->parsearDetallesCargo($respuesta);
     }
 
-    private function construirPromptDetallesCargo(SolicitudContrato $solicitud, string $textoRit): string
+    private function construirPromptDetallesCargo(SolicitudContrato $solicitud, string $textoRit, $empresa): string
     {
         $nombreTrabajador = trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}") ?: 'No especificado';
         $cargo            = $solicitud->cargo_contrato ?: 'No especificado';
 
+        // Dato real de la empresa (Empresa.actividad_economica_id +
+        // actividadesSecundarias) - sin esto, el prompt solo tenía el RIT
+        // como contexto, y el RIT normalmente no repite el detalle de la
+        // actividad económica registrada. Bug real encontrado empíricamente:
+        // sin este dato, la IA seguía al pie de la letra la PROHIBICIÓN
+        // ABSOLUTA de no inventar, pero en vez de omitir la parte que no
+        // sabía, escribía corchetes tipo "[Actividad Económica Principal de
+        // {empresa}]" - técnicamente "no inventado", pero un documento legal
+        // final no puede tener placeholders sin llenar.
+        $actividadPrincipal = $empresa?->actividadEconomica?->nombre;
+        $actividadesSecundarias = $empresa?->actividadesSecundarias?->pluck('nombre')->filter()->implode('; ');
+
+        $actividadEconomicaTexto = $actividadPrincipal
+            ? "Actividad económica principal: {$actividadPrincipal}."
+                . ($actividadesSecundarias ? " Actividades secundarias: {$actividadesSecundarias}." : ' Sin actividades secundarias registradas.')
+            : '(La empresa no tiene actividad económica registrada en el sistema - NO menciones actividad económica principal/secundaria en el objeto comercial, describe el objeto del contrato de forma genérica a partir del cargo y el RIT solamente.)';
+
         return <<<PROMPT
         Eres un analista de RRHH colombiano redactando un BORRADOR (que el
         abogado revisará y editará) de 3 campos de una solicitud de contrato,
-        con base ÚNICAMENTE en el cargo y el Reglamento Interno de Trabajo
-        (RIT) de la empresa provistos abajo.
+        con base ÚNICAMENTE en el cargo, la actividad económica de la
+        empresa y el Reglamento Interno de Trabajo (RIT) provistos abajo.
 
         PROHIBICIÓN ABSOLUTA: No inventes funciones, sanciones ni cláusulas
         que no se deriven razonablemente del cargo o del RIT provisto.
 
+        PROHIBICIÓN ABSOLUTA: Nunca escribas placeholders ni texto entre
+        corchetes (ej. "[Actividad Económica Principal de la empresa]") para
+        un dato que no tengas - si un dato no está disponible en el contexto
+        provisto, omite esa parte de la frase por completo o redacta de
+        forma genérica sin necesitar ese dato específico. Un documento legal
+        final no puede contener texto sin llenar.
+
         CARGO: {$cargo}
         TRABAJADOR: {$nombreTrabajador}
         TIPO DE CONTRATO: {$solicitud->tipo_contrato}
+
+        ACTIVIDAD ECONÓMICA DE LA EMPRESA:
+        {$actividadEconomicaTexto}
 
         REGLAMENTO INTERNO DE TRABAJO DE LA EMPRESA:
         {$textoRit}
@@ -287,8 +316,9 @@ class SolicitudContratoIAService
         ###OBJETO_COMERCIAL###
         (1 párrafo <p> describiendo el objeto comercial/alcance del
         contrato para este cargo dentro del giro ordinario de la empresa,
-        a partir de lo que el RIT indique sobre la actividad de la
-        empresa.)
+        usando la actividad económica real provista arriba - si no hay
+        actividad económica registrada, redacta este párrafo sin
+        mencionarla, de forma genérica a partir del cargo y el RIT.)
 
         ###MANUAL_FUNCIONES###
         (Descripción detallada en <ul><li> de las funciones específicas
