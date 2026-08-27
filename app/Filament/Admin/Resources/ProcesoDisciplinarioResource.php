@@ -2423,6 +2423,15 @@ class ProcesoDisciplinarioResource extends Resource
                         ->hidden(($livewire->mountedTableActionsData[0]['paso_actual'] ?? 1) < 3)
                     )
                     ->modalCancelActionLabel('Cancelar')
+                    // Mismo criterio que ->modalSubmitAction() de arriba: mientras el
+                    // wizard interno (Livewire hijo) tiene el control de la navegación
+                    // (Pasos 1-2, paso_actual < 3), el Cancelar nativo de Filament se
+                    // oculta - el hijo gana su propio botón "Cancelar" (Task 2) para no
+                    // dejar 2 filas de navegación compitiendo (bug real reportado por
+                    // el usuario con capturas de pantalla).
+                    ->modalCancelAction(fn($action, $livewire) => $action
+                        ->hidden(($livewire->mountedTableActionsData[0]['paso_actual'] ?? 1) < 3)
+                    )
                     ->modalWidth('6xl')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
