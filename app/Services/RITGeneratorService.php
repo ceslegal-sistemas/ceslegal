@@ -459,6 +459,19 @@ class RITGeneratorService
                 $val = $empresa->actividadesSecundarias->pluck('nombre')->filter()->implode('; ') ?: null;
             }
 
+            // Mismo patrón: 'num_trabajadores' y 'domicilio' del cuestionario
+            // tienen equivalente real en Empresa (numero_empleados /
+            // dirección+ciudad+departamento) - verificado empíricamente que
+            // sin este fallback ambos se omitían en silencio igual que la
+            // actividad económica, con el mismo riesgo de que la IA rellene
+            // con un placeholder entre corchetes.
+            if (($val === null || $val === '') && $key === 'num_trabajadores') {
+                $val = $empresa->numero_empleados;
+            }
+            if (($val === null || $val === '') && $key === 'domicilio') {
+                $val = trim(collect([$empresa->direccion, $empresa->ciudad, $empresa->departamento])->filter()->implode(', '), ', ') ?: null;
+            }
+
             if ($val === null || $val === '') continue;
 
             if ($key === 'cargos') {
