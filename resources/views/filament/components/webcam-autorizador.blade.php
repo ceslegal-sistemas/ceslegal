@@ -46,39 +46,51 @@
     --wca-text-muted:  rgba(17,24,39,0.58);
     --wca-list-color:  rgba(17,24,39,0.60);
     --wca-alert-text:  rgba(17,24,39,0.82);
-    --wca-btn-sec-bg:  rgba(0,0,0,0.06);
-    --wca-btn-sec-fg:  #4b5563;
-    --wca-btn-sec-bd:  rgba(0,0,0,0.18);
+    --wca-btn-sec-bg:  rgba(0,0,0,0.04);
+    --wca-btn-sec-fg:  #374151;
+    --wca-btn-sec-bd:  rgba(0,0,0,0.10);
     --wca-btn-dis-bg:  rgba(0,0,0,0.05);
     --wca-btn-dis-fg:  rgba(107,114,128,0.70);
+    /* Marca LUPE Legal (rojo #E11D48) - misma paleta que .rit-btn-primary
+       de lupe-hero-styles.blade.php, para no dejar un naranja genérico
+       suelto en la verificación de identidad. */
+    --wca-brand-bg:    rgba(225,29,72,0.10);
+    --wca-brand-bd:    rgba(225,29,72,0.25);
+    --wca-brand-fg:    #be123c;
+    --wca-brand-solid: #e11d48;
 }
 html.dark {
     --wca-text:        rgba(255,255,255,0.80);
     --wca-text-muted:  rgba(255,255,255,0.65);
     --wca-list-color:  rgba(255,255,255,0.55);
     --wca-alert-text:  rgba(255,255,255,0.80);
-    --wca-btn-sec-bg:  rgba(255,255,255,0.08);
-    --wca-btn-sec-fg:  rgba(255,255,255,0.80);
-    --wca-btn-sec-bd:  rgba(255,255,255,0.12);
+    --wca-btn-sec-bg:  rgba(255,255,255,0.07);
+    --wca-btn-sec-fg:  rgba(255,255,255,0.85);
+    --wca-btn-sec-bd:  rgba(255,255,255,0.15);
     --wca-btn-dis-bg:  rgba(255,255,255,0.08);
     --wca-btn-dis-fg:  rgba(255,255,255,0.35);
+    --wca-brand-bg:    rgba(251,113,133,0.18);
+    --wca-brand-bd:    rgba(251,113,133,0.35);
+    --wca-brand-fg:    #fecdd3;
+    --wca-brand-solid: #fb7185;
 }
 
-/* ── Componentes ──────────────────────────────────────────────────── */
+/* ── Componentes (mismo lenguaje visual que .rit-btn de la marca) ──── */
 .wca-btn-primary {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 9px 18px; border-radius: 10px;
+    padding: .55rem 1.125rem; border-radius: .625rem;
     font-size: 13px; font-weight: 600; cursor: pointer;
-    border: none; transition: opacity 0.15s;
+    border: 1px solid transparent; transition: opacity 0.15s;
 }
+.wca-btn-primary:hover { opacity: .85; }
 .wca-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
-.wca-btn-on  { background: #f97316; color: white; }
+.wca-btn-on  { background: var(--wca-brand-bg); border-color: var(--wca-brand-bd); color: var(--wca-brand-fg); }
 .wca-btn-off { background: var(--wca-btn-dis-bg); color: var(--wca-btn-dis-fg); }
 button.wca-btn-secondary,
 button.wca-btn-secondary:hover {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 7px 14px; border-radius: 10px;
-    font-size: 12px; font-weight: 500; cursor: pointer;
+    padding: .5rem 1rem; border-radius: .625rem;
+    font-size: 12px; font-weight: 600; cursor: pointer;
     background: var(--wca-btn-sec-bg) !important;
     color: var(--wca-btn-sec-fg) !important;
     border: 1px solid var(--wca-btn-sec-bd) !important;
@@ -88,6 +100,25 @@ button.wca-btn-secondary:hover {
     padding: 4px 10px; border-radius: 100px;
     font-size: 11px; font-weight: 600; white-space: nowrap;
 }
+/* Tarjeta del consentimiento - mismo radio/estructura que las tarjetas
+   de "Mi Reglamento Interno" (.rit-viewer). */
+.wca-card { border: 1px solid var(--wca-btn-sec-bd); border-radius: 1rem; overflow: hidden; }
+.wca-card-header {
+    padding: .75rem 1.125rem; border-bottom: 1px solid var(--wca-btn-sec-bd);
+    background: var(--wca-brand-bg);
+    display: flex; align-items: center; gap: .5rem;
+}
+.wca-card-label {
+    font-size: .65rem; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--wca-brand-fg); margin: 0;
+}
+.wca-consent {
+    display: flex; align-items: flex-start; gap: 10px;
+    margin-top: 12px; padding: .875rem 1.125rem;
+    border: 1px solid var(--wca-btn-sec-bd); border-radius: .75rem;
+    cursor: pointer; transition: border-color .15s, background .15s;
+}
+.wca-consent-on { border-color: var(--wca-brand-bd); background: var(--wca-brand-bg); }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 
@@ -269,6 +300,15 @@ button.wca-btn-secondary:hover {
                              this.ojosCerradosPrevio = true;
                          } else if (ear > 0.28 && this.ojosCerradosPrevio) {
                              this.parpadeoDetectado = true;
+                             this.estadoRostro = 'ok';
+                             // Captura inmediata en el instante del parpadeo: la foto
+                             // queda tomada en el mismo momento en que se probó que hay
+                             // una persona viva frente a la cámara, sin un clic manual
+                             // posterior que rompería esa cadena.
+                             if (!this.alertaAccesorios && !this.revisandoAccesorios && !this.fotoCapturada) {
+                                 this.tomarFoto();
+                             }
+                             return;
                          }
                          if (!this.parpadeoDetectado) { this.estadoRostro = 'falta_parpadeo'; return; }
                      }
@@ -324,6 +364,11 @@ button.wca-btn-secondary:hover {
 
              if ($wire.alertaAccesoriosAutorizador) {
                  this.alertaAccesorios = $wire.alertaAccesoriosAutorizador;
+                 // Se exige parpadear de nuevo: como la captura ahora es automática
+                 // y no hay botón manual, sin este reset el usuario quedaría con el
+                 // rostro "ok" pero sin ninguna forma de reintentar la foto.
+                 this.parpadeoDetectado  = false;
+                 this.ojosCerradosPrevio = false;
                  this.iniciarDeteccion();
                  this.iniciarDeteccionAccesorios();
              } else {
@@ -373,30 +418,34 @@ button.wca-btn-secondary:hover {
 
         {{-- ══ Autorización de datos personales (Ley 1581 de 2012) - obligatoria ══ --}}
         <div x-show="!disclaimerAceptado">
-            <div style="border:1px solid var(--wca-btn-sec-bd);border-radius:12px;overflow:hidden;">
-                <div style="padding:10px 14px;border-bottom:1px solid var(--wca-btn-sec-bd);background:var(--wca-btn-sec-bg);">
-                    <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--wca-text-muted);">
-                        Autorización de tratamiento de datos personales
-                    </p>
+            <div class="wca-card">
+                <div class="wca-card-header">
+                    <svg style="width:14px;height:14px;color:var(--wca-brand-solid);flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.746 3.746 0 0121 12z"/>
+                    </svg>
+                    <p class="wca-card-label">Autorización de tratamiento de datos personales</p>
                 </div>
-                <div style="padding:14px;max-height:220px;overflow-y:auto;">
-                    <p style="margin:0;font-size:13px;line-height:1.65;color:var(--wca-text);">{{ $disclaimerTexto }}</p>
+                <div style="padding:1.125rem;max-height:220px;overflow-y:auto;">
+                    <p style="margin:0;font-size:13px;line-height:1.7;color:var(--wca-text);">{{ $disclaimerTexto }}</p>
                 </div>
             </div>
 
-            <label style="display:flex;align-items:flex-start;gap:10px;margin-top:12px;padding:12px 14px;border:1px solid var(--wca-btn-sec-bd);border-radius:12px;cursor:pointer;"
-                   :style="disclaimerMarcado ? 'border-color:rgba(249,115,22,0.55);' : ''">
-                <input type="checkbox" x-model="disclaimerMarcado" style="margin-top:2px;flex-shrink:0;">
+            <label class="wca-consent" :class="disclaimerMarcado ? 'wca-consent-on' : ''">
+                <input type="checkbox" x-model="disclaimerMarcado" style="margin-top:2px;flex-shrink:0;accent-color:var(--wca-brand-solid);">
                 <span style="font-size:13px;line-height:1.55;color:var(--wca-text);">
                     He leído y acepto la autorización de tratamiento de mis datos personales.
                 </span>
             </label>
 
-            <div style="display:flex;justify-content:center;margin-top:12px;">
+            <div style="display:flex;justify-content:center;margin-top:14px;">
                 <button type="button"
                         :disabled="!disclaimerMarcado"
                         @click.prevent="aceptarDisclaimer()"
                         :class="disclaimerMarcado ? 'wca-btn-primary wca-btn-on' : 'wca-btn-primary wca-btn-off'">
+                    <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"/>
+                    </svg>
                     Aceptar y activar la cámara
                 </button>
             </div>
@@ -483,15 +532,19 @@ button.wca-btn-secondary:hover {
                             Mire directamente a la cámara (foto de frente)
                         </span>
                         <span x-show="estadoRostro === 'falta_parpadeo'"
-                              class="wca-badge" style="background:rgba(2,132,199,0.88);color:white;display:none;">
-                            Parpadee para confirmar que está en vivo
+                              class="wca-badge" style="background:rgba(225,29,72,0.90);color:white;display:none;">
+                            <svg style="width:11px;height:11px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            Parpadee - la foto se tomará sola
                         </span>
                         <span x-show="estadoRostro === 'ok' && !alertaAccesorios"
                               class="wca-badge" style="background:rgba(22,101,52,0.85);color:#86efac;display:none;">
                             <svg style="width:11px;height:11px;" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
-                            Listo - tome la foto ahora
+                            Parpadeo confirmado - capturando
                         </span>
                         <span x-show="estadoRostro === 'ok' && alertaAccesorios"
                               x-text="alertaAccesorios"
@@ -518,12 +571,22 @@ button.wca-btn-secondary:hover {
                 {{-- Canvas oculto para captura --}}
                 <canvas x-ref="canvas" style="display:none;"></canvas>
 
-                {{-- Botón tomar foto --}}
-                <div style="display:flex;justify-content:center;">
+                {{-- Aviso de captura automática (cuando la detección está activa) --}}
+                <div x-show="estadoRostro !== 'sin_modelo'" style="display:none;text-align:center;">
+                    <p style="margin:0;font-size:12px;color:var(--wca-text-muted);line-height:1.5;">
+                        La foto se toma automáticamente al detectar su parpadeo. No hay que presionar nada.
+                    </p>
+                </div>
+
+                {{-- Botón tomar foto - solo como respaldo cuando la verificación
+                     automática no está disponible (face-api no cargó). Con detección
+                     activa la captura es automática al parpadear: dejar además un
+                     botón manual permitiría saltarse la prueba de vida. --}}
+                <div x-show="estadoRostro === 'sin_modelo'" style="display:none;text-align:center;">
                     <button type="button"
-                            :disabled="(estadoRostro !== 'ok' && estadoRostro !== 'sin_modelo') || !!alertaAccesorios || revisandoAccesorios"
+                            :disabled="!!alertaAccesorios || revisandoAccesorios"
                             @click.prevent="tomarFoto()"
-                            :class="((estadoRostro === 'ok' || estadoRostro === 'sin_modelo') && !alertaAccesorios && !revisandoAccesorios)
+                            :class="(!alertaAccesorios && !revisandoAccesorios)
                                 ? 'wca-btn-primary wca-btn-on'
                                 : 'wca-btn-primary wca-btn-off'">
 
