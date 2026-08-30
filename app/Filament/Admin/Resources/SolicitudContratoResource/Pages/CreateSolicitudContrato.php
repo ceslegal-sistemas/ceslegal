@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\SolicitudContratoResource\Pages;
 
 use App\Filament\Admin\Resources\SolicitudContratoResource;
 use App\Filament\Admin\Resources\SolicitudContratoResource\Concerns\CompletaDetallesCargoConIA;
+use App\Filament\Admin\Resources\SolicitudContratoResource\Widgets\SolicitudContratoRecordHeroWidget;
 use App\Services\SolicitudContratoIAService;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -14,6 +15,13 @@ class CreateSolicitudContrato extends CreateRecord
     use CompletaDetallesCargoConIA;
 
     protected static string $resource = SolicitudContratoResource::class;
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            SolicitudContratoRecordHeroWidget::class,
+        ];
+    }
 
     /**
      * El Wizard ya trae su propio botón "Crear Solicitud" (submitAction en

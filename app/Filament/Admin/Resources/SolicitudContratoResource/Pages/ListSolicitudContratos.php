@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\SolicitudContratoResource\Pages;
 
 use App\Filament\Admin\Resources\SolicitudContratoResource;
+use App\Filament\Admin\Resources\SolicitudContratoResource\Widgets\SolicitudContratoListHeroWidget;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
@@ -14,6 +15,13 @@ class ListSolicitudContratos extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+        ];
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            SolicitudContratoListHeroWidget::class,
         ];
     }
 }
