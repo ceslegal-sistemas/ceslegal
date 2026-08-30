@@ -27,6 +27,16 @@
 @php
     $wireTargetPath = $wireTargetPath ?? 'mountedTableActionsData.0.foto_autorizador_base64';
     $wizardStepId   = $wizardStepId ?? null;
+
+    // Autorización de tratamiento de datos personales (Ley 1581 de 2012) -
+    // OBLIGATORIA antes de cualquier captura fotográfica, por requisito legal
+    // explícito del usuario. El flujo del trabajador (FormularioDescargos, etapa
+    // 'disclaimer') ya exigía este mismo consentimiento con su propio texto
+    // configurable; este componente - usado por el AUTORIZADOR de la empresa en
+    // Emitir Sanción, CreateProcesoDisciplinario y la aceptación del RIT
+    // mejorado - no pedía ninguno. Se bloquea la cámara hasta aceptar: así no se
+    // solicita siquiera el permiso del navegador antes del consentimiento.
+    $disclaimerTexto = $disclaimerTexto ?? 'AUTORIZACIÓN DE TRATAMIENTO DE DATOS PERSONALES: Esta diligencia se realizará a través de medios digitales, electrónicos y/o virtuales, por lo cual autorizo que mi dirección IP, la fecha y hora exactas de cada acción, el canal de verificación utilizado, las fotografías tomadas en el desarrollo de la diligencia y en general el tratamiento de mis datos personales sean tratados conforme a la Ley 1581 de 2012 y demás normas que la adicionen, modifiquen y/o complementen.';
 @endphp
 
 <style>
@@ -83,12 +93,16 @@ button.wca-btn-secondary:hover {
 
 <div wire:ignore
      x-data="{
+         disclaimerAceptado: false,
+         disclaimerMarcado: false,
          stream: null,
          fotoCapturada: null,
          errorCamara: false,
          modelsCargados: false,
          estadoRostro: 'esperando',
          intervaloDeteccion: null,
+         parpadeoDetectado: false,
+         ojosCerradosPrevio: false,
          revisandoAccesorios: false,
          alertaAccesorios: '',
          intervaloAccesorios: null,
@@ -103,13 +117,23 @@ button.wca-btn-secondary:hover {
                  recortado:  '#fb923c',
                  inclinado:  '#fb923c',
                  perfil:     '#fb923c',
+                 falta_parpadeo: '#38bdf8',
                  ok:         '#4ade80',
                  sin_modelo: 'rgba(255,255,255,0.45)',
              };
              return map[this.estadoRostro] || 'rgba(255,255,255,0.45)';
          },
 
+         aceptarDisclaimer() {
+             if (!this.disclaimerMarcado) return;
+             this.disclaimerAceptado = true;
+             this.iniciarCamara();
+         },
+
          async iniciarCamara() {
+             // Guarda dura: ninguna ruta (x-init, $watch del wizard) puede
+             // encender la cámara sin el consentimiento previo aceptado.
+             if (!this.disclaimerAceptado) return;
              if (this.stream && this.stream.active) return;
              try {
                  this.stream = await navigator.mediaDevices.getUserMedia({
@@ -159,6 +183,19 @@ button.wca-btn-secondary:hover {
                  this.estadoRostro = 'sin_modelo';
                  this.iniciarDeteccionAccesorios();
              }
+         },
+
+         /**
+          * Eye Aspect Ratio (Soukupová & Čech): promedio de las 2 distancias
+          * verticales del ojo dividido por su distancia horizontal. Los 6 puntos
+          * que entrega face-api vienen en orden: 0 y 3 son las esquinas
+          * (horizontal), 1-5 y 2-4 los pares verticales.
+          */
+         calcularEAR(ojo) {
+             const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+             const horizontal = dist(ojo[0], ojo[3]);
+             if (!horizontal) return 1;
+             return (dist(ojo[1], ojo[5]) + dist(ojo[2], ojo[4])) / (2 * horizontal);
          },
 
          iniciarDeteccion() {
@@ -219,9 +256,29 @@ button.wca-btn-secondary:hover {
                      const offset = Math.abs(noseX - (lEyeCx + rEyeCx) / 2) / box.width;
                      if (offset > 0.22) { this.estadoRostro = 'perfil'; return; }
 
+                     // ⑦ Prueba de vida: exigir un parpadeo real antes de habilitar
+                     // la captura. Evita que una fotografía impresa o una pantalla
+                     // puesta frente a la cámara pase la verificación - refuerza el
+                     // equivalente funcional de firma. Se mide el Eye Aspect Ratio
+                     // (EAR) sobre los landmarks de ambos ojos, que face-api ya
+                     // calcula aquí mismo: alto = ojo abierto, bajo = ojo cerrado.
+                     // Un parpadeo es la transición cerrado -> abierto.
+                     if (!this.parpadeoDetectado) {
+                         const ear = (this.calcularEAR(lEye) + this.calcularEAR(rEye)) / 2;
+                         if (ear < 0.21) {
+                             this.ojosCerradosPrevio = true;
+                         } else if (ear > 0.28 && this.ojosCerradosPrevio) {
+                             this.parpadeoDetectado = true;
+                         }
+                         if (!this.parpadeoDetectado) { this.estadoRostro = 'falta_parpadeo'; return; }
+                     }
+
                      this.estadoRostro = 'ok';
                  } catch (e) { /* ignorar errores de detección */ }
-             }, 500);
+             // 250ms (antes 500ms): un parpadeo dura ~100-400ms, a 500ms se
+             // perdía la fase de ojos cerrados y la prueba de vida casi nunca
+             // se disparaba.
+             }, 250);
          },
 
          iniciarDeteccionAccesorios() {
@@ -279,6 +336,9 @@ button.wca-btn-secondary:hover {
              this.fotoCapturada           = null;
              this.alertaAccesorios        = '';
              this.estadoRostro            = 'esperando';
+             // La prueba de vida se exige de nuevo en cada intento de captura.
+             this.parpadeoDetectado       = false;
+             this.ojosCerradosPrevio      = false;
              this.revisandoAccesorios     = false;
              this.verificandoAccesoriosVivo = false;
              this.detenerDeteccion();
@@ -311,8 +371,39 @@ button.wca-btn-secondary:hover {
 
     <div class="space-y-3">
 
+        {{-- ══ Autorización de datos personales (Ley 1581 de 2012) - obligatoria ══ --}}
+        <div x-show="!disclaimerAceptado">
+            <div style="border:1px solid var(--wca-btn-sec-bd);border-radius:12px;overflow:hidden;">
+                <div style="padding:10px 14px;border-bottom:1px solid var(--wca-btn-sec-bd);background:var(--wca-btn-sec-bg);">
+                    <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--wca-text-muted);">
+                        Autorización de tratamiento de datos personales
+                    </p>
+                </div>
+                <div style="padding:14px;max-height:220px;overflow-y:auto;">
+                    <p style="margin:0;font-size:13px;line-height:1.65;color:var(--wca-text);">{{ $disclaimerTexto }}</p>
+                </div>
+            </div>
+
+            <label style="display:flex;align-items:flex-start;gap:10px;margin-top:12px;padding:12px 14px;border:1px solid var(--wca-btn-sec-bd);border-radius:12px;cursor:pointer;"
+                   :style="disclaimerMarcado ? 'border-color:rgba(249,115,22,0.55);' : ''">
+                <input type="checkbox" x-model="disclaimerMarcado" style="margin-top:2px;flex-shrink:0;">
+                <span style="font-size:13px;line-height:1.55;color:var(--wca-text);">
+                    He leído y acepto la autorización de tratamiento de mis datos personales.
+                </span>
+            </label>
+
+            <div style="display:flex;justify-content:center;margin-top:12px;">
+                <button type="button"
+                        :disabled="!disclaimerMarcado"
+                        @click.prevent="aceptarDisclaimer()"
+                        :class="disclaimerMarcado ? 'wca-btn-primary wca-btn-on' : 'wca-btn-primary wca-btn-off'">
+                    Aceptar y activar la cámara
+                </button>
+            </div>
+        </div>
+
         {{-- ══ Error de cámara ══ --}}
-        <div x-show="errorCamara" style="display:none">
+        <div x-show="disclaimerAceptado && errorCamara" style="display:none">
             <div style="padding:14px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.30);border-radius:10px;">
                 <p style="font-weight:700;color:#f87171;margin:0 0 6px;font-size:13px;">No se puede acceder a la cámara</p>
                 <p style="color:var(--wca-text-muted);font-size:12px;margin:0 0 4px;">Para continuar permita el acceso en el navegador:</p>
@@ -323,7 +414,7 @@ button.wca-btn-secondary:hover {
             </div>
         </div>
 
-        <div x-show="!errorCamara" style="display:none">
+        <div x-show="disclaimerAceptado && !errorCamara" style="display:none">
 
             {{-- ══ VISOR DE CÁMARA - siempre en DOM (x-show, no x-if) ══ --}}
             <div x-show="!fotoCapturada" style="display:none" class="space-y-3">
@@ -390,6 +481,10 @@ button.wca-btn-secondary:hover {
                         <span x-show="estadoRostro === 'perfil'"
                               class="wca-badge" style="background:rgba(194,65,12,0.85);color:white;display:none;">
                             Mire directamente a la cámara (foto de frente)
+                        </span>
+                        <span x-show="estadoRostro === 'falta_parpadeo'"
+                              class="wca-badge" style="background:rgba(2,132,199,0.88);color:white;display:none;">
+                            Parpadee para confirmar que está en vivo
                         </span>
                         <span x-show="estadoRostro === 'ok' && !alertaAccesorios"
                               class="wca-badge" style="background:rgba(22,101,52,0.85);color:#86efac;display:none;">
