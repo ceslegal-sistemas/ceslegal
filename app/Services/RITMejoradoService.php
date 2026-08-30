@@ -412,12 +412,27 @@ class RITMejoradoService
 
         // Ordinal en palabra → romano
         $ordinales = [
-            'PRIMERO' => 1, 'SEGUNDO' => 2, 'TERCERO' => 3, 'CUARTO' => 4,
-            'QUINTO' => 5, 'SEXTO' => 6, 'SÉPTIMO' => 7, 'SEPTIMO' => 7,
-            'OCTAVO' => 8, 'NOVENO' => 9, 'DÉCIMO' => 10, 'DECIMO' => 10,
-            'UNDÉCIMO' => 11, 'UNDECIMO' => 11, 'DECIMOPRIMERO' => 11,
-            'DUODÉCIMO' => 12, 'DUODECIMO' => 12, 'DECIMOSEGUNDO' => 12,
-            'DECIMOTERCERO' => 13, 'DECIMOCUARTO' => 14, 'DECIMOQUINTO' => 15,
+            'PRIMERO' => 1,
+            'SEGUNDO' => 2,
+            'TERCERO' => 3,
+            'CUARTO' => 4,
+            'QUINTO' => 5,
+            'SEXTO' => 6,
+            'SÉPTIMO' => 7,
+            'SEPTIMO' => 7,
+            'OCTAVO' => 8,
+            'NOVENO' => 9,
+            'DÉCIMO' => 10,
+            'DECIMO' => 10,
+            'UNDÉCIMO' => 11,
+            'UNDECIMO' => 11,
+            'DECIMOPRIMERO' => 11,
+            'DUODÉCIMO' => 12,
+            'DUODECIMO' => 12,
+            'DECIMOSEGUNDO' => 12,
+            'DECIMOTERCERO' => 13,
+            'DECIMOCUARTO' => 14,
+            'DECIMOQUINTO' => 15,
             'DECIMOSEXTO' => 16,
         ];
 
@@ -431,7 +446,11 @@ class RITMejoradoService
             return null;
         }
         $mapa = [
-            10 => 'X', 9 => 'IX', 5 => 'V', 4 => 'IV', 1 => 'I',
+            10 => 'X',
+            9 => 'IX',
+            5 => 'V',
+            4 => 'IV',
+            1 => 'I',
         ];
         $romano = '';
         foreach ($mapa as $valor => $simbolo) {
@@ -503,22 +522,22 @@ class RITMejoradoService
         $goldItems  = \App\Support\RitGoldStandard::paraCapitulo($numero);
         $goldBloque = $goldItems
             ? "\nELEMENTOS OBLIGATORIOS QUE DEBE CUBRIR ESTE CAPÍTULO (verifica que todos estén presentes; si el original omite alguno, agrégalo):\n"
-              . \App\Support\RitGoldStandard::comoLista($goldItems) . "\n"
+            . \App\Support\RitGoldStandard::comoLista($goldItems) . "\n"
             : '';
 
         $seccionArticulos = $articulosLegales
             ? "\nTEXTO OFICIAL DE ARTÍCULOS DEL CST (fuente: base de datos interna - ÚNICA fuente válida para citas):\n"
-              . $articulosLegales . "\n"
+            . $articulosLegales . "\n"
             : '';
 
         $seccionRag = $rag
             ? "\nFRAGMENTOS DE LA BIBLIOTECA JURÍDICA (fuente autorizada para citas adicionales):\n"
-              . $rag . "\n"
+            . $rag . "\n"
             : '';
 
         $seccionContexto = $contextoEmpresa
             ? "\nDATOS REALES DE LA EMPRESA (úsalos en la redacción; NUNCA uses corchetes ni placeholders):\n"
-              . $contextoEmpresa . "\n"
+            . $contextoEmpresa . "\n"
             : '';
 
         $seccionOriginal = $capituloOriginal
@@ -613,7 +632,8 @@ PROMPT;
                         ->post($url, $payload);
                 } catch (\Illuminate\Http\Client\ConnectionException $ce) {
                     Log::warning('RITMejoradoService: timeout, cascade al siguiente modelo', [
-                        'model' => $model, 'error' => $ce->getMessage(),
+                        'model' => $model,
+                        'error' => $ce->getMessage(),
                     ]);
                     break;
                 }
@@ -676,7 +696,6 @@ PROMPT;
             @unlink($tmpPath);
 
             return $rutaRelativa;
-
         } catch (\Throwable $e) {
             Log::warning('RITMejoradoService: no se pudo generar PDF permanente', [
                 'empresa_id' => $empresa->id,

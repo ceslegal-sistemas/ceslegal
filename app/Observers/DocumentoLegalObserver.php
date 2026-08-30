@@ -5,14 +5,19 @@ namespace App\Observers;
 use App\Models\DocumentoLegal;
 use App\Models\ReglamentoInterno;
 use App\Models\User;
+use App\Services\NotificacionService;
+use App\Services\RitActualizacionAutomaticaService;
 use App\Services\TemaClasificadorService;
 use Filament\Notifications\Actions\Action as FilamentAction;
 use Filament\Notifications\Notification as FilamentNotification;
+use Illuminate\Support\Facades\Log;
 
 class DocumentoLegalObserver
 {
     public function __construct(
-        protected TemaClasificadorService $clasificador
+        protected TemaClasificadorService $clasificador,
+        protected RitActualizacionAutomaticaService $actualizacionRit,
+        protected NotificacionService $notificacionService,
     ) {
     }
 
@@ -62,6 +67,31 @@ class DocumentoLegalObserver
                 ->pluck('nombre');
 
             if ($temasComunes->isEmpty()) {
+                continue;
+            }
+
+            // Plan B: antes de la notificación genérica, intentar el motor
+            // de decisión quirúrgico - si encuentra un cambio real, se
+            // propone y notifica específicamente en vez de solo "vaya
+            // audite". Si falla (ej. cuota de IA agotada) o no encuentra
+            // cambio, se mantiene la notificación genérica de siempre - no
+            // debe quedar SIN notificación en ningún caso.
+            $sugerenciaEspecifica = null;
+            try {
+                $cambio = $this->actualizacionRit->evaluarCambio($rit, $documento);
+                if ($cambio !== null) {
+                    $sugerenciaEspecifica = $this->actualizacionRit->crearSugerencia($rit, $documento, $cambio);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('DocumentoLegalObserver: falló el motor de decisión de actualización del RIT, se mantiene la notificación genérica', [
+                    'rit_id'        => $rit->id,
+                    'documento_id'  => $documento->id,
+                    'error'         => $e->getMessage(),
+                ]);
+            }
+
+            if ($sugerenciaEspecifica) {
+                $this->notificacionService->notificarSugerenciaActualizacionRit($sugerenciaEspecifica);
                 continue;
             }
 

@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\SolicitudContratoResource\Pages;
+use App\Models\Empresa;
 use App\Models\SolicitudContrato;
 use App\Models\Trabajador;
 use Filament\Forms;
@@ -13,6 +14,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class SolicitudContratoResource extends Resource
@@ -57,27 +59,62 @@ class SolicitudContratoResource extends Resource
                                 ->relationship(
                                     name: 'empresa',
                                     titleAttribute: 'razon_social',
-                                    modifyQueryUsing: fn (Builder $query, ?\Illuminate\Database\Eloquent\Model $record) => $query->paraAsignar($record?->empresa_id),
+                                    modifyQueryUsing: fn(
+                                        Builder $query,
+                                        ?\Illuminate\Database\Eloquent\Model $record
+                                    ) => $query->paraAsignar($record?->empresa_id),
                                 )
                                 ->searchable()
                                 ->preload()
                                 ->required()
                                 ->default(function () {
                                     $user = auth()->user();
-                                    return $user && $user->isCliente() ? $user->empresa_id : null;
+
+                                    return $user && $user->isCliente()
+                                        ? $user->empresa_id
+                                        : null;
+                                })
+                                ->live()
+                                ->afterStateUpdated(function (Set $set, $state): void {
+
+                                    $empresa = $state
+                                        ? Empresa::find($state)
+                                        : null;
+
+                                    if (!$empresa) {
+                                        $set('departamento', null);
+                                        $set('ciudad', null);
+                                        $set('lugar_labores', null);
+
+                                        return;
+                                    }
+
+                                    $set('departamento', $empresa->departamento);
+                                    $set('ciudad', $empresa->ciudad);
+
+                                    $set(
+                                        'lugar_labores',
+                                        collect([
+                                            $empresa->ciudad,
+                                            $empresa->departamento,
+                                        ])
+                                            ->filter()
+                                            ->implode(', ')
+                                    );
                                 })
                                 ->disabled(fn() => auth()->user()?->isCliente() ?? false)
                                 ->dehydrated()
                                 ->helperText(function () {
                                     $user = auth()->user();
-                                    if ($user && $user->isCliente()) {
-                                        return 'Empresa asignada automáticamente';
-                                    }
-                                    return 'Seleccione la empresa para la cual se solicita el contrato';
+
+                                    return $user && $user->isCliente()
+                                        ? 'Empresa asignada automáticamente'
+                                        : 'Seleccione la empresa para la cual se solicita el contrato';
                                 })
                                 ->placeholder('Busque y seleccione la empresa...')
                                 ->suffixIcon('heroicon-o-building-office')
                                 ->columnSpanFull(),
+
 
                             Forms\Components\Select::make('tipo_contrato')
                                 ->label('Tipo de Contrato')
@@ -362,8 +399,8 @@ class SolicitudContratoResource extends Resource
                                 ->placeholder('Ej: Construcción de la bodega de almacenamiento ubicada en...')
                                 ->helperText('Describa la obra o labor específica - la IA la usará para redactar las cláusulas de Duración y Terminación de este contrato.')
                                 ->rows(3)
-                                ->visible(fn (Get $get) => $get('tipo_contrato') === 'Contrato de Obra o Labor')
-                                ->required(fn (Get $get) => $get('tipo_contrato') === 'Contrato de Obra o Labor')
+                                ->visible(fn(Get $get) => $get('tipo_contrato') === 'Contrato de Obra o Labor')
+                                ->required(fn(Get $get) => $get('tipo_contrato') === 'Contrato de Obra o Labor')
                                 ->columnSpanFull(),
 
                             Forms\Components\RichEditor::make('manual_funciones')
@@ -393,7 +430,7 @@ class SolicitudContratoResource extends Resource
                                 // pasa su fecha propuesta, mostrando el mensaje de
                                 // validación incluso en modo Ver (bug real
                                 // reportado por el usuario, 2026-08-25).
-                                ->minDate(fn (string $operation) => $operation === 'create' ? today() : null)
+                                ->minDate(fn(string $operation) => $operation === 'create' ? today() : null)
                                 ->displayFormat('d/m/Y')
                                 ->helperText('Fecha propuesta para iniciar el contrato')
                                 ->placeholder('Seleccione la fecha...')
@@ -487,20 +524,103 @@ class SolicitudContratoResource extends Resource
                                     'diario'    => 'heroicon-o-calendar-days',
                                     'destajo'   => 'heroicon-o-cube-transparent',
                                 ])
-                                ->default('quincenal')
+                                ->default('mensual')
                                 ->inline()
                                 ->columnSpanFull(),
 
-                            Forms\Components\TextInput::make('lugar_labores')
-                                ->label('Lugar Donde Desempeñará Labores')
-                                ->maxLength(255)
-                                ->default(function (Get $get) {
-                                    $empresa = \App\Models\Empresa::find($get('empresa_id'));
+                            Forms\Components\Select::make('departamento')
+                                ->label('Departamento')
+                                ->required()
+                                ->searchable()
+                                ->options(fn() => self::getDepartamentos())
+                                ->live()
+                                ->afterStateUpdated(function (Set $set, Get $get): void {
+                                    // Si el departamento cambia manualmente,
+                                    // se limpia la ciudad anterior.
+                                    $set('ciudad', null);
 
-                                    return collect([$empresa?->ciudad, $empresa?->departamento])->filter()->implode(', ');
+                                    $set(
+                                        'lugar_labores',
+                                        collect([
+                                            $get('ciudad'),
+                                            $get('departamento'),
+                                        ])
+                                            ->filter()
+                                            ->implode(', ')
+                                    );
                                 })
-                                ->helperText('Por defecto, la ciudad y departamento de la empresa - edítelo si el trabajador labora en otro sitio')
-                                ->suffixIcon('heroicon-o-map-pin'),
+                                ->helperText('Seleccione el departamento'),
+
+                            Forms\Components\Select::make('ciudad')
+                                ->label('Ciudad')
+                                ->required()
+                                ->searchable()
+                                ->options(function (Get $get) {
+
+                                    $departamento = $get('departamento');
+                                    $ciudadActual = $get('ciudad');
+
+                                    if (blank($departamento)) {
+                                        return [];
+                                    }
+
+                                    $ciudades = self::getCiudadesPorDepartamento($departamento);
+
+                                    if (filled($ciudadActual) && ! array_key_exists($ciudadActual, $ciudades)) {
+                                        $ciudades[$ciudadActual] = $ciudadActual;
+                                    }
+
+                                    return $ciudades;
+                                })
+                                ->disabled(fn(Get $get) => blank($get('departamento')))
+                                ->live()
+                                ->afterStateUpdated(function (Set $set, Get $get): void {
+                                    $set(
+                                        'lugar_labores',
+                                        collect([
+                                            $get('ciudad'),
+                                            $get('departamento'),
+                                        ])
+                                            ->filter()
+                                            ->implode(', ')
+                                    );
+                                })
+                                ->helperText('Seleccione primero el departamento')
+                                ->placeholder('Seleccione una ciudad...')
+                                ->afterStateHydrated(function (Get $get, Set $set): void {
+
+                                    $empresaId = $get('empresa_id');
+
+                                    if (blank($empresaId)) {
+                                        return;
+                                    }
+
+                                    $empresa = Empresa::find($empresaId);
+
+                                    if (!$empresa) {
+                                        return;
+                                    }
+
+                                    if (blank($get('departamento'))) {
+                                        $set('departamento', $empresa->departamento);
+                                    }
+
+                                    if (blank($get('ciudad'))) {
+                                        $set('ciudad', $empresa->ciudad);
+                                    }
+
+                                    if (blank($get('lugar_labores'))) {
+                                        $set(
+                                            'lugar_labores',
+                                            collect([
+                                                $empresa->ciudad,
+                                                $empresa->departamento,
+                                            ])
+                                                ->filter()
+                                                ->implode(', ')
+                                        );
+                                    }
+                                }),
 
                             // Mismas 3 opciones que ya usa ModificacionContractualResource.php
                             // para "Nueva Jornada/Modalidad" (tipo_modificacion='jornada') -
@@ -542,6 +662,7 @@ class SolicitudContratoResource extends Resource
                                         $set('jornada', '__otro__');
                                     }
                                 })
+                                ->default('Tiempo completo')
                                 ->dehydrateStateUsing(fn(Get $get, ?string $state) => $state === '__otro__' ? $get('jornada_otro') : $state)
                                 ->inline()
                                 ->columnSpanFull(),
@@ -607,8 +728,7 @@ class SolicitudContratoResource extends Resource
                             : new \Illuminate\Support\HtmlString('<button type="submit" class="filament-button filament-button-size-md inline-flex items-center justify-center py-1 gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset dark:focus:ring-offset-0 min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700">Crear Solicitud</button>')
                     ),
 
-                // Oculta a pedido del usuario (2026-08-25) mientras se retira el
-                // rol "abogado" del sistema (tarea aparte, todavía sin agendar) -
+                // Oculta mientras se retira el rol "abogado" del sistema (tarea aparte, todavía sin agendar) -
                 // no se borró el campo/relación para no perder la asignación ya
                 // guardada en registros existentes.
                 Forms\Components\Section::make('Asignación interna')
@@ -676,7 +796,6 @@ class SolicitudContratoResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
-                    ->icon('heroicon-o-hashtag')
                     ->copyable(),
 
                 Tables\Columns\BadgeColumn::make('estado')
@@ -703,8 +822,7 @@ class SolicitudContratoResource extends Resource
                     ->label('Tipo de Contrato')
                     ->searchable()
                     ->wrap()
-                    ->formatStateUsing(fn(string $state): string => explode(' - ', $state)[0] ?? $state)
-                    ->icon('heroicon-o-document-duplicate'),
+                    ->formatStateUsing(fn(string $state): string => explode(' - ', $state)[0] ?? $state),
 
                 Tables\Columns\TextColumn::make('trabajador_nombres')
                     ->label('Trabajador')
@@ -791,7 +909,7 @@ class SolicitudContratoResource extends Resource
 
                 Tables\Filters\SelectFilter::make('empresa')
                     ->label('Empresa')
-                    ->relationship('empresa', 'razon_social', modifyQueryUsing: fn (Builder $query) => $query->paraAsignar())
+                    ->relationship('empresa', 'razon_social', modifyQueryUsing: fn(Builder $query) => $query->paraAsignar())
                     ->searchable()
                     ->preload()
                     ->multiple(),
@@ -825,15 +943,15 @@ class SolicitudContratoResource extends Resource
                     ->label('Ver Contrato')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('info')
-                    ->visible(fn (SolicitudContrato $record) => filled($record->ruta_contrato))
-                    ->url(fn (SolicitudContrato $record) => route('solicitud-contrato.descargar', $record))
+                    ->visible(fn(SolicitudContrato $record) => filled($record->ruta_contrato))
+                    ->url(fn(SolicitudContrato $record) => route('solicitud-contrato.descargar', $record))
                     ->openUrlInNewTab(),
 
                 Tables\Actions\Action::make('regenerarBorrador')
                     ->label('Regenerar Borrador')
                     ->icon('heroicon-o-arrow-path')
                     ->color('gray')
-                    ->visible(fn (SolicitudContrato $record) => $record->estado === 'borrador')
+                    ->visible(fn(SolicitudContrato $record) => $record->estado === 'borrador')
                     ->requiresConfirmation()
                     ->modalDescription('Se generará un nuevo borrador del contrato con los datos actuales.')
                     ->action(function (SolicitudContrato $record) {
@@ -844,8 +962,10 @@ class SolicitudContratoResource extends Resource
                             $record->update(['objeto_juridico_redactado' => $texto]);
                         }
 
-                        if ($record->tipo_contrato === 'Contrato de Obra o Labor'
-                            && empty($record->duracion_terminacion_obra_redactada)) {
+                        if (
+                            $record->tipo_contrato === 'Contrato de Obra o Labor'
+                            && empty($record->duracion_terminacion_obra_redactada)
+                        ) {
                             $duracionTerminacion = $service->redactarDuracionTerminacionObraLabor($record);
                             $record->update(['duracion_terminacion_obra_redactada' => $duracionTerminacion]);
                         }
@@ -862,7 +982,7 @@ class SolicitudContratoResource extends Resource
                     ->label('Aprobar')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn (SolicitudContrato $record) => $record->estado === 'borrador')
+                    ->visible(fn(SolicitudContrato $record) => $record->estado === 'borrador')
                     ->requiresConfirmation()
                     ->modalDescription('Se generará el contrato final (protegido, sin marca de agua) y quedará aprobado.')
                     ->action(function (SolicitudContrato $record) {
@@ -878,7 +998,7 @@ class SolicitudContratoResource extends Resource
                     ->label('Rechazar')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(fn (SolicitudContrato $record) => $record->estado === 'borrador')
+                    ->visible(fn(SolicitudContrato $record) => $record->estado === 'borrador')
                     ->requiresConfirmation()
                     ->modalDescription('¿Está seguro de rechazar esta solicitud? Esta acción no se puede deshacer desde la interfaz.')
                     ->action(function (SolicitudContrato $record) {
@@ -968,5 +1088,33 @@ class SolicitudContratoResource extends Resource
             'Aseador',
             'Servicios Generales',
         ];
+    }
+
+    public static function getDepartamentos(): array
+    {
+        return DB::table('departamentos')
+            ->orderBy('nombre')
+            ->pluck('nombre', 'nombre')
+            ->toArray();
+    }
+
+    public static function getCiudadesPorDepartamento(?string $departamento): array
+    {
+        if (empty($departamento)) {
+            return [];
+        }
+
+        $municipios = DB::table('municipios')
+            ->join('departamentos', 'municipios.departamento_id', '=', 'departamentos.id')
+            ->where('departamentos.nombre', $departamento)
+            ->orderBy('municipios.nombre')
+            ->pluck('municipios.nombre')
+            ->toArray();
+
+        if (empty($municipios)) {
+            return [$departamento => $departamento];
+        }
+
+        return array_combine($municipios, $municipios);
     }
 }

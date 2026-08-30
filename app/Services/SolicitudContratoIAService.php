@@ -99,13 +99,34 @@ class SolicitudContratoIAService
 
     private function construirPromptDuracionTerminacionObraLabor(SolicitudContrato $solicitud, string $articulosCst): string
     {
+        $empresa = $solicitud->empresa()->with(['actividadEconomica', 'actividadesSecundarias'])->first();
+
+        $actividadPrincipal = $empresa?->actividadEconomica?->nombre;
+        $actividadesSecundarias = $empresa?->actividadesSecundarias?->pluck('nombre')->filter()->implode('; ');
+
+        $datosEmpresa = collect([
+            'Nombre'                              => $empresa?->nombre_completo,
+            'NIT'                                 => $empresa?->nit,
+            'Ciudad/Departamento'                 => trim(collect([$empresa?->ciudad, $empresa?->departamento])->filter()->implode(', '), ', ') ?: null,
+            'Representante legal'                 => $empresa?->representante_legal,
+            'Actividad económica principal'       => $actividadPrincipal,
+            'Actividades económicas secundarias'  => $actividadesSecundarias ?: null,
+        ])->filter()->map(fn($valor, $campo) => "- {$campo}: {$valor}")->implode("\n");
+
+        if ($datosEmpresa === '') {
+            $datosEmpresa = '(Sin datos de perfil de la empresa registrados en el sistema.)';
+        }
+
         $descripcionObra = trim((string) $solicitud->descripcion_obra_labor);
         $fechaInicio      = $solicitud->fecha_inicio_propuesta?->format('Y-m-d') ?? 'No especificada';
 
         return <<<PROMPT
-        Eres un abogado colombiano redactando las cláusulas de DURACIÓN y
+        Eres un abogado laboral colombiano redactando las cláusulas de DURACIÓN y
         TERMINACIÓN de un contrato de trabajo POR OBRA O LABOR DETERMINADA,
         con base ÚNICAMENTE en los datos provistos abajo.
+
+        DATOS DE LA EMPRESA:
+        {$datosEmpresa}
 
         PROHIBICIÓN ABSOLUTA: No inventes una fecha de finalización fija,
         un plazo en días/meses/años, ni ningún dato que no esté
@@ -153,7 +174,7 @@ class SolicitudContratoIAService
             // definición no tiene subordinación - ver comentario en
             // DESCRIPCION_TIPO_CONTRATO arriba.
             return <<<PROMPT
-            Eres un abogado colombiano redactando el OBJETO JURÍDICO de un
+            Eres un abogado laboralista colombiano redactando el OBJETO JURÍDICO de un
             contrato {$descripcionTipo}, con base ÚNICAMENTE en los datos
             provistos abajo.
 
@@ -282,7 +303,7 @@ class SolicitudContratoIAService
             'Representante legal'  => $empresa?->representante_legal,
             'Actividad económica principal'  => $actividadPrincipal,
             'Actividades económicas secundarias' => $actividadesSecundarias ?: null,
-        ])->filter()->map(fn ($valor, $campo) => "- {$campo}: {$valor}")->implode("\n");
+        ])->filter()->map(fn($valor, $campo) => "- {$campo}: {$valor}")->implode("\n");
 
         if ($datosEmpresa === '') {
             $datosEmpresa = '(Sin datos de perfil de la empresa registrados en el sistema.)';
@@ -297,7 +318,7 @@ class SolicitudContratoIAService
             'Salario mensual propuesto'   => $solicitud->salario_propuesto ? ('$' . number_format((float) $solicitud->salario_propuesto, 0, ',', '.') . ' COP') : null,
             'Período de pago'             => $solicitud->periodo_pago,
             'Fecha de inicio propuesta'   => $solicitud->fecha_inicio_propuesta?->format('Y-m-d'),
-        ])->filter()->map(fn ($valor, $campo) => "- {$campo}: {$valor}")->implode("\n");
+        ])->filter()->map(fn($valor, $campo) => "- {$campo}: {$valor}")->implode("\n");
 
         return <<<PROMPT
         Eres un analista de RRHH colombiano redactando un BORRADOR (que el
@@ -799,8 +820,10 @@ class SolicitudContratoIAService
 
                 $status = $response->status();
                 Log::warning('SolicitudContratoIAService: fallo en intento', [
-                    'empresa_id' => $empresaId, 'model' => $model,
-                    'intento' => $intento, 'status' => $status,
+                    'empresa_id' => $empresaId,
+                    'model' => $model,
+                    'intento' => $intento,
+                    'status' => $status,
                 ]);
                 $lastError = $response->body();
 
