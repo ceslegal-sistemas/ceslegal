@@ -75,6 +75,14 @@ html:not(.dark) .rit-empty-title{color:#1c1917}
 .rit-shimmer-line{border-radius:6px;background:linear-gradient(90deg,rgba(251,113,133,.08) 25%,rgba(251,113,133,.18) 50%,rgba(251,113,133,.08) 75%);background-size:200% 100%;animation:rit-shimmer 2.2s ease-in-out infinite}
 html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(251,113,133,.06) 25%,rgba(251,113,133,.14) 50%,rgba(251,113,133,.06) 75%);background-size:200% 100%;animation:rit-shimmer 2.2s ease-in-out infinite}
 @keyframes rit-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.rit-sug-header{display:flex;align-items:center;gap:.5rem;padding:.75rem 1.125rem;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(251,113,133,.06)}
+html:not(.dark) .rit-sug-header{background:rgba(225,29,72,.05);border-bottom-color:rgba(0,0,0,.07)}
+.rit-sug-item{padding:1.25rem 1.75rem;border-bottom:1px solid rgba(255,255,255,.06)}
+html:not(.dark) .rit-sug-item{border-bottom-color:rgba(0,0,0,.06)}
+.rit-sug-item:last-child{border-bottom:none}
+.rit-sug-just{font-size:.825rem;line-height:1.6;color:#94a3b8;margin:0 0 .85rem}
+html:not(.dark) .rit-sug-just{color:#57534e}
+.rit-sug-fuente{font-size:.7rem;color:#64748b;margin:0 0 .5rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
 </style>
 
 @if($necesitaSeleccion)
@@ -306,6 +314,44 @@ html:not(.dark) .rit-shimmer-line{background:linear-gradient(90deg,rgba(251,113,
           Construir Reglamento Interno con IA
         </a>
       </div>
+    </div>
+  @endif
+
+  {{-- Cambios quirúrgicos propuestos por IA (Plan B): un documento legal
+       nuevo justifica ajustar un bloque puntual del RIT vigente. Nunca se
+       aplica solo - queda a la espera de que el cliente/bufete lo apruebe
+       o lo rechace acá mismo. --}}
+  @if($sugerenciasPendientes->isNotEmpty())
+    <div class="rit-viewer">
+      <div class="rit-sug-header">
+        <svg style="width:16px;height:16px;color:#fb7185" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+        <span class="rit-viewer-label">Cambios sugeridos para su Reglamento ({{ $sugerenciasPendientes->count() }})</span>
+      </div>
+
+      @foreach($sugerenciasPendientes as $sugerencia)
+        <div class="rit-sug-item" wire:key="sugerencia-{{ $sugerencia->id }}">
+          <p class="rit-sug-fuente">Motivado por: {{ $sugerencia->documentoLegal?->titulo ?? 'Documento legal' }}</p>
+          <p class="rit-sug-just">{{ $sugerencia->justificacion_ia }}</p>
+
+          @include('filament.components.rit-redline', [
+              'cambios' => app(\App\Services\RitDiffService::class)->compararDocumentos(
+                  (string) $sugerencia->texto_anterior,
+                  (string) $sugerencia->texto_propuesto,
+              ),
+          ])
+
+          <div class="rit-actions" style="margin-top:.5rem">
+            <button wire:click="aprobarSugerencia({{ $sugerencia->id }})" class="rit-btn rit-btn-success">
+              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              Aprobar cambio
+            </button>
+            <button wire:click="rechazarSugerencia({{ $sugerencia->id }})" class="rit-btn rit-btn-danger">
+              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              Rechazar
+            </button>
+          </div>
+        </div>
+      @endforeach
     </div>
   @endif
 

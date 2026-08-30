@@ -6,7 +6,9 @@ use AlexSyvolap\FilamentConfetti\Confetti;
 use App\Jobs\GenerarTextoRITJob;
 use App\Models\Empresa;
 use App\Models\ReglamentoInterno;
+use App\Models\SugerenciaActualizacionRit;
 use App\Services\ReglamentoInternoService;
+use App\Services\RitActualizacionAutomaticaService;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -37,6 +39,9 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
     /** Llegó desde la notificación de "nueva normativa disponible" (?resaltar=auditar) - resalta el botón de auditar. */
     public bool $resaltarAuditar = false;
 
+    /** Cambios quirúrgicos propuestos por IA (Plan B) para el RIT vigente, pendientes de aprobar/rechazar. */
+    public \Illuminate\Support\Collection $sugerenciasPendientes;
+
     public static function shouldRegisterNavigation(): bool
     {
         // Bufete: oculto hasta seleccionar una empresa específica en el topbar
@@ -52,6 +57,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
     public function mount(): void
     {
         $this->resaltarAuditar = request()->query('resaltar') === 'auditar';
+        $this->sugerenciasPendientes = collect();
 
         $user = Auth::user();
         if (!$user) {
@@ -95,6 +101,10 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                 $this->ritMejorado = $this->auditoria->reglamentoMejorado()->first();
             }
 
+            if ($this->reglamento) {
+                $this->cargarSugerenciasPendientes();
+            }
+
             // Auto-auditar: cliente con RIT subido que aún no tiene auditoría
             // (p. ej. justo después de registrarse subiendo su RIT).
             if (Auth::user()?->hasRole('cliente')
@@ -136,6 +146,64 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                 $this->ritMejorado = $this->auditoria->reglamentoMejorado()->first();
             }
         }
+    }
+
+    /**
+     * Cambios quirúrgicos propuestos por IA (Plan B de actualización
+     * automática del RIT) para el RIT vigente de la empresa, pendientes de
+     * aprobar/rechazar. Un registro por bloque afectado, nunca el RIT
+     * completo - ver RitActualizacionAutomaticaService.
+     */
+    protected function cargarSugerenciasPendientes(): void
+    {
+        $this->sugerenciasPendientes = SugerenciaActualizacionRit::where('reglamento_interno_id', $this->reglamento->id)
+            ->where('estado', 'pendiente')
+            ->with('documentoLegal')
+            ->latest()
+            ->get();
+    }
+
+    /** Aprueba una sugerencia: aplica el cambio quirúrgico al RIT vigente y refresca la vista. */
+    public function aprobarSugerencia(int $sugerenciaId): void
+    {
+        $sugerencia = SugerenciaActualizacionRit::find($sugerenciaId);
+        if (!$sugerencia) {
+            return;
+        }
+
+        $aplicada = app(RitActualizacionAutomaticaService::class)->aplicarSugerencia($sugerencia, Auth::user());
+
+        if (!$aplicada) {
+            Notification::make()
+                ->warning()
+                ->title('No se pudo aplicar el cambio')
+                ->body('El bloque del RIT cambió desde que se propuso esta sugerencia. Recárguela para ver el contenido actual.')
+                ->send();
+            $this->cargarSugerenciasPendientes();
+            return;
+        }
+
+        $this->reglamento = $this->reglamento->fresh();
+        $this->cargarSugerenciasPendientes();
+
+        Notification::make()
+            ->success()
+            ->title('Cambio aplicado a su Reglamento Interno')
+            ->send();
+    }
+
+    /** Rechaza una sugerencia: no toca el RIT, solo cierra la propuesta. */
+    public function rechazarSugerencia(int $sugerenciaId): void
+    {
+        $sugerencia = SugerenciaActualizacionRit::find($sugerenciaId);
+        if (!$sugerencia) {
+            return;
+        }
+
+        app(RitActualizacionAutomaticaService::class)->rechazarSugerencia($sugerencia, Auth::user());
+        $this->cargarSugerenciasPendientes();
+
+        Notification::make()->info()->title('Sugerencia rechazada')->send();
     }
 
     /** Reintenta la generación del RIT mejorado si falló. */

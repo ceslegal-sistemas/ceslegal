@@ -128,7 +128,10 @@ class ProcesoNotification extends Notification
             'App\Models\SolicitudContrato' => $esCliente
                 ? url($base . '/solicitud-contratos/' . $relacionadoId)
                 : url($base . '/solicitud-contratos/' . $relacionadoId . '/edit'),
-            'App\Models\SugerenciaActualizacionRit' => url('/admin/sugerencia-actualizacion-rits/' . $relacionadoId . '/edit'),
+            // Sin Resource propio: la aprobación vive dentro de "Mi Reglamento
+            // Interno" (misma pantalla que ya usa el cliente/bufete para su RIT),
+            // no en una tabla administrativa aparte.
+            'App\Models\SugerenciaActualizacionRit' => url($base . '/mi-reglamento-interno'),
             default => null,
         };
     }
