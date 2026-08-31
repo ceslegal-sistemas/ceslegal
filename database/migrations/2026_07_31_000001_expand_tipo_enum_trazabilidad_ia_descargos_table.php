@@ -21,6 +21,17 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Mismo guard ya usado en 2026_01_06_190534_add_missing_tipos_to_notificaciones_table.php
+        // para el mismo problema: ALTER ... MODIFY COLUMN ... ENUM(...) es
+        // sintaxis MySQL - sqlite (usado por phpunit.xml en tests) no la
+        // entiende y tronaba la suite de tests COMPLETA (no solo la de esta
+        // tarea) al migrar. sqlite no tiene ENUM real (guarda 'tipo' como
+        // TEXT sin restricción), así que no ejecutar este ALTER ahí no
+        // cambia ningún comportamiento, solo evita el error de sintaxis.
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("ALTER TABLE trazabilidad_ia_descargos MODIFY COLUMN tipo ENUM(
             'generacion_preguntas',
             'analisis_respuestas',
@@ -32,6 +43,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("ALTER TABLE trazabilidad_ia_descargos MODIFY COLUMN tipo ENUM(
             'generacion_preguntas',
             'analisis_respuestas'
