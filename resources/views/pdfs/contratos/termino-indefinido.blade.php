@@ -33,39 +33,48 @@
             box-sizing: border-box;
         }
 
-        body {
+        html, body {
             font-family: 'Tahoma', 'DejaVu Sans', Arial, sans-serif;
-            font-size: 9pt;
-            line-height: 1.55;
-            color: #111111;
+            font-size: 9.5pt;
+            color: #000;
+        }
+
+        body {
             margin: 0;
             padding: 0;
+            line-height: 1.35;
+            text-align: justify;
         }
 
         h1 {
-            font-size: 14pt;
+            font-size: 12pt;
+            font-weight: bold;
             text-align: center;
-            margin: 0 0 4pt;
+            margin: 0 0 12pt 0;
             text-transform: uppercase;
+            line-height: 1.2;
         }
 
         h2 {
-            font-size: 11pt;
+            font-size: 9.5pt;
+            font-weight: bold;
             text-align: center;
-            font-weight: normal;
-            margin: 0 0 16pt;
+            margin: 0 0 12pt 0;
+            line-height: 1.3;
         }
 
         table.datos {
             width: 100%;
             border-collapse: collapse;
-            margin: 0 0 16pt;
+            margin: 0 0 14pt 0;
+            font-size: 9.5pt;
         }
 
         table.datos td {
-            border: 1px solid #333;
-            padding: 4pt 8pt;
-            font-size: 10pt;
+            border: 1px solid #000;
+            padding: 3pt 6pt;
+            font-size: 9.5pt;
+            line-height: 1.25;
             vertical-align: top;
         }
 
@@ -75,40 +84,67 @@
         }
 
         p {
+            font-size: 9.5pt;
+            line-height: 1.35;
             text-align: justify;
-            margin: 0 0 10pt;
+            margin: 0 0 7pt 0;
         }
 
         ol {
-            margin: 0 0 10pt;
-            padding-left: 22pt;
+            margin-top: 3pt;
+            margin-bottom: 7pt;
+            padding-left: 25pt;
+            font-size: 9.5pt;
         }
 
         ol li {
-            margin-bottom: 6pt;
+            font-size: 9.5pt;
+            line-height: 1.35;
+            margin-bottom: 3pt;
             text-align: justify;
+            padding-left: 2pt;
         }
 
         .clausula-titulo {
             font-weight: bold;
+            text-transform: uppercase;
         }
 
         p.clausula {
-            margin-top: 16pt;
+            margin-top: 9pt;
+            margin-bottom: 7pt;
+        }
+
+        strong, b {
+            font-weight: bold;
         }
 
         table.firma {
             width: 100%;
-            margin-top: 60pt;
+            margin-top: 55pt;
             border-collapse: collapse;
         }
 
         table.firma td {
             width: 50%;
             text-align: center;
-            padding-top: 45pt;
+            vertical-align: top;
+            padding-top: 38pt;
             border-top: 1pt solid #000;
-            font-size: 10pt;
+            font-size: 9.5pt;
+            line-height: 1.3;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .avoid-break {
+            page-break-inside: avoid;
+        }
+
+        div, span, table, td, th {
+            font-size: 9.5pt;
         }
     </style>
 </head>
