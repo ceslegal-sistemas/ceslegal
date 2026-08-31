@@ -24,7 +24,10 @@
 @include('filament.components.lupe-hero-styles')
 
 <div style="border-radius:.75rem;border:1.5px solid rgba(251,113,133,.4);background:rgba(251,113,133,.08);padding:1rem 1.125rem;position:relative">
-    <span style="position:absolute;top:-.6rem;left:1rem;background:#fb7185;color:white;font-size:.65rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:.15rem .55rem;border-radius:999px">Paso recomendado</span>
+    <span style="position:absolute;top:-.65rem;left:1rem;display:inline-flex;align-items:center;gap:.3rem;background:#fb7185;color:white;font-size:.65rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:.15rem .55rem .15rem .4rem;border-radius:999px">
+        <lord-icon src="https://cdn.lordicon.com/lupuorrc.json" trigger="loop" delay="1500" stroke="bold" colors="primary:#ffffff,secondary:#ffffff" style="width:14px;height:14px;flex-shrink:0"></lord-icon>
+        Paso recomendado
+    </span>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:.25rem">
         <div style="display:flex;align-items:center;gap:.6rem">
             <svg style="width:18px;height:18px;color:#fb7185;flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
