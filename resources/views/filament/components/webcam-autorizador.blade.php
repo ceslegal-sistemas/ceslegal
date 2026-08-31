@@ -329,7 +329,17 @@ button.wca-btn-secondary:hover {
              if (this.intervaloAccesorios) clearInterval(this.intervaloAccesorios);
              this.intervaloAccesorios = setInterval(async () => {
                  if (this.fotoCapturada || this.revisandoAccesorios || this.verificandoAccesoriosVivo) return;
-                 if (this.estadoRostro !== 'ok') return;
+                 // También corre en 'falta_parpadeo', no solo en 'ok'. Con la
+                 // captura automática, 'ok' dura una fracción de segundo (el
+                 // instante del parpadeo) y dispara tomarFoto() de inmediato,
+                 // que a su vez detiene este intervalo - así nunca alcanzaba a
+                 // correr ni una vez y el aviso de "quítese las gafas" quedó
+                 // código muerto (bug real reportado por el usuario: dejó de
+                 // pedir quitarse las gafas tras agregar la captura automática).
+                 // Con el rostro ya bien encuadrado (aunque falte el parpadeo)
+                 // es el momento correcto para revisar accesorios de todas
+                 // formas - antes de pedir el parpadeo, no después.
+                 if (this.estadoRostro !== 'ok' && this.estadoRostro !== 'falta_parpadeo') return;
                  const video = this.$refs.video;
                  if (!video || video.readyState < 2 || !video.videoWidth) return;
                  const escala = Math.min(1, 640 / video.videoWidth);
