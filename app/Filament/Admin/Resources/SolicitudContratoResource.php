@@ -80,6 +80,18 @@ class SolicitudContratoResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Wizard::make([
+                    // Paso 0: Bienvenida (pantalla propia, no cuenta en "Paso X de 4") -
+                    // mismo patrón que CreateProcesoDisciplinario::getSteps().
+                    Forms\Components\Wizard\Step::make('bienvenida')
+                        ->label('Bienvenida')
+                        ->description('Lea antes de empezar')
+                        ->icon('heroicon-o-information-circle')
+                        ->schema([
+                            Forms\Components\View::make('filament.components.bienvenida-solicitud-contrato')
+                                ->key('sc_bienvenida_contenido')
+                                ->columnSpanFull(),
+                        ]),
+
                     Forms\Components\Wizard\Step::make('Información Básica')
                         ->description('Datos generales de la solicitud')
                         ->icon('heroicon-o-information-circle')

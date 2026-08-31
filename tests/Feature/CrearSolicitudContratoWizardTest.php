@@ -36,6 +36,7 @@ class CrearSolicitudContratoWizardTest extends TestCase
         // canCreate()/la Policy fallan con 403 aunque el permiso sí exista.
         $this->get(\App\Filament\Admin\Resources\SolicitudContratoResource::getUrl('create'))
             ->assertSuccessful()
+            ->assertSee('Asistente de Generación de Contratos')
             ->assertSee('Información Básica')
             ->assertSee('Datos del Trabajador')
             ->assertSee('Detalles del Cargo')
