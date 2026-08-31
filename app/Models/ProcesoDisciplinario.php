@@ -476,6 +476,18 @@ class ProcesoDisciplinario extends Model
     public function getSancionesLaboralesTextoAttribute(): string
     {
         $rows = $this->motivosDescargosNormalizados();
+
+        // Respaldo intermedio: si no se seleccionó el motivo a mano, usar la
+        // conducta del RIT que la IA identificó al clasificar el incidente
+        // (mismo respaldo que ya usaba la tabla de sanciones del documento).
+        // Sin esto el prompt de la sanción recibía "No especificado" como
+        // regla incumplida, y la motivación terminaba citando la obligación
+        // de forma genérica en vez de la conducta concreta del reglamento -
+        // que es justo lo que debe quedar demostrado.
+        if (empty($rows)) {
+            $rows = $this->motivosDescargosDesdeClasificacionIA();
+        }
+
         if (empty($rows)) {
             return 'No especificado';
         }

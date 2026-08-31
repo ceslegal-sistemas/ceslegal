@@ -1204,6 +1204,30 @@ INSTRUCCIONES DE REDACCIÓN (LENGUAJE CLARO):
 - Habla directo al trabajador ("usted")
 - Sin frases como "por medio de la presente"
 
+CÓMO MOTIVAR LA DECISIÓN (OBLIGATORIO):
+El documento debe estar motivado con el mismo rigor con que un juez sustenta
+un fallo, pero escrito para que lo entienda alguien que no sabe de derecho.
+Eso significa recorrer, de forma explícita y en este orden:
+ a) QUÉ REGLA DEBÍA CUMPLIR: enuncia la conducta del reglamento que aplica al
+    caso, tomada de "SANCIONES DEL REGLAMENTO INTERNO INCUMPLIDAS". Explica con
+    tus palabras qué exige esa regla en la práctica.
+ b) QUÉ HIZO EXACTAMENTE: describe la conducta concreta del trabajador con los
+    datos verificables del caso (qué pasó, cuándo, con qué consecuencia).
+ c) POR QUÉ LO QUE HIZO INCUMPLE ESA REGLA: conecta de forma expresa el hecho
+    con la regla. Esta conexión es el corazón de la motivación y NO puede
+    faltar ni quedar implícita. No basta decir "incumplió el reglamento".
+ d) QUÉ DIJO EN SU DEFENSA Y POR QUÉ NO CAMBIA (O SÍ MATIZA) LA DECISIÓN:
+    responde a los argumentos concretos que dio en sus descargos. Si no
+    respondió, dilo y deja constancia de que se le dio la oportunidad.
+ e) POR QUÉ ESTA MEDIDA Y NO OTRA MÁS FUERTE O MÁS SUAVE: explica la
+    proporcionalidad (gravedad de la falta, si hubo reincidencia, antecedentes,
+    perjuicio causado).
+
+PROHIBICIÓN ABSOLUTA: no cites números de artículo, leyes ni cláusulas que no
+aparezcan textualmente en los datos entregados arriba. Si no tienes el número
+exacto, describe la obligación incumplida con palabras, sin inventar la cita.
+No afirmes hechos que no estén en HECHOS o en DESCARGOS.
+
 FORMATO REQUERIDO:
 - Fuente: Calibri 11pt
 - Texto justificado
@@ -1240,14 +1264,17 @@ Genera HTML con exactamente esta estructura:
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">1. Hechos que motivaron esta decisión</h3>
   <p style="margin: 4px 0;">[Describe los hechos claramente mencionando fechas específicas y acciones concretas. Usa 2-3 oraciones.]</p>
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">2. Por qué estos hechos son importantes</h3>
-  <p style="margin: 4px 0;">[Explica el impacto de los hechos y cómo afectan las obligaciones laborales. Usa lenguaje simple.]</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">2. Qué regla debía cumplir y por qué lo que ocurrió la incumple</h3>
+  <p style="margin: 4px 0;">[Punto (a) de la motivación: enuncia la regla del reglamento que aplica, tomada de las sanciones listadas, y explica con palabras sencillas qué exige en la práctica.]</p>
+  <p style="margin: 4px 0;">[Punto (c) de la motivación - EL MÁS IMPORTANTE: conecta de forma expresa el hecho concreto con esa regla. Di literalmente qué parte de la conducta del trabajador incumple qué parte de la obligación, y por qué. No basta afirmar que "incumplió el reglamento": hay que demostrarlo paso a paso, como lo haría un juez, pero en lenguaje llano.]</p>
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">3. Sus descargos</h3>
-  <p style="margin: 4px 0;">[Si el trabajador respondió: resume los descargos reconociendo su versión. Si NO respondió: indica claramente que se le envió la citación a descargos y se le brindó la oportunidad de presentar su versión de los hechos dentro del plazo legal establecido, pero el trabajador no ejerció su derecho de defensa al no responder al formulario de descargos. Aclara que, no obstante lo anterior, se garantizó plenamente su derecho al debido proceso y defensa.]</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">3. Sus descargos y cómo los valoramos</h3>
+  <p style="margin: 4px 0;">[Si el trabajador respondió: resume sus argumentos concretos. Si NO respondió: indica claramente que se le envió la citación a descargos y se le brindó la oportunidad de presentar su versión dentro del plazo legal, pero no ejerció su derecho de defensa. Aclara que, no obstante, se garantizó plenamente su derecho al debido proceso.]</p>
+  <p style="margin: 4px 0;">[Punto (d) de la motivación: responde uno por uno a los argumentos que dio. Di cuáles se aceptan y cuáles no, y POR QUÉ. Si sus explicaciones no desvirtúan los hechos, explica la razón; si atenúan la falta, dilo expresamente y refléjalo en la medida. Si no respondió, indica que la decisión se toma con la prueba disponible.]</p>
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">4. Nuestra decisión</h3>
-  <p style="margin: 4px 0;">Después de analizar cuidadosamente toda la información, hemos decidido aplicar un {$nombreSancion}. [Explica claramente las razones de esta decisión.]</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">4. Nuestra decisión y por qué esta medida</h3>
+  <p style="margin: 4px 0;">Después de analizar cuidadosamente toda la información, hemos decidido aplicar un {$nombreSancion}.</p>
+  <p style="margin: 4px 0;">[Punto (e) de la motivación: explica por qué se eligió ESTA medida y no una más fuerte ni más suave. Menciona lo que se tuvo en cuenta: gravedad de la falta, si hubo reincidencia, antecedentes del trabajador y el perjuicio causado. El trabajador debe entender que la medida es proporcional y no arbitraria.]</p>
 
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">5. Qué significa esto para usted</h3>
   <p style="margin: 4px 0;">[Explica las consecuencias prácticas de forma clara y específica.{$textoSuspension}]</p>
@@ -1278,6 +1305,11 @@ Genera HTML con exactamente esta estructura:
 
 IMPORTANTE:
 - Completa TODAS las secciones [entre corchetes] con contenido específico basado en HECHOS y DESCARGOS
+- La sección 2 debe dejar explícito QUÉ incumplió y POR QUÉ ese hecho incumple esa
+  regla concreta. Un documento que solo diga "incumplió el reglamento", sin
+  demostrar la conexión, está mal redactado y no sirve como motivación.
+- Nunca uses corchetes ni marcadores de relleno en el texto final: el documento se
+  entrega tal cual al trabajador.
 - Mantén el formato exacto (Calibri 11pt, texto justificado, negro, interlineado compacto)
 - NO incluyas bloques de código markdown (```html)
 - Genera SOLO el HTML mostrado, sin texto adicional
