@@ -1011,27 +1011,6 @@ class SolicitudContratoResource extends Resource
                     ->weight('bold')
                     ->copyable(),
 
-                Tables\Columns\TextColumn::make('estado')
-                    ->label('Estado')
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'aprobado' => 'success',
-                        'rechazado' => 'danger',
-                        default => 'gray',
-                    })
-                    ->icon(fn(string $state): string => match ($state) {
-                        'aprobado' => 'heroicon-o-check-circle',
-                        'rechazado' => 'heroicon-o-x-circle',
-                        default => 'heroicon-o-document-text',
-                    })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'borrador' => 'Borrador',
-                        'aprobado' => 'Aprobado',
-                        'rechazado' => 'Rechazado',
-                        default => $state,
-                    })
-                    ->sortable(),
-
                 Tables\Columns\TextColumn::make('tipo_contrato')
                     ->label('Tipo de Contrato')
                     ->searchable()
@@ -1102,6 +1081,31 @@ class SolicitudContratoResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                // Al final a pedido del usuario (antes iba justo después de
+                // "Código") - el motivo de rechazo se muestra como
+                // descripción debajo del badge, no queda escondido.
+                Tables\Columns\TextColumn::make('estado')
+                    ->label('Estado')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'aprobado' => 'success',
+                        'rechazado' => 'danger',
+                        default => 'gray',
+                    })
+                    ->icon(fn(string $state): string => match ($state) {
+                        'aprobado' => 'heroicon-o-check-circle',
+                        'rechazado' => 'heroicon-o-x-circle',
+                        default => 'heroicon-o-document-text',
+                    })
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'borrador' => 'Borrador',
+                        'aprobado' => 'Aprobado',
+                        'rechazado' => 'Rechazado',
+                        default => $state,
+                    })
+                    ->description(fn(SolicitudContrato $record): ?string => $record->estado === 'rechazado' ? $record->motivo_rechazo : null)
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('estado')
@@ -1190,10 +1194,26 @@ class SolicitudContratoResource extends Resource
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn(SolicitudContrato $record) => $record->estado === 'borrador')
-                    ->requiresConfirmation()
-                    ->modalDescription('¿Está seguro de rechazar esta solicitud? Esta acción no se puede deshacer desde la interfaz.')
-                    ->action(function (SolicitudContrato $record) {
-                        $record->update(['estado' => 'rechazado']);
+                    ->modalHeading('Rechazar solicitud')
+                    ->modalDescription('Esta acción no se puede deshacer desde la interfaz. Indique el motivo para dejar constancia de por qué se rechazó.')
+                    ->modalSubmitActionLabel('Rechazar')
+                    // Pedir el motivo AQUÍ (en vez de solo requiresConfirmation())
+                    // - antes se rechazaba sin dejar ningún rastro de por qué,
+                    // a pedido explícito del usuario para no perder esa
+                    // trazabilidad en un sistema legal.
+                    ->form([
+                        Forms\Components\Textarea::make('motivo')
+                            ->label('Motivo del rechazo')
+                            ->required()
+                            ->minLength(5)
+                            ->rows(3)
+                            ->placeholder('Ej: El cargo propuesto no está aprobado en el presupuesto de este trimestre.'),
+                    ])
+                    ->action(function (SolicitudContrato $record, array $data) {
+                        $record->update([
+                            'estado' => 'rechazado',
+                            'motivo_rechazo' => $data['motivo'],
+                        ]);
 
                         \Filament\Notifications\Notification::make()
                             ->success()

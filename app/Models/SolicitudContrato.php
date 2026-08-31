@@ -32,6 +32,7 @@ class SolicitudContrato extends Model
         'empresa_id',
         'abogado_id',
         'estado',
+        'motivo_rechazo',
         'tipo_contrato',
         'fecha_solicitud',
         'trabajador_id',
