@@ -2181,7 +2181,22 @@ class ProcesoDisciplinarioResource extends Resource
                                 // más abajo con la condición inversa) se oculta todo el wizard de
                                 // análisis/decisión: antes se quedaba visible arriba del todo,
                                 // duplicando la pantalla con el paso de autorización.
-                                ->visible(fn(Get $get) => ($get('paso_actual') ?? 1) < 3),
+                                //
+                                // $livewire->mountedTableActionsData, NO Get $get: bug real
+                                // reportado por el usuario con capturas de pantalla - "Volver a
+                                // Decisión" (extraModalFooterActions, línea ~2474) escribe
+                                // paso_actual=1 directo en $livewire->mountedTableActionsData,
+                                // pero Get $get resuelve contra el árbol de campos ya hidratado
+                                // del formulario, que no se refresca solo con esa escritura
+                                // directa. Confirmado con Livewire::test(): tras "Volver a
+                                // Decisión", mountedTableActionsData[0]['paso_actual'] YA vale 1
+                                // en el servidor, pero esta condición (con Get $get) seguía
+                                // evaluando como si valiera 3 - el wizard interno no volvía a
+                                // aparecer y quedaba solo el footer nativo del Paso 3 encima de
+                                // nada, la "sanción seleccionada" desaparecía de la vista aunque
+                                // seguía guardada. Ahora lee la misma fuente que ya usan
+                                // modalSubmitAction/modalCancelAction/extraModalFooterActions.
+                                ->visible(fn($livewire) => ($livewire->mountedTableActionsData[0]['paso_actual'] ?? 1) < 3),
 
                             // ── Aviso de transparencia de la revisión V6: oculto a pedido del
                             // usuario (2026-08-06) - la corrección automática se sigue aplicando
@@ -2368,7 +2383,10 @@ class ProcesoDisciplinarioResource extends Resource
                                     // el error de "requerido" no se mostraría al usuario.
                                     Forms\Components\Hidden::make('foto_autorizador_base64'),
                                 ])
-                                ->visible(fn(Get $get) => ($get('paso_actual') ?? 1) >= 3),
+                                // Mismo motivo que la ->visible() del wizard interno de arriba
+                                // (línea ~2199): lee $livewire->mountedTableActionsData en vez de
+                                // Get $get, para no quedar desincronizada de "Volver a Decisión".
+                                ->visible(fn($livewire) => ($livewire->mountedTableActionsData[0]['paso_actual'] ?? 1) >= 3),
                           ]), // fin Group (columna única)
                         ];
                     })
