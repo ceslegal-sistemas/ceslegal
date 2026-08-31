@@ -507,6 +507,12 @@ class SolicitudContratoResource extends Resource
                                 // reportado por el usuario, 2026-08-25).
                                 ->minDate(fn(string $operation) => $operation === 'create' ? today() : null)
                                 ->displayFormat('d/m/Y')
+                                ->live()
+                                // Si ya hay una duración puesta (ej. "6 meses"), mover la fecha
+                                // de inicio debe recalcular la fecha de fin manteniendo esa
+                                // misma duración - no dejarla desactualizada apuntando al
+                                // inicio anterior.
+                                ->afterStateUpdated(fn(Set $set, Get $get) => $set('fecha_fin_contrato', self::calcularFechaFinDesdeDuracion($get)))
                                 ->helperText('Fecha propuesta para iniciar el contrato')
                                 ->placeholder('Seleccione la fecha...')
                                 ->suffixIcon('heroicon-o-calendar'),
@@ -538,31 +544,105 @@ class SolicitudContratoResource extends Resource
                                 ->helperText('Salario mensual propuesto para el cargo')
                                 ->suffixIcon('heroicon-o-currency-dollar'),
 
-                            Forms\Components\DatePicker::make('fecha_fin_contrato')
-                                ->label('Fecha de Terminación del Contrato')
-                                ->native(false)
-                                ->displayFormat('d/m/Y')
-                                ->afterOrEqual('fecha_inicio_propuesta')
-                                // "Contrato Ocasional o Transitorio" tiene un límite legal de
-                                // máximo 30 días (Art. 6 C.S.T.) - se acota la fecha máxima
-                                // seleccionable en vez de dejar que el abogado escriba
-                                // cualquier fecha y descubrir el error después. Sin fecha de
-                                // inicio todavía, no hay base para calcular el límite - se
-                                // comporta igual que los otros 5 tipos hasta que se elija.
-                                ->maxDate(function (Get $get) {
-                                    if ($get('tipo_contrato') !== 'Contrato Ocasional o Transitorio') {
-                                        return null;
-                                    }
+                            Forms\Components\Fieldset::make('Duración del Contrato')
+                                ->columnSpanFull()
+                                ->schema([
+                                    Forms\Components\Placeholder::make('duracion_ayuda')
+                                        ->hiddenLabel()
+                                        ->content('Indique la duración (ej: 6 meses) y la fecha de terminación se calcula sola. También puede editar la fecha directamente - la duración se ajustará automáticamente.')
+                                        ->columnSpanFull(),
 
-                                    $fechaInicio = $get('fecha_inicio_propuesta');
+                                    Forms\Components\TextInput::make('duracion_cantidad')
+                                        ->label('Duración')
+                                        ->numeric()
+                                        ->minValue(1)
+                                        ->placeholder('Ej: 6')
+                                        ->live(debounce: '500ms')
+                                        ->dehydrated(false)
+                                        ->afterStateUpdated(fn(Set $set, Get $get) => $set('fecha_fin_contrato', self::calcularFechaFinDesdeDuracion($get))),
 
-                                    return $fechaInicio ? \Carbon\Carbon::parse($fechaInicio)->addDays(30) : null;
-                                })
-                                ->helperText(fn(Get $get) => $get('tipo_contrato') === 'Contrato Ocasional o Transitorio'
-                                    ? 'Este tipo de contrato tiene un máximo legal de 30 días desde la fecha de inicio'
-                                    : 'Fecha en que termina el contrato')
-                                ->placeholder('Seleccione la fecha...')
-                                ->suffixIcon('heroicon-o-calendar'),
+                                    Forms\Components\Select::make('duracion_unidad')
+                                        ->label('Unidad')
+                                        ->options(['dia' => 'Día(s)', 'mes' => 'Mes(es)', 'anio' => 'Año(s)'])
+                                        ->default('dia')
+                                        ->live()
+                                        ->dehydrated(false)
+                                        ->afterStateUpdated(function (Set $set, Get $get) {
+                                            // Al cambiar la unidad principal, los campos anidados
+                                            // (que dependían de la unidad anterior) ya no aplican.
+                                            $set('duracion_cantidad_2', null);
+                                            $set('duracion_unidad_2', null);
+                                            $set('duracion_cantidad_3', null);
+                                            $set('fecha_fin_contrato', self::calcularFechaFinDesdeDuracion($get));
+                                        }),
+
+                                    // Fila 2: "años" pide una unidad adicional (meses o días);
+                                    // "meses" solo permite agregar días (sin selector, una sola opción).
+                                    Forms\Components\TextInput::make('duracion_cantidad_2')
+                                        ->label(fn(Get $get) => $get('duracion_unidad') === 'mes' ? 'Días adicionales' : 'Cantidad adicional')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->visible(fn(Get $get) => in_array($get('duracion_unidad'), ['anio', 'mes'], true))
+                                        ->live(debounce: '500ms')
+                                        ->dehydrated(false)
+                                        ->afterStateUpdated(fn(Set $set, Get $get) => $set('fecha_fin_contrato', self::calcularFechaFinDesdeDuracion($get))),
+
+                                    Forms\Components\Select::make('duracion_unidad_2')
+                                        ->label('Unidad adicional')
+                                        ->options(['mes' => 'Mes(es)', 'dia' => 'Día(s)'])
+                                        ->visible(fn(Get $get) => $get('duracion_unidad') === 'anio')
+                                        ->live()
+                                        ->dehydrated(false)
+                                        ->afterStateUpdated(function (Set $set, Get $get) {
+                                            $set('duracion_cantidad_3', null);
+                                            $set('fecha_fin_contrato', self::calcularFechaFinDesdeDuracion($get));
+                                        }),
+
+                                    // Fila 3: solo cuando "años" + "meses" ya están puestos, se
+                                    // puede afinar con días sueltos (ej: 1 año, 2 meses y 10 días).
+                                    Forms\Components\TextInput::make('duracion_cantidad_3')
+                                        ->label('Días adicionales')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->visible(fn(Get $get) => $get('duracion_unidad') === 'anio' && $get('duracion_unidad_2') === 'mes')
+                                        ->live(debounce: '500ms')
+                                        ->dehydrated(false)
+                                        ->afterStateUpdated(fn(Set $set, Get $get) => $set('fecha_fin_contrato', self::calcularFechaFinDesdeDuracion($get))),
+
+                                    Forms\Components\DatePicker::make('fecha_fin_contrato')
+                                        ->label('Fecha de Terminación del Contrato')
+                                        ->native(false)
+                                        ->displayFormat('d/m/Y')
+                                        ->live()
+                                        ->afterOrEqual('fecha_inicio_propuesta')
+                                        // "Contrato Ocasional o Transitorio" tiene un límite legal de
+                                        // máximo 30 días (Art. 6 C.S.T.) - se acota la fecha máxima
+                                        // seleccionable en vez de dejar que el abogado escriba
+                                        // cualquier fecha y descubrir el error después. Sin fecha de
+                                        // inicio todavía, no hay base para calcular el límite - se
+                                        // comporta igual que los otros 5 tipos hasta que se elija.
+                                        ->maxDate(function (Get $get) {
+                                            if ($get('tipo_contrato') !== 'Contrato Ocasional o Transitorio') {
+                                                return null;
+                                            }
+
+                                            $fechaInicio = $get('fecha_inicio_propuesta');
+
+                                            return $fechaInicio ? \Carbon\Carbon::parse($fechaInicio)->addDays(30) : null;
+                                        })
+                                        // Edición manual de la fecha: descompone hacia atrás en
+                                        // duración (años/meses/días) para que ambos lados del
+                                        // calculador se mantengan sincronizados.
+                                        ->afterStateUpdated(fn(Set $set, Get $get) => self::descomponerDuracionDesdeFecha($set, $get))
+                                        ->afterStateHydrated(fn(Set $set, Get $get) => self::descomponerDuracionDesdeFecha($set, $get))
+                                        ->helperText(fn(Get $get) => $get('tipo_contrato') === 'Contrato Ocasional o Transitorio'
+                                            ? 'Este tipo de contrato tiene un máximo legal de 30 días desde la fecha de inicio'
+                                            : 'Se calcula sola con la duración de arriba, o edítela directamente')
+                                        ->placeholder('Seleccione la duración o la fecha...')
+                                        ->suffixIcon('heroicon-o-calendar')
+                                        ->columnSpanFull(),
+                                ])
+                                ->columns(2),
 
                             // Mismas opciones/iconos/colores que el Select de
                             // periodicidad de pago del wizard del RIT
@@ -1131,6 +1211,111 @@ class SolicitudContratoResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         return 'warning';
+    }
+
+    /**
+     * Calcula fecha_fin_contrato = fecha_inicio_propuesta + duración (años/
+     * meses/días compuestos, ver los campos duracion_* del Fieldset "Duración
+     * del Contrato"). Si falta la fecha de inicio o la cantidad principal,
+     * devuelve la fecha_fin_contrato actual sin tocarla (el usuario pudo
+     * haberla escrito directo, sin pasar por el calculador).
+     */
+    protected static function calcularFechaFinDesdeDuracion(Get $get): ?string
+    {
+        $inicio = $get('fecha_inicio_propuesta');
+        $cantidad = $get('duracion_cantidad');
+
+        if (blank($inicio) || blank($cantidad) || !is_numeric($cantidad)) {
+            return $get('fecha_fin_contrato');
+        }
+
+        $anios = 0;
+        $meses = 0;
+        $dias = 0;
+        $unidad = $get('duracion_unidad') ?? 'dia';
+
+        match ($unidad) {
+            'anio' => $anios = (int) $cantidad,
+            'mes' => $meses = (int) $cantidad,
+            default => $dias = (int) $cantidad,
+        };
+
+        if ($unidad === 'anio') {
+            $unidad2 = $get('duracion_unidad_2');
+            $cantidad2 = (int) ($get('duracion_cantidad_2') ?? 0);
+
+            if ($unidad2 === 'mes') {
+                $meses = $cantidad2;
+                $dias = (int) ($get('duracion_cantidad_3') ?? 0);
+            } elseif ($unidad2 === 'dia') {
+                $dias = $cantidad2;
+            }
+        } elseif ($unidad === 'mes') {
+            $dias = (int) ($get('duracion_cantidad_2') ?? 0);
+        }
+
+        return \Carbon\Carbon::parse($inicio)
+            ->addYears($anios)
+            ->addMonths($meses)
+            ->addDays($dias)
+            ->toDateString();
+    }
+
+    /**
+     * Camino inverso: al editar fecha_fin_contrato directamente, descompone
+     * la diferencia contra fecha_inicio_propuesta en años/meses/días y
+     * rellena los campos duracion_* del calculador - para que ambos lados
+     * (duración y fecha) se mantengan sincronizados sin importar cuál editó
+     * el usuario. Usa Carbon::diff() (DateInterval) como única fuente de la
+     * descomposición, no una fórmula propia - evita divergencias de
+     * redondeo entre esta función y calcularFechaFinDesdeDuracion().
+     */
+    protected static function descomponerDuracionDesdeFecha(Set $set, Get $get): void
+    {
+        $inicio = $get('fecha_inicio_propuesta');
+        $fin = $get('fecha_fin_contrato');
+
+        if (blank($inicio) || blank($fin)) {
+            return;
+        }
+
+        $inicioC = \Carbon\Carbon::parse($inicio);
+        $finC = \Carbon\Carbon::parse($fin);
+
+        if ($finC->lessThan($inicioC)) {
+            // Fecha inválida (fin antes que inicio) - se deja que la regla
+            // afterOrEqual() del propio campo la marque en la validación, no
+            // se intenta "corregir" la duración con un valor negativo.
+            return;
+        }
+
+        $diff = $inicioC->diff($finC);
+
+        if ($diff->y > 0) {
+            $set('duracion_unidad', 'anio');
+            $set('duracion_cantidad', $diff->y);
+
+            if ($diff->m > 0) {
+                $set('duracion_unidad_2', 'mes');
+                $set('duracion_cantidad_2', $diff->m);
+                $set('duracion_cantidad_3', $diff->d > 0 ? $diff->d : null);
+            } elseif ($diff->d > 0) {
+                $set('duracion_unidad_2', 'dia');
+                $set('duracion_cantidad_2', $diff->d);
+            } else {
+                $set('duracion_unidad_2', null);
+                $set('duracion_cantidad_2', null);
+            }
+        } elseif ($diff->m > 0) {
+            $set('duracion_unidad', 'mes');
+            $set('duracion_cantidad', $diff->m);
+            $set('duracion_cantidad_2', $diff->d > 0 ? $diff->d : null);
+        } else {
+            $set('duracion_unidad', 'dia');
+            $set('duracion_cantidad', $diff->d);
+            $set('duracion_cantidad_2', null);
+            $set('duracion_unidad_2', null);
+        }
     }
 
     /**
