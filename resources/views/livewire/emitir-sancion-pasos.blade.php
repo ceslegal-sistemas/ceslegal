@@ -80,6 +80,24 @@
             </div>
         </div>
     @elseif ($paso === 2)
+        @php
+            // Qué recomienda REALMENTE la IA, en un solo valor comparable.
+            // $iaSancionesRecomendadas nunca puede contener 'no_sancion'
+            // ($tiposDisponibles la excluye a propósito, ver
+            // ProcesoDisciplinarioResource.php), así que cuando la IA
+            // concluye "no aplicar sanción" ese array queda VACÍO - no
+            // significa "la IA no recomendó nada", significa que la
+            // recomendación ES no sancionar.
+            //
+            // Bug real reportado por el usuario: al estar vacío, la
+            // condición de abajo (que exigía !empty($iaSancionesRecomendadas))
+            // se saltaba por completo, así que elegir CUALQUIER sanción
+            // punitiva -incluida Terminación de Contrato- cuando la IA no
+            // recomendaba sancionar nunca pedía justificar el motivo ni
+            // aceptar la responsabilidad de apartarse de la IA.
+            $recomendacionEfectiva = !empty($iaSancionesRecomendadas) ? $iaSancionesRecomendadas : ['no_sancion'];
+            $esDivergente = $decision && !in_array($decision, $recomendacionEfectiva, true);
+        @endphp
         <div class="space-y-6" wire:key="emitir-sancion-paso-{{ $paso }}">
             @if (!$decision)
                 <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-400 dark:border-amber-600 space-y-3">
@@ -108,7 +126,7 @@
                 ])
             @endif
 
-            @if ($decision && !empty($iaSancionesRecomendadas) && !in_array($decision, $iaSancionesRecomendadas))
+            @if ($esDivergente)
                 @php
                     $razonCompleta = strlen(trim($razonDivergencia)) >= 5;
                 @endphp
@@ -198,8 +216,7 @@
                         icon-position="after"
                         class="justify-center py-3 text-base sm:flex-1"
                         :disabled="!$decision ||
-                            (!empty($iaSancionesRecomendadas) &&
-                                !in_array($decision, $iaSancionesRecomendadas) &&
+                            ($esDivergente &&
                                 (strlen(trim($razonDivergencia)) < 5 || !$exoneracionAceptada))"
                     >
                         Continuar a Autorizar

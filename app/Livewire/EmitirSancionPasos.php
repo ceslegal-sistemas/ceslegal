@@ -121,13 +121,22 @@ class EmitirSancionPasos extends Component
         // Guarda del lado del servidor (mismo criterio que irAPaso2): el
         // @disabled del botón "Continuar a Autorizar" es solo UX, un cliente
         // malicioso podría llamar confirmarDecision directo por la red. Si la
-        // decisión no está entre las sanciones recomendadas por la IA, exige
-        // razón de divergencia (mínimo 5 caracteres) y la exoneración aceptada.
-        if (
-            ! empty($this->iaSancionesRecomendadas)
-            && ! in_array($this->decision, $this->iaSancionesRecomendadas, true)
-            && (strlen(trim($this->razonDivergencia)) < 5 || ! $this->exoneracionAceptada)
-        ) {
+        // decisión no coincide con lo que la IA recomienda, exige razón de
+        // divergencia (mínimo 5 caracteres) y la exoneración aceptada.
+        //
+        // 'iaSancionesRecomendadas' NUNCA contiene 'no_sancion' ($tiposDisponibles
+        // la excluye a propósito en ProcesoDisciplinarioResource.php), así que
+        // cuando la IA concluye "no aplicar sanción" ese array llega vacío -
+        // eso no significa "sin recomendación", significa que la recomendación
+        // ES no sancionar. Antes, con el array vacío, esta guarda completa se
+        // saltaba: elegir cualquier sanción punitiva (incluida Terminación de
+        // Contrato) sin que la IA recomendara sancionar nunca exigía justificar
+        // el motivo - bug real reportado por el usuario. Mismo cálculo que
+        // usa la vista (emitir-sancion-pasos.blade.php, $esDivergente).
+        $recomendacionEfectiva = $this->iaSancionesRecomendadas ?: ['no_sancion'];
+        $esDivergente = ! in_array($this->decision, $recomendacionEfectiva, true);
+
+        if ($esDivergente && (strlen(trim($this->razonDivergencia)) < 5 || ! $this->exoneracionAceptada)) {
             return;
         }
         $this->dispatch('emitir-sancion-paso2-completo',
