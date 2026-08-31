@@ -370,7 +370,7 @@ button.wca-btn-secondary:hover {
                  this.alertaAccesorios = $wire.alertaAccesoriosAutorizador;
                  // Se exige parpadear de nuevo: como la captura ahora es automática
                  // y no hay botón manual, sin este reset el usuario quedaría con el
-                 // rostro "ok" pero sin ninguna forma de reintentar la foto.
+                 // rostro en estado ok pero sin ninguna forma de reintentar la foto.
                  this.parpadeoDetectado  = false;
                  this.ojosCerradosPrevio = false;
                  this.iniciarDeteccion();
