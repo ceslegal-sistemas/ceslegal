@@ -572,9 +572,20 @@ class SolicitudContratoResource extends Resource
                                     // se avisa explícitamente en vez de quedar callado.
                                     Forms\Components\Placeholder::make('duracion_ayuda')
                                         ->hiddenLabel()
-                                        ->content(fn(Get $get) => blank($get('fecha_inicio_propuesta'))
-                                            ? '⚠ Primero seleccione la Fecha de Inicio Propuesta (arriba) para poder calcular la fecha de terminación.'
-                                            : 'Indique la duración (ej: 6 meses) y la fecha de terminación se calcula sola. También puede editar la fecha directamente - la duración se ajustará automáticamente.')
+                                        ->content(function (Get $get) {
+                                            if (blank($get('fecha_inicio_propuesta'))) {
+                                                // Mismo icono/tono ámbar ya usado para avisos de "falta
+                                                // algo" en emitir-sancion-pasos.blade.php.
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div style="display:flex;align-items:center;gap:.5rem;color:#d97706" class="dark:text-amber-400">'
+                                                    . '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:22px;height:22px;flex-shrink:0"></lord-icon>'
+                                                    . '<span>Primero seleccione la Fecha de Inicio Propuesta (arriba) para poder calcular la fecha de terminación.</span>'
+                                                    . '</div>'
+                                                );
+                                            }
+
+                                            return 'Indique la duración (ej: 6 meses) y la fecha de terminación se calcula sola. También puede editar la fecha directamente - la duración se ajustará automáticamente.';
+                                        })
                                         ->columnSpanFull(),
 
                                     Forms\Components\TextInput::make('duracion_cantidad')
