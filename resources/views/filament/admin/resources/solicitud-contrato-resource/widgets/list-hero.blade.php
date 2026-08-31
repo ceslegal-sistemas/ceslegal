@@ -1,6 +1,6 @@
 @php
     $conteos = $this->getConteos();
-    $createUrl = \App\Filament\Admin\Pages\CrearSolicitudContrato::getUrl();
+    $createUrl = \App\Filament\Admin\Resources\SolicitudContratoResource::getUrl('create');
 @endphp
 
 @include('filament.components.lupe-hero-styles')

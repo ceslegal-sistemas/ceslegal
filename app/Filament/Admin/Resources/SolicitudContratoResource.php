@@ -10,6 +10,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Navigation\NavigationItem;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -23,15 +24,44 @@ class SolicitudContratoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?string $navigationLabel = 'Solicitudes de Contrato';
+    protected static ?string $navigationLabel = 'Historial de Contratos';
 
     protected static ?string $modelLabel = 'Solicitud de Contrato';
 
-    protected static ?string $pluralModelLabel = 'Solicitudes de Contrato';
+    protected static ?string $pluralModelLabel = 'Historial de Contratos';
 
     protected static ?string $navigationGroup = 'Gestión de Contratos';
 
     protected static ?int $navigationSort = 1;
+
+    /**
+     * Mismo patrón ya usado por ProcesoDisciplinarioResource ("Crear Citación
+     * de Descargos" + "Historial de Descargos") e InformeJuridicoResource:
+     * "Crear" como enlace directo al wizard, separado de "Historial" (el
+     * listado). static::canCreate() consulta la misma Policy que ya protege
+     * la Action de crear, una sola fuente de verdad de permisos.
+     */
+    public static function getNavigationItems(): array
+    {
+        $items = [];
+
+        if (static::canCreate()) {
+            $items[] = NavigationItem::make('Crear Solicitud de Contrato')
+                ->icon('heroicon-o-plus-circle')
+                ->group(static::getNavigationGroup())
+                ->url(static::getUrl('create'))
+                ->sort(0);
+        }
+
+        $items[] = NavigationItem::make('Historial de Contratos')
+            ->icon(static::getNavigationIcon())
+            ->group(static::getNavigationGroup())
+            ->url(static::getUrl('index'))
+            ->sort(1)
+            ->isActiveWhen(fn () => request()->routeIs(static::getRouteBaseName() . '.*') && ! request()->routeIs(static::getRouteBaseName() . '.create'));
+
+        return $items;
+    }
 
     public static function getEloquentQuery(): Builder
     {
@@ -54,6 +84,18 @@ class SolicitudContratoResource extends Resource
                         ->description('Datos generales de la solicitud')
                         ->icon('heroicon-o-information-circle')
                         ->schema([
+                            Forms\Components\View::make('filament.components.step-header')
+                                ->key('sc_step_header_1')
+                                ->viewData([
+                                    'step' => 1,
+                                    'total' => 4,
+                                    'title' => 'Información Básica',
+                                    'accent' => '#e11d48',
+                                    'lord' => 'https://cdn.lordicon.com/vfovppjw.json',
+                                    'subtitle' => 'Empresa, tipo de contrato y fecha de la solicitud.',
+                                ])
+                                ->columnSpanFull(),
+
                             Forms\Components\Select::make('empresa_id')
                                 ->label('Empresa')
                                 ->relationship(
@@ -150,6 +192,18 @@ class SolicitudContratoResource extends Resource
                         ->description('Información del trabajador')
                         ->icon('heroicon-o-user')
                         ->schema([
+                            Forms\Components\View::make('filament.components.step-header')
+                                ->key('sc_step_header_2')
+                                ->viewData([
+                                    'step' => 2,
+                                    'total' => 4,
+                                    'title' => 'Datos del Trabajador',
+                                    'accent' => '#f97316',
+                                    'lord' => 'https://cdn.lordicon.com/bushiqea.json',
+                                    'subtitle' => 'Seleccione un trabajador existente o registre uno nuevo.',
+                                ])
+                                ->columnSpanFull(),
+
                             Forms\Components\Toggle::make('_usar_trabajador_existente')
                                 ->label('¿Usar trabajador existente?')
                                 ->helperText('Active si el trabajador ya está registrado en el sistema')
@@ -295,6 +349,18 @@ class SolicitudContratoResource extends Resource
                         ->description('Información del puesto y responsabilidades')
                         ->icon('heroicon-o-briefcase')
                         ->schema([
+                            Forms\Components\View::make('filament.components.step-header')
+                                ->key('sc_step_header_3')
+                                ->viewData([
+                                    'step' => 3,
+                                    'total' => 4,
+                                    'title' => 'Detalles del Cargo',
+                                    'accent' => '#0ea5e9',
+                                    'lord' => 'https://cdn.lordicon.com/bpptgtfr.json',
+                                    'subtitle' => 'Cargo, responsabilidades y condiciones del contrato - use "Completar con IA" para agilizar.',
+                                ])
+                                ->columnSpanFull(),
+
                             // Forms\Components\Select::make('cargo_contrato')
                             //     ->label('Cargo')
                             //     ->required()
@@ -681,6 +747,18 @@ class SolicitudContratoResource extends Resource
                         ->description('Archivos adjuntos')
                         ->icon('heroicon-o-paper-clip')
                         ->schema([
+                            Forms\Components\View::make('filament.components.step-header')
+                                ->key('sc_step_header_4')
+                                ->viewData([
+                                    'step' => 4,
+                                    'total' => 4,
+                                    'title' => 'Documentos',
+                                    'accent' => '#22c55e',
+                                    'lord' => 'https://cdn.lordicon.com/fikcyfpp.json',
+                                    'subtitle' => 'Adjunte los archivos de soporte y finalice para generar el contrato con IA.',
+                                ])
+                                ->columnSpanFull(),
+
                             Forms\Components\FileUpload::make('ruta_orden_compra')
                                 ->label('Orden de Compra')
                                 ->directory('solicitudes-contratos/ordenes-compra')
@@ -1030,6 +1108,7 @@ class SolicitudContratoResource extends Resource
     {
         return [
             'index' => Pages\ListSolicitudContratos::route('/'),
+            'create' => Pages\CreateSolicitudContrato::route('/create'),
             'view' => Pages\ViewSolicitudContrato::route('/{record}'),
             'edit' => Pages\EditSolicitudContrato::route('/{record}/edit'),
         ];
