@@ -1149,6 +1149,18 @@ HTML;
         $sancionesLaborales = trim(preg_replace('/\s+/', ' ', $sancionesLaborales));
         $hechosTexto = strip_tags($proceso->hechos);
 
+        // Justificación que registró la empresa al apartarse de la recomendación
+        // de la IA. Antes solo llegaba al documento de "no sanción": si la empresa
+        // elegía una sanción DISTINTA a la recomendada, su razón nunca entraba al
+        // prompt. Comprobado empíricamente que eso hacía a la IA inventar una
+        // proporcionalidad de relleno ("no tiene antecedentes disciplinarios")
+        // que contradecía la razón real de la empresa ("ya fue advertido dos
+        // veces") - un hecho falso y favorable en un documento sancionatorio.
+        $razonDivergencia = trim((string) ($proceso->razon_divergencia ?? ''));
+        $bloqueDivergencia = $razonDivergencia !== ''
+            ? "\nDECISIÓN DISTINTA A LA RECOMENDADA POR EL ANÁLISIS - RAZÓN DE LA EMPRESA:\n{$razonDivergencia}\n"
+            : '';
+
         // La tabla de sanciones NO la genera la IA (riesgo de parafraseo/invención).
         // Se deja un marcador y se inserta verbatim (RIT/CST) después de la respuesta.
         $tablaSanciones = '<!--TABLA_SANCIONES-->';
@@ -1196,7 +1208,7 @@ SANCIONES DEL REGLAMENTO INTERNO INCUMPLIDAS:
 
 DESCARGOS DEL TRABAJADOR:
 {$contextoDescargos}{$textoNoRespondio}
-
+{$bloqueDivergencia}
 INSTRUCCIONES DE REDACCIÓN (LENGUAJE CLARO):
 - Oraciones cortas (máximo 25 palabras)
 - Voz activa ("decidimos" no "fue decidido")
@@ -1221,7 +1233,13 @@ Eso significa recorrer, de forma explícita y en este orden:
     respondió, dilo y deja constancia de que se le dio la oportunidad.
  e) POR QUÉ ESTA MEDIDA Y NO OTRA MÁS FUERTE O MÁS SUAVE: explica la
     proporcionalidad (gravedad de la falta, si hubo reincidencia, antecedentes,
-    perjuicio causado).
+    perjuicio causado). Si arriba aparece "DECISIÓN DISTINTA A LA RECOMENDADA
+    POR EL ANÁLISIS - RAZÓN DE LA EMPRESA", esa razón es el fundamento REAL de
+    la medida: úsala como eje de este punto. Está PROHIBIDO afirmar lo
+    contrario de lo que dice esa razón (por ejemplo, sostener que no hay
+    antecedentes cuando la empresa afirma que sí los hubo) e igualmente
+    prohibido inventar atenuantes o agravantes de relleno para justificar la
+    medida.
 
 PROHIBICIÓN ABSOLUTA: no cites números de artículo, leyes ni cláusulas que no
 aparezcan textualmente en los datos entregados arriba. Si no tienes el número
