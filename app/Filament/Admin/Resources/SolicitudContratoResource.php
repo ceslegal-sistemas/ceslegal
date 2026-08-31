@@ -1143,16 +1143,11 @@ class SolicitudContratoResource extends Resource
                     ->hidden(),
             ])
             ->actions([
-                // Agrupadas en un menú desplegable (mismo patrón ya usado en
-                // ProcesoDisciplinarioResource) - 7 botones sueltos obligaban
-                // a scroll horizontal en la tabla, reportado por el usuario.
-                Tables\Actions\ActionGroup::make([
-                Tables\Actions\ViewAction::make()
-                    ->label('Ver'),
-                Tables\Actions\EditAction::make()
-                    ->label('Editar'),
-                Tables\Actions\DeleteAction::make()
-                    ->label('Eliminar'),
+                // Lo más importante según el estado actual, visible directo en
+                // la fila (mismo criterio que Historial de Descargos: los
+                // botones cambian según en qué etapa está el registro, en vez
+                // de mostrar siempre los mismos 7). El resto (Ver/Editar/
+                // Eliminar/Regenerar) va en el menú "..." de abajo.
 
                 // Faltaba tras retirar la Section "Progreso de la Solicitud"
                 // (que tenía el único enlace de descarga) - sin esto, Aprobar/
@@ -1160,7 +1155,9 @@ class SolicitudContratoResource extends Resource
                 // había ninguna forma de verlo desde la interfaz (bug real
                 // reportado por el usuario, 2026-08-25). Muestra tanto el
                 // borrador con marca de agua como el aprobado ya protegido,
-                // según el estado actual.
+                // según el estado actual. Siempre visible en línea (no en el
+                // menú) porque es la acción más consultada sin importar el
+                // estado.
                 Tables\Actions\Action::make('verContrato')
                     ->label('Ver Contrato')
                     ->icon('heroicon-o-document-arrow-down')
@@ -1169,37 +1166,9 @@ class SolicitudContratoResource extends Resource
                     ->url(fn(SolicitudContrato $record) => route('solicitud-contrato.descargar', $record))
                     ->openUrlInNewTab(),
 
-                Tables\Actions\Action::make('regenerarBorrador')
-                    ->label('Regenerar Borrador')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('gray')
-                    ->visible(fn(SolicitudContrato $record) => $record->estado === 'borrador')
-                    ->requiresConfirmation()
-                    ->modalDescription('Se generará un nuevo borrador del contrato con los datos actuales.')
-                    ->action(function (SolicitudContrato $record) {
-                        $service = app(\App\Services\SolicitudContratoIAService::class);
-
-                        if (empty($record->objeto_juridico_redactado)) {
-                            $texto = $service->redactarObjetoJuridico($record);
-                            $record->update(['objeto_juridico_redactado' => $texto]);
-                        }
-
-                        if (
-                            $record->tipo_contrato === 'Contrato de Obra o Labor'
-                            && empty($record->duracion_terminacion_obra_redactada)
-                        ) {
-                            $duracionTerminacion = $service->redactarDuracionTerminacionObraLabor($record);
-                            $record->update(['duracion_terminacion_obra_redactada' => $duracionTerminacion]);
-                        }
-
-                        $service->generarContratoPDF($record, borrador: true);
-
-                        \Filament\Notifications\Notification::make()
-                            ->success()
-                            ->title('Borrador regenerado')
-                            ->send();
-                    }),
-
+                // Decisión pendiente: lo más urgente mientras está en borrador,
+                // por eso Aprobar/Rechazar van en línea solo en ese estado -
+                // una vez decidido, desaparecen (ya no hay nada que decidir).
                 Tables\Actions\Action::make('aprobar')
                     ->label('Aprobar')
                     ->icon('heroicon-o-check-circle')
@@ -1231,6 +1200,48 @@ class SolicitudContratoResource extends Resource
                             ->title('Solicitud rechazada')
                             ->send();
                     }),
+
+                // El resto: consultas/mantenimiento, no decisiones urgentes -
+                // se agrupan en un menú desplegable (mismo patrón ya usado en
+                // ProcesoDisciplinarioResource).
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make()
+                        ->label('Ver'),
+                    Tables\Actions\EditAction::make()
+                        ->label('Editar'),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Eliminar'),
+
+                    Tables\Actions\Action::make('regenerarBorrador')
+                        ->label('Regenerar Borrador')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('gray')
+                        ->visible(fn(SolicitudContrato $record) => $record->estado === 'borrador')
+                        ->requiresConfirmation()
+                        ->modalDescription('Se generará un nuevo borrador del contrato con los datos actuales.')
+                        ->action(function (SolicitudContrato $record) {
+                            $service = app(\App\Services\SolicitudContratoIAService::class);
+
+                            if (empty($record->objeto_juridico_redactado)) {
+                                $texto = $service->redactarObjetoJuridico($record);
+                                $record->update(['objeto_juridico_redactado' => $texto]);
+                            }
+
+                            if (
+                                $record->tipo_contrato === 'Contrato de Obra o Labor'
+                                && empty($record->duracion_terminacion_obra_redactada)
+                            ) {
+                                $duracionTerminacion = $service->redactarDuracionTerminacionObraLabor($record);
+                                $record->update(['duracion_terminacion_obra_redactada' => $duracionTerminacion]);
+                            }
+
+                            $service->generarContratoPDF($record, borrador: true);
+
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Borrador regenerado')
+                                ->send();
+                        }),
                 ]),
             ])
             ->bulkActions([
