@@ -931,6 +931,40 @@ class FormularioDescargos extends Component
         }
     }
 
+    /**
+     * Evidencias que el empleador adjuntó al reportar el hecho. El trabajador
+     * DEBE poder verlas para ejercer su derecho de contradicción: no se puede
+     * pedir que se defienda de unas pruebas que no conoce. Antes solo se le
+     * permitía SUBIR las suyas; las del empleador nunca se le mostraban.
+     *
+     * Devuelve nombre visible + URL pública (ya se guardan en el disco
+     * 'public' con nombre aleatorio) + extensión, para que la vista decida
+     * cómo presentarlas.
+     */
+    public function evidenciasEmpleador(): array
+    {
+        $rutas = $this->diligencia->proceso->evidencias_empleador ?? [];
+
+        if (! is_array($rutas)) {
+            return [];
+        }
+
+        return collect($rutas)
+            ->filter()
+            ->map(function (string $ruta) {
+                $extension = strtolower(pathinfo($ruta, PATHINFO_EXTENSION));
+
+                return [
+                    'nombre'    => basename($ruta),
+                    'url'       => \Illuminate\Support\Facades\Storage::disk('public')->url($ruta),
+                    'extension' => $extension,
+                    'esImagen'  => in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic'], true),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
     public function render()
     {
         // Mostrar solo la primera pregunta sin responder
@@ -974,6 +1008,7 @@ class FormularioDescargos extends Component
             'proceso'               => $proceso,
             'trabajador'            => $trabajador,
             'textoDisclaimer'       => $textoDisclaimer,
+            'evidenciasEmpleador'   => $this->evidenciasEmpleador(),
         ]);
     }
 }

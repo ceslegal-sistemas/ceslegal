@@ -665,6 +665,17 @@ HTML;
         $mimeType = $extension === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
         $nombreArchivo = 'Citacion_Descargos_' . $proceso->codigo . '.' . $extension;
 
+        // Nombres de las pruebas aportadas por la empresa. Solo se enumeran en
+        // el correo (no se adjuntan): hasta 5 archivos de 10 MB harían rebotar
+        // el envío en la mayoría de servidores y dejarían material probatorio
+        // en un correo reenviable. El trabajador las abre desde el enlace, que
+        // ya exige código de verificación.
+        $evidenciasEmpleador = collect($proceso->evidencias_empleador ?? [])
+            ->filter()
+            ->map(fn (string $ruta) => basename($ruta))
+            ->values()
+            ->all();
+
         Mail::send('emails.citacion-descargos', [
             'proceso' => $proceso,
             'trabajador' => $trabajador,
@@ -672,6 +683,7 @@ HTML;
             'linkDescargos' => $linkDescargos,
             'fechaAccesoPermitida' => $fechaAccesoPermitida,
             'trackingToken' => $tracking->token,
+            'evidenciasEmpleador' => $evidenciasEmpleador,
         ], function ($message) use ($trabajador, $proceso, $pdfPath, $nombreArchivo, $mimeType) {
             $message->to($trabajador->email, $trabajador->nombre_completo)
                 ->subject('Citación a Audiencia de Descargos - Proceso ' . $proceso->codigo)

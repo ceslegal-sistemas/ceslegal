@@ -259,6 +259,29 @@
                 </div>
             </div>
 
+            {{-- PRUEBAS DE LA EMPRESA --}}
+            {{-- Derecho de contradicción: el trabajador debe saber qué pruebas
+                 existen en su contra antes de la diligencia. No se adjuntan al
+                 correo (hasta 5 archivos de 10 MB harían rebotar el envío, y
+                 dejarían pruebas de un proceso disciplinario en un correo
+                 reenviable): se enumeran aquí y se abren desde el enlace
+                 seguro, que exige código de verificación. --}}
+            @php $evidenciasEmpleador = $evidenciasEmpleador ?? []; @endphp
+            @if (!empty($evidenciasEmpleador))
+            <div class="info-box">
+                <p><strong>Pruebas aportadas por la empresa ({{ count($evidenciasEmpleador) }}):</strong></p>
+                <ul style="margin:8px 0 0;padding-left:18px;">
+                    @foreach ($evidenciasEmpleador as $nombreEvidencia)
+                        <li style="margin-bottom:4px;">{{ $nombreEvidencia }}</li>
+                    @endforeach
+                </ul>
+                <p style="margin-top:10px;">
+                    Puede consultarlas desde el enlace de esta citación, junto con los
+                    hechos del proceso, antes de presentar sus descargos.
+                </p>
+            </div>
+            @endif
+
             {{-- INFO PROCESO --}}
             <div class="info-box">
                 <p><strong>Empresa:</strong> {{ $empresa->razon_social }}</p>

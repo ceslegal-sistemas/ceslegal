@@ -437,6 +437,13 @@
                             </div>
                         </div>
 
+                        {{-- Pruebas de la empresa, disponibles también ANTES de
+                             iniciar: así el trabajador llega a la diligencia
+                             sabiendo de qué debe defenderse. --}}
+                        @include('livewire.partials.evidencias-empleador', [
+                            'evidenciasEmpleador' => $evidenciasEmpleador,
+                        ])
+
                         {{-- Botón iniciar --}}
                         <button type="button" x-data
                             @click="
@@ -500,6 +507,13 @@
                                 {!! nl2br(e(strip_tags($proceso->hechos))) !!}
                             </div>
                         </details>
+
+                        {{-- Pruebas de la empresa: el trabajador debe poder verlas
+                             mientras responde, para ejercer su derecho de
+                             contradicción sobre pruebas que sí conoce. --}}
+                        @include('livewire.partials.evidencias-empleador', [
+                            'evidenciasEmpleador' => $evidenciasEmpleador,
+                        ])
 
                         {{-- Pregunta actual --}}
                         @if ($preguntaSiguiente)
