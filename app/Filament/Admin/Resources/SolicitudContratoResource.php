@@ -10,6 +10,8 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 use Filament\Navigation\NavigationItem;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -997,6 +999,116 @@ class SolicitudContratoResource extends Resource
                     // del cliente, que ahora ve el borrador automático directamente.
                     ->hiddenOn(['create', 'view'])
                     ->collapsed(),
+            ]);
+    }
+
+    /**
+     * "Ver" deja de reutilizar el Wizard de Crear/Editar en modo deshabilitado
+     * (mostraba los 5 pasos completos, con RichEditors y Selects de solo
+     * lectura - muy distinto al resto del ecosistema) y pasa a un Infolist
+     * propio, mismo criterio ya usado por ProcesoDisciplinarioResource. El
+     * hero de marca (SolicitudContratoRecordHeroWidget) sigue igual arriba;
+     * aquí solo va el cuerpo. El objeto jurídico redactado usa el mismo
+     * "visor de documento" (.rit-viewer/.rit-text) que "Mi Reglamento
+     * Interno" - "mismo reskin", a pedido explícito del usuario.
+     */
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                Infolists\Components\Section::make('Información Básica')
+                    ->icon('heroicon-o-information-circle')
+                    ->iconColor('primary')
+                    ->schema([
+                        Infolists\Components\TextEntry::make('empresa.razon_social')
+                            ->label('Empresa'),
+                        Infolists\Components\TextEntry::make('tipo_contrato')
+                            ->label('Tipo de Contrato'),
+                        Infolists\Components\TextEntry::make('fecha_solicitud')
+                            ->label('Fecha de Solicitud')
+                            ->dateTime('d/m/Y'),
+                    ])
+                    ->columns(3),
+
+                Infolists\Components\Section::make('Trabajador')
+                    ->icon('heroicon-o-user')
+                    ->iconColor('primary')
+                    ->schema([
+                        Infolists\Components\TextEntry::make('nombre_completo')
+                            ->label('Nombre')
+                            ->getStateUsing(fn(SolicitudContrato $record) => trim("{$record->trabajador_nombres} {$record->trabajador_apellidos}")),
+                        Infolists\Components\TextEntry::make('documento')
+                            ->label('Documento')
+                            ->getStateUsing(fn(SolicitudContrato $record) => "{$record->trabajador_documento_tipo}: {$record->trabajador_documento_numero}"),
+                        Infolists\Components\TextEntry::make('trabajador_email')
+                            ->label('Correo Electrónico'),
+                        Infolists\Components\TextEntry::make('trabajador_telefono')
+                            ->label('Teléfono')
+                            ->placeholder('-'),
+                        Infolists\Components\TextEntry::make('trabajador_direccion')
+                            ->label('Dirección')
+                            ->placeholder('-')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+
+                Infolists\Components\Section::make('Condiciones del Contrato')
+                    ->icon('heroicon-o-calendar-days')
+                    ->iconColor('primary')
+                    ->schema([
+                        Infolists\Components\TextEntry::make('cargo_contrato')
+                            ->label('Cargo'),
+                        Infolists\Components\TextEntry::make('jornada')
+                            ->label('Jornada'),
+                        Infolists\Components\TextEntry::make('fecha_inicio_propuesta')
+                            ->label('Fecha de Inicio')
+                            ->date('d/m/Y')
+                            ->placeholder('-'),
+                        Infolists\Components\TextEntry::make('fecha_fin_contrato')
+                            ->label('Fecha de Terminación')
+                            ->date('d/m/Y')
+                            ->placeholder('Sin definir'),
+                        Infolists\Components\TextEntry::make('salario_propuesto')
+                            ->label('Salario')
+                            ->money('COP')
+                            ->placeholder('-'),
+                        Infolists\Components\TextEntry::make('periodo_pago')
+                            ->label('Período de Pago')
+                            ->formatStateUsing(fn(?string $state) => match ($state) {
+                                'mensual' => 'Mensual',
+                                'quincenal' => 'Quincenal',
+                                'semanal' => 'Semanal',
+                                'diario' => 'Diario',
+                                'destajo' => 'Por obra o destajo',
+                                default => $state,
+                            })
+                            ->placeholder('-'),
+                        Infolists\Components\TextEntry::make('lugar_labores')
+                            ->label('Lugar de Labores')
+                            ->placeholder('-')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(3),
+
+                Infolists\Components\Section::make('Motivo del Rechazo')
+                    ->icon('heroicon-o-x-circle')
+                    ->iconColor('danger')
+                    ->visible(fn(SolicitudContrato $record) => $record->estado === 'rechazado')
+                    ->schema([
+                        Infolists\Components\TextEntry::make('motivo_rechazo')
+                            ->hiddenLabel()
+                            ->placeholder('Sin motivo registrado.'),
+                    ]),
+
+                Infolists\Components\Section::make('Objeto Jurídico Redactado')
+                    ->icon('heroicon-o-document-text')
+                    ->iconColor('primary')
+                    ->schema([
+                        Infolists\Components\ViewEntry::make('objeto_juridico_redactado')
+                            ->hiddenLabel()
+                            ->view('filament.components.solicitud-contrato-documento-viewer')
+                            ->viewData(fn(SolicitudContrato $record) => ['texto' => $record->objeto_juridico_redactado]),
+                    ]),
             ]);
     }
 
