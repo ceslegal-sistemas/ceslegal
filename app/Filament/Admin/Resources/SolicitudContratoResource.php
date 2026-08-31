@@ -406,28 +406,25 @@ class SolicitudContratoResource extends Resource
                                 ->searchable()
                                 ->suffixIcon('heroicon-o-briefcase')
                                 ->columnSpanFull()
-                                ->options(function () {
-                                    $cargos = [];
-                                    foreach (self::getCargos() as $cargo) {
-                                        $cargos[$cargo] = $cargo;
-                                    }
-                                    $cargos['__otro__'] = '--- Otro (personalizado) ---';
-                                    return $cargos;
-                                })
+                                ->options(fn(Get $get) => self::getCargosParaSelect($get('empresa_id')))
+                                ->helperText(fn(Get $get) => filled($get('empresa_id')) && filled(self::getOrganigramaDeEmpresa($get('empresa_id')))
+                                    ? 'Cargos tomados del organigrama de su Reglamento Interno. Elija "Otro" si no está en la lista.'
+                                    : 'Seleccione un cargo de la lista o elija "Otro" para personalizar')
                                 ->live()
                                 ->afterStateUpdated(fn(Set $set) => $set('cargo_otro', null))
-                                ->afterStateHydrated(function (Set $set, ?string $state) {
+                                ->afterStateHydrated(function (Set $set, Get $get, ?string $state) {
                                     // $state ya es el valor real guardado en cargo_contrato.
-                                    // Si no está en la lista predefinida, es un cargo
-                                    // personalizado: mostrar el selector en "Otro" y
+                                    // Si no está en la lista disponible para esta empresa
+                                    // (organigrama del RIT o el listado fijo de respaldo), es
+                                    // un cargo personalizado: mostrar el selector en "Otro" y
                                     // precargar el texto en cargo_otro.
-                                    if ($state && !in_array($state, self::getCargos())) {
+                                    $disponibles = self::getCargosParaSelect($get('empresa_id'));
+                                    if ($state && !array_key_exists($state, $disponibles)) {
                                         $set('cargo_otro', $state);
                                         $set('cargo_contrato', '__otro__');
                                     }
                                 })
                                 ->dehydrateStateUsing(fn(Get $get, ?string $state) => $state === '__otro__' ? $get('cargo_otro') : $state)
-                                ->helperText('Seleccione un cargo de la lista o elija "Otro" para personalizar')
                                 ->placeholder('Seleccione el cargo...')
                                 ->required(fn(Get $get) => empty($get('cargo_otro'))),
 
@@ -1134,6 +1131,55 @@ class SolicitudContratoResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         return 'warning';
+    }
+
+    /**
+     * Organigrama vigente de la empresa (ver ReglamentoInternoService::
+     * cargosDeEmpresa()) - vacío si no hay empresa seleccionada, no tiene RIT,
+     * o el RIT es de texto libre y aún no se generó el organigrama con IA
+     * (botón "Generar organigrama" en Mi Reglamento Interno).
+     */
+    public static function getOrganigramaDeEmpresa(?int $empresaId): array
+    {
+        if (!$empresaId) {
+            return [];
+        }
+
+        return app(\App\Services\ReglamentoInternoService::class)->cargosDeEmpresa($empresaId);
+    }
+
+    /**
+     * Opciones del Select 'cargo_contrato': el organigrama del RIT de la
+     * empresa (para que el ecosistema completo -RIT, sanciones, contratos-
+     * hable del mismo listado de cargos) si existe, si no el catálogo fijo
+     * genérico (getCargos()) como respaldo - nunca deja el campo sin
+     * opciones. Siempre incluye "Otro" al final.
+     */
+    public static function getCargosParaSelect(?int $empresaId): array
+    {
+        $organigrama = self::getOrganigramaDeEmpresa($empresaId);
+
+        $cargos = [];
+        if (!empty($organigrama)) {
+            foreach ($organigrama as $item) {
+                $nombre = trim((string) ($item['nombre_cargo'] ?? ''));
+                if ($nombre === '') {
+                    continue;
+                }
+                $tieneAutoridad = ($item['instancia_sancionatoria'] ?? 'ninguna') !== 'ninguna';
+                $cargos[$nombre] = $tieneAutoridad ? "{$nombre} (con facultad disciplinaria)" : $nombre;
+            }
+        }
+
+        if (empty($cargos)) {
+            foreach (self::getCargos() as $cargo) {
+                $cargos[$cargo] = $cargo;
+            }
+        }
+
+        $cargos['__otro__'] = '--- Otro (personalizado) ---';
+
+        return $cargos;
     }
 
     public static function getCargos(): array

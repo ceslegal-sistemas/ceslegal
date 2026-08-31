@@ -410,6 +410,55 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             });
     }
 
+    /**
+     * Extrae (o regenera) el organigrama del RIT con IA - solo tiene sentido
+     * para RIT subido/redactado libremente (un RIT construido con el wizard
+     * ya trae los cargos estructurados por el propio cliente, ver
+     * ReglamentoInternoService::cargosDeEmpresa()). Solo super_admin, mismo
+     * criterio que generarConductasAction()/reextraerSancionesAction().
+     */
+    public function generarOrganigramaAction(): Action
+    {
+        return Action::make('generarOrganigrama')
+            ->label('Generar organigrama')
+            ->icon('heroicon-o-users')
+            ->color('gray')
+            ->visible(fn() => $this->reglamento
+                && !empty($this->reglamento->texto_completo)
+                && empty($this->reglamento->respuestas_cuestionario['cargos'])
+                && (Auth::user()?->hasRole('super_admin') ?? false))
+            ->requiresConfirmation()
+            ->modalHeading('Generar organigrama del RIT')
+            ->modalDescription('La IA leerá el Reglamento Interno y extraerá los cargos mencionados (y su facultad disciplinaria si el texto la indica). Se usa para sugerir el cargo al crear una Solicitud de Contrato. Si ya existe, se reemplaza.')
+            ->modalSubmitActionLabel('Generar')
+            ->action(function (): void {
+                if (!$this->reglamento) {
+                    Notification::make()->danger()->title('No hay Reglamento activo')->send();
+                    return;
+                }
+                try {
+                    $organigrama = app(ReglamentoInternoService::class)->generarOrganigrama($this->reglamento);
+                    if (empty($organigrama)) {
+                        Notification::make()->warning()
+                            ->title('No se pudo extraer el organigrama')
+                            ->body('La IA no encontró cargos mencionados explícitamente en el texto del RIT.')
+                            ->send();
+                        return;
+                    }
+                    Notification::make()->success()
+                        ->title('Organigrama generado')
+                        ->body(count($organigrama) . ' cargo(s) detectado(s). Ya están disponibles al crear una Solicitud de Contrato.')
+                        ->send();
+                    $this->reglamento = $this->reglamento->fresh();
+                } catch (\Throwable $e) {
+                    Notification::make()->danger()
+                        ->title('Error al generar el organigrama')
+                        ->body($e->getMessage())
+                        ->send();
+                }
+            });
+    }
+
     /** Abre el modal para subir un RIT manualmente. */
     public function subirRITAction(): Action
     {

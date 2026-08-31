@@ -372,6 +372,123 @@ class ReglamentoInternoService
     }
 
     /**
+     * Devuelve el organigrama (cargos + instancia_sancionatoria) vigente de una
+     * empresa, en la MISMA forma que produce el Repeater 'cargos' del wizard
+     * "Construir RIT" (['nombre_cargo' => ..., 'instancia_sancionatoria' => ...]),
+     * sin importar si el RIT se construyó con el wizard o se subió/redactó
+     * libremente. Consumido por SolicitudContratoResource (select de Cargo) -
+     * mismo criterio de "una sola fuente de verdad por empresa" que ya usa
+     * conductasSancionablesDeEmpresa(). Nunca llama a la IA aquí (evita costo
+     * en cada carga del formulario) - si el RIT es de texto libre y todavía no
+     * se generó el organigrama, devuelve vacío; el llamador decide el
+     * respaldo (ver generarOrganigramaAction() en MiReglamentoInterno).
+     */
+    public function cargosDeEmpresa(int $empresaId): array
+    {
+        $rit = ReglamentoInterno::where('empresa_id', $empresaId)
+            ->orderByDesc('activo')
+            ->orderByDesc('updated_at')
+            ->first();
+
+        if (!$rit) {
+            return [];
+        }
+
+        // Wizard "Construir RIT": ya viene estructurado, es la fuente más
+        // confiable (el propio cliente lo escribió campo por campo).
+        $cargosWizard = $rit->respuestas_cuestionario['cargos'] ?? [];
+        if (!empty($cargosWizard)) {
+            return $cargosWizard;
+        }
+
+        // RIT subido/redactado libremente: organigrama ya extraído con IA
+        // (ver generarOrganigrama()), persistido para no repetir el llamado
+        // en cada carga.
+        return $rit->organigrama ?? [];
+    }
+
+    /**
+     * Extrae con IA el organigrama (cargos + si tienen facultad disciplinaria)
+     * del texto del RIT y lo persiste en reglamentos_internos.organigrama.
+     * Solo aplica a RIT SUBIDO o redactado libremente - un RIT construido con
+     * el wizard "Construir RIT" ya tiene esta información estructurada por el
+     * propio cliente (respuestas_cuestionario['cargos']), no hace falta
+     * extraerla de nuevo.
+     *
+     * Mismo criterio que generarConductasSancionables()/extraerYPersistirSanciones():
+     * se le pide a la IA EXTRAER (no redactar) los cargos tal como aparecen
+     * en el texto - nunca inventar un cargo que la empresa no mencionó.
+     */
+    public function generarOrganigrama(ReglamentoInterno $rit): array
+    {
+        if (empty($rit->texto_completo)) {
+            return [];
+        }
+
+        $prompt = <<<PROMPT
+Eres un asistente legal. Lee el siguiente Reglamento Interno de Trabajo (RIT)
+de una empresa colombiana y EXTRAE (no inventes) el organigrama: los cargos
+que existen en la empresa, tal como aparecen mencionados en el texto (en el
+capítulo de organigrama/estructura si existe, o en cualquier parte del
+documento donde se nombren cargos con funciones o facultades).
+
+Para cada cargo, determina su facultad disciplinaria SOLO si el texto lo dice
+explícitamente (quién impone sanciones, quién resuelve apelaciones):
+- "primera_instancia": impone la sanción directamente.
+- "segunda_instancia": resuelve apelaciones/recursos contra una sanción.
+- "ninguna": no tiene facultad disciplinaria mencionada, o no se menciona.
+
+Si el RIT no menciona ningún cargo de forma explícita, responde con un arreglo
+vacío - no inventes cargos genéricos.
+
+TEXTO DEL RIT:
+{$rit->texto_completo}
+
+Responde ÚNICAMENTE con un JSON válido: un arreglo con esta estructura exacta:
+[
+  {"nombre_cargo": "nombre exacto tal como aparece en el texto", "instancia_sancionatoria": "ninguna|primera_instancia|segunda_instancia"}
+]
+PROMPT;
+
+        try {
+            $datos = $this->parsearJSON($this->llamarGeminiJSON($prompt));
+            $lista = array_is_list($datos) ? $datos : ($datos['organigrama'] ?? $datos['cargos'] ?? []);
+
+            $organigrama = [];
+            foreach (array_slice(is_array($lista) ? $lista : [], 0, 60) as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $nombre = trim((string) ($item['nombre_cargo'] ?? ''));
+                if ($nombre === '') {
+                    continue;
+                }
+                $instancia = $item['instancia_sancionatoria'] ?? 'ninguna';
+                $organigrama[] = [
+                    'nombre_cargo' => $nombre,
+                    'instancia_sancionatoria' => in_array($instancia, ['ninguna', 'primera_instancia', 'segunda_instancia'], true)
+                        ? $instancia
+                        : 'ninguna',
+                ];
+            }
+        } catch (\Throwable $e) {
+            Log::warning('ReglamentoInternoService: error generando organigrama del RIT', [
+                'reglamento_id' => $rit->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
+
+        if (!empty($organigrama)) {
+            $rit->organigrama = $organigrama;
+            $rit->saveQuietly();
+        }
+
+        return $organigrama;
+    }
+
+    /**
      * Construye el catálogo a partir de la extracción LITERAL ya existente
      * (o la genera si aún no se ha corrido) - ver la nota en
      * generarConductasSancionables(). El número de artículo se detecta por
