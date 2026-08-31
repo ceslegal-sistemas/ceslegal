@@ -1143,6 +1143,10 @@ class SolicitudContratoResource extends Resource
                     ->hidden(),
             ])
             ->actions([
+                // Agrupadas en un menú desplegable (mismo patrón ya usado en
+                // ProcesoDisciplinarioResource) - 7 botones sueltos obligaban
+                // a scroll horizontal en la tabla, reportado por el usuario.
+                Tables\Actions\ActionGroup::make([
                 Tables\Actions\ViewAction::make()
                     ->label('Ver'),
                 Tables\Actions\EditAction::make()
@@ -1227,6 +1231,7 @@ class SolicitudContratoResource extends Resource
                             ->title('Solicitud rechazada')
                             ->send();
                     }),
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
