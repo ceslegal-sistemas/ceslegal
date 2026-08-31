@@ -24,11 +24,32 @@ trait CompletaDetallesCargoConIA
             $cargo = $this->data['cargo_otro'] ?? null;
         }
 
-        if (empty($this->data['empresa_id']) || empty($cargo)) {
+        $faltaEmpresa = empty($this->data['empresa_id']);
+        $faltaCargo   = empty($cargo);
+
+        if ($faltaEmpresa || $faltaCargo) {
+            // Mensaje dinámico según lo que REALMENTE falte - antes siempre
+            // decía "empresa y cargo" aunque solo faltara uno de los dos,
+            // obligando al cliente a adivinar cuál de los 2 pasos revisar.
+            [$titulo, $cuerpo] = match (true) {
+                $faltaEmpresa && $faltaCargo => [
+                    'Falta la empresa y el cargo',
+                    'Vuelva al Paso 1 y seleccione la empresa, y al Paso 3 elija el cargo. Luego podrá usar "Completar con IA".',
+                ],
+                $faltaEmpresa => [
+                    'Falta seleccionar la empresa',
+                    'Vuelva al Paso 1 y seleccione la empresa para la cual se solicita el contrato. Luego podrá usar "Completar con IA".',
+                ],
+                default => [
+                    'Falta seleccionar el cargo',
+                    'Elija un cargo de la lista (o escriba uno personalizado en "Otro") antes de usar "Completar con IA".',
+                ],
+            };
+
             Notification::make()
                 ->danger()
-                ->title('Complete primero la empresa y el cargo')
-                ->body('Seleccione la empresa (paso 1) y el cargo (paso 3) antes de completar con IA.')
+                ->title($titulo)
+                ->body($cuerpo)
                 ->send();
 
             return;
