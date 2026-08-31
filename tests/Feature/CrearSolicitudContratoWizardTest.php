@@ -34,7 +34,7 @@ class CrearSolicitudContratoWizardTest extends TestCase
         // de la URL de la petición - sin pasar por una request HTTP real a
         // una ruta del panel, el contexto de panel queda vacío y
         // canCreate()/la Policy fallan con 403 aunque el permiso sí exista.
-        $this->get(\App\Filament\Admin\Resources\SolicitudContratoResource::getUrl('create'))
+        $response = $this->get(\App\Filament\Admin\Resources\SolicitudContratoResource::getUrl('create'))
             ->assertSuccessful()
             ->assertSee('Asistente de Generación de Contratos')
             ->assertSee('Información Básica')
@@ -42,6 +42,14 @@ class CrearSolicitudContratoWizardTest extends TestCase
             ->assertSee('Detalles del Cargo')
             ->assertSee('Documentos')
             ->assertSee('Paso 1 de 4')
-            ->assertSee('Paso 4 de 4');
+            ->assertSee('Paso 4 de 4')
+            // El hero widget de arriba (SolicitudContratoRecordHeroWidget) se quitó
+            // de esta página - quedaba redundante con el Paso Bienvenida nuevo.
+            ->assertDontSee('ASISTENTE CON IA')
+            // Clase que activa la regla CSS ya registrada globalmente en
+            // PanelBrandingServiceProvider (.ces-hide-wizard-steps .fi-fo-wizard-header
+            // {display:none}) - oculta el stepper nativo de Filament, igual que
+            // CreateProcesoDisciplinario.
+            ->assertSee('ces-hide-wizard-steps', false);
     }
 }

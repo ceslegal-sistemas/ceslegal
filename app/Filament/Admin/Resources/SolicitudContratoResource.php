@@ -103,7 +103,7 @@ class SolicitudContratoResource extends Resource
                                     'total' => 4,
                                     'title' => 'Información Básica',
                                     'accent' => '#e11d48',
-                                    'lord' => 'https://cdn.lordicon.com/vfovppjw.json',
+                                    'lord' => 'https://cdn.lordicon.com/moedrfvp.json',
                                     'subtitle' => 'Empresa, tipo de contrato y fecha de la solicitud.',
                                 ])
                                 ->columnSpanFull(),
