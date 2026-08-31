@@ -86,6 +86,11 @@ html.dark {
 .wca-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 .wca-btn-on  { background: var(--wca-brand-bg); border-color: var(--wca-brand-bd); color: var(--wca-brand-fg); }
 .wca-btn-off { background: var(--wca-btn-dis-bg); color: var(--wca-btn-dis-fg); }
+/* Sólido, no translúcido: es la puerta de entrada obligatoria a toda esta
+   sección (sin aceptar, no hay cámara) - debe pesar visualmente igual que
+   "Continuar" en el footer del modal, no verse como una acción secundaria. */
+.wca-btn-solid { background: var(--wca-brand-solid); color: #fff; width: 100%; justify-content: center; }
+.wca-btn-solid:disabled { background: var(--wca-btn-dis-bg); color: var(--wca-btn-dis-fg); }
 button.wca-btn-secondary,
 button.wca-btn-secondary:hover {
     display: inline-flex; align-items: center; gap: 6px;
@@ -100,25 +105,25 @@ button.wca-btn-secondary:hover {
     padding: 4px 10px; border-radius: 100px;
     font-size: 11px; font-weight: 600; white-space: nowrap;
 }
-/* Tarjeta del consentimiento - mismo radio/estructura que las tarjetas
-   de "Mi Reglamento Interno" (.rit-viewer). */
-.wca-card { border: 1px solid var(--wca-btn-sec-bd); border-radius: 1rem; overflow: hidden; }
-.wca-card-header {
-    padding: .75rem 1.125rem; border-bottom: 1px solid var(--wca-btn-sec-bd);
-    background: var(--wca-brand-bg);
-    display: flex; align-items: center; gap: .5rem;
+/* Tarjeta del consentimiento - mismo lenguaje que "Declaración del
+   Autorizador" (el Placeholder nativo justo arriba en este mismo modal:
+   acento de borde izquierdo sutil, etiqueta pequeña en mayúsculas, sin
+   barra de color sólida) - antes tenían 2 estilos de tarjeta distintos
+   uno junto al otro dentro del mismo modal. */
+.wca-card {
+    padding: 14px 16px; border-radius: 12px;
+    background: var(--wca-btn-sec-bg); border: 1px solid var(--wca-btn-sec-bd);
+    border-left: 3px solid var(--wca-brand-solid);
 }
 .wca-card-label {
-    font-size: .65rem; font-weight: 700; letter-spacing: .12em;
-    text-transform: uppercase; color: var(--wca-brand-fg); margin: 0;
+    display: flex; align-items: center; gap: .4rem;
+    font-size: 10px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--wca-brand-fg); margin: 0 0 6px;
 }
 .wca-consent {
     display: flex; align-items: flex-start; gap: 10px;
-    margin-top: 12px; padding: .875rem 1.125rem;
-    border: 1px solid var(--wca-btn-sec-bd); border-radius: .75rem;
-    cursor: pointer; transition: border-color .15s, background .15s;
+    margin-top: 12px; cursor: pointer;
 }
-.wca-consent-on { border-color: var(--wca-brand-bd); background: var(--wca-brand-bg); }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 
@@ -333,7 +338,7 @@ button.wca-btn-secondary:hover {
                  // captura automática, 'ok' dura una fracción de segundo (el
                  // instante del parpadeo) y dispara tomarFoto() de inmediato,
                  // que a su vez detiene este intervalo - así nunca alcanzaba a
-                 // correr ni una vez y el aviso de "quítese las gafas" quedó
+                 // correr ni una vez y el aviso para quitarse las gafas quedó
                  // código muerto (bug real reportado por el usuario: dejó de
                  // pedir quitarse las gafas tras agregar la captura automática).
                  // Con el rostro ya bien encuadrado (aunque falte el parpadeo)
@@ -430,32 +435,33 @@ button.wca-btn-secondary:hover {
 
     <div class="space-y-3">
 
-        {{-- ══ Autorización de datos personales (Ley 1581 de 2012) - obligatoria ══ --}}
+        {{-- ══ Autorización de datos personales (Ley 1581 de 2012) - obligatoria.
+             Mismo lenguaje visual que "Declaración del Autorizador" (el
+             Placeholder justo arriba en este modal), para que ambas tarjetas
+             de declaración/consentimiento se lean como una misma familia. ══ --}}
         <div x-show="!disclaimerAceptado">
             <div class="wca-card">
-                <div class="wca-card-header">
-                    <svg style="width:14px;height:14px;color:var(--wca-brand-solid);flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <p class="wca-card-label">
+                    <svg style="width:12px;height:12px;flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.746 3.746 0 0121 12z"/>
                     </svg>
-                    <p class="wca-card-label">Autorización de tratamiento de datos personales</p>
-                </div>
-                <div style="padding:1.125rem;max-height:220px;overflow-y:auto;">
-                    <p style="margin:0;font-size:13px;line-height:1.7;color:var(--wca-text);">{{ $disclaimerTexto }}</p>
-                </div>
+                    Autorización de tratamiento de datos personales
+                </p>
+                <p style="margin:0;font-size:13px;line-height:1.6;color:var(--wca-text);">{{ $disclaimerTexto }}</p>
             </div>
 
-            <label class="wca-consent" :class="disclaimerMarcado ? 'wca-consent-on' : ''">
+            <label class="wca-consent">
                 <input type="checkbox" x-model="disclaimerMarcado" style="margin-top:2px;flex-shrink:0;accent-color:var(--wca-brand-solid);">
                 <span style="font-size:13px;line-height:1.55;color:var(--wca-text);">
                     He leído y acepto la autorización de tratamiento de mis datos personales.
                 </span>
             </label>
 
-            <div style="display:flex;justify-content:center;margin-top:14px;">
+            <div style="margin-top:14px;">
                 <button type="button"
                         :disabled="!disclaimerMarcado"
                         @click.prevent="aceptarDisclaimer()"
-                        :class="disclaimerMarcado ? 'wca-btn-primary wca-btn-on' : 'wca-btn-primary wca-btn-off'">
+                        :class="disclaimerMarcado ? 'wca-btn-primary wca-btn-solid' : 'wca-btn-primary wca-btn-off'">
                     <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"/>
