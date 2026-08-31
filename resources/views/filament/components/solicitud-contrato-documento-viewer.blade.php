@@ -7,7 +7,7 @@
 --}}
 @include('filament.components.documento-viewer-styles')
 
-<div class="rit-viewer" style="margin-top:0">
+<div class="rit-viewer">
     <div class="rit-viewer-header">
         <span class="rit-viewer-label">Objeto Jurídico Redactado</span>
         @if($texto)

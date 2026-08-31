@@ -14,7 +14,7 @@ class VerSolicitudContratoTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_la_pagina_ver_muestra_el_infolist_con_el_objeto_juridico(): void
+    public function test_la_pagina_ver_muestra_las_tarjetas_de_resumen_y_el_objeto_juridico(): void
     {
         Permission::findOrCreate('view_solicitud::contrato', 'web');
         Permission::findOrCreate('view_any_solicitud::contrato', 'web');
