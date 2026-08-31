@@ -289,6 +289,17 @@
                             <p class="font-medium text-gray-900 mb-1">¿Qué sigue?</p>
                             <p>Contacte al administrador del proceso para reprogramar o continuar la diligencia.</p>
                         </div>
+
+                        {{-- Las pruebas de la empresa siguen consultables aunque el
+                             tiempo haya vencido: son las que se le notificaron en la
+                             citación y sobre las que se decidirá su caso. Que expire
+                             el plazo para responder no le quita el derecho a
+                             conocerlas. --}}
+                        <div class="mt-6 text-left">
+                            @include('livewire.partials.evidencias-empleador', [
+                                'evidenciasEmpleador' => $evidenciasEmpleador,
+                            ])
+                        </div>
                     </div>
                 @elseif ($tiempoExpiradoMostrarEvidencias)
                     {{-- Estado: Tiempo expirado pero puede subir evidencias --}}
@@ -304,6 +315,12 @@
                                 </div>
                             </div>
                         </div>
+
+                        {{-- Pruebas de la empresa: siguen a la vista mientras decide
+                             qué evidencia propia aportar. --}}
+                        @include('livewire.partials.evidencias-empleador', [
+                            'evidenciasEmpleador' => $evidenciasEmpleador,
+                        ])
 
                         {{-- Sección de Evidencias --}}
                         <div class="border border-gray-200 rounded-xl overflow-hidden">
@@ -395,6 +412,15 @@
                             <p class="font-medium text-gray-900 mb-1">¿Qué sigue?</p>
                             <p>El área correspondiente revisará su caso y le notificará la decisión por correo
                                 electrónico.</p>
+                        </div>
+
+                        {{-- Las pruebas de la empresa quedan consultables también
+                             después de enviar: son parte del expediente sobre el que
+                             se decidirá, no solo material de consulta previa. --}}
+                        <div class="mt-6 text-left">
+                            @include('livewire.partials.evidencias-empleador', [
+                                'evidenciasEmpleador' => $evidenciasEmpleador,
+                            ])
                         </div>
                     </div>
                 @elseif ($mostrarAdvertencia)
