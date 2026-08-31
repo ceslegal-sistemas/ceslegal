@@ -14,7 +14,10 @@ class ListSolicitudContratos extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\Action::make('create')
+                ->label('Crear Solicitud de Contrato')
+                ->icon('heroicon-o-plus')
+                ->url(fn () => \App\Filament\Admin\Pages\CrearSolicitudContrato::getUrl()),
         ];
     }
 

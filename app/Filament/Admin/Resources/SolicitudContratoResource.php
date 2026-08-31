@@ -1030,7 +1030,6 @@ class SolicitudContratoResource extends Resource
     {
         return [
             'index' => Pages\ListSolicitudContratos::route('/'),
-            'create' => Pages\CreateSolicitudContrato::route('/create'),
             'view' => Pages\ViewSolicitudContrato::route('/{record}'),
             'edit' => Pages\EditSolicitudContrato::route('/{record}/edit'),
         ];
