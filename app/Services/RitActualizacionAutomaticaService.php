@@ -173,6 +173,20 @@ class RitActualizacionAutomaticaService
             return false;
         }
 
+        // El documento que originó la propuesta fue retirado (subido por error,
+        // versión equivocada, quedó obsoleto). No se puede modificar el RIT -un
+        // documento legal- con base en una fuente que la propia firma dio de
+        // baja. Se valida aquí y no solo al listar, para que ningún camino
+        // (id forzado, job, comando) pueda saltárselo.
+        if (! $sugerencia->documentoLegal || ! $sugerencia->documentoLegal->activo) {
+            Log::warning('RitActualizacionAutomaticaService: no se aplica, el documento legal de origen ya no está activo', [
+                'sugerencia_id'      => $sugerencia->id,
+                'documento_legal_id' => $sugerencia->documento_legal_id,
+            ]);
+
+            return false;
+        }
+
         $rit = $sugerencia->reglamentoInterno;
         $bloques = RitDiffService::partirEnBloques((string) $rit->texto_completo);
 
@@ -180,13 +194,34 @@ class RitActualizacionAutomaticaService
         $bloqueActual = $bloques[$indice] ?? null;
 
         if ($sugerencia->tipo_cambio !== 'agregar' && $bloqueActual !== $sugerencia->texto_anterior) {
-            Log::warning('RitActualizacionAutomaticaService: bloque desalineado, no se aplica automáticamente', [
-                'sugerencia_id' => $sugerencia->id,
-                'bloque_indice' => $indice,
-                'esperado'      => $sugerencia->texto_anterior,
-                'actual'        => $bloqueActual,
-            ]);
-            return false;
+            // El índice ya no apunta al bloque original: el RIT cambió entre que
+            // se propuso el cambio y el cliente lo aprobó (editó su reglamento,
+            // aplicó otra sugerencia, etc.).
+            //
+            // Caso típico y recuperable: el bloque sigue existiendo palabra por
+            // palabra, solo se corrió de posición porque se insertó o eliminó
+            // algo antes. Se vuelve a anclar POR CONTENIDO. Sin esto la
+            // sugerencia quedaba pendiente para siempre y el botón "Aprobar"
+            // fallaba una y otra vez, sin ninguna salida para el cliente.
+            $coincidencias = array_keys($bloques, $sugerencia->texto_anterior, true);
+
+            if (count($coincidencias) === 1) {
+                $indice = $coincidencias[0];
+            } else {
+                // 0 coincidencias: el bloque se editó o se borró.
+                // 2+: es ambiguo y aplicar podría tocar el bloque equivocado.
+                // En ambos casos no se aplica a ciegas: el texto del RIT es
+                // justamente lo que el cliente confía en que no se toca solo.
+                Log::warning('RitActualizacionAutomaticaService: bloque desalineado, no se aplica automáticamente', [
+                    'sugerencia_id' => $sugerencia->id,
+                    'bloque_indice' => $sugerencia->bloque_indice,
+                    'coincidencias' => count($coincidencias),
+                    'esperado'      => $sugerencia->texto_anterior,
+                    'actual'        => $bloqueActual,
+                ]);
+
+                return false;
+            }
         }
 
         switch ($sugerencia->tipo_cambio) {

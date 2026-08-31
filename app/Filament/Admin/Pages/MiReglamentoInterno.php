@@ -158,6 +158,11 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
     {
         $this->sugerenciasPendientes = SugerenciaActualizacionRit::where('reglamento_interno_id', $this->reglamento->id)
             ->where('estado', 'pendiente')
+            // Solo propuestas cuyo documento de origen sigue vigente: si la
+            // firma retiró el documento (error de carga, versión equivocada),
+            // el cliente no debe seguir viendo -ni pudiendo aprobar- un cambio
+            // sustentado en él.
+            ->whereHas('documentoLegal', fn ($q) => $q->where('activo', true))
             ->with('documentoLegal')
             ->latest()
             ->get();
@@ -174,10 +179,16 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
         $aplicada = app(RitActualizacionAutomaticaService::class)->aplicarSugerencia($sugerencia, Auth::user());
 
         if (!$aplicada) {
+            // Solo llega aquí si el texto original ya no existe tal cual en el
+            // RIT (se editó/borró) o aparece más de una vez. No se ofrece
+            // "recargar": no existe tal acción y dejaba al cliente presionando
+            // Aprobar sin salida. La salida real es rechazarla y volver a
+            // auditar, que sí parte del texto vigente.
             Notification::make()
                 ->warning()
-                ->title('No se pudo aplicar el cambio')
-                ->body('El bloque del RIT cambió desde que se propuso esta sugerencia. Recárguela para ver el contenido actual.')
+                ->title('Este cambio ya no aplica a su Reglamento')
+                ->body('El texto que se iba a modificar cambió desde que se propuso el ajuste. Puede rechazar esta sugerencia y volver a auditar su RIT para obtener una propuesta sobre el texto actual.')
+                ->persistent()
                 ->send();
             $this->cargarSugerenciasPendientes();
             return;
