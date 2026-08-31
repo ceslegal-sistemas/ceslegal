@@ -100,7 +100,7 @@ class SolicitudContratoResource extends Resource
                                 ->key('sc_step_header_1')
                                 ->viewData([
                                     'step' => 1,
-                                    'total' => 4,
+                                    'total' => 5,
                                     'title' => 'Información Básica',
                                     'accent' => '#e11d48',
                                     'lord' => 'https://cdn.lordicon.com/moedrfvp.json',
@@ -208,7 +208,7 @@ class SolicitudContratoResource extends Resource
                                 ->key('sc_step_header_2')
                                 ->viewData([
                                     'step' => 2,
-                                    'total' => 4,
+                                    'total' => 5,
                                     'title' => 'Datos del Trabajador',
                                     'accent' => '#f97316',
                                     'lord' => 'https://cdn.lordicon.com/bushiqea.json',
@@ -365,11 +365,11 @@ class SolicitudContratoResource extends Resource
                                 ->key('sc_step_header_3')
                                 ->viewData([
                                     'step' => 3,
-                                    'total' => 4,
+                                    'total' => 5,
                                     'title' => 'Detalles del Cargo',
                                     'accent' => '#0ea5e9',
                                     'lord' => 'https://cdn.lordicon.com/bpptgtfr.json',
-                                    'subtitle' => 'Cargo, responsabilidades y condiciones del contrato - use "Completar con IA" para agilizar.',
+                                    'subtitle' => 'Cargo, responsabilidades y funciones - use "Completar con IA" para agilizar.',
                                 ])
                                 ->columnSpanFull(),
 
@@ -491,6 +491,23 @@ class SolicitudContratoResource extends Resource
                                 ])
                                 ->placeholder('Detalle el manual de funciones...')
                                 ->helperText('Descripción detallada de funciones del puesto')
+                                ->columnSpanFull(),
+                        ])->columns(2),
+
+                    Forms\Components\Wizard\Step::make('Condiciones del Contrato')
+                        ->description('Fechas, salario, ubicación y jornada')
+                        ->icon('heroicon-o-calendar-days')
+                        ->schema([
+                            Forms\Components\View::make('filament.components.step-header')
+                                ->key('sc_step_header_4')
+                                ->viewData([
+                                    'step' => 4,
+                                    'total' => 5,
+                                    'title' => 'Condiciones del Contrato',
+                                    'accent' => '#a855f7',
+                                    'lord' => 'https://cdn.lordicon.com/vgwutnhw.json',
+                                    'subtitle' => 'Fecha de inicio y terminación, salario, período de pago, ubicación y jornada.',
+                                ])
                                 ->columnSpanFull(),
 
                             Forms\Components\DatePicker::make('fecha_inicio_propuesta')
@@ -847,10 +864,10 @@ class SolicitudContratoResource extends Resource
                         ->icon('heroicon-o-paper-clip')
                         ->schema([
                             Forms\Components\View::make('filament.components.step-header')
-                                ->key('sc_step_header_4')
+                                ->key('sc_step_header_5')
                                 ->viewData([
-                                    'step' => 4,
-                                    'total' => 4,
+                                    'step' => 5,
+                                    'total' => 5,
                                     'title' => 'Documentos',
                                     'accent' => '#22c55e',
                                     'lord' => 'https://cdn.lordicon.com/fikcyfpp.json',

@@ -12,16 +12,16 @@ class CrearSolicitudContratoWizardTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Filament renderiza los 4 pasos del Wizard completos en el HTML inicial
+     * Filament renderiza los 5 pasos del Wizard completos en el HTML inicial
      * (oculta los inactivos con Alpine, no los omite del DOM) - basta con
-     * montar la página para confirmar que los 4 step-header nuevos (Forms\
+     * montar la página para confirmar que los 5 step-header nuevos (Forms\
      * Components\View) no rompen el render de ningún paso. Navegar entre
      * pasos con fillForm()/nextStep() es sabidamente frágil en Wizards de
      * este proyecto (ver memoria: filament-wizard-fillform-no-aplica.md),
      * así que no se ejercita aquí - suficiente con la verificación visual
      * manual del usuario.
      */
-    public function test_el_wizard_de_crear_renderiza_los_4_pasos_con_step_header(): void
+    public function test_el_wizard_de_crear_renderiza_los_5_pasos_con_step_header(): void
     {
         Permission::findOrCreate('create_solicitud::contrato', 'web');
         Permission::findOrCreate('view_any_solicitud::contrato', 'web');
@@ -40,9 +40,13 @@ class CrearSolicitudContratoWizardTest extends TestCase
             ->assertSee('Información Básica')
             ->assertSee('Datos del Trabajador')
             ->assertSee('Detalles del Cargo')
+            // "Detalles del Cargo" (fechas/salario/ubicación/jornada) se separó
+            // en su propio paso a pedido del usuario - el paso original era
+            // demasiado largo.
+            ->assertSee('Condiciones del Contrato')
             ->assertSee('Documentos')
-            ->assertSee('Paso 1 de 4')
-            ->assertSee('Paso 4 de 4')
+            ->assertSee('Paso 1 de 5')
+            ->assertSee('Paso 5 de 5')
             // El hero widget de arriba (SolicitudContratoRecordHeroWidget) se quitó
             // de esta página - quedaba redundante con el Paso Bienvenida nuevo.
             ->assertDontSee('ASISTENTE CON IA')

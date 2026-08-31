@@ -17,8 +17,9 @@
     $steps = [
         ['n' => '1', 'sc' => '#e11d48', 'ib' => 'rgba(225,29,72,.12)', 'ibc' => 'rgba(225,29,72,.25)', 'tag' => 'Paso 1', 'title' => 'Información Básica', 'body' => 'Seleccione la empresa, el tipo de contrato y la fecha de la solicitud.'],
         ['n' => '2', 'sc' => '#f97316', 'ib' => 'rgba(249,115,22,.12)', 'ibc' => 'rgba(249,115,22,.25)', 'tag' => 'Paso 2', 'title' => 'Datos del Trabajador', 'body' => 'Elija un trabajador ya registrado o ingrese sus datos si es nuevo.'],
-        ['n' => '3', 'sc' => '#0ea5e9', 'ib' => 'rgba(14,165,233,.12)', 'ibc' => 'rgba(14,165,233,.25)', 'tag' => 'Paso 3', 'title' => 'Detalles del Cargo', 'body' => 'Cargo, responsabilidades y condiciones - use "Completar con IA" para agilizar.'],
-        ['n' => '4', 'sc' => '#22c55e', 'ib' => 'rgba(34,197,94,.12)', 'ibc' => 'rgba(34,197,94,.25)', 'tag' => 'Paso 4', 'title' => 'Documentos', 'body' => 'Adjunte los archivos de soporte y finalice para generar el contrato con IA.'],
+        ['n' => '3', 'sc' => '#0ea5e9', 'ib' => 'rgba(14,165,233,.12)', 'ibc' => 'rgba(14,165,233,.25)', 'tag' => 'Paso 3', 'title' => 'Detalles del Cargo', 'body' => 'Cargo, responsabilidades y funciones - use "Completar con IA" para agilizar.'],
+        ['n' => '4', 'sc' => '#a855f7', 'ib' => 'rgba(168,85,247,.12)', 'ibc' => 'rgba(168,85,247,.25)', 'tag' => 'Paso 4', 'title' => 'Condiciones del Contrato', 'body' => 'Fechas, salario, período de pago, ubicación y jornada.'],
+        ['n' => '5', 'sc' => '#22c55e', 'ib' => 'rgba(34,197,94,.12)', 'ibc' => 'rgba(34,197,94,.25)', 'tag' => 'Paso 5', 'title' => 'Documentos', 'body' => 'Adjunte los archivos de soporte y finalice para generar el contrato con IA.'],
     ];
 @endphp
 
@@ -26,7 +27,7 @@
     'eyebrow'   => 'Solicitud de Contrato Laboral',
     'title'     => 'Asistente de Generación de Contratos',
     'subtitle'  => $subtitle,
-    'ruleLabel' => 'El proceso completo - 4 pasos',
+    'ruleLabel' => 'El proceso completo - 5 pasos',
     'steps'     => $steps,
     'nextHint'  => $nextHint,
 ])
