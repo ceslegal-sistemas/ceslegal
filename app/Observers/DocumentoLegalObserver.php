@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Jobs\EvaluarActualizacionRitJob;
 use App\Models\DocumentoLegal;
 use App\Models\ReglamentoInterno;
+use App\Models\SugerenciaActualizacionRit;
 use App\Services\TemaClasificadorService;
 
 class DocumentoLegalObserver
@@ -63,6 +64,15 @@ class DocumentoLegalObserver
                 ->pluck('nombre');
 
             if ($temasComunes->isEmpty()) {
+                continue;
+            }
+
+            // Ya hay una propuesta sin resolver para este RIT y este documento:
+            // no volver a evaluar. Reprocesar un documento desde el panel lo
+            // pasa a 'pendiente' y luego a 'procesado', esquivando la guarda de
+            // idempotencia de arriba - sin esto, cada reproceso repetía la
+            // notificación y la sugerencia al mismo cliente.
+            if (SugerenciaActualizacionRit::yaPropuestaPendiente($rit->id, $documento->id)) {
                 continue;
             }
 

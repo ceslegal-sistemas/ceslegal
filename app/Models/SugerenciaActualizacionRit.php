@@ -45,6 +45,28 @@ class SugerenciaActualizacionRit extends Model
         'resuelto_en'   => 'datetime',
     ];
 
+    /**
+     * ¿Este RIT ya tiene una propuesta SIN RESOLVER para este documento?
+     *
+     * Reprocesar un documento desde el panel ("Encolar") lo pasa a 'pendiente'
+     * y luego a 'procesado', lo que esquiva la guarda de idempotencia del
+     * observer (que solo mira si YA estaba procesado). Sin esta verificación,
+     * cada reproceso volvía a evaluar todos los RITs y el cliente recibía
+     * notificaciones y sugerencias repetidas del mismo documento.
+     *
+     * Solo bloquea si está 'pendiente': si el cliente ya la aprobó o rechazó,
+     * un reproceso posterior sí puede volver a evaluar, porque el documento
+     * pudo haberse re-subido con contenido distinto.
+     */
+    public static function yaPropuestaPendiente(int $reglamentoInternoId, int $documentoLegalId): bool
+    {
+        return static::withoutGlobalScopes()
+            ->where('reglamento_interno_id', $reglamentoInternoId)
+            ->where('documento_legal_id', $documentoLegalId)
+            ->where('estado', 'pendiente')
+            ->exists();
+    }
+
     public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class);

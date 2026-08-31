@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\DocumentoLegal;
 use App\Models\ReglamentoInterno;
+use App\Models\SugerenciaActualizacionRit;
 use App\Models\User;
 use App\Services\NotificacionService;
 use App\Services\RitActualizacionAutomaticaService;
@@ -59,6 +60,15 @@ class EvaluarActualizacionRitJob implements ShouldQueue
         RitActualizacionAutomaticaService $actualizacionRit,
         NotificacionService $notificacionService,
     ): void {
+        // Red de seguridad ante jobs encolados dos veces (reproceso rápido del
+        // documento, o dos workers atendiendo la misma cola): si ya existe una
+        // propuesta sin resolver para este RIT y documento, no se evalúa ni se
+        // vuelve a notificar. El observer ya filtra antes de encolar; esto
+        // cubre la ventana entre encolar y ejecutar.
+        if (SugerenciaActualizacionRit::yaPropuestaPendiente($this->rit->id, $this->documento->id)) {
+            return;
+        }
+
         $sugerencia = null;
 
         try {
