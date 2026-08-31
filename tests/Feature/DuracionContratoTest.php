@@ -101,4 +101,22 @@ class DuracionContratoTest extends TestCase
             ->assertSet('data.duracion_cantidad', 10)
             ->assertSet('data.duracion_unidad_2', null);
     }
+
+    /**
+     * Bug real reportado por el usuario: los campos de duración permitían
+     * escribir signos y letras ('-', '+', 'e'). El bloqueo de teclas es solo
+     * UX (se puede saltar pegando texto) - esto verifica la defensa real, en
+     * el servidor: un valor negativo pegado directo en la propiedad Livewire
+     * NUNCA debe producir una fecha_fin_contrato anterior a la de inicio.
+     */
+    public function test_duracion_negativa_no_produce_fecha_hacia_atras(): void
+    {
+        $this->usuario();
+
+        Livewire::test(CreateSolicitudContrato::class)
+            ->set('data.fecha_inicio_propuesta', '2026-01-01')
+            ->set('data.duracion_unidad', 'dia')
+            ->set('data.duracion_cantidad', -5)
+            ->assertSet('data.fecha_fin_contrato', null);
+    }
 }

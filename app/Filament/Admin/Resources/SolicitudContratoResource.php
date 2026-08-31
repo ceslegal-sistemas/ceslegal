@@ -316,7 +316,7 @@ class SolicitudContratoResource extends Resource
                                         ->required()
                                         ->numeric()
                                         ->integer()
-                                        ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
+                                        ->extraInputAttributes(['min' => 0, 'onkeydown' => "return !['-','+','e','E','.'].includes(event.key)"])
                                         ->maxLength(50)
                                         ->placeholder(fn(Get $get) => match ($get('trabajador_documento_tipo')) {
                                             'CC' => 'Ej: 1234567890',
@@ -555,7 +555,7 @@ class SolicitudContratoResource extends Resource
                                 ->afterStateHydrated(fn(Set $set, $state) => $set('salario_propuesto', \App\Support\FormateoNumerico::miles($state)))
                                 ->afterStateUpdated(fn(Set $set, ?string $state) => $set('salario_propuesto', \App\Support\FormateoNumerico::miles($state)))
                                 ->stripCharacters('.')
-                                ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
+                                ->extraInputAttributes(['min' => 0, 'onkeydown' => "return !['-','+','e','E'].includes(event.key)"])
                                 ->prefix('$')
                                 ->placeholder('Ej: 2.500.000')
                                 ->helperText('Salario mensual propuesto para el cargo')
@@ -593,6 +593,12 @@ class SolicitudContratoResource extends Resource
                                         ->numeric()
                                         ->minValue(1)
                                         ->placeholder('Ej: 6')
+                                        // Bloqueo a nivel de tecla: <input type="number"> (forzado por
+                                        // ->numeric()) acepta nativamente '-'/'+'/'e'/'E' como parte de
+                                        // la gramática de notación científica de un número - sin esto,
+                                        // el navegador deja escribir "1e5" o "-3" aunque minValue(1) las
+                                        // rechace después. Bug real reportado por el usuario.
+                                        ->extraInputAttributes(['min' => 1, 'onkeydown' => "return !['-','+','e','E','.'].includes(event.key)"])
                                         ->disabled(fn(Get $get) => blank($get('fecha_inicio_propuesta')))
                                         ->live(debounce: '500ms')
                                         ->dehydrated(false)
@@ -620,6 +626,7 @@ class SolicitudContratoResource extends Resource
                                         ->label(fn(Get $get) => $get('duracion_unidad') === 'mes' ? 'Días adicionales' : 'Cantidad adicional')
                                         ->numeric()
                                         ->minValue(0)
+                                        ->extraInputAttributes(['min' => 0, 'onkeydown' => "return !['-','+','e','E','.'].includes(event.key)"])
                                         ->visible(fn(Get $get) => in_array($get('duracion_unidad'), ['anio', 'mes'], true))
                                         ->live(debounce: '500ms')
                                         ->dehydrated(false)
@@ -642,6 +649,7 @@ class SolicitudContratoResource extends Resource
                                         ->label('Días adicionales')
                                         ->numeric()
                                         ->minValue(0)
+                                        ->extraInputAttributes(['min' => 0, 'onkeydown' => "return !['-','+','e','E','.'].includes(event.key)"])
                                         ->visible(fn(Get $get) => $get('duracion_unidad') === 'anio' && $get('duracion_unidad_2') === 'mes')
                                         ->live(debounce: '500ms')
                                         ->dehydrated(false)
@@ -1263,7 +1271,14 @@ class SolicitudContratoResource extends Resource
         $inicio = $get('fecha_inicio_propuesta');
         $cantidad = $get('duracion_cantidad');
 
-        if (blank($inicio) || blank($cantidad) || !is_numeric($cantidad)) {
+        // is_numeric() por sí solo no basta: el bloqueo de teclas en el
+        // campo (ver extraInputAttributes de duracion_cantidad) es solo UX -
+        // un valor negativo o "1e5" podría llegar igual pegado desde el
+        // portapapeles. is_numeric("-5") es true, así que se exige además
+        // que sea un entero positivo real - un valor inválido se trata igual
+        // que "vacío" (no se toca fecha_fin_contrato) en vez de producir una
+        // fecha hacia atrás en silencio.
+        if (blank($inicio) || blank($cantidad) || !is_numeric($cantidad) || (int) $cantidad < 1) {
             return $get('fecha_fin_contrato');
         }
 
@@ -1280,16 +1295,16 @@ class SolicitudContratoResource extends Resource
 
         if ($unidad === 'anio') {
             $unidad2 = $get('duracion_unidad_2');
-            $cantidad2 = (int) ($get('duracion_cantidad_2') ?? 0);
+            $cantidad2 = max(0, (int) ($get('duracion_cantidad_2') ?? 0));
 
             if ($unidad2 === 'mes') {
                 $meses = $cantidad2;
-                $dias = (int) ($get('duracion_cantidad_3') ?? 0);
+                $dias = max(0, (int) ($get('duracion_cantidad_3') ?? 0));
             } elseif ($unidad2 === 'dia') {
                 $dias = $cantidad2;
             }
         } elseif ($unidad === 'mes') {
-            $dias = (int) ($get('duracion_cantidad_2') ?? 0);
+            $dias = max(0, (int) ($get('duracion_cantidad_2') ?? 0));
         }
 
         return \Carbon\Carbon::parse($inicio)
