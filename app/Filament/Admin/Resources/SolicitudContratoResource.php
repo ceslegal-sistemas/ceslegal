@@ -547,9 +547,17 @@ class SolicitudContratoResource extends Resource
                             Forms\Components\Fieldset::make('Duración del Contrato')
                                 ->columnSpanFull()
                                 ->schema([
+                                    // Sin fecha de inicio, calcularFechaFinDesdeDuracion() no
+                                    // tiene desde dónde contar y no hace nada - antes esto
+                                    // pasaba en silencio (bug real reportado por el usuario:
+                                    // "no está calculando", cuando en realidad solo faltaba
+                                    // seleccionar la Fecha de Inicio Propuesta arriba). Ahora
+                                    // se avisa explícitamente en vez de quedar callado.
                                     Forms\Components\Placeholder::make('duracion_ayuda')
                                         ->hiddenLabel()
-                                        ->content('Indique la duración (ej: 6 meses) y la fecha de terminación se calcula sola. También puede editar la fecha directamente - la duración se ajustará automáticamente.')
+                                        ->content(fn(Get $get) => blank($get('fecha_inicio_propuesta'))
+                                            ? '⚠ Primero seleccione la Fecha de Inicio Propuesta (arriba) para poder calcular la fecha de terminación.'
+                                            : 'Indique la duración (ej: 6 meses) y la fecha de terminación se calcula sola. También puede editar la fecha directamente - la duración se ajustará automáticamente.')
                                         ->columnSpanFull(),
 
                                     Forms\Components\TextInput::make('duracion_cantidad')
@@ -557,6 +565,7 @@ class SolicitudContratoResource extends Resource
                                         ->numeric()
                                         ->minValue(1)
                                         ->placeholder('Ej: 6')
+                                        ->disabled(fn(Get $get) => blank($get('fecha_inicio_propuesta')))
                                         ->live(debounce: '500ms')
                                         ->dehydrated(false)
                                         ->afterStateUpdated(fn(Set $set, Get $get) => $set('fecha_fin_contrato', self::calcularFechaFinDesdeDuracion($get))),
@@ -565,6 +574,7 @@ class SolicitudContratoResource extends Resource
                                         ->label('Unidad')
                                         ->options(['dia' => 'Día(s)', 'mes' => 'Mes(es)', 'anio' => 'Año(s)'])
                                         ->default('dia')
+                                        ->disabled(fn(Get $get) => blank($get('fecha_inicio_propuesta')))
                                         ->live()
                                         ->dehydrated(false)
                                         ->afterStateUpdated(function (Set $set, Get $get) {
