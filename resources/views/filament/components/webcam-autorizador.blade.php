@@ -158,6 +158,10 @@ button.wca-btn-secondary:hover {
          aceptarDisclaimer() {
              if (!this.disclaimerMarcado) return;
              this.disclaimerAceptado = true;
+             // Se registra en el servidor (hora del servidor + IP real): el
+             // bloqueo en el navegador solo controla la interfaz, no sirve como
+             // prueba de que hubo consentimiento.
+             $wire.aceptarDisclaimerDatos();
              this.iniciarCamara();
          },
 

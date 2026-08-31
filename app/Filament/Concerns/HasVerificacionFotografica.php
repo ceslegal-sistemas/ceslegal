@@ -16,6 +16,26 @@ trait HasVerificacionFotografica
 {
     public string $alertaAccesoriosAutorizador = '';
 
+    /**
+     * Momento e IP en que el autorizador aceptó la autorización de tratamiento
+     * de datos personales (Ley 1581 de 2012) antes de la captura fotográfica.
+     * El bloqueo en el navegador no basta como prueba: se registra en el
+     * servidor, con la hora del servidor (no la del cliente, manipulable).
+     */
+    public ?string $disclaimerDatosAceptadoEn = null;
+    public ?string $disclaimerDatosIp = null;
+
+    public function aceptarDisclaimerDatos(): void
+    {
+        // Idempotente: si ya se aceptó, se conserva la primera marca de tiempo.
+        if ($this->disclaimerDatosAceptadoEn !== null) {
+            return;
+        }
+
+        $this->disclaimerDatosAceptadoEn = now()->toIso8601String();
+        $this->disclaimerDatosIp         = request()->ip();
+    }
+
     public function verificarAccesoriosAutorizador(string $fotoBase64): void
     {
         try {

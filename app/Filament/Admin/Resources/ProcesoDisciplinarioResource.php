@@ -2355,11 +2355,7 @@ class ProcesoDisciplinarioResource extends Resource
                                         ->accepted()
                                         ->afterStateUpdated(function ($state, ProcesoDisciplinario $record) {
                                             if ($state) {
-                                                \App\Models\SancionProcessEvent::create([
-                                                    'proceso_id' => $record->id,
-                                                    'user_id' => auth()->id(),
-                                                    'event_type' => 'authorized',
-                                                ]);
+                                                \App\Models\SancionProcessEvent::registrar($record->id, 'authorized');
                                             }
                                         }),
 
@@ -2502,13 +2498,57 @@ class ProcesoDisciplinarioResource extends Resource
                                 && \Carbon\Carbon::parse($record->fecha_descargos_programada)->isPast())
                         )
                     )
-                    ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
-                        \App\Models\SancionProcessEvent::create([
-                            'proceso_id' => $record->id,
-                            'user_id' => auth()->id(),
-                            'event_type' => 'submitted',
-                            'meta' => ['tipo_sancion' => $data['tipo_sancion'] ?? null],
+                    ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action, $livewire) {
+                        \App\Models\SancionProcessEvent::registrar($record->id, 'submitted', [
+                            'tipo_sancion' => $data['tipo_sancion'] ?? null,
                         ]);
+
+                        // Consentimiento de datos personales (Ley 1581 de 2012): sin
+                        // aceptación no hay selfie válida, y sin selfie no se emite la
+                        // sanción. Se valida en el servidor y no solo en el navegador -
+                        // el bloqueo del componente Alpine es de interfaz y podría
+                        // saltarse manipulando el cliente.
+                        if (empty($livewire->disclaimerDatosAceptadoEn)) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Falta la autorización de tratamiento de datos')
+                                ->body('Debe aceptar la autorización de datos personales y tomar la foto de verificación antes de emitir la sanción.')
+                                ->persistent()
+                                ->send();
+
+                            $action->halt();
+                        }
+
+                        \App\Models\SancionProcessEvent::registrar($record->id, 'disclaimer_datos_aceptado', [
+                            'aceptado_en' => $livewire->disclaimerDatosAceptadoEn,
+                            'ip'          => $livewire->disclaimerDatosIp,
+                        ]);
+
+                        // Prueba de intervención humana: exigir una pausa mínima entre
+                        // elegir la sanción y firmarla. Descarta una confirmación
+                        // automática o un doble clic accidental y deja constancia, junto
+                        // con la traza de SancionProcessEvent (quién, cuándo, desde qué
+                        // IP y navegador), de que la decisión la tomó una persona real.
+                        $segundos = \App\Models\SancionProcessEvent::segundosDesdeDecision($record->id);
+                        $minimo   = \App\Models\SancionProcessEvent::SEGUNDOS_MINIMOS_DELIBERACION;
+
+                        if ($segundos !== null && $segundos < $minimo) {
+                            $faltan = $minimo - $segundos;
+
+                            \App\Models\SancionProcessEvent::registrar($record->id, 'submit_bloqueado_por_tiempo', [
+                                'segundos_transcurridos' => $segundos,
+                                'segundos_requeridos'    => $minimo,
+                            ]);
+
+                            \Filament\Notifications\Notification::make()
+                                ->warning()
+                                ->title('Tómese un momento antes de firmar')
+                                ->body("Esta decisión afecta a una persona y queda registrada a su nombre. Revise el caso y vuelva a presionar en {$faltan} segundos.")
+                                ->persistent()
+                                ->send();
+
+                            $action->halt();
+                        }
 
                         // No permitir confirmar mientras la revisión de calidad adicional
                         // (motores V6 + posible auto-corrección) sigue en curso: si el cliente

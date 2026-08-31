@@ -139,12 +139,7 @@ class EmitirSancionPasos extends Component
 
     protected function logEvent(string $tipo, array $meta = []): void
     {
-        SancionProcessEvent::create([
-            'proceso_id' => $this->procesoId,
-            'user_id' => auth()->id(),
-            'event_type' => $tipo,
-            'meta' => $meta ?: null,
-        ]);
+        SancionProcessEvent::registrar($this->procesoId, $tipo, $meta);
     }
 
     public function render()
