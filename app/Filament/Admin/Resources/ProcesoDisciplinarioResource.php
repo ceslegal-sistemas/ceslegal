@@ -2613,6 +2613,13 @@ class ProcesoDisciplinarioResource extends Resource
                             'razon_divergencia'       => $esDivergente ? ($data['razon_divergencia'] ?? null) : null,
                             'foto_autorizador_path'   => $fotoPath,
                             'foto_autorizador_en'     => $fotoPath ? now() : null,
+                            // Consentimiento Ley 1581 del autorizador, junto al resto
+                            // de sus datos. Sigue quedando además en la traza
+                            // (evento 'disclaimer_datos_aceptado'); esto solo evita
+                            // tener que recorrerla para consultarlo, igual que el
+                            // trabajador tiene sus propias columnas en la diligencia.
+                            'disclaimer_datos_autorizador_en' => $livewire->disclaimerDatosAceptadoEn,
+                            'disclaimer_datos_autorizador_ip' => $livewire->disclaimerDatosIp,
                         ]);
 
                         // Limpiar cache de análisis (próxima apertura del modal recalculará).
@@ -4079,6 +4086,15 @@ class ProcesoDisciplinarioResource extends Resource
 
                         Infolists\Components\TextEntry::make('autorizador_cargo')
                             ->label('Cargo del autorizador'),
+
+                        Infolists\Components\TextEntry::make('disclaimer_datos_autorizador_en')
+                            ->label('Autorización de datos (Ley 1581) aceptada el')
+                            ->dateTime('d/m/Y H:i')
+                            ->hidden(fn($record) => empty($record->disclaimer_datos_autorizador_en)),
+
+                        Infolists\Components\TextEntry::make('disclaimer_datos_autorizador_ip')
+                            ->label('IP de aceptación de datos')
+                            ->hidden(fn($record) => empty($record->disclaimer_datos_autorizador_ip)),
 
                         Infolists\Components\ImageEntry::make('foto_autorizador')
                             ->label('Foto del autorizador')

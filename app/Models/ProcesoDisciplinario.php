@@ -60,6 +60,8 @@ class ProcesoDisciplinario extends Model
         'razon_divergencia',
         'foto_autorizador_path',
         'foto_autorizador_en',
+        'disclaimer_datos_autorizador_en',
+        'disclaimer_datos_autorizador_ip',
         'citante_nombre',
         'citante_cargo',
         'foto_citante_path',
