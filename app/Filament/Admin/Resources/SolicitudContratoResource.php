@@ -1011,18 +1011,19 @@ class SolicitudContratoResource extends Resource
                     ->weight('bold')
                     ->copyable(),
 
-                Tables\Columns\BadgeColumn::make('estado')
+                Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')
-                    ->colors([
-                        'gray' => 'borrador',
-                        'success' => 'aprobado',
-                        'danger' => 'rechazado',
-                    ])
-                    ->icons([
-                        'heroicon-o-document-text' => 'borrador',
-                        'heroicon-o-check-circle' => 'aprobado',
-                        'heroicon-o-x-circle' => 'rechazado',
-                    ])
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'aprobado' => 'success',
+                        'rechazado' => 'danger',
+                        default => 'gray',
+                    })
+                    ->icon(fn(string $state): string => match ($state) {
+                        'aprobado' => 'heroicon-o-check-circle',
+                        'rechazado' => 'heroicon-o-x-circle',
+                        default => 'heroicon-o-document-text',
+                    })
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'borrador' => 'Borrador',
                         'aprobado' => 'Aprobado',
@@ -1049,21 +1050,24 @@ class SolicitudContratoResource extends Resource
                         fn(SolicitudContrato $record): string =>
                         "{$record->trabajador_nombres} {$record->trabajador_apellidos}"
                     )
-                    ->icon('heroicon-o-user'),
+                    ->icon('heroicon-o-user')
+                    ->iconColor('primary'),
 
                 Tables\Columns\TextColumn::make('empresa.razon_social')
                     ->label('Empresa')
                     ->searchable()
                     ->sortable()
                     ->toggleable()
-                    ->icon('heroicon-o-building-office'),
+                    ->icon('heroicon-o-building-office')
+                    ->iconColor('primary'),
 
                 Tables\Columns\TextColumn::make('cargo_contrato')
                     ->label('Cargo')
                     ->searchable()
                     ->sortable()
                     ->toggleable()
-                    ->icon('heroicon-o-briefcase'),
+                    ->icon('heroicon-o-briefcase')
+                    ->iconColor('primary'),
 
                 // Oculta a pedido del usuario (2026-08-25), mismo motivo que la
                 // Section "Asignación interna" del formulario.
@@ -1090,7 +1094,8 @@ class SolicitudContratoResource extends Resource
                         fn(SolicitudContrato $record): string =>
                         $record->fecha_solicitud->diffForHumans()
                     )
-                    ->icon('heroicon-o-calendar'),
+                    ->icon('heroicon-o-calendar')
+                    ->iconColor('primary'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creada')
@@ -1228,6 +1233,14 @@ class SolicitudContratoResource extends Resource
                     Tables\Actions\DeleteBulkAction::make()
                         ->label('Eliminar seleccionadas'),
                 ]),
+            ])
+            ->striped()
+            ->emptyStateHeading('Aún no hay solicitudes de contrato')
+            ->emptyStateDescription('Cree la primera solicitud y la IA generará el borrador del contrato automáticamente.')
+            ->emptyStateIcon('heroicon-o-document-text')
+            ->emptyStateActions([
+                Tables\Actions\CreateAction::make()
+                    ->label('Crear Solicitud de Contrato'),
             ])
             ->defaultSort('fecha_solicitud', 'desc');
     }
