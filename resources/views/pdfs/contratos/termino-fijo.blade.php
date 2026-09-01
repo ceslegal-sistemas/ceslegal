@@ -22,7 +22,7 @@
 <head>
     <style>
         @page {
-            margin: 2.5cm 3cm;
+            margin: 2cm 2.3cm;
         }
 
         * {

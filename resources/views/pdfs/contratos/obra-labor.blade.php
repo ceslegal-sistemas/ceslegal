@@ -31,7 +31,7 @@
 <html>
 <head>
 <style>
-    @page { margin: 2.5cm 3cm; }
+    @page { margin: 2cm 2.3cm; }
     * { box-sizing: border-box; }
     html, body { font-family: 'Tahoma', 'DejaVu Sans', Arial, sans-serif; font-size: 9.5pt; color: #000; }
     body { margin: 0; padding: 0; line-height: 1.35; text-align: justify; }
