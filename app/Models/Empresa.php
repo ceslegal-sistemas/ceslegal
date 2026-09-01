@@ -252,7 +252,14 @@ class Empresa extends Model
 
     public function reglamentoInterno(): HasOne
     {
-        return $this->hasOne(ReglamentoInterno::class)->where('activo', true)->latest();
+        // ->latest('updated_at'), no ->latest() a secas (created_at por
+        // defecto) - inconsistencia real encontrada: RitDescarga::seleccionarRit()
+        // y AuditoriaRITService::iniciar() ya ordenaban por updated_at. Si
+        // alguna vez llegan a coexistir dos filas activo=true (el invariante
+        // no tiene constraint de BD, solo se sostiene por convención de
+        // código), esta relación y esos otros consumidores podían apuntar a
+        // registros DISTINTOS de la misma empresa.
+        return $this->hasOne(ReglamentoInterno::class)->where('activo', true)->latest('updated_at');
     }
 
     public function suscripcion(): HasOne

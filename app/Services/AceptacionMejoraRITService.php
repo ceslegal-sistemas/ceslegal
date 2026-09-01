@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Jobs\GenerarRITMejoradoJob;
 use App\Models\AuditoriaRIT;
 use App\Models\ReglamentoInterno;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Flujo de aceptación de las sugerencias de la auditoría de RIT.
@@ -71,9 +72,17 @@ class AceptacionMejoraRITService
             return;
         }
 
-        ReglamentoInterno::where('empresa_id', $auditoria->empresa_id)->update(['activo' => false]);
-        $mejorado->update(['activo' => true]);
-        $auditoria->update(['decision_mejora' => 'adoptado']);
+        // Bug real corregido: eran 2 UPDATE sueltos sin transacción - si el
+        // proceso moría justo entre ambos (timeout, OOM, kill del worker),
+        // la empresa quedaba SIN ningún RIT activo hasta la próxima
+        // adopción, rompiendo cualquier consulta que asuma que siempre hay
+        // uno (ej. SolicitudContratoIAService::completarDetallesCargo(), que
+        // no tiene respaldo para ese caso).
+        DB::transaction(function () use ($auditoria, $mejorado) {
+            ReglamentoInterno::where('empresa_id', $auditoria->empresa_id)->update(['activo' => false]);
+            $mejorado->update(['activo' => true]);
+            $auditoria->update(['decision_mejora' => 'adoptado']);
+        });
     }
 
     /**

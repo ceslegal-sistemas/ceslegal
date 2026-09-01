@@ -266,8 +266,14 @@ class SolicitudContratoIAService
      */
     public function completarDetallesCargo(SolicitudContrato $solicitud): array
     {
+        // orderByDesc('updated_at') como defensa adicional: 'activo' debería
+        // ser único por empresa, pero no hay constraint de BD que lo
+        // garantice - sin este orden, un invariante roto haría que ->value()
+        // devolviera un resultado no determinístico en vez de fallar de
+        // forma predecible con el RIT más reciente.
         $textoRit = ReglamentoInterno::where('empresa_id', $solicitud->empresa_id)
             ->where('activo', true)
+            ->orderByDesc('updated_at')
             ->value('texto_completo') ?? '(La empresa no tiene un Reglamento Interno de Trabajo cargado)';
 
         $empresa = $solicitud->empresa()->with(['actividadEconomica', 'actividadesSecundarias'])->first();
@@ -418,6 +424,7 @@ class SolicitudContratoIAService
 
         $textoRit = ReglamentoInterno::where('empresa_id', $modificacion->empresa_id)
             ->where('activo', true)
+            ->orderByDesc('updated_at')
             ->value('texto_completo') ?? '(La empresa no tiene un Reglamento Interno de Trabajo cargado)';
 
         $prompt = $this->construirPromptOtrosi($modificacion, $solicitud, $articulosCst, $textoRit);

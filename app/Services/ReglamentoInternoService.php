@@ -1359,7 +1359,7 @@ PROMPT;
     {
         $reglamento = ReglamentoInterno::where('empresa_id', $empresaId)
             ->where('activo', true)
-            ->latest()
+            ->latest('updated_at')
             ->first();
 
         return $reglamento?->texto_completo;

@@ -74,6 +74,17 @@ class GenerarTextoRITJob implements ShouldQueue
             $textoRIT
         );
 
+        // Desactivar cualquier otro RIT de la empresa ANTES de activar este -
+        // bug real: esta era la única vía de creación/activación de RIT en
+        // todo el proyecto que no lo hacía, así que una empresa podía quedar
+        // con dos filas activo=true a la vez (el RIT construido con el
+        // wizard + uno subido/mejorado previo), rompiendo cualquier consulta
+        // que asuma "el activo" en singular (descarga, generación de
+        // contratos, próximas auditorías).
+        ReglamentoInterno::where('empresa_id', $empresa->id)
+            ->where('id', '!=', $rit->id)
+            ->update(['activo' => false]);
+
         // Persistir texto y activar el reglamento
         $rit->update([
             'nombre'               => 'Reglamento Interno generado con IA - ' . now()->format('d/m/Y'),

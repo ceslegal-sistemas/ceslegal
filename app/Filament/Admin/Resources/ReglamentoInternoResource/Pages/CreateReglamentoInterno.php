@@ -1597,8 +1597,20 @@ class CreateReglamentoInterno extends CreateRecord
 
         // 4. Guardar cuestionario PRIMERO en estado 'generando' - si la UI se cierra o
         //    el navegador falla, las respuestas no se pierden y el job puede completarse.
+        //
+        //    Bug real corregido: emparejar solo por 'empresa_id' hacía que
+        //    updateOrCreate() actualizara CUALQUIER fila existente de la
+        //    empresa (sin orden ni filtro) - si ya tenía un RIT subido o
+        //    mejorado por IA, este wizard podía pisar SU texto_completo,
+        //    fuente y respuestas_cuestionario, dejando además campos
+        //    obsoletos (version, reglamento_origen_id, conductas_sancionables,
+        //    etc.) pegados a un registro que ahora decía 'construido_ia' sin
+        //    serlo realmente. Ahora solo reutiliza una fila que sea DE ESTE
+        //    MISMO wizard y siga en curso (para no perder el progreso si el
+        //    usuario recarga la página) - cualquier otro caso crea una fila
+        //    nueva, nunca toca RITs de otras fuentes.
         $record = ReglamentoInterno::updateOrCreate(
-            ['empresa_id' => $empresa->id],
+            ['empresa_id' => $empresa->id, 'fuente' => 'construido_ia', 'estado_generacion' => 'generando'],
             [
                 'nombre'                  => 'Reglamento Interno - ' . now()->format('d/m/Y'),
                 'texto_completo'          => '',
