@@ -1318,7 +1318,7 @@ class CreateReglamentoInterno extends CreateRecord
                                     ->color('primary')
                                     ->requiresConfirmation()
                                     ->modalHeading('Generar conductas con IA')
-                                    ->modalDescription('La IA generará conductas del régimen disciplinario según la actividad, los cargos y los riesgos de su empresa, conforme al CST. Se agregan al final del listado - las que ya tenga NO se borran, así que puede darle varias veces para conseguir más.')
+                                    ->modalDescription('La IA generará conductas sancionables nuevas para el régimen disciplinario, según la actividad económica, los cargos y los riesgos de su empresa, conforme al CST. Las conductas que ya tiene en el listado no se borran ni se reemplazan: las nuevas se agregan al final, cuidando de no repetir las que ya existen. Puede usar este botón varias veces si necesita más.')
                                     ->modalSubmitActionLabel('Generar')
                                     ->action(function (Get $get, Set $set) {
                                         $actividadId = $get('actividad_economica_id');

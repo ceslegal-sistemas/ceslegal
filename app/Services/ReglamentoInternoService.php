@@ -7,6 +7,7 @@ use App\Models\ReglamentoInterno;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use PhpOffice\PhpWord\IOFactory;
 use Smalot\PdfParser\Parser as PdfParser;
 
@@ -838,7 +839,10 @@ PROMPT;
             $datos = $this->parsearJSON($this->llamarGeminiJSON($prompt));
             $lista = array_is_list($datos) ? $datos : ($datos['conductas'] ?? $datos['regimen'] ?? []);
 
-            return $this->normalizarConductasWizard(is_array($lista) ? $lista : []);
+            return $this->filtrarConductasDuplicadas(
+                $this->normalizarConductasWizard(is_array($lista) ? $lista : []),
+                $existentes
+            );
         } catch (\Throwable $e) {
             Log::warning('ReglamentoInternoService: error generando conductas para el wizard', [
                 'error' => $e->getMessage(),
@@ -885,6 +889,41 @@ PROMPT;
         }
 
         return $out;
+    }
+
+    /**
+     * Segunda capa de defensa contra duplicados: la instrucción del prompt
+     * ("PROHIBIDO repetir o parafrasear") no es garantía - se compara cada
+     * conducta nueva contra las existentes de forma normalizada (sin
+     * tildes/mayúsculas/puntuación/espacios extra) para atrapar la
+     * repetición literal (incluida la que solo cambia signos de puntuación
+     * o mayúsculas). NO se usa similitud de texto (similar_text) como
+     * segundo filtro: se probó empíricamente y dos conductas de SST
+     * legítimamente distintas ("...zonas de riesgo mecánico" vs "...zonas
+     * de riesgo eléctrico") dan 94.9% de similitud - más alto que el propio
+     * caso de repetición que se quería atrapar (75.9%). Un umbral así
+     * borraría conductas reales y distintas; mejor dejar pasar alguna
+     * parafraseada que perder cobertura legítima.
+     */
+    private function filtrarConductasDuplicadas(array $nuevas, array $existentes): array
+    {
+        if (empty($existentes)) {
+            return $nuevas;
+        }
+
+        $existentesNorm = array_flip(array_map(fn($n) => $this->normalizarTextoConducta($n), $existentes));
+
+        return array_values(array_filter(
+            $nuevas,
+            fn($conducta) => ! isset($existentesNorm[$this->normalizarTextoConducta($conducta['nombre'] ?? '')])
+        ));
+    }
+
+    private function normalizarTextoConducta(string $texto): string
+    {
+        $ascii = Str::of($texto)->lower()->ascii()->toString();
+
+        return trim(preg_replace('/\s+/', ' ', preg_replace('/[^a-z0-9\s]/', ' ', $ascii)));
     }
 
     /**

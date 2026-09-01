@@ -100,4 +100,59 @@ class GenerarConductasWizardTest extends TestCase
                 && str_contains($prompt, 'Uso indebido de herramientas eléctricas');
         });
     }
+
+    /**
+     * Segunda capa de defensa pedida explícitamente por el usuario ("hay que
+     * tener mucho cuidado de que no se vayan a repetir con las que ya
+     * están"): la instrucción del prompt no es garantía - si la IA de todos
+     * modos devuelve literalmente una conducta que ya existe (aunque cambie
+     * mayúsculas, tildes o puntuación), el servicio debe filtrarla por
+     * código, no solo confiar en el prompt.
+     */
+    public function test_filtra_conductas_repetidas_de_forma_literal_aunque_la_ia_las_devuelva(): void
+    {
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => $this->respuestaGemini([
+                ['nombre' => 'llegar tarde reiteradamente.', 'tipo_falta' => 'leve', 'tipo_sancion' => 'llamado_atencion', 'dias_suspension' => null],
+                ['nombre' => 'Usar el celular en horario laboral sin autorización', 'tipo_falta' => 'leve', 'tipo_sancion' => 'llamado_atencion', 'dias_suspension' => null],
+            ]),
+        ]);
+
+        $rows = app(ReglamentoInternoService::class)->generarConductasParaWizard([
+            'actividad'  => 'Comercio al por menor',
+            'cargos'     => 'Vendedor',
+            'existentes' => ['Llegar tarde reiteradamente'],
+        ]);
+
+        $nombres = collect($rows)->pluck('nombre')->all();
+
+        $this->assertNotContains('llegar tarde reiteradamente.', $nombres);
+        $this->assertContains('Usar el celular en horario laboral sin autorización', $nombres);
+        $this->assertCount(1, $rows);
+    }
+
+    /**
+     * Empírico (probado con similar_text antes de descartar ese enfoque): dos
+     * conductas de SST distintas y legítimas ("...riesgo mecánico" vs
+     * "...riesgo eléctrico") pueden compartir casi todo el texto sin ser
+     * duplicadas de verdad - el filtro NO debe basarse en similitud de
+     * texto, solo en coincidencia literal normalizada.
+     */
+    public function test_no_filtra_conductas_distintas_aunque_el_texto_sea_muy_parecido(): void
+    {
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => $this->respuestaGemini([
+                ['nombre' => 'No usar el equipo de protección personal en zonas de riesgo eléctrico', 'tipo_falta' => 'grave', 'tipo_sancion' => 'suspension', 'dias_suspension' => 3],
+            ]),
+        ]);
+
+        $rows = app(ReglamentoInternoService::class)->generarConductasParaWizard([
+            'actividad'  => 'Construcción',
+            'cargos'     => 'Operario',
+            'existentes' => ['No usar el equipo de protección personal en zonas de riesgo mecánico'],
+        ]);
+
+        $this->assertCount(1, $rows);
+        $this->assertSame('No usar el equipo de protección personal en zonas de riesgo eléctrico', $rows[0]['nombre']);
+    }
 }
