@@ -140,8 +140,13 @@ button.wca-btn-secondary:hover {
          parpadeoDetectado: false,
          ojosCerradosPrevio: false,
          // EAR de referencia (ojos abiertos) calibrado en vivo contra la
-         // propia persona/cámara - ver nota en iniciarDeteccion().
+         // propia persona/cámara - ver nota en iniciarDeteccion(). Solo se usa
+         // como respaldo si MediaPipe no cargó (ver mediaPipeListo abajo).
          earBase: null,
+         // MediaPipe Face Landmarker - motor principal de detección de
+         // parpadeo (ver cargarMediaPipe/evaluarParpadeoMediaPipe).
+         faceLandmarker: null,
+         mediaPipeListo: false,
          // Salida de emergencia si el parpadeo no se confirma después de un
          // tiempo con el rostro bien puesto (ver iniciarTimerFallback) - antes
          // el único respaldo manual era si face-api ni siquiera cargaba.
@@ -232,14 +237,54 @@ button.wca-btn-secondary:hover {
                  this.estadoRostro = 'sin_modelo';
                  this.iniciarDeteccionAccesorios();
              }
+             // No se espera aquí (sin await): MediaPipe pesa ~16MB (runtime WASM +
+             // modelo) y puede tardar varios segundos en cargar - mientras tanto la
+             // cámara ya funciona con face-api + el respaldo EAR adaptativo. En
+             // cuanto termine de cargar, evaluarParpadeoMediaPipe() empieza a
+             // usarse sola en el siguiente poll (ver iniciarDeteccion()).
+             this.cargarMediaPipe();
+         },
+
+         /**
+          * MediaPipe Face Landmarker (auto-hospedado, mismo criterio que face-api:
+          * sin depender de un CDN en producción) - reemplaza SOLO la medición del
+          * parpadeo (ver evaluarParpadeoMediaPipe), no el encuadre (posición/
+          * distancia/inclinación/perfil), que sigue a cargo de face-api porque
+          * nunca falló. Si esto no carga (red lenta, navegador sin WASM, etc.),
+          * mediaPipeListo se queda en false y iniciarDeteccion() sigue usando el
+          * respaldo EAR adaptativo sin que el usuario note nada raro.
+          */
+         async cargarMediaPipe() {
+             try {
+                 const { FaceLandmarker } = await import('{{ asset('vendor/mediapipe/vision_bundle.mjs') }}');
+                 this.faceLandmarker = await FaceLandmarker.createFromOptions(
+                     {
+                         wasmLoaderPath: '{{ asset('vendor/mediapipe/vision_wasm_internal.js') }}',
+                         wasmBinaryPath: '{{ asset('vendor/mediapipe/vision_wasm_internal.wasm') }}',
+                     },
+                     {
+                         baseOptions: {
+                             modelAssetPath: '{{ asset('vendor/mediapipe/face_landmarker.task') }}',
+                             delegate: 'CPU',
+                         },
+                         outputFaceBlendshapes: true,
+                         runningMode: 'VIDEO',
+                         numFaces: 1,
+                     }
+                 );
+                 this.mediaPipeListo = true;
+             } catch (e) {
+                 console.error('MediaPipe: no se pudo cargar, se sigue usando el respaldo EAR', e);
+                 this.mediaPipeListo = false;
+             }
          },
 
          /**
           * Salida de emergencia TEMPORAL (pedido explícito del usuario, ideal
           * a futuro es no tenerla): si el parpadeo no se confirma en 12s con
           * el rostro ya bien puesto, se habilita el botón manual de Tomar
-          * foto - así nadie queda bloqueado por completo si el ajuste de
-          * umbral en iniciarDeteccion() tampoco funciona para su cámara/rostro.
+          * foto - así nadie queda bloqueado por completo si ni MediaPipe ni el
+          * respaldo EAR funcionan para su cámara/rostro.
           */
          iniciarTimerFallback() {
              if (this.timerFallback) clearTimeout(this.timerFallback);
@@ -252,13 +297,59 @@ button.wca-btn-secondary:hover {
           * Eye Aspect Ratio (Soukupová & Čech): promedio de las 2 distancias
           * verticales del ojo dividido por su distancia horizontal. Los 6 puntos
           * que entrega face-api vienen en orden: 0 y 3 son las esquinas
-          * (horizontal), 1-5 y 2-4 los pares verticales.
+          * (horizontal), 1-5 y 2-4 los pares verticales. Solo se usa como
+          * respaldo si MediaPipe no cargó (ver cargarMediaPipe/mediaPipeListo).
           */
          calcularEAR(ojo) {
              const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
              const horizontal = dist(ojo[0], ojo[3]);
              if (!horizontal) return 1;
              return (dist(ojo[1], ojo[5]) + dist(ojo[2], ojo[4])) / (2 * horizontal);
+         },
+
+         /**
+          * Mide el parpadeo con MediaPipe Face Landmarker: los blendshapes
+          * eyeBlinkLeft/eyeBlinkRight son un puntaje YA CALIBRADO por un
+          * modelo entrenado (0=ojo abierto, 1=ojo cerrado) - el mismo tipo de
+          * señal que google_mlkit_face_detection expone como
+          * leftEyeOpenProbability/rightEyeOpenProbability en la app del
+          * conductor (ServiYa 360), mucho más estable entre personas/cámaras
+          * que un EAR geométrico calculado a mano.
+          */
+         evaluarParpadeoMediaPipe(video) {
+             try {
+                 const resultado = this.faceLandmarker.detectForVideo(video, performance.now());
+                 const categorias = resultado?.faceBlendshapes?.[0]?.categories ?? [];
+                 const left  = categorias.find(c => c.categoryName === 'eyeBlinkLeft')?.score ?? 0;
+                 const right = categorias.find(c => c.categoryName === 'eyeBlinkRight')?.score ?? 0;
+                 const cerrado = (left + right) / 2;
+
+                 if (cerrado > 0.5) {
+                     this.ojosCerradosPrevio = true;
+                 } else if (cerrado < 0.15 && this.ojosCerradosPrevio) {
+                     this.confirmarParpadeo();
+                 }
+                 if (!this.parpadeoDetectado) { this.estadoRostro = 'falta_parpadeo'; }
+             } catch (e) {
+                 // Fallo en tiempo de ejecución (no solo al cargar) - se cae al
+                 // respaldo EAR desde el siguiente poll, sin bloquear al usuario.
+                 console.error('MediaPipe: error evaluando el parpadeo, se usa el respaldo EAR', e);
+                 this.mediaPipeListo = false;
+                 this.estadoRostro = 'falta_parpadeo';
+             }
+         },
+
+         /** Acción común cuando se confirma el parpadeo, sin importar qué motor lo detectó. */
+         confirmarParpadeo() {
+             this.parpadeoDetectado = true;
+             this.estadoRostro = 'ok';
+             // Captura inmediata en el instante del parpadeo: la foto queda
+             // tomada en el mismo momento en que se probó que hay una persona
+             // viva frente a la cámara, sin un clic manual posterior que
+             // rompería esa cadena.
+             if (!this.alertaAccesorios && !this.revisandoAccesorios && !this.fotoCapturada) {
+                 this.tomarFoto();
+             }
          },
 
          iniciarDeteccion() {
@@ -322,45 +413,41 @@ button.wca-btn-secondary:hover {
                      // ⑦ Prueba de vida: exigir un parpadeo real antes de habilitar
                      // la captura. Evita que una fotografía impresa o una pantalla
                      // puesta frente a la cámara pase la verificación - refuerza el
-                     // equivalente funcional de firma. Se mide el Eye Aspect Ratio
-                     // (EAR) sobre los landmarks de ambos ojos, que face-api ya
-                     // calcula aquí mismo: alto = ojo abierto, bajo = ojo cerrado.
-                     // Un parpadeo es la transición cerrado -> abierto.
+                     // equivalente funcional de firma.
+                     //
+                     // Bug real reportado por el usuario: el EAR (Eye Aspect Ratio,
+                     // un ratio geométrico calculado a mano desde 6 puntos de
+                     // referencia) varía mucho según forma del ojo, ángulo de la
+                     // cámara y vello facial - ni con umbral fijo ni con uno
+                     // calibrado en vivo se logró que el parpadeo se confirmara para
+                     // este usuario. Ahora se usa MediaPipe Face Landmarker
+                     // (mediaPipeListo, ver cargarMediaPipe()), que da un blendshape
+                     // eyeBlinkLeft/eyeBlinkRight ya calibrado por un modelo entrenado
+                     // (0=abierto, 1=cerrado) - el mismo tipo de señal que usa
+                     // google_mlkit_face_detection (leftEyeOpenProbability) en la
+                     // app del conductor, mucho más robusto que un EAR crudo. El
+                     // EAR adaptativo se conserva como respaldo SOLO si MediaPipe no
+                     // llegó a cargar (ver evaluarParpadeoMediaPipe/mediaPipeListo).
                      if (!this.parpadeoDetectado) {
-                         const ear = (this.calcularEAR(lEye) + this.calcularEAR(rEye)) / 2;
-
-                         // Bug real reportado por el usuario: con umbrales FIJOS
-                         // (0.21 cerrado / 0.28 abierto) iguales para cualquier
-                         // persona, el EAR de ojos abiertos de algunas personas
-                         // (según forma del ojo, ángulo de la cámara o vello
-                         // facial) nunca cruzaba 0.28 - el parpadeo se registraba
-                         // como cerrado pero la reapertura jamás se confirmaba,
-                         // sin importar cuántas veces la persona parpadeara. Ahora
-                         // el umbral se calibra en vivo contra el propio EAR de
-                         // referencia (ojos abiertos) de quien está frente a la
-                         // cámara en este momento, no contra un número fijo.
-                         if (!this.ojosCerradosPrevio) {
-                             this.earBase = this.earBase === null ? ear : Math.max(ear, this.earBase * 0.98);
-                         }
-                         const base           = this.earBase ?? ear;
-                         const umbralCierre   = Math.max(0.15, base * 0.75);
-                         const umbralApertura = base * 0.90;
-
-                         if (ear < umbralCierre) {
-                             this.ojosCerradosPrevio = true;
-                         } else if (ear > umbralApertura && this.ojosCerradosPrevio) {
-                             this.parpadeoDetectado = true;
-                             this.estadoRostro = 'ok';
-                             // Captura inmediata en el instante del parpadeo: la foto
-                             // queda tomada en el mismo momento en que se probó que hay
-                             // una persona viva frente a la cámara, sin un clic manual
-                             // posterior que rompería esa cadena.
-                             if (!this.alertaAccesorios && !this.revisandoAccesorios && !this.fotoCapturada) {
-                                 this.tomarFoto();
+                         if (this.mediaPipeListo && this.faceLandmarker) {
+                             this.evaluarParpadeoMediaPipe(video);
+                         } else {
+                             const ear = (this.calcularEAR(lEye) + this.calcularEAR(rEye)) / 2;
+                             if (!this.ojosCerradosPrevio) {
+                                 this.earBase = this.earBase === null ? ear : Math.max(ear, this.earBase * 0.98);
                              }
-                             return;
+                             const base           = this.earBase ?? ear;
+                             const umbralCierre   = Math.max(0.15, base * 0.75);
+                             const umbralApertura = base * 0.90;
+
+                             if (ear < umbralCierre) {
+                                 this.ojosCerradosPrevio = true;
+                             } else if (ear > umbralApertura && this.ojosCerradosPrevio) {
+                                 this.confirmarParpadeo();
+                             }
+                             if (!this.parpadeoDetectado) { this.estadoRostro = 'falta_parpadeo'; }
                          }
-                         if (!this.parpadeoDetectado) { this.estadoRostro = 'falta_parpadeo'; return; }
+                         return;
                      }
 
                      this.estadoRostro = 'ok';
@@ -459,6 +546,8 @@ button.wca-btn-secondary:hover {
          detenerCamara() {
              this.detenerDeteccion();
              if (this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null; }
+             if (this.faceLandmarker) { try { this.faceLandmarker.close(); } catch (e) {} this.faceLandmarker = null; }
+             this.mediaPipeListo = false;
          },
 
          detenerDeteccion() {
