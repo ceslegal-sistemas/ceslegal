@@ -238,12 +238,16 @@ button.wca-btn-secondary:hover {
                  this.estadoRostro = 'sin_modelo';
                  this.iniciarDeteccionAccesorios();
              }
-             // No se espera aquí (sin await): MediaPipe pesa ~16MB (runtime WASM +
-             // modelo) y puede tardar varios segundos en cargar - mientras tanto la
-             // cámara ya funciona con face-api + el respaldo EAR adaptativo. En
-             // cuanto termine de cargar, evaluarParpadeoMediaPipe() empieza a
-             // usarse sola en el siguiente poll (ver iniciarDeteccion()).
-             this.cargarMediaPipe();
+             // DESACTIVADO temporalmente (2026-09-01): en pruebas reales, TODAS
+             // las llamadas a detectForVideo() de MediaPipe tiraron el mismo
+             // error interno del WASM (Cannot read properties of undefined,
+             // reading 'A') - no fue un tropiezo de arranque, fue una falla
+             // sistemática en este navegador/entorno (10 de 10 intentos). Se
+             // deja el código y los archivos vendor/mediapipe intactos para
+             // retomarlo con más tiempo de prueba real, pero por ahora no vale
+             // la pena pagar ~16MB de descarga y 5 fallos garantizados en cada
+             // intento antes de caer al respaldo EAR.
+             // this.cargarMediaPipe();
          },
 
          /**
@@ -284,14 +288,17 @@ button.wca-btn-secondary:hover {
           * Salida de emergencia TEMPORAL (pedido explícito del usuario, ideal
           * a futuro es no tenerla): si el parpadeo no se confirma en 12s con
           * el rostro ya bien puesto, se habilita el botón manual de Tomar
-          * foto - así nadie queda bloqueado por completo si ni MediaPipe ni el
-          * respaldo EAR funcionan para su cámara/rostro.
+          * foto. Bajado de 12s a 5s (2026-09-01): pruebas reales mostraron que
+          * ni MediaPipe ni el EAR (fijo, ni adaptativo) detectan el parpadeo
+          * de forma confiable para algunos usuarios/cámaras - el botón manual
+          * es hoy el camino más confiable, así que se acorta la espera para
+          * llegar a él en vez de hacer sufrir varios intentos automáticos.
           */
          iniciarTimerFallback() {
              if (this.timerFallback) clearTimeout(this.timerFallback);
              this.timerFallback = setTimeout(() => {
                  if (!this.fotoCapturada) this.mostrarFallbackManual = true;
-             }, 12000);
+             }, 5000);
          },
 
          /**
@@ -505,38 +512,64 @@ button.wca-btn-secondary:hover {
          },
 
          async tomarFoto() {
-             const canvas = this.$refs.canvas;
-             const video  = this.$refs.video;
-             canvas.width  = video.videoWidth;
-             canvas.height = video.videoHeight;
-             const ctx = canvas.getContext('2d');
-             ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
-             ctx.drawImage(video, 0, 0);
-             const foto = canvas.toDataURL('image/jpeg', 0.80);
+             try {
+                 const canvas = this.$refs.canvas;
+                 const video  = this.$refs.video;
+                 canvas.width  = video.videoWidth;
+                 canvas.height = video.videoHeight;
+                 const ctx = canvas.getContext('2d');
+                 ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+                 ctx.drawImage(video, 0, 0);
+                 const foto = canvas.toDataURL('image/jpeg', 0.80);
 
-             this.revisandoAccesorios = true;
-             this.alertaAccesorios    = '';
-             this.detenerDeteccion();
+                 this.revisandoAccesorios = true;
+                 this.alertaAccesorios    = '';
+                 this.detenerDeteccion();
 
-             await $wire.verificarAccesoriosAutorizador(foto);
-             this.revisandoAccesorios = false;
+                 // Bug real reportado por el usuario: esta llamada se quedó
+                 // Verificando... pegada más de 20s sin resolver nunca (el
+                 // propio servidor tiene su timeout de 15s con Gemini, pero
+                 // algo entre el navegador y ahí se quedaba esperando de
+                 // todas formas). Nunca se espera para siempre: si no
+                 // responde en 10s, se sigue adelante con la foto igual -
+                 // mismo criterio de falla abierto que ya usa el propio
+                 // VerificacionFacialService::detectarAccesorios() en el
+                 // servidor.
+                 await Promise.race([
+                     $wire.verificarAccesoriosAutorizador(foto),
+                     new Promise(resolve => setTimeout(resolve, 10000)),
+                 ]);
+                 this.revisandoAccesorios = false;
 
-             if ($wire.alertaAccesoriosAutorizador) {
-                 this.alertaAccesorios = $wire.alertaAccesoriosAutorizador;
-                 // Se exige parpadear de nuevo: como la captura ahora es automática
-                 // y no hay botón manual, sin este reset el usuario quedaría con el
-                 // rostro en estado ok pero sin ninguna forma de reintentar la foto.
+                 if ($wire.alertaAccesoriosAutorizador) {
+                     this.alertaAccesorios = $wire.alertaAccesoriosAutorizador;
+                     // Se exige parpadear de nuevo: como la captura ahora es automática
+                     // y no hay botón manual, sin este reset el usuario quedaría con el
+                     // rostro en estado ok pero sin ninguna forma de reintentar la foto.
+                     this.parpadeoDetectado  = false;
+                     this.ojosCerradosPrevio = false;
+                     this.earBase            = null;
+                     this.fallosMediaPipeSeguidos = 0;
+                     if (this.faceLandmarker) this.mediaPipeListo = true;
+                     this.iniciarDeteccion();
+                     this.iniciarDeteccionAccesorios();
+                     this.iniciarTimerFallback();
+                 } else {
+                     this.fotoCapturada = foto;
+                     $wire.$set('{{ $wireTargetPath }}', foto);
+                 }
+             } catch (e) {
+                 // Cualquier error inesperado (canvas, llamada al servidor, lo
+                 // que sea) tampoco debe dejar la UI congelada en
+                 // Verificando... para siempre - se reintenta el parpadeo.
+                 console.error('Error al tomar la foto', e);
+                 this.revisandoAccesorios = false;
                  this.parpadeoDetectado  = false;
                  this.ojosCerradosPrevio = false;
                  this.earBase            = null;
-                 this.fallosMediaPipeSeguidos = 0;
-                 if (this.faceLandmarker) this.mediaPipeListo = true;
                  this.iniciarDeteccion();
                  this.iniciarDeteccionAccesorios();
                  this.iniciarTimerFallback();
-             } else {
-                 this.fotoCapturada = foto;
-                 $wire.$set('{{ $wireTargetPath }}', foto);
              }
          },
 

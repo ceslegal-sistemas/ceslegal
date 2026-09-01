@@ -109,9 +109,10 @@
                 this.estadoRostro = 'sin_modelo';
                 this.iniciarDeteccionAccesorios();
             }
-            // Sin await: MediaPipe pesa ~16MB y puede tardar - mientras carga, la
-            // cámara ya funciona con face-api + el respaldo EAR adaptativo.
-            this.cargarMediaPipe();
+            // DESACTIVADO temporalmente (2026-09-01) - ver la misma nota en
+            // webcam-autorizador.blade.php: falla sistemática de detectForVideo
+            // confirmada en pruebas reales (10 de 10 intentos).
+            // this.cargarMediaPipe();
         },
 
         /**
@@ -146,16 +147,18 @@
         },
 
         /**
-         * Salida de emergencia TEMPORAL (pedido explícito del usuario, ideal
-         * a futuro es no tenerla): si el parpadeo no se confirma en 12s con
-         * el rostro ya bien puesto, se habilita el botón manual de Tomar
-         * foto - mismo mecanismo que webcam-autorizador.blade.php.
+         * Salida de emergencia: si el parpadeo no se confirma en 5s con el
+         * rostro ya bien puesto, se habilita el botón manual de Tomar foto.
+         * Bajado de 12s a 5s (2026-09-01) - mismo motivo que
+         * webcam-autorizador.blade.php: ni MediaPipe ni el EAR detectan el
+         * parpadeo de forma confiable para algunos usuarios/cámaras, el botón
+         * manual es hoy el camino más confiable.
          */
         iniciarTimerFallback() {
             if (this.timerFallback) clearTimeout(this.timerFallback);
             this.timerFallback = setTimeout(() => {
                 if (!this.fotoCapturada) this.mostrarFallbackManual = true;
-            }, 12000);
+            }, 5000);
         },
 
         /**
@@ -300,37 +303,52 @@
         },
 
         async tomarFoto() {
-            const canvas = this.$refs.canvas;
-            const video  = this.$refs.video;
-            canvas.width  = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
-            ctx.drawImage(video, 0, 0);
-            const foto = canvas.toDataURL('image/jpeg', 0.80);
-            this.revisandoAccesorios = true;
-            this.alertaAccesorios    = '';
-            this.detenerDeteccion();
-            await $wire.verificarAccesorios(foto);
-            this.revisandoAccesorios = false;
-            if ($wire.alertaAccesorios) {
-                this.alertaAccesorios = $wire.alertaAccesorios;
-                // Se vuelve a exigir el parpadeo: como la captura es automática y
-                // no hay botón manual, sin este reset el usuario quedaría con el
-                // rostro 'ok' y ninguna forma de reintentar la foto.
+            try {
+                const canvas = this.$refs.canvas;
+                const video  = this.$refs.video;
+                canvas.width  = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, 0, 0);
+                const foto = canvas.toDataURL('image/jpeg', 0.80);
+                this.revisandoAccesorios = true;
+                this.alertaAccesorios    = '';
+                this.detenerDeteccion();
+                // Nunca esperar para siempre - mismo fix que webcam-autorizador.blade.php.
+                await Promise.race([
+                    $wire.verificarAccesorios(foto),
+                    new Promise(resolve => setTimeout(resolve, 10000)),
+                ]);
+                this.revisandoAccesorios = false;
+                if ($wire.alertaAccesorios) {
+                    this.alertaAccesorios = $wire.alertaAccesorios;
+                    // Se vuelve a exigir el parpadeo: como la captura es automática y
+                    // no hay botón manual, sin este reset el usuario quedaría con el
+                    // rostro 'ok' y ninguna forma de reintentar la foto.
+                    this.parpadeoDetectado  = false;
+                    this.ojosCerradosPrevio = false;
+                    this.earBase            = null;
+                    this.fallosMediaPipeSeguidos = 0;
+                    if (this.faceLandmarker) this.mediaPipeListo = true;
+                    this.iniciarDeteccion();
+                    this.iniciarDeteccionAccesorios();
+                    this.iniciarTimerFallback();
+                } else {
+                    this.alertaAccesorios = '';
+                    this.fotoCapturada    = foto;
+                    this.errorValidacion  = '';
+                }
+            } catch (e) {
+                console.error('Error al tomar la foto', e);
+                this.revisandoAccesorios = false;
                 this.parpadeoDetectado  = false;
                 this.ojosCerradosPrevio = false;
                 this.earBase            = null;
-                this.fallosMediaPipeSeguidos = 0;
-                if (this.faceLandmarker) this.mediaPipeListo = true;
                 this.iniciarDeteccion();
                 this.iniciarDeteccionAccesorios();
                 this.iniciarTimerFallback();
-            } else {
-                this.alertaAccesorios = '';
-                this.fotoCapturada    = foto;
-                this.errorValidacion  = '';
             }
         },
 
