@@ -1179,11 +1179,12 @@ class SolicitudContratoResource extends Resource
                     ->requiresConfirmation()
                     ->modalDescription('Se generará el contrato final (protegido, sin marca de agua) y quedará aprobado.')
                     ->action(function (SolicitudContrato $record) {
-                        app(\App\Services\SolicitudContratoIAService::class)->generarContratoPDF($record, borrador: false);
+                        $resultado = app(\App\Services\SolicitudContratoIAService::class)->generarContratoPDF($record, borrador: false);
 
                         \Filament\Notifications\Notification::make()
                             ->success()
                             ->title('Solicitud aprobada')
+                            ->body(static::mensajeOrigenFaltasGraves($resultado['faltas_graves_origen']))
                             ->send();
                     }),
 
@@ -1253,24 +1254,16 @@ class SolicitudContratoResource extends Resource
                                 $record->update(['duracion_terminacion_obra_redactada' => $duracionTerminacion]);
                             }
 
-                            $service->generarContratoPDF($record, borrador: true);
-
-                            // El estado sigue siendo 'borrador' antes y
-                            // después de esta acción - SolicitudContratoObserver
-                            // solo registra en el timeline cuando 'estado'
-                            // cambia (isDirty), así que sin esto regenerar
-                            // el PDF las veces que sea sería invisible para
-                            // la auditoría.
-                            app(\App\Services\TimelineService::class)->registrarDocumentoGenerado(
-                                procesoTipo: 'contrato',
-                                procesoId: $record->id,
-                                tipoDocumento: 'Contrato (borrador)',
-                                nombreArchivo: basename($record->ruta_contrato)
-                            );
+                            // generarContratoPDF() ya registra en el timeline
+                            // cada vez que corre (creación, regenerar,
+                            // aprobar) - no hace falta duplicar esa llamada
+                            // aquí.
+                            $resultado = $service->generarContratoPDF($record, borrador: true);
 
                             \Filament\Notifications\Notification::make()
                                 ->success()
                                 ->title('Borrador regenerado')
+                                ->body(static::mensajeOrigenFaltasGraves($resultado['faltas_graves_origen']))
                                 ->send();
                         }),
                 ]),
@@ -1317,6 +1310,22 @@ class SolicitudContratoResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         return 'warning';
+    }
+
+    /**
+     * Mensaje para el body de la notificación tras generar/regenerar el
+     * contrato, según el origen resuelto por
+     * SolicitudContratoIAService::obtenerFaltasGravesRit() - pedido
+     * explícito del usuario: no dejar al cliente sin saber si sus faltas
+     * graves salieron de SU reglamento o de un listado genérico.
+     */
+    public static function mensajeOrigenFaltasGraves(string $origen): string
+    {
+        return match ($origen) {
+            'rit' => 'Las faltas graves de este contrato incluyen las conductas específicas del Reglamento Interno de Trabajo de la empresa.',
+            'sin_rit' => 'La empresa no tiene un Reglamento Interno de Trabajo registrado, así que se usó el listado general de faltas graves de la ley. Suba el RIT de la empresa para personalizar esta cláusula.',
+            default => 'El Reglamento Interno de Trabajo de la empresa no tiene faltas graves identificadas, así que se usó el listado general de la ley.',
+        };
     }
 
     /**

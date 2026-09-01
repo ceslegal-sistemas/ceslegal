@@ -25,6 +25,8 @@ class SolicitudContratoIAService
 {
     public function __construct(
         private readonly RITGeneratorService $ritGeneratorService,
+        private readonly ReglamentoInternoService $reglamentoInternoService,
+        private readonly TimelineService $timelineService,
     ) {}
 
     /**
@@ -476,6 +478,71 @@ class SolicitudContratoIAService
     }
 
     /**
+     * Resuelve las faltas graves/gravísimas específicas del RIT vigente de
+     * la empresa, para la cláusula "FALTAS GRAVES" del contrato - pedido
+     * explícito del cliente: esa cláusula no debe ser genérica cuando la
+     * empresa ya tiene su propio reglamento con conductas propias.
+     *
+     * Reutiliza ReglamentoInternoService::generarConductasSancionables()
+     * (el MISMO motor que ya corre al subir un RIT o desde el botón
+     * "Generar conductas con IA" en Mi Reglamento Interno) - nunca redacta
+     * ni parafrasea nada nuevo aquí, solo lee o dispara esa extracción ya
+     * existente y usa su resultado tal cual.
+     *
+     * A propósito NO reutiliza
+     * ReglamentoInternoService::conductasSancionablesDeEmpresa() (que cae
+     * al catálogo genérico del CST si el RIT no tiene conductas) - acá
+     * necesitamos distinguir "es del RIT real de esta empresa" de "es el
+     * respaldo genérico", porque solo en el primer caso tiene sentido
+     * agregar algo a la cláusula (agregar el mismo respaldo genérico que la
+     * cláusula estática ya cubre sería duplicar texto sin ningún valor).
+     *
+     * @return array{origen: 'rit'|'sin_rit'|'sin_conductas', grave: string[], gravisima: string[]}
+     */
+    public function obtenerFaltasGravesRit(SolicitudContrato $solicitud): array
+    {
+        $rit = ReglamentoInterno::where('empresa_id', $solicitud->empresa_id)
+            ->orderByDesc('activo')
+            ->orderByDesc('updated_at')
+            ->first();
+
+        if (!$rit) {
+            return ['origen' => 'sin_rit', 'grave' => [], 'gravisima' => []];
+        }
+
+        $conductas = $rit->conductas_sancionables;
+
+        // Nunca se calcularon las conductas de este RIT (ej. subido antes de
+        // que existiera esta función, o wizard "Construir RIT" sin pasar
+        // por ese paso) - se extraen ahora mismo y se persisten en el RIT,
+        // para que la próxima solicitud de esta empresa no vuelva a pagar
+        // esta llamada a IA.
+        if (empty($conductas)) {
+            try {
+                $conductas = $this->reglamentoInternoService->generarConductasSancionables($rit);
+                $rit->update(['conductas_sancionables' => $conductas]);
+            } catch (\Throwable $e) {
+                Log::error('SolicitudContratoIAService: falló la extracción de conductas sancionables del RIT', [
+                    'empresa_id' => $solicitud->empresa_id,
+                    'rit_id' => $rit->id,
+                    'error' => $e->getMessage(),
+                ]);
+                $conductas = null;
+            }
+        }
+
+        if (!is_array($conductas) || (empty($conductas['grave']) && empty($conductas['gravisima']))) {
+            return ['origen' => 'sin_conductas', 'grave' => [], 'gravisima' => []];
+        }
+
+        return [
+            'origen'    => 'rit',
+            'grave'     => array_column($conductas['grave'] ?? [], 'conducta'),
+            'gravisima' => array_column($conductas['gravisima'] ?? [], 'conducta'),
+        ];
+    }
+
+    /**
      * Marca de agua "BORRADOR" - se inyecta en el HTML ANTES de renderizar
      * con Dompdf, vía str_replace('</body>', ...). position: fixed es una
      * característica real de Dompdf que repite el elemento en TODAS las
@@ -500,10 +567,14 @@ class SolicitudContratoIAService
      * "Aprobar". Dejar estado = 'aprobado' es responsabilidad de este
      * método (no del llamador), para que "Aprobar" no necesite un
      * ->update() de estado aparte.
+     *
+     * @return array{ruta: string, faltas_graves_origen: string}
      */
-    public function generarContratoPDF(SolicitudContrato $solicitud, bool $borrador = false): string
+    public function generarContratoPDF(SolicitudContrato $solicitud, bool $borrador = false): array
     {
-        $html = $this->generarHTML($solicitud);
+        $faltasGraves = $this->obtenerFaltasGravesRit($solicitud);
+
+        $html = $this->generarHTML($solicitud, $faltasGraves);
 
         if ($borrador) {
             $html = str_replace('</body>', self::MARCA_AGUA_BORRADOR . '</body>', $html);
@@ -545,7 +616,23 @@ class SolicitudContratoIAService
             'fecha_cierre'              => $borrador ? null : now(),
         ]);
 
-        return $rutaRelativa;
+        // Único punto de generación real del PDF (creación automática,
+        // "Regenerar Borrador" y "Aprobar" pasan los 3 por aquí) - se
+        // registra acá para cubrir los 3 casos sin duplicar la llamada al
+        // timeline en cada Table Action/página que dispare la generación.
+        $this->timelineService->registrar(
+            procesoTipo: 'contrato',
+            procesoId: $solicitud->id,
+            accion: 'Documento generado',
+            descripcion: 'Se generó el documento: Contrato (' . ($borrador ? 'borrador' : 'final') . ')',
+            metadata: [
+                'tipo_documento' => $borrador ? 'Contrato (borrador)' : 'Contrato (final)',
+                'nombre_archivo' => basename($rutaRelativa),
+                'faltas_graves_origen' => $faltasGraves['origen'],
+            ]
+        );
+
+        return ['ruta' => $rutaRelativa, 'faltas_graves_origen' => $faltasGraves['origen']];
     }
 
     /**
@@ -575,10 +662,10 @@ class SolicitudContratoIAService
         'destajo'   => 'según la obra o labor ejecutada',
     ];
 
-    private function generarHTML(SolicitudContrato $solicitud): string
+    private function generarHTML(SolicitudContrato $solicitud, array $faltasGraves): string
     {
         if ($vista = self::VISTA_POR_TIPO[$solicitud->tipo_contrato] ?? null) {
-            return $this->generarHTMLDesdeVista($solicitud, $vista);
+            return $this->generarHTMLDesdeVista($solicitud, $vista, $faltasGraves);
         }
 
         return $this->generarHTMLMinima($solicitud);
@@ -588,7 +675,7 @@ class SolicitudContratoIAService
      * Motor de plantillas real (hoy solo Término Fijo) - las 29 cláusulas
      * viven en la vista Blade, acá solo se preparan los datos variables.
      */
-    private function generarHTMLDesdeVista(SolicitudContrato $solicitud, string $vista): string
+    private function generarHTMLDesdeVista(SolicitudContrato $solicitud, string $vista, array $faltasGraves): string
     {
         $empresa           = $solicitud->empresa;
         $periodoPago       = $solicitud->periodo_pago ?: 'quincenal';
@@ -633,6 +720,9 @@ class SolicitudContratoIAService
             // sin negrita ni el espaciado del resto de cláusulas -
             // confirmado como hallazgo real de la revisión de este plan.
             'duracionTerminacionRedactada'  => $solicitud->duracion_terminacion_obra_redactada ?? '',
+            'faltasGravesOrigen'       => $faltasGraves['origen'],
+            'faltasGravesGrave'        => $faltasGraves['grave'],
+            'faltasGravesGravisima'    => $faltasGraves['gravisima'],
         ])->render();
     }
 

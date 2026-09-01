@@ -220,6 +220,18 @@
 
 <p><strong>PARÁGRAFO:</strong> El (La) Trabajador(a) será responsable de todos los dineros, efectos de comercio, valores, recursos informáticos, documentos e información que reciba, tenga en su poder o maneje por razón de sus funciones, sin poder disponer de ellos en su beneficio o en beneficio de terceros, y deberá rendir estricta cuenta de ellos y de su manejo al Empleador, de acuerdo con las políticas/procedimientos que el Empleador tiene establecidos o establezca sobre el particular.</p>
 
+@if (($faltasGravesOrigen ?? null) === 'rit')
+<p>Así mismo, conforme al Reglamento Interno de Trabajo vigente de {{ $nombreEmpresa }}, se consideran también faltas graves las siguientes conductas:</p>
+<ol>
+@foreach (($faltasGravesGrave ?? []) as $conducta)
+<li>{{ $conducta }}</li>
+@endforeach
+@foreach (($faltasGravesGravisima ?? []) as $conducta)
+<li>{{ $conducta }}</li>
+@endforeach
+</ol>
+@endif
+
 <p class="clausula"><span class="clausula-titulo">DÉCIMA CUARTA: INCAPACIDADES.</span> Cuando se trate de comprobar incapacidades para el trabajo por causa de enfermedad de origen común o profesional o de accidente de trabajo o de accidente común, sólo se aceptarán como válidas las certificaciones expedidas por la respectiva entidad de seguridad social a la que el (la) Trabajador(a) se encuentre afiliado, siempre y cuando la incapacidad médica sea transcrita o avalada por la EPS o ARL a la cual se encuentre vinculado el (la) Trabajador(a).</p>
 
 <p class="clausula"><span class="clausula-titulo">DÉCIMA QUINTA: CONFIDENCIALIDAD.</span> El (La) Trabajador(a) se abstendrá, durante la vigencia del presente contrato o con posterioridad a su terminación por cualquier causa de revelar, suministrar, vender, arrendar, publicar, copiar, reproducir, remover, disponer, transferir y en general utilizar directa o indirectamente en favor propio o de otras personas en forma total o parcial, cualquiera que sea su finalidad, información confidencial o privilegiada del Empleador o de las sociedades filiales, subsidiarias, matrices, subordinadas, relacionadas o empresas, personas naturales, accionistas, clientes o terceros relacionados con éste, a la cual tenga acceso o de la cual tenga conocimiento en desarrollo de su cargo o con ocasión de éste sin que medie autorización previa, expresa y escrita del Empleador para el efecto.</p>

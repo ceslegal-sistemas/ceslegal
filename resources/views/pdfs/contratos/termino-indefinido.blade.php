@@ -543,6 +543,19 @@
         cuenta de ellos y de su manejo al EMPLEADOR, de acuerdo con las políticas/procedimientos que el Empleador tiene
         establecidos o establezca sobre el particular.</p>
 
+    @if (($faltasGravesOrigen ?? null) === 'rit')
+        <p>Así mismo, conforme al Reglamento Interno de Trabajo vigente de {{ $nombreEmpresa }}, se consideran también
+            faltas graves las siguientes conductas:</p>
+        <ol>
+            @foreach (($faltasGravesGrave ?? []) as $conducta)
+                <li>{{ $conducta }}</li>
+            @endforeach
+            @foreach (($faltasGravesGravisima ?? []) as $conducta)
+                <li>{{ $conducta }}</li>
+            @endforeach
+        </ol>
+    @endif
+
     <p class="clausula"><span class="clausula-titulo">DÉCIMA TERCERA: INCAPACIDADES.</span> Cuando se trate de comprobar
         incapacidades para el trabajo por causa de enfermedad de origen común o profesional o de accidente de trabajo o
         de accidente común, sólo se aceptarán como válidas las certificaciones expedidas por la respectiva entidad de

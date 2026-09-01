@@ -60,7 +60,13 @@ class CreateSolicitudContrato extends CreateRecord
                 $this->record->update(['duracion_terminacion_obra_redactada' => $duracionTerminacion]);
             }
 
-            $service->generarContratoPDF($this->record, borrador: true);
+            $resultado = $service->generarContratoPDF($this->record, borrador: true);
+
+            Notification::make()
+                ->success()
+                ->title('Borrador generado')
+                ->body(SolicitudContratoResource::mensajeOrigenFaltasGraves($resultado['faltas_graves_origen']))
+                ->send();
         } catch (\Throwable $e) {
             Log::error('SolicitudContrato: falló la generación automática del borrador', [
                 'solicitud_id' => $this->record->id,

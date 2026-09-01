@@ -18,6 +18,18 @@
         'destajo' => 'Por obra o destajo',
         default => $record->periodo_pago,
     };
+
+    // Se lee del timeline en vez de recalcularlo aquí, para no disparar la
+    // extracción de conductas del RIT (ni ninguna llamada a IA) solo por
+    // abrir la página "Ver" - refleja lo que realmente se usó la última vez
+    // que se generó el documento.
+    $ultimoDocumentoGenerado = $record->timeline()->where('accion', 'Documento generado')->first();
+    $faltasGravesOrigenLabel = match ($ultimoDocumentoGenerado?->metadata['faltas_graves_origen'] ?? null) {
+        'rit' => 'Según RIT de la empresa',
+        'sin_rit' => 'Listado general (sin RIT registrado)',
+        'sin_conductas' => 'Listado general (RIT sin faltas identificadas)',
+        default => null,
+    };
 @endphp
 
 <x-filament-panels::page
@@ -61,6 +73,7 @@
             ['label' => 'Fecha de Terminación', 'value' => $record->fecha_fin_contrato?->format('d/m/Y')],
             ['label' => 'Salario', 'value' => $record->salario_propuesto ? number_format((float) $record->salario_propuesto, 2, ',', '.') . ' COP' : null],
             ['label' => 'Período de Pago', 'value' => $periodoPagoLabel],
+            ['label' => 'Faltas Graves', 'value' => $faltasGravesOrigenLabel],
             ['label' => 'Lugar de Labores', 'value' => $record->lugar_labores, 'full' => true],
         ],
     ])
