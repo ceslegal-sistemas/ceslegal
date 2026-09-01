@@ -33,6 +33,7 @@ class DuracionContratoTest extends TestCase
         // set('data.campo', valor) campo por campo, mismo criterio ya
         // establecido en otros tests de wizards.
         Livewire::test(CreateSolicitudContrato::class)
+            ->set('data.tipo_contrato', 'Contrato a Término Fijo')
             ->set('data.fecha_inicio_propuesta', '2026-01-01')
             ->set('data.duracion_unidad', 'dia')
             ->set('data.duracion_cantidad', 10)
@@ -44,6 +45,7 @@ class DuracionContratoTest extends TestCase
         $this->usuario();
 
         Livewire::test(CreateSolicitudContrato::class)
+            ->set('data.tipo_contrato', 'Contrato a Término Fijo')
             ->set('data.fecha_inicio_propuesta', '2026-01-01')
             ->set('data.duracion_unidad', 'mes')
             ->set('data.duracion_cantidad', 6)
@@ -55,6 +57,7 @@ class DuracionContratoTest extends TestCase
         $this->usuario();
 
         Livewire::test(CreateSolicitudContrato::class)
+            ->set('data.tipo_contrato', 'Contrato a Término Fijo')
             ->set('data.fecha_inicio_propuesta', '2026-01-01')
             ->set('data.duracion_unidad', 'mes')
             ->set('data.duracion_cantidad', 1)
@@ -67,6 +70,7 @@ class DuracionContratoTest extends TestCase
         $this->usuario();
 
         Livewire::test(CreateSolicitudContrato::class)
+            ->set('data.tipo_contrato', 'Contrato a Término Fijo')
             ->set('data.fecha_inicio_propuesta', '2026-01-01')
             ->set('data.duracion_unidad', 'anio')
             ->set('data.duracion_cantidad', 1)
@@ -81,6 +85,7 @@ class DuracionContratoTest extends TestCase
         $this->usuario();
 
         Livewire::test(CreateSolicitudContrato::class)
+            ->set('data.tipo_contrato', 'Contrato a Término Fijo')
             ->set('data.fecha_inicio_propuesta', '2026-01-01')
             ->set('data.fecha_fin_contrato', '2027-03-11')
             ->assertSet('data.duracion_unidad', 'anio')
@@ -95,6 +100,7 @@ class DuracionContratoTest extends TestCase
         $this->usuario();
 
         Livewire::test(CreateSolicitudContrato::class)
+            ->set('data.tipo_contrato', 'Contrato a Término Fijo')
             ->set('data.fecha_inicio_propuesta', '2026-01-01')
             ->set('data.fecha_fin_contrato', '2026-01-11')
             ->assertSet('data.duracion_unidad', 'dia')
@@ -114,6 +120,7 @@ class DuracionContratoTest extends TestCase
         $this->usuario();
 
         Livewire::test(CreateSolicitudContrato::class)
+            ->set('data.tipo_contrato', 'Contrato a Término Fijo')
             ->set('data.fecha_inicio_propuesta', '2026-01-01')
             ->set('data.duracion_unidad', 'dia')
             ->set('data.duracion_cantidad', -5)

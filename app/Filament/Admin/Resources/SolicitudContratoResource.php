@@ -184,8 +184,26 @@ class SolicitudContratoResource extends Resource
                                 ->native(false)
                                 ->searchable()
                                 // live(): la visibilidad de "Orden de Compra" (paso
-                                // Documentos) depende de este valor.
+                                // Documentos) y del Fieldset "Duración del Contrato"
+                                // (paso Condiciones del Contrato) depende de este valor.
                                 ->live()
+                                ->afterStateUpdated(function (Set $set, ?string $state): void {
+                                    // Término Indefinido y Obra o Labor no usan fecha de
+                                    // terminación (ver self::tiposConFechaTerminacion()) -
+                                    // si el usuario ya la había puesto y cambia a uno de
+                                    // estos 2 tipos, se limpia. Sin esto, en una EDICIÓN
+                                    // la fecha vieja quedaría huérfana en la base de datos:
+                                    // el campo, al ocultarse, no se dehidrata en el update
+                                    // y nadie tendría forma de verla ni corregirla.
+                                    if (!in_array($state, self::tiposConFechaTerminacion(), true)) {
+                                        $set('fecha_fin_contrato', null);
+                                        $set('duracion_cantidad', null);
+                                        $set('duracion_unidad', 'dia');
+                                        $set('duracion_cantidad_2', null);
+                                        $set('duracion_unidad_2', null);
+                                        $set('duracion_cantidad_3', null);
+                                    }
+                                })
                                 ->helperText('Tipo de contrato laboral a generar')
                                 ->placeholder('Seleccione el tipo de contrato...')
                                 ->suffixIcon('heroicon-o-document-duplicate'),
@@ -563,6 +581,12 @@ class SolicitudContratoResource extends Resource
 
                             Forms\Components\Fieldset::make('Duración del Contrato')
                                 ->columnSpanFull()
+                                // Término Indefinido no tiene fecha de terminación por
+                                // definición; Obra o Labor se rige por la finalización de
+                                // la obra/labor contratada (descripcion_obra_labor +
+                                // redacción de IA en duracion_terminacion_obra_redactada),
+                                // no por una fecha calendario - ver self::tiposConFechaTerminacion().
+                                ->visible(fn(Get $get) => in_array($get('tipo_contrato'), self::tiposConFechaTerminacion(), true))
                                 ->schema([
                                     // Sin fecha de inicio, calcularFechaFinDesdeDuracion() no
                                     // tiene desde dónde contar y no hace nada - antes esto
@@ -660,6 +684,12 @@ class SolicitudContratoResource extends Resource
                                         ->native(false)
                                         ->displayFormat('d/m/Y')
                                         ->live()
+                                        // Antes no era obligatoria para ningún tipo de contrato,
+                                        // ni siquiera Término Fijo - donde es legalmente esencial
+                                        // (un contrato a término fijo sin fecha de terminación es
+                                        // una contradicción). Solo aplica cuando el Fieldset
+                                        // completo es visible (ver self::tiposConFechaTerminacion()).
+                                        ->required(fn(Get $get) => in_array($get('tipo_contrato'), self::tiposConFechaTerminacion(), true))
                                         ->afterOrEqual('fecha_inicio_propuesta')
                                         // "Contrato Ocasional o Transitorio" tiene un límite legal de
                                         // máximo 30 días (Art. 6 C.S.T.) - se acota la fecha máxima
@@ -1326,6 +1356,24 @@ class SolicitudContratoResource extends Resource
             'sin_rit' => 'La empresa no tiene un Reglamento Interno de Trabajo registrado, así que se usó el listado general de faltas graves de la ley. Suba el RIT de la empresa para personalizar esta cláusula.',
             default => 'El Reglamento Interno de Trabajo de la empresa no tiene faltas graves identificadas, así que se usó el listado general de la ley.',
         };
+    }
+
+    /**
+     * Tipos de contrato que sí tienen fecha de terminación / duración
+     * determinada bajo el CST. Término Indefinido no la tiene por definición;
+     * Obra o Labor se rige por la finalización de la obra/labor contratada
+     * (descripcion_obra_labor + redacción de IA), no por una fecha calendario
+     * fija - análisis empírico pedido por el usuario contra las 3 plantillas
+     * reales y los 6 tipos de contrato del wizard (2026-09-01).
+     */
+    protected static function tiposConFechaTerminacion(): array
+    {
+        return [
+            'Contrato a Término Fijo',
+            'Contrato de Prestación de Servicios',
+            'Contrato de Aprendizaje',
+            'Contrato Ocasional o Transitorio',
+        ];
     }
 
     /**
