@@ -21,6 +21,17 @@ class SolicitudContratoDescargaController extends Controller
 
         abort_if(!file_exists($ruta), 404, 'Archivo no encontrado.');
 
-        return response()->file($ruta, ['Content-Type' => 'application/pdf']);
+        // Sin estos headers el navegador (y en especial el visor de PDF de
+        // Chrome) sirve el PDF cacheado de esta misma URL en vez de pedirlo
+        // de nuevo tras "Regenerar Borrador" - bug real reportado por el
+        // usuario: el archivo en disco SÍ se actualizaba (confirmado por
+        // fecha_generacion_contrato + filemtime), pero "Ver Contrato" seguía
+        // mostrando la versión vieja.
+        return response()->file($ruta, [
+            'Content-Type'  => 'application/pdf',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma'        => 'no-cache',
+            'Expires'       => '0',
+        ]);
     }
 }
