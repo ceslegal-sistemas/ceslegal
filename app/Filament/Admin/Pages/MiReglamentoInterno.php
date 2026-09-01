@@ -274,6 +274,15 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             return;
         }
 
+        // Auditar con nuestra propia IA un RIT que la misma IA ya construyó
+        // (construido_ia) o mejoró (mejora_ia) es circular - no aporta una
+        // verificación independiente. El botón ya está oculto para esos casos
+        // en la vista; este candado es solo la segunda capa de defensa.
+        if ($this->reglamento->fuente !== 'subido') {
+            Notification::make()->warning()->title('Este Reglamento no se puede auditar')->send();
+            return;
+        }
+
         $this->auditoria = app(\App\Services\AuditoriaRITService::class)->iniciar($this->empresa, null);
         \App\Jobs\ProcesarAuditoriaRIT::dispatch($this->auditoria, (int) Auth::id());
 

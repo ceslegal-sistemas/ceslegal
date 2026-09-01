@@ -122,6 +122,8 @@ html:not(.dark) .mejora-pct{color:#e11d48}
         <div class="sl-viewer"><div class="sl-vb" style="text-align:center">
             @if(($fuenteRitActivo ?? null) === 'mejora_ia')
                 <p class="sl-muted" style="margin:0">Este Reglamento fue generado por nuestra IA a partir de una auditoría previa - no se ofrece una nueva auditoría automática sobre su propio resultado.</p>
+            @elseif(($fuenteRitActivo ?? null) === 'construido_ia')
+                <p class="sl-muted" style="margin:0">Este Reglamento fue construido con nuestra IA conforme al CST y su Biblioteca Legal - no se ofrece una auditoría automática con la misma IA que ya lo redactó.</p>
             @else
                 <p class="sl-muted" style="margin:0 0 1rem">Aún no se ha auditado este Reglamento Interno.</p>
                 <button wire:click="iniciarAuditoriaManual" class="sl-btn sl-btn-primary @if($resaltar) sl-highlight @endif" style="margin:0 auto">
@@ -188,6 +190,8 @@ html:not(.dark) .mejora-pct{color:#e11d48}
                             @if($a->resumen_general)<p class="sl-muted" style="white-space:pre-line">{{ $a->resumen_general }}</p>@endif
                             @if(($fuenteRitActivo ?? null) === 'mejora_ia')
                                 <p class="sl-muted" style="margin-top:.75rem;font-size:.8rem">Este resultado corresponde a la auditoría que generó la mejora ya adoptada - auditar de nuevo el RIT mejorado con nuestra propia IA no aporta una verificación independiente.</p>
+                            @elseif(($fuenteRitActivo ?? null) === 'construido_ia')
+                                <p class="sl-muted" style="margin-top:.75rem;font-size:.8rem">Este Reglamento fue construido con nuestra IA - no se ofrece una nueva auditoría con la misma IA que ya lo redactó.</p>
                             @else
                                 <button wire:click="iniciarAuditoriaManual" class="sl-btn sl-btn-ghost @if($resaltar) sl-highlight @endif" style="margin-top:.75rem">
                                     <svg style="width:14px;height:14px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>

@@ -211,10 +211,11 @@ html:not(.dark) .rit-sug-just{color:#57534e}
                  (iniciarAuditoriaManual), aquí junto al resto de acciones del RIT.
                  Se resalta con el mismo pulso (.sl-highlight, ver rit-auditoria-panel)
                  al llegar desde la notificación de nueva normativa.
-                 Oculto para fuente=mejora_ia: auditar con nuestra propia IA un RIT
-                 que la misma IA acaba de generar como mejora es circular - no aporta
-                 una verificación independiente. --}}
-            @if($reglamento?->fuente !== 'mejora_ia')
+                 Solo tiene sentido para fuente=subido (RIT real del cliente que
+                 nunca ha pasado por nuestra IA): auditar con nuestra propia IA un
+                 RIT que la misma IA construyó (construido_ia) o mejoró (mejora_ia)
+                 es circular - no aporta una verificación independiente. --}}
+            @if($reglamento?->fuente === 'subido')
               <button wire:click="iniciarAuditoriaManual" class="rit-btn rit-btn-secondary @if($resaltarAuditar) sl-highlight @endif">
                 <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.2-5.2m1.7-4.05a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"/></svg>
                 {{ $auditoria ? 'Volver a auditar' : 'Auditar RIT' }}
