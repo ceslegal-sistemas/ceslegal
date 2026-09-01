@@ -1058,196 +1058,12 @@ class CreateReglamentoInterno extends CreateRecord
                 ]),
 
             // ─────────────────────────────────────────────────────────────────
-            // STEP 5: Régimen Disciplinario
+            // STEP 5: SST y Conducta
             // ─────────────────────────────────────────────────────────────────
-            Step::make('disciplina')
-                ->label('Disciplina')
-                ->description('Faltas y sanciones')
-                ->icon('heroicon-o-scale')
-                ->schema([
-
-                    Forms\Components\View::make('filament.components.step-header')
-                        ->key('rit_step_header_disciplina')
-                        ->viewData([
-                            'step' => 5,
-                            'total' => 7,
-                            'title' => 'Disciplina',
-                            'accent' => '#fb923c',
-                            'lord' => 'https://cdn.lordicon.com/xjsqfzte.json',
-                            'subtitle' => 'Conductas sancionables y medidas disciplinarias.',
-                        ])
-                        ->columnSpanFull(),
-
-                    // Forms\Components\Placeholder::make('info_paso_disciplina')
-                    //     ->label('')
-                    //     ->content(fn() => new HtmlString(
-                    //         view('filament.components.rit-step-disciplina-info')->render()
-                    //     ))
-                    //     ->columnSpanFull(),
-
-                    Forms\Components\Section::make('Conductas sancionables y medidas disciplinarias')
-                        ->description('Genere el régimen disciplinario con IA según la actividad y los cargos de su empresa (conforme al CST). Luego puede eliminar las que no apliquen, cambiar el tipo de falta, ajustar la sanción o agregar conductas propias de su sector.')
-                        ->schema([
-                            Forms\Components\Actions::make([
-                                Forms\Components\Actions\Action::make('generar_conductas_ia')
-                                    ->label('Generar conductas con IA')
-                                    ->icon('heroicon-o-sparkles')
-                                    ->color('primary')
-                                    ->requiresConfirmation()
-                                    ->modalHeading('Generar conductas con IA')
-                                    ->modalDescription('La IA generará el régimen disciplinario según la actividad y los cargos de su empresa, conforme al CST. Reemplazará las conductas actuales del listado.')
-                                    ->modalSubmitActionLabel('Generar')
-                                    ->action(function (Get $get, Set $set) {
-                                        $actividadId = $get('actividad_economica_id');
-                                        $actividad   = $actividadId ? optional(ActividadEconomica::find($actividadId))->nombre : '';
-                                        $cargos      = collect($get('cargos') ?? [])->pluck('nombre_cargo')->filter()->join(', ');
-
-                                        $rows = app(\App\Services\ReglamentoInternoService::class)
-                                            ->generarConductasParaWizard(['actividad' => $actividad, 'cargos' => $cargos]);
-
-                                        if (empty($rows)) {
-                                            Notification::make()->warning()
-                                                ->title('No se pudieron generar las conductas')
-                                                ->body('La IA no devolvió un listado válido. Intente de nuevo.')
-                                                ->send();
-                                            return;
-                                        }
-
-                                        $set('sanciones_configuradas', $rows);
-                                        Notification::make()->success()
-                                            ->title('Conductas generadas')
-                                            ->body(count($rows) . ' conductas generadas con IA. Revíselas y ajústelas según su empresa.')
-                                            ->send();
-                                    }),
-                            ])->columnSpanFull(),
-
-                            Forms\Components\Repeater::make('sanciones_configuradas')
-                                ->label('Régimen disciplinario')
-                                ->helperText('Genere las conductas con IA (botón de arriba) y luego edítelas. Haga clic en una conducta para expandirla; elimine con el ícono de basura; agregue conductas al final.')
-                                ->schema([
-                                    Forms\Components\TextInput::make('nombre')
-                                        ->label('Conducta sancionable')
-                                        ->required()
-                                        ->columnSpanFull(),
-                                    Forms\Components\ToggleButtons::make('tipo_falta')
-                                        ->label('Tipo de falta')
-                                        ->options([
-                                            'leve'      => 'Leve',
-                                            'grave'     => 'Grave',
-                                            'muy_grave' => 'Muy grave',
-                                        ])
-                                        ->colors([
-                                            'leve'      => 'gray',
-                                            'grave'     => 'warning',
-                                            'muy_grave' => 'danger',
-                                        ])
-                                        ->icons([
-                                            'leve'      => 'heroicon-o-information-circle',
-                                            'grave'     => 'heroicon-o-exclamation-triangle',
-                                            'muy_grave' => 'heroicon-o-fire',
-                                        ])
-                                        ->inline()
-                                        ->required()
-                                        ->hintIcon('heroicon-m-information-circle', tooltip: 'La sanción debe ser proporcional a la gravedad de la falta. Clasificar bien (leve, grave o muy grave) es clave para que la medida resista una eventual demanda.')
-                                        ->columnSpan(['default' => 1, 'sm' => 6]),
-                                    Forms\Components\ToggleButtons::make('tipo_sancion')
-                                        ->label('Sanción aplicable')
-                                        ->options([
-                                            'llamado_atencion' => 'Llamado',
-                                            'suspension'       => 'Suspensión',
-                                            'terminacion'      => 'Terminación',
-                                        ])
-                                        ->colors([
-                                            'llamado_atencion' => 'info',
-                                            'suspension'       => 'warning',
-                                            'terminacion'      => 'danger',
-                                        ])
-                                        ->inline()
-                                        ->required()
-                                        ->live()
-                                        ->columnSpan(['default' => 1, 'sm' => 6]),
-                                    Forms\Components\ToggleButtons::make('escenario_suspension')
-                                        ->label('Escenario')
-                                        ->options([
-                                            'primera_vez'  => 'Primera vez',
-                                            'reincidencia' => 'Reincidencia',
-                                        ])
-                                        ->colors([
-                                            'primera_vez'  => 'success',
-                                            'reincidencia' => 'danger',
-                                        ])
-                                        ->icons([
-                                            'primera_vez'  => 'heroicon-o-flag',
-                                            'reincidencia' => 'heroicon-o-arrow-path',
-                                        ])
-                                        ->inline()
-                                        ->live()
-                                        ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
-                                        ->columnSpan(['default' => 1, 'sm' => 8])
-                                        // Los radios nativos no se deseleccionan: al hacer clic en la
-                                        // opción ya activa, la limpiamos manualmente (deja el escenario en blanco).
-                                        ->extraAttributes([
-                                            'x-data' => '{ pre: null }',
-                                            'x-on:mousedown.capture' => "pre = \$event.target.closest('div')?.querySelector('input[type=radio]')?.checked ? \$event.target.closest('div').querySelector('input[type=radio]').value : null",
-                                            'x-on:click.capture' => "(() => { const inp = \$event.target.closest('div')?.querySelector('input[type=radio]'); if (!inp || pre === null || inp.value !== pre) return; \$event.preventDefault(); inp.checked = false; const a = [...inp.attributes].find(x => x.name.startsWith('wire:model')); if (a) \$wire.set(a.value, null); })()",
-                                        ]),
-                                    Forms\Components\TextInput::make('dias_suspension')
-                                        ->label('Días de suspensión')
-                                        ->numeric()
-                                        ->integer()
-                                        ->minValue(1)
-                                        ->maxValue(fn(Get $get): int => $get('escenario_suspension') === 'primera_vez' ? 8 : 60)
-                                        ->live(onBlur: true)
-                                        // Clamp en tiempo real al límite del CST según el escenario.
-                                        ->afterStateUpdated(function ($state, Set $set, Get $get): void {
-                                            if ($state === null || $state === '') {
-                                                return;
-                                            }
-                                            $max = $get('escenario_suspension') === 'primera_vez' ? 8 : 60;
-                                            $v = (int) $state;
-                                            if ($v > $max) {
-                                                $set('dias_suspension', $max);
-                                            } elseif ($v < 1) {
-                                                $set('dias_suspension', 1);
-                                            }
-                                        })
-                                        ->extraInputAttributes(fn(Get $get): array => [
-                                            'min'       => 1,
-                                            'max'       => $get('escenario_suspension') === 'primera_vez' ? 8 : 60,
-                                            'onkeydown' => "return event.key !== '-'",
-                                        ])
-                                        ->placeholder('máx.')
-                                        ->hintIcon('heroicon-m-information-circle', tooltip: 'La suspensión no puede superar 8 días por la primera vez ni 2 meses (60 días) en caso de reincidencia (Art. 112 CST).')
-                                        ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
-                                        ->columnSpan(['default' => 1, 'sm' => 4]),
-                                ])
-                                ->columns(['default' => 1, 'sm' => 12])
-                                ->defaultItems(0)
-                                ->reorderable(false)
-                                ->collapsible()
-                                ->collapsed()
-                                ->itemLabel(
-                                    fn(array $state): string => ($state['nombre'] ?? 'Nueva conducta') .
-                                        ' - ' . match ($state['tipo_falta'] ?? 'leve') {
-                                            'muy_grave' => 'Muy grave',
-                                            'grave'     => 'Grave',
-                                            default     => 'Leve',
-                                        } .
-                                        ' → ' . match ($state['tipo_sancion'] ?? '') {
-                                            'llamado_atencion' => 'Llamado de atención',
-                                            'suspension'       => 'Suspensión' . (!empty($state['dias_suspension']) ? ' ' . $state['dias_suspension'] . ' días' : ''),
-                                            'terminacion'      => 'Terminación',
-                                            default            => '-',
-                                        }
-                                )
-                                ->addActionLabel('+ Agregar conducta')
-                                ->columnSpanFull(),
-                        ]),
-                ]),
-
-            // ─────────────────────────────────────────────────────────────────
-            // STEP 6: SST y Conducta
-            // ─────────────────────────────────────────────────────────────────
+            // Va ANTES de "Disciplina" (pedido explícito del usuario): así
+            // "Generar conductas con IA" (paso siguiente) ya puede leer
+            // riesgos_principales/que_quiere_prevenir de este paso y usarlos
+            // como contexto real para la IA.
             Step::make('sst_conducta')
                 ->label('SST y Conducta')
                 ->description('Seguridad y comportamiento')
@@ -1257,7 +1073,7 @@ class CreateReglamentoInterno extends CreateRecord
                     Forms\Components\View::make('filament.components.step-header')
                         ->key('rit_step_header_sst')
                         ->viewData([
-                            'step' => 6,
+                            'step' => 5,
                             'total' => 7,
                             'title' => 'SST y Conducta',
                             'accent' => '#f472b6',
@@ -1462,6 +1278,212 @@ class CreateReglamentoInterno extends CreateRecord
                                 ->columnSpanFull(),
                         ])
                         ->columns(['default' => 1, 'sm' => 2]),
+                ]),
+
+            // ─────────────────────────────────────────────────────────────────
+            // STEP 6: Régimen Disciplinario
+            // ─────────────────────────────────────────────────────────────────
+            Step::make('disciplina')
+                ->label('Disciplina')
+                ->description('Faltas y sanciones')
+                ->icon('heroicon-o-scale')
+                ->schema([
+
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('rit_step_header_disciplina')
+                        ->viewData([
+                            'step' => 6,
+                            'total' => 7,
+                            'title' => 'Disciplina',
+                            'accent' => '#fb923c',
+                            'lord' => 'https://cdn.lordicon.com/xjsqfzte.json',
+                            'subtitle' => 'Conductas sancionables y medidas disciplinarias.',
+                        ])
+                        ->columnSpanFull(),
+
+                    // Forms\Components\Placeholder::make('info_paso_disciplina')
+                    //     ->label('')
+                    //     ->content(fn() => new HtmlString(
+                    //         view('filament.components.rit-step-disciplina-info')->render()
+                    //     ))
+                    //     ->columnSpanFull(),
+
+                    Forms\Components\Section::make('Conductas sancionables y medidas disciplinarias')
+                        ->description('Genere el régimen disciplinario con IA según la actividad, los cargos y los riesgos de su empresa (conforme al CST). Luego puede eliminar las que no apliquen, cambiar el tipo de falta, ajustar la sanción o agregar conductas propias de su sector.')
+                        ->schema([
+                            Forms\Components\Actions::make([
+                                Forms\Components\Actions\Action::make('generar_conductas_ia')
+                                    ->label('Generar conductas con IA')
+                                    ->icon('heroicon-o-sparkles')
+                                    ->color('primary')
+                                    ->requiresConfirmation()
+                                    ->modalHeading('Generar conductas con IA')
+                                    ->modalDescription('La IA generará conductas del régimen disciplinario según la actividad, los cargos y los riesgos de su empresa, conforme al CST. Se agregan al final del listado - las que ya tenga NO se borran, así que puede darle varias veces para conseguir más.')
+                                    ->modalSubmitActionLabel('Generar')
+                                    ->action(function (Get $get, Set $set) {
+                                        $actividadId = $get('actividad_economica_id');
+                                        $actividad   = $actividadId ? optional(ActividadEconomica::find($actividadId))->nombre : '';
+                                        $cargos      = collect($get('cargos') ?? [])->pluck('nombre_cargo')->filter()->join(', ');
+                                        $riesgos     = collect((array) $get('riesgos_principales'))
+                                            ->map(fn($r) => $r === 'otro' ? trim((string) $get('riesgos_otros')) : $r)
+                                            ->filter()
+                                            ->join(', ');
+                                        $prevenir    = trim((string) $get('que_quiere_prevenir'));
+                                        $actuales    = collect($get('sanciones_configuradas') ?? [])
+                                            ->pluck('nombre')
+                                            ->filter()
+                                            ->all();
+
+                                        $rows = app(\App\Services\ReglamentoInternoService::class)
+                                            ->generarConductasParaWizard([
+                                                'actividad'  => $actividad,
+                                                'cargos'     => $cargos,
+                                                'riesgos'    => $riesgos,
+                                                'prevenir'   => $prevenir,
+                                                'existentes' => $actuales,
+                                            ]);
+
+                                        if (empty($rows)) {
+                                            Notification::make()->warning()
+                                                ->title('No se pudieron generar las conductas')
+                                                ->body('La IA no devolvió un listado válido. Intente de nuevo.')
+                                                ->send();
+                                            return;
+                                        }
+
+                                        // Agregar al final, NUNCA reemplazar - pedido explícito del
+                                        // usuario: si ya le dieron al botón antes, volver a darle debe
+                                        // sumar más conductas, no borrar las que ya estaban.
+                                        $set('sanciones_configuradas', [...($get('sanciones_configuradas') ?? []), ...$rows]);
+                                        Notification::make()->success()
+                                            ->title('Conductas generadas')
+                                            ->body(count($rows) . ' conductas nuevas agregadas al listado. Revíselas y ajústelas según su empresa.')
+                                            ->send();
+                                    }),
+                            ])->columnSpanFull(),
+
+                            Forms\Components\Repeater::make('sanciones_configuradas')
+                                ->label('Régimen disciplinario')
+                                ->helperText('Genere las conductas con IA (botón de arriba) y luego edítelas. Haga clic en una conducta para expandirla; elimine con el ícono de basura; agregue conductas al final.')
+                                ->schema([
+                                    Forms\Components\TextInput::make('nombre')
+                                        ->label('Conducta sancionable')
+                                        ->required()
+                                        ->columnSpanFull(),
+                                    Forms\Components\ToggleButtons::make('tipo_falta')
+                                        ->label('Tipo de falta')
+                                        ->options([
+                                            'leve'      => 'Leve',
+                                            'grave'     => 'Grave',
+                                            'muy_grave' => 'Muy grave',
+                                        ])
+                                        ->colors([
+                                            'leve'      => 'gray',
+                                            'grave'     => 'warning',
+                                            'muy_grave' => 'danger',
+                                        ])
+                                        ->icons([
+                                            'leve'      => 'heroicon-o-information-circle',
+                                            'grave'     => 'heroicon-o-exclamation-triangle',
+                                            'muy_grave' => 'heroicon-o-fire',
+                                        ])
+                                        ->inline()
+                                        ->required()
+                                        ->hintIcon('heroicon-m-information-circle', tooltip: 'La sanción debe ser proporcional a la gravedad de la falta. Clasificar bien (leve, grave o muy grave) es clave para que la medida resista una eventual demanda.')
+                                        ->columnSpan(['default' => 1, 'sm' => 6]),
+                                    Forms\Components\ToggleButtons::make('tipo_sancion')
+                                        ->label('Sanción aplicable')
+                                        ->options([
+                                            'llamado_atencion' => 'Llamado',
+                                            'suspension'       => 'Suspensión',
+                                            'terminacion'      => 'Terminación',
+                                        ])
+                                        ->colors([
+                                            'llamado_atencion' => 'info',
+                                            'suspension'       => 'warning',
+                                            'terminacion'      => 'danger',
+                                        ])
+                                        ->inline()
+                                        ->required()
+                                        ->live()
+                                        ->columnSpan(['default' => 1, 'sm' => 6]),
+                                    Forms\Components\ToggleButtons::make('escenario_suspension')
+                                        ->label('Escenario')
+                                        ->options([
+                                            'primera_vez'  => 'Primera vez',
+                                            'reincidencia' => 'Reincidencia',
+                                        ])
+                                        ->colors([
+                                            'primera_vez'  => 'success',
+                                            'reincidencia' => 'danger',
+                                        ])
+                                        ->icons([
+                                            'primera_vez'  => 'heroicon-o-flag',
+                                            'reincidencia' => 'heroicon-o-arrow-path',
+                                        ])
+                                        ->inline()
+                                        ->live()
+                                        ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
+                                        ->columnSpan(['default' => 1, 'sm' => 8])
+                                        // Los radios nativos no se deseleccionan: al hacer clic en la
+                                        // opción ya activa, la limpiamos manualmente (deja el escenario en blanco).
+                                        ->extraAttributes([
+                                            'x-data' => '{ pre: null }',
+                                            'x-on:mousedown.capture' => "pre = \$event.target.closest('div')?.querySelector('input[type=radio]')?.checked ? \$event.target.closest('div').querySelector('input[type=radio]').value : null",
+                                            'x-on:click.capture' => "(() => { const inp = \$event.target.closest('div')?.querySelector('input[type=radio]'); if (!inp || pre === null || inp.value !== pre) return; \$event.preventDefault(); inp.checked = false; const a = [...inp.attributes].find(x => x.name.startsWith('wire:model')); if (a) \$wire.set(a.value, null); })()",
+                                        ]),
+                                    Forms\Components\TextInput::make('dias_suspension')
+                                        ->label('Días de suspensión')
+                                        ->numeric()
+                                        ->integer()
+                                        ->minValue(1)
+                                        ->maxValue(fn(Get $get): int => $get('escenario_suspension') === 'primera_vez' ? 8 : 60)
+                                        ->live(onBlur: true)
+                                        // Clamp en tiempo real al límite del CST según el escenario.
+                                        ->afterStateUpdated(function ($state, Set $set, Get $get): void {
+                                            if ($state === null || $state === '') {
+                                                return;
+                                            }
+                                            $max = $get('escenario_suspension') === 'primera_vez' ? 8 : 60;
+                                            $v = (int) $state;
+                                            if ($v > $max) {
+                                                $set('dias_suspension', $max);
+                                            } elseif ($v < 1) {
+                                                $set('dias_suspension', 1);
+                                            }
+                                        })
+                                        ->extraInputAttributes(fn(Get $get): array => [
+                                            'min'       => 1,
+                                            'max'       => $get('escenario_suspension') === 'primera_vez' ? 8 : 60,
+                                            'onkeydown' => "return event.key !== '-'",
+                                        ])
+                                        ->placeholder('máx.')
+                                        ->hintIcon('heroicon-m-information-circle', tooltip: 'La suspensión no puede superar 8 días por la primera vez ni 2 meses (60 días) en caso de reincidencia (Art. 112 CST).')
+                                        ->hidden(fn(Get $get): bool => $get('tipo_sancion') !== 'suspension')
+                                        ->columnSpan(['default' => 1, 'sm' => 4]),
+                                ])
+                                ->columns(['default' => 1, 'sm' => 12])
+                                ->defaultItems(0)
+                                ->reorderable(false)
+                                ->collapsible()
+                                ->collapsed()
+                                ->itemLabel(
+                                    fn(array $state): string => ($state['nombre'] ?? 'Nueva conducta') .
+                                        ' - ' . match ($state['tipo_falta'] ?? 'leve') {
+                                            'muy_grave' => 'Muy grave',
+                                            'grave'     => 'Grave',
+                                            default     => 'Leve',
+                                        } .
+                                        ' → ' . match ($state['tipo_sancion'] ?? '') {
+                                            'llamado_atencion' => 'Llamado de atención',
+                                            'suspension'       => 'Suspensión' . (!empty($state['dias_suspension']) ? ' ' . $state['dias_suspension'] . ' días' : ''),
+                                            'terminacion'      => 'Terminación',
+                                            default            => '-',
+                                        }
+                                )
+                                ->addActionLabel('+ Agregar conducta')
+                                ->columnSpanFull(),
+                        ]),
                 ]),
 
             // ─────────────────────────────────────────────────────────────────

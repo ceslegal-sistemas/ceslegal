@@ -772,8 +772,14 @@ PROMPT;
      */
     public function generarConductasParaWizard(array $contexto): array
     {
-        $actividad = trim((string) ($contexto['actividad'] ?? ''));
-        $cargos    = trim((string) ($contexto['cargos'] ?? ''));
+        $actividad  = trim((string) ($contexto['actividad'] ?? ''));
+        $cargos     = trim((string) ($contexto['cargos'] ?? ''));
+        $riesgos    = trim((string) ($contexto['riesgos'] ?? ''));
+        $prevenir   = trim((string) ($contexto['prevenir'] ?? ''));
+        $existentes = array_values(array_filter(array_map(
+            fn($n) => trim((string) $n),
+            $contexto['existentes'] ?? []
+        )));
 
         $ctx = '';
         if ($actividad !== '') {
@@ -782,22 +788,49 @@ PROMPT;
         if ($cargos !== '') {
             $ctx .= "- Cargos de la empresa: {$cargos}\n";
         }
+        if ($riesgos !== '') {
+            $ctx .= "- Principales riesgos identificados en la empresa: {$riesgos}\n";
+        }
+        if ($prevenir !== '') {
+            $ctx .= "- Situaciones que la empresa quiere prevenir especialmente: {$prevenir}\n";
+        }
+
+        // Pedido explícito del usuario: al darle de nuevo al botón para
+        // conseguir MÁS conductas, la IA no debe repetir/parafrasear las que
+        // ya están en el listado (antes se reemplazaba todo, así que esto
+        // nunca importó; ahora se agrega al final).
+        $instruccionExistentes = '';
+        if (!empty($existentes)) {
+            $listaExistentes = implode("\n", array_map(fn($n) => "- {$n}", $existentes));
+            $instruccionExistentes = <<<TXT
+
+
+            CONDUCTAS QUE YA ESTÁN EN EL LISTADO (el usuario pidió MÁS conductas para agregar, no reemplazarlas):
+            {$listaExistentes}
+
+            PROHIBIDO repetir o parafrasear ninguna de las conductas de arriba - genera SOLO conductas NUEVAS y distintas a esas.
+            TXT;
+        }
+
+        $reglaCantidad = empty($existentes)
+            ? 'Entre 15 y 30 conductas en total, repartidas entre leve, grave y muy_grave.'
+            : 'Entre 10 y 20 conductas NUEVAS adicionales (sin contar las ya existentes), repartidas entre leve, grave y muy_grave.';
 
         $prompt = <<<PROMPT
 Eres un abogado laboralista colombiano. Genera el RÉGIMEN DISCIPLINARIO (conductas sancionables y su medida) para el Reglamento Interno de Trabajo de una empresa colombiana, conforme al Código Sustantivo del Trabajo (CST). Este contenido será PÚBLICO dentro del RIT.
 
 CONTEXTO DE LA EMPRESA:
-{$ctx}
+{$ctx}{$instruccionExistentes}
 Responde ÚNICAMENTE con un JSON válido: un arreglo de conductas con esta estructura exacta:
 [
   {"nombre": "descripción concreta de la conducta", "tipo_falta": "leve|grave|muy_grave", "tipo_sancion": "llamado_atencion|suspension|terminacion", "dias_suspension": null}
 ]
 
 Reglas:
-- Entre 15 y 30 conductas en total, repartidas entre leve, grave y muy_grave.
+- {$reglaCantidad}
 - Proporcionalidad y gradualidad: leve → llamado_atencion; grave → suspension; muy_grave → terminacion.
 - dias_suspension: entero SOLO cuando tipo_sancion es "suspension" (máximo 8 días la primera vez); en los demás casos null.
-- Incluye conductas propias del sector/actividad y de los cargos indicados.
+- Incluye conductas propias del sector/actividad, de los cargos y de los riesgos indicados (ej. si hay riesgo mecánico, eléctrico o de alturas, incluye conductas de seguridad relacionadas con ese riesgo).
 - No inventes normas ni incluyas conductas discriminatorias. Español colombiano, claro y concreto.
 PROMPT;
 
