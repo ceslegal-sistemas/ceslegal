@@ -6,6 +6,7 @@ use App\Models\Empresa;
 use App\Models\ReglamentoInterno;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ReglamentoInternoInvalidaCacheTest extends TestCase
@@ -69,5 +70,38 @@ class ReglamentoInternoInvalidaCacheTest extends TestCase
 
         $this->assertNotNull($rit->conductas_sancionables);
         $this->assertSame('y', $rit->conductas_sancionables['grave'][0]['conducta']);
+    }
+
+    /**
+     * Bug real reportado por el usuario: descargó el "Reglamento Interno"
+     * desde el sistema y salió una versión con MENOS artículos que el
+     * texto_completo real - ruta_pdf (el PDF cacheado que RitDescarga
+     * siempre prefiere sobre generar uno al vuelo) se escribe UNA sola vez
+     * al crear el RIT mejorado y nunca se vuelve a regenerar, ni siquiera
+     * cuando se aprueba una sugerencia posterior que sí actualiza
+     * texto_completo en el mismo registro.
+     */
+    public function test_actualizar_el_texto_del_rit_invalida_el_pdf_cacheado(): void
+    {
+        Http::fake();
+        Storage::fake();
+
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id,
+            'activo' => true,
+            'fuente' => 'mejora_ia',
+            'texto_completo' => 'Texto original del RIT mejorado.',
+        ]);
+        $rutaPdf = "private/rits/{$empresa->id}/rit_v1_{$rit->id}.pdf";
+        Storage::put($rutaPdf, '%PDF-1.4 contenido de prueba');
+        $rit->ruta_pdf = $rutaPdf;
+        $rit->saveQuietly();
+
+        $rit->update(['texto_completo' => 'Texto NUEVO tras aprobar una sugerencia.']);
+        $rit->refresh();
+
+        $this->assertNull($rit->ruta_pdf);
+        Storage::assertMissing($rutaPdf);
     }
 }

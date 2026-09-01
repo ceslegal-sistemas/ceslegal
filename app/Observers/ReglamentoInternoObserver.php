@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\ReglamentoInterno;
 use App\Services\TemaClasificadorService;
+use Illuminate\Support\Facades\Storage;
 
 class ReglamentoInternoObserver
 {
@@ -47,6 +48,26 @@ class ReglamentoInternoObserver
             $rit->sanciones_extraidas = null;
             $rit->conductas_sancionables = null;
             $rit->organigrama = null;
+            $rit->saveQuietly();
+        }
+
+        // Segundo hueco real, mismo síntoma que el de arriba pero con el PDF
+        // descargable: ruta_pdf se genera UNA sola vez, al crear el RIT
+        // mejorado (RITMejoradoService::generar()) - ningún otro punto del
+        // código lo vuelve a escribir. Cuando después se aprueba una
+        // sugerencia quirúrgica (RitActualizacionAutomaticaService::
+        // aplicarSugerencia()), esta SÍ actualiza texto_completo en el mismo
+        // registro, pero el PDF cacheado en disco queda desactualizado para
+        // siempre - RitDescarga::responder() SIEMPRE prefiere ese archivo
+        // cacheado sobre generar uno nuevo, así que el cliente terminaba
+        // descargando una versión más vieja que el propio texto_completo
+        // que el sistema ya venía usando para todo lo demás (auditorías,
+        // contratos). Al limpiarlo aquí, la próxima descarga cae al
+        // fallback de RitDescarga (generar el PDF al vuelo desde el texto
+        // actual) hasta que algo vuelva a generar un PDF permanente.
+        if (!empty($rit->ruta_pdf)) {
+            Storage::delete($rit->ruta_pdf);
+            $rit->ruta_pdf = null;
             $rit->saveQuietly();
         }
 
