@@ -92,10 +92,18 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                 ->orderByDesc('updated_at')
                 ->first();
 
-            // Auditoría más reciente de la empresa (vista unificada RIT + salud legal).
-            $this->auditoria = \App\Models\AuditoriaRIT::where('empresa_id', $this->empresa->id)
-                ->latest()
-                ->first();
+            // Auditoría del RIT actualmente VIGENTE (no "la más reciente de la empresa
+            // sin más" - un cliente puede construir un RIT nuevo desde cero con el wizard,
+            // que reemplaza y desactiva el anterior; si aquí se tomara la auditoría más
+            // reciente sin filtrar, seguiría mostrando "Reglamento actualizado con IA...
+            // esta es su versión vigente" sobre una mejora adoptada en el RIT VIEJO ya
+            // reemplazado - bug real reportado por el usuario).
+            $this->auditoria = $this->reglamento
+                ? \App\Models\AuditoriaRIT::where('empresa_id', $this->empresa->id)
+                    ->where('reglamento_interno_id', $this->reglamento->id)
+                    ->latest()
+                    ->first()
+                : null;
 
             if ($this->auditoria?->reglamento_mejorado_id) {
                 $this->ritMejorado = $this->auditoria->reglamentoMejorado()->first();
