@@ -38,4 +38,17 @@ html:not(.dark) .rit-info-body{background:#fafafa}
 .rit-info-value{font-size:.875rem;color:#e2e8f0;margin:0;word-break:break-word}
 html:not(.dark) .rit-info-value{color:#292524}
 .rit-info-value-muted{color:#64748b}
+
+.rit-timeline-list{display:flex;flex-direction:column;gap:0}
+.rit-timeline-item{position:relative;padding:0 0 1.25rem 1.75rem}
+.rit-timeline-item:last-child{padding-bottom:0}
+.rit-timeline-dot{position:absolute;left:0;top:.2rem;width:.6rem;height:.6rem;border-radius:50%;background:#fb7185}
+.rit-timeline-line{position:absolute;left:.25rem;top:.85rem;bottom:-.1rem;width:1px;background:rgba(255,255,255,.12)}
+html:not(.dark) .rit-timeline-line{background:rgba(0,0,0,.1)}
+.rit-timeline-item:last-child .rit-timeline-line{display:none}
+.rit-timeline-accion{font-size:.825rem;font-weight:700;color:#f1f5f9;margin:0 0 .2rem}
+html:not(.dark) .rit-timeline-accion{color:#1c1917}
+.rit-timeline-descripcion{font-size:.8rem;color:#cbd5e1;margin:0 0 .3rem;word-break:break-word}
+html:not(.dark) .rit-timeline-descripcion{color:#44403c}
+.rit-timeline-meta{font-size:.7rem;color:#64748b}
 </style>

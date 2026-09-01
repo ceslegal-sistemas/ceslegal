@@ -76,4 +76,8 @@
     @endif
 
     @include('filament.components.solicitud-contrato-documento-viewer', ['texto' => $record->objeto_juridico_redactado])
+
+    @include('filament.components.solicitud-contrato-timeline', [
+        'eventos' => $record->timeline()->with('user')->get(),
+    ])
 </x-filament-panels::page>

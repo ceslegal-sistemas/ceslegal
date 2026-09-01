@@ -90,11 +90,20 @@ class SolicitudContratoObserver
     {
         // Registrar cambio de estado si existe
         if (isset($solicitud->_cambioEstado)) {
+            // El motivo de rechazo se guarda en la misma llamada ->update()
+            // que cambia el estado (ver SolicitudContratoResource::table(),
+            // acción 'rechazar') - va como metadata del cambio de estado en
+            // vez de un evento aparte, para no duplicar información.
+            $metadata = $solicitud->_cambioEstado['nuevo'] === 'rechazado' && $solicitud->motivo_rechazo
+                ? ['motivo_rechazo' => $solicitud->motivo_rechazo]
+                : null;
+
             $this->timelineService->registrarCambioEstado(
                 procesoTipo: 'contrato',
                 procesoId: $solicitud->id,
                 estadoAnterior: $solicitud->_cambioEstado['anterior'],
-                estadoNuevo: $solicitud->_cambioEstado['nuevo']
+                estadoNuevo: $solicitud->_cambioEstado['nuevo'],
+                metadata: $metadata
             );
 
             unset($solicitud->_cambioEstado);

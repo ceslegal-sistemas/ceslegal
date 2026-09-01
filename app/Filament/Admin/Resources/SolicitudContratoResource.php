@@ -1255,6 +1255,19 @@ class SolicitudContratoResource extends Resource
 
                             $service->generarContratoPDF($record, borrador: true);
 
+                            // El estado sigue siendo 'borrador' antes y
+                            // después de esta acción - SolicitudContratoObserver
+                            // solo registra en el timeline cuando 'estado'
+                            // cambia (isDirty), así que sin esto regenerar
+                            // el PDF las veces que sea sería invisible para
+                            // la auditoría.
+                            app(\App\Services\TimelineService::class)->registrarDocumentoGenerado(
+                                procesoTipo: 'contrato',
+                                procesoId: $record->id,
+                                tipoDocumento: 'Contrato (borrador)',
+                                nombreArchivo: basename($record->ruta_contrato)
+                            );
+
                             \Filament\Notifications\Notification::make()
                                 ->success()
                                 ->title('Borrador regenerado')
