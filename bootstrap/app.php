@@ -12,7 +12,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Las rutas protegidas fuera de los paneles de Filament (ej. las de
+        // descarga en routes/web.php, con middleware 'auth' a secas) no
+        // tienen ningún login "genérico" al cual caer - Filament define su
+        // propio login POR PANEL (filament.admin.auth.login), no una ruta
+        // llamada 'login'. Sin esto, cualquier visitante sin sesión que
+        // caiga en uno de esos enlaces protegidos veía un error 500
+        // (RouteNotFoundException: Route [login] not defined) en vez de que
+        // lo mandara a iniciar sesión.
+        $middleware->redirectGuestsTo(
+            fn () => \Filament\Facades\Filament::getPanel('admin')->getLoginUrl()
+        );
     })
     ->withSchedule(function (Schedule $schedule): void {
         // Actualizar términos legales diariamente a las 8:00 AM
