@@ -110,8 +110,8 @@
         /**
          * Salida de emergencia TEMPORAL (pedido explícito del usuario, ideal
          * a futuro es no tenerla): si el parpadeo no se confirma en 12s con
-         * el rostro ya bien puesto, se habilita el botón manual de "Tomar
-         * foto" - mismo mecanismo que webcam-autorizador.blade.php.
+         * el rostro ya bien puesto, se habilita el botón manual de Tomar
+         * foto - mismo mecanismo que webcam-autorizador.blade.php.
          */
         iniciarTimerFallback() {
             if (this.timerFallback) clearTimeout(this.timerFallback);
@@ -163,7 +163,7 @@
 
                         // Bug real reportado por el usuario: con umbrales FIJOS
                         // (0.21/0.28) iguales para cualquier persona, el EAR de
-                        // "ojos abiertos" de algunas personas (según forma del
+                        // ojos abiertos de algunas personas (según forma del
                         // ojo, ángulo de cámara o vello facial) nunca cruzaba
                         // 0.28 - la reapertura jamás se confirmaba sin importar
                         // cuánto parpadeara. Ahora el umbral se calibra en vivo

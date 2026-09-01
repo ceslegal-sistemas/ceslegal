@@ -237,8 +237,8 @@ button.wca-btn-secondary:hover {
          /**
           * Salida de emergencia TEMPORAL (pedido explícito del usuario, ideal
           * a futuro es no tenerla): si el parpadeo no se confirma en 12s con
-          * el rostro ya bien puesto, se habilita el botón manual de "Tomar
-          * foto" - así nadie queda bloqueado por completo si el ajuste de
+          * el rostro ya bien puesto, se habilita el botón manual de Tomar
+          * foto - así nadie queda bloqueado por completo si el ajuste de
           * umbral en iniciarDeteccion() tampoco funciona para su cámara/rostro.
           */
          iniciarTimerFallback() {
@@ -331,10 +331,10 @@ button.wca-btn-secondary:hover {
 
                          // Bug real reportado por el usuario: con umbrales FIJOS
                          // (0.21 cerrado / 0.28 abierto) iguales para cualquier
-                         // persona, el EAR de "ojos abiertos" de algunas personas
+                         // persona, el EAR de ojos abiertos de algunas personas
                          // (según forma del ojo, ángulo de la cámara o vello
                          // facial) nunca cruzaba 0.28 - el parpadeo se registraba
-                         // como "cerrado" pero la reapertura jamás se confirmaba,
+                         // como cerrado pero la reapertura jamás se confirmaba,
                          // sin importar cuántas veces la persona parpadeara. Ahora
                          // el umbral se calibra en vivo contra el propio EAR de
                          // referencia (ojos abiertos) de quien está frente a la
