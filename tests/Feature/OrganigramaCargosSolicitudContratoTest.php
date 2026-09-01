@@ -37,14 +37,22 @@ class OrganigramaCargosSolicitudContratoTest extends TestCase
     public function test_cargos_de_empresa_usa_el_organigrama_extraido_si_no_hay_wizard(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
-        ReglamentoInterno::create([
+        // organigrama se asigna DESPUÉS de crear el registro (con
+        // saveQuietly(), igual que generarOrganigrama() en el código real) -
+        // ReglamentoInternoObserver invalida organigrama/conductas cuando
+        // texto_completo cambia, y en un create() texto_completo siempre
+        // cuenta como "dirty", así que ponerlo en el mismo create() de este
+        // test lo borraría de inmediato (comportamiento correcto del
+        // observer, no un bug del test original).
+        $rit = ReglamentoInterno::create([
             'empresa_id' => $empresa->id,
             'activo' => true,
             'texto_completo' => 'RIT con cargos mencionados',
-            'organigrama' => [
-                ['nombre_cargo' => 'Jefe de Bodega', 'instancia_sancionatoria' => 'ninguna'],
-            ],
         ]);
+        $rit->organigrama = [
+            ['nombre_cargo' => 'Jefe de Bodega', 'instancia_sancionatoria' => 'ninguna'],
+        ];
+        $rit->saveQuietly();
 
         $cargos = app(ReglamentoInternoService::class)->cargosDeEmpresa($empresa->id);
 

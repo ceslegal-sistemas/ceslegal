@@ -31,6 +31,25 @@ class ReglamentoInternoObserver
             return;
         }
 
+        // Hueco real reportado por el usuario: sanciones_extraidas y
+        // conductas_sancionables se calculan UNA vez y se guardan con
+        // saveQuietly() (a propósito, para no generar un loop con este mismo
+        // observer) - pero nada los invalidaba cuando el texto del RIT
+        // cambiaba después (por una mejora automática aprobada, el wizard, o
+        // un re-upload). El resultado: el sistema seguía usando conductas
+        // calculadas sobre una versión VIEJA del RIT indefinidamente, sin
+        // volver a extraer nunca por su cuenta. Al limpiarlos aquí, el
+        // próximo consumidor (generación de contrato, Mi Reglamento Interno,
+        // etc.) dispara la re-extracción real automáticamente - sin que
+        // nadie tenga que acordarse de darle a "Re-extraer sanciones" a
+        // mano. organigrama también se limpia por el mismo motivo.
+        if (!empty($rit->sanciones_extraidas) || !empty($rit->conductas_sancionables) || !empty($rit->organigrama)) {
+            $rit->sanciones_extraidas = null;
+            $rit->conductas_sancionables = null;
+            $rit->organigrama = null;
+            $rit->saveQuietly();
+        }
+
         $this->clasificador->asegurarTemas($rit);
     }
 }
