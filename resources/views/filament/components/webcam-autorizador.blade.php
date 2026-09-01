@@ -147,6 +147,7 @@ button.wca-btn-secondary:hover {
          // parpadeo (ver cargarMediaPipe/evaluarParpadeoMediaPipe).
          faceLandmarker: null,
          mediaPipeListo: false,
+         fallosMediaPipeSeguidos: 0,
          // Salida de emergencia si el parpadeo no se confirma después de un
          // tiempo con el rostro bien puesto (ver iniciarTimerFallback) - antes
          // el único respaldo manual era si face-api ni siquiera cargaba.
@@ -319,6 +320,7 @@ button.wca-btn-secondary:hover {
          evaluarParpadeoMediaPipe(video) {
              try {
                  const resultado = this.faceLandmarker.detectForVideo(video, performance.now());
+                 this.fallosMediaPipeSeguidos = 0;
                  const categorias = resultado?.faceBlendshapes?.[0]?.categories ?? [];
                  const left  = categorias.find(c => c.categoryName === 'eyeBlinkLeft')?.score ?? 0;
                  const right = categorias.find(c => c.categoryName === 'eyeBlinkRight')?.score ?? 0;
@@ -331,10 +333,20 @@ button.wca-btn-secondary:hover {
                  }
                  if (!this.parpadeoDetectado) { this.estadoRostro = 'falta_parpadeo'; }
              } catch (e) {
-                 // Fallo en tiempo de ejecución (no solo al cargar) - se cae al
-                 // respaldo EAR desde el siguiente poll, sin bloquear al usuario.
-                 console.error('MediaPipe: error evaluando el parpadeo, se usa el respaldo EAR', e);
-                 this.mediaPipeListo = false;
+                 // Fallo en tiempo de ejecución de UN frame (ej. el primer
+                 // detectForVideo justo después de que el grafo WASM terminó de
+                 // arrancar) no significa que MediaPipe esté roto - se reintenta
+                 // en el siguiente poll (250ms) en vez de apagarlo para toda la
+                 // sesión de una sola vez. Solo tras varios fallos SEGUIDOS se
+                 // asume un problema real y se cae al respaldo EAR de forma
+                 // permanente (evita quedar reintentando para siempre algo que
+                 // de verdad no funciona en esa cámara/navegador).
+                 console.error('MediaPipe: error evaluando el parpadeo', e);
+                 this.fallosMediaPipeSeguidos++;
+                 if (this.fallosMediaPipeSeguidos >= 5) {
+                     console.error('MediaPipe: 5 fallos seguidos, se usa el respaldo EAR el resto de esta captura');
+                     this.mediaPipeListo = false;
+                 }
                  this.estadoRostro = 'falta_parpadeo';
              }
          },
@@ -517,6 +529,8 @@ button.wca-btn-secondary:hover {
                  this.parpadeoDetectado  = false;
                  this.ojosCerradosPrevio = false;
                  this.earBase            = null;
+                 this.fallosMediaPipeSeguidos = 0;
+                 if (this.faceLandmarker) this.mediaPipeListo = true;
                  this.iniciarDeteccion();
                  this.iniciarDeteccionAccesorios();
                  this.iniciarTimerFallback();
@@ -534,6 +548,11 @@ button.wca-btn-secondary:hover {
              this.parpadeoDetectado       = false;
              this.ojosCerradosPrevio      = false;
              this.earBase                 = null;
+             this.fallosMediaPipeSeguidos = 0;
+             // Si MediaPipe se había apagado por fallos seguidos en el intento
+             // anterior, se le da una oportunidad nueva aquí (el motor ya está
+             // cargado en memoria, faceLandmarker sigue siendo el mismo).
+             if (this.faceLandmarker) this.mediaPipeListo = true;
              this.mostrarFallbackManual   = false;
              this.revisandoAccesorios     = false;
              this.verificandoAccesoriosVivo = false;

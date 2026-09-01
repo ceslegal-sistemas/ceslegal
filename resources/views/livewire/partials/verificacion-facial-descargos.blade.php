@@ -53,6 +53,7 @@
         earBase: null,
         faceLandmarker: null,
         mediaPipeListo: false,
+        fallosMediaPipeSeguidos: 0,
         // Salida de emergencia TEMPORAL si el parpadeo no se confirma tras un
         // tiempo con el rostro bien puesto - ver iniciarTimerFallback().
         mostrarFallbackManual: false,
@@ -179,6 +180,7 @@
         evaluarParpadeoMediaPipe(video) {
             try {
                 const resultado = this.faceLandmarker.detectForVideo(video, performance.now());
+                this.fallosMediaPipeSeguidos = 0;
                 const categorias = resultado?.faceBlendshapes?.[0]?.categories ?? [];
                 const left  = categorias.find(c => c.categoryName === 'eyeBlinkLeft')?.score ?? 0;
                 const right = categorias.find(c => c.categoryName === 'eyeBlinkRight')?.score ?? 0;
@@ -191,8 +193,16 @@
                 }
                 if (!this.parpadeoDetectado) { this.estadoRostro = 'falta_parpadeo'; }
             } catch (e) {
-                console.error('MediaPipe: error evaluando el parpadeo, se usa el respaldo EAR', e);
-                this.mediaPipeListo = false;
+                // Un fallo en UN frame no significa que MediaPipe esté roto (ej.
+                // el primer detectForVideo justo tras arrancar el grafo WASM) -
+                // se reintenta en el siguiente poll; solo tras varios fallos
+                // seguidos se cae al respaldo EAR de forma permanente.
+                console.error('MediaPipe: error evaluando el parpadeo', e);
+                this.fallosMediaPipeSeguidos++;
+                if (this.fallosMediaPipeSeguidos >= 5) {
+                    console.error('MediaPipe: 5 fallos seguidos, se usa el respaldo EAR el resto de esta captura');
+                    this.mediaPipeListo = false;
+                }
                 this.estadoRostro = 'falta_parpadeo';
             }
         },
@@ -312,6 +322,8 @@
                 this.parpadeoDetectado  = false;
                 this.ojosCerradosPrevio = false;
                 this.earBase            = null;
+                this.fallosMediaPipeSeguidos = 0;
+                if (this.faceLandmarker) this.mediaPipeListo = true;
                 this.iniciarDeteccion();
                 this.iniciarDeteccionAccesorios();
                 this.iniciarTimerFallback();
@@ -330,6 +342,8 @@
             this.parpadeoDetectado   = false;
             this.ojosCerradosPrevio  = false;
             this.earBase             = null;
+            this.fallosMediaPipeSeguidos = 0;
+            if (this.faceLandmarker) this.mediaPipeListo = true;
             this.mostrarFallbackManual = false;
             this.iniciarDeteccion();
             this.iniciarDeteccionAccesorios();
