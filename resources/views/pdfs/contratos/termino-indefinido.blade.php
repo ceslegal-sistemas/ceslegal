@@ -130,7 +130,6 @@
             text-align: center;
             vertical-align: top;
             padding-top: 38pt;
-            border-top: 1pt solid #000;
             font-size: 9.5pt;
             line-height: 1.3;
         }

@@ -47,7 +47,7 @@
     ol li { font-size: 9.5pt; line-height: 1.35; margin-bottom: 3pt; text-align: justify; padding-left: 2pt; }
     strong, b { font-weight: bold; }
     table.firma { width: 100%; margin-top: 55pt; border-collapse: collapse; }
-    table.firma td { width: 50%; text-align: center; vertical-align: top; padding-top: 38pt; border-top: 1pt solid #000; font-size: 9.5pt; line-height: 1.3; }
+    table.firma td { width: 50%; text-align: center; vertical-align: top; padding-top: 38pt; font-size: 9.5pt; line-height: 1.3; }
     .page-break { page-break-before: always; }
     .avoid-break { page-break-inside: avoid; }
     div, span, table, td, th { font-size: 9.5pt; }
