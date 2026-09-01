@@ -139,6 +139,14 @@ button.wca-btn-secondary:hover {
          intervaloDeteccion: null,
          parpadeoDetectado: false,
          ojosCerradosPrevio: false,
+         // EAR de referencia (ojos abiertos) calibrado en vivo contra la
+         // propia persona/cámara - ver nota en iniciarDeteccion().
+         earBase: null,
+         // Salida de emergencia si el parpadeo no se confirma después de un
+         // tiempo con el rostro bien puesto (ver iniciarTimerFallback) - antes
+         // el único respaldo manual era si face-api ni siquiera cargaba.
+         mostrarFallbackManual: false,
+         timerFallback: null,
          revisandoAccesorios: false,
          alertaAccesorios: '',
          intervaloAccesorios: null,
@@ -217,12 +225,27 @@ button.wca-btn-secondary:hover {
                  this.modelsCargados = true;
                  this.iniciarDeteccion();
                  this.iniciarDeteccionAccesorios();
+                 this.iniciarTimerFallback();
              } catch (e) {
                  console.error('face-api: error cargando modelos', e);
                  this.modelsCargados = true;
                  this.estadoRostro = 'sin_modelo';
                  this.iniciarDeteccionAccesorios();
              }
+         },
+
+         /**
+          * Salida de emergencia TEMPORAL (pedido explícito del usuario, ideal
+          * a futuro es no tenerla): si el parpadeo no se confirma en 12s con
+          * el rostro ya bien puesto, se habilita el botón manual de "Tomar
+          * foto" - así nadie queda bloqueado por completo si el ajuste de
+          * umbral en iniciarDeteccion() tampoco funciona para su cámara/rostro.
+          */
+         iniciarTimerFallback() {
+             if (this.timerFallback) clearTimeout(this.timerFallback);
+             this.timerFallback = setTimeout(() => {
+                 if (!this.fotoCapturada) this.mostrarFallbackManual = true;
+             }, 12000);
          },
 
          /**
@@ -305,9 +328,27 @@ button.wca-btn-secondary:hover {
                      // Un parpadeo es la transición cerrado -> abierto.
                      if (!this.parpadeoDetectado) {
                          const ear = (this.calcularEAR(lEye) + this.calcularEAR(rEye)) / 2;
-                         if (ear < 0.21) {
+
+                         // Bug real reportado por el usuario: con umbrales FIJOS
+                         // (0.21 cerrado / 0.28 abierto) iguales para cualquier
+                         // persona, el EAR de "ojos abiertos" de algunas personas
+                         // (según forma del ojo, ángulo de la cámara o vello
+                         // facial) nunca cruzaba 0.28 - el parpadeo se registraba
+                         // como "cerrado" pero la reapertura jamás se confirmaba,
+                         // sin importar cuántas veces la persona parpadeara. Ahora
+                         // el umbral se calibra en vivo contra el propio EAR de
+                         // referencia (ojos abiertos) de quien está frente a la
+                         // cámara en este momento, no contra un número fijo.
+                         if (!this.ojosCerradosPrevio) {
+                             this.earBase = this.earBase === null ? ear : Math.max(ear, this.earBase * 0.98);
+                         }
+                         const base           = this.earBase ?? ear;
+                         const umbralCierre   = Math.max(0.15, base * 0.75);
+                         const umbralApertura = base * 0.90;
+
+                         if (ear < umbralCierre) {
                              this.ojosCerradosPrevio = true;
-                         } else if (ear > 0.28 && this.ojosCerradosPrevio) {
+                         } else if (ear > umbralApertura && this.ojosCerradosPrevio) {
                              this.parpadeoDetectado = true;
                              this.estadoRostro = 'ok';
                              // Captura inmediata en el instante del parpadeo: la foto
@@ -388,8 +429,10 @@ button.wca-btn-secondary:hover {
                  // rostro en estado ok pero sin ninguna forma de reintentar la foto.
                  this.parpadeoDetectado  = false;
                  this.ojosCerradosPrevio = false;
+                 this.earBase            = null;
                  this.iniciarDeteccion();
                  this.iniciarDeteccionAccesorios();
+                 this.iniciarTimerFallback();
              } else {
                  this.fotoCapturada = foto;
                  $wire.$set('{{ $wireTargetPath }}', foto);
@@ -403,11 +446,14 @@ button.wca-btn-secondary:hover {
              // La prueba de vida se exige de nuevo en cada intento de captura.
              this.parpadeoDetectado       = false;
              this.ojosCerradosPrevio      = false;
+             this.earBase                 = null;
+             this.mostrarFallbackManual   = false;
              this.revisandoAccesorios     = false;
              this.verificandoAccesoriosVivo = false;
              this.detenerDeteccion();
              this.iniciarDeteccion();
              this.iniciarDeteccionAccesorios();
+             this.iniciarTimerFallback();
          },
 
          detenerCamara() {
@@ -418,6 +464,7 @@ button.wca-btn-secondary:hover {
          detenerDeteccion() {
              if (this.intervaloDeteccion) { clearInterval(this.intervaloDeteccion); this.intervaloDeteccion = null; }
              if (this.intervaloAccesorios) { clearInterval(this.intervaloAccesorios); this.intervaloAccesorios = null; }
+             if (this.timerFallback) { clearTimeout(this.timerFallback); this.timerFallback = null; }
          }
      }"
      x-init="
@@ -592,17 +639,30 @@ button.wca-btn-secondary:hover {
                 <canvas x-ref="canvas" style="display:none;"></canvas>
 
                 {{-- Aviso de captura automática (cuando la detección está activa) --}}
-                <div x-show="estadoRostro !== 'sin_modelo'" style="display:none;text-align:center;">
+                <div x-show="estadoRostro !== 'sin_modelo' && !mostrarFallbackManual" style="display:none;text-align:center;">
                     <p style="margin:0;font-size:12px;color:var(--wca-text-muted);line-height:1.5;">
                         La foto se toma automáticamente al detectar su parpadeo. No hay que presionar nada.
                     </p>
                 </div>
 
-                {{-- Botón tomar foto - solo como respaldo cuando la verificación
-                     automática no está disponible (face-api no cargó). Con detección
-                     activa la captura es automática al parpadear: dejar además un
-                     botón manual permitiría saltarse la prueba de vida. --}}
-                <div x-show="estadoRostro === 'sin_modelo'" style="display:none;text-align:center;">
+                {{-- Aviso de respaldo manual - solo aparece tras ~12s sin
+                     confirmar el parpadeo con el rostro ya bien puesto (ver
+                     iniciarTimerFallback). Medida TEMPORAL a pedido explícito
+                     del usuario mientras se confirma que el ajuste de umbral
+                     de iniciarDeteccion() resuelve el parpadeo para todos los
+                     casos - lo ideal a futuro es no necesitar este botón. --}}
+                <div x-show="mostrarFallbackManual && estadoRostro !== 'sin_modelo'" style="display:none;text-align:center;">
+                    <p style="margin:0 0 6px;font-size:12px;color:var(--wca-text-muted);line-height:1.5;">
+                        ¿No se confirma su parpadeo? Puede tomar la foto manualmente.
+                    </p>
+                </div>
+
+                {{-- Botón tomar foto - respaldo cuando la verificación automática
+                     no está disponible (face-api no cargó) o cuando el parpadeo
+                     no se confirma después de un tiempo (mostrarFallbackManual).
+                     Con detección activa la captura es automática al parpadear:
+                     este botón es la excepción, no la regla. --}}
+                <div x-show="estadoRostro === 'sin_modelo' || mostrarFallbackManual" style="display:none;text-align:center;">
                     <button type="button"
                             :disabled="!!alertaAccesorios || revisandoAccesorios"
                             @click.prevent="tomarFoto()"

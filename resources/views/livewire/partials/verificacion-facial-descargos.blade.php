@@ -47,6 +47,13 @@
         verificandoAccesoriosVivo: false,
         parpadeoDetectado: false,
         ojosCerradosPrevio: false,
+        // EAR de referencia (ojos abiertos) calibrado en vivo - ver nota en
+        // iniciarDeteccion(). Mismo fix que webcam-autorizador.blade.php.
+        earBase: null,
+        // Salida de emergencia TEMPORAL si el parpadeo no se confirma tras un
+        // tiempo con el rostro bien puesto - ver iniciarTimerFallback().
+        mostrarFallbackManual: false,
+        timerFallback: null,
 
         aceptarDisclaimer() {
             if (!this.disclaimerMarcado) return;
@@ -92,11 +99,25 @@
                 this.modelsCargados = true;
                 this.iniciarDeteccion();
                 this.iniciarDeteccionAccesorios();
+                this.iniciarTimerFallback();
             } catch (e) {
                 this.modelsCargados = true;
                 this.estadoRostro = 'sin_modelo';
                 this.iniciarDeteccionAccesorios();
             }
+        },
+
+        /**
+         * Salida de emergencia TEMPORAL (pedido explícito del usuario, ideal
+         * a futuro es no tenerla): si el parpadeo no se confirma en 12s con
+         * el rostro ya bien puesto, se habilita el botón manual de "Tomar
+         * foto" - mismo mecanismo que webcam-autorizador.blade.php.
+         */
+        iniciarTimerFallback() {
+            if (this.timerFallback) clearTimeout(this.timerFallback);
+            this.timerFallback = setTimeout(() => {
+                if (!this.fotoCapturada) this.mostrarFallbackManual = true;
+            }, 12000);
         },
 
         /**
@@ -139,9 +160,25 @@
                     // impresa o una pantalla no parpadean.
                     if (!this.parpadeoDetectado) {
                         const ear = (this.calcularEAR(lEye) + this.calcularEAR(rEye)) / 2;
-                        if (ear < 0.21) {
+
+                        // Bug real reportado por el usuario: con umbrales FIJOS
+                        // (0.21/0.28) iguales para cualquier persona, el EAR de
+                        // "ojos abiertos" de algunas personas (según forma del
+                        // ojo, ángulo de cámara o vello facial) nunca cruzaba
+                        // 0.28 - la reapertura jamás se confirmaba sin importar
+                        // cuánto parpadeara. Ahora el umbral se calibra en vivo
+                        // contra el propio EAR de referencia de quien está
+                        // frente a la cámara.
+                        if (!this.ojosCerradosPrevio) {
+                            this.earBase = this.earBase === null ? ear : Math.max(ear, this.earBase * 0.98);
+                        }
+                        const base           = this.earBase ?? ear;
+                        const umbralCierre   = Math.max(0.15, base * 0.75);
+                        const umbralApertura = base * 0.90;
+
+                        if (ear < umbralCierre) {
                             this.ojosCerradosPrevio = true;
-                        } else if (ear > 0.28 && this.ojosCerradosPrevio) {
+                        } else if (ear > umbralApertura && this.ojosCerradosPrevio) {
                             this.parpadeoDetectado = true;
                             this.estadoRostro = 'ok';
                             // Captura en el instante del parpadeo: la foto queda
@@ -207,8 +244,10 @@
                 // rostro 'ok' y ninguna forma de reintentar la foto.
                 this.parpadeoDetectado  = false;
                 this.ojosCerradosPrevio = false;
+                this.earBase            = null;
                 this.iniciarDeteccion();
                 this.iniciarDeteccionAccesorios();
+                this.iniciarTimerFallback();
             } else {
                 this.alertaAccesorios = '';
                 this.fotoCapturada    = foto;
@@ -223,8 +262,11 @@
             this.estadoRostro        = 'esperando';
             this.parpadeoDetectado   = false;
             this.ojosCerradosPrevio  = false;
+            this.earBase             = null;
+            this.mostrarFallbackManual = false;
             this.iniciarDeteccion();
             this.iniciarDeteccionAccesorios();
+            this.iniciarTimerFallback();
         },
 
         detenerCamara() {
@@ -235,6 +277,7 @@
         detenerDeteccion() {
             if (this.intervaloDeteccion) { clearInterval(this.intervaloDeteccion); this.intervaloDeteccion = null; }
             if (this.intervaloAccesorios) { clearInterval(this.intervaloAccesorios); this.intervaloAccesorios = null; }
+            if (this.timerFallback) { clearTimeout(this.timerFallback); this.timerFallback = null; }
         }
     }"
     x-init="
@@ -371,14 +414,21 @@
 
             {{-- Con detección activa la captura es automática al parpadear; un
                  botón manual permitiría saltarse la prueba de vida, así que solo
-                 aparece si face-api no pudo cargar. --}}
-            <p x-show="estadoRostro !== 'sin_modelo'" style="display:none"
+                 aparece si face-api no pudo cargar, o tras un tiempo sin
+                 confirmar el parpadeo (mostrarFallbackManual - medida TEMPORAL,
+                 ver iniciarTimerFallback). --}}
+            <p x-show="estadoRostro !== 'sin_modelo' && !mostrarFallbackManual" style="display:none"
                class="text-center text-sm text-gray-500">
                 La foto se toma automáticamente al detectar su parpadeo. No hay que presionar nada.
             </p>
 
+            <p x-show="mostrarFallbackManual && estadoRostro !== 'sin_modelo'" style="display:none"
+               class="text-center text-sm text-gray-500">
+                ¿No se confirma su parpadeo? Puede tomar la foto manualmente.
+            </p>
+
             <button type="button" @click="tomarFoto()"
-                x-show="estadoRostro === 'sin_modelo'" style="display:none"
+                x-show="estadoRostro === 'sin_modelo' || mostrarFallbackManual" style="display:none"
                 :disabled="revisandoAccesorios || !!alertaAccesorios"
                 :class="(!revisandoAccesorios && !alertaAccesorios)
                     ? 'bg-primary-600 hover:bg-primary-700 cursor-pointer'
