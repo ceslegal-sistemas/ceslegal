@@ -121,7 +121,7 @@
          */
         async cargarMediaPipe() {
             try {
-                const { FaceLandmarker } = await import('{{ asset('vendor/mediapipe/vision_bundle.mjs') }}');
+                const { FaceLandmarker } = await import('{{ asset('vendor/mediapipe/vision_bundle.js') }}');
                 this.faceLandmarker = await FaceLandmarker.createFromOptions(
                     {
                         wasmLoaderPath: '{{ asset('vendor/mediapipe/vision_wasm_internal.js') }}',
