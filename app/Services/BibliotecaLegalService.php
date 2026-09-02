@@ -161,11 +161,14 @@ class BibliotecaLegalService
      * Busca los fragmentos más relevantes para un texto dado.
      * Retorna un bloque de texto listo para incluir en el prompt de la IA.
      *
-     * @param  string $texto    Texto de búsqueda (hechos del proceso, etc.)
-     * @param  int    $limite   Máximo de fragmentos a retornar
-     * @param  float  $umbral   Score mínimo de similitud coseno (0-1)
+     * @param  string     $texto    Texto de búsqueda (hechos del proceso, etc.)
+     * @param  int        $limite   Máximo de fragmentos a retornar
+     * @param  float      $umbral   Score mínimo de similitud coseno (0-1)
+     * @param  array<int> $temaIds  IDs de TemaNormativo a priorizar (boost, no
+     *                              filtro - ver reordenarPorTema()). Vacío = mismo
+     *                              comportamiento que antes de este parámetro.
      */
-    public function buscarFragmentos(string $texto, int $limite = 5, float $umbral = 0.60): string
+    public function buscarFragmentos(string $texto, int $limite = 5, float $umbral = 0.60, array $temaIds = []): string
     {
         if (empty(trim($texto)) || empty($this->apiKey)) {
             return '';
@@ -182,11 +185,20 @@ class BibliotecaLegalService
             $q = FragmentoDocumento::whereNotNull('embedding')
                 ->whereHas('documentoLegal', fn($q) => $q->activos()->procesados());
 
-            $top = \App\Support\VectorSearch::topK($q, $queryEmbedding, $limite, $umbral);
+            // Con temas declarados se pide un pool más grande para poder
+            // reordenar sin perder cobertura - VectorSearch::topK() igual
+            // recorre todos los candidatos para puntuarlos, así que pedir
+            // más del top no cuesta una segunda pasada.
+            $poolK = empty($temaIds) ? $limite : min($limite * 3, 30);
+            $top = \App\Support\VectorSearch::topK($q, $queryEmbedding, $poolK, $umbral);
 
             if (empty($top)) {
                 return '';
             }
+
+            $top = empty($temaIds)
+                ? array_slice($top, 0, $limite)
+                : $this->reordenarPorTema($top, $temaIds, $limite);
 
             // Fase 2: hidratar solo el top-K con su documento, conservando el orden por score.
             $ids = array_column($top, 'key');
@@ -217,6 +229,44 @@ class BibliotecaLegalService
             Log::warning('BibliotecaLegal::buscarFragmentos error', ['error' => $e->getMessage()]);
             return '';
         }
+    }
+
+    /**
+     * Reordena el pool de candidatos priorizando los fragmentos cuyo
+     * DocumentoLegal está clasificado en alguno de $temaIds (ver
+     * TemaClasificadorService), preservando el orden por score dentro de
+     * cada grupo. Es un boost, no un filtro: un fragmento que ya pasó el
+     * umbral de similitud nunca se descarta, solo puede quedar después de
+     * los que sí coinciden con el tema - así una clasificación incompleta
+     * o fallida no le quita cobertura a la búsqueda semántica.
+     *
+     * @param  array<int, array{key: mixed, score: float}> $top
+     * @param  array<int>                                  $temaIds
+     * @return array<int, array{key: mixed, score: float}>
+     */
+    private function reordenarPorTema(array $top, array $temaIds, int $limite): array
+    {
+        $fragmentoIds = array_column($top, 'key');
+        $documentoIdPorFragmento = FragmentoDocumento::whereIn('id', $fragmentoIds)
+            ->pluck('documento_legal_id', 'id');
+
+        $documentoIdsConTema = DocumentoLegal::whereIn('id', $documentoIdPorFragmento->unique()->values())
+            ->whereHas('temasNormativos', fn($q) => $q->whereIn('temas_normativos.id', $temaIds))
+            ->pluck('id')
+            ->all();
+
+        $conTema = [];
+        $sinTema = [];
+        foreach ($top as $t) {
+            $documentoId = $documentoIdPorFragmento[$t['key']] ?? null;
+            if ($documentoId && in_array($documentoId, $documentoIdsConTema, true)) {
+                $conTema[] = $t;
+            } else {
+                $sinTema[] = $t;
+            }
+        }
+
+        return array_slice(array_merge($conTema, $sinTema), 0, $limite);
     }
 
     // ─── Extracción de texto ─────────────────────────────────────────────────────

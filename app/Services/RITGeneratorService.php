@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ArticuloLegal;
 use App\Models\Empresa;
+use App\Models\TemaNormativo;
 use App\Services\BibliotecaLegalService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -44,6 +45,10 @@ class RITGeneratorService
         $total          = count($capitulos);
         $partes         = [];
         $articuloInicio = 1;
+        // Resuelto una sola vez para todo el RIT: nombre de tema normativo -> ID.
+        // Cada capítulo prioriza (no filtra) fragmentos de Biblioteca Legal
+        // clasificados en sus temas - ver BibliotecaLegalService::buscarFragmentos().
+        $temaIdPorNombre = TemaNormativo::activos()->pluck('id', 'nombre');
 
         foreach (array_values($capitulos) as $idx => $cap) {
             if ($onProgress) {
@@ -57,7 +62,13 @@ class RITGeneratorService
                 'articulo_inicio' => $articuloInicio,
             ]);
 
-            $rag                   = $biblioteca->buscarFragmentos($cap['query_rag'], limite: 8, umbral: 0.30);
+            $temaIds = collect($cap['temas'] ?? [])
+                ->map(fn(string $nombre) => $temaIdPorNombre[$nombre] ?? null)
+                ->filter()
+                ->values()
+                ->all();
+
+            $rag                   = $biblioteca->buscarFragmentos($cap['query_rag'], limite: 8, umbral: 0.30, temaIds: $temaIds);
             $codigosObligatorios   = $cap['codigos_obligatorios'] ?? [];
             $articulosObligatorios = $this->obtenerArticulosObligatorios($codigosObligatorios);
             $articulosPorTema      = $this->buscarArticulosPorTema(
@@ -1302,6 +1313,7 @@ HTML;
             [
                 'numero' => 'II', 'titulo' => 'ADMISIÓN Y PERÍODO DE PRUEBA',
                 'query_rag' => 'admisión trabajadores período de prueba requisitos ingreso contrato trabajo',
+                'temas' => ['Período de prueba', 'Modalidades de contratación', 'Contratación y vinculación laboral', 'Discriminación e igualdad de trato'],
                 'codigos_obligatorios' => ['Art. 76 CST', 'Art. 77 CST', 'Art. 78 CST', 'Art. 80 CST'],
                 'datos_empresa_keys'   => ['tipos_contrato', 'tiene_trabajadores_mision', 'cargos'],
                 'instrucciones' => implode("\n", [
@@ -1319,6 +1331,7 @@ HTML;
             [
                 'numero' => 'III', 'titulo' => 'JORNADA ORDINARIA DE TRABAJO',
                 'query_rag' => 'jornada laboral ordinaria horas trabajo diurno nocturno descanso dominical compensatorio recargo',
+                'temas' => ['Jornada laboral y horas extras', 'Descansos y vacaciones'],
                 'codigos_obligatorios' => ['Art. 158 CST', 'Art. 159 CST', 'Art. 160 CST', 'Art. 161 CST', 'Art. 162 CST', 'Art. 179 CST', 'Art. 180 CST', 'Art. 181 CST', 'Art. 182 CST'],
                 'datos_empresa_keys'   => ['horario_entrada', 'horario_salida', 'opera_en_turnos', 'numero_turnos', 'definicion_turnos', 'rotacion_turnos', 'trabaja_sabados', 'trabaja_dominicales', 'cargos_exentos_jornada', 'modalidades_jornada', 'cargos_nocturnos', 'control_asistencia'],
                 'instrucciones' => implode("\n", [
@@ -1344,6 +1357,7 @@ HTML;
             [
                 'numero' => 'IV', 'titulo' => 'TRABAJO SUPLEMENTARIO, DOMINICALES Y FESTIVOS',
                 'query_rag' => 'horas extras trabajo suplementario dominicales festivos recargo nocturno límite autorización',
+                'temas' => ['Jornada laboral y horas extras'],
                 'codigos_obligatorios' => ['Art. 167 CST', 'Art. 168 CST', 'Art. 169 CST', 'Art. 179 CST', 'Art. 180 CST'],
                 'datos_empresa_keys'   => ['politica_horas_extras', 'trabaja_dominicales', 'cargos_nocturnos'],
                 'instrucciones' => implode("\n", [
@@ -1358,6 +1372,7 @@ HTML;
             [
                 'numero' => 'V', 'titulo' => 'REMUNERACIÓN Y FORMA DE PAGO',
                 'query_rag' => 'salario remuneración forma pago periodicidad salario en especie propinas prohibición fichas',
+                'temas' => ['Salario y prestaciones sociales'],
                 'codigos_obligatorios' => ['Art. 127 CST', 'Art. 128 CST', 'Art. 129 CST', 'Art. 131 CST', 'Art. 132 CST', 'Art. 133 CST', 'Art. 134 CST', 'Art. 136 CST', 'Art. 143 CST'],
                 'datos_empresa_keys'   => ['forma_pago', 'periodicidad_pago', 'periodicidad_detalle', 'maneja_comisiones', 'tipo_comisiones', 'beneficios_extralegales'],
                 'instrucciones' => implode("\n", [
@@ -1377,6 +1392,7 @@ HTML;
             [
                 'numero' => 'VI', 'titulo' => 'VACACIONES Y PERMISOS',
                 'query_rag' => 'vacaciones remuneradas días hábiles registro acumulación compensación dinero permisos remunerados',
+                'temas' => ['Descansos y vacaciones'],
                 'codigos_obligatorios' => ['Art. 186 CST', 'Art. 187 CST', 'Art. 188 CST', 'Art. 189 CST', 'Art. 190 CST'],
                 'datos_empresa_keys'   => ['politica_permisos'],
                 'instrucciones' => implode("\n", [
@@ -1392,6 +1408,7 @@ HTML;
             [
                 'numero' => 'VII', 'titulo' => 'LICENCIAS ESPECIALES',
                 'query_rag' => 'licencia maternidad paternidad luto calamidad doméstica enfermedad no remunerada',
+                'temas' => ['Licencias (maternidad, paternidad, luto, calamidad)'],
                 'codigos_obligatorios' => ['Art. 236 CST', 'Art. 237 CST', 'Art. 238 CST', 'Art. 239 CST'],
                 'datos_empresa_keys'   => ['tiene_licencias_especiales', 'descripcion_licencias'],
                 'instrucciones' => implode("\n", [
@@ -1407,6 +1424,7 @@ HTML;
             [
                 'numero' => 'VIII', 'titulo' => 'RÉGIMEN DISCIPLINARIO: CLASIFICACIÓN DE FALTAS',
                 'query_rag' => 'régimen disciplinario faltas leves graves procedimiento descargos garantía debido proceso',
+                'temas' => ['Régimen disciplinario y sanciones', 'Faltas graves y justas causas de terminación', 'Procedimiento de descargos', 'Menores de edad y aprendices SENA'],
                 'codigos_obligatorios' => ['Art. 108 CST', 'Art. 111 CST', 'Art. 112 CST', 'Art. 113 CST', 'Art. 114 CST', 'Art. 115 CST'],
                 'datos_empresa_keys'   => ['sanciones_configuradas', 'faltas_leves', 'faltas_graves', 'cargos'],
                 'instrucciones' => implode("\n", [
@@ -1432,6 +1450,7 @@ HTML;
             [
                 'numero' => 'IX', 'titulo' => 'ESCALA DE SANCIONES',
                 'query_rag' => 'escala sanciones disciplinarias multa suspensión terminación justa causa proporcionalidad límite días',
+                'temas' => ['Régimen disciplinario y sanciones', 'Faltas graves y justas causas de terminación'],
                 'codigos_obligatorios' => ['Art. 111 CST', 'Art. 112 CST', 'Art. 113 CST', 'Art. 114 CST'],
                 'datos_empresa_keys'   => ['sanciones_configuradas', 'faltas_leves', 'faltas_graves'],
                 'instrucciones' => implode("\n", [
@@ -1468,6 +1487,7 @@ HTML;
             [
                 'numero' => 'XI', 'titulo' => 'NORMAS DE CONDUCTA Y COMPORTAMIENTO',
                 'query_rag' => 'obligaciones especiales trabajador empleador prohibiciones conducta confidencialidad',
+                'temas' => ['Confidencialidad y propiedad intelectual', 'Uso de tecnología y redes sociales'],
                 'codigos_obligatorios' => ['Art. 57 CST', 'Art. 58 CST', 'Art. 59 CST', 'Art. 60 CST'],
                 'datos_empresa_keys'   => ['politica_celular', 'usa_uniforme', 'tiene_codigo_etica', 'politica_confidencialidad', 'que_quiere_prevenir'],
                 'instrucciones' => implode("\n", [
@@ -1483,6 +1503,7 @@ HTML;
             [
                 'numero' => 'XII', 'titulo' => 'SEGURIDAD Y SALUD EN EL TRABAJO',
                 'query_rag' => 'seguridad salud trabajo SG-SST obligaciones empleador trabajador EPP exámenes médicos accidentes laborales COPASST',
+                'temas' => ['Seguridad y Salud en el Trabajo (SG-SST)', 'COPASST', 'Seguridad social (EPS/pensión/ARL)'],
                 'codigos_obligatorios' => [],
                 'datos_empresa_keys'   => ['tiene_sg_sst', 'riesgos_principales', 'tiene_epp', 'epp_descripcion', 'num_trabajadores'],
                 'instrucciones' => implode("\n", [
@@ -1501,6 +1522,7 @@ HTML;
             [
                 'numero' => 'XIII', 'titulo' => 'USO DE EQUIPOS, UNIFORMES Y BIENES DE LA EMPRESA',
                 'query_rag' => 'equipos bienes empresa responsabilidad trabajador daños uniformes devolución activos',
+                'temas' => ['Uso de tecnología y redes sociales'],
                 'codigos_obligatorios' => [],
                 'datos_empresa_keys'   => ['usa_uniforme'],
                 'instrucciones' => implode("\n", [
@@ -1514,6 +1536,7 @@ HTML;
             [
                 'numero' => 'XIV', 'titulo' => 'COMITÉ DE CONVIVENCIA LABORAL Y PREVENCIÓN DE ACOSO',
                 'query_rag' => 'acoso laboral sexual comité convivencia modalidades procedimiento queja denuncia prevención protocolo',
+                'temas' => ['Acoso laboral y comité de convivencia', 'Acoso sexual laboral'],
                 'codigos_obligatorios' => [
                     // Ley 1010/2006 - artículos clave de acoso laboral
                     'Art. 1 Ley 1010', 'Art. 2 Ley 1010', 'Art. 6 Ley 1010', 'Art. 7 Ley 1010',
@@ -1555,6 +1578,7 @@ HTML;
             [
                 'numero' => 'XV', 'titulo' => 'PROTECCIÓN DE SUJETOS DE ESPECIAL PROTECCIÓN',
                 'query_rag' => 'mujer embarazada maternidad paternidad discapacidad estabilidad laboral reforzada fuero sindical no discriminación',
+                'temas' => ['Protección a la mujer embarazada y lactancia', 'Protección a personas con discapacidad', 'Fuero sindical y libertad sindical', 'Discriminación e igualdad de trato'],
                 'codigos_obligatorios' => ['Art. 236 CST', 'Art. 238 CST', 'Art. 239 CST', 'Art. 240 CST', 'Art. 241 CST', 'Art. 241A CST'],
                 'datos_empresa_keys'   => [],
                 'instrucciones' => implode("\n", [
