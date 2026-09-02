@@ -78,6 +78,19 @@ class RitActualizacionAutomaticaService
         propongas reescribir varios bloques a la vez ni el documento
         completo.
 
+        VERIFICACIÓN DE REDUNDANCIA (antes de decidir el bloque): revisa
+        TODOS los bloques del RIT, no solo el más obvio. Si el contenido que
+        ibas a agregar YA EXISTE en detalle en otro bloque cercano (aunque
+        con otras palabras o en un artículo separado), NO lo dupliques.
+        Identifica el bloque MÁS ESPECÍFICO y pequeño que de verdad necesita
+        el cambio - no el resumen general si el detalle real ya vive en un
+        artículo aparte. Ejemplo: si el RIT ya tiene un artículo propio para
+        "permiso por citas médicas" con todo el detalle, y la ley solo
+        agrega un literal nuevo que no encaja en ningún artículo existente,
+        prefiere modificar o agregar el bloque más pequeño y puntual
+        posible, no reescribir un párrafo resumen repitiendo contenido que
+        ya está bien cubierto en otro lado.
+
         DOCUMENTO LEGAL NUEVO/MODIFICADO ("{$documento->titulo}"):
         {$documentoTexto}
 
