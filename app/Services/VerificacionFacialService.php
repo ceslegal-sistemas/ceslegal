@@ -86,6 +86,18 @@ class VerificacionFacialService
      * Pre-captura: detecta gafas, tapabocas, gorras u obstrucciones usando Gemini Vision.
      * Prompt ultra-específico solo para accesorios - diferente al de calidad de foto (Capa 2).
      * Fail-open en errores para no bloquear al trabajador.
+     *
+     * También detecta foto-de-foto/pantalla (criterio 5): el flujo del
+     * autorizador/citante (webcam-autorizador.blade.php) usa ÚNICAMENTE este
+     * método como filtro antes de dar la selfie por buena - a diferencia del
+     * flujo del trabajador (FormularioDescargos), no pasa por
+     * validarCalidadFoto() después. Pedido explícito del usuario tras
+     * confirmar que la detección de parpadeo (EAR y MediaPipe) no es
+     * confiable en su navegador: en vez de probar "vida" con un micro-gesto
+     * biométrico frágil de medir en el navegador, se apoya en la misma IA que
+     * YA funciona de forma confiable hoy para detectar el patrón visual de
+     * una foto reproducida (brillo/reflejo de pantalla, moiré, bordes de
+     * papel o marco de otro dispositivo).
      */
     public function detectarAccesorios(string $base64): array
     {
@@ -93,18 +105,20 @@ class VerificacionFacialService
         $imageData = preg_replace('/^data:image\/\w+;base64,/', '', $base64);
 
         $prompt = 'Observa esta imagen de cámara web en tiempo real. '
-            . 'Tu única tarea: detectar si la persona lleva puestos accesorios que dificulten la identificación facial. '
+            . 'Tu tarea: detectar accesorios que dificulten la identificación facial, Y detectar si la imagen es una reproducción (foto de una foto, de una pantalla, o impresa) en vez de una persona real frente a la cámara. '
             . 'Responde SOLO con JSON válido (sin markdown): {"accesorio": true/false, "motivo": "string o null"}. '
             . 'Reglas estrictas - responde accesorio=true si: '
             . '(1) Lleva CUALQUIER tipo de gafas: de sol, transparentes, de lectura, de cualquier color o forma. '
             . '(2) Lleva tapabocas, mascarilla o cualquier cosa cubriendo boca/nariz. '
             . '(3) Lleva gorra, sombrero, capucha u otro objeto que tape la frente o parte del rostro. '
             . '(4) Una mano u objeto cubre parte del rostro. '
+            . '(5) La imagen es una REPRODUCCIÓN, no una persona real en vivo: se ve brillo o reflejo de una pantalla, patrón de moiré (líneas onduladas típicas de fotografiar una pantalla), el marco o borde de un celular/tablet/monitor, bordes de una hoja impresa, o una iluminación plana sin la profundidad/sombras naturales de un rostro 3D. '
             . 'Si detectas GAFAS (cualquier tipo), motivo="Por favor retírese las gafas para verificar su identidad correctamente." '
             . 'Si detectas TAPABOCAS, motivo="Por favor retírese el tapabocas para verificar su identidad correctamente." '
             . 'Si detectas GORRA u otro objeto, motivo="Por favor retire el accesorio que cubre su rostro." '
-            . 'Si el rostro está completamente libre de accesorios, responde {"accesorio": false, "motivo": null}. '
-            . 'Sé muy estricto: ante la mínima duda sobre gafas, responde accesorio=true.';
+            . 'Si detectas que es una REPRODUCCIÓN (criterio 5), motivo="Debe tomarse la foto en vivo frente a la cámara, no a partir de otra foto, pantalla o imagen impresa." '
+            . 'Si el rostro está completamente libre de accesorios y es claramente una persona real en vivo, responde {"accesorio": false, "motivo": null}. '
+            . 'Sé muy estricto: ante la mínima duda sobre gafas o sobre si es una reproducción, responde accesorio=true.';
 
         try {
             $response = Http::withHeaders(['Content-Type' => 'application/json'])

@@ -450,11 +450,18 @@ class NotificacionService
             $this->crear(
                 userId: $user->id,
                 tipo: 'sugerencia_actualizacion_rit',
-                titulo: 'Cambio sugerido para su Reglamento Interno',
-                mensaje: "Un documento legal nuevo justifica un ajuste puntual en su RIT: {$sugerencia->justificacion_ia}",
+                // Lenguaje más claro y accionable, pedido explícito del usuario
+                // (2026-09-02): antes decía "un ajuste puntual" - la campana no
+                // bastaba sola, se acumularon 14 sugerencias sin revisar en 14
+                // empresas en producción. Complementa el banner del Dashboard
+                // (dashboard-sugerencias-rit-notice.blade.php), que es lo
+                // primero que ve el cliente al entrar, sin depender de que
+                // abra la campana.
+                titulo: 'Hay una actualización legal que aplica a su Reglamento Interno',
+                mensaje: "Salió normativa nueva y ya identificamos los cambios puntuales que le corresponden a su RIT: {$sugerencia->justificacion_ia} ¿Desea actualizarlo?",
                 relacionadoTipo: \App\Models\SugerenciaActualizacionRit::class,
                 relacionadoId: $sugerencia->id,
-                prioridad: 'alta'
+                prioridad: 'urgente'
             );
         }
     }
