@@ -2677,7 +2677,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->duration(8000)
                                     ->send();
 
-                                redirect()->route('filament.admin.resources.proceso-disciplinarios.index');
+                                redirect(static::getUrl('index'));
                             } catch (\Exception $e) {
                                 \Filament\Notifications\Notification::make()
                                     ->danger()
@@ -2708,7 +2708,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->duration(8000)
                                 ->send();
 
-                            redirect()->route('filament.admin.resources.proceso-disciplinarios.index');
+                            redirect(static::getUrl('index'));
                         } catch (\Exception $e) {
                             \Filament\Notifications\Notification::make()
                                 ->danger()
@@ -2797,7 +2797,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->send();
 
                             // Refrescar la página
-                            redirect()->route('filament.admin.resources.proceso-disciplinarios.index');
+                            redirect(static::getUrl('index'));
                         } catch (\Exception $e) {
                             // Notificar error
                             \Filament\Notifications\Notification::make()
@@ -3574,7 +3574,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->duration(8000)
                                 ->send();
 
-                            redirect()->route('filament.admin.resources.proceso-disciplinarios.index');
+                            redirect(static::getUrl('index'));
                         } catch (\Exception $e) {
                             \Filament\Notifications\Notification::make()
                                 ->danger()
@@ -3737,7 +3737,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->persistent()
                                     ->send();
 
-                                return redirect()->to(request()->header('Referer') ?? route('filament.admin.resources.proceso-disciplinarios.index'));
+                                return redirect()->to(request()->header('Referer') ?? static::getUrl('index'));
                             }
 
                             try {
@@ -3751,7 +3751,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->duration(8000)
                                     ->send();
 
-                                redirect()->route('filament.admin.resources.proceso-disciplinarios.index');
+                                redirect(static::getUrl('index'));
                             } catch (\Exception $e) {
                                 \Filament\Notifications\Notification::make()
                                     ->danger()
