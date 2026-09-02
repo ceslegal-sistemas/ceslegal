@@ -83,6 +83,16 @@ html:not(.dark) .rit-sug-item{border-bottom-color:rgba(0,0,0,.06)}
 .rit-sug-just{font-size:.825rem;line-height:1.6;color:#94a3b8;margin:0 0 .85rem}
 html:not(.dark) .rit-sug-just{color:#57534e}
 .rit-sug-fuente{font-size:.7rem;color:#64748b;margin:0 0 .5rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+
+/* Pedido explícito del usuario: este bloque no debe verse como un
+   visor de documento más - es una acción pendiente del cliente. */
+.rit-viewer-sugerencia{border-width:2px;border-color:rgba(251,113,133,.5)}
+html:not(.dark) .rit-viewer-sugerencia{border-color:rgba(225,29,72,.35);box-shadow:0 4px 18px rgba(225,29,72,.14)}
+.rit-viewer-sugerencia .rit-sug-header{background:rgba(251,113,133,.16);padding:.9rem 1.25rem}
+html:not(.dark) .rit-viewer-sugerencia .rit-sug-header{background:rgba(225,29,72,.1)}
+.rit-viewer-sugerencia .rit-sug-header svg{width:20px !important;height:20px !important}
+.rit-viewer-sugerencia .rit-viewer-label{font-size:.875rem;font-weight:700;letter-spacing:.01em;text-transform:none;color:#fda4af}
+html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
 </style>
 
 @if($necesitaSeleccion)
@@ -333,7 +343,7 @@ html:not(.dark) .rit-sug-just{color:#57534e}
        aplica solo - queda a la espera de que el cliente/bufete lo apruebe
        o lo rechace acá mismo. --}}
   @if($sugerenciasPendientes->isNotEmpty())
-    <div class="rit-viewer">
+    <div class="rit-viewer rit-viewer-sugerencia">
       <div class="rit-sug-header">
         <svg style="width:16px;height:16px;color:#fb7185" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
         <span class="rit-viewer-label">Cambios sugeridos para su Reglamento ({{ $sugerenciasPendientes->count() }})</span>
