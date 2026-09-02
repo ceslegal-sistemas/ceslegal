@@ -168,8 +168,21 @@ class ProcesoDisciplinarioObserver
         $anio = now()->year;
         $prefijo = "PD-{$anio}-";
 
-        // Obtener el último número del año actual
-        $ultimoProceso = ProcesoDisciplinario::where('codigo', 'like', "{$prefijo}%")
+        // Obtener el último número del año actual.
+        // withoutGlobalScopes(): `codigo` es único en TODA la tabla (todas las
+        // empresas comparten la misma secuencia PD-{año}-NNNN), pero
+        // ScopedToBufeteOrEmpresa filtra por empresa_id para el rol cliente -
+        // sin excluirlo aquí, la primera citación de una empresa nueva vuelve
+        // a calcular "0001" aunque ese número ya lo haya usado otra empresa
+        // (mismo bug real ya corregido en SolicitudContratoObserver::generarCodigoUnico(),
+        // ver bug-codigo-solicitud-contrato-scope-multitenant).
+        // withTrashed(): ProcesoDisciplinario usa SoftDeletes - sin esto, un
+        // proceso borrado deja su código "libre" para esta consulta pero
+        // ocupado para la restricción única real de la BD (mismo patrón ya
+        // corregido para SolicitudContrato).
+        $ultimoProceso = ProcesoDisciplinario::withoutGlobalScopes()
+            ->withTrashed()
+            ->where('codigo', 'like', "{$prefijo}%")
             ->orderBy('codigo', 'desc')
             ->first();
 
