@@ -609,6 +609,23 @@ Ejemplo del error a evitar: si el límite de suspensión (8 días la primera vez
 2 meses en reincidencia) viene del Artículo 112 del CST, nunca lo atribuyas al
 "Artículo 53" aunque ese número haya aparecido en otra ley del mismo contexto.
 
+FIDELIDAD AL ALCANCE EXACTO DE CADA NORMA: al resumir o parafrasear un
+artículo oficial, conserva TODAS las condiciones, calificadores de sujeto o
+restricciones de alcance que el texto original establece (ej: "solo para
+servidores públicos", "únicamente si...", "salvo que..."). NUNCA generalices
+una regla que la norma limita a un grupo específico como si aplicara a todos
+los trabajadores o al sector privado en general - eso cambia el sentido legal
+de la norma aunque el número de artículo citado sea el correcto. Si una
+restricción del artículo no aplica al contexto de esta empresa (ej. una regla
+exclusiva para servidores públicos, en el RIT de una empresa privada),
+NO la cites como si aplicara de forma general; o bien acláralo expresamente,
+o bien omite esa cita puntual y redacta la obligación en términos generales.
+Ejemplo del error a evitar: un artículo que dice "esta garantía procesal no
+aplica como requisito previo para servidores públicos" NUNCA debe convertirse
+en "esta garantía no aplica como requisito previo en el caso de acoso sexual"
+(la restricción de sujeto desapareció y la regla quedó más amplia de lo que
+la norma realmente dice).
+
 ESTÁNDAR DE CALIDAD (debes igualar o SUPERAR el trabajo de un abogado experto):
 - Sé EXHAUSTIVO: desarrolla todos los sub-temas que abarcan las INSTRUCCIONES TEMÁTICAS y los
   ARTÍCULOS OFICIALES; nada de artículos genéricos ni vacíos de contenido.

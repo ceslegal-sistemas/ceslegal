@@ -9,14 +9,20 @@ use Tests\TestCase;
 
 /**
  * Pedido explícito del usuario tras una prueba empírica real de construcción
- * de RIT: el Capítulo IX (Escala de Sanciones) citó "Artículo 53 del Código
- * Sustantivo del Trabajo" para el límite de suspensión (8 días/2 meses) -
- * el artículo real es el 112 CST. El "53" pertenecía a una ley DISTINTA
- * (Ley 2365 de 2024, Código General Disciplinario) presente en el mismo
- * contexto (Biblioteca Jurídica) para ese mismo capítulo - el modelo mezcló
- * la numeración de dos fuentes distintas. El prompt ahora exige verificar
- * que número y nombre de ley/código coincidan en la MISMA fuente antes de
- * citar.
+ * de RIT, 2 hallazgos reales corregidos en el mismo prompt:
+ *
+ * 1. El Capítulo IX (Escala de Sanciones) citó "Artículo 53 del Código
+ *    Sustantivo del Trabajo" para el límite de suspensión (8 días/2 meses) -
+ *    el artículo real es el 112 CST. El "53" pertenecía a una ley DISTINTA
+ *    (Ley 2365 de 2024, Código General Disciplinario) presente en el mismo
+ *    contexto (Biblioteca Jurídica) para ese mismo capítulo - el modelo
+ *    mezcló la numeración de dos fuentes distintas.
+ * 2. El Capítulos X y XIV citaron el parágrafo del Artículo 15 de la Ley
+ *    2365 de 2024 (que en el texto real solo exime a SERVIDORES PÚBLICOS
+ *    del requisito de procedibilidad) como si aplicara de forma general "en
+ *    el caso de acoso sexual" - el número de artículo era correcto, pero se
+ *    perdió la restricción de sujeto al parafrasear, ampliando el alcance
+ *    real de la norma.
  */
 class RitGeneratorVerificacionFuenteTest extends TestCase
 {
@@ -62,5 +68,14 @@ class RitGeneratorVerificacionFuenteTest extends TestCase
 
         $this->assertStringContainsString('REGLA FUNDAMENTAL - ANTI-ALUCINACIÓN', $prompt);
         $this->assertStringContainsString('PROHIBICIÓN ABSOLUTA', $prompt);
+    }
+
+    public function test_el_prompt_exige_conservar_las_restricciones_de_alcance_al_parafrasear(): void
+    {
+        $prompt = $this->invocarConstruirPrompt();
+
+        $this->assertStringContainsString('FIDELIDAD AL ALCANCE EXACTO DE CADA NORMA', $prompt);
+        $this->assertStringContainsString('servidores públicos', $prompt);
+        $this->assertStringContainsString('NO la cites como si aplicara de forma general', $prompt);
     }
 }
