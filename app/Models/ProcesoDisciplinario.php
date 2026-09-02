@@ -98,6 +98,7 @@ class ProcesoDisciplinario extends Model
         'exoneracion_aceptada_en' => 'datetime',
         'foto_autorizador_en' => 'datetime',
         'foto_citante_en' => 'datetime',
+        'disclaimer_datos_autorizador_en' => 'datetime',
         'validaciones_v6' => 'array',
         'validaciones_v6_en' => 'datetime',
         'analisis_recomendacion' => 'array',
