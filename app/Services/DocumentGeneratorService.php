@@ -920,6 +920,11 @@ HTML;
                     $trabajadorNoRespondio
                 );
             } else {
+                // Último intento de tener una conducta concreta del RIT que citar
+                // antes de resignarse a "No especificado" - ver el docblock del
+                // método para el caso real que lo motivó.
+                $proceso->asegurarClasificacionIncidente();
+
                 $prompt = $this->construirPromptSancionLenguajeClaro(
                     $proceso,
                     $trabajador,
@@ -1006,6 +1011,13 @@ HTML;
             // Limpiar el contenido (remover bloques de código markdown si existen)
             $documentoSancion = $this->limpiarContenidoHTML($documentoSancion);
 
+            // Red de seguridad: el prompt usa corchetes como marcador de "completa
+            // esto" y prohíbe explícitamente dejarlos en el texto final, pero un
+            // modelo de lenguaje puede incumplirlo (caso real: "[Día] de [Mes]"
+            // llegó sin resolver a un documento entregado a un trabajador). Nunca
+            // debe salir un corchete sin resolver en un documento legal real.
+            $documentoSancion = $this->limpiarPlaceholdersSinResolver($documentoSancion, $proceso);
+
             // Insertar la TABLA DE SANCIONES de forma determinística (verbatim del
             // RIT y, para "otro motivo", del CST citado textual). La IA nunca la toca.
             if ($tipoSancion !== 'no_sancion') {
@@ -1055,6 +1067,29 @@ HTML;
         }
 
         return trim($contenido);
+    }
+
+    /**
+     * Elimina cualquier marcador entre corchetes que la IA haya dejado sin
+     * resolver (ej. "[Día]", "[Mes]") - el prompt los usa como instrucción
+     * interna de "completa esto" y prohíbe expresamente dejarlos en el texto
+     * final, pero un modelo de lenguaje puede incumplirlo. Se registra en el
+     * log para poder mejorar el prompt si se repite, y se elimina el
+     * marcador (nunca se manda un corchete sin resolver a un documento legal
+     * real entregado a un trabajador).
+     */
+    private function limpiarPlaceholdersSinResolver(string $contenido, ProcesoDisciplinario $proceso): string
+    {
+        if (!preg_match_all('/\[[^\[\]]{1,80}\]/u', $contenido, $matches)) {
+            return $contenido;
+        }
+
+        \Illuminate\Support\Facades\Log::warning('Documento de sanción con placeholders sin resolver', [
+            'proceso_id'   => $proceso->id,
+            'placeholders' => $matches[0],
+        ]);
+
+        return preg_replace('/\[[^\[\]]{1,80}\]/u', '', $contenido);
     }
 
     /**
@@ -1177,10 +1212,22 @@ HTML;
 
         $diasImpugnacion = 3; // Días hábiles para impugnar según ley colombiana
 
-        // Preparar texto específico para suspensiones
+        // Preparar texto específico para suspensiones. Fechas calculadas por el
+        // servidor, NUNCA pedidas al cliente ni dejadas a que la IA las invente:
+        // inicia el día SIGUIENTE a la notificación (evita cualquier duda de
+        // que la sanción tenga efecto retroactivo o de que el día de la propia
+        // notificación cuente como día completo de suspensión) y dura los días
+        // calendario acordados, ambos extremos incluidos. Pedido explícito del
+        // usuario tras ver un documento real con "[Día] de [Mes]" sin resolver:
+        // la IA no tenía ninguna fecha real con la cual completar esa sección.
         $textoSuspension = '';
         if ($tipoSancion === 'suspension' && $diasSuspension) {
-            $textoSuspension = "\n- Días de suspensión: {$diasSuspension} día" . ($diasSuspension > 1 ? 's' : '') . " (sin remuneración)";
+            $fechaInicioSuspension = $fechaActual->copy()->addDay();
+            $fechaFinSuspension    = $fechaInicioSuspension->copy()->addDays($diasSuspension - 1);
+
+            $textoSuspension = "\n- Días de suspensión: {$diasSuspension} día" . ($diasSuspension > 1 ? 's' : '') . " (sin remuneración)"
+                . "\n- Fecha de inicio de la suspensión: " . $fechaInicioSuspension->isoFormat('D [de] MMMM [de] YYYY')
+                . "\n- Fecha de fin de la suspensión: " . $fechaFinSuspension->isoFormat('D [de] MMMM [de] YYYY') . " (ambos días incluidos)";
         }
 
         // Preparar texto sobre no respuesta del trabajador
@@ -1295,7 +1342,8 @@ Genera HTML con exactamente esta estructura:
   <p style="margin: 4px 0;">[Punto (e) de la motivación: explica por qué se eligió ESTA medida y no una más fuerte ni más suave. Menciona lo que se tuvo en cuenta: gravedad de la falta, si hubo reincidencia, antecedentes del trabajador y el perjuicio causado. El trabajador debe entender que la medida es proporcional y no arbitraria.]</p>
 
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">5. Qué significa esto para usted</h3>
-  <p style="margin: 4px 0;">[Explica las consecuencias prácticas de forma clara y específica.{$textoSuspension}]</p>
+  <p style="margin: 4px 0;">[Explica las consecuencias prácticas de forma clara y específica.{$textoSuspension}
+  Si arriba aparecen fechas de inicio y fin de la suspensión, ÚSALAS EXACTAMENTE como están escritas - son las fechas reales, no un ejemplo. NUNCA escribas "[Día]", "[Mes]" ni ningún otro corchete: si no tienes una fecha exacta para algo, redacta esa frase en términos generales sin inventar el dato.]</p>
 
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">6. Base legal</h3>
   <p style="margin: 4px 0;">Esta decisión se fundamenta en el Código Sustantivo del Trabajo de Colombia, el reglamento interno de trabajo de la empresa y las normas establecidas en su contrato laboral.</p>

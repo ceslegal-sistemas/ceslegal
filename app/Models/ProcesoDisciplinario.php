@@ -474,6 +474,55 @@ class ProcesoDisciplinario extends Model
     }
 
     /**
+     * Último recurso antes de emitir una sanción sin ninguna conducta
+     * concreta del RIT que citar: si ni la selección manual
+     * (motivosDescargosNormalizados()) ni una clasificación de IA previa
+     * (motivosDescargosDesdeClasificacionIA()) tienen nada, se dispara la
+     * clasificación AHORA. Sin esto, el documento de sanción terminaba
+     * citando "No especificado" como regla incumplida y la motivación no
+     * tenía ninguna conducta real que conectar con los hechos - caso real
+     * reportado por el usuario (RENBEL, proceso PD-2026-0022).
+     *
+     * Fail-open: si la clasificación falla o no arroja una conducta que
+     * calce con el catálogo, no se persiste nada y el llamador sigue
+     * cayendo a "No especificado"/catálogo completo como antes.
+     */
+    public function asegurarClasificacionIncidente(): void
+    {
+        if (!empty($this->motivosDescargosNormalizados()) || !empty($this->motivosDescargosDesdeClasificacionIA())) {
+            return;
+        }
+
+        $fechas = array_values(array_filter([
+            $this->fecha_ocurrencia?->format('Y-m-d'),
+            ...collect($this->fechas_ocurrencia_adicionales ?? [])->pluck('fecha')->filter()->all(),
+        ]));
+
+        try {
+            $resultado = app(\App\Services\IADescargoService::class)->clasificarIncidente([
+                'empresa_id'        => (int) $this->empresa_id,
+                'trabajador_id'     => (int) $this->trabajador_id,
+                'cargo'             => $this->trabajador?->cargo ?? 'No especificado',
+                'hechos'            => $this->hechos ?? '',
+                'fechas_ocurrencia' => $fechas,
+                'motivos_rit'       => [],
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('asegurarClasificacionIncidente: fallo al clasificar, se deja sin conducta', [
+                'proceso_id' => $this->id,
+                'error'      => $e->getMessage(),
+            ]);
+            return;
+        }
+
+        if (empty($resultado['conducta_rit_aplicable'] ?? '')) {
+            return;
+        }
+
+        $this->forceFill(['clasificacion_incidente_ia' => json_encode($resultado)])->saveQuietly();
+    }
+
+    /**
      * Texto de los motivos para la citación (nombre + medida por conducta).
      */
     public function getSancionesLaboralesTextoAttribute(): string
