@@ -152,7 +152,19 @@ class SolicitudContratoObserver
         // ocupado para la BD real, reventando con UniqueConstraintViolationException
         // en la siguiente solicitud del mismo año (bug real, reproducido con
         // Livewire::test() al borrar una solicitud de prueba y crear otra después).
-        $ultimaSolicitud = SolicitudContrato::withTrashed()
+        //
+        // withoutGlobalScopes(): `codigo` es único en TODA la tabla (todas las
+        // empresas comparten la misma secuencia SC-{año}-NNNN), pero
+        // ScopedToBufeteOrEmpresa agrega un global scope que filtra por
+        // empresa_id para el rol cliente - sin excluirlo aquí, esta consulta
+        // busca "el último código de MI empresa" en vez de "el último código
+        // de todo el sistema", así que la primera solicitud de cualquier
+        // empresa nueva vuelve a calcular "0001" aunque ese número ya lo haya
+        // usado otra empresa - bug real en producción: UniqueConstraintViolationException
+        // al crear la primera solicitud de una empresa (RENBEL, "SC-2026-0001"
+        // ya usado por otra compañía).
+        $ultimaSolicitud = SolicitudContrato::withoutGlobalScopes()
+            ->withTrashed()
             ->where('codigo', 'like', "{$prefijo}%")
             ->orderBy('codigo', 'desc')
             ->first();
