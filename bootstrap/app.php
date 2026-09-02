@@ -27,6 +27,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         // Actualizar términos legales diariamente a las 8:00 AM
         $schedule->command('terminos:actualizar')->dailyAt('08:00');
+        // Alertar contratos a término fijo por vencer y aplicar renovación
+        // automática del Art. 46 CST cuando aplique.
+        $schedule->command('contratos:verificar-vencimientos')->dailyAt('08:00');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

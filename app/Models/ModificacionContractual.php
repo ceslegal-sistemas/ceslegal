@@ -24,6 +24,7 @@ class ModificacionContractual extends Model
         'cargo'         => 'Cargo',
         'jornada'       => 'Jornada / Modalidad',
         'tipo_contrato' => 'Tipo de Contrato',
+        'plazo'         => 'Plazo (Prórroga)',
     ];
 
     public const ESTADOS = [

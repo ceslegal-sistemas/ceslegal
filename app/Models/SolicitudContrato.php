@@ -64,6 +64,13 @@ class SolicitudContrato extends Model
         'ruta_contrato',
         'fecha_envio_rrhh',
         'fecha_cierre',
+        'fecha_inicio_periodo_actual',
+        'veces_prorrogado',
+        'decision_no_renovacion_en',
+        'ruta_preaviso',
+        'renovado_automaticamente_en',
+        'requiere_revision_manual_renovacion',
+        'notificado_vencimiento_en',
     ];
 
     protected $casts = [
@@ -75,6 +82,12 @@ class SolicitudContrato extends Model
         'fecha_generacion_contrato' => 'datetime',
         'fecha_envio_rrhh' => 'datetime',
         'fecha_cierre' => 'datetime',
+        'fecha_inicio_periodo_actual' => 'date',
+        'veces_prorrogado' => 'integer',
+        'decision_no_renovacion_en' => 'datetime',
+        'renovado_automaticamente_en' => 'datetime',
+        'requiere_revision_manual_renovacion' => 'boolean',
+        'notificado_vencimiento_en' => 'datetime',
     ];
 
     public function empresa(): BelongsTo

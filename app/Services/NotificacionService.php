@@ -466,6 +466,93 @@ class NotificacionService
         }
     }
 
+    /** Usuarios cliente de la empresa + bufete asignado (si tiene) - mismo criterio ya usado en notificarSugerenciaActualizacionRit(). */
+    private function destinatariosDeEmpresa(\App\Models\Empresa $empresa): Collection
+    {
+        $destinatarios = User::where('empresa_id', $empresa->id)
+            ->where('active', true)
+            ->where('role', 'cliente')
+            ->get();
+
+        if ($empresa->bufete_id) {
+            $destinatarios = $destinatarios->merge(
+                User::where('bufete_id', $empresa->bufete_id)
+                    ->where('active', true)
+                    ->where('role', 'bufete')
+                    ->get()
+            );
+        }
+
+        return $destinatarios;
+    }
+
+    /**
+     * Contrato a término fijo dentro de la ventana de alerta (45 días por
+     * defecto, ver PlazoContratoService) - da margen para gestionar el
+     * preaviso de 30 días que exige la ley antes de que se cumpla el plazo.
+     */
+    public function notificarContratoPorVencer(SolicitudContrato $solicitud): void
+    {
+        $dias = app(PlazoContratoService::class)->diasHastaVencimiento($solicitud);
+        $nombreTrabajador = trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}");
+
+        foreach ($this->destinatariosDeEmpresa($solicitud->empresa) as $user) {
+            $this->crear(
+                userId: $user->id,
+                tipo: 'contrato_por_vencer',
+                titulo: 'Un contrato a término fijo está por vencer',
+                mensaje: "El contrato de {$nombreTrabajador} ({$solicitud->codigo}) vence en {$dias} días. ¿Desea renovarlo?",
+                relacionadoTipo: SolicitudContrato::class,
+                relacionadoId: $solicitud->id,
+                prioridad: 'alta'
+            );
+        }
+    }
+
+    /**
+     * Nadie decidió a tiempo y el Art. 46 CST renovó el contrato solo -
+     * prioridad urgente para que la próxima vez se gestione antes.
+     */
+    public function notificarRenovacionAutomatica(SolicitudContrato $solicitud): void
+    {
+        $nombreTrabajador = trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}");
+        $nuevaFecha = $solicitud->fecha_fin_contrato?->format('d/m/Y') ?? 'sin definir';
+
+        foreach ($this->destinatariosDeEmpresa($solicitud->empresa) as $user) {
+            $this->crear(
+                userId: $user->id,
+                tipo: 'contrato_renovado_automaticamente',
+                titulo: 'Un contrato se renovó automáticamente',
+                mensaje: "No se gestionó a tiempo el contrato de {$nombreTrabajador} ({$solicitud->codigo}) y la ley lo renovó automáticamente. Nueva fecha de vencimiento: {$nuevaFecha}.",
+                relacionadoTipo: SolicitudContrato::class,
+                relacionadoId: $solicitud->id,
+                prioridad: 'urgente'
+            );
+        }
+    }
+
+    /**
+     * La renovación automática superaría el tope legal de 4 años - caso
+     * raro y de alto riesgo legal, no se aplica sola, requiere revisión
+     * humana inmediata.
+     */
+    public function notificarRevisionManualRenovacion(SolicitudContrato $solicitud): void
+    {
+        $nombreTrabajador = trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}");
+
+        foreach ($this->destinatariosDeEmpresa($solicitud->empresa) as $user) {
+            $this->crear(
+                userId: $user->id,
+                tipo: 'contrato_requiere_revision_manual',
+                titulo: 'Un contrato necesita su revisión urgente',
+                mensaje: "El contrato de {$nombreTrabajador} ({$solicitud->codigo}) no se pudo renovar automáticamente porque superaría el límite legal de 4 años. Revíselo cuanto antes.",
+                relacionadoTipo: SolicitudContrato::class,
+                relacionadoId: $solicitud->id,
+                prioridad: 'urgente'
+            );
+        }
+    }
+
     /**
      * Marca una notificación como leída
      */

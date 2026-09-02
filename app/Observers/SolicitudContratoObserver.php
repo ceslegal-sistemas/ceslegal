@@ -37,6 +37,13 @@ class SolicitudContratoObserver
         if (empty($solicitud->fecha_solicitud)) {
             $solicitud->fecha_solicitud = now();
         }
+
+        // Inicio del período de contrato vigente = inicio del contrato
+        // original al crearlo. PlazoContratoService lo va actualizando en
+        // cada prórroga para calcular "el mismo período" (Art. 46 CST).
+        if (empty($solicitud->fecha_inicio_periodo_actual) && !empty($solicitud->fecha_inicio_propuesta)) {
+            $solicitud->fecha_inicio_periodo_actual = $solicitud->fecha_inicio_propuesta;
+        }
     }
 
     /**
