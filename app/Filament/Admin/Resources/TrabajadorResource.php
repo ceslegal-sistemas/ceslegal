@@ -389,17 +389,17 @@ class TrabajadorResource extends Resource
                             ->extraAttributes(['data-tour' => 'trabajador-activo']),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Datos de Contacto (Opcional)')
+                Forms\Components\Section::make('Datos de Contacto')
                     ->description('Teléfono y dirección')
                     ->icon('heroicon-o-phone')
-                    ->collapsed()
                     ->schema([
                         Forms\Components\TextInput::make('telefono')
-                            ->label('Teléfono / Celular (Opcional)')
+                            ->label('Teléfono / Celular')
                             ->tel()
+                            ->required()
                             ->mask('9999999999')
                             ->maxLength(10)
-                            ->rules(['nullable', 'regex:/^[0-9]{10}$/'])
+                            ->rules(['regex:/^[0-9]{10}$/'])
                             ->validationMessages([
                                 'regex' => 'El teléfono debe tener exactamente 10 dígitos numéricos (sin +57, espacios, guiones ni letras).',
                             ])
@@ -408,7 +408,8 @@ class TrabajadorResource extends Resource
                             ->suffixIcon('heroicon-o-phone'),
 
                         Forms\Components\Textarea::make('direccion')
-                            ->label('Dirección de Residencia (Opcional)')
+                            ->label('Dirección de Residencia')
+                            ->required()
                             ->rows(2)
                             ->placeholder('Ej: Calle 123 # 45-67, Barrio Centro')
                             ->helperText('Dirección completa')
