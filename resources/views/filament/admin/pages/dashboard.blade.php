@@ -16,6 +16,18 @@
         $totalSugerencias = ($usuarioDashboard && in_array($usuarioDashboard->role, ['cliente', 'bufete'], true))
             ? \App\Models\SugerenciaActualizacionRit::where('estado', 'pendiente')->count()
             : 0;
+
+        // Contratos a término fijo por vencer (ventana de 45 días, ver
+        // PlazoContratoService) sin decisión de renovación tomada -
+        // ScopedToBufeteOrEmpresa ya filtra por empresa/bufete del usuario,
+        // mismo criterio que $totalSugerencias arriba.
+        $totalContratosPorVencer = ($usuarioDashboard && in_array($usuarioDashboard->role, ['cliente', 'bufete'], true))
+            ? \App\Models\SolicitudContrato::where('tipo_contrato', 'Contrato a Término Fijo')
+                ->whereNull('decision_no_renovacion_en')
+                ->where('requiere_revision_manual_renovacion', false)
+                ->whereBetween('fecha_fin_contrato', [now()->startOfDay(), now()->addDays(45)->endOfDay()])
+                ->count()
+            : 0;
     @endphp
 
     @if($sinRit)
@@ -24,6 +36,10 @@
 
     @if($totalSugerencias > 0)
         @include('filament.components.dashboard-sugerencias-rit-notice', ['totalSugerencias' => $totalSugerencias])
+    @endif
+
+    @if($totalContratosPorVencer > 0)
+        @include('filament.components.dashboard-contratos-por-vencer-notice', ['totalContratos' => $totalContratosPorVencer])
     @endif
 
     {{-- Guía "Tu proceso" a todo el ancho, fuera del grid de widgets (garantiza full-width). --}}

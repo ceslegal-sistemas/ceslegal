@@ -64,6 +64,7 @@ class ModificacionContractualResource extends Resource
             'cargo'         => 'cargo_contrato',
             'jornada'       => 'jornada',
             'tipo_contrato' => 'tipo_contrato',
+            'plazo'         => 'fecha_fin_contrato',
         ];
     }
 
@@ -129,6 +130,9 @@ class ModificacionContractualResource extends Resource
                             ->preload()
                             ->required()
                             ->live()
+                            // Prellenado desde el botón "Renovar contrato" de
+                            // Ver Solicitud de Contrato (?solicitud_contrato_id=).
+                            ->default(fn () => request()->integer('solicitud_contrato_id') ?: null)
                             ->afterStateUpdated(function (Set $set, ?int $state) {
                                 if (!$state) {
                                     $set('empresa_id', null);
@@ -169,6 +173,9 @@ class ModificacionContractualResource extends Resource
                             ->required()
                             ->live()
                             ->native(false)
+                            // Prellenado desde el botón "Renovar contrato" de
+                            // Ver Solicitud de Contrato (?tipo_modificacion=plazo).
+                            ->default(fn () => request()->query('tipo_modificacion'))
                             // Sin esto, cambiar de tipo (ej. de "salario" a "cargo")
                             // deja el valor anterior en el estado ("3.000.000")
                             // aunque ya no se vea en pantalla - el Select de "Nuevo
@@ -278,6 +285,28 @@ class ModificacionContractualResource extends Resource
                             ->visible(fn (Get $get) => $get('tipo_modificacion') === 'tipo_contrato')
                             ->required(fn (Get $get) => $get('tipo_modificacion') === 'tipo_contrato')
                             ->options(self::getTiposContrato()),
+
+                        // "Prórroga" (Otrosí de Plazo): se sugiere la fecha calculada
+                        // por PlazoContratoService (mismo período que se vence,
+                        // reglas del Art. 46 CST), pero el usuario puede ajustarla -
+                        // a diferencia de las fechas de suspensión de una sanción, acá
+                        // sí tiene sentido dejarla editable porque es una negociación
+                        // real entre las partes, no un plazo legal fijo.
+                        Forms\Components\DatePicker::make('valor_nuevo')
+                            ->label('Nueva Fecha de Fin del Contrato')
+                            ->visible(fn (Get $get) => $get('tipo_modificacion') === 'plazo')
+                            ->required(fn (Get $get) => $get('tipo_modificacion') === 'plazo')
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->default(function (Get $get) {
+                                $solicitud = SolicitudContrato::find($get('solicitud_contrato_id'));
+                                if (!$solicitud || empty($solicitud->fecha_fin_contrato)) {
+                                    return null;
+                                }
+                                return app(\App\Services\PlazoContratoService::class)
+                                    ->calcularProximaRenovacion($solicitud)['nueva_fecha_fin'];
+                            })
+                            ->helperText('Sugerida: mismo período que se vence, según el Art. 46 CST. Puede ajustarla si las partes acordaron otra.'),
 
                         Forms\Components\Textarea::make('justificacion')
                             ->label('Justificación')

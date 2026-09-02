@@ -41,6 +41,10 @@
 >
     @include('filament.components.documento-viewer-styles')
 
+    @if ($record->tipo_contrato === 'Contrato a Término Fijo')
+        @include('filament.components.solicitud-contrato-vencimiento-card', ['record' => $record])
+    @endif
+
     @include('filament.components.rit-info-card', [
         'icon' => 'https://cdn.lordicon.com/moedrfvp.json',
         'title' => 'Información Básica',

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ModificacionContractual;
 use App\Models\ReglamentoInterno;
 use App\Models\SolicitudContrato;
+use Carbon\Carbon;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\Http;
@@ -408,6 +409,13 @@ class SolicitudContratoIAService
      */
     public function redactarOtrosi(ModificacionContractual $modificacion): string
     {
+        // Prórroga de plazo: plantilla LITERAL con variables, sin IA de por
+        // medio (decisión explícita del usuario) - a diferencia de los otros
+        // 4 tipos, que sí redactan en texto libre.
+        if ($modificacion->tipo_modificacion === 'plazo') {
+            return $this->renderizarOtrosiPlazoLiteral($modificacion);
+        }
+
         $solicitud = $modificacion->solicitudContrato;
 
         $temasPorTipo = [
@@ -430,6 +438,62 @@ class SolicitudContratoIAService
         $prompt = $this->construirPromptOtrosi($modificacion, $solicitud, $articulosCst, $textoRit);
 
         return $this->llamarGemini($prompt, $modificacion->empresa_id);
+    }
+
+    /**
+     * Renderiza la plantilla LITERAL del Otrosí de Plazo (sin IA), ya
+     * completa como documento HTML autocontenido - generarHTMLOtrosi() la
+     * usa tal cual, sin envolverla en la caja genérica de los otros 4 tipos.
+     */
+    private function renderizarOtrosiPlazoLiteral(ModificacionContractual $modificacion): string
+    {
+        $solicitud = $modificacion->solicitudContrato;
+        $empresa   = $solicitud->empresa;
+
+        $fechaContratoOriginal = $solicitud->fecha_inicio_propuesta
+            ? Carbon::parse($solicitud->fecha_inicio_propuesta)->locale('es')->isoFormat('D [de] MMMM [de] YYYY')
+            : 'la fecha de suscripción del contrato';
+
+        $fechaFinAnterior = Carbon::parse($solicitud->fecha_fin_contrato);
+        $fechaFinNueva    = Carbon::parse($modificacion->valor_nuevo);
+        $inicioPeriodoActual = $solicitud->fecha_inicio_periodo_actual
+            ? Carbon::parse($solicitud->fecha_inicio_periodo_actual)
+            : Carbon::parse($solicitud->fecha_inicio_propuesta ?? $fechaFinAnterior);
+
+        return view('pdfs.contratos.otrosi-plazo', [
+            'numeroOtrosi'               => $solicitud->veces_prorrogado + 1,
+            'nombreEmpresa'              => $empresa?->nombre_completo ?? '',
+            'nit'                        => $empresa?->nit ?? '',
+            'representanteLegal'         => $empresa?->representante_legal ?? '',
+            'municipioEmpresa'           => $empresa?->ciudad ?? '',
+            'departamentoEmpresa'        => $empresa?->departamento ?? '',
+            'nombreTrabajador'           => trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}"),
+            'tipoDocumentoLabel'         => self::DOCUMENTO_LABEL[$solicitud->trabajador_documento_tipo] ?? 'documento de identidad',
+            'numeroDocumento'            => $solicitud->trabajador_documento_numero,
+            'fechaContratoOriginalTexto' => $fechaContratoOriginal,
+            'duracionInicialTexto'       => $this->formatearDuracion($inicioPeriodoActual, $fechaFinAnterior),
+            'duracionProrrogaTexto'      => $this->formatearDuracion($fechaFinAnterior->copy()->addDay(), $fechaFinNueva),
+            'fechaFinAnteriorTexto'      => $fechaFinAnterior->locale('es')->isoFormat('D [de] MMMM [de] YYYY'),
+            'fechaFinNuevaTexto'         => $fechaFinNueva->locale('es')->isoFormat('D [de] MMMM [de] YYYY'),
+            'fechaFirma'                 => now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY'),
+        ])->render();
+    }
+
+    /**
+     * Expresa una duración como meses completos si calza exacto (caso
+     * habitual en contratos laborales), o en días si no - nunca se inventa
+     * una cifra redondeada que no sea la real.
+     */
+    private function formatearDuracion(Carbon $inicio, Carbon $fin): string
+    {
+        $meses = $inicio->diffInMonths($fin->copy()->addDay());
+
+        if ($meses > 0 && $inicio->copy()->addMonths($meses)->subDay()->isSameDay($fin)) {
+            return $meses . ' mes' . ($meses !== 1 ? 'es' : '');
+        }
+
+        $dias = $inicio->diffInDays($fin) + 1;
+        return $dias . ' día' . ($dias !== 1 ? 's' : '');
     }
 
     private function construirPromptOtrosi(
@@ -816,6 +880,11 @@ class SolicitudContratoIAService
             'estado'                  => 'otrosi_generado',
         ]);
 
+        if ($modificacion->tipo_modificacion === 'plazo') {
+            $this->aplicarProrrogaAlContrato($modificacion);
+            return $rutaRelativa;
+        }
+
         $campoPorTipo = [
             'salario'       => 'salario_propuesto',
             'cargo'         => 'cargo_contrato',
@@ -830,8 +899,95 @@ class SolicitudContratoIAService
         return $rutaRelativa;
     }
 
+    /**
+     * Aplica la prórroga aprobada al contrato: la fecha fin vigente pasa a
+     * ser la acordada, el período vigente arranca donde terminaba el
+     * anterior, se cuenta una prórroga más, y se reinicia el ciclo de
+     * alerta/decisión para el período nuevo (ver PlazoContratoService).
+     */
+    private function aplicarProrrogaAlContrato(ModificacionContractual $modificacion): void
+    {
+        $solicitud = $modificacion->solicitudContrato;
+
+        $solicitud->update([
+            'fecha_inicio_periodo_actual'  => Carbon::parse($solicitud->fecha_fin_contrato)->addDay(),
+            'fecha_fin_contrato'           => $modificacion->valor_nuevo,
+            'veces_prorrogado'             => $solicitud->veces_prorrogado + 1,
+            'decision_no_renovacion_en'    => null,
+            'notificado_vencimiento_en'    => null,
+            'requiere_revision_manual_renovacion' => false,
+        ]);
+    }
+
+    /**
+     * Genera el Preaviso de no renovación (plantilla literal, sin IA) y
+     * marca formalmente la decisión de no renovar - la alerta de
+     * vencimiento deja de mostrarse para este contrato (ver
+     * PlazoContratoService::sinDecisionTomada()).
+     */
+    public function generarPreavisoPDF(SolicitudContrato $solicitud): string
+    {
+        $empresa = $solicitud->empresa;
+
+        $fechaContratoOriginal = $solicitud->fecha_inicio_propuesta
+            ? Carbon::parse($solicitud->fecha_inicio_propuesta)->locale('es')->isoFormat('D [de] MMMM [de] YYYY')
+            : 'la fecha de suscripción del contrato';
+
+        $html = view('pdfs.contratos.preaviso', [
+            'municipioEmpresa'           => $empresa?->ciudad ?? '',
+            'departamentoEmpresa'        => $empresa?->departamento ?? '',
+            'fechaCarta'                 => now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY'),
+            'nombreTrabajador'           => trim("{$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}"),
+            'tipoDocumentoLabel'         => self::DOCUMENTO_LABEL[$solicitud->trabajador_documento_tipo] ?? 'documento de identidad',
+            'numeroDocumento'            => $solicitud->trabajador_documento_numero,
+            'fechaContratoOriginalTexto' => $fechaContratoOriginal,
+            'fechaFinContratoTexto'      => Carbon::parse($solicitud->fecha_fin_contrato)->locale('es')->isoFormat('D [de] MMMM [de] YYYY'),
+            'nombreEmpresa'              => $empresa?->nombre_completo ?? '',
+            'nit'                        => $empresa?->nit ?? '',
+            'representanteLegal'         => $empresa?->representante_legal ?? '',
+        ])->render();
+
+        $directorioRelativo = "solicitudes-contrato/{$solicitud->empresa_id}/preavisos";
+        Storage::disk('local')->makeDirectory($directorioRelativo);
+
+        $rutaRelativa = "{$directorioRelativo}/preaviso_{$solicitud->id}.pdf";
+        $rutaAbsoluta = Storage::disk('local')->path($rutaRelativa);
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('defaultFont', 'Arial');
+        $options->set('isFontSubsettingEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('letter', 'portrait');
+        $dompdf->render();
+
+        \App\Support\PdfProteccion::proteger(
+            $dompdf,
+            \App\Support\PdfProteccion::ownerPassword($solicitud->empresa_id, 'preaviso')
+        );
+
+        file_put_contents($rutaAbsoluta, $dompdf->output());
+
+        $solicitud->update([
+            'ruta_preaviso' => $rutaRelativa,
+            'decision_no_renovacion_en' => now(),
+        ]);
+
+        return $rutaRelativa;
+    }
+
     private function generarHTMLOtrosi(ModificacionContractual $modificacion): string
     {
+        // Prórroga de plazo: texto_otrosi_redactado YA es un documento HTML
+        // completo y autocontenido (ver renderizarOtrosiPlazoLiteral()) -
+        // envolverlo en la caja genérica de abajo duplicaría el
+        // encabezado/pie y rompería el formato de la plantilla literal.
+        if ($modificacion->tipo_modificacion === 'plazo') {
+            return $modificacion->texto_otrosi_redactado ?? '';
+        }
+
         $solicitud        = $modificacion->solicitudContrato;
         $empresa          = $solicitud->empresa;
         $nombreEmpresa    = e($empresa?->nombre_completo ?? '');
