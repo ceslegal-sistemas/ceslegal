@@ -10,7 +10,7 @@
       $nombreEmpresa, $nit, $direccionEmpresa, $telefonoEmpresa
       $representanteLegal, $representanteLegalCedula (puede ser null)
       $nombreTrabajador, $tipoDocumentoLabel, $numeroDocumento
-      $direccionTrabajador, $telefonoTrabajador (pueden ser null)
+      $direccionTrabajador, $telefonoTrabajador, $emailTrabajador (pueden ser null)
       $cargo, $salarioFormateado, $salarioEnLetras
       $periodoPagoLabel, $periodoPagoFrase
       $lugarLabores, $lugarContratacion
@@ -67,6 +67,7 @@
     <tr><td class="label">NÚMERO DE ID DEL TRABAJADOR:</td><td>{{ ucfirst($tipoDocumentoLabel) }} N° {{ $numeroDocumento }}</td></tr>
     <tr><td class="label">DIRECCIÓN DEL TRABAJADOR:</td><td>{{ $direccionTrabajador ?: 'No registrada' }}</td></tr>
     <tr><td class="label">TELÉFONO DEL TRABAJADOR:</td><td>{{ $telefonoTrabajador ?: 'No registrado' }}</td></tr>
+    <tr><td class="label">CORREO ELECTRÓNICO DEL TRABAJADOR:</td><td>{{ $emailTrabajador ?: 'No registrado' }}</td></tr>
     <tr><td class="label">CARGO PARA EL CUAL FUE CONTRATADO EL TRABAJADOR:</td><td>{{ $cargo }}</td></tr>
     <tr><td class="label">SALARIO:</td><td>$ {{ $salarioFormateado }} COP</td></tr>
     <tr><td class="label">PERÍODOS DE PAGO:</td><td>{{ $periodoPagoLabel }}</td></tr>

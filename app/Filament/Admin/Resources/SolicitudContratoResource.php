@@ -273,7 +273,18 @@ class SolicitudContratoResource extends Resource
                                 ->columnSpanFull(),
 
                             Forms\Components\Section::make('Datos Personales del Trabajador')
-                                ->visible(fn(Get $get) => !$get('_usar_trabajador_existente'))
+                                // Si se usa un trabajador existente, la sección se oculta y sus
+                                // campos se autocompletan (ver afterStateUpdated de trabajador_id)
+                                // - PERO si ese trabajador quedó registrado antes de que
+                                // teléfono/dirección fueran obligatorios, no puede quedar
+                                // oculta con datos vacíos: el usuario no vería dónde
+                                // completarlos y el envío fallaría sin explicación visible.
+                                ->visible(
+                                    fn(Get $get) =>
+                                    !$get('_usar_trabajador_existente')
+                                    || empty($get('trabajador_telefono'))
+                                    || empty($get('trabajador_direccion'))
+                                )
                                 // ->dehydratedWhenHidden() AQUÍ, en la Section, no solo en los
                                 // campos hijos: CanBeValidated::getValidationRules() (y por
                                 // extensión getState()) recorre los componentes de nivel
@@ -359,6 +370,7 @@ class SolicitudContratoResource extends Resource
                                     Forms\Components\TextInput::make('trabajador_telefono')
                                         ->label('Teléfono / Celular')
                                         ->tel()
+                                        ->required()
                                         ->maxLength(50)
                                         ->placeholder('Ej: +57 300 123 4567')
                                         ->helperText('Número de contacto')
@@ -367,9 +379,10 @@ class SolicitudContratoResource extends Resource
 
                                     Forms\Components\Textarea::make('trabajador_direccion')
                                         ->label('Dirección de Residencia')
+                                        ->required()
                                         ->rows(2)
                                         ->placeholder('Ej: Calle 123 # 45-67')
-                                        ->helperText('Dirección completa (opcional)')
+                                        ->helperText('Dirección completa')
                                         ->columnSpanFull()
                                         ->dehydratedWhenHidden(),
                                 ])->columns(2),

@@ -701,6 +701,7 @@ class SolicitudContratoIAService
             'numeroDocumento'          => $solicitud->trabajador_documento_numero,
             'direccionTrabajador'      => $solicitud->trabajador_direccion,
             'telefonoTrabajador'       => $solicitud->trabajador_telefono,
+            'emailTrabajador'          => $solicitud->trabajador_email,
             'cargo'                    => $solicitud->cargo_contrato,
             'salarioFormateado'        => number_format($salario, 0, ',', '.'),
             'salarioEnLetras'          => \App\Support\MontoEnLetras::pesos($salario),

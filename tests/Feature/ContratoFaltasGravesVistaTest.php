@@ -20,6 +20,7 @@ class ContratoFaltasGravesVistaTest extends TestCase
             'numeroDocumento' => '123456789',
             'direccionTrabajador' => 'cra 89',
             'telefonoTrabajador' => '3000000001',
+            'emailTrabajador' => 'stiven@empresa.com',
             'cargo' => 'Bodeguero',
             'salarioFormateado' => '2.000.000',
             'salarioEnLetras' => 'dos millones de pesos',

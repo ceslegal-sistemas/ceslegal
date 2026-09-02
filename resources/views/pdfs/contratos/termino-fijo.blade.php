@@ -10,7 +10,7 @@
       $nombreEmpresa, $nit, $direccionEmpresa, $telefonoEmpresa
       $representanteLegal, $representanteLegalCedula (puede ser null)
       $nombreTrabajador, $tipoDocumentoLabel, $numeroDocumento
-      $direccionTrabajador, $telefonoTrabajador (pueden ser null)
+      $direccionTrabajador, $telefonoTrabajador, $emailTrabajador (pueden ser null)
       $cargo, $salarioFormateado, $salarioEnLetras
       $periodoPagoLabel, $periodoPagoFrase
       $lugarLabores, $lugarContratacion
@@ -271,6 +271,10 @@
         <tr>
             <td class="label">NÚMERO TELEFÓNICO DEL TRABAJADOR:</td>
             <td>{{ $telefonoTrabajador ?: 'No registrado' }}</td>
+        </tr>
+        <tr>
+            <td class="label">CORREO ELECTRÓNICO DEL TRABAJADOR:</td>
+            <td>{{ $emailTrabajador ?: 'No registrado' }}</td>
         </tr>
         <tr>
             <td class="label">CARGO DEL TRABAJADOR:</td>
