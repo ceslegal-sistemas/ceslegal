@@ -79,7 +79,7 @@ class AceptacionMejoraRITService
         // uno (ej. SolicitudContratoIAService::completarDetallesCargo(), que
         // no tiene respaldo para ese caso).
         DB::transaction(function () use ($auditoria, $mejorado) {
-            ReglamentoInterno::where('empresa_id', $auditoria->empresa_id)->update(['activo' => false]);
+            ReglamentoInterno::desactivarActivosDe($auditoria->empresa_id);
             $mejorado->update(['activo' => true]);
             $auditoria->update(['decision_mejora' => 'adoptado']);
         });

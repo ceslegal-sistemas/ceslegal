@@ -88,4 +88,32 @@ class ReglamentoInterno extends Model
     {
         return $this->estado_generacion === 'error';
     }
+
+    /**
+     * Único punto de entrada para "reemplazar el RIT activo de una
+     * empresa" (construir uno nuevo, subir uno manual, adoptar una mejora
+     * de auditoría). Desactiva los RIT activos Y cierra cualquier
+     * SugerenciaActualizacionRit pendiente que quedaría apuntando a un RIT
+     * ya reemplazado - aprobarla no tendría ningún efecto visible, porque
+     * RitActualizacionAutomaticaService::aplicarSugerencia() modifica el
+     * texto del RIT al que la sugerencia apunta, no el RIT activo actual
+     * de la empresa. Bug real reportado por el usuario: el Dashboard
+     * seguía contando la sugerencia (cuenta por empresa_id) mientras "Mi
+     * Reglamento Interno" dejaba de mostrarla (filtra por el RIT vigente),
+     * sin ningún lugar donde gestionarla.
+     */
+    public static function desactivarActivosDe(int $empresaId): void
+    {
+        $idsActivos = static::where('empresa_id', $empresaId)->where('activo', true)->pluck('id');
+
+        if ($idsActivos->isEmpty()) {
+            return;
+        }
+
+        static::whereIn('id', $idsActivos)->update(['activo' => false]);
+
+        SugerenciaActualizacionRit::whereIn('reglamento_interno_id', $idsActivos)
+            ->where('estado', 'pendiente')
+            ->update(['estado' => 'rechazada', 'resuelto_por' => null, 'resuelto_en' => now()]);
+    }
 }

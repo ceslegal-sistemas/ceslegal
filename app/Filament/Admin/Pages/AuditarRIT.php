@@ -370,8 +370,7 @@ class AuditarRIT extends Page implements HasForms, HasActions
         }
 
         // Desactivar todos los reglamentos de la empresa y activar el mejorado
-        ReglamentoInterno::where('empresa_id', $this->empresa->id)
-            ->update(['activo' => false]);
+        ReglamentoInterno::desactivarActivosDe($this->empresa->id);
 
         $this->ritMejorado->update(['activo' => true]);
         $this->auditoria->update(['decision_mejora' => 'adoptado']);

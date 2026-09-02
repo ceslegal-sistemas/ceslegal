@@ -80,10 +80,9 @@ class GenerarTextoRITJob implements ShouldQueue
         // con dos filas activo=true a la vez (el RIT construido con el
         // wizard + uno subido/mejorado previo), rompiendo cualquier consulta
         // que asuma "el activo" en singular (descarga, generación de
-        // contratos, próximas auditorías).
-        ReglamentoInterno::where('empresa_id', $empresa->id)
-            ->where('id', '!=', $rit->id)
-            ->update(['activo' => false]);
+        // contratos, próximas auditorías). $rit todavía no está activo en
+        // este punto, así que no hace falta excluirlo explícitamente.
+        ReglamentoInterno::desactivarActivosDe($empresa->id);
 
         // Persistir texto y activar el reglamento
         $rit->update([

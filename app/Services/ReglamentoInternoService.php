@@ -78,7 +78,7 @@ class ReglamentoInternoService
         // Desactivar todos los registros anteriores para que solo quede este como activo.
         // Se hace antes de crear el nuevo para que la relación hasOne(activo=true).latest()
         // no devuelva un registro antiguo de IA cuando coexisten varios por empresa.
-        ReglamentoInterno::where('empresa_id', $empresaId)->update(['activo' => false]);
+        ReglamentoInterno::desactivarActivosDe($empresaId);
 
         $reglamento = ReglamentoInterno::create($campos);
 
