@@ -33,7 +33,7 @@ class DashboardLogroDescargosNoticeTest extends TestCase
         app(LogroDescargosService::class)->registrarPlazoCumplido($empresa);
 
         Livewire::actingAs($user)->test(Dashboard::class)
-            ->assertSee('Gestor puntual — 1 de 5');
+            ->assertSee('Gestor puntual - 1 de 5');
     }
 
     public function test_no_muestra_la_tarjeta_para_bufete(): void

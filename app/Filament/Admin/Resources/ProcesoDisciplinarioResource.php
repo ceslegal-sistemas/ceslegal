@@ -2654,9 +2654,18 @@ class ProcesoDisciplinarioResource extends Resource
                             session(['tipo_sancion_pendiente_' . $record->id => 'suspension']);
                             session(['opciones_dias_' . $record->id => $opcionesDiasSuspension]);
 
+                            // Antes se usaba un setTimeout(300) fijo - condición de
+                            // carrera real reportada por el usuario (2026-09-03): si
+                            // el cierre del modal actual tardaba más de 300ms (red o
+                            // servidor lentos), $wire.mountTableAction() se disparaba
+                            // mientras el modal anterior aún no terminaba de cerrar y
+                            // Livewire lo perdía o lo dejaba en cola. Filament dispara
+                            // un evento real 'modal-closed' en window cuando el cierre
+                            // realmente termina (ver vendor/filament/support/.../modal/index.blade.php)
+                            // - se espera ESE evento en vez de adivinar un tiempo.
                             $recordKey = $record->getKey();
                             $action->getLivewire()->js(
-                                "setTimeout(() => { \$wire.mountTableAction('confirmar_dias_suspension', '{$recordKey}') }, 300)"
+                                "window.addEventListener('modal-closed', () => { \$wire.mountTableAction('confirmar_dias_suspension', '{$recordKey}') }, { once: true })"
                             );
 
                             return;
@@ -3378,9 +3387,12 @@ class ProcesoDisciplinarioResource extends Resource
                                 ],
                             ]);
 
+                            // Mismo fix que en 'confirmar_dias_suspension' arriba -
+                            // esperar el evento real 'modal-closed' en vez de un
+                            // setTimeout(300) fijo (condición de carrera).
                             $recordKey = $record->getKey();
                             $action->getLivewire()->js(
-                                "setTimeout(() => { \$wire.mountTableAction('confirmar_dias_resolucion', '{$recordKey}') }, 300)"
+                                "window.addEventListener('modal-closed', () => { \$wire.mountTableAction('confirmar_dias_resolucion', '{$recordKey}') }, { once: true })"
                             );
 
                             return;

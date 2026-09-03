@@ -30,10 +30,12 @@
                 $progreso = $estadoLogros['actual']['progreso'];
             @endphp
 
-            <h1 class="rit-title">{{ $nombre }} — {{ $count }} de {{ $meta }}</h1>
+            <h1 class="rit-title">{{ $nombre }} - {{ $count }} de {{ $meta }}</h1>
             <p class="rit-sub">
-                Cada vez que cierra un proceso disciplinario sin dejar vencer ningún plazo legal, avanza
-                hacia este logro. Le faltan {{ $meta - $count }} {{ ($meta - $count) === 1 ? 'proceso' : 'procesos' }}
+                Cada vez que un proceso disciplinario queda cerrado sin haber dejado vencer ningún plazo
+                legal, avanza hacia este logro. El cierre no es inmediato al emitir la sanción: ocurre
+                automáticamente pasados 3 días hábiles sin impugnación, o al resolver la impugnación si la
+                hubo. Le faltan {{ $meta - $count }} {{ ($meta - $count) === 1 ? 'proceso' : 'procesos' }}
                 más resueltos a tiempo.
             </p>
 
