@@ -8,6 +8,7 @@ use App\Services\TimelineService;
 use App\Services\TerminoLegalService;
 use App\Services\NotificacionService;
 use App\Services\EstadoProcesoService;
+use App\Services\LogroDescargosService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -17,6 +18,7 @@ class ProcesoDisciplinarioObserver
     protected TerminoLegalService $terminoLegalService;
     protected NotificacionService $notificacionService;
     protected EstadoProcesoService $estadoService;
+    protected LogroDescargosService $logroDescargosService;
 
     // Almacenar cambios de estado temporalmente (no se persiste en BD)
     protected static array $cambiosEstado = [];
@@ -25,8 +27,10 @@ class ProcesoDisciplinarioObserver
         TimelineService $timelineService,
         TerminoLegalService $terminoLegalService,
         NotificacionService $notificacionService,
-        EstadoProcesoService $estadoService
+        EstadoProcesoService $estadoService,
+        LogroDescargosService $logroDescargosService
     ) {
+        $this->logroDescargosService = $logroDescargosService;
         $this->timelineService = $timelineService;
         $this->terminoLegalService = $terminoLegalService;
         $this->notificacionService = $notificacionService;
@@ -494,6 +498,14 @@ class ProcesoDisciplinarioObserver
                 'cantidad' => $terminos->count(),
                 'motivo' => $motivo,
             ]);
+
+            // Logro de cumplimiento proactivo: 1 proceso resuelto sin dejar
+            // vencer ningún término, sin importar cuántos términos tenía -
+            // ver LogroDescargosService (deliberadamente NO premia volumen
+            // de sanciones, solo el hecho de haberlo resuelto a tiempo).
+            if ($proceso->empresa) {
+                $this->logroDescargosService->registrarPlazoCumplido($proceso->empresa);
+            }
         }
     }
 }
