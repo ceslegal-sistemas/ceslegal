@@ -52,9 +52,19 @@ class SolicitudContratoPolicy
 
     /**
      * Determine whether the user can delete the model.
+     *
+     * 'cliente' nunca elimina un contrato, aunque en algún momento tuviera
+     * el permiso - un contrato aprobado (o ya no vigente) se cierra con una
+     * Terminación de Contrato formal (justa causa/sin justa causa,
+     * indemnización si aplica - pendiente de construir), no borrándolo del
+     * historial. bufete/super_admin conservan la capacidad administrativa.
      */
     public function delete(User $user, SolicitudContrato $solicitudContrato): bool
     {
+        if ($user->hasRole('cliente')) {
+            return false;
+        }
+
         return $user->can('delete_solicitud::contrato');
     }
 
@@ -63,6 +73,10 @@ class SolicitudContratoPolicy
      */
     public function deleteAny(User $user): bool
     {
+        if ($user->hasRole('cliente')) {
+            return false;
+        }
+
         return $user->can('delete_any_solicitud::contrato');
     }
 
