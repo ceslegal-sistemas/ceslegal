@@ -1,0 +1,24 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create(config('level-up.tables.experiences'), function (Blueprint $table) {
+            $table->entityId();
+            $table->userForeignId()->constrained(config('level-up.user.users_table'));
+            $table->entityForeignId('level_id')->constrained(table: config('level-up.tables.levels'));
+            $table->integer('experience_points')->default(0)->index();
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists(config('level-up.tables.experiences'));
+    }
+};

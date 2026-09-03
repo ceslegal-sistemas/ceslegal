@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8719f59bbb7a1ea5b8abb8e68758df6f",
+    "content-hash": "4df70fc4f22642440dceaad113490ade",
     "packages": [
         {
             "name": "alexsyvolap/filament-confetti",
@@ -869,6 +869,79 @@
                 }
             ],
             "time": "2024-02-09T16:56:22+00:00"
+        },
+        {
+            "name": "cjmellor/level-up",
+            "version": "v3.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/cjmellor/level-up.git",
+                "reference": "da74858ea83a24a60236d2c7ab0e2c64b1c644f7"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/cjmellor/level-up/zipball/da74858ea83a24a60236d2c7ab0e2c64b1c644f7",
+                "reference": "da74858ea83a24a60236d2c7ab0e2c64b1c644f7",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/support": "^12.6|^13.0",
+                "php": "^8.3",
+                "spatie/laravel-package-tools": "^1.15"
+            },
+            "require-dev": {
+                "driftingly/rector-laravel": "*",
+                "larastan/larastan": "^3.0",
+                "laravel/pint": "^1.10",
+                "nunomaduro/collision": "^8.0",
+                "orchestra/testbench": "^10.0|^11.0",
+                "pestphp/pest": "^3.7|^4.4",
+                "pestphp/pest-plugin-laravel": "^3.1|^4.1",
+                "pestphp/pest-plugin-type-coverage": "^3.3|^4.0",
+                "rector/rector": "*"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "Experience": "LevelUp\\Experience\\Facades\\Experience"
+                    },
+                    "providers": [
+                        "LevelUp\\Experience\\LevelUpServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LevelUp\\Experience\\": "src/",
+                    "LevelUp\\Experience\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Chris Mellor",
+                    "email": "chris@mellor.pizza",
+                    "role": "Developer"
+                }
+            ],
+            "description": "This package allows users to gain experience points (XP) and progress through levels by performing actions on your site. It can provide a simple way to track user progress and implement gamification elements into your application",
+            "homepage": "https://github.com/cjmellor/level-up",
+            "keywords": [
+                "Gamification",
+                "cjmellor",
+                "gamify",
+                "laravel",
+                "level-up"
+            ],
+            "support": {
+                "issues": "https://github.com/cjmellor/level-up/issues",
+                "source": "https://github.com/cjmellor/level-up/tree/v3.0.0"
+            },
+            "time": "2026-07-10T21:09:43+00:00"
         },
         {
             "name": "composer/pcre",
