@@ -48,9 +48,18 @@ class ViewSolicitudContrato extends ViewRecord
                 ->icon('heroicon-o-pencil-square')
                 ->color('primary')
                 ->visible(fn () => $this->record->estado === 'aprobado')
-                ->url(fn () => ModificacionContractualResource::getUrl('create', [
-                    'solicitud_contrato_id' => $this->record->id,
-                ])),
+                ->steps(fn () => ModificacionContractualResource::pasosSolicitarCambio($this->record))
+                ->modalSubmitActionLabel('Confirmar y Generar Otrosí')
+                ->action(function (array $data) {
+                    ModificacionContractualResource::crearYGenerarOtrosi($this->record, $data);
+                    $this->record->refresh();
+
+                    Notification::make()
+                        ->success()
+                        ->title('Otrosí generado')
+                        ->body('El documento quedó registrado en el historial de cambios del contrato.')
+                        ->send();
+                }),
 
             Actions\Action::make('renovarContrato')
                 ->label('Sí, renovar')

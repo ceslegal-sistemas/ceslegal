@@ -1231,6 +1231,29 @@ class SolicitudContratoResource extends Resource
                             ->send();
                     }),
 
+                // Vía general para cualquier cambio a un contrato ya
+                // aprobado (salario, cargo, jornada, tipo de contrato o
+                // plazo), directo desde la fila del listado - sin navegar a
+                // ningún wizard de página completa. A pedido explícito del
+                // usuario: "prefiero mil veces que aparezca una acción en el
+                // listado del historial de contratos que este wizard".
+                Tables\Actions\Action::make('solicitarCambio')
+                    ->label('Solicitar un Cambio')
+                    ->icon('heroicon-o-pencil-square')
+                    ->color('primary')
+                    ->visible(fn (SolicitudContrato $record) => $record->estado === 'aprobado')
+                    ->steps(fn (SolicitudContrato $record) => ModificacionContractualResource::pasosSolicitarCambio($record))
+                    ->modalSubmitActionLabel('Confirmar y Generar Otrosí')
+                    ->action(function (SolicitudContrato $record, array $data) {
+                        ModificacionContractualResource::crearYGenerarOtrosi($record, $data);
+
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Otrosí generado')
+                            ->body('El documento quedó registrado en el historial de cambios del contrato.')
+                            ->send();
+                    }),
+
                 Tables\Actions\Action::make('rechazar')
                     ->label('Rechazar')
                     ->icon('heroicon-o-x-circle')

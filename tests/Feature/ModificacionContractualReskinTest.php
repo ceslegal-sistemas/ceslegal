@@ -78,7 +78,14 @@ class ModificacionContractualReskinTest extends TestCase
             ->assertSee('getSteps().at(0)', false);
     }
 
-    public function test_el_hero_de_crear_muestra_mensaje_generico_sin_registro(): void
+    /**
+     * El Hero Widget (banner "Nuevo Otrosí de Contrato") se retiró de
+     * "Crear" a pedido explícito del usuario - en Crear aún no hay registro,
+     * así que solo mostraba ese mensaje genérico sin aportar nada que el
+     * step-header del wizard no diera ya. Sigue presente en Editar/Ver,
+     * donde sí muestra datos reales del otrosí.
+     */
+    public function test_el_banner_generico_no_aparece_en_crear(): void
     {
         $user = User::factory()->create(['role' => 'super_admin', 'active' => true]);
         $user->givePermissionTo(['create_modificacion::contractual', 'view_any_modificacion::contractual']);
@@ -86,7 +93,7 @@ class ModificacionContractualReskinTest extends TestCase
 
         $this->get(ModificacionContractualResource::getUrl('create'))
             ->assertSuccessful()
-            ->assertSee('Nuevo Otrosí de Contrato');
+            ->assertDontSee('Nuevo Otrosí de Contrato');
     }
 
     /**

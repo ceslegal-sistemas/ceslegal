@@ -6,6 +6,8 @@ use App\Filament\Admin\Resources\ModificacionContractualResource\Pages;
 use App\Filament\Admin\Resources\SolicitudContratoResource;
 use App\Models\ModificacionContractual;
 use App\Models\SolicitudContrato;
+use App\Services\PlazoContratoService;
+use App\Services\SolicitudContratoIAService;
 use App\Support\EmpresaActiva;
 use App\Support\FormateoNumerico;
 use Filament\Forms;
@@ -16,6 +18,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 
 class ModificacionContractualResource extends Resource
 {
@@ -107,6 +110,212 @@ class ModificacionContractualResource extends Resource
         return $solicitud ? (string) $solicitud->{$campo} : null;
     }
 
+    /**
+     * Campos de "El Cambio" para la acción modal "Solicitar un Cambio"
+     * (tabla de Historial de Contratos / Ver Contrato) - el contrato YA se
+     * conoce ($solicitud), a diferencia del Wizard de página completa de
+     * form() de abajo, donde hay que elegirlo primero. Mismos 5 tipos,
+     * mismo patrón "Otro" para cargo/jornada - duplica ~40 líneas de
+     * form() a propósito: unificar ambos requeriría que este Wizard también
+     * dependiera de $get('solicitud_contrato_id'), que aquí no existe.
+     */
+    private static function camposElCambio(SolicitudContrato $solicitud): array
+    {
+        return [
+            Forms\Components\Select::make('tipo_modificacion')
+                ->label('Tipo de Modificación')
+                ->options(ModificacionContractual::TIPOS)
+                ->required()
+                ->live()
+                ->native(false)
+                ->afterStateUpdated(fn (Set $set) => $set('valor_nuevo', null)),
+
+            Forms\Components\TextInput::make('valor_nuevo')
+                ->label('Nuevo Salario')
+                ->visible(fn (Get $get) => $get('tipo_modificacion') === 'salario')
+                ->required(fn (Get $get) => $get('tipo_modificacion') === 'salario')
+                ->live(debounce: '150ms')
+                ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
+                    if ($get('tipo_modificacion') !== 'salario') {
+                        return;
+                    }
+                    $set('valor_nuevo', FormateoNumerico::miles($state));
+                })
+                ->stripCharacters('.')
+                ->rule('numeric')
+                ->minValue(0)
+                ->prefix('$'),
+
+            Forms\Components\Select::make('valor_nuevo')
+                ->label('Nuevo Cargo')
+                ->visible(fn (Get $get) => $get('tipo_modificacion') === 'cargo')
+                ->required(fn (Get $get) => $get('tipo_modificacion') === 'cargo')
+                ->searchable()
+                ->options(function () {
+                    $cargos = array_combine(SolicitudContratoResource::getCargos(), SolicitudContratoResource::getCargos());
+                    $cargos['__otro__'] = '--- Otro (personalizado) ---';
+                    return $cargos;
+                })
+                ->live()
+                ->afterStateUpdated(fn (Set $set) => $set('cargo_otro_temp', null))
+                ->dehydrateStateUsing(fn (Get $get, ?string $state) => $state === '__otro__' ? $get('cargo_otro_temp') : $state),
+
+            Forms\Components\TextInput::make('cargo_otro_temp')
+                ->label('Especifique el Cargo')
+                ->visible(fn (Get $get) => $get('tipo_modificacion') === 'cargo' && $get('valor_nuevo') === '__otro__')
+                ->required(fn (Get $get) => $get('tipo_modificacion') === 'cargo' && $get('valor_nuevo') === '__otro__')
+                ->placeholder('Ej: Jefe de Proyectos Especiales')
+                ->dehydrated(false),
+
+            Forms\Components\Select::make('valor_nuevo')
+                ->label('Nueva Jornada / Modalidad')
+                ->visible(fn (Get $get) => $get('tipo_modificacion') === 'jornada')
+                ->required(fn (Get $get) => $get('tipo_modificacion') === 'jornada')
+                ->options([
+                    'Tiempo completo' => 'Tiempo completo',
+                    'Medio tiempo' => 'Medio tiempo',
+                    'Por horas' => 'Por horas',
+                    '__otro__' => '--- Otro (personalizado) ---',
+                ])
+                ->live()
+                ->afterStateUpdated(fn (Set $set) => $set('jornada_otro_temp', null))
+                ->dehydrateStateUsing(fn (Get $get, ?string $state) => $state === '__otro__' ? $get('jornada_otro_temp') : $state),
+
+            Forms\Components\TextInput::make('jornada_otro_temp')
+                ->label('Especifique la Jornada')
+                ->visible(fn (Get $get) => $get('tipo_modificacion') === 'jornada' && $get('valor_nuevo') === '__otro__')
+                ->required(fn (Get $get) => $get('tipo_modificacion') === 'jornada' && $get('valor_nuevo') === '__otro__')
+                ->placeholder('Ej: Turnos rotativos')
+                ->dehydrated(false),
+
+            Forms\Components\Select::make('valor_nuevo')
+                ->label('Nuevo Tipo de Contrato')
+                ->visible(fn (Get $get) => $get('tipo_modificacion') === 'tipo_contrato')
+                ->required(fn (Get $get) => $get('tipo_modificacion') === 'tipo_contrato')
+                ->options(self::getTiposContrato()),
+
+            Forms\Components\DatePicker::make('valor_nuevo')
+                ->label('Nueva Fecha de Fin del Contrato')
+                ->visible(fn (Get $get) => $get('tipo_modificacion') === 'plazo')
+                ->required(fn (Get $get) => $get('tipo_modificacion') === 'plazo')
+                ->native(false)
+                ->displayFormat('d/m/Y')
+                ->default(fn () => empty($solicitud->fecha_fin_contrato) ? null : app(PlazoContratoService::class)->calcularProximaRenovacion($solicitud)['nueva_fecha_fin'])
+                ->helperText('Sugerida: mismo período que se vence, según el Art. 46 CST. Puede ajustarla si las partes acordaron otra.'),
+
+            Forms\Components\Textarea::make('justificacion')
+                ->label('Justificación')
+                ->rows(3)
+                ->columnSpanFull(),
+
+            Forms\Components\DatePicker::make('fecha_efectiva')
+                ->label('Fecha Efectiva')
+                ->required()
+                ->native(false)
+                ->displayFormat('d/m/Y'),
+        ];
+    }
+
+    /**
+     * Redacción preliminar (preview) del otrosí para el Paso "Revisar y
+     * Confirmar" - construye un modelo TRANSITORIO (sin persistir) con los
+     * datos ya diligenciados en "El Cambio", para que redactarOtrosi() (que
+     * lee $modificacion->solicitudContrato/tipo_modificacion/etc.) pueda
+     * generar el texto ANTES de crear el registro real. setRelation() evita
+     * una consulta extra y garantiza que use el mismo $solicitud ya cargado.
+     */
+    private static function textoRedactadoPreliminar(SolicitudContrato $solicitud, Get $get): ?string
+    {
+        $tipo = $get('tipo_modificacion');
+        if (!$tipo) {
+            return null;
+        }
+
+        $modificacion = new ModificacionContractual([
+            'tipo_modificacion' => $tipo,
+            'valor_nuevo' => $get('valor_nuevo'),
+            'justificacion' => $get('justificacion'),
+            'fecha_efectiva' => $get('fecha_efectiva'),
+        ]);
+        $modificacion->solicitud_contrato_id = $solicitud->id;
+        $modificacion->empresa_id = $solicitud->empresa_id;
+        $modificacion->valor_anterior = self::calcularValorAnterior($solicitud->id, $tipo);
+        $modificacion->setRelation('solicitudContrato', $solicitud);
+
+        try {
+            return app(SolicitudContratoIAService::class)->redactarOtrosi($modificacion);
+        } catch (\Throwable $e) {
+            Log::error('ModificacionContractual: falló la redacción preliminar del otrosí', [
+                'solicitud_id' => $solicitud->id,
+                'tipo_modificacion' => $tipo,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Pasos del modal "Solicitar un Cambio" (Historial de Contratos / Ver
+     * Contrato) - reemplaza la navegación al Wizard de página completa. El
+     * Paso "Revisar y Confirmar" se salta para 'plazo' (plantilla literal,
+     * sin IA de por medio - no necesita revisión humana, decisión explícita
+     * del usuario); para los otros 4 tipos, redactados con IA, sí se
+     * revisa/edita el texto antes de generar el PDF final.
+     */
+    public static function pasosSolicitarCambio(SolicitudContrato $solicitud): array
+    {
+        return [
+            Forms\Components\Wizard\Step::make('El Cambio')
+                ->icon('heroicon-o-pencil-square')
+                ->schema(self::camposElCambio($solicitud))
+                ->columns(2),
+
+            Forms\Components\Wizard\Step::make('Revisar y Confirmar')
+                ->icon('heroicon-o-document-check')
+                ->visible(fn (Get $get) => $get('tipo_modificacion') !== 'plazo')
+                ->schema([
+                    Forms\Components\RichEditor::make('texto_otrosi_redactado')
+                        ->label('Texto del Otrosí')
+                        ->helperText('Redactado por IA - revíselo y ajústelo si hace falta antes de confirmar.')
+                        ->required()
+                        ->toolbarButtons(['bold', 'bulletList', 'orderedList', 'italic', 'undo', 'redo'])
+                        ->default(fn (Get $get) => self::textoRedactadoPreliminar($solicitud, $get))
+                        ->columnSpanFull(),
+                ]),
+        ];
+    }
+
+    /**
+     * Crea el Otrosí y genera su documento de una sola vez (sin el paso
+     * manual "Editar" -> "Redactar con IA" -> "Generar PDF" de antes) - para
+     * los 4 tipos con IA, usa el texto YA revisado en el Paso "Revisar y
+     * Confirmar" (texto_otrosi_redactado en $data); para 'plazo' (ese paso
+     * no existe), lo redacta aquí mismo.
+     */
+    public static function crearYGenerarOtrosi(SolicitudContrato $solicitud, array $data): ModificacionContractual
+    {
+        $modificacion = ModificacionContractual::create([
+            'solicitud_contrato_id' => $solicitud->id,
+            'tipo_modificacion' => $data['tipo_modificacion'],
+            'valor_anterior' => self::calcularValorAnterior($solicitud->id, $data['tipo_modificacion']),
+            'valor_nuevo' => $data['valor_nuevo'],
+            'justificacion' => $data['justificacion'] ?? null,
+            'fecha_efectiva' => $data['fecha_efectiva'],
+            'abogado_id' => auth()->id(),
+        ]);
+
+        $texto = $data['texto_otrosi_redactado'] ?? null;
+        if (!$texto) {
+            $texto = app(SolicitudContratoIAService::class)->redactarOtrosi($modificacion);
+        }
+        $modificacion->update(['texto_otrosi_redactado' => $texto]);
+
+        app(SolicitudContratoIAService::class)->generarOtrosiPDF($modificacion);
+
+        return $modificacion->refresh();
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -170,21 +379,35 @@ class ModificacionContractualResource extends Resource
                             })
                             ->columnSpanFull(),
 
-                        Forms\Components\Placeholder::make('resumen_contrato')
-                            ->label('Datos vigentes del contrato')
-                            ->content(function (Get $get) {
+                        // Reskin con rit-info-card en vez del Placeholder de
+                        // texto plano ("Cargo: X | Salario: $Y | ...") -
+                        // quedaba completamente fuera del lenguaje visual del
+                        // resto de la página (hallazgo real del usuario).
+                        Forms\Components\View::make('filament.components.rit-info-card')
+                            ->key('mc_resumen_contrato')
+                            ->viewData(function (Get $get) {
                                 $solicitud = SolicitudContrato::find($get('solicitud_contrato_id'));
+
                                 if (!$solicitud) {
-                                    return 'Seleccione un contrato para ver sus datos vigentes.';
+                                    return [
+                                        'icon' => 'https://cdn.lordicon.com/vgwutnhw.json',
+                                        'title' => 'Datos Vigentes del Contrato',
+                                        'rows' => [
+                                            ['label' => 'Contrato', 'value' => 'Seleccione un contrato para ver sus datos vigentes.', 'full' => true],
+                                        ],
+                                    ];
                                 }
 
-                                return sprintf(
-                                    'Cargo: %s | Salario: $%s | Jornada: %s | Tipo: %s',
-                                    $solicitud->cargo_contrato ?: '—',
-                                    number_format((float) $solicitud->salario_propuesto, 0, ',', '.'),
-                                    $solicitud->jornada ?: '—',
-                                    $solicitud->tipo_contrato ?: '—',
-                                );
+                                return [
+                                    'icon' => 'https://cdn.lordicon.com/vgwutnhw.json',
+                                    'title' => 'Datos Vigentes del Contrato',
+                                    'rows' => [
+                                        ['label' => 'Cargo', 'value' => $solicitud->cargo_contrato],
+                                        ['label' => 'Salario', 'value' => $solicitud->salario_propuesto ? '$' . number_format((float) $solicitud->salario_propuesto, 0, ',', '.') : null],
+                                        ['label' => 'Jornada', 'value' => $solicitud->jornada],
+                                        ['label' => 'Tipo de Contrato', 'value' => $solicitud->tipo_contrato],
+                                    ],
+                                ];
                             })
                             ->columnSpanFull(),
                     ]),
