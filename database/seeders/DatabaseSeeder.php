@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             SuperAdminSeeder::class,
             SancionLaboralSeeder::class,
             DepartamentosMunicipiosSeeder::class,
+            LogrosSeeder::class,
         ]);
     }
 }
