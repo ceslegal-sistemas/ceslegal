@@ -5,7 +5,6 @@ namespace App\Filament\Admin\Resources\SolicitudContratoResource\Pages;
 use App\Filament\Admin\Resources\ModificacionContractualResource;
 use App\Filament\Admin\Resources\SolicitudContratoResource;
 use App\Filament\Admin\Resources\SolicitudContratoResource\Widgets\SolicitudContratoRecordHeroWidget;
-use App\Services\PlazoContratoService;
 use App\Services\SolicitudContratoIAService;
 use Filament\Actions;
 use Filament\Notifications\Notification;
@@ -22,16 +21,10 @@ class ViewSolicitudContrato extends ViewRecord
     // $record directo, sin pasar por infolist()/form().
     protected static string $view = 'filament.admin.resources.solicitud-contrato-resource.pages.view-solicitud-contrato';
 
-    /**
-     * Solo tiene sentido ofrecer la decisión renovar/no-renovar mientras el
-     * contrato está dentro de la ventana de alerta (45 días) y nadie ha
-     * decidido todavía - ver PlazoContratoService, diseño confirmado con el
-     * usuario para el módulo de vencimiento de contratos a término fijo.
-     */
+    /** Ver SolicitudContratoResource::enVentanaDeDecisionRenovacion() - compartido con la tabla del listado. */
     private function enVentanaDeDecision(): bool
     {
-        return $this->record->tipo_contrato === 'Contrato a Término Fijo'
-            && app(PlazoContratoService::class)->estaEnVentanaDeAlerta($this->record);
+        return SolicitudContratoResource::enVentanaDeDecisionRenovacion($this->record);
     }
 
     protected function getHeaderActions(): array

@@ -1254,6 +1254,39 @@ class SolicitudContratoResource extends Resource
                             ->send();
                     }),
 
+                // Caso especial de "Solicitar un Cambio" (tipo=plazo),
+                // directo en la ventana de 45 días de alerta - mismo pedido
+                // del usuario de tener las acciones en la fila, sin entrar a
+                // Ver Contrato primero.
+                Tables\Actions\Action::make('renovarContrato')
+                    ->label('Sí, renovar')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('success')
+                    ->visible(fn (SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record))
+                    ->url(fn (SolicitudContrato $record) => ModificacionContractualResource::getUrl('create', [
+                        'solicitud_contrato_id' => $record->id,
+                        'tipo_modificacion' => 'plazo',
+                    ])),
+
+                Tables\Actions\Action::make('noRenovarContrato')
+                    ->label('No renovar')
+                    ->icon('heroicon-o-document-text')
+                    ->color('danger')
+                    ->visible(fn (SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record))
+                    ->requiresConfirmation()
+                    ->modalHeading('Generar Preaviso de no renovación')
+                    ->modalDescription('Se generará el documento de preaviso y quedará registrado que decidió no renovar este contrato. Esta decisión se puede revertir manualmente si cambia de opinión antes del vencimiento.')
+                    ->modalSubmitActionLabel('Sí, generar Preaviso')
+                    ->action(function (SolicitudContrato $record) {
+                        app(\App\Services\SolicitudContratoIAService::class)->generarPreavisoPDF($record);
+
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Preaviso generado')
+                            ->body('Descárguelo y entréguelo al trabajador con al menos 30 días de anticipación al vencimiento.')
+                            ->send();
+                    }),
+
                 Tables\Actions\Action::make('rechazar')
                     ->label('Rechazar')
                     ->icon('heroicon-o-x-circle')
@@ -1399,6 +1432,19 @@ class SolicitudContratoResource extends Resource
             'sin_rit' => 'La empresa no tiene un Reglamento Interno de Trabajo registrado, así que se usó el listado general de faltas graves de la ley. Suba el RIT de la empresa para personalizar esta cláusula.',
             default => 'El Reglamento Interno de Trabajo de la empresa no tiene faltas graves identificadas, así que se usó el listado general de la ley.',
         };
+    }
+
+    /**
+     * Solo tiene sentido ofrecer la decisión renovar/no-renovar mientras el
+     * contrato está dentro de la ventana de alerta (45 días) y nadie ha
+     * decidido todavía - ver PlazoContratoService. Compartido entre la
+     * tabla de este Resource y ViewSolicitudContrato::enVentanaDeDecision(),
+     * para no duplicar la condición en 2 lugares.
+     */
+    public static function enVentanaDeDecisionRenovacion(SolicitudContrato $record): bool
+    {
+        return $record->tipo_contrato === 'Contrato a Término Fijo'
+            && app(\App\Services\PlazoContratoService::class)->estaEnVentanaDeAlerta($record);
     }
 
     /**
