@@ -41,6 +41,8 @@ class ViewSolicitudContrato extends ViewRecord
                 ->icon('heroicon-o-pencil-square')
                 ->color('primary')
                 ->visible(fn () => $this->record->estado === 'aprobado')
+                ->modalWidth('lg')
+                ->extraModalWindowAttributes(['class' => 'ces-hide-wizard-steps'])
                 ->steps(fn () => ModificacionContractualResource::pasosSolicitarCambio($this->record))
                 ->modalSubmitActionLabel('Confirmar y Generar Otrosí')
                 ->action(function (array $data) {

@@ -123,7 +123,7 @@ class ModificacionContractualResource extends Resource
     {
         return [
             Forms\Components\Select::make('tipo_modificacion')
-                ->label('Tipo de Modificación')
+                ->label('¿Qué quiere cambiar?')
                 ->options([
                     'salario' => 'Salario - Cambio en la remuneración mensual',
                     'cargo' => 'Cargo - Cambio de puesto o funciones',
@@ -135,13 +135,14 @@ class ModificacionContractualResource extends Resource
                 ->live()
                 ->native(false)
                 ->searchable()
-                ->placeholder('Seleccione el tipo de modificación...')
+                ->placeholder('Seleccione una opción...')
                 ->suffixIcon('heroicon-o-document-duplicate')
                 ->columnSpanFull()
                 ->afterStateUpdated(fn (Set $set) => $set('valor_nuevo', null)),
 
             Forms\Components\TextInput::make('valor_nuevo')
-                ->label('Nuevo Salario')
+                ->label('¿Cuál es el nuevo salario?')
+                ->helperText('Escriba solo el número, sin puntos ni el símbolo $ - ya están puestos.')
                 ->visible(fn (Get $get) => $get('tipo_modificacion') === 'salario')
                 ->required(fn (Get $get) => $get('tipo_modificacion') === 'salario')
                 ->live(debounce: '150ms')
@@ -157,13 +158,15 @@ class ModificacionContractualResource extends Resource
                 ->prefix('$'),
 
             Forms\Components\Select::make('valor_nuevo')
-                ->label('Nuevo Cargo')
+                ->label('¿Cuál es el nuevo cargo?')
                 ->visible(fn (Get $get) => $get('tipo_modificacion') === 'cargo')
                 ->required(fn (Get $get) => $get('tipo_modificacion') === 'cargo')
                 ->searchable()
+                ->native(false)
+                ->placeholder('Busque o elija el cargo...')
                 ->options(function () {
                     $cargos = array_combine(SolicitudContratoResource::getCargos(), SolicitudContratoResource::getCargos());
-                    $cargos['__otro__'] = '--- Otro (personalizado) ---';
+                    $cargos['__otro__'] = '--- Otro (no está en la lista) ---';
                     return $cargos;
                 })
                 ->live()
@@ -171,58 +174,67 @@ class ModificacionContractualResource extends Resource
                 ->dehydrateStateUsing(fn (Get $get, ?string $state) => $state === '__otro__' ? $get('cargo_otro_temp') : $state),
 
             Forms\Components\TextInput::make('cargo_otro_temp')
-                ->label('Especifique el Cargo')
+                ->label('Escriba el nombre del nuevo cargo')
                 ->visible(fn (Get $get) => $get('tipo_modificacion') === 'cargo' && $get('valor_nuevo') === '__otro__')
                 ->required(fn (Get $get) => $get('tipo_modificacion') === 'cargo' && $get('valor_nuevo') === '__otro__')
                 ->placeholder('Ej: Jefe de Proyectos Especiales')
                 ->dehydrated(false),
 
             Forms\Components\Select::make('valor_nuevo')
-                ->label('Nueva Jornada / Modalidad')
+                ->label('¿Cuál es la nueva jornada?')
                 ->visible(fn (Get $get) => $get('tipo_modificacion') === 'jornada')
                 ->required(fn (Get $get) => $get('tipo_modificacion') === 'jornada')
+                ->native(false)
+                ->placeholder('Elija una opción...')
                 ->options([
                     'Tiempo completo' => 'Tiempo completo',
                     'Medio tiempo' => 'Medio tiempo',
                     'Por horas' => 'Por horas',
-                    '__otro__' => '--- Otro (personalizado) ---',
+                    '__otro__' => '--- Otra (no está en la lista) ---',
                 ])
                 ->live()
                 ->afterStateUpdated(fn (Set $set) => $set('jornada_otro_temp', null))
                 ->dehydrateStateUsing(fn (Get $get, ?string $state) => $state === '__otro__' ? $get('jornada_otro_temp') : $state),
 
             Forms\Components\TextInput::make('jornada_otro_temp')
-                ->label('Especifique la Jornada')
+                ->label('Describa la nueva jornada')
                 ->visible(fn (Get $get) => $get('tipo_modificacion') === 'jornada' && $get('valor_nuevo') === '__otro__')
                 ->required(fn (Get $get) => $get('tipo_modificacion') === 'jornada' && $get('valor_nuevo') === '__otro__')
                 ->placeholder('Ej: Turnos rotativos')
                 ->dehydrated(false),
 
             Forms\Components\Select::make('valor_nuevo')
-                ->label('Nuevo Tipo de Contrato')
+                ->label('¿Cuál es el nuevo tipo de contrato?')
                 ->visible(fn (Get $get) => $get('tipo_modificacion') === 'tipo_contrato')
                 ->required(fn (Get $get) => $get('tipo_modificacion') === 'tipo_contrato')
+                ->native(false)
+                ->placeholder('Elija una opción...')
                 ->options(self::getTiposContrato()),
 
             Forms\Components\DatePicker::make('valor_nuevo')
-                ->label('Nueva Fecha de Fin del Contrato')
+                ->label('¿Hasta cuándo se extiende el contrato?')
                 ->visible(fn (Get $get) => $get('tipo_modificacion') === 'plazo')
                 ->required(fn (Get $get) => $get('tipo_modificacion') === 'plazo')
                 ->native(false)
                 ->displayFormat('d/m/Y')
+                ->placeholder('Seleccione la nueva fecha')
                 ->default(fn () => empty($solicitud->fecha_fin_contrato) ? null : app(PlazoContratoService::class)->calcularProximaRenovacion($solicitud)['nueva_fecha_fin'])
-                ->helperText('Sugerida: mismo período que se vence, según el Art. 46 CST. Puede ajustarla si las partes acordaron otra.'),
-
-            Forms\Components\Textarea::make('justificacion')
-                ->label('Justificación')
-                ->rows(3)
-                ->columnSpanFull(),
+                ->helperText('Ya sugerimos una fecha (mismo tiempo que duraba el contrato, según la ley). Puede cambiarla si acordaron otra con el trabajador.'),
 
             Forms\Components\DatePicker::make('fecha_efectiva')
-                ->label('Fecha Efectiva')
+                ->label('¿Desde cuándo empieza a aplicar el cambio?')
+                ->helperText('Ej: si sube el salario a partir del próximo mes, elija el 1 de ese mes.')
                 ->required()
                 ->native(false)
-                ->displayFormat('d/m/Y'),
+                ->displayFormat('d/m/Y')
+                ->placeholder('Seleccione una fecha'),
+
+            Forms\Components\Textarea::make('justificacion')
+                ->label('¿Por qué se hace este cambio?')
+                ->helperText('Cuéntenos brevemente el motivo. Ej: "Aumento salarial anual por buen desempeño".')
+                ->placeholder('Escriba el motivo aquí...')
+                ->rows(3)
+                ->columnSpanFull(),
         ];
     }
 

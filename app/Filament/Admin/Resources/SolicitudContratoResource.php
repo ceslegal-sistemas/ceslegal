@@ -1242,6 +1242,14 @@ class SolicitudContratoResource extends Resource
                     ->icon('heroicon-o-pencil-square')
                     ->color('primary')
                     ->visible(fn (SolicitudContrato $record) => $record->estado === 'aprobado')
+                    ->modalWidth('lg')
+                    // El stepper nativo de Filament (pestañas "El Cambio" /
+                    // "Revisar y Confirmar" arriba) quedaba duplicado con el
+                    // step-header de marca de cada paso - reportado por el
+                    // usuario con captura. Misma clase CSS ya usada para
+                    // ocultarlo en los wizards de página completa
+                    // (PanelBrandingServiceProvider).
+                    ->extraModalWindowAttributes(['class' => 'ces-hide-wizard-steps'])
                     ->steps(fn (SolicitudContrato $record) => ModificacionContractualResource::pasosSolicitarCambio($record))
                     ->modalSubmitActionLabel('Confirmar y Generar Otrosí')
                     ->action(function (SolicitudContrato $record, array $data) {
