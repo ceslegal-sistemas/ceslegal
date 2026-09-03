@@ -127,10 +127,175 @@ class ModificacionContractualResource extends Resource
      * opciones - pedido explícito del usuario ("no es necesario que tenga
      * que seleccionar qué quiere cambiar cuando solo es plazo").
      */
+    /**
+     * Calcula valor_nuevo = fecha_fin_contrato actual + duración (años/meses/
+     * días compuestos) - mismo algoritmo que
+     * SolicitudContratoResource::calcularFechaFinDesdeDuracion(), adaptado:
+     * la fecha base acá es fija ($solicitud->fecha_fin_contrato, siempre se
+     * cuenta desde el vencimiento actual), no otro campo del formulario. Se
+     * duplica el algoritmo (no se reusa el de SolicitudContratoResource)
+     * porque ese depende de leer la fecha base vía Get $get - acá no existe
+     * ese campo, y tocar código ya probado de creación de contratos por una
+     * reutilización cosmética no vale el riesgo.
+     */
+    private static function calcularFechaDesdeDuracionRenovacion(SolicitudContrato $solicitud, Get $get): ?string
+    {
+        $base = $solicitud->fecha_fin_contrato;
+        $cantidad = $get('renovacion_duracion_cantidad');
+
+        if (!$base || blank($cantidad) || !is_numeric($cantidad) || (int) $cantidad < 1) {
+            return $get('valor_nuevo');
+        }
+
+        $anios = 0;
+        $meses = 0;
+        $dias = 0;
+        $unidad = $get('renovacion_duracion_unidad') ?? 'dia';
+
+        match ($unidad) {
+            'anio' => $anios = (int) $cantidad,
+            'mes' => $meses = (int) $cantidad,
+            default => $dias = (int) $cantidad,
+        };
+
+        if ($unidad === 'anio') {
+            $unidad2 = $get('renovacion_duracion_unidad_2');
+            $cantidad2 = max(0, (int) ($get('renovacion_duracion_cantidad_2') ?? 0));
+
+            if ($unidad2 === 'mes') {
+                $meses = $cantidad2;
+                $dias = max(0, (int) ($get('renovacion_duracion_cantidad_3') ?? 0));
+            } elseif ($unidad2 === 'dia') {
+                $dias = $cantidad2;
+            }
+        } elseif ($unidad === 'mes') {
+            $dias = max(0, (int) ($get('renovacion_duracion_cantidad_2') ?? 0));
+        }
+
+        return $base->copy()->addYears($anios)->addMonths($meses)->addDays($dias)->toDateString();
+    }
+
+    /**
+     * Camino inverso: al editar "¿Hasta cuándo se extiende?" directamente,
+     * descompone la diferencia contra fecha_fin_contrato actual en años/
+     * meses/días y rellena los campos de duración - mismo algoritmo que
+     * SolicitudContratoResource::descomponerDuracionDesdeFecha().
+     */
+    private static function descomponerDuracionRenovacion(SolicitudContrato $solicitud, Set $set, Get $get): void
+    {
+        $base = $solicitud->fecha_fin_contrato;
+        $fin = $get('valor_nuevo');
+
+        if (!$base || blank($fin)) {
+            return;
+        }
+
+        $finC = \Carbon\Carbon::parse($fin);
+
+        if ($finC->lessThanOrEqualTo($base)) {
+            // Fecha inválida (no extiende el contrato) - se deja que la
+            // regla ->after() del propio campo la marque en la validación.
+            return;
+        }
+
+        $diff = $base->diff($finC);
+
+        if ($diff->y > 0) {
+            $set('renovacion_duracion_unidad', 'anio');
+            $set('renovacion_duracion_cantidad', $diff->y);
+
+            if ($diff->m > 0) {
+                $set('renovacion_duracion_unidad_2', 'mes');
+                $set('renovacion_duracion_cantidad_2', $diff->m);
+                $set('renovacion_duracion_cantidad_3', $diff->d > 0 ? $diff->d : null);
+            } elseif ($diff->d > 0) {
+                $set('renovacion_duracion_unidad_2', 'dia');
+                $set('renovacion_duracion_cantidad_2', $diff->d);
+            } else {
+                $set('renovacion_duracion_unidad_2', null);
+                $set('renovacion_duracion_cantidad_2', null);
+            }
+        } elseif ($diff->m > 0) {
+            $set('renovacion_duracion_unidad', 'mes');
+            $set('renovacion_duracion_cantidad', $diff->m);
+            $set('renovacion_duracion_cantidad_2', $diff->d > 0 ? $diff->d : null);
+        } else {
+            $set('renovacion_duracion_unidad', 'dia');
+            $set('renovacion_duracion_cantidad', $diff->d);
+            $set('renovacion_duracion_cantidad_2', null);
+            $set('renovacion_duracion_unidad_2', null);
+        }
+    }
+
     private static function camposRenovacion(SolicitudContrato $solicitud): array
     {
+        $bloqueoTeclas = "return !['-','+','e','E','.'].includes(event.key)";
+
         return [
             Forms\Components\Hidden::make('tipo_modificacion')->default('plazo'),
+
+            // Mismo calculador años/meses/días que "Crear Solicitud de
+            // Contrato" (Fieldset "Duración del Contrato") - pedido
+            // explícito del usuario: "hagamos lo mismo como en la
+            // creación". La duración se cuenta desde el vencimiento actual
+            // del contrato, no se pide de nuevo la fecha de inicio.
+            Forms\Components\Fieldset::make('¿Por cuánto tiempo se extiende?')
+                ->columnSpanFull()
+                ->schema([
+                    Forms\Components\TextInput::make('renovacion_duracion_cantidad')
+                        ->label('Duración')
+                        ->numeric()
+                        ->minValue(1)
+                        ->placeholder('Ej: 6')
+                        ->extraInputAttributes(['min' => 1, 'onkeydown' => $bloqueoTeclas])
+                        ->live(debounce: '500ms')
+                        ->dehydrated(false)
+                        ->afterStateUpdated(fn (Set $set, Get $get) => $set('valor_nuevo', self::calcularFechaDesdeDuracionRenovacion($solicitud, $get))),
+
+                    Forms\Components\Select::make('renovacion_duracion_unidad')
+                        ->label('Unidad')
+                        ->options(['dia' => 'Día(s)', 'mes' => 'Mes(es)', 'anio' => 'Año(s)'])
+                        ->default('dia')
+                        ->live()
+                        ->dehydrated(false)
+                        ->afterStateUpdated(function (Set $set, Get $get) use ($solicitud) {
+                            $set('renovacion_duracion_cantidad_2', null);
+                            $set('renovacion_duracion_unidad_2', null);
+                            $set('renovacion_duracion_cantidad_3', null);
+                            $set('valor_nuevo', self::calcularFechaDesdeDuracionRenovacion($solicitud, $get));
+                        }),
+
+                    Forms\Components\TextInput::make('renovacion_duracion_cantidad_2')
+                        ->label(fn (Get $get) => $get('renovacion_duracion_unidad') === 'mes' ? 'Días adicionales' : 'Cantidad adicional')
+                        ->numeric()
+                        ->minValue(0)
+                        ->extraInputAttributes(['min' => 0, 'onkeydown' => $bloqueoTeclas])
+                        ->visible(fn (Get $get) => in_array($get('renovacion_duracion_unidad'), ['anio', 'mes'], true))
+                        ->live(debounce: '500ms')
+                        ->dehydrated(false)
+                        ->afterStateUpdated(fn (Set $set, Get $get) => $set('valor_nuevo', self::calcularFechaDesdeDuracionRenovacion($solicitud, $get))),
+
+                    Forms\Components\Select::make('renovacion_duracion_unidad_2')
+                        ->label('Unidad adicional')
+                        ->options(['mes' => 'Mes(es)', 'dia' => 'Día(s)'])
+                        ->visible(fn (Get $get) => $get('renovacion_duracion_unidad') === 'anio')
+                        ->live()
+                        ->dehydrated(false)
+                        ->afterStateUpdated(function (Set $set, Get $get) use ($solicitud) {
+                            $set('renovacion_duracion_cantidad_3', null);
+                            $set('valor_nuevo', self::calcularFechaDesdeDuracionRenovacion($solicitud, $get));
+                        }),
+
+                    Forms\Components\TextInput::make('renovacion_duracion_cantidad_3')
+                        ->label('Días adicionales')
+                        ->numeric()
+                        ->minValue(0)
+                        ->extraInputAttributes(['min' => 0, 'onkeydown' => $bloqueoTeclas])
+                        ->visible(fn (Get $get) => $get('renovacion_duracion_unidad') === 'anio' && $get('renovacion_duracion_unidad_2') === 'mes')
+                        ->live(debounce: '500ms')
+                        ->dehydrated(false)
+                        ->afterStateUpdated(fn (Set $set, Get $get) => $set('valor_nuevo', self::calcularFechaDesdeDuracionRenovacion($solicitud, $get))),
+                ]),
 
             Forms\Components\DatePicker::make('valor_nuevo')
                 ->label('¿Hasta cuándo se extiende el contrato?')
@@ -139,7 +304,12 @@ class ModificacionContractualResource extends Resource
                 ->displayFormat('d/m/Y')
                 ->placeholder('Seleccione la nueva fecha')
                 ->default(fn () => empty($solicitud->fecha_fin_contrato) ? null : app(PlazoContratoService::class)->calcularProximaRenovacion($solicitud)['nueva_fecha_fin'])
-                ->helperText('Ya sugerimos una fecha (mismo tiempo que duraba el contrato, según la ley). Puede cambiarla si acordaron otra con el trabajador.')
+                ->helperText('Ya sugerimos una fecha (mismo tiempo que duraba el contrato, según la ley). También puede indicar la duración arriba (ej: 6 meses) y la fecha se calcula sola.')
+                // No permite fechas anteriores (ni igual) al vencimiento
+                // actual - un contrato no se puede "renovar" hacia atrás.
+                ->after(fn () => $solicitud->fecha_fin_contrato?->toDateString())
+                ->live()
+                ->afterStateUpdated(fn (Set $set, Get $get) => self::descomponerDuracionRenovacion($solicitud, $set, $get))
                 ->columnSpanFull(),
 
             Forms\Components\DatePicker::make('fecha_efectiva')
