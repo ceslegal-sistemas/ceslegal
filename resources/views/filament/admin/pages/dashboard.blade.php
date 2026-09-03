@@ -28,6 +28,14 @@
                 ->whereBetween('fecha_fin_contrato', [now()->startOfDay(), now()->addDays(45)->endOfDay()])
                 ->count()
             : 0;
+
+        // Logros de "Plazos de Descargos Cumplidos" - solo 'cliente' (no
+        // 'bufete', decisión explícita del usuario: el logro celebra la
+        // gestión propia de la empresa, no el trabajo de la firma que
+        // gestiona varias empresas).
+        $estadoLogros = ($usuarioDashboard && $usuarioDashboard->role === 'cliente' && $empresaUsuario)
+            ? app(\App\Services\LogroDescargosService::class)->estadoDashboard($empresaUsuario)
+            : null;
     @endphp
 
     @if($sinRit)
@@ -40,6 +48,10 @@
 
     @if($totalContratosPorVencer > 0)
         @include('filament.components.dashboard-contratos-por-vencer-notice', ['totalContratos' => $totalContratosPorVencer])
+    @endif
+
+    @if($estadoLogros)
+        @include('filament.components.dashboard-logro-descargos-notice', ['estadoLogros' => $estadoLogros])
     @endif
 
     {{-- Guía "Tu proceso" a todo el ancho, fuera del grid de widgets (garantiza full-width). --}}

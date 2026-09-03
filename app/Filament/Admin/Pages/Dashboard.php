@@ -33,6 +33,12 @@ class Dashboard extends BaseDashboard
         if (session()->pull('celebrar_registro_rit') && class_exists(Confetti::class)) {
             Confetti::fireworks()->shoot();
         }
+
+        // Mismo mecanismo para el desbloqueo de un logro de "Plazos de
+        // Descargos Cumplidos" - ver LogroDescargosService::celebrar().
+        if (session()->pull('celebrar_logro') && class_exists(Confetti::class)) {
+            Confetti::fireworks()->shoot();
+        }
     }
 
     protected function getHeaderActions(): array
