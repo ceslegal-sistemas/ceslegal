@@ -142,38 +142,84 @@ class DocumentGeneratorService
 
         // ── Hechos ───────────────────────────────────────────────────────────
         $hechosTexto = html_entity_decode(strip_tags($proceso->hechos ?? ''), ENT_QUOTES, 'UTF-8');
-        // Convertir saltos de línea en ítems numerados para la sección de conductas
-        $lineasHechos = array_values(array_filter(
+        // Los hechos se presentan como una narración en prosa (un <p> por párrafo
+        // real, separado por saltos de línea), no como una lista numerada. El
+        // texto real que escribe el abogado/RRHH al crear el proceso YA suele
+        // venir como varios párrafos de un relato continuo (ver caso real
+        // PD-2026-0008: 3 párrafos con fechas, nombres de cargos y hechos
+        // concretos) - convertirlo en <ol><li> fragmentaba esa narración en
+        // "puntos" sueltos, dando la impresión de un relato pobre aunque el
+        // contenido ya fuera detallado. El contenido sigue siendo LITERAL
+        // (nunca se reescribe, resume ni completa con IA): solo cambia cómo
+        // se presenta, igual que en la citación de referencia del bufete.
+        $parrafosHechos = array_values(array_filter(
             array_map('trim', explode("\n", $hechosTexto))
         ));
-        if (count($lineasHechos) <= 1) {
-            // Un solo bloque → usar como ítem 1
-            $conductasHTML = '<ol><li>' . nl2br(e($hechosTexto)) . '</li></ol>';
+        if (empty($parrafosHechos)) {
+            $conductasHTML = '<p><em>No se registraron hechos para este proceso.</em></p>';
         } else {
-            $items = array_map(fn($l) => '<li>' . e($l) . '</li>', $lineasHechos);
-            $conductasHTML = '<ol>' . implode('', $items) . '</ol>';
+            $conductasHTML = implode('', array_map(fn($p) => '<p>' . e($p) . '</p>', $parrafosHechos));
         }
 
         // ── Normas incumplidas ───────────────────────────────────────────────
-        // Fuente válida: normas_incumplidas del proceso (completado en el wizard a partir del
-        // RIT de la empresa y del CST de la biblioteca legal). Si está vacío, se referencia
-        // el RIT y el Art. 58 CST sin inventar números de artículos.
+        // Fuente 1 (manual): normas_incumplidas del proceso, si fue diligenciado a mano.
+        // Fuente 2 (preferente si no hay lo anterior): la MISMA conducta del RIT ya
+        // clasificada para este incidente concreto -
+        // motivosDescargosNormalizados() (selección manual en "Motivo de los
+        // descargos") o, en su defecto, motivosDescargosDesdeClasificacionIA()
+        // (clasificación de IA hecha al crear el proceso, ver
+        // ProcesoDisciplinarioResource) - el mismo par de métodos que ya
+        // alimenta la tabla de sanciones del documento (filasTablaSancionesConFallback
+        // más abajo). Antes la citación SIEMPRE mostraba el genérico "Art. 58
+        // CST" aunque el proceso ya tuviera una conducta real identificada
+        // (caso confirmado: PD-2026-0008, con sanciones_laborales_ids y
+        // clasificacion_incidente_ia ya poblados, la citación seguía sin
+        // citarlos). No se agrega ninguna llamada nueva a IA: solo se reutiliza
+        // información que el proceso ya tiene calculada.
+        // Fuente 3 (respaldo): referencia genérica sin inventar artículos.
         $normasTexto = trim($proceso->normas_incumplidas ?? '');
+        $normasHTML = null;
         if ($normasTexto) {
             $normasLineas = array_values(array_filter(array_map('trim', explode("\n", $normasTexto))));
             $normasItems  = array_map(fn($l) => '<li>' . e($l) . '</li>', $normasLineas);
             $normasHTML   = '<ul>' . implode('', $normasItems) . '</ul>';
         } else {
-            // Referencia genérica sin inventar artículos: RIT de la empresa + Art. 58 CST
-            $tieneRIT = $empresa->reglamentoInterno !== null;
-            $referenciaRIT = $tieneRIT
-                ? 'el Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong> (depositado ante el Ministerio del Trabajo)'
-                : 'el Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong>';
-            $normasHTML = '<ul>
-                <li>' . $referenciaRIT . ', en sus disposiciones sobre obligaciones, conducta y disciplina del trabajador.</li>
-                <li>Artículo 58 del Código Sustantivo del Trabajo, que establece las obligaciones especiales del trabajador frente al empleador.</li>
-                <li>Las cláusulas del contrato de trabajo suscrito entre las partes.</li>
-            </ul>';
+            $motivosIncidente = $proceso->motivosDescargosNormalizados();
+            if (empty($motivosIncidente)) {
+                $motivosIncidente = $proceso->motivosDescargosDesdeClasificacionIA();
+            }
+
+            if (!empty($motivosIncidente)) {
+                $etiquetasGravedad = ['leve' => 'falta leve', 'grave' => 'falta grave', 'muy_grave' => 'falta muy grave'];
+                $itemsNormas = [];
+                foreach ($motivosIncidente as $motivo) {
+                    $nombreConducta = trim((string) ($motivo['nombre'] ?? ''));
+                    if ($nombreConducta === '') {
+                        continue;
+                    }
+                    $etiqueta = $etiquetasGravedad[$motivo['gravedad'] ?? ''] ?? 'falta disciplinaria';
+                    $itemsNormas[] = '<li>Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong>: &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').</li>';
+                }
+
+                if (!empty($itemsNormas)) {
+                    $itemsNormas[] = '<li>Artículo 58 del Código Sustantivo del Trabajo, que establece las obligaciones especiales del trabajador frente al empleador.</li>';
+                    $itemsNormas[] = '<li>Las cláusulas del contrato de trabajo suscrito entre las partes.</li>';
+                    $normasHTML = '<ul>' . implode('', $itemsNormas) . '</ul>';
+                }
+            }
+
+            if ($normasHTML === null) {
+                // Referencia genérica sin inventar artículos: RIT de la empresa + Art. 58 CST
+                $tieneRIT = $empresa->reglamentoInterno !== null;
+                $referenciaRIT = $tieneRIT
+                    ? 'el Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong> (depositado ante el Ministerio del Trabajo)'
+                    : 'el Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong>';
+                $normasHTML = '<ul>
+                    <li>' . $referenciaRIT . ', en sus disposiciones sobre obligaciones, conducta y disciplina del trabajador.</li>
+                    <li>Artículo 58 del Código Sustantivo del Trabajo, que establece las obligaciones especiales del trabajador frente al empleador.</li>
+                    <li>Las cláusulas del contrato de trabajo suscrito entre las partes.</li>
+                </ul>';
+            }
         }
 
         // ── Consecuencias según tipo de sanción considerada ──────────────────
@@ -397,12 +443,12 @@ class DocumentGeneratorService
 
     <!-- SECCIÓN 1: CONDUCTAS IMPUTADAS -->
     <h3>Detalles de las Conductas Imputadas</h3>
-    <p>Se le imputan las siguientes conductas, las cuales constituyen posibles faltas disciplinarias:</p>
+    <p>Las razones por las cuales se le cita a diligencia de descargos se fundamentan, presuntamente, en los siguientes hechos, puestos en su conocimiento para que pueda ejercer su derecho de defensa:</p>
     {$conductasHTML}
 
     <!-- SECCIÓN 2: INCUMPLIMIENTOS -->
     <h3>Incumplimientos Contractuales o Legales</h3>
-    <p>Las conductas descritas contravienen:</p>
+    <p>Los anteriores hechos implican una posible violación a sus obligaciones contractuales, reglamentarias y legales, que pueden ser constitutivas de una falta disciplinaria de acuerdo con las siguientes normas:</p>
     {$normasHTML}
 
     <!-- SECCIÓN 3: CONSECUENCIAS -->
