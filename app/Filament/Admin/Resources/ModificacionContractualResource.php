@@ -304,10 +304,39 @@ class ModificacionContractualResource extends Resource
                 ->displayFormat('d/m/Y')
                 ->placeholder('Seleccione la nueva fecha')
                 ->default(fn () => empty($solicitud->fecha_fin_contrato) ? null : app(PlazoContratoService::class)->calcularProximaRenovacion($solicitud)['nueva_fecha_fin'])
-                ->helperText('Ya sugerimos una fecha (mismo tiempo que duraba el contrato, según la ley). También puede indicar la duración arriba (ej: 6 meses) y la fecha se calcula sola.')
-                // No permite fechas anteriores (ni igual) al vencimiento
-                // actual - un contrato no se puede "renovar" hacia atrás.
-                ->after(fn () => $solicitud->fecha_fin_contrato?->toDateString())
+                ->helperText(function () use ($solicitud) {
+                    $base = 'Ya sugerimos una fecha (mismo tiempo que duraba el contrato, según la ley). También puede indicar la duración arriba (ej: 6 meses) y la fecha se calcula sola.';
+
+                    if (($solicitud->veces_prorrogado + 1) >= 4) {
+                        $base .= ' Como esta es la prórroga número ' . ($solicitud->veces_prorrogado + 1) . ' o superior, la ley exige que la nueva duración sea de mínimo 1 año.';
+                    }
+
+                    return $base . ' En ningún caso puede superar los 4 años de duración total del contrato, contados desde su inicio.';
+                })
+                // No deja elegir/escribir una fecha que viole el Art. 46
+                // CST: ni anterior al vencimiento actual, ni por debajo del
+                // mínimo de 1 año desde la 4a prórroga, ni por encima del
+                // tope legal de 4 años desde el inicio del contrato -
+                // mismas 3 reglas que ya aplica PlazoContratoService para la
+                // renovación automática, ahora también en la selección
+                // manual (hallazgo real del usuario, 2026-09-02).
+                ->minDate(function () use ($solicitud) {
+                    if (!$solicitud->fecha_fin_contrato) {
+                        return null;
+                    }
+
+                    $minimo = $solicitud->fecha_fin_contrato->copy()->addDay();
+
+                    if (($solicitud->veces_prorrogado + 1) >= 4) {
+                        $minimoPorProrroga = $solicitud->fecha_fin_contrato->copy()->addYear();
+                        if ($minimoPorProrroga->gt($minimo)) {
+                            $minimo = $minimoPorProrroga;
+                        }
+                    }
+
+                    return $minimo;
+                })
+                ->maxDate(fn () => $solicitud->fecha_inicio_propuesta?->copy()->addYears(4))
                 ->live()
                 ->afterStateUpdated(fn (Set $set, Get $get) => self::descomponerDuracionRenovacion($solicitud, $set, $get))
                 ->columnSpanFull(),

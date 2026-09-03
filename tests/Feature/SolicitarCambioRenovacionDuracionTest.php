@@ -129,8 +129,76 @@ class SolicitarCambioRenovacionDuracionTest extends TestCase
                 'valor_nuevo' => '2026-09-22',
                 'fecha_efectiva' => '2026-09-23',
             ])
-            ->assertHasTableActionErrors(['valor_nuevo' => 'after']);
+            ->assertHasTableActionErrors(['valor_nuevo' => 'after_or_equal']);
 
         $this->assertNull(ModificacionContractual::where('solicitud_contrato_id', $solicitud->id)->first());
+    }
+
+    /**
+     * Tope legal absoluto: un contrato a término fijo no puede superar 4
+     * años de duración total, contados desde su fecha de inicio ORIGINAL
+     * (no el período vigente) - Art. 46 CST.
+     */
+    public function test_no_permite_superar_el_tope_legal_de_4_anios(): void
+    {
+        $this->actingAsAutorizado();
+        $solicitud = $this->crearSolicitud([
+            'fecha_inicio_propuesta' => '2024-01-01',
+            'fecha_fin_contrato' => '2026-09-22',
+        ]);
+
+        Livewire::test(ListSolicitudContratos::class)
+            ->callTableAction('solicitarCambio', $solicitud, data: [
+                'tipo_modificacion' => 'plazo',
+                // 2024-01-01 + 4 años = 2028-01-01 (tope) - esta fecha lo supera.
+                'valor_nuevo' => '2028-06-01',
+                'fecha_efectiva' => '2026-09-23',
+            ])
+            ->assertHasTableActionErrors(['valor_nuevo' => 'before_or_equal']);
+    }
+
+    /**
+     * A partir de la 4a prórroga, la nueva duración no puede ser inferior a
+     * 1 año - una fecha que extienda menos de eso debe rechazarse, aunque
+     * esté dentro del tope de 4 años.
+     */
+    public function test_a_partir_de_la_cuarta_prorroga_exige_minimo_un_anio(): void
+    {
+        $this->actingAsAutorizado();
+        // fecha_inicio_propuesta bien atrás en el tiempo para que el tope de
+        // 4 años (2023-09-22 + 4 = 2027-09-22) no interfiera con esta
+        // prueba - lo que se valida acá es SOLO el mínimo de 1 año.
+        $solicitud = $this->crearSolicitud([
+            'fecha_inicio_propuesta' => '2023-09-22',
+            'fecha_fin_contrato' => '2026-09-22',
+            'veces_prorrogado' => 3,
+        ]);
+
+        Livewire::test(ListSolicitudContratos::class)
+            ->callTableAction('solicitarCambio', $solicitud, data: [
+                'tipo_modificacion' => 'plazo',
+                // Solo ~3 meses de extensión - menos del mínimo de 1 año exigido.
+                'valor_nuevo' => '2027-01-01',
+                'fecha_efectiva' => '2026-09-23',
+            ])
+            ->assertHasTableActionErrors(['valor_nuevo' => 'after_or_equal']);
+    }
+
+    public function test_a_partir_de_la_cuarta_prorroga_un_anio_exacto_si_es_valido(): void
+    {
+        $this->actingAsAutorizado();
+        $solicitud = $this->crearSolicitud([
+            'fecha_inicio_propuesta' => '2023-09-22',
+            'fecha_fin_contrato' => '2026-09-22',
+            'veces_prorrogado' => 3,
+        ]);
+
+        Livewire::test(ListSolicitudContratos::class)
+            ->callTableAction('solicitarCambio', $solicitud, data: [
+                'tipo_modificacion' => 'plazo',
+                'valor_nuevo' => '2027-09-22',
+                'fecha_efectiva' => '2026-09-23',
+            ])
+            ->assertHasNoTableActionErrors();
     }
 }
