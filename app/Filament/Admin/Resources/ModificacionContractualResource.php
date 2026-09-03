@@ -124,10 +124,20 @@ class ModificacionContractualResource extends Resource
         return [
             Forms\Components\Select::make('tipo_modificacion')
                 ->label('Tipo de Modificación')
-                ->options(ModificacionContractual::TIPOS)
+                ->options([
+                    'salario' => 'Salario - Cambio en la remuneración mensual',
+                    'cargo' => 'Cargo - Cambio de puesto o funciones',
+                    'jornada' => 'Jornada / Modalidad - Cambio de horario o forma de trabajo',
+                    'tipo_contrato' => 'Tipo de Contrato - Cambio en la modalidad contractual',
+                    'plazo' => 'Plazo (Prórroga) - Extensión de la fecha de terminación',
+                ])
                 ->required()
                 ->live()
                 ->native(false)
+                ->searchable()
+                ->placeholder('Seleccione el tipo de modificación...')
+                ->suffixIcon('heroicon-o-document-duplicate')
+                ->columnSpanFull()
                 ->afterStateUpdated(fn (Set $set) => $set('valor_nuevo', null)),
 
             Forms\Components\TextInput::make('valor_nuevo')
@@ -268,16 +278,41 @@ class ModificacionContractualResource extends Resource
         return [
             Forms\Components\Wizard\Step::make('El Cambio')
                 ->icon('heroicon-o-pencil-square')
-                ->schema(self::camposElCambio($solicitud))
+                ->schema([
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('sc_solicitar_cambio_step_1')
+                        ->viewData([
+                            'step' => 1,
+                            'total' => 2,
+                            'title' => 'El Cambio',
+                            'accent' => '#e11d48',
+                            'lord' => 'https://cdn.lordicon.com/edcgvlnw.json',
+                            'subtitle' => "Contrato {$solicitud->codigo} — {$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}",
+                        ])
+                        ->columnSpanFull(),
+
+                    ...self::camposElCambio($solicitud),
+                ])
                 ->columns(2),
 
             Forms\Components\Wizard\Step::make('Revisar y Confirmar')
                 ->icon('heroicon-o-document-check')
                 ->visible(fn (Get $get) => $get('tipo_modificacion') !== 'plazo')
                 ->schema([
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('sc_solicitar_cambio_step_2')
+                        ->viewData([
+                            'step' => 2,
+                            'total' => 2,
+                            'title' => 'Revisar y Confirmar',
+                            'accent' => '#f97316',
+                            'lord' => 'https://cdn.lordicon.com/hmpomorl.json',
+                            'subtitle' => 'Texto redactado por IA - revíselo y ajústelo si hace falta antes de confirmar.',
+                        ])
+                        ->columnSpanFull(),
+
                     Forms\Components\RichEditor::make('texto_otrosi_redactado')
                         ->label('Texto del Otrosí')
-                        ->helperText('Redactado por IA - revíselo y ajústelo si hace falta antes de confirmar.')
                         ->required()
                         ->toolbarButtons(['bold', 'bulletList', 'orderedList', 'italic', 'undo', 'redo'])
                         ->default(fn (Get $get) => self::textoRedactadoPreliminar($solicitud, $get))
