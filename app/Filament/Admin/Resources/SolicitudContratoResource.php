@@ -1445,7 +1445,13 @@ class SolicitudContratoResource extends Resource
      */
     public static function enVentanaDeDecisionRenovacion(SolicitudContrato $record): bool
     {
-        return $record->tipo_contrato === 'Contrato a Término Fijo'
+        // "No renovar"/"Sí, renovar" solo tienen sentido sobre un contrato
+        // YA aprobado - uno en 'borrador' o 'rechazado' ni siquiera está
+        // vigente todavía, aunque sea a término fijo y tenga una
+        // fecha_fin_contrato dentro de la ventana de 45 días (hallazgo real
+        // del usuario, 2026-09-02).
+        return $record->estado === 'aprobado'
+            && $record->tipo_contrato === 'Contrato a Término Fijo'
             && app(\App\Services\PlazoContratoService::class)->estaEnVentanaDeAlerta($record);
     }
 
