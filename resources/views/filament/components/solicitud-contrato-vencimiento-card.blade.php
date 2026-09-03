@@ -34,7 +34,7 @@
         <p class="pt-body">
             Preaviso generado el {{ $record->decision_no_renovacion_en->format('d/m/Y') }}.
             @if ($record->ruta_preaviso)
-                <a href="{{ \Illuminate\Support\Facades\Storage::disk('local')->url($record->ruta_preaviso) }}" target="_blank">Descargar Preaviso</a>
+                <a href="{{ route('solicitud-contrato.descargar-preaviso', $record) }}" target="_blank">Descargar Preaviso</a>
             @endif
         </p>
     </div>

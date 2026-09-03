@@ -34,4 +34,27 @@ class SolicitudContratoDescargaController extends Controller
             'Expires'       => '0',
         ]);
     }
+
+    /**
+     * Mismo patrón que contrato() - antes el link de "Descargar Preaviso"
+     * usaba Storage::disk('local')->url(), que depende de la ruta global
+     * `storage/{path}` de Laravel: SIN autenticación, sirviendo todo el
+     * disco privado a cualquiera que adivine la ruta del archivo (hallazgo
+     * real, 2026-09-02).
+     */
+    public function preaviso(SolicitudContrato $solicitud)
+    {
+        abort_if(!$solicitud->ruta_preaviso, 404, 'Esta solicitud aún no tiene un preaviso generado.');
+
+        $ruta = Storage::disk('local')->path($solicitud->ruta_preaviso);
+
+        abort_if(!file_exists($ruta), 404, 'Archivo no encontrado.');
+
+        return response()->file($ruta, [
+            'Content-Type'  => 'application/pdf',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma'        => 'no-cache',
+            'Expires'       => '0',
+        ]);
+    }
 }

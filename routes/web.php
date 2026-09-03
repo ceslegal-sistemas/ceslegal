@@ -177,6 +177,16 @@ Route::get('/solicitud-contrato/{solicitud}/descargar', [\App\Http\Controllers\S
     ->middleware(['auth'])
     ->name('solicitud-contrato.descargar');
 
+// Descarga del Preaviso de no renovación de una Solicitud de Contrato
+Route::get('/solicitud-contrato/{solicitud}/descargar-preaviso', [\App\Http\Controllers\SolicitudContratoDescargaController::class, 'preaviso'])
+    ->middleware(['auth'])
+    ->name('solicitud-contrato.descargar-preaviso');
+
+// Descarga del documento del Otrosí de una Modificación Contractual
+Route::get('/modificacion-contractual/{modificacion}/descargar', [\App\Http\Controllers\ModificacionContractualDescargaController::class, 'otrosi'])
+    ->middleware(['auth'])
+    ->name('modificacion-contractual.descargar');
+
 // Rutas de Email Tracking
 Route::get('/email/track/{token}.gif', [EmailTrackingController::class, 'pixel'])
     ->name('email.tracking.pixel');
