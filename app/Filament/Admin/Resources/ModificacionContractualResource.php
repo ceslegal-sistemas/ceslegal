@@ -119,6 +119,46 @@ class ModificacionContractualResource extends Resource
      * form() a propósito: unificar ambos requeriría que este Wizard también
      * dependiera de $get('solicitud_contrato_id'), que aquí no existe.
      */
+    /**
+     * Dentro de la ventana de 45 días de alerta ("Sí, renovar"), no tiene
+     * sentido preguntar "¿Qué quiere cambiar?" - el contexto ya lo dice: es
+     * una prórroga de plazo. Se fija tipo_modificacion='plazo' con un
+     * Hidden y se muestra solo el campo relevante, sin el Select de 5
+     * opciones - pedido explícito del usuario ("no es necesario que tenga
+     * que seleccionar qué quiere cambiar cuando solo es plazo").
+     */
+    private static function camposRenovacion(SolicitudContrato $solicitud): array
+    {
+        return [
+            Forms\Components\Hidden::make('tipo_modificacion')->default('plazo'),
+
+            Forms\Components\DatePicker::make('valor_nuevo')
+                ->label('¿Hasta cuándo se extiende el contrato?')
+                ->required()
+                ->native(false)
+                ->displayFormat('d/m/Y')
+                ->placeholder('Seleccione la nueva fecha')
+                ->default(fn () => empty($solicitud->fecha_fin_contrato) ? null : app(PlazoContratoService::class)->calcularProximaRenovacion($solicitud)['nueva_fecha_fin'])
+                ->helperText('Ya sugerimos una fecha (mismo tiempo que duraba el contrato, según la ley). Puede cambiarla si acordaron otra con el trabajador.')
+                ->columnSpanFull(),
+
+            Forms\Components\DatePicker::make('fecha_efectiva')
+                ->label('¿Desde cuándo empieza a regir la renovación?')
+                ->helperText('Normalmente es el día siguiente a la fecha en que vencía el contrato.')
+                ->required()
+                ->native(false)
+                ->displayFormat('d/m/Y')
+                ->default(fn () => $solicitud->fecha_fin_contrato?->copy()->addDay())
+                ->placeholder('Seleccione una fecha'),
+
+            Forms\Components\Textarea::make('justificacion')
+                ->label('¿Algo más que quiera dejar constancia? (opcional)')
+                ->placeholder('Ej: "Se acuerda renovar por buen desempeño del trabajador."')
+                ->rows(2)
+                ->columnSpanFull(),
+        ];
+    }
+
     private static function camposElCambio(SolicitudContrato $solicitud): array
     {
         return [
@@ -287,6 +327,32 @@ class ModificacionContractualResource extends Resource
      */
     public static function pasosSolicitarCambio(SolicitudContrato $solicitud): array
     {
+        // Dentro de la ventana de 45 días ("Sí, renovar"), un solo paso
+        // reducido - ni el Select de 5 tipos ni el paso de revisión con IA
+        // (Plazo es plantilla literal, sin IA de por medio) tienen sentido
+        // cuando el contexto ya dice que es una prórroga.
+        if (SolicitudContratoResource::enVentanaDeDecisionRenovacion($solicitud)) {
+            return [
+                Forms\Components\Wizard\Step::make('Renovar Contrato')
+                    ->icon('heroicon-o-arrow-path')
+                    ->schema([
+                        Forms\Components\View::make('filament.components.step-header')
+                            ->key('sc_solicitar_cambio_renovacion')
+                            ->viewData([
+                                'step' => 1,
+                                'total' => 1,
+                                'title' => 'Renovar Contrato',
+                                'accent' => '#e11d48',
+                                'lord' => 'https://cdn.lordicon.com/edcgvlnw.json',
+                                'subtitle' => "Contrato {$solicitud->codigo} — {$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}",
+                            ])
+                            ->columnSpanFull(),
+
+                        ...self::camposRenovacion($solicitud),
+                    ]),
+            ];
+        }
+
         return [
             Forms\Components\Wizard\Step::make('El Cambio')
                 ->icon('heroicon-o-pencil-square')

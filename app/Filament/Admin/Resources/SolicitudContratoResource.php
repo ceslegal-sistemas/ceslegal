@@ -1237,10 +1237,18 @@ class SolicitudContratoResource extends Resource
                 // ningún wizard de página completa. A pedido explícito del
                 // usuario: "prefiero mil veces que aparezca una acción en el
                 // listado del historial de contratos que este wizard".
+                //
+                // Dentro de la ventana de 45 días de alerta, el botón se
+                // relabela a "Sí, renovar" (mismo modal, mismas 5 opciones
+                // adentro, incluida "Plazo") - antes existía un botón
+                // "renovarContrato" separado que apuntaba al wizard viejo de
+                // página completa, quedó redundante con este mismo modal y
+                // se retiró (hallazgo del propio usuario: "¿Osea Solicitar
+                // cambio y Sí, renovar es lo mismo?").
                 Tables\Actions\Action::make('solicitarCambio')
-                    ->label('Solicitar un Cambio')
-                    ->icon('heroicon-o-pencil-square')
-                    ->color('primary')
+                    ->label(fn (SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record) ? 'Sí, renovar' : 'Solicitar un Cambio')
+                    ->icon(fn (SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record) ? 'heroicon-o-arrow-path' : 'heroicon-o-pencil-square')
+                    ->color(fn (SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record) ? 'success' : 'primary')
                     ->visible(fn (SolicitudContrato $record) => $record->estado === 'aprobado')
                     ->modalWidth('lg')
                     // El stepper nativo de Filament (pestañas "El Cambio" /
@@ -1261,20 +1269,6 @@ class SolicitudContratoResource extends Resource
                             ->body('El documento quedó registrado en el historial de cambios del contrato.')
                             ->send();
                     }),
-
-                // Caso especial de "Solicitar un Cambio" (tipo=plazo),
-                // directo en la ventana de 45 días de alerta - mismo pedido
-                // del usuario de tener las acciones en la fila, sin entrar a
-                // Ver Contrato primero.
-                Tables\Actions\Action::make('renovarContrato')
-                    ->label('Sí, renovar')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('success')
-                    ->visible(fn (SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record))
-                    ->url(fn (SolicitudContrato $record) => ModificacionContractualResource::getUrl('create', [
-                        'solicitud_contrato_id' => $record->id,
-                        'tipo_modificacion' => 'plazo',
-                    ])),
 
                 Tables\Actions\Action::make('noRenovarContrato')
                     ->label('No renovar')

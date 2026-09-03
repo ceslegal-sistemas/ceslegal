@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Admin\Resources\SolicitudContratoResource\Pages\ListSolicitudContratos;
 use App\Models\Empresa;
+use App\Models\ModificacionContractual;
 use App\Models\SolicitudContrato;
 use App\Models\User;
 use Carbon\Carbon;
@@ -13,15 +14,13 @@ use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 /**
- * "Solicitar un Cambio" se relabela a "Sí, renovar" dentro de la ventana de
- * 45 días de alerta (mismo modal, "Plazo" es una de las 5 opciones adentro)
- * - antes existía un botón "renovarContrato" separado que apuntaba al
- * wizard viejo de página completa, quedó redundante con este mismo modal y
- * se retiró (hallazgo del propio usuario: "¿Osea Solicitar cambio y Sí,
- * renovar es lo mismo?", 2026-09-02). "No renovar" sigue siendo su propia
- * acción (genera el Preaviso, un documento distinto).
+ * Dentro de la ventana de 45 días ("Sí, renovar"), el modal ya no pregunta
+ * "¿Qué quiere cambiar?" - el contexto ya lo dice: es una prórroga de
+ * plazo. Pedido explícito del usuario: "no es necesario que tenga que
+ * seleccionar qué quiere cambiar cuando solo es plazo, ponerle un poco de
+ * lógica" (2026-09-02).
  */
-class SolicitudContratoRenovarTablaTest extends TestCase
+class SolicitarCambioRenovacionSimplificadaTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -30,6 +29,8 @@ class SolicitudContratoRenovarTablaTest extends TestCase
         parent::setUp();
 
         Carbon::setTestNow(Carbon::parse('2026-09-02'));
+
+        User::factory()->create(['id' => 1, 'role' => 'super_admin', 'active' => true]);
 
         Permission::findOrCreate('view_solicitud::contrato', 'web');
         Permission::findOrCreate('view_any_solicitud::contrato', 'web');
@@ -70,28 +71,29 @@ class SolicitudContratoRenovarTablaTest extends TestCase
             'manual_funciones' => '<p>x</p>',
             'fecha_inicio_propuesta' => '2026-01-01',
             'fecha_inicio_periodo_actual' => '2026-01-01',
+            'fecha_fin_contrato' => '2026-09-22',
         ], $overrides));
     }
 
-    public function test_se_relabela_a_si_renovar_dentro_de_la_ventana_de_45_dias(): void
+    public function test_renueva_sin_preguntar_que_tipo_de_cambio_es(): void
     {
         $this->actingAsAutorizado();
-        $solicitud = $this->crearSolicitud(['fecha_fin_contrato' => now()->addDays(20)->toDateString()]);
+        $solicitud = $this->crearSolicitud();
 
         Livewire::test(ListSolicitudContratos::class)
-            ->assertTableActionVisible('solicitarCambio', $solicitud)
-            ->assertTableActionHasLabel('solicitarCambio', 'Sí, renovar', $solicitud)
-            ->assertTableActionVisible('noRenovarContrato', $solicitud);
-    }
+            ->callTableAction('solicitarCambio', $solicitud, data: [
+                'tipo_modificacion' => 'plazo',
+                'valor_nuevo' => '2027-03-22',
+                'fecha_efectiva' => '2026-09-23',
+            ])
+            ->assertHasNoTableActionErrors();
 
-    public function test_dice_solicitar_un_cambio_fuera_de_la_ventana(): void
-    {
-        $this->actingAsAutorizado();
-        $solicitud = $this->crearSolicitud(['fecha_fin_contrato' => now()->addDays(200)->toDateString()]);
+        $modificacion = ModificacionContractual::where('solicitud_contrato_id', $solicitud->id)->first();
+        $this->assertNotNull($modificacion);
+        $this->assertSame('plazo', $modificacion->tipo_modificacion);
+        $this->assertSame('otrosi_generado', $modificacion->estado);
 
-        Livewire::test(ListSolicitudContratos::class)
-            ->assertTableActionVisible('solicitarCambio', $solicitud)
-            ->assertTableActionHasLabel('solicitarCambio', 'Solicitar un Cambio', $solicitud)
-            ->assertTableActionHidden('noRenovarContrato', $solicitud);
+        $solicitud->refresh();
+        $this->assertSame('2027-03-22', $solicitud->fecha_fin_contrato->format('Y-m-d'));
     }
 }

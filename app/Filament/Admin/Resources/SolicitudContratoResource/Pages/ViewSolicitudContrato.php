@@ -31,15 +31,22 @@ class ViewSolicitudContrato extends ViewRecord
     {
         return [
             // Vía general para cualquier cambio (salario, cargo, jornada,
-            // tipo de contrato o plazo) mientras el contrato está aprobado -
-            // "Sí, renovar"/"No renovar" abajo son el caso especial de
-            // plazo, dentro de la ventana de 45 días. Reemplaza a "Editar"
-            // como la única forma de modificar un contrato ya aprobado, sin
-            // saltarse el rastro del Otrosí (hallazgo real, 2026-09-02).
+            // tipo de contrato o plazo) mientras el contrato está aprobado.
+            // Reemplaza a "Editar" como la única forma de modificar un
+            // contrato ya aprobado, sin saltarse el rastro del Otrosí
+            // (hallazgo real, 2026-09-02).
+            //
+            // Dentro de la ventana de 45 días de alerta, se relabela a "Sí,
+            // renovar" (mismo modal, "Plazo" es una de las 5 opciones
+            // adentro) - antes existía un botón "renovarContrato" separado
+            // que apuntaba al wizard viejo de página completa, quedó
+            // redundante con este mismo modal y se retiró (hallazgo del
+            // propio usuario: "¿Osea Solicitar cambio y Sí, renovar es lo
+            // mismo?").
             Actions\Action::make('solicitarCambio')
-                ->label('Solicitar un Cambio')
-                ->icon('heroicon-o-pencil-square')
-                ->color('primary')
+                ->label(fn () => $this->enVentanaDeDecision() ? 'Sí, renovar' : 'Solicitar un Cambio')
+                ->icon(fn () => $this->enVentanaDeDecision() ? 'heroicon-o-arrow-path' : 'heroicon-o-pencil-square')
+                ->color(fn () => $this->enVentanaDeDecision() ? 'success' : 'primary')
                 ->visible(fn () => $this->record->estado === 'aprobado')
                 ->modalWidth('lg')
                 ->extraModalWindowAttributes(['class' => 'ces-hide-wizard-steps'])
@@ -55,16 +62,6 @@ class ViewSolicitudContrato extends ViewRecord
                         ->body('El documento quedó registrado en el historial de cambios del contrato.')
                         ->send();
                 }),
-
-            Actions\Action::make('renovarContrato')
-                ->label('Sí, renovar')
-                ->icon('heroicon-o-arrow-path')
-                ->color('success')
-                ->visible(fn () => $this->enVentanaDeDecision())
-                ->url(fn () => ModificacionContractualResource::getUrl('create', [
-                    'solicitud_contrato_id' => $this->record->id,
-                    'tipo_modificacion' => 'plazo',
-                ])),
 
             Actions\Action::make('noRenovarContrato')
                 ->label('No renovar')
