@@ -218,6 +218,23 @@ class RolePermissionSeeder extends Seeder
             'create_solicitud::contrato',
             'update_solicitud::contrato',
 
+            // Puede solicitar un Otrosí (cambio de salario/cargo/jornada/
+            // plazo/tipo de contrato) desde su propio contrato aprobado, y
+            // ver el documento resultante. view_any es obligatorio aunque no
+            // se use para "navegar un listado" - Filament exige canViewAny()
+            // para acceder a CUALQUIER página del resource (Crear/Ver/
+            // Editar), no solo al listado (CanAuthorizeResourceAccess::
+            // authorizeAccess()) - sin esto, "Solicitar un Cambio" daría
+            // 403. El ítem del menú se oculta aparte para 'cliente' vía
+            // ModificacionContractualResource::shouldRegisterNavigation(),
+            // y el global scope (ScopedToBufeteOrEmpresa) ya limita lo que
+            // vería a su propia empresa si entrara por URL directa. Sin
+            // update/delete (una vez enviado, el otrosí es definitivo para
+            // el cliente).
+            'view_any_modificacion::contractual',
+            'view_modificacion::contractual',
+            'create_modificacion::contractual',
+
             // Reglamento Interno: construir/ver/editar el suyo (restringido a su
             // empresa en ReglamentoInternoPolicy). Sin borrar.
             'view_reglamento::interno',

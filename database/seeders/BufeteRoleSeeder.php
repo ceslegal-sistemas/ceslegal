@@ -8,16 +8,21 @@ use Spatie\Permission\Models\Role;
 
 /**
  * Rol "bufete" (firma de abogados que gestiona empresas). Whitelist de permisos:
- * solo Empresa, Trabajador, Proceso Disciplinario, Diligencia de Descargos,
- * Reglamento Interno y Modificaciones Contractuales, más las páginas de
- * RIT/auditoría. Todo lo demás (usuarios, gestión jurídica, Solicitudes de
- * Contrato, informes, configuración, comunicaciones) queda oculto porque
- * Shield no le concede esos permisos.
+ * Empresa, Trabajador, Proceso Disciplinario, Diligencia de Descargos,
+ * Reglamento Interno, Modificaciones Contractuales (Otrosíes) y Solicitudes
+ * de Contrato, más las páginas de RIT/auditoría. Todo lo demás (usuarios,
+ * gestión jurídica, informes, configuración, comunicaciones) queda oculto
+ * porque Shield no le concede esos permisos.
  *
  * El bufete gestiona el RIT del cliente, pero NO decide sus procesos disciplinarios:
  * puede ver/actualizar/eliminar procesos existentes (auditoría, seguimiento), pero
  * no crear uno nuevo - eso es responsabilidad del propio cliente (rol 'cliente'),
  * dueño de la decisión disciplinaria sobre sus trabajadores.
+ *
+ * solicitud::contrato se agregó porque NotificacionService::destinatariosDeEmpresa()
+ * ya notifica a usuarios bufete sobre vencimientos de contrato - sin este
+ * permiso, el bufete recibía la notificación pero no podía abrir "Historial
+ * de Contratos" para actuar sobre ella (hallazgo real, 2026-09-02).
  */
 class BufeteRoleSeeder extends Seeder
 {
@@ -25,7 +30,7 @@ class BufeteRoleSeeder extends Seeder
     {
         $role = Role::firstOrCreate(['name' => 'bufete', 'guard_name' => 'web']);
 
-        $recursos = ['empresa', 'trabajador', 'proceso::disciplinario', 'reglamento::interno', 'modificacion::contractual'];
+        $recursos = ['empresa', 'trabajador', 'proceso::disciplinario', 'reglamento::interno', 'modificacion::contractual', 'solicitud::contrato'];
         $acciones = ['view_any', 'view', 'create', 'update', 'delete', 'delete_any'];
 
         // Permisos que NUNCA se le conceden al bufete, aunque el resto del recurso sí.
