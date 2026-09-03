@@ -343,12 +343,13 @@ class ModificacionContractualResource extends Resource
 
             Forms\Components\DatePicker::make('fecha_efectiva')
                 ->label('¿Desde cuándo empieza a regir la renovación?')
-                ->helperText('Normalmente es el día siguiente a la fecha en que vencía el contrato.')
+                ->helperText('Siempre es el día siguiente al vencimiento actual - así la renovación sigue siendo el MISMO contrato, sin ningún vacío entre medias (si hubiera un vacío, legalmente contaría como una terminación y un contrato nuevo, no una prórroga). Por eso no se puede editar.')
                 ->required()
                 ->native(false)
                 ->displayFormat('d/m/Y')
                 ->default(fn () => $solicitud->fecha_fin_contrato?->copy()->addDay())
-                ->placeholder('Seleccione una fecha'),
+                ->disabled()
+                ->dehydrated(),
 
             Forms\Components\Textarea::make('justificacion')
                 ->label('¿Algo más que quiera dejar constancia? (opcional)')
