@@ -1269,8 +1269,15 @@ class SolicitudContratoResource extends Resource
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make()
                         ->label('Ver'),
+                    // Hallazgo real (2026-09-02): sin este ->visible(), un
+                    // contrato ya 'aprobado' se podía editar directo (salario,
+                    // cargo, jornada...) sin dejar rastro, saltándose por
+                    // completo el flujo formal de Otrosí
+                    // (ModificacionContractualResource). Solo tiene sentido
+                    // editar libremente mientras sigue en 'borrador'.
                     Tables\Actions\EditAction::make()
-                        ->label('Editar'),
+                        ->label('Editar')
+                        ->visible(fn (SolicitudContrato $record) => $record->estado === 'borrador'),
                     Tables\Actions\DeleteAction::make()
                         ->label('Eliminar'),
 
