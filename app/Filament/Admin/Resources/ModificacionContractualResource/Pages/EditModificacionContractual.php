@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\ModificacionContractualResource\Pages;
 
 use App\Filament\Admin\Resources\ModificacionContractualResource;
+use App\Filament\Admin\Resources\ModificacionContractualResource\Widgets\ModificacionContractualRecordHeroWidget;
 use App\Services\SolicitudContratoIAService;
 use Filament\Actions;
 use Filament\Notifications\Notification;
@@ -13,11 +14,40 @@ class EditModificacionContractual extends EditRecord
 {
     protected static string $resource = ModificacionContractualResource::class;
 
+    // Vista custom: oculta el stepper nativo de Filament - mismo patrón que
+    // EditSolicitudContrato.
+    protected static string $view = 'filament.admin.resources.modificacion-contractual-resource.pages.edit-modificacion-contractual';
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            ModificacionContractualRecordHeroWidget::class,
+        ];
+    }
+
+    public function getWidgetData(): array
+    {
+        return ['record' => $this->record];
+    }
+
     protected function getHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make(),
         ];
+    }
+
+    /**
+     * El Wizard ya trae su propio botón de envío (submitAction en
+     * ModificacionContractualResource::form()) - sin esto, Filament añade
+     * ADEMÁS "Guardar cambios"/"Cancelar" por fuera del wizard, duplicando
+     * la acción de envío. Mismo fix que CreateModificacionContractual ya
+     * tenía; faltaba en Editar (bug preexistente, no reportado hasta ahora
+     * porque nadie había puesto la vista custom aquí todavía).
+     */
+    protected function getFormActions(): array
+    {
+        return [];
     }
 
     /** Mismo patrón ya documentado en EditSolicitudContrato.php - $this->form->getState() valida TODO el formulario. */

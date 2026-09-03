@@ -23,15 +23,30 @@ class ModificacionContractualResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-arrow-up';
 
-    protected static ?string $navigationLabel = 'Modificaciones Contractuales';
+    protected static ?string $navigationLabel = 'Otrosíes de Contrato';
 
-    protected static ?string $modelLabel = 'Modificación Contractual';
+    protected static ?string $modelLabel = 'Otrosí';
 
-    protected static ?string $pluralModelLabel = 'Modificaciones Contractuales';
+    protected static ?string $pluralModelLabel = 'Otrosíes de Contrato';
 
     protected static ?string $navigationGroup = 'Gestión de Contratos';
 
     protected static ?int $navigationSort = 2;
+
+    /**
+     * 'cliente' necesita view_any_modificacion::contractual para que
+     * "Solicitar un Cambio" funcione (Filament exige canViewAny() para
+     * acceder a CUALQUIER página del resource, no solo al listado) - pero
+     * un cliente nunca debe ver "Otrosíes de Contrato" como un ítem de menú
+     * aparte: siempre llega ahí desde su propio contrato ("Solicitar un
+     * Cambio"/"Historial de Cambios" en Ver Contrato), nunca "en frío"
+     * eligiendo un contrato de una lista plana. bufete/super_admin sí lo
+     * ven (gestión/auditoría del historial completo).
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return !(auth()->user()?->isCliente() ?? false);
+    }
 
     /** Mismas 6 opciones de SolicitudContratoResource::form() (tipo_contrato) - mantener sincronizadas si cambian ahí. */
     protected static function getTiposContrato(): array
@@ -99,6 +114,18 @@ class ModificacionContractualResource extends Resource
                 Forms\Components\Wizard\Step::make('Contrato a Modificar')
                     ->icon('heroicon-o-document-text')
                     ->schema([
+                        Forms\Components\View::make('filament.components.step-header')
+                            ->key('mc_step_header_1')
+                            ->viewData([
+                                'step' => 1,
+                                'total' => 2,
+                                'title' => 'Contrato a Modificar',
+                                'accent' => '#e11d48',
+                                'lord' => 'https://cdn.lordicon.com/moedrfvp.json',
+                                'subtitle' => 'Seleccione el contrato aprobado sobre el que se aplicará el otrosí.',
+                            ])
+                            ->columnSpanFull(),
+
                         Forms\Components\Select::make('solicitud_contrato_id')
                             ->label('Contrato')
                             ->relationship(
@@ -165,6 +192,34 @@ class ModificacionContractualResource extends Resource
                 Forms\Components\Wizard\Step::make('El Cambio')
                     ->icon('heroicon-o-pencil-square')
                     ->schema([
+                        Forms\Components\View::make('filament.components.step-header')
+                            ->key('mc_step_header_2')
+                            ->viewData([
+                                'step' => 2,
+                                'total' => 2,
+                                'title' => 'El Cambio',
+                                'accent' => '#f97316',
+                                'lord' => 'https://cdn.lordicon.com/edcgvlnw.json',
+                                'subtitle' => 'Indique qué cambia, el nuevo valor y desde cuándo aplica.',
+                            ])
+                            ->columnSpanFull(),
+
+                        // Cuando se llega desde "Solicitar un Cambio" (Ver
+                        // Contrato), el Paso 1 se salta (->startOnStep() más
+                        // abajo) - este resumen da contexto fijo de sobre
+                        // qué contrato se está trabajando, sin importar
+                        // desde qué paso se entró al wizard.
+                        Forms\Components\Placeholder::make('contrato_actual_resumen')
+                            ->label('Editando el contrato')
+                            ->content(function (Get $get) {
+                                $solicitud = SolicitudContrato::find($get('solicitud_contrato_id'));
+
+                                return $solicitud
+                                    ? "{$solicitud->codigo} — {$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}"
+                                    : 'Seleccione un contrato en el paso anterior.';
+                            })
+                            ->columnSpanFull(),
+
                         Forms\Components\Hidden::make('empresa_id'),
 
                         Forms\Components\Select::make('tipo_modificacion')
@@ -320,6 +375,12 @@ class ModificacionContractualResource extends Resource
                             ->displayFormat('d/m/Y'),
                     ])->columns(2),
             ])
+                // Si se llega desde "Solicitar un Cambio" (Ver Contrato) con
+                // el contrato ya identificado, no tiene sentido pedir
+                // elegirlo de nuevo - se salta directo al Paso 2. Bufete/
+                // super_admin, al crear desde el listado plano sin contrato
+                // prefijado, sí ven el Paso 1 normalmente.
+                ->startOnStep(fn () => request()->filled('solicitud_contrato_id') ? 2 : 1)
                 ->columnSpanFull()
                 ->persistStepInQueryString()
                 // Sin esto, el último paso del Wizard queda con el slot de

@@ -3,11 +3,24 @@
 namespace App\Filament\Admin\Resources\ModificacionContractualResource\Pages;
 
 use App\Filament\Admin\Resources\ModificacionContractualResource;
+use App\Filament\Admin\Resources\ModificacionContractualResource\Widgets\ModificacionContractualRecordHeroWidget;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateModificacionContractual extends CreateRecord
 {
     protected static string $resource = ModificacionContractualResource::class;
+
+    // Vista custom: oculta el stepper nativo de Filament (el wizard usa su
+    // propio step-header de marca) - mismo patrón que
+    // CreateSolicitudContrato.
+    protected static string $view = 'filament.admin.resources.modificacion-contractual-resource.pages.create-modificacion-contractual';
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            ModificacionContractualRecordHeroWidget::class,
+        ];
+    }
 
     /**
      * El Wizard no trae su propio botón de envío en este Resource (a
