@@ -92,6 +92,10 @@
         ])
     @endif
 
+    @include('filament.components.solicitud-contrato-historial-cambios', [
+        'modificaciones' => $record->modificaciones,
+    ])
+
     @include('filament.components.solicitud-contrato-documento-viewer', ['texto' => $record->objeto_juridico_redactado])
 
     @include('filament.components.solicitud-contrato-timeline', [

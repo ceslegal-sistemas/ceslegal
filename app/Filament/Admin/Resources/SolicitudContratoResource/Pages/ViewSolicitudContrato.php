@@ -37,6 +37,21 @@ class ViewSolicitudContrato extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            // Vía general para cualquier cambio (salario, cargo, jornada,
+            // tipo de contrato o plazo) mientras el contrato está aprobado -
+            // "Sí, renovar"/"No renovar" abajo son el caso especial de
+            // plazo, dentro de la ventana de 45 días. Reemplaza a "Editar"
+            // como la única forma de modificar un contrato ya aprobado, sin
+            // saltarse el rastro del Otrosí (hallazgo real, 2026-09-02).
+            Actions\Action::make('solicitarCambio')
+                ->label('Solicitar un Cambio')
+                ->icon('heroicon-o-pencil-square')
+                ->color('primary')
+                ->visible(fn () => $this->record->estado === 'aprobado')
+                ->url(fn () => ModificacionContractualResource::getUrl('create', [
+                    'solicitud_contrato_id' => $this->record->id,
+                ])),
+
             Actions\Action::make('renovarContrato')
                 ->label('Sí, renovar')
                 ->icon('heroicon-o-arrow-path')
@@ -67,8 +82,13 @@ class ViewSolicitudContrato extends ViewRecord
                         ->send();
                 }),
 
+            // Mismo hallazgo de la tabla de "Historial de Contratos"
+            // (SolicitudContratoResource::table()): solo tiene sentido
+            // editar libremente mientras sigue en 'borrador' - una vez
+            // aprobado, "Solicitar un Cambio" (arriba) es el único camino.
             Actions\EditAction::make()
-                ->label('Editar'),
+                ->label('Editar')
+                ->visible(fn () => $this->record->estado === 'borrador'),
         ];
     }
 
