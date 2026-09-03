@@ -184,6 +184,17 @@ class DocumentGeneratorService
             $normasItems  = array_map(fn($l) => '<li>' . e($l) . '</li>', $normasLineas);
             $normasHTML   = '<ul>' . implode('', $normasItems) . '</ul>';
         } else {
+            // La citación se genera al ABRIR el proceso, mucho antes de que
+            // alguien pase por el análisis de la sanción - a diferencia de
+            // generarDocumentoSancion() (que ya llama a este mismo método,
+            // línea ~972), este punto nunca disparaba la clasificación
+            // automática, así que un proceso recién creado sin selección
+            // manual SIEMPRE caía al genérico, sin importar que la IA
+            // pudiera identificar la conducta real. Método idempotente/
+            // fail-open: no hace nada si ya hay una conducta, y no revienta
+            // si la IA falla (ver docblock de asegurarClasificacionIncidente()).
+            $proceso->asegurarClasificacionIncidente();
+
             $motivosIncidente = $proceso->motivosDescargosNormalizados();
             if (empty($motivosIncidente)) {
                 $motivosIncidente = $proceso->motivosDescargosDesdeClasificacionIA();

@@ -181,6 +181,60 @@ class CitacionDescargosHechosYNormasTest extends TestCase
         $this->assertStringContainsString('falta grave', $html);
     }
 
+    /**
+     * Bug real reportado por el usuario en producción (proceso PD-2026-0117,
+     * RENBEL): la citación seguía mostrando el genérico aunque el RIT de la
+     * empresa sí tenía una conducta que calzaba con los hechos, porque nunca
+     * se le había dado clic a nada que disparara la clasificación de IA - el
+     * cliente no debe tener que acordarse de hacerlo ("dejarle el trabajo en
+     * bandeja de oro"). Causa raíz: asegurarClasificacionIncidente() (el
+     * mismo método que ya usa generarDocumentoSancion() como último recurso)
+     * nunca se llamaba desde el camino de la citación.
+     */
+    public function test_clasifica_automaticamente_la_conducta_si_nadie_la_selecciono_a_mano(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $trabajador = $this->crearTrabajador($empresa);
+
+        $conductaReal = 'Abandono injustificado del puesto de trabajo durante la jornada laboral.';
+
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id,
+            'nombre' => 'RIT de prueba',
+            'texto_completo' => 'Texto completo de prueba del reglamento interno.',
+            'activo' => true,
+        ]);
+        $rit->conductas_sancionables = [
+            'leve' => [],
+            'grave' => [
+                ['conducta' => $conductaReal, 'medida' => 'Suspensión hasta por 5 días', 'tipo' => 'suspension', 'dias_suspension' => 5],
+            ],
+            'gravisima' => [],
+        ];
+        $rit->saveQuietly();
+
+        // Ni sanciones_laborales_ids ni clasificacion_incidente_ia - exactamente
+        // el estado de un proceso recién creado sin que nadie haya intervenido.
+        $proceso = ProcesoDisciplinario::create([
+            'codigo' => 'PD-TEST-0117',
+            'empresa_id' => $empresa->id,
+            'trabajador_id' => $trabajador->id,
+            'hechos' => 'El trabajador abandonó su puesto sin autorización ni justificación.',
+        ]);
+
+        $this->mock(\App\Services\IADescargoService::class, function ($mock) use ($conductaReal) {
+            $mock->shouldReceive('clasificarIncidente')
+                ->once()
+                ->andReturn(['conducta_rit_aplicable' => $conductaReal]);
+        });
+
+        $html = $this->invocarGenerarHTML($proceso);
+
+        $this->assertStringContainsString($conductaReal, $html);
+        $this->assertStringContainsString('falta grave', $html);
+        $this->assertNotNull($proceso->fresh()->clasificacion_incidente_ia);
+    }
+
     public function test_conserva_el_respaldo_generico_cuando_no_hay_ninguna_conducta_clasificada(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
