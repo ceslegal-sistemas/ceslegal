@@ -13,7 +13,7 @@
     $urlInicio = $user && ($user->role ?? null) === 'cliente' ? url('/empresa') : url('/admin');
 @endphp
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -36,6 +36,24 @@
             width: 100%;
             max-width: 30rem;
         }
+        .error403-logo {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        .error403-logo img {
+            height: 40px;
+            width: auto;
+        }
+        .error403-codigo {
+            text-align: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #64748b;
+            margin: 0 0 0.75rem;
+        }
         .error403-wrap .rit-title {
             font-size: 1.5rem;
         }
@@ -47,6 +65,11 @@
 </head>
 <body>
     <div class="error403-wrap">
+        <div class="error403-logo">
+            <img src="{{ asset('images/lupe-logo.png') }}" alt="LUPE Legal">
+        </div>
+        <p class="error403-codigo">Error 403</p>
+
         <div class="rit-hero">
             <div class="rit-orb-b"></div>
             <div class="rit-orb-g"></div>
