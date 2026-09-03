@@ -304,15 +304,9 @@ class ModificacionContractualResource extends Resource
                 ->displayFormat('d/m/Y')
                 ->placeholder('Seleccione la nueva fecha')
                 ->default(fn () => empty($solicitud->fecha_fin_contrato) ? null : app(PlazoContratoService::class)->calcularProximaRenovacion($solicitud)['nueva_fecha_fin'])
-                ->helperText(function () use ($solicitud) {
-                    $base = 'Ya sugerimos una fecha (mismo tiempo que duraba el contrato, según la ley). También puede indicar la duración arriba (ej: 6 meses) y la fecha se calcula sola.';
-
-                    if (($solicitud->veces_prorrogado + 1) >= 4) {
-                        $base .= ' Como esta es la prórroga número ' . ($solicitud->veces_prorrogado + 1) . ' o superior, la ley exige que la nueva duración sea de mínimo 1 año.';
-                    }
-
-                    return $base . ' En ningún caso puede superar los 4 años de duración total del contrato, contados desde su inicio.';
-                })
+                ->helperText(fn () => ($solicitud->veces_prorrogado + 1) >= 4
+                    ? 'Sugerida según la ley (mínimo 1 año, por ser una prórroga posterior a la 3ª).'
+                    : 'Sugerida según la ley. Puede ajustarla o usar la duración de arriba.')
                 // No deja elegir/escribir una fecha que viole el Art. 46
                 // CST: ni anterior al vencimiento actual, ni por debajo del
                 // mínimo de 1 año desde la 4a prórroga, ni por encima del
@@ -343,7 +337,7 @@ class ModificacionContractualResource extends Resource
 
             Forms\Components\DatePicker::make('fecha_efectiva')
                 ->label('¿Desde cuándo empieza a regir la renovación?')
-                ->helperText('Siempre es el día siguiente al vencimiento actual - así la renovación sigue siendo el MISMO contrato, sin ningún vacío entre medias (si hubiera un vacío, legalmente contaría como una terminación y un contrato nuevo, no una prórroga). Por eso no se puede editar.')
+                ->helperText('Día siguiente al vencimiento actual - no editable.')
                 ->required()
                 ->native(false)
                 ->displayFormat('d/m/Y')
@@ -459,7 +453,7 @@ class ModificacionContractualResource extends Resource
                 ->displayFormat('d/m/Y')
                 ->placeholder('Seleccione la nueva fecha')
                 ->default(fn () => empty($solicitud->fecha_fin_contrato) ? null : app(PlazoContratoService::class)->calcularProximaRenovacion($solicitud)['nueva_fecha_fin'])
-                ->helperText('Ya sugerimos una fecha (mismo tiempo que duraba el contrato, según la ley). Puede cambiarla si acordaron otra con el trabajador.'),
+                ->helperText('Sugerida según la ley. Puede ajustarla.'),
 
             Forms\Components\DatePicker::make('fecha_efectiva')
                 ->label('¿Desde cuándo empieza a aplicar el cambio?')
