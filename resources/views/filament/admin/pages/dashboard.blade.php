@@ -20,8 +20,13 @@
         // Contratos a término fijo por vencer (ventana de 45 días, ver
         // PlazoContratoService) sin decisión de renovación tomada -
         // ScopedToBufeteOrEmpresa ya filtra por empresa/bufete del usuario,
-        // mismo criterio que $totalSugerencias arriba.
-        $totalContratosPorVencer = ($usuarioDashboard && in_array($usuarioDashboard->role, ['cliente', 'bufete'], true))
+        // mismo criterio que $totalSugerencias arriba. Se exige además el
+        // permiso real de "Gestión de Contratos" (view_any_solicitud::contrato)
+        // para que el banner desaparezca si a un cliente se le quita ese
+        // módulo por permisos, en vez de solo depender del rol.
+        $totalContratosPorVencer = ($usuarioDashboard
+            && in_array($usuarioDashboard->role, ['cliente', 'bufete'], true)
+            && $usuarioDashboard->can('view_any_solicitud::contrato'))
             ? \App\Models\SolicitudContrato::where('tipo_contrato', 'Contrato a Término Fijo')
                 ->whereNull('decision_no_renovacion_en')
                 ->where('requiere_revision_manual_renovacion', false)
