@@ -113,6 +113,7 @@
         }
         table.tabla-mapa img { width: 16px; height: 16px; vertical-align: middle; margin-right: 5pt; }
         table.tabla-mapa .mapa-texto { font-size: 8.5pt; }
+        a.mapa-link { color: inherit; text-decoration: none; display: block; }
 
         /* ===== Encabezado de cada PARTE ===== */
         table.parte-header {
@@ -190,39 +191,39 @@
     <p>Así está organizado este contrato. Puedes ir directo a la sección que necesites.</p>
     <table class="tabla-mapa">
         <tr>
-            <td><img src="{{ $icono('parte-01') }}" alt=""><span class="mapa-texto"><strong>1.</strong> Quiénes firman y qué normas rigen este contrato.</span></td>
-            <td><img src="{{ $icono('parte-02') }}" alt=""><span class="mapa-texto"><strong>2.</strong> Cómo y dónde te notifica la empresa.</span></td>
+            <td><a class="mapa-link" href="#parte-01"><img src="{{ $icono('parte-01') }}" alt=""><span class="mapa-texto"><strong>1.</strong> Quiénes firman y qué normas rigen este contrato.</span></a></td>
+            <td><a class="mapa-link" href="#parte-02"><img src="{{ $icono('parte-02') }}" alt=""><span class="mapa-texto"><strong>2.</strong> Cómo y dónde te notifica la empresa.</span></a></td>
         </tr>
         <tr>
-            <td><img src="{{ $icono('parte-03') }}" alt=""><span class="mapa-texto"><strong>3.</strong> Qué se espera de ti en el día a día.</span></td>
-            <td><img src="{{ $icono('parte-04') }}" alt=""><span class="mapa-texto"><strong>4.</strong> Cuánto y cómo te pagan.</span></td>
+            <td><a class="mapa-link" href="#parte-03"><img src="{{ $icono('parte-03') }}" alt=""><span class="mapa-texto"><strong>3.</strong> Qué se espera de ti en el día a día.</span></a></td>
+            <td><a class="mapa-link" href="#parte-04"><img src="{{ $icono('parte-04') }}" alt=""><span class="mapa-texto"><strong>4.</strong> Cuánto y cómo te pagan.</span></a></td>
         </tr>
         <tr>
-            <td><img src="{{ $icono('parte-05') }}" alt=""><span class="mapa-texto"><strong>5.</strong> Horarios, horas extra y turnos.</span></td>
-            <td><img src="{{ $icono('parte-06') }}" alt=""><span class="mapa-texto"><strong>6.</strong> Tu día de descanso y los recargos.</span></td>
+            <td><a class="mapa-link" href="#parte-05"><img src="{{ $icono('parte-05') }}" alt=""><span class="mapa-texto"><strong>5.</strong> Horarios, horas extra y turnos.</span></a></td>
+            <td><a class="mapa-link" href="#parte-06"><img src="{{ $icono('parte-06') }}" alt=""><span class="mapa-texto"><strong>6.</strong> Tu día de descanso y los recargos.</span></a></td>
         </tr>
         <tr>
-            <td><img src="{{ $icono('parte-07') }}" alt=""><span class="mapa-texto"><strong>7.</strong> Cuánto dura el contrato y sus prórrogas.</span></td>
-            <td><img src="{{ $icono('parte-08') }}" alt=""><span class="mapa-texto"><strong>8.</strong> Justas causas y faltas graves.</span></td>
+            <td><a class="mapa-link" href="#parte-07"><img src="{{ $icono('parte-07') }}" alt=""><span class="mapa-texto"><strong>7.</strong> Cuánto dura el contrato y sus prórrogas.</span></a></td>
+            <td><a class="mapa-link" href="#parte-08"><img src="{{ $icono('parte-08') }}" alt=""><span class="mapa-texto"><strong>8.</strong> Justas causas y faltas graves.</span></a></td>
         </tr>
         <tr>
-            <td><img src="{{ $icono('parte-09') }}" alt=""><span class="mapa-texto"><strong>9.</strong> Qué pasa si te enfermas.</span></td>
-            <td><img src="{{ $icono('parte-10') }}" alt=""><span class="mapa-texto"><strong>10.</strong> La reserva de la información de la empresa.</span></td>
+            <td><a class="mapa-link" href="#parte-09"><img src="{{ $icono('parte-09') }}" alt=""><span class="mapa-texto"><strong>9.</strong> Qué pasa si te enfermas.</span></a></td>
+            <td><a class="mapa-link" href="#parte-10"><img src="{{ $icono('parte-10') }}" alt=""><span class="mapa-texto"><strong>10.</strong> La reserva de la información de la empresa.</span></a></td>
         </tr>
         <tr>
-            <td><img src="{{ $icono('parte-11') }}" alt=""><span class="mapa-texto"><strong>11.</strong> Lo que creas en tu trabajo y el uso de tu imagen.</span></td>
-            <td><img src="{{ $icono('parte-12') }}" alt=""><span class="mapa-texto"><strong>12.</strong> Los equipos que te entrega la empresa.</span></td>
+            <td><a class="mapa-link" href="#parte-11"><img src="{{ $icono('parte-11') }}" alt=""><span class="mapa-texto"><strong>11.</strong> Lo que creas en tu trabajo y el uso de tu imagen.</span></a></td>
+            <td><a class="mapa-link" href="#parte-12"><img src="{{ $icono('parte-12') }}" alt=""><span class="mapa-texto"><strong>12.</strong> Los equipos que te entrega la empresa.</span></a></td>
         </tr>
         <tr>
-            <td><img src="{{ $icono('parte-13') }}" alt=""><span class="mapa-texto"><strong>13.</strong> Cómo se usan tus datos personales.</span></td>
-            <td><img src="{{ $icono('parte-14') }}" alt=""><span class="mapa-texto"><strong>14.</strong> Capacitación y ajustes en tus condiciones.</span></td>
+            <td><a class="mapa-link" href="#parte-13"><img src="{{ $icono('parte-13') }}" alt=""><span class="mapa-texto"><strong>13.</strong> Cómo se usan tus datos personales.</span></a></td>
+            <td><a class="mapa-link" href="#parte-14"><img src="{{ $icono('parte-14') }}" alt=""><span class="mapa-texto"><strong>14.</strong> Capacitación y ajustes en tus condiciones.</span></a></td>
         </tr>
         <tr>
-            <td><img src="{{ $icono('parte-15') }}" alt=""><span class="mapa-texto"><strong>15.</strong> Qué se te puede descontar del salario.</span></td>
-            <td><img src="{{ $icono('parte-16') }}" alt=""><span class="mapa-texto"><strong>16.</strong> Vigencia y modificaciones del contrato.</span></td>
+            <td><a class="mapa-link" href="#parte-15"><img src="{{ $icono('parte-15') }}" alt=""><span class="mapa-texto"><strong>15.</strong> Qué se te puede descontar del salario.</span></a></td>
+            <td><a class="mapa-link" href="#parte-16"><img src="{{ $icono('parte-16') }}" alt=""><span class="mapa-texto"><strong>16.</strong> Vigencia y modificaciones del contrato.</span></a></td>
         </tr>
         <tr>
-            <td><img src="{{ $icono('parte-17') }}" alt=""><span class="mapa-texto"><strong>17.</strong> El cierre formal del contrato.</span></td>
+            <td><a class="mapa-link" href="#parte-17"><img src="{{ $icono('parte-17') }}" alt=""><span class="mapa-texto"><strong>17.</strong> El cierre formal del contrato.</span></a></td>
             <td></td>
         </tr>
     </table>
@@ -230,7 +231,7 @@
     @php
         $parteHeader = function ($n, $titulo) use ($icono) {
             $numero = str_pad((string) $n, 2, '0', STR_PAD_LEFT);
-            return '<table class="parte-header avoid-break"><tr>'
+            return '<table id="parte-' . $numero . '" class="parte-header avoid-break"><tr>'
                 . '<td class="parte-icono-td"><img src="' . e($icono('parte-' . $numero . '-white')) . '" alt=""></td>'
                 . '<td><span class="parte-eyebrow">PARTE ' . $numero . ' &middot;</span><span class="parte-titulo">' . e($titulo) . '</span></td>'
                 . '</tr></table>';

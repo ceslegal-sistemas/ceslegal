@@ -603,6 +603,13 @@ class Register extends BaseRegister
                         : @imagecreatefrompng($origenAbsoluto);
 
                     if ($imagenOrigen !== false) {
+                        // Sin esto, imagepng() aplana la transparencia de un PNG
+                        // con fondo alfa a un fondo sólido - bug real reportado
+                        // por el usuario (el logo salía con fondo opaco en el
+                        // membrete de los PDF, aunque el archivo original sí era
+                        // transparente).
+                        imagealphablending($imagenOrigen, false);
+                        imagesavealpha($imagenOrigen, true);
                         Storage::disk('local')->makeDirectory('logos/' . $empresa->id);
                         imagepng($imagenOrigen, Storage::disk('local')->path($rutaPermanente));
                         imagedestroy($imagenOrigen);
