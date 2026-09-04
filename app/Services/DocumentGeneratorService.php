@@ -377,13 +377,7 @@ class DocumentGeneratorService
     <meta charset="UTF-8">
     <title>Comunicación Formal de Apertura de Investigación Disciplinaria</title>
     <style>
-        /* Top/bottom ampliados 1.4cm/1.2cm sobre el original (2.5cm) para
-           reservar una franja de encabezado/pie donde vive el membrete (ver
-           membrete-empresa.blade.php) - dompdf posiciona los elementos
-           `position: fixed` dentro del área de contenido, no en el margen
-           físico, así que sin esta franja el logo y el pie chocan con el
-           texto cuando el contenido llega hasta el borde. */
-        @page { margin: 3.9cm 2.5cm 3.7cm 3cm; }
+        @page { margin: 2.5cm 2.5cm 2.5cm 3cm; }
         body {
             /* Tahoma 10pt, sin subrayados - mismo tipo de letra, tamaño y
                estilo (títulos/artículos en negrilla simple, no subrayados
@@ -1261,14 +1255,7 @@ HTML;
     <title>Documento de Sanción</title>
     <style>
         @page {
-            /* Top/bottom ampliados 1.4cm/1.2cm sobre el original (2cm) para
-               reservar una franja de encabezado/pie donde vive el membrete
-               (ver membrete-empresa.blade.php, inyectado por
-               inyectarMembreteSancion()) - dompdf posiciona los elementos
-               `position: fixed` dentro del área de contenido, no en el
-               margen físico, así que sin esta franja el logo y el pie
-               chocan con el texto cuando el contenido llega hasta el borde. */
-            margin: 3.4cm 2cm 3.2cm 2cm;
+            margin: 2cm 2cm 2cm 2cm;
         }
         body {
             font-family: 'Calibri', 'Arial', sans-serif;

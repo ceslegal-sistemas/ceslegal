@@ -31,13 +31,7 @@
 <html>
 <head>
 <style>
-    {{-- Top/bottom ampliados 1.4cm/1.2cm sobre el original (2cm) para reservar
-         una franja de encabezado/pie donde vive el membrete (ver
-         membrete-empresa.blade.php) - dompdf posiciona los elementos
-         `position: fixed` dentro del área de contenido, no en el margen
-         físico, así que sin esta franja el logo y el pie chocan con el
-         texto cuando el contenido llega hasta el borde. --}}
-    @page { margin: 3.4cm 2.3cm 3.2cm 2.3cm; }
+    @page { margin: 2cm 2.3cm; }
     * { box-sizing: border-box; }
     html, body { font-family: 'Tahoma', 'DejaVu Sans', Arial, sans-serif; font-size: 9.5pt; color: #000; }
     body { margin: 0; padding: 0; line-height: 1.35; text-align: justify; }
