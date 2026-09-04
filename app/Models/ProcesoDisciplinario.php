@@ -407,17 +407,18 @@ class ProcesoDisciplinario extends Model
                 foreach ($conductas[$g] ?? [] as $c) {
                     if (!empty($c['conducta'])) {
                         $mapa[$c['conducta']] = [
-                            'gravedad' => $gv,
-                            'medida'   => $c['medida'] ?? '',
-                            'tipo'     => $c['tipo'] ?? '',
-                            'dias'     => $c['dias_suspension'] ?? null,
+                            'gravedad'   => $gv,
+                            'medida'     => $c['medida'] ?? '',
+                            'tipo'       => $c['tipo'] ?? '',
+                            'dias'       => $c['dias_suspension'] ?? null,
+                            'base_legal' => $c['base_legal'] ?? null,
                         ];
                     }
                 }
             }
 
             return array_map(function ($t) use ($mapa) {
-                $d = $mapa[$t] ?? ['gravedad' => 'grave', 'medida' => '', 'tipo' => '', 'dias' => null];
+                $d = $mapa[$t] ?? ['gravedad' => 'grave', 'medida' => '', 'tipo' => '', 'dias' => null, 'base_legal' => null];
                 return ['nombre' => $t, 'reincidencia' => false] + $d;
             }, $textos);
         }
@@ -464,6 +465,7 @@ class ProcesoDisciplinario extends Model
                         'medida'       => $c['medida'] ?? '',
                         'tipo'         => $c['tipo'] ?? '',
                         'dias'         => $c['dias_suspension'] ?? null,
+                        'base_legal'   => $c['base_legal'] ?? null,
                         'reincidencia' => false,
                     ]];
                 }

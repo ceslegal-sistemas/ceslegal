@@ -241,7 +241,9 @@ class CitacionDescargosHechosYNormasTest extends TestCase
         $trabajador = $this->crearTrabajador($empresa);
 
         // Sin RIT, sin selección manual y sin clasificación de IA: debe
-        // mantenerse el comportamiento anterior (nunca inventar un artículo).
+        // mantenerse el comportamiento anterior (nunca inventar un artículo,
+        // y desde el fix de PD-2026-0119 tampoco inventar un RIT que esta
+        // empresa no tiene).
         $proceso = ProcesoDisciplinario::create([
             'codigo' => 'PD-TEST-0103',
             'empresa_id' => $empresa->id,
@@ -251,7 +253,45 @@ class CitacionDescargosHechosYNormasTest extends TestCase
 
         $html = $this->invocarGenerarHTML($proceso);
 
-        $this->assertStringContainsString('en sus disposiciones sobre obligaciones, conducta y disciplina del trabajador', $html);
+        $this->assertStringNotContainsString('Reglamento Interno de Trabajo de', $html);
         $this->assertStringContainsString('Artículo 58 del Código Sustantivo del Trabajo', $html);
+    }
+
+    /**
+     * Bug real reportado por el usuario (proceso PD-2026-0119, CES LEGAL
+     * S.A.S.): la empresa NO tiene un RIT subido, pero la citación citaba
+     * textualmente "el Reglamento Interno de Trabajo de CES LEGAL S.A.S." con
+     * una conducta que en realidad venía del catálogo genérico de respaldo
+     * del CST (ReglamentoInternoService::conductasCstBase()), fabricando la
+     * existencia de un documento que la empresa nunca tuvo. La tabla de
+     * sanciones tenía el mismo problema.
+     */
+    public function test_no_inventa_un_reglamento_interno_que_no_existe_cuando_la_conducta_viene_del_catalogo_generico_del_cst(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $trabajador = $this->crearTrabajador($empresa);
+
+        // Ninguna empresa creada con factory() tiene RIT por defecto - sin
+        // ReglamentoInterno::create() para esta empresa, $tieneRIT es false.
+        $conductaGenerica = 'Faltar un día al trabajo sin justa causa ni aviso';
+
+        $proceso = ProcesoDisciplinario::create([
+            'codigo' => 'PD-TEST-0119',
+            'empresa_id' => $empresa->id,
+            'trabajador_id' => $trabajador->id,
+            'hechos' => 'La trabajadora no se presentó a su puesto de trabajo a la hora establecida.',
+            'sanciones_laborales_ids' => [$conductaGenerica],
+        ]);
+
+        $html = $this->invocarGenerarHTML($proceso);
+
+        $this->assertStringContainsString($conductaGenerica, $html);
+        $this->assertStringNotContainsString('Reglamento Interno de Trabajo de', $html);
+        $this->assertStringContainsString('el Código Sustantivo del Trabajo (Art. 60 CST)', $html);
+
+        // La tabla de sanciones tampoco puede atribuirse a un RIT inexistente.
+        $this->assertStringNotContainsString('Conductas reguladas por el Reglamento Interno', $html);
+        $this->assertStringContainsString('Conductas reguladas por el Código Sustantivo del Trabajo', $html);
+        $this->assertStringNotContainsString('Tabla conforme al Reglamento Interno de Trabajo de', $html);
     }
 }

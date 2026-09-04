@@ -140,6 +140,15 @@ class DocumentGeneratorService
         $emailContacto     = e($empresa->email_contacto ?? $empresa->email ?? '');
         $telefonoEmpresa   = e($empresa->telefono ?? '');
 
+        // Bug real reportado: una empresa SIN RIT subido (ej. CES LEGAL S.A.S.,
+        // proceso PD-2026-0119) recibía una citación que citaba textualmente
+        // "el Reglamento Interno de Trabajo de {empresa}" con una conducta y una
+        // tabla de sanciones - ambas en realidad venían del catálogo genérico de
+        // respaldo del CST (ReglamentoInternoService::conductasCstBase()), nunca
+        // de un reglamento real de esa empresa. Se usa este flag para no
+        // fabricar una cita a un documento que no existe.
+        $tieneRIT = $empresa->reglamentoInterno !== null;
+
         // ── Hechos ───────────────────────────────────────────────────────────
         $hechosTexto = html_entity_decode(strip_tags($proceso->hechos ?? ''), ENT_QUOTES, 'UTF-8');
         // Los hechos se presentan como una narración en prosa (un <p> por párrafo
@@ -209,7 +218,22 @@ class DocumentGeneratorService
                         continue;
                     }
                     $etiqueta = $etiquetasGravedad[$motivo['gravedad'] ?? ''] ?? 'falta disciplinaria';
-                    $itemsNormas[] = '<li>Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong>: &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').</li>';
+
+                    // Si la empresa no tiene RIT, esta conducta viene SIEMPRE del
+                    // catálogo genérico de respaldo del CST
+                    // (ReglamentoInternoService::conductasCstBase()), nunca de un
+                    // reglamento real - citarla como "Reglamento Interno de
+                    // Trabajo de {empresa}" sería fabricar un documento que no
+                    // existe (bug real: PD-2026-0119, CES LEGAL S.A.S. sin RIT).
+                    if ($tieneRIT) {
+                        $itemsNormas[] = '<li>Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong>: &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').</li>';
+                    } else {
+                        $baseLegal = trim((string) ($motivo['base_legal'] ?? ''));
+                        $fuenteCst = $baseLegal !== ''
+                            ? 'el Código Sustantivo del Trabajo (' . e($baseLegal) . ')'
+                            : 'el Código Sustantivo del Trabajo';
+                        $itemsNormas[] = '<li>' . $fuenteCst . ': &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').</li>';
+                    }
                 }
 
                 if (!empty($itemsNormas)) {
@@ -220,14 +244,13 @@ class DocumentGeneratorService
             }
 
             if ($normasHTML === null) {
-                // Referencia genérica sin inventar artículos: RIT de la empresa + Art. 58 CST
-                $tieneRIT = $empresa->reglamentoInterno !== null;
+                // Referencia genérica sin inventar artículos ni un RIT que no
+                // existe: RIT real de la empresa si lo tiene, o el CST solo.
                 $referenciaRIT = $tieneRIT
-                    ? 'el Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong> (depositado ante el Ministerio del Trabajo)'
-                    : 'el Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong>';
+                    ? 'el Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong> (depositado ante el Ministerio del Trabajo), en sus disposiciones sobre obligaciones, conducta y disciplina del trabajador, y '
+                    : '';
                 $normasHTML = '<ul>
-                    <li>' . $referenciaRIT . ', en sus disposiciones sobre obligaciones, conducta y disciplina del trabajador.</li>
-                    <li>Artículo 58 del Código Sustantivo del Trabajo, que establece las obligaciones especiales del trabajador frente al empleador.</li>
+                    <li>' . $referenciaRIT . 'el Artículo 58 del Código Sustantivo del Trabajo, que establece las obligaciones especiales del trabajador frente al empleador.</li>
                     <li>Las cláusulas del contrato de trabajo suscrito entre las partes.</li>
                 </ul>';
             }
@@ -287,16 +310,29 @@ class DocumentGeneratorService
                 // <table> sin thead/tbody - eso hacía que DomPDF calculara mal el corte de
                 // página en tablas largas y el borde de la fila partida terminaba
                 // saliéndose del margen inferior en vez de respetarlo como el encabezado.
+                //
+                // Si la empresa no tiene RIT, estas filas vienen del catálogo
+                // genérico de respaldo del CST, no de un reglamento real - el
+                // texto de la tabla no puede decir "Reglamento Interno" en ese
+                // caso (bug real: PD-2026-0119, CES LEGAL S.A.S. sin RIT).
+                $subtituloTabla = $tieneRIT
+                    ? 'Todas las sanciones contenidas en esta tabla solo se aplicarán previa garantía del debido proceso establecido en el Reglamento Interno, conforme a la Ley 2466 de 2025.'
+                    : 'Esta empresa no tiene un Reglamento Interno de Trabajo registrado en el sistema. Las sanciones contenidas en esta tabla corresponden al régimen general del Código Sustantivo del Trabajo y solo se aplicarán previa garantía del debido proceso, conforme a la Ley 2466 de 2025.';
+                $columnaConductas = $tieneRIT ? 'Conductas reguladas por el Reglamento Interno' : 'Conductas reguladas por el Código Sustantivo del Trabajo';
+                $piePagina = $tieneRIT
+                    ? 'Tabla conforme al Reglamento Interno de Trabajo de ' . e($empresa->nombre_completo) . ', de conformidad con la Ley 2466 de 2025. Toda sanción se aplicará previa garantía del debido proceso.'
+                    : 'Tabla conforme al Código Sustantivo del Trabajo, de conformidad con la Ley 2466 de 2025. Toda sanción se aplicará previa garantía del debido proceso.';
+
                 $tablaSancionesHTML = '<div class="tabla-rit-header-empresa">
                     <strong>TABLA DE SANCIONES LABORALES</strong><br>
-                    <span style="font-size:8.5pt;">(Todas las sanciones contenidas en esta tabla solo se aplicarán previa garantía del debido proceso establecido en el Reglamento Interno, conforme a la Ley 2466 de 2025.)</span>
+                    <span style="font-size:8.5pt;">(' . $subtituloTabla . ')</span>
                 </div>
                 <p class="tabla-rit-empresa">' . e($empresa->nombre_completo) . ' &nbsp;|&nbsp; NIT: ' . e($empresa->nit) . '</p>
                 <table class="tabla-rit">
                     <thead>
                     <tr class="tabla-rit-thead">
                         <th style="width:15%;">Tipo de Falta</th>
-                        <th style="width:57%;">Conductas reguladas por el Reglamento Interno</th>
+                        <th style="width:57%;">' . $columnaConductas . '</th>
                         <th style="width:28%;">Sanción aplicable</th>
                     </tr>
                     </thead>
@@ -304,7 +340,7 @@ class DocumentGeneratorService
                     ' . $filasHTML . '
                     </tbody>
                 </table>
-                <p class="tabla-rit-pie">Tabla conforme al Reglamento Interno de Trabajo de ' . e($empresa->nombre_completo) . ', de conformidad con la Ley 2466 de 2025. Toda sanción se aplicará previa garantía del debido proceso.</p>';
+                <p class="tabla-rit-pie">' . $piePagina . '</p>';
             }
         } catch (\Throwable $e) {
             // Si falla la construcción de la tabla, el documento se genera sin ella
@@ -1757,6 +1793,12 @@ PROMPT;
         $otroMotivo = trim((string) $proceso->otro_motivo_descargos);
         $filasTabla = '';
 
+        // Igual que en generarHTMLCitacionDescargos(): si la empresa no tiene
+        // RIT, las filas de esta tabla vienen del catálogo genérico de
+        // respaldo del CST, nunca de un reglamento real - el texto no puede
+        // decir "este Reglamento" en ese caso.
+        $tieneRIT = $empresa->reglamentoInterno !== null;
+
         // ── Conductas del incidente por gravedad EXACTA (leve/grave/muy grave) ───
         try {
             $filas = $this->filasTablaSancionesConFallback($proceso, $empresa);
@@ -1801,7 +1843,9 @@ HTML;
         }
 
         if ($filasTabla === '') {
-            $filasTabla = '<tr><td colspan="3" style="border: 1px solid #000; padding: 6px; text-align: center;">No se encontró el cuadro de faltas en el Reglamento Interno de Trabajo de esta empresa.</td></tr>';
+            $filasTabla = $tieneRIT
+                ? '<tr><td colspan="3" style="border: 1px solid #000; padding: 6px; text-align: center;">No se encontró el cuadro de faltas en el Reglamento Interno de Trabajo de esta empresa.</td></tr>'
+                : '<tr><td colspan="3" style="border: 1px solid #000; padding: 6px; text-align: center;">Esta empresa no tiene un Reglamento Interno de Trabajo registrado en el sistema.</td></tr>';
         }
 
         // Construir la tabla completa. Título/empresa van FUERA del <table> (se
@@ -1810,10 +1854,14 @@ HTML;
         // datos van en <tbody> con page-break-inside:avoid - mismo fix aplicado a
         // generarHTMLCitacionDescargos() para que el borde de una fila partida no
         // se salga del margen inferior de la página.
+        $subtituloTabla = $tieneRIT
+            ? 'Todas las sanciones contenidas en esta tabla solo se aplicarán previa garantía del debido proceso establecido en este Reglamento, conforme a la Ley 2466 de 2025.'
+            : 'Esta empresa no tiene un Reglamento Interno de Trabajo registrado en el sistema. Las sanciones contenidas en esta tabla corresponden al régimen general del Código Sustantivo del Trabajo y solo se aplicarán previa garantía del debido proceso, conforme a la Ley 2466 de 2025.';
+
         return <<<HTML
   <div style="border: 1px solid #000; border-bottom: none; padding: 6px; text-align: center; background-color: #f5f5f5; margin: 8px 0 0 0;">
     <strong>TABLA DE SANCIONES LABORALES</strong><br>
-    <span style="font-size: 9pt;">(Todas las sanciones contenidas en esta tabla solo se aplicarán previa garantía del debido proceso establecido en este Reglamento, conforme a la Ley 2466 de 2025.)</span>
+    <span style="font-size: 9pt;">({$subtituloTabla})</span>
   </div>
   <p style="border: 1px solid #000; border-top: none; padding: 4px 6px; text-align: center; margin: 0;">
     <strong>{$empresa->nombre_completo}</strong><br>
