@@ -25,6 +25,8 @@ class Empresa extends Model
         'direccion',
         'telefono',
         'email_contacto',
+        'logo_path',
+        'logo_color_acento',
         'ciudad',
         'departamento',
         'representante_legal',
