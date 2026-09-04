@@ -387,6 +387,25 @@ class ProcesoDisciplinarioObserver
                         'fecha_limite' => $fechaLimite,
                         'tipo_sancion' => $proceso->tipo_sancion,
                     ]);
+
+                    // Logro de cumplimiento proactivo: se acredita apenas se
+                    // emite la sanción, sin esperar el cierre automático del
+                    // proceso (decisión explícita del usuario, 2026-09-04) -
+                    // siempre que ningún término legal del proceso haya
+                    // llegado a 'vencido' hasta este punto. Ver
+                    // LogroDescargosService (deliberadamente NO premia
+                    // volumen de sanciones, solo el hecho de haber llegado
+                    // hasta acá sin dejar vencer ningún plazo).
+                    if ($proceso->empresa) {
+                        $huboTerminoVencido = \App\Models\TerminoLegal::where('proceso_tipo', 'proceso_disciplinario')
+                            ->where('proceso_id', $proceso->id)
+                            ->where('estado', 'vencido')
+                            ->exists();
+
+                        if (!$huboTerminoVencido) {
+                            $this->logroDescargosService->registrarPlazoCumplido($proceso->empresa);
+                        }
+                    }
                 }
 
                 // Notificar al abogado y a RRHH que se emitió la sanción
@@ -499,13 +518,10 @@ class ProcesoDisciplinarioObserver
                 'motivo' => $motivo,
             ]);
 
-            // Logro de cumplimiento proactivo: 1 proceso resuelto sin dejar
-            // vencer ningún término, sin importar cuántos términos tenía -
-            // ver LogroDescargosService (deliberadamente NO premia volumen
-            // de sanciones, solo el hecho de haberlo resuelto a tiempo).
-            if ($proceso->empresa) {
-                $this->logroDescargosService->registrarPlazoCumplido($proceso->empresa);
-            }
+            // El logro de cumplimiento proactivo (ver LogroDescargosService)
+            // se acredita al emitir la sanción ('sancion_emitida' arriba),
+            // no acá - decisión explícita del usuario (2026-09-04) para no
+            // esperar el cierre automático del proceso.
         }
     }
 }

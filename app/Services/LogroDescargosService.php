@@ -69,9 +69,14 @@ class LogroDescargosService
     }
 
     /**
-     * Se llama una vez por cada término legal de un proceso disciplinario
-     * que se cierra DENTRO del plazo (nunca si ya estaba 'vencido') - ver
-     * ProcesoDisciplinarioObserver::cerrarTerminosLegalesActivos().
+     * Se llama una vez por proceso disciplinario, al emitir la sanción
+     * ('sancion_emitida'), siempre que ningún término legal del proceso
+     * haya llegado a 'vencido' hasta ese punto - ver
+     * ProcesoDisciplinarioObserver::aplicarLogicaEstado(). No espera al
+     * cierre automático del proceso (decisión explícita del usuario,
+     * 2026-09-04): se acepta el riesgo de que una impugnación posterior
+     * revierta la sanción, a cambio de premiar la puntualidad tan pronto
+     * se resuelve el fondo del asunto.
      */
     public function registrarPlazoCumplido(Empresa $empresa): void
     {
