@@ -173,6 +173,37 @@ class Register extends BaseRegister
                             // Se conserva como valor oculto (respaldo) por defecto.
                             Forms\Components\Hidden::make('dias_laborales')
                                 ->default('lunes_viernes'),
+
+                            // Campo oculto que guarda la elección; las cards lo escriben.
+                            // El logo NUNCA es obligatorio, por eso el default es siempre
+                            // 'despues' (a diferencia de rit_opcion, que depende de si la
+                            // empresa está obligada por ley a tener RIT).
+                            Forms\Components\Hidden::make('logo_opcion')
+                                ->default('despues')
+                                ->live(),
+
+                            Forms\Components\View::make('filament.components.logo-opcion-cards')
+                                ->columnSpanFull(),
+
+                            // El upload solo aparece al elegir "Sí, ya lo tengo" - mismo
+                            // mecanismo Alpine x-show que ya usa el Group del RIT.
+                            Forms\Components\Group::make([
+                                Forms\Components\FileUpload::make('logo_empresa_temp')
+                                    ->label('Subir logo de la empresa')
+                                    ->helperText('Formatos aceptados: PNG, JPG y SVG - máx. 5 MB.')
+                                    ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/svg+xml'])
+                                    ->disk('local')
+                                    ->directory('logos-temp')
+                                    ->visibility('private')
+                                    ->maxSize(5120)
+                                    ->nullable()
+                                    ->columnSpanFull(),
+                            ])
+                                ->extraAttributes([
+                                    'x-show'  => "\$wire.data?.logo_opcion === 'tiene'",
+                                    'x-cloak' => 'true',
+                                ])
+                                ->columnSpanFull(),
                         ])->columns(['default' => 1, 'sm' => 2]),
 
                     // ── Paso 3: Actividad Económica CIIU ──────────────────────────
@@ -542,6 +573,54 @@ class Register extends BaseRegister
             } else {
                 // Hay redirect a PayU; guardar en sesión para redirigir post-pago
                 session(['rit_construir_despues_pago' => true]);
+            }
+        }
+
+        // Persistir el logo subido (si se subió) - mismo patrón que reglamento_docx_temp:
+        // nunca construir la ruta con storage_path("app/...") a mano, el disco 'local' de
+        // este proyecto tiene su raíz en storage/app/private (config/filesystems.php).
+        $rawLogoPath = $data['logo_empresa_temp'] ?? null;
+        $logoPath    = is_array($rawLogoPath) ? (reset($rawLogoPath) ?: null) : $rawLogoPath;
+
+        if (is_string($logoPath) && $logoPath !== '') {
+            try {
+                $extension = strtolower(pathinfo($logoPath, PATHINFO_EXTENSION));
+                $rutaPermanente = 'logos/' . $empresa->id . '/logo.png';
+                $origenAbsoluto = Storage::disk('local')->path($logoPath);
+
+                if ($extension === 'svg') {
+                    // Dompdf renderiza raster de forma confiable; su soporte de SVG es
+                    // inconsistente - se guarda tal cual (sin rasterizar, Imagick no
+                    // está disponible en este proyecto - ver LogoColorService, usa GD).
+                    Storage::disk('local')->move($logoPath, 'logos/' . $empresa->id . '/logo.svg');
+                    $rutaPermanente = 'logos/' . $empresa->id . '/logo.svg';
+                } else {
+                    // PNG o JPG: siempre recodificar a PNG real con GD (nunca un move()
+                    // plano - un JPG solo renombrado a .png rompería LogoColorService,
+                    // que solo sabe leer PNG real vía imagecreatefrompng()).
+                    $imagenOrigen = $extension === 'jpg' || $extension === 'jpeg'
+                        ? @imagecreatefromjpeg($origenAbsoluto)
+                        : @imagecreatefrompng($origenAbsoluto);
+
+                    if ($imagenOrigen !== false) {
+                        Storage::disk('local')->makeDirectory('logos/' . $empresa->id);
+                        imagepng($imagenOrigen, Storage::disk('local')->path($rutaPermanente));
+                        imagedestroy($imagenOrigen);
+                        Storage::disk('local')->delete($logoPath);
+                    }
+                }
+
+                $rutaAbsoluta = Storage::disk('local')->path($rutaPermanente);
+
+                $empresa->update([
+                    'logo_path' => $rutaPermanente,
+                    'logo_color_acento' => app(\App\Services\LogoColorService::class)->colorDominante($rutaAbsoluta),
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Error al procesar el logo de la empresa en el registro', [
+                    'empresa_id' => $empresa->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
