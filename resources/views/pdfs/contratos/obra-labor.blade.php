@@ -1,9 +1,17 @@
 {{--
-    Contrato Individual de Trabajo por Obra o Labor Determinada - texto real
-    provisto por el usuario (FORMATO CONTRATO TRABAJO X OBRA O LABOR-24 DE
-    AGOSTO DE 2026.docx), con los datos variables identificados en el spec
-    sustituidos por variables Blade. El resto del texto es literal - no
-    resumir ni reformular ninguna cláusula.
+    Contrato Individual de Trabajo por Obra o Labor Determinada - "Legal
+    Design" del jefe, mismo tratamiento aplicado a Término Fijo (ver
+    termino-fijo.blade.php). Reutiliza verbatim las ~15 secciones idénticas
+    en sustancia entre los 3 tipos de contrato - solo la PARTE 07 "Duración y
+    período de prueba" cambia: aquí la duración no es una fecha fija sino
+    "hasta que termine la obra o labor contratada", descrita en
+    $descripcionObraLabor, y el detalle exacto de duración/terminación lo
+    redacta la IA por cada contrato ($duracionTerminacionRedactada, HTML
+    crudo con su propio título de cláusula ya incluido - no se envuelve en
+    un título estático nuevo para no duplicarlo). Base factual de la cláusula
+    OCTAVA (período de prueba) tomada del texto literal que tenía este
+    archivo antes de la migración a Legal Design (ver historial de git antes
+    de este commit).
 
     Variables esperadas (todas provistas por
     SolicitudContratoIAService::generarHTMLDesdeVista()):
@@ -23,334 +31,588 @@
         NOVENA: .../DÉCIMA: ...</span>...</p> COMPLETOS, con título incluido.
         Se inserta con {!! !!} SIN ningún envoltorio ni título estático
         alrededor, porque duplicaría el título de la cláusula)
+      $faltasGravesOrigen, $faltasGravesGrave, $faltasGravesGravisima
 
     NOTA: este tipo de contrato NO usa $fechaFin ni $duracionTexto (la
     duración real depende de la obra/labor contratada, redactada por IA en
     $duracionTerminacionRedactada, no de fechas fijas).
 --}}
+@php
+    $iconosDir = public_path('images/contrato-legal-design');
+    $icono = function (string $nombre) use ($iconosDir) {
+        $ruta = $iconosDir . DIRECTORY_SEPARATOR . $nombre . '.svg';
+        if (!is_file($ruta)) {
+            return '';
+        }
+        return 'data:image/svg+xml;base64,' . base64_encode(file_get_contents($ruta));
+    };
+@endphp
 <html>
+
 <head>
-<style>
-    @page { margin: 2cm 2.3cm; }
-    * { box-sizing: border-box; }
-    html, body { font-family: 'Tahoma', 'DejaVu Sans', Arial, sans-serif; font-size: 9.5pt; color: #000; }
-    body { margin: 0; padding: 0; line-height: 1.35; text-align: justify; }
-    h1 { font-size: 12pt; font-weight: bold; text-align: center; text-transform: uppercase; margin: 0 0 12pt 0; line-height: 1.2; }
-    h2 { font-size: 9.5pt; font-weight: bold; text-align: center; margin: 0 0 12pt 0; line-height: 1.3; }
-    table.datos { width: 100%; border-collapse: collapse; margin: 0 0 14pt 0; font-size: 9.5pt; }
-    table.datos td { border: 1px solid #000; padding: 3pt 6pt; font-size: 9.5pt; line-height: 1.25; vertical-align: top; }
-    table.datos td.label { font-weight: bold; width: 42%; }
-    p { font-size: 9.5pt; line-height: 1.35; text-align: justify; margin: 0 0 7pt 0; }
-    p.clausula { margin-top: 9pt; margin-bottom: 7pt; text-align: justify; }
-    .clausula-titulo { font-weight: bold; text-transform: uppercase; }
-    ol { margin-top: 3pt; margin-bottom: 7pt; padding-left: 25pt; font-size: 9.5pt; }
-    ol li { font-size: 9.5pt; line-height: 1.35; margin-bottom: 3pt; text-align: justify; padding-left: 2pt; }
-    strong, b { font-weight: bold; }
-    table.firma { width: 100%; margin-top: 55pt; border-collapse: collapse; }
-    table.firma td { width: 50%; text-align: center; vertical-align: top; padding-top: 38pt; font-size: 9.5pt; line-height: 1.3; }
-    .page-break { page-break-before: always; }
-    .avoid-break { page-break-inside: avoid; }
-    div, span, table, td, th { font-size: 9.5pt; }
-</style>
+    <style>
+        @page {
+            margin: 2cm 2.3cm;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            font-family: 'Tahoma', 'DejaVu Sans', Arial, sans-serif;
+            font-size: 9.5pt;
+            color: #2A2A2A;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            line-height: 1.4;
+            text-align: justify;
+        }
+
+        p { margin: 0 0 7pt 0; }
+        strong, b { font-weight: bold; }
+
+        /* ===== Portada ===== */
+        .portada { text-align: center; margin-bottom: 4pt; }
+        .portada img { width: 64px; height: 64px; margin-bottom: 8pt; }
+        .portada h1 {
+            font-size: 15pt; font-weight: bold; text-transform: uppercase;
+            margin: 0 0 14pt 0; line-height: 1.25;
+        }
+
+        /* ===== Títulos de sección genéricos (info, cómo leer, mapa) ===== */
+        .seccion-titulo {
+            font-size: 11.5pt; font-weight: bold; margin: 14pt 0 8pt 0;
+        }
+
+        /* ===== Tabla de datos (info general + duración) ===== */
+        table.tabla-datos {
+            width: 100%; border-collapse: collapse; margin: 0 0 12pt 0;
+            border: 1px solid #D8E2E1;
+        }
+        table.tabla-datos td {
+            border-bottom: 1px solid #D8E2E1; padding: 5pt 8pt; vertical-align: top;
+        }
+        table.tabla-datos tr:last-child td { border-bottom: none; }
+        table.tabla-datos td.label {
+            font-weight: bold; width: 40%; background: #F5FAFA;
+        }
+
+        /* ===== Cajas de color ===== */
+        .caja { border-radius: 4px; padding: 7pt 9pt; margin: 0 0 9pt 0; page-break-inside: avoid; }
+        .caja--simple { background: #E4F1F1; }
+        .caja--importante { background: #FBEAEA; }
+        .caja--nota { background: #FBF0DD; }
+        .caja-titulo { font-weight: bold; margin: 0 0 3pt 0; }
+        .caja-titulo img { width: 11pt; height: 11pt; vertical-align: -1.5pt; margin-right: 3pt; }
+        .caja p:last-child { margin-bottom: 0; }
+
+        /* ===== Mapa del contrato ===== */
+        table.tabla-mapa { width: 100%; border-collapse: collapse; margin-bottom: 4pt; }
+        table.tabla-mapa td {
+            width: 50%; background: #F5FAFA; padding: 5pt 8pt; vertical-align: middle;
+            border: 3px solid #fff;
+        }
+        table.tabla-mapa img { width: 16px; height: 16px; vertical-align: middle; margin-right: 5pt; }
+        table.tabla-mapa .mapa-texto { font-size: 8.5pt; }
+        a.mapa-link { color: inherit; text-decoration: none; display: block; }
+
+        /* ===== Encabezado de cada PARTE ===== */
+        table.parte-header {
+            width: 100%; border-collapse: collapse; background: #1B5E63;
+            margin: 16pt 0 9pt 0; border-radius: 4px;
+        }
+        table.parte-header td { padding: 7pt 10pt; color: #fff; vertical-align: middle; }
+        table.parte-header td.parte-icono-td { width: 30px; }
+        table.parte-header img { width: 22px; height: 22px; }
+        .parte-eyebrow { display: block; font-size: 7.5pt; font-weight: bold; letter-spacing: 0.4pt; opacity: 0.85; }
+        .parte-titulo { font-size: 11.5pt; font-weight: bold; }
+
+        /* ===== Bloques de viñetas por tema (Parte 03 y Parte 08) ===== */
+        .bloque-bullets { border: 1px solid #D8E2E1; border-radius: 4px; padding: 6pt 9pt; margin-bottom: 7pt; page-break-inside: avoid; }
+        .bloque-bullets-titulo { font-weight: bold; margin: 0 0 3pt 0; }
+        .bloque-bullets ul { margin: 0; padding-left: 14pt; }
+        .bloque-bullets li { margin-bottom: 2pt; }
+
+        /* ===== Glosario ===== */
+        table.tabla-glosario { width: 100%; border-collapse: collapse; margin-bottom: 4pt; }
+        table.tabla-glosario td {
+            border-bottom: 1px solid #D8E2E1; padding: 5pt 8pt; vertical-align: top;
+        }
+        table.tabla-glosario td.termino { font-weight: bold; width: 32%; }
+
+        /* ===== Firmas ===== */
+        table.firma { width: 100%; margin-top: 40pt; border-collapse: collapse; }
+        table.firma td { width: 50%; vertical-align: top; padding-top: 30pt; line-height: 1.35; }
+        table.firma td .linea { border-top: 1px solid #000; margin: 0 15pt 5pt 15pt; }
+
+        /* ===== Título de cláusula redactado dinámicamente por la IA
+             ($duracionTerminacionRedactada) - se conserva este par de
+             clases para que ese HTML crudo (que trae su propio título tipo
+             "NOVENA: DURACIÓN...") no pierda el énfasis al insertarse en el
+             flujo de la PARTE 07. --}}
+        p.clausula { margin-top: 9pt; margin-bottom: 7pt; }
+        .clausula-titulo { font-weight: bold; text-transform: uppercase; }
+
+        .page-break { page-break-before: always; }
+        .avoid-break { page-break-inside: avoid; }
+    </style>
 </head>
+
 <body>
 
-<h1>CONTRATO INDIVIDUAL DE TRABAJO POR DURACIÓN DE OBRA O LABOR DETERMINADA</h1>
-<h2>TABLA DE INFORMACIÓN DE LAS PARTES CONTRATANTES Y EL OBJETO DEL CONTRATO DE TRABAJO POR OBRA O LABOR DETERMINADA</h2>
-
-<table class="datos">
-    <tr><td class="label">NOMBRE DEL EMPLEADOR:</td><td>{{ $nombreEmpresa }}</td></tr>
-    <tr><td class="label">NÚMERO DE ID DEL EMPLEADOR:</td><td>NIT. {{ $nit }}</td></tr>
-    <tr><td class="label">DIRECCIÓN DEL EMPLEADOR:</td><td>{{ $direccionEmpresa }}</td></tr>
-    <tr><td class="label">TELÉFONO DEL EMPLEADOR:</td><td>{{ $telefonoEmpresa }}</td></tr>
-    <tr><td class="label">NOMBRE COMPLETO DEL TRABAJADOR:</td><td>{{ $nombreTrabajador }}</td></tr>
-    <tr><td class="label">NÚMERO DE ID DEL TRABAJADOR:</td><td>{{ ucfirst($tipoDocumentoLabel) }} N° {{ $numeroDocumento }}</td></tr>
-    <tr><td class="label">DIRECCIÓN DEL TRABAJADOR:</td><td>{{ $direccionTrabajador ?: 'No registrada' }}</td></tr>
-    <tr><td class="label">TELÉFONO DEL TRABAJADOR:</td><td>{{ $telefonoTrabajador ?: 'No registrado' }}</td></tr>
-    <tr><td class="label">CORREO ELECTRÓNICO DEL TRABAJADOR:</td><td>{{ $emailTrabajador ?: 'No registrado' }}</td></tr>
-    <tr><td class="label">CARGO PARA EL CUAL FUE CONTRATADO EL TRABAJADOR:</td><td>{{ $cargo }}</td></tr>
-    <tr><td class="label">SALARIO:</td><td>$ {{ $salarioFormateado }} COP</td></tr>
-    <tr><td class="label">PERÍODOS DE PAGO:</td><td>{{ $periodoPagoLabel }}</td></tr>
-    <tr><td class="label">LUGAR DONDE EL TRABAJADOR DESEMPEÑARÁ SUS LABORES:</td><td>{{ $lugarLabores }}</td></tr>
-    <tr><td class="label">CIUDAD DONDE HA SIDO CONTRATADO EL TRABAJADOR:</td><td>{{ $lugarContratacion }}</td></tr>
-    <tr><td class="label">FECHA DE INICIO DE LABORES:</td><td>{{ $fechaInicio }}</td></tr>
-    <tr><td class="label">OBJETO DEL CONTRATO O LABOR CONTRATADA:</td><td>{{ $descripcionObraLabor }}</td></tr>
-</table>
-
-<p>Entre los suscritos a saber: {{ $nombreEmpresa }}, identificada con el Nit. {{ $nit }}, representada por {{ $representanteLegal }}@if($representanteLegalCedula) identificado con la cédula de ciudadanía No. {{ $representanteLegalCedula }}@endif, quien es su representante legal, quien para los efectos de este contrato se denominará &ldquo;El Empleador&rdquo;, por una parte y, por la otra {{ $nombreTrabajador }} identificado con la {{ $tipoDocumentoLabel }} No. {{ $numeroDocumento }} quien se denominará: &ldquo;El Trabajador&rdquo;, se ha acordado celebrar el presente contrato individual de trabajo.</p>
-
-<p><strong>Anexos del Contrato:</strong> Son anexos del presente Contrato todos los documentos, anexos e información compartida por las partes, la totalidad de aquella puesta a disposición por El Empleador y el (la) Trabajador(a) para el evento, la totalidad de documentos que rigen la relación contractual entre El Empleador y El (La) Trabajador(a), y particularmente, pero sin limitarse a los siguientes documentos, todos los cuales, se entienden y reconocen como información conocida por Las Partes:</p>
-
-<p>&bull; Anexo No.1: Manual de funciones y responsabilidades del cargo de {{ $cargo }}.</p>
-
-@if($objetoJuridico)
-<p>{!! $objetoJuridico !!}</p>
-@endif
-
-<p>El presente contrato de trabajo por obra o labor determinada, se regirá por las siguientes cláusulas:</p>
-
-<p class="clausula"><span class="clausula-titulo">PRIMERA: LEGISLACIÓN APLICABLE.</span> Este contrato se regirá por las normas establecidas en la legislación colombiana en virtud del principio de territorialidad consagrado en el Código Sustantivo del Trabajo; por ende, será este último y su legislación complementaria, el compendio rector de la relación laboral existente entre las Partes, para su formación, ejecución y terminación.</p>
-
-<p class="clausula"><span class="clausula-titulo">SEGUNDA: DIRECCIÓN NOTIFICACIONES.</span> La dirección del (de la) Trabajador(a) que aparece relacionada en la portada de este contrato, se entiende como la residencia actual del (de la) Trabajador(a) y en consecuencia su domicilio legal para todos los efectos que se desprendan de la relación laboral que con este documento se regla. El (La) Trabajador(a) informará a la empresa, por escrito, cualquier cambio con destino a los archivos de ésta. La inobservancia de esta formalidad hará que cualquier notificación por escrito hecha a la dirección que aparece registrada, surta los efectos pertinentes cuando la ley exija o autorice la notificación escrita.</p>
-
-<p><strong>PARÁGRAFO PRIMERO:</strong> Toda la información del personal es de carácter reservado. No obstante, el (la) Trabajador(a) otorga su consentimiento expreso e inequívoco al Empleador para que éste pueda ceder o comunicar cualquier dato que repose en su hoja de vida, incluso los personales, a otras entidades con las que tenga especial interés, así como para transferir cualquier dato que repose en su hoja de vida, incluso los personales, a entidades que hagan parte de la Administración Pública.</p>
-
-<p><strong>PARÁGRAFO SEGUNDO:</strong> El (La) Trabajador(a) se compromete a comunicar al Empleador, de manera inmediata, cualquier modificación que se produzca en su estado civil, domicilio, número de hijos menores y cualquier otra circunstancia que pueda afectar a sus cotizaciones a la Seguridad Social, y en general cualquier dato personal del (de la) Trabajador(a) que interese al Empleador. Se considera falta grave el que el (la) Trabajador(a) no suministre dicha información, siendo que el Empleador no responderá por hecho alguno derivado de la ausencia o desactualización de dicha información por parte del (de la) Trabajador(a).</p>
-
-<p class="clausula"><span class="clausula-titulo">TERCERA: OBJETO.</span> El Empleador contrata los servicios personales del (de la) Trabajador(a) y éste se obliga a:</p>
-
-<ol>
-<li>Poner al servicio del Empleador toda su capacidad normal de trabajo, en el desempeño de las funciones propias de su cargo y en las labores anexas y complementarias del mismo, de conformidad con las órdenes, instrucciones, procedimientos y metas que le indique el Empleador directamente o a través de sus representantes.</li>
-<li>Prestar sus servicios en forma exclusiva al Empleador; es decir, a no prestar directa ni indirectamente servicios laborales a otros empleadores, ni a trabajar por cuenta propia en el mismo oficio, durante la vigencia de este contrato.</li>
-<li>Velar por la conservación y restituir en buen estado, salvo el deterioro por el uso natural, los elementos y útiles que se le entreguen para el desempeño de sus labores.</li>
-<li>Hacer saber al Empleador de manera oportuna toda información de interés para la Empresa.</li>
-<li>Responder al Empleador por los perjuicios que le ocasionare la toma de decisiones por causa o con ocasión de funciones que no le hayan sido encomendadas o por cualquier extralimitación en las que le corresponda.</li>
-<li>Cumplir toda otra obligación y prohibición que se desprenda de las labores principales, anexas, conexas y complementarias que según lo anterior y de acuerdo con su cargo incumban al (a la) Trabajador(a).</li>
-<li>A guardar completa reserva de todo lo que llegue a su conocimiento en razón de su oficio y cuya divulgación pudiera causar perjuicios al Empleador o a las empresas o personas naturales o jurídicas relacionadas con la misma, o a los clientes del Empleador. El (La) Trabajador(a) se obliga igualmente a continuar guardando dicha reserva cuando deje de estar vinculado con el Empleador.</li>
-<li>A utilizar los enseres, útiles, instrumentos, herramientas y demás elementos que le entregue la empresa exclusivamente para los fines que le fueron suministrados.</li>
-<li>Utilizar única y exclusivamente el software previamente autorizado por el Empleador para la prestación de sus servicios y abstenerse en todo caso de instalar cualquier otro tipo de software diferente al autorizado. En caso de que el (la) Trabajador(a) instale cualquier tipo de software no autorizado será el único responsable por los eventuales perjuicios que se llegue a causar al Empleador y a terceros por uso incorrecto del mismo y la utilización de programas sin las licencias correspondientes.</li>
-<li>No suministrar el nombre de usuario y contraseñas proporcionadas por el Empleador de uso interno y externo que sean suministradas al (a la) Trabajador(a) en virtud de las funciones ejecutadas por él.</li>
-<li>Comunicar de manera oportuna cualquier eventual conflicto de interés que involucre al (a la) Trabajador(a), al Empleador o a las empresas o personas naturales o jurídicas relacionadas con la misma y/o a los clientes o afiliados del Empleador.</li>
-<li>Cumplir la totalidad de las Políticas contenidas en la normativa interna del Empleador, o documentos que lo adicionen, sustituyan o complementen.</li>
-<li>Teniendo en cuenta las normas legales que regulan el tipo de actividad contratada, El (La) Trabajador(a) dará estricto cumplimiento a las disposiciones legales y reglamentarias sobre el SARLAFT.</li>
-</ol>
-
-<p><strong>PARÁGRAFO PRIMERO:</strong> El (La) Trabajador(a) en desarrollo de las funciones a él asignadas por el Empleador, prestará sus servicios en igual forma a cualquier persona natural o jurídica que por instrucciones determine el Empleador y en especial a aquellas sociedades filiales, subsidiarias, matrices, subordinadas y demás empresas relacionadas con el Empleador, sin que ello implique la coexistencia de otros contratos de trabajo o de prestación de servicios, pues para todos los efectos legales, laborales, prestacionales y parafiscales se entiende que el único empleador es {{ $nombreEmpresa }}, y por tanto los servicios prestados a cualquier otra persona natural o jurídica que indique el Empleador no implican ni generan concurrencia o coexistencia de contratos.</p>
-
-<p><strong>PARÁGRAFO SEGUNDO:</strong> De conformidad con lo establecido en el literal i) del artículo 8º de la Ley 1010 de 2006, las partes entienden que no constituirá una situación de acoso laboral, bajo ninguna de sus modalidades, las exigencias que llegue a hacer el Empleador al (a la) Trabajador(a) para que cumpla con las estipulaciones contenidas en las cláusulas del presente contrato de trabajo, en especial la presente.</p>
-
-<p class="clausula"><span class="clausula-titulo">CUARTA: REMUNERACIÓN.</span> El Empleador reconocerá al (a la) Trabajador(a), como contraprestación por sus servicios la suma de {{ $salarioEnLetras }} como salario mensual, pagadera por períodos vencidos de {{ $periodoPagoFrase }}, en {{ $lugarContratacion }}, o mediante consignación o transferencia electrónica a la cuenta bancaria que el (la) Trabajador(a) indique para el efecto. Dentro de este pago se encuentra incluida la remuneración de los descansos dominicales y festivos de que tratan en los Capítulos I, II Y III del Título VII del C.S.T.</p>
-
-<p><strong>PARÁGRAFO PRIMERO:</strong> Las partes acuerdan que en los casos en que se le reconozcan al (la) Trabajador(a) beneficios extralegales diferentes al salario, por concepto de alimentación, habitación o vivienda, transporte, vestuario o por cualquier otro concepto, se considerarán tales beneficios o reconocimientos como los no salariales y por lo tanto no se tendrán en cuenta como factor salarial para la liquidación de acreencias laborales, ni el pago de aportes parafiscales (diferentes a los de la seguridad social), de conformidad con los artículos 15 y 16 de la ley 50 de 1990, en concordancia con el Art. 17 de la 344 de 1996.</p>
-
-<p class="clausula"><span class="clausula-titulo">QUINTA: TRABAJO NOCTURNO, SUPLEMENTARIO, DOMINICAL Y/O FESTIVO.</span> Para el reconocimiento y pago del trabajo suplementario, nocturno, dominical o festivo. El Empleador o sus representantes deberán haberlo autorizado previamente y por escrito. Cuando la necesidad de este trabajo se presente de manera imprevista o inaplazable, deberá ejecutarse y darse cuenta de él por escrito, a la mayor brevedad, al Empleador o a sus representantes para su aprobación. El Empleador, en consecuencia, no reconocerá ningún trabajo suplementario, o trabajo nocturno o en días de descanso legalmente obligatorio que no haya sido autorizado previamente o que, habiendo sido avisado inmediatamente, no haya sido aprobado como queda dicho.</p>
-
-<p class="clausula"><span class="clausula-titulo">SEXTA: DÍA DE DESCANSO OBLIGATORIO.</span> De conformidad con lo dispuesto en el parágrafo 1° del artículo 179 del Código Sustantivo del Trabajo, modificado por la Ley 2466 de 2025, las partes, de común acuerdo, libres de todo vicio del consentimiento, pactan como día de descanso obligatorio el día {{ $diaDescansoObligatorio }}.</p>
-
-<p>En consecuencia, si el trabajador llegare a laborar durante dicho día de descanso obligatorio, el empleador reconocerá y pagará los recargos correspondientes, aplicables en los mismos términos que para el trabajo dominical, de conformidad con la normatividad vigente.</p>
-
-<p class="clausula"><span class="clausula-titulo">SÉPTIMA: JORNADA DE TRABAJO.</span> El (La) Trabajador(a) se obliga a laborar la jornada máxima legal, salvo estipulación expresa y escrita en contrario, cumpliendo con los turnos y horarios que señale el Empleador, quien podrá cambiarlos o ajustarlos cuando estime conveniente. Por el acuerdo expreso o tácito de las partes, podrán repartirse total parcial o parcialmente las horas de la jornada ordinaria, con base en lo dispuesto por el Art. 164 del C.S.T., modificado por el Art. 23 de la ley 50 de 1990, teniendo en cuenta que los tiempos de descanso entre las secciones de la jornada no se computan dentro de la misma, según el Art. 167 ibidem. De igual manera, las partes podrán acordar que se preste el servicio en los turnos de jornada flexible contemplados en el Artículo 51 de la ley 789 de 2002.</p>
-
-<p><strong>PARÁGRAFO PRIMERO:</strong> Lo anterior se establece sin perjuicio del cumplimiento de las reglas para la implementación gradual de la nueva jornada laboral máxima de 42 horas semanales contemplada en la Ley 2101 de 2021.</p>
-
-<p><strong>PARÁGRAFO SEGUNDO:</strong> En aplicación al artículo 161 del C.S.T. literal c y d, modificado por el artículo 2 de la ley 2101 de 2021, empleador y trabajador acuerdan que la jornada semanal de 42 horas se realice mediante jornadas diarias flexibles de trabajo, distribuidas en máximo 6 días a la semana con un día de descanso obligatorio, que podrá coincidir con el domingo. En este, el número de horas de trabajo diario podrá repartirse de manera variable durante la respectiva semana y podrá ser de mínimo 4 horas continuas y hasta 9 horas diarias sin lugar a ningún recargo por trabajo suplementario, cuando el número de horas de trabajo no exceda el promedio de 42 horas semanales dentro de la jornada ordinaria de 6 AM a 10 PM, el empleador no podrá, aun con el consentimiento del trabajador, contratarlo para la ejecución de dos turnos en el mismo día. Salvo en labores de supervisión, dirección, confianza o manejo.</p>
-
-<p class="clausula"><span class="clausula-titulo">OCTAVA: PERÍODO DE PRUEBA.</span> Las partes contratantes convienen en establecer un periodo inicial de prueba equivalente a la quinta parte del término total de duración del presente contrato, contados a partir de la fecha de inicio de labores, dentro del cual se reservan la facultad de dar por terminado el mismo unilateralmente, en cualquier momento, sin previo aviso y sin indemnización ni pago alguno por este concepto; pero durante el periodo de prueba el (la) Trabajador(a) tendrá derecho a las prestaciones que la ley determine a su favor.</p>
-
-{!! $duracionTerminacionRedactada !!}
-
-<p class="clausula"><span class="clausula-titulo">DÉCIMA PRIMERA: TERMINACIÓN UNILATERAL.</span> Son justas causas para dar por terminado unilateralmente este contrato, por cualquiera de las partes, las enumeradas en el artículo 62 y 63 del C.S.T., y además, por parte del Empleador, las faltas que para el efecto se califiquen como graves en reglamentos y demás documentos que contengan reglamentaciones, ordenes, instrucciones o prohibiciones de carácter general o particular, pactos, convenciones colectivas, laudos arbitrales y las que expresamente convengan calificar así en escritos que formaran parte integrante del presente contrato. Expresamente se califican en este acto como faltas graves la violación a las obligaciones y prohibiciones contenidas en la cláusula décima primera del presente contrato, las establecidas en el reglamento interno de trabajo y demás reglamentos consagrados en la empresa.</p>
-
-<p class="clausula"><span class="clausula-titulo">DÉCIMA SEGUNDA: OBLIGACIONES DEL (DE LA) TRABAJADOR(A).</span> En relación con la actividad propia del (de la) Trabajador(a), éste (a) la ejecutará dentro de las siguientes modalidades que implican claras obligaciones para el mismo trabajador, así:</p>
-
-<ol>
-<li>Poner al servicio del patrono toda su capacidad normal de trabajo, en forma exclusiva, en orden al desempeño de las funciones propias del cargo u oficio para el cual ha sido contratado(a), incluyendo las labores anexas y complementarias, de conformidad con las órdenes e instrucciones que le imparta el Empleador o sus representantes.</li>
-<li>Realizar las funciones, obligaciones y responsabilidades establecidas en el manual de funciones y responsabilidades del cargo del trabajador, el cual se adjuntará al presente contrato como el Anexo No.1.</li>
-<li>Entregar y recoger envíos o documentos requeridos y solicitados por la empresa.</li>
-<li>Guardar estricta reserva de toda la información que esté bajo la responsabilidad y el manejo del cargo.</li>
-<li>Hacer uso adecuado de los recursos tanto físicos como económicos que la empresa le otorgue y promover y divulgar la confidencialidad en el manejo de documentos y datos de la compañía.</li>
-<li>Asistir con carácter obligatorio al desarrollo del plan de Inducción General y a todas las actividades de capacitación que programe la empresa, definidas como fundamentales para el desarrollo de las más altas condiciones de seguridad, y demás actividades convocadas y que sean de orden administrativo.</li>
-<li>Cumplir permanentemente las instrucciones impuestas por la empresa y la Gerencia para asegurar la seguridad individual y colectiva.</li>
-<li>Cumplir con lo consagrado en el reglamento interno de trabajo, el de higiene y seguridad industrial y los demás reglamentos y políticas establecidas por la empresa.</li>
-<li>No prestar directa, ni indirectamente servicios laborales a otros empleadores, ni trabajar por cuenta propia en el mismo oficio.</li>
-<li>Observar rigurosamente las normas que le fije el Empleador, para la realización de la labor a que se refiere el presente contrato de trabajo.</li>
-<li>No atender durante las horas de trabajo, asuntos y ocupaciones distintas a las que el Empleador le encomiende, sin previa autorización de éste y evitar fuera de dichas horas de trabajo, otras labores que afecten su salud u ocasionen el desgaste de su organismo en forma que le impida prestar eficazmente el servicio convenido.</li>
-<li>Cumplir a cabalidad con los deberes y obligaciones que la ley, el reglamento interno y el presente contrato le impongan en su condición de trabajador, así como abstenerse de ejecutar las conductas que se encuentren prohibidas en esos mismos ordenamientos.</li>
-<li>Guardar absoluta reserva, salvo autorización expresa del Empleador, de todas aquellas informaciones que lleguen a su conocimiento, en razón a su trabajo, y que sean por naturaleza privadas, en beneficio de los intereses del Empleador.</li>
-<li>Aceptar los traslados que determine el Empleador dentro de sus agencias, sucursales, establecimientos o simples dependencias en todo el territorio nacional.</li>
-<li>Cumplir las comisiones de servicio que se indiquen cuando se le requiera en otros lugares diferentes a aquél donde habitualmente se debe desempeñar.</li>
-<li>Ejecutar por sí mismo las funciones asignadas y cumplir estrictamente las instrucciones que le sean dadas por el Empleador o por quienes lo representen, respecto al desarrollo de sus actividades.</li>
-<li>Conservar y restituir en buen estado, salvo el deterioro normal, los vehículos, instrumentos, y útiles, que le sean entregados, para el ejercicio de sus funciones, así como los que posteriormente se le asignen, o sean prestados temporalmente para realizar sus funciones.</li>
-<li>No tomar el nombre del Empleador para contraer obligaciones.</li>
-<li>Cuidar permanentemente de los intereses y bienes del Empleador.</li>
-<li>Dedicar la totalidad de su jornada de trabajo a cumplir a cabalidad con sus funciones.</li>
-<li>Programar diariamente su trabajo y asistir puntualmente a las reuniones que efectúe el Empleador a las cuales hubiere sido citado.</li>
-<li>Observar una completa armonía y comprensión con los clientes, con sus superiores y compañeros de trabajo, en sus relaciones personales y en la ejecución de su labor.</li>
-<li>Cumplir permanentemente con espíritu de lealtad, colaboración y disciplina.</li>
-<li>Asistir puntualmente al trabajo y cumplir con los turnos de trabajo asignados.</li>
-<li>Prestar sus servicios de manera exclusiva para el Empleador.</li>
-<li>No presentarse embriagado al trabajo o bajo los efectos de alcohol, cualquier droga psicoactiva, sustancias estupefacientes, alucinógenas o hipnóticas, ni ingerir licores o drogas psicoactivas, sustancias estupefacientes, alucinógenas o hipnóticas durante las horas de trabajo. El (La) Trabajador(a) se obliga a realizarse, y dejarse realizar, los exámenes de alcoholemia o de consumo de sustancias psicoactivas, que sean solicitados por el Empleador o las autoridades. La negativa a ello constituirá falta grave a las obligaciones laborales.</li>
-<li>Abstenerse de solicitar o recibir cualquier dádiva o contraprestación al cliente o terceros.</li>
-<li>Mantener perfecta disciplina y respeto dentro y fuera del lugar de trabajo para con sus compañeros, superiores, clientes, etc.</li>
-<li>Presentación de informes cuando le sean solicitados verbalmente o por escrito.</li>
-<li>Permitir toda clase de supervisiones e inspecciones y colaborar con las mismas, sin ocultar ningún tipo de hecho o información.</li>
-<li>Aceptar y poner en práctica todas las medidas de seguridad medico laboral.</li>
-<li>Abstenerse de realizar actos diferentes a los propios del servicio contratado.</li>
-<li>Manejar escrupulosamente los valores e intereses que se le encomienden por razón de su cargo y a rendir cuenta rigurosa de ellos al Empleador.</li>
-<li>Realizar todas las funciones y cumplir con las responsabilidades establecidas al interior del manual de funciones y responsabilidades del cargo para el cual sea contratado. Ahora bien, el manual de funciones y responsabilidades, será el anexo No. 1 del presente contrato de trabajo.</li>
-<li>En general realizará todas las gestiones propias de su cargo, al igual que todas aquellas que afines o no a él, que se le encomienden y soliciten por parte de sus superiores jerárquicos, en forma verbal o escrita.</li>
-<li>Las evaluaciones periódicas hacen parte integrante de la hoja de vida y son confidenciales. Al momento de evidenciar cualquier acceso a dicha información, deberá reportar de ello a la Gerencia.</li>
-</ol>
-
-<p><strong>PARÁGRAFO:</strong> Cualquier violación de estas obligaciones contractuales y de las demás que por extensión apliquen y se califiquen como falta grave, dará lugar a la terminación unilateral y con justa causa por parte del empleador del contrato de trabajo.</p>
-
-<p class="clausula"><span class="clausula-titulo">DÉCIMA TERCERA: FALTAS GRAVES.</span> Los contratantes de común acuerdo califican como graves las siguientes faltas del Trabajador(a) que constituirán justas causas para que el Empleador pueda dar por terminado unilateralmente en cualquier tiempo el presente contrato de trabajo, además de las establecidas en el literal a) del artículo 7o. del Decreto 2351 de 1965, en las disposiciones reglamentarias y en el reglamento interno de trabajo:</p>
-
-<ol>
-<li>El incumplimiento de cualquiera de las obligaciones especiales establecidas por el artículo 58 del C.S.T.</li>
-<li>El incumplimiento de cualquiera de las obligaciones estipuladas en la cláusula décima del presente contrato.</li>
-<li>La realización de actividades en contravención de órdenes superiores o de reglamento, de carácter culposo, negligente, omisivo o doloso que atenten o incidan negativamente contra los intereses del Empleador o de terceros.</li>
-<li>El presentarse al trabajo bajo los efectos de bebidas embriagantes, drogas alucinógenas o similares o ingerir tales bebidas en el lugar de trabajo.</li>
-<li>El presentarse o estar dentro de la Empresa portando armas, salvo el caso en que el (la) Trabajador(a) por razón de sus labores esté facultado para ello.</li>
-<li>La no justificación de inasistencia del (de la) Trabajador(a) al cumplimiento de sus labores o el abandono de las mismas sin autorización del superior.</li>
-<li>El retardo hasta de quince (15) minutos a la hora de la entrada al trabajo sin excusa, por tercera vez.</li>
-<li>La inasistencia del (de la) Trabajador(a) a sus labores durante el día, sin excusa suficiente.</li>
-<li>La ocurrencia de cualquier acto de violencia, injuria o irrespeto injustificado por parte del (de la) Trabajador(a) hacia sus superiores, empleados de la Empresa o terceros, dentro de las instalaciones de la Empresa o fuera de ellas.</li>
-<li>La extralimitación de funciones que afecten o pongan en peligro los intereses del Empleador.</li>
-<li>La violación de la reserva de aspectos confidenciales puestos bajo la responsabilidad del Trabajador(a) o conocidos por éste en razón de su cargo.</li>
-<li>La utilización de información privilegiada adquirida en ejecución o con ocasión de sus funciones para la obtención de un provecho personal o para un tercero.</li>
-<li>La realización de actos que en cualquier forma entorpezcan o incidan negativamente en el normal desarrollo de las actividades patronales o en perjuicio de terceros.</li>
-<li>Cualquier acto de negligencia, descuido u omisión en que incurra el (la) Trabajador(a) en el ejercicio de las funciones propias de su cargo.</li>
-<li>La aceptación o solicitud de dádivas o beneficios por parte del (de la) Trabajador(a) a clientes y/o proveedores de la Empresa o a terceros, a cambio de tratamientos o servicios especiales.</li>
-<li>La existencia de faltante, descuadre en dinero o la pérdida, el extravío o deterioro de cualquier documento bajo la responsabilidad del (de la) Trabajador(a).</li>
-<li>El cobro de subsidios o beneficios a los que no tiene legalmente derecho (por hijos, padres, etc., bien sea porque son supuestos, han fallecido, no dependen económicamente del (de la) Trabajador(a), no cumplen la edad prevista en las disposiciones que rigen estos beneficios o no cumplen cualquiera de los demás requisitos necesarios para su válido reconocimiento).</li>
-<li>Sin ser de su competencia, la autorización o ejecución de operaciones que afecten los intereses del Empleador, o la negociación de bienes y/o mercancías o la negociación en cualquier forma de algún objeto de propiedad del Empleador.</li>
-<li>La presentación de cuentas de gastos ficticios o el reportar como cumplidas visitas o tareas no efectuadas.</li>
-<li>La consignación en la solicitud de empleo que se presenta cuando se va a ingresar a la Empresa, de datos falsos o el ocultamiento de información solicitada en el mismo documento.</li>
-<li>La omisión o consignación de datos en forma inexacta en los informes, relaciones, proyectos crediticios, balances, etc., que se presenten a consideración de los superiores, tendientes a obtener una aprobación o decisión que, a juicio del superior, habría sido diferente si los datos se ajustaran a la realidad. Para que se configure esta causal, basta la simple tentativa, no siendo necesario que se haya logrado la ejecución o que de la misma se derive un perjuicio real para la Empresa.</li>
-<li>El solicitar u obtener, de los empleados bajo su mando, concesiones o beneficios valiéndose de su posición.</li>
-<li>El facilitar el código de usuario y contraseña asignados al (la) Trabajador(a) a compañeros de trabajo o terceros para ingresar a recursos informáticos.</li>
-<li>El envío, recibo o suministro de información en forma escrita, verbal, magnética o electrónica o en cualquier medio conocido o por conocerse a empleados o terceros sin la debida autorización del dueño de la información.</li>
-<li>La entrega de documentos sin el lleno de las formalidades legales y demás requisitos establecidos por el Empleador y el no aviso oportuno de estos hechos al inmediato superior.</li>
-<li>El embargo de cualquier acreencia laboral del (de la) Trabajador(a), siempre que no obtenga el levantamiento de dicha medida en un término máximo de treinta (30) días que se contarán a partir de la fecha en que el Empleador dé aviso escrito al (la) Trabajador(a).</li>
-<li>El uso indebido por acción, omisión, error, negligencia o descuido de la firma autorizada, que incida negativamente contra los intereses de la Empresa o los ponga en peligro.</li>
-<li>El incumplimiento de las políticas, procedimientos y en general instrucciones de la Empresa.</li>
-<li>La violación a las obligaciones y prohibiciones establecidas en la ley, el reglamento interno de trabajo, contrato de trabajo, el reglamento de higiene y seguridad y demás políticas y reglamentos establecidos por la empresa.</li>
-<li>Las demás que se establezcan en el presente contrato, en la ley y las que se establezcan en las políticas internas de la compañía.</li>
-</ol>
-
-<p><strong>PARÁGRAFO:</strong> El (La) Trabajador(a) será responsable de todos los dineros, efectos de comercio, valores, recursos informáticos, documentos e información que reciba, tenga en su poder o maneje por razón de sus funciones, sin poder disponer de ellos en su beneficio o en beneficio de terceros, y deberá rendir estricta cuenta de ellos y de su manejo al Empleador, de acuerdo con las políticas/procedimientos que el Empleador tiene establecidos o establezca sobre el particular.</p>
-
-@if (($faltasGravesOrigen ?? null) === 'rit')
-<p>Así mismo, conforme al Reglamento Interno de Trabajo vigente de {{ $nombreEmpresa }}, se consideran también faltas graves las siguientes conductas:</p>
-<ol>
-@foreach (($faltasGravesGrave ?? []) as $conducta)
-<li>{{ $conducta }}</li>
-@endforeach
-@foreach (($faltasGravesGravisima ?? []) as $conducta)
-<li>{{ $conducta }}</li>
-@endforeach
-</ol>
-@endif
-
-<p class="clausula"><span class="clausula-titulo">DÉCIMA CUARTA: INCAPACIDADES.</span> Cuando se trate de comprobar incapacidades para el trabajo por causa de enfermedad de origen común o profesional o de accidente de trabajo o de accidente común, sólo se aceptarán como válidas las certificaciones expedidas por la respectiva entidad de seguridad social a la que el (la) Trabajador(a) se encuentre afiliado, siempre y cuando la incapacidad médica sea transcrita o avalada por la EPS o ARL a la cual se encuentre vinculado el (la) Trabajador(a).</p>
-
-<p class="clausula"><span class="clausula-titulo">DÉCIMA QUINTA: CONFIDENCIALIDAD.</span> El (La) Trabajador(a) se abstendrá, durante la vigencia del presente contrato o con posterioridad a su terminación por cualquier causa de revelar, suministrar, vender, arrendar, publicar, copiar, reproducir, remover, disponer, transferir y en general utilizar directa o indirectamente en favor propio o de otras personas en forma total o parcial, cualquiera que sea su finalidad, información confidencial o privilegiada del Empleador o de las sociedades filiales, subsidiarias, matrices, subordinadas, relacionadas o empresas, personas naturales, accionistas, clientes o terceros relacionados con éste, a la cual tenga acceso o de la cual tenga conocimiento en desarrollo de su cargo o con ocasión de éste sin que medie autorización previa, expresa y escrita del Empleador para el efecto.</p>
-
-<p>Las Partes declaran que es de carácter confidencial cualquier información, documento o procedimiento del Empleador o de las sociedades filiales, subsidiarias, matrices, subordinadas, relacionadas o empresas, personas naturales, accionistas, clientes o terceros relacionados con éste o sobre el cual tenga conocimiento el (la) Trabajador(a) en desarrollo de su cargo o con ocasión de éste, que no sea de conocimiento público, especialmente aquella información privilegiada respecto de operaciones, transacciones o negocios, o el valor de los mismos, que resulte sensible para la operación del Empleador o de terceros. En tal sentido, el (la) Trabajador(a) no sólo se obliga a no dar a conocer la información confidencial que llegue a conocer, sino que se abstendrá de utilizar dicha información para la obtención de un provecho personal o para terceros.</p>
-
-<p>El (La) Trabajador(a), a la terminación de su contrato de trabajo por cualquier causa, devolverá inmediatamente al Empleador cualquier documento, información o elemento que le haya sido entregado para efecto del cumplimiento de sus funciones.</p>
-
-<p>Las Partes acuerdan expresamente que el incumplimiento de las disposiciones contenidas en la presente cláusula es considerado como una falta grave y en tal sentido justa causa para la terminación del contrato de trabajo de acuerdo con lo dispuesto en el numeral 6 del literal a), Artículo 7 del Decreto Ley 2351 de 1965, en concordancia con el numeral 1 del Artículo 58 del C.S.T. Lo anterior sin perjuicio de las acciones civiles o penales que puedan emprenderse contra el (la) Trabajador(a) por parte del Empleador o de terceros como consecuencia de dicho incumplimiento.</p>
-
-<p class="clausula"><span class="clausula-titulo">DÉCIMA SEXTA: DERECHOS DE AUTOR.</span> El (la) Trabajador(a) cederá al Empleador todos los derechos patrimoniales de autor sobre las obras que cree en cumplimiento de sus funciones laborales, sobre las obras que cree utilizando las herramientas o materias primas de propiedad del Empleador, y/o sobre las obras creadas con ayuda o colaboración de este último o de otros compañeros de trabajo o de terceros vinculados de cualquier forma al Empleador.</p>
-
-<p>Como consecuencia de lo anterior, el Empleador tendrá derecho a solicitar, a su nombre o a nombre de terceros, y ante las autoridades correspondientes, el registro de las obras creadas por el (la) Trabajador(a) de conformidad con los supuestos del párrafo anterior. Asimismo, el Empleador podrá, durante el trámite de registro o en cualquier otro momento, explotar comercialmente la obra, lo que incluye, pero no se limita a, reproducirla en todas sus modalidades, transformarla, adaptarla, distribuirla, comunicarla públicamente y, en general, explotarla por cualquier medio conocido o por conocerse. Lo anterior sin perjuicio de los derechos morales de autor que reposan en cabeza del autor de la obra y serán respetados y reconocidos por el Empleador.</p>
-
-<p>Para dar cumplimiento a lo anterior, el (la) Trabajador(a) se compromete a facilitar el cumplimiento oportuno de las correspondientes formalidades y a firmar o a extender los poderes y los documentos necesarios para tal fin, en las condiciones y eventos solicitados por el Empleador, sin que éste quede obligado al pago de compensación alguna.</p>
-
-<p><strong>PARÁGRAFO:</strong> Teniendo en cuenta lo dispuesto en la Ley 23 de 1982 y o lo dispuesto en el numeral 1° del artículo 132 del Código Sustantivo del Trabajo, las Partes acuerdan que la remuneración salarial reconocida por el Empleador como contraprestación por los servicios prestados por el (la) Trabajador(a), incluye y contiene la remuneración por la transferencia de los derechos patrimoniales de autor mencionados, toda vez que los objetos sobre los cuales recaen los derechos de propiedad intelectual son desarrollados por el (la) Trabajador(a) en virtud de su contrato de trabajo.</p>
-
-<p class="clausula"><span class="clausula-titulo">DÉCIMA SÉPTIMA: PROPIEDAD INDUSTRIAL.</span> Todos los resultados obtenidos por el (la) Trabajador(a) en desarrollo de sus funciones o utilizando bienes, herramientas, equipos, materias primas, datos o medios conocidos o utilizados en razón de la labor que desempeña y en general utilizando cualquier apoyo o ayuda del Empleador o de personal vinculado al mismo, que sean susceptibles de ser protegidos por propiedad industrial se entenderán que pertenecen al Empleador, lo que incluye pero no se limita a patentes, modelos de utilidad, diseño industrial, secreto comercial, y cualquier otra forma de protección de la propiedad industrial disponible ahora o en el futuro.</p>
-
-<p>Como consecuencia de lo anterior, el Empleador como titular de los derechos de propiedad industrial tendrá derecho a obtener la protección que considere necesaria, para lo cual el (la) Trabajador(a) deberá facilitar el cumplimiento oportuno de las correspondientes formalidades y firmar o extender los poderes y los documentos necesarios para tal fin, en las condiciones y eventos solicitados por el Empleador.</p>
-
-<p><strong>PARÁGRAFO:</strong> Teniendo en cuenta lo dispuesto en la en la Decisión 486 de 2000 de la Comunidad Andina de Naciones y lo dispuesto en el numeral 1° del artículo 132 del Código Sustantivo del Trabajo, las Partes acuerdan que la remuneración salarial reconocida por el Empleador como contraprestación por los servicios prestados por el (la) Trabajador(a), incluye y contiene la remuneración por la transferencia de los derechos de propiedad industrial mencionados, toda vez que los objetos sobre los cuales recaen los derechos de propiedad intelectual son desarrollados por el (la) Trabajador(a) en virtud de su contrato de trabajo.</p>
-
-<p class="clausula"><span class="clausula-titulo">DÉCIMA OCTAVA: CAPACITACIONES.</span> El (La) Trabajador(a) se obliga a recibir y asimilar la capacitación que el Empleador considere necesaria o conveniente para el correcto desempeño del cargo o para efecto de ascensos o promociones, o el cubrimiento de nuevas necesidades del Empleador, ya sea mediante cursos dictados en el lugar de trabajo o en otras instalaciones, directamente por el Empleador o por entidades especializadas en los temas que interesen a ella.</p>
-
-<p class="clausula"><span class="clausula-titulo">DÉCIMA NOVENA: AUTORIZACIÓN PARA LA GRABACIÓN DE IMAGEN.</span> El (La) Trabajador(a) autoriza por medio del presente documento al Empleador a utilizar su imagen para usos publicitarios del Empleador por tiempo indefinido y sin costo alguno. Igualmente, el (la) Trabajador(a) le cede expresamente al Empleador cualquier derecho sobre los documentos e imágenes obtenidas para dichos propósitos y susceptibles de protección mediante derecho de propiedad intelectual. Sin perjuicio de lo anterior, el (la) Trabajador(a) podrá oponerse por escrito al uso de su imagen.</p>
-
-<p class="clausula"><span class="clausula-titulo">VIGÉSIMA: MEDIOS DE TRABAJO.</span> El Empleador se obliga a proveer los medios de trabajo al Trabajador, dentro de los cuales podrán encontrarse: equipo de cómputo, papelería, entre otros.</p>
-
-<p><strong>PARÁGRAFO PRIMERO:</strong> Las herramientas de trabajo antes citadas y las enunciadas en el acta &ldquo;Herramientas de Trabajo&rdquo;, se encuentran bajo la custodia y cuidado del (de la) Trabajador(a) y su pérdida, daño o destrucción serán responsabilidad del (de la) Trabajador(a); igualmente la pérdida, daño o destrucción de cualquiera de los elementos constituye una falta grave meritoria de la terminación del contrato de trabajo. Adicionalmente, las Partes acuerdan que las herramientas sólo podrán ser empleadas para las labores relacionadas con el contrato de trabajo que existe entre las Partes y para realizar sus funciones, por lo cual el darle una destinación o uso diferente o indebido por parte del (de la) Trabajador(a) a dichos elementos o la inobservancia de su deber de cuidado respecto de los mismos serán considerados falta grave de sus obligaciones, de conformidad con el literal a) numeral 6 del artículo 7 del decreto 2351 de 1965, el cual subrogó el artículo 62 del C.S.T. El (La) Trabajador(a) autoriza que en caso de pérdida o extravío, daño o destrucción de cualquiera de los elementos por cualquier motivo, le sea deducido o descontado el valor comercial del bien de la sumas que se le adeuden por salarios, prestaciones sociales, vacaciones, intereses de cesantía, pagos de naturaleza extralegal, eventuales indemnizaciones y cualquier otra acreencia a que pueda tener derecho en vigencia del contrato de trabajo o al momento de terminación del contrato de trabajo por cualquier motivo.</p>
-
-<p><strong>PARÁGRAFO SEGUNDO:</strong> Las herramientas de trabajo entregadas al (a la) Trabajador(a) pertenecen al Empleador y por tanto el (la) Trabajador(a) deberá devolverlas cuando se le solicite y en todo caso al momento de terminación de su contrato de trabajo por cualquier causa. En caso de que el (la) Trabajador(a) incumpla su obligación de devolver las herramientas relacionadas al momento de la terminación de su contrato de trabajo, mediante el presente escrito autoriza de manera expresa al Empleador para que el valor total de las mismas se descuente, deduzca y/o compense del valor de la liquidación final de acreencias laborales a la cual tenga derecho el (la) Trabajador(a) incluyendo el valor de salarios, prestaciones sociales, vacaciones, interés de cesantía, pagos de naturaleza extralegal, eventuales indemnizaciones y cualquier otra acreencia a que pueda tener derecho al momento de terminación del contrato de trabajo por cualquier causa.</p>
-
-<p><strong>PARÁGRAFO TERCERO:</strong> El suministro de las herramientas de trabajo no constituye salario ni beneficio legal o extralegal alguno, pues son herramientas de trabajo, y en este sentido Las Partes reiteran que no constituyen retribución alguna, ni salario en dinero o en especie, ni tendrán incidencia salarial, prestacional, parafiscal o indemnizatoria conforme lo previsto en los artículos 15 y 16 de la ley 50 de 1990 que subrogaron los artículos 128 y 129 del C.S.T. en concordancia con el artículo 17 de la ley 344 de 1996. Por tratarse de herramientas de trabajo que facilita el Empleador por mera liberalidad, el Empleador se reserva la facultad de modificar, adicionar o suprimir este suministro sin que constituya ningún tipo de desmejora para el (la) Trabajador(a), situación que el (la) Trabajador(a) desde ya acepta.</p>
-
-<p class="clausula"><span class="clausula-titulo">VIGÉSIMA PRIMERA: DATOS PERSONALES.</span> El (La) Trabajador(a) autoriza de manera libre y voluntaria al Empleador a recopilar, utilizar, transferir, almacenar, consultar, procesar, y en general a dar tratamiento a la información personal que éste ha suministrado al Empleador, de conformidad con lo dispuesto en la ley 1581 de 2012 y el Decreto 1377 de 2013 derogado parcialmente por el decreto 1081 de 2015, la cual se encuentra contenida en las bases de datos y archivo de propiedad del Empleador, para los fines internos que sean necesarios, tales como asuntos relacionados con su documento de identificación, número de identificación, nacionalidad, país de residencia, dirección, teléfono, genero, estado civil, fecha y lugar de nacimiento, correo electrónico corporativo y personal, salario, banco y cuenta bancaria. De igual forma, se faculta a transferir a la empresa, los datos básicos del (de la) Trabajador(a) para efectos de cumplir con las obligaciones legales y contractuales.</p>
-
-<p class="clausula"><span class="clausula-titulo">VIGÉSIMA SEGUNDA: DIRECCIÓN DEL TRABAJADOR.</span> El (La) Trabajador(a) para todos los efectos legales y en especial para la aplicación del parágrafo 1 del artículo 29 de la ley 789 de 2002, norma que modificó el 65 del C.S.T., se compromete a informar al Empleador cualquier cambio en su dirección de residencia, teniéndose en todo caso como suya la dirección registrada en este contrato o la que el (la) Trabajador(a), utilizando su código de usuario y contraseña, haya actualizado en la intranet de la Empresa o le haya comunicado por medio escrito. Toda comunicación o notificación que el Empleador deba hacer al (a la) Trabajador(a) por virtud del desarrollo, ejecución o terminación de este contrato, se considera legal y válida si se hace a la última dirección de residencia que el (la) Trabajador(a) haya registrado o que se le entregue personalmente en las instalaciones de la Empresa, dejando el (la) Trabajador(a) constancia por medio de su firma de haberla recibido.</p>
-
-<p class="clausula"><span class="clausula-titulo">VIGÉSIMA TERCERA: SISTEMA DE AUTOCONTROL Y GESTIÓN DEL RIESGO DE LAVADO DE ACTIVOS Y FINANCIACIÓN DEL TERRORISMO. SARLAFT-SAGRILAFT.</span> El (la) Trabajador(a) declara que conoce y se obliga a cumplir de manera estricta las políticas, procedimientos, manuales, códigos y demás disposiciones internas adoptadas por EL EMPLEADOR en materia de prevención y control del riesgo de lavado de activos, financiación del terrorismo y demás delitos asociados, de conformidad con la normativa legal vigente y las instrucciones impartidas por las autoridades competentes.</p>
-
-<p>En desarrollo de lo anterior, el Trabajador(a) se compromete a:</p>
-
-<ol>
-<li>Abstenerse de realizar, directa o indirectamente, actos u operaciones que puedan constituir o facilitar actividades relacionadas con el lavado de activos, la financiación del terrorismo, la proliferación de armas de destrucción masiva o cualquier otra conducta ilícita.</li>
-<li>Suministrar información veraz, completa, comprobable y actualizada cuando le sea requerida por EL EMPLEADOR, especialmente aquella relacionada con su identificación, actividad económica, origen de recursos y demás datos necesarios para el cumplimiento de los sistemas de prevención de riesgos.</li>
-<li>Reportar de manera inmediata, confidencial y por los canales internos establecidos, cualquier operación inusual, sospechosa o conducta que pueda comprometer a LA EMPRESA en riesgos asociados al lavado de activos o financiación del terrorismo.</li>
-<li>Autorizar expresamente al EMPLEADOR para verificar, consultar y reportar la información suministrada ante las bases de datos públicas y privadas, listas restrictivas nacionales e internacionales, así como ante las autoridades competentes, incluida la UIAF, cuando a ello hubiere lugar.</li>
-</ol>
-
-<p>El incumplimiento de las obligaciones aquí previstas, así como la vinculación del Trabajador(a) con actividades ilícitas relacionadas con lavado de activos o financiación del terrorismo, constituirá falta grave, en los términos del Reglamento Interno de Trabajo y del presente contrato, y dará lugar a la aplicación de las sanciones disciplinarias correspondientes, incluida la terminación del contrato de trabajo con justa causa, sin perjuicio de las acciones civiles, penales o administrativas a que haya lugar.</p>
-
-<p class="clausula"><span class="clausula-titulo">VIGÉSIMA CUARTA: AUTORIZACIÓN PARA EL TRATAMIENTO DE DATOS PERSONALES.</span> El Trabajador(a), de manera libre, previa, expresa, informada e inequívoca, autoriza al EMPLEADOR, en su calidad de responsables del tratamiento, para recolectar, almacenar, usar, circular, actualizar, suprimir y, en general, realizar el tratamiento de sus datos personales, incluidos los datos sensibles y los datos relacionados con su historia laboral, académica, familiar, de contacto, biométrica, de seguridad social y aquellos que se generen con ocasión de la ejecución del presente contrato de trabajo.</p>
-
-<p>El tratamiento de los datos personales tendrá como finalidades, entre otras, las siguientes:</p>
-
-<ol>
-<li>Dar cumplimiento a las obligaciones legales, contractuales y reglamentarias derivadas de la relación laboral.</li>
-<li>La administración del talento humano, nómina, seguridad social, bienestar laboral y prevención de riesgos.</li>
-<li>El cumplimiento de obligaciones ante autoridades administrativas, judiciales y de control.</li>
-<li>La gestión de procesos disciplinarios, evaluaciones de desempeño y control interno.</li>
-<li>El cumplimiento de políticas internas y del Reglamento Interno de Trabajo.</li>
-<li>Y cualquier otra finalidad legítima relacionada directa o indirectamente con la relación laboral.</li>
-</ol>
-
-<p>El Trabajador(a) declara conocer que sus datos personales serán tratados conforme a lo dispuesto en la Ley 1581 de 2012, el Decreto 1377 de 2013 y demás normas concordantes, así como de acuerdo con la Política de Tratamiento de Datos Personales que pudiesen tener la empresa, la cual se encuentra a su disposición para consulta permanente.</p>
-
-<p>Así mismo, el Trabajador (a) reconoce que le asisten los derechos de conocer, actualizar, rectificar, suprimir sus datos personales y revocar la presente autorización, cuando ello sea procedente, mediante solicitud dirigida al EMPLEADOR, de conformidad con el procedimiento establecido en la normativa vigente y ante la autoridad competente, esto es, la Superintendencia de Industria y Comercio.</p>
-
-<p>La presente autorización permanecerá vigente durante la ejecución del contrato de trabajo y con posterioridad a su terminación, por el tiempo necesario para el cumplimiento de obligaciones legales, contractuales, contables, laborales, de seguridad social y de archivo.</p>
-
-<p class="clausula"><span class="clausula-titulo">VIGÉSIMA QUINTA: CONOCIMIENTO Y ACTUALIZACIÓN DE POLÍTICAS.</span> El (La) Trabajador(a) de manera libre y espontánea declara que conoce y entiende la totalidad de las políticas/procedimientos que debe tener en cuenta para la correcta ejecución de sus funciones, los cuales ya han sido dados a conocer al (a la) Trabajador(a).</p>
-
-<p><strong>PARÁGRAFO PRIMERO:</strong> Las Partes de común acuerdo disponen que el (la) Trabajador(a) se obliga a cumplir la totalidad de los procedimientos antes mencionados y a actualizar constantemente su conocimiento de las disposiciones contenidas en tales documentos de acuerdo con las modificaciones o adiciones que sean realizadas y así mismo a investigar, enterarse y mantenerse actualizado de otros procedimientos, políticas y normas que se tienen establecidos o se establezcan en el futuro y resulten aplicables a la ejecución de sus funciones.</p>
-
-<p><strong>PARÁGRAFO SEGUNDO:</strong> Las Partes de común acuerdo disponen que el (la) Trabajador(a), en el caso de desempeñarse como jefe o persona que tiene a su cargo otros empleados, se obliga a propender porque sus subordinados se mantengan informados y actualizados sobre las normas, procedimientos y políticas del Empleador.</p>
-
-<p class="clausula"><span class="clausula-titulo">VIGÉSIMA SEXTA: AUTORIZACIÓN DE DESCUENTO.</span> El (La) Trabajador(a) autoriza a la Empresa para que, realice las deducciones o descuentos de sus acreencias laborales, por los conceptos y en la forma que establezca el artículo 150 del C. S. T., modificado por el artículo 22 de la ley 1911 de 2018.</p>
-
-<p><strong>PARÁGRAFO PRIMERO:</strong> El (La) Trabajador(a) podrá autorizar por escrito las deducciones o descuentos de sus acreencias laborales, conforme a lo consagrado en el artículo 151 del C. S. T., modificado por el artículo 19 de la ley 1429 de 2010.</p>
-
-<p><strong>PARÁGRAFO SEGUNDO:</strong> El (La) Trabajador(a) podrá autorizar por escrito a la Empresa para que, a la terminación del presente contrato, de las prestaciones sociales que le correspondan y cualquier suma adicional a su favor, deduzca el valor de las obligaciones o valores a su cargo y a favor de la Empresa por cualquier concepto.</p>
-
-<p><strong>PARÁGRAFO TERCERO:</strong> El (La) Trabajador(a) acepta desde ahora que si a la finalización del presente contrato de trabajo al Empleador se le presentaren circunstancias que le impidieren efectuar oportunamente la liquidación del contrato, el Empleador dispondrá de quince (15) días hábiles contados desde la aludida terminación, para tales efectos.</p>
-
-<p class="clausula"><span class="clausula-titulo">VIGÉSIMA SÉPTIMA: EXÁMENES MÉDICOS.</span> El (La) Trabajador(a) se someterá a la práctica de los exámenes médicos o sanitarios o pruebas de laboratorio que el Empleador exija en cualquier momento y se obliga a suministrar los documentos que con ocasión de la relación laboral ésta le exija.</p>
-
-<p><strong>PARÁGRAFO:</strong> En caso de que el (la) Trabajador(a) se niegue a practicar antes mencionados exámenes médicos o pruebas de laboratorio a solicitud del Empleador, constituye falta grave y será meritoria de la terminación del contrato de trabajo con justa causa.</p>
-
-<p class="clausula"><span class="clausula-titulo">VIGÉSIMA OCTAVA: MODIFICACIÓN DE LAS CONDICIONES LABORALES.</span> El (La) Trabajador(a) acepta desde ahora expresamente todas las modificaciones de sus condiciones laborales determinadas por el Empleador en ejercicio de su poder subordinante, tales como jornadas de trabajo, el lugar de prestación de servicio, el cargo u oficio y/o funciones y la forma de remuneración, siempre que tales modificaciones no afecten su honor, dignidad o sus derechos mínimos, ni impliquen desmejoras sustanciales o graves perjuicios para él, de conformidad con lo dispuesto por el Art. 23 del C.S.T. modificado por el artículo 1 de la Ley 50 de 1990.</p>
-
-<p class="clausula"><span class="clausula-titulo">VIGÉSIMA NOVENA: NORMATIVIDAD.</span> Las Partes, conforme lo aceptan en este contrato, se someterán a todo lo estatuido en el C.S.T. y demás normas sobre derechos, obligaciones y prohibiciones emanados del contrato de trabajo.</p>
-
-<p class="clausula"><span class="clausula-titulo">TRIGÉSIMA: EFECTOS.</span> El presente contrato reemplaza en su integridad y deja sin efecto cualquier otro contrato, acuerdo u oferta, verbal o escrito, celebrado entre las Partes con anterioridad, pudiendo las Partes convenir por escrito modificaciones al mismo, las que formarán parte integrante de este contrato.</p>
-
-<p class="clausula"><span class="clausula-titulo">TRIGÉSIMA PRIMERA: VIGENCIA.</span> Las Partes acuerdan que el presente contrato deja sin efectos cualquier acuerdo verbal o escrito celebrado entre las partes con anterioridad en cuanto le resulte contrario.</p>
-
-<p>Para constancia de lo anterior se firma por las partes en {{ $lugarContratacion }}, el día {{ $fechaFirma }}.</p>
-
-<table class="firma">
-    <tr>
-        <td>
-            {{ $nombreEmpresa }}<br>
-            NIT. {{ $nit }}<br>
-            {{ $representanteLegal }}<br>
-            REPRESENTANTE LEGAL
-        </td>
-        <td>
-            {{ $nombreTrabajador }}<br>
-            {{ ucfirst($tipoDocumentoLabel) }} No. {{ $numeroDocumento }}
-        </td>
-    </tr>
-</table>
-
-@isset($empresa)
+    {{-- ===================== PORTADA ===================== --}}
+    <div class="portada">
+        <img src="{{ $icono('portada') }}" alt="">
+        <h1>Contrato de Trabajo por Obra o Labor Determinada</h1>
+    </div>
+
+    {{-- ===================== INFORMACIÓN GENERAL ===================== --}}
+    <p class="seccion-titulo">Información general del contrato</p>
+    <table class="tabla-datos">
+        <tr><td class="label">Empleador</td><td>{{ $nombreEmpresa }} &middot; NIT. {{ $nit }}</td></tr>
+        <tr><td class="label">Trabajador(a)</td><td>{{ $nombreTrabajador }}</td></tr>
+        <tr><td class="label">N.&ordm; de identificación</td><td>{{ ucfirst($tipoDocumentoLabel) }} N.&ordm; {{ $numeroDocumento }}</td></tr>
+        <tr><td class="label">Dirección</td><td>{{ $direccionTrabajador ?: 'No registrada' }}</td></tr>
+        <tr><td class="label">Teléfono</td><td>{{ $telefonoTrabajador ?: 'No registrado' }}</td></tr>
+        <tr><td class="label">Correo electrónico</td><td>{{ $emailTrabajador ?: 'No registrado' }}</td></tr>
+        <tr><td class="label">Cargo</td><td>{{ $cargo }}</td></tr>
+        <tr><td class="label">Salario mensual</td><td>$ {{ $salarioFormateado }} COP ({{ $salarioEnLetras }})</td></tr>
+        <tr><td class="label">Lugar de trabajo</td><td>{{ $lugarLabores }}</td></tr>
+        <tr><td class="label">Obra o labor contratada</td><td>{{ $descripcionObraLabor }}</td></tr>
+        <tr><td class="label">Fecha de inicio</td><td>{{ $fechaInicio }}</td></tr>
+    </table>
+
+    {{-- ===================== CÓMO LEER ESTE DOCUMENTO ===================== --}}
+    <p class="seccion-titulo">Cómo leer este documento</p>
+    <p>Para que el contrato sea fácil de entender, usamos dos tipos de recuadros de color a lo largo del documento:</p>
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>Así explicamos, en lenguaje cotidiano, de qué trata cada sección del contrato.</p>
+    </div>
+    <div class="caja caja--importante">
+        <p class="caja-titulo"><img src="{{ $icono('callout-importante') }}" alt="">Importante</p>
+        <p>Advertencias sobre consecuencias legales que debes tener muy presentes.</p>
+    </div>
+
+    {{-- ===================== MAPA DEL CONTRATO ===================== --}}
+    <p class="seccion-titulo">Mapa del contrato</p>
+    <p>Así está organizado este contrato. Puedes ir directo a la sección que necesites.</p>
+    <table class="tabla-mapa">
+        <tr>
+            <td><a class="mapa-link" href="#parte-01"><img src="{{ $icono('parte-01') }}" alt=""><span class="mapa-texto"><strong>1.</strong> Quiénes firman y qué normas rigen este contrato.</span></a></td>
+            <td><a class="mapa-link" href="#parte-02"><img src="{{ $icono('parte-02') }}" alt=""><span class="mapa-texto"><strong>2.</strong> Cómo y dónde te notifica la empresa.</span></a></td>
+        </tr>
+        <tr>
+            <td><a class="mapa-link" href="#parte-03"><img src="{{ $icono('parte-03') }}" alt=""><span class="mapa-texto"><strong>3.</strong> Qué se espera de ti en el día a día.</span></a></td>
+            <td><a class="mapa-link" href="#parte-04"><img src="{{ $icono('parte-04') }}" alt=""><span class="mapa-texto"><strong>4.</strong> Cuánto y cómo te pagan.</span></a></td>
+        </tr>
+        <tr>
+            <td><a class="mapa-link" href="#parte-05"><img src="{{ $icono('parte-05') }}" alt=""><span class="mapa-texto"><strong>5.</strong> Horarios, horas extra y turnos.</span></a></td>
+            <td><a class="mapa-link" href="#parte-06"><img src="{{ $icono('parte-06') }}" alt=""><span class="mapa-texto"><strong>6.</strong> Tu día de descanso y los recargos.</span></a></td>
+        </tr>
+        <tr>
+            <td><a class="mapa-link" href="#parte-07"><img src="{{ $icono('parte-07') }}" alt=""><span class="mapa-texto"><strong>7.</strong> Cuánto dura la obra o labor y tu período de prueba.</span></a></td>
+            <td><a class="mapa-link" href="#parte-08"><img src="{{ $icono('parte-08') }}" alt=""><span class="mapa-texto"><strong>8.</strong> Justas causas y faltas graves.</span></a></td>
+        </tr>
+        <tr>
+            <td><a class="mapa-link" href="#parte-09"><img src="{{ $icono('parte-09') }}" alt=""><span class="mapa-texto"><strong>9.</strong> Qué pasa si te enfermas.</span></a></td>
+            <td><a class="mapa-link" href="#parte-10"><img src="{{ $icono('parte-10') }}" alt=""><span class="mapa-texto"><strong>10.</strong> La reserva de la información de la empresa.</span></a></td>
+        </tr>
+        <tr>
+            <td><a class="mapa-link" href="#parte-11"><img src="{{ $icono('parte-11') }}" alt=""><span class="mapa-texto"><strong>11.</strong> Lo que creas en tu trabajo y el uso de tu imagen.</span></a></td>
+            <td><a class="mapa-link" href="#parte-12"><img src="{{ $icono('parte-12') }}" alt=""><span class="mapa-texto"><strong>12.</strong> Los equipos que te entrega la empresa.</span></a></td>
+        </tr>
+        <tr>
+            <td><a class="mapa-link" href="#parte-13"><img src="{{ $icono('parte-13') }}" alt=""><span class="mapa-texto"><strong>13.</strong> Cómo se usan tus datos personales.</span></a></td>
+            <td><a class="mapa-link" href="#parte-14"><img src="{{ $icono('parte-14') }}" alt=""><span class="mapa-texto"><strong>14.</strong> Capacitación y ajustes en tus condiciones.</span></a></td>
+        </tr>
+        <tr>
+            <td><a class="mapa-link" href="#parte-15"><img src="{{ $icono('parte-15') }}" alt=""><span class="mapa-texto"><strong>15.</strong> Qué se te puede descontar del salario.</span></a></td>
+            <td><a class="mapa-link" href="#parte-16"><img src="{{ $icono('parte-16') }}" alt=""><span class="mapa-texto"><strong>16.</strong> Vigencia y modificaciones del contrato.</span></a></td>
+        </tr>
+        <tr>
+            <td><a class="mapa-link" href="#parte-17"><img src="{{ $icono('parte-17') }}" alt=""><span class="mapa-texto"><strong>17.</strong> El cierre formal del contrato.</span></a></td>
+            <td></td>
+        </tr>
+    </table>
+
+    @php
+        $parteHeader = function ($n, $titulo) use ($icono) {
+            $numero = str_pad((string) $n, 2, '0', STR_PAD_LEFT);
+            return '<table id="parte-' . $numero . '" class="parte-header avoid-break"><tr>'
+                . '<td class="parte-icono-td"><img src="' . e($icono('parte-' . $numero . '-white')) . '" alt=""></td>'
+                . '<td><span class="parte-eyebrow">PARTE ' . $numero . ' &middot;</span><span class="parte-titulo">' . e($titulo) . '</span></td>'
+                . '</tr></table>';
+        };
+    @endphp
+
+    {{-- ===================== PARTE 01 · Las partes y la ley aplicable ===================== --}}
+    {!! $parteHeader(1, 'Las partes y la ley aplicable') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>Este contrato es un acuerdo entre la empresa (el Empleador) y tú (el Trabajador o Trabajadora). Al firmarlo, ambas partes se comprometen a cumplir lo pactado, dentro del marco de la ley laboral colombiana.</p>
+    </div>
+    <p>Entre los suscritos, {{ $nombreEmpresa }}, identificada con Nit. {{ $nit }}, representada legalmente
+        por {{ $representanteLegal }}@if ($representanteLegalCedula), identificado(a) con cédula de ciudadanía No. {{ $representanteLegalCedula }}@endif
+        (en adelante &ldquo;el Empleador&rdquo;), y {{ $nombreTrabajador }}, identificado(a) con {{ $tipoDocumentoLabel }}
+        No. {{ $numeroDocumento }} (en adelante &ldquo;el Trabajador&rdquo;), acuerdan celebrar este contrato individual de trabajo.</p>
+    <p>&bull; Anexo No.1: Manual de funciones y responsabilidades del cargo {{ $cargo }}.</p>
+    @if ($objetoJuridico)
+        <p>{!! $objetoJuridico !!}</p>
+    @endif
+    <p><strong>¿Qué ley rige este contrato?</strong></p>
+    <p>Este contrato se rige por la legislación colombiana, principalmente por el Código Sustantivo del Trabajo (CST) y sus normas complementarias — incluida la Ley 2466 de 2025 (Reforma Laboral) —, por aplicarse el principio de territorialidad: la relación laboral se forma, se ejecuta y termina en Colombia.</p>
+
+    {{-- ===================== PARTE 02 · Datos de contacto ===================== --}}
+    {!! $parteHeader(2, 'Datos de contacto') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>La dirección, el correo y el teléfono que diste al firmar este contrato son el medio oficial de contacto. Si cambian, debes avisarle a la empresa por escrito; si no lo haces, cualquier notificación enviada a tus datos registrados se considerará válida de todas formas.</p>
+    </div>
+    <p><strong>Tus datos de contacto</strong></p>
+    <p>La dirección registrada en la carátula de este contrato se entiende como tu residencia actual y tu domicilio legal para todos los efectos del contrato.</p>
+    <p>Debes informar por escrito cualquier cambio de dirección, correo electrónico o número de WhatsApp. Si no lo haces, las notificaciones enviadas a los datos que sí están registrados producirán todos sus efectos legales.</p>
+    <p>Toda comunicación de la empresa relacionada con la ejecución o la terminación del contrato es válida si se envía a tu última dirección, correo o WhatsApp registrado, o si te la entregan en persona dejando constancia con tu firma (art. 65 CST, modificado por el art. 29 de la Ley 789/2002).</p>
+    <p><strong>Manejo reservado de tu información</strong></p>
+    <p>Toda tu información personal se maneja de forma reservada. Sin embargo, al firmar autorizas expresamente a la empresa a compartir los datos de tu hoja de vida con entidades con las que tenga un interés legítimo, y a transferirlos a entidades de la Administración Pública cuando la ley lo permita.</p>
+    <p>Debes avisar de inmediato cualquier cambio en tu estado civil, domicilio, número de hijos menores u otra circunstancia que afecte tus aportes a seguridad social. No informar estos cambios se considera falta grave, y la empresa no responderá por las consecuencias de tener tus datos desactualizados.</p>
+    <div class="caja caja--importante">
+        <p class="caja-titulo"><img src="{{ $icono('callout-importante') }}" alt="">Importante</p>
+        <p>Mantén siempre actualizados tu dirección, correo y celular. Una notificación legal se dará por válida aunque no la hayas recibido realmente, si fue enviada a los datos que la empresa tiene registrados.</p>
+    </div>
+
+    {{-- ===================== PARTE 03 · Tu cargo y obligaciones ===================== --}}
+    {!! $parteHeader(3, 'Tu cargo y obligaciones') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>Fuiste contratado(a) para el cargo indicado en la carátula del contrato y en el manual de funciones (Anexo No. 1). A cambio de tu salario, pones tu capacidad de trabajo al servicio exclusivo de la empresa y cumples tus funciones con responsabilidad, lealtad y cuidado.</p>
+    </div>
+    <div class="bloque-bullets">
+        <p class="bloque-bullets-titulo">Tu trabajo y dedicación</p>
+        <ul>
+            <li>Dedicar tu jornada y tu capacidad normal de trabajo a las funciones de tu cargo (manual de funciones — Anexo No. 1) y a las labores relacionadas, siguiendo las instrucciones de la empresa.</li>
+            <li>Prestar tus servicios de forma exclusiva: mientras dure este contrato no puedes trabajar para otro empleador ni por cuenta propia en el mismo oficio.</li>
+            <li>Asistir puntualmente a tu jornada, a las reuniones y a las capacitaciones o inducciones a las que te citen.</li>
+            <li>Aceptar traslados dentro de las sedes de la empresa en el territorio nacional y cumplir comisiones de servicio cuando se requiera.</li>
+            <li>Aceptar los ajustes razonables en tus condiciones laborales (jornada, lugar, funciones o forma de pago) que la empresa determine en ejercicio de su facultad de dirección, siempre que no afecten tu honor o dignidad ni impliquen una desmejora grave (art. 23 CST, modificado por el art. 1 de la Ley 50/1990).</li>
+        </ul>
+    </div>
+    <div class="bloque-bullets">
+        <p class="bloque-bullets-titulo">Cuidado de los bienes y recursos de la empresa</p>
+        <ul>
+            <li>Conservar y devolver en buen estado los equipos, herramientas, vehículos y demás elementos que te entreguen para trabajar (el deterioro normal por el uso no es tu responsabilidad).</li>
+            <li>Usarlos solo para los fines del trabajo, y usar únicamente el software autorizado por la empresa: instalar programas no autorizados o sin licencia te hace responsable de los perjuicios que se ocasionen.</li>
+            <li>No compartir tus usuarios y contraseñas de acceso, ni facilitarlos a compañeros o terceros.</li>
+            <li>Manejar con cuidado el dinero, los documentos y la información que se te confíen, y rendir cuentas claras de su manejo.</li>
+        </ul>
+    </div>
+    <div class="bloque-bullets">
+        <p class="bloque-bullets-titulo">Información, reserva y conflictos de interés</p>
+        <ul>
+            <li>Guardar reserva de la información sensible a la que tengas acceso por tu cargo, incluso después de terminado el contrato (ver la sección &ldquo;Confidencialidad&rdquo; de este documento).</li>
+            <li>Avisar oportunamente sobre irregularidades, conflictos de interés, o gastos e inversiones que no tengan relación con la actividad de la empresa.</li>
+        </ul>
+    </div>
+    <div class="bloque-bullets">
+        <p class="bloque-bullets-titulo">Conducta, seguridad y bienestar</p>
+        <ul>
+            <li>Cumplir el reglamento interno de trabajo, las políticas de la empresa y las normas de seguridad y salud en el trabajo.</li>
+            <li>Mantener un trato respetuoso con tus jefes, compañeros, clientes y terceros, dentro y fuera del lugar de trabajo.</li>
+            <li>No presentarte a trabajar bajo efectos de alcohol o sustancias psicoactivas, y realizarte las pruebas que la empresa o las autoridades te soliciten sobre este tema.</li>
+            <li>Cumplir la normativa aplicable a tu labor, incluyendo, si tu cargo lo requiere, las disposiciones sobre prevención de lavado de activos y financiación del terrorismo (SARLAFT).</li>
+        </ul>
+    </div>
+    <div class="caja caja--nota">
+        <p class="caja-titulo"><img src="{{ $icono('callout-nota') }}" alt="">Nota</p>
+        <p>Este documento organiza tus obligaciones por temas para que sean más fáciles de entender. El listado de faltas y sanciones disciplinarias completo vigente se encuentra en el reglamento interno de trabajo.</p>
+    </div>
+    <p><strong>Dos precisiones importantes</strong></p>
+    <p>Si la empresa te pide prestar tus servicios a otra sociedad de su mismo grupo empresarial (filiales, matrices o subordinadas), esto no crea un contrato de trabajo distinto: para todos los efectos legales, tu único empleador sigue siendo la empresa que firma este contrato.</p>
+    <p>Exigirte el cumplimiento de las obligaciones de este contrato no constituye, por sí solo, acoso laboral (Ley 1010 de 2006, artículo 8, literal i).</p>
+
+    {{-- ===================== PARTE 04 · Salario ===================== --}}
+    {!! $parteHeader(4, 'Salario') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>Recibes un salario mensual fijo, que ya incluye el pago de tus descansos dominicales y festivos. Te pagan {{ $periodoPagoFrase }}, por consignación o transferencia a tu cuenta bancaria.</p>
+    </div>
+    <p>Tu salario mensual es de ${{ $salarioFormateado }} COP ({{ $salarioEnLetras }}), como contraprestación por tus servicios.</p>
+    <p>Se paga por períodos vencidos de {{ $periodoPagoFrase }}, en {{ $lugarContratacion }}, mediante consignación o transferencia electrónica a la cuenta bancaria que indiques.</p>
+    <p>Dentro de este pago ya está incluida la remuneración de los descansos dominicales y festivos (Título VII, Capítulos I, II y III del CST).</p>
+    <p>Si la empresa te reconoce beneficios extralegales distintos al salario (por ejemplo, alimentación, vivienda, transporte o vestuario), estos no se consideran salario y no se tienen en cuenta para liquidar tus prestaciones ni para el pago de aportes parafiscales, conforme a los artículos 15 y 16 de la Ley 50 de 1990 y el artículo 17 de la Ley 344 de 1996.</p>
+
+    {{-- ===================== PARTE 05 · Jornada de trabajo ===================== --}}
+    {!! $parteHeader(5, 'Jornada de trabajo') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>Trabajas la jornada máxima legal, salvo que se pacte algo distinto por escrito. La empresa puede definir y ajustar tus turnos y horarios, y las horas extra o el trabajo en días de descanso solo se reconocen si fueron autorizados previamente por escrito.</p>
+    </div>
+    <p><strong>Cómo se organiza tu jornada</strong></p>
+    <p>Trabajas la jornada máxima legal (42 horas semanales), salvo que se pacte expresamente algo distinto por escrito, cumpliendo los turnos y horarios que defina la empresa, quien puede ajustarlos cuando lo considere conveniente.</p>
+    <p>Las horas de la jornada ordinaria pueden repartirse total o parcialmente durante el día (art. 164 CST, modificado por el art. 23 de la Ley 50/1990); los descansos entre secciones de la jornada no se cuentan como tiempo trabajado (art. 167 CST).</p>
+    <p>También puedes acordar con la empresa prestar el servicio en turnos de jornada flexible, conforme al artículo 51 de la Ley 789 de 2002.</p>
+    <p><strong>Jornada flexible especial</strong></p>
+    <p>La empresa y tú pueden acordar distribuir tu jornada semanal en jornadas diarias flexibles, repartidas en máximo 6 días con un día de descanso obligatorio (que puede coincidir con el {{ $diaDescansoObligatorio }}). Bajo este esquema:</p>
+    <p>Tu jornada diaria puede variar entre un mínimo de 4 horas continuas y un máximo de 9 horas, sin que se generen recargos por trabajo suplementario, siempre que no superes el promedio semanal.</p>
+    <p>Esto solo aplica dentro de la franja horaria de 6:00 a.m. a 10:00 p.m.</p>
+    <p>Aunque tú lo aceptes, la empresa no puede contratarte para cumplir dos turnos el mismo día, salvo en labores de supervisión, dirección, confianza o manejo.</p>
+    <p><strong>Horas extra, trabajo nocturno, dominical o festivo</strong></p>
+    <p>Para que la empresa te reconozca y pague trabajo suplementario (horas extra), nocturno, dominical o festivo, este debe haber sido autorizado previamente y por escrito. Si la necesidad surge de manera imprevista, debes informarlo por escrito a la mayor brevedad para su aprobación. Si el trabajo no fue autorizado o avisado y aprobado como se explica aquí, la empresa no está obligada a reconocerlo.</p>
+
+    {{-- ===================== PARTE 06 · Descanso y recargos ===================== --}}
+    {!! $parteHeader(6, 'Descanso y recargos') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>Tu día de descanso obligatorio es el {{ $diaDescansoObligatorio }}. Si trabajas ese día o en un festivo, la empresa debe pagarte el recargo correspondiente.</p>
+    </div>
+    <p>De común acuerdo, y conforme al parágrafo 1&ordm; del artículo 179 del CST (modificado por la Ley 2466 de 2025), se pacta el {{ $diaDescansoObligatorio }} como tu día de descanso obligatorio.</p>
+    <p>Si llegas a trabajar en tu día de descanso obligatorio, la empresa te reconocerá y pagará los recargos correspondientes, aplicables en los mismos términos que para el trabajo dominical, de conformidad con la normativa vigente.</p>
+
+    {{-- ===================== PARTE 07 · Duración y período de prueba ===================== --}}
+    {{-- Único bloque que difiere de Término Fijo: la duración no es una
+         fecha fija sino "hasta que termine la obra o labor contratada". El
+         detalle exacto de duración/terminación para este contrato en
+         particular lo redacta la IA en $duracionTerminacionRedactada (HTML
+         crudo con su propio título de cláusula "NOVENA:"/"DÉCIMA:" ya
+         incluido) - se inserta tal cual, sin envolverlo en un título nuevo
+         para no duplicarlo (mismo comportamiento que tenía la plantilla
+         literal). --}}
+    {!! $parteHeader(7, 'Duración y período de prueba') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>Este contrato no tiene una fecha de finalización fija: dura hasta que termine la obra o labor específica para la que fuiste contratado(a), descrita en la carátula de este documento. Al iniciar, hay un período de prueba en el que cualquiera de las partes puede terminar el contrato sin indemnización.</p>
+    </div>
+    <table class="tabla-datos">
+        <tr><td class="label">Duración</td><td>Hasta que finalice la obra o labor descrita: <strong>{{ $descripcionObraLabor }}</strong>.</td></tr>
+        <tr><td class="label">Período de prueba</td><td>Equivale a la quinta parte de la duración estimada del contrato, contada desde que empiezas a trabajar.</td></tr>
+        <tr><td class="label">Durante el período de prueba</td><td>Cualquiera de las partes puede terminar el contrato en cualquier momento, sin previo aviso ni indemnización. Aun así, tienes derecho a todas las prestaciones que la ley determine a tu favor.</td></tr>
+    </table>
+    {!! $duracionTerminacionRedactada !!}
+
+    <div class="page-break"></div>
+
+    {{-- ===================== PARTE 08 · Terminación ===================== --}}
+    {!! $parteHeader(8, 'Terminación') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>El contrato puede terminar por las justas causas que señala la ley, el reglamento interno o este contrato. Antes de sancionarte, la empresa debe seguir un procedimiento que garantice tu derecho a ser escuchado(a) y a defenderte.</p>
+    </div>
+    <p>Son justas causas para terminar unilateralmente este contrato las señaladas en los artículos 62 y 63 del CST, las que se califiquen como faltas graves en el reglamento interno de trabajo y demás documentos normativos de la empresa, pactos o convenciones colectivas, y las que se detallan a continuación, agrupadas por tema:</p>
+    <div class="bloque-bullets">
+        <p class="bloque-bullets-titulo">Seguridad y sustancias</p>
+        <ul>
+            <li>Presentarte al trabajo bajo efectos de bebidas embriagantes, drogas alucinógenas o similares, o consumirlas en el lugar de trabajo.</li>
+            <li>Presentarte o permanecer en la empresa portando armas, salvo que tu cargo te faculte para ello.</li>
+        </ul>
+    </div>
+    <div class="bloque-bullets">
+        <p class="bloque-bullets-titulo">Asistencia y disciplina</p>
+        <ul>
+            <li>No justificar tu inasistencia al trabajo o abandonar tus labores sin autorización de tu superior.</li>
+            <li>Llegar tarde (hasta 15 minutos) sin excusa, por tercera vez.</li>
+            <li>Cometer actos de violencia, injuria o irrespeto injustificado contra tus superiores, compañeros o terceros, dentro o fuera de la empresa.</li>
+        </ul>
+    </div>
+    <div class="bloque-bullets">
+        <p class="bloque-bullets-titulo">Manejo de dinero, bienes y documentos</p>
+        <ul>
+            <li>Generar faltantes o descuadres de dinero, o perder, extraviar o deteriorar documentos bajo tu responsabilidad.</li>
+            <li>Cobrar subsidios o beneficios a los que no tienes derecho.</li>
+            <li>Presentar cuentas de gastos ficticias o reportar como cumplidas tareas o visitas que no realizaste.</li>
+            <li>Autorizar o ejecutar, sin ser tu competencia, operaciones que afecten los intereses de la empresa.</li>
+        </ul>
+    </div>
+    <div class="bloque-bullets">
+        <p class="bloque-bullets-titulo">Información y confidencialidad</p>
+        <ul>
+            <li>Violar la reserva de información confidencial que conozcas por tu cargo.</li>
+            <li>Usar información privilegiada para tu beneficio o el de un tercero.</li>
+            <li>Facilitar tu usuario y contraseña a compañeros o terceros para acceder a recursos informáticos.</li>
+            <li>Dar datos falsos al ingresar a la empresa, o consignar datos inexactos en informes internos.</li>
+        </ul>
+    </div>
+    <div class="bloque-bullets">
+        <p class="bloque-bullets-titulo">Abuso de posición y ética</p>
+        <ul>
+            <li>Aceptar o solicitar dádivas o beneficios de clientes, proveedores o terceros a cambio de tratamientos especiales.</li>
+            <li>Solicitar u obtener concesiones de empleados bajo tu mando, aprovechando tu posición.</li>
+        </ul>
+    </div>
+    <div class="bloque-bullets">
+        <p class="bloque-bullets-titulo">Incumplimiento general</p>
+        <ul>
+            <li>Violar las obligaciones y prohibiciones establecidas en la ley, el reglamento interno, este contrato, el reglamento de higiene y seguridad, y las demás políticas de la empresa.</li>
+            <li>Cualquier acto de negligencia, descuido u omisión grave en el ejercicio de tus funciones.</li>
+        </ul>
+    </div>
+    @if (($faltasGravesOrigen ?? null) === 'rit')
+        <div class="bloque-bullets">
+            <p class="bloque-bullets-titulo">Faltas graves adicionales según el Reglamento Interno de Trabajo de {{ $nombreEmpresa }}</p>
+            <ul>
+                @foreach (($faltasGravesGrave ?? []) as $conducta)
+                    <li>{{ $conducta }}</li>
+                @endforeach
+                @foreach (($faltasGravesGravisima ?? []) as $conducta)
+                    <li>{{ $conducta }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+    <div class="caja caja--importante">
+        <p class="caja-titulo"><img src="{{ $icono('callout-derecho') }}" alt="">Tu derecho a ser escuchado(a)</p>
+        <p>Antes de imponerte una sanción disciplinaria, la empresa debe seguir el procedimiento legal: informarte por escrito los hechos que se investigan, mostrarte las pruebas en las que se basa, y darte la oportunidad real de defenderte y controvertirlas, respetando principios como la presunción de inocencia, la proporcionalidad y la imparcialidad.</p>
+    </div>
+    <p>Además, eres responsable del dinero, los documentos, los recursos informáticos y la información que recibas o manejes por razón de tu cargo, sin poder disponer de ellos en tu beneficio ni en el de terceros, y debes rendir cuentas claras de su manejo a la empresa.</p>
+
+    {{-- ===================== PARTE 09 · Incapacidades y exámenes médicos ===================== --}}
+    {!! $parteHeader(9, 'Incapacidades y exámenes médicos') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>Si te enfermas o tienes un accidente, tu incapacidad debe estar certificada por tu EPS o tu ARL. La empresa también puede pedirte exámenes médicos cuando lo considere necesario.</p>
+    </div>
+    <p>Solo se aceptan como válidas las incapacidades por enfermedad común, enfermedad profesional o accidente, certificadas o avaladas por la EPS o la ARL a la que estás afiliado(a).</p>
+    <p>La empresa puede exigirte, en cualquier momento, la práctica de exámenes médicos, sanitarios o pruebas de laboratorio, y debes suministrar los documentos que la relación laboral requiera.</p>
+    <div class="caja caja--importante">
+        <p class="caja-titulo"><img src="{{ $icono('callout-importante') }}" alt="">Importante</p>
+        <p>Negarte a practicarte los exámenes médicos o pruebas de laboratorio que la empresa te solicite se considera falta grave y puede ser causal de terminación del contrato con justa causa.</p>
+    </div>
+
+    {{-- ===================== PARTE 10 · Confidencialidad ===================== --}}
+    {!! $parteHeader(10, 'Confidencialidad') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>La información del negocio que conozcas por tu cargo es confidencial. No puedes usarla ni compartirla, ni mientras dure el contrato ni después de que termine.</p>
+    </div>
+    <p>No puedes revelar, vender, copiar, ni usar en tu beneficio o el de terceros la información confidencial o privilegiada de la empresa, de sus filiales, socios, clientes o terceros relacionados, a la que accedas por razón de tu cargo.</p>
+    <p>Se considera confidencial cualquier información, documento o procedimiento de la empresa que no sea de conocimiento público, en especial la relacionada con operaciones, transacciones o negocios sensibles para su operación.</p>
+    <p>Esta obligación continúa después de terminado el contrato, sin límite de tiempo.</p>
+    <p>Al terminar el contrato, por cualquier causa, debes devolver de inmediato cualquier documento, información o elemento que te hayan entregado para el cumplimiento de tus funciones.</p>
+    <div class="caja caja--importante">
+        <p class="caja-titulo"><img src="{{ $icono('callout-importante') }}" alt="">Importante</p>
+        <p>Incumplir esta cláusula se considera falta grave y justa causa de terminación del contrato (Decreto 2351 de 1965, art. 7, literal a, numeral 6, en concordancia con el numeral 1 del art. 58 del CST), sin perjuicio de las acciones civiles o penales que la empresa o terceros puedan iniciar.</p>
+    </div>
+
+    {{-- ===================== PARTE 11 · Propiedad intelectual ===================== --}}
+    {!! $parteHeader(11, 'Propiedad intelectual') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>Las obras, invenciones o desarrollos que crees en tu trabajo (o usando recursos de la empresa) le pertenecen a la empresa. Tu salario ya incluye la remuneración por esta cesión.</p>
+    </div>
+    <p><strong>Derechos de autor</strong></p>
+    <p>Cedes a la empresa los derechos patrimoniales de autor sobre las obras que crees en cumplimiento de tus funciones, usando herramientas o materias primas de la empresa, o con ayuda de compañeros o terceros vinculados a ella.</p>
+    <p>La empresa puede registrar esas obras y explotarlas comercialmente (reproducirlas, transformarlas, adaptarlas, distribuirlas, comunicarlas públicamente, etc.), respetando siempre tus derechos morales de autor, que son tuyos y no se pueden ceder.</p>
+    <p>Te comprometes a firmar los documentos necesarios para formalizar esta cesión, sin que la empresa deba pagarte una compensación adicional.</p>
+    <p><strong>Propiedad industrial</strong></p>
+    <p>Los resultados de tu trabajo que puedan protegerse como propiedad industrial (patentes, modelos de utilidad, diseños industriales, secretos comerciales, entre otros) pertenecen a la empresa.</p>
+    <p>Debes colaborar con los trámites y firmar los documentos necesarios para que la empresa obtenga esa protección.</p>
+    <p><strong>Uso de tu imagen</strong></p>
+    <p>Autorizas a la empresa a usar tu imagen con fines publicitarios, por tiempo indefinido y sin costo, cediendo los derechos sobre las fotos o videos tomados para ese propósito.</p>
+    <p>Puedes oponerte por escrito al uso de tu imagen en cualquier momento.</p>
+    <div class="caja caja--nota">
+        <p class="caja-titulo"><img src="{{ $icono('callout-nota') }}" alt="">Nota legal</p>
+        <p>Tanto para los derechos de autor como para la propiedad industrial, la ley entiende que tu salario ya remunera esta cesión, pues los desarrollos surgen en virtud de tu contrato de trabajo (Ley 23 de 1982 y Decisión 486 de 2000 de la CAN, en concordancia con el numeral 1&ordm; del artículo 132 del CST).</p>
+    </div>
+
+    {{-- ===================== PARTE 12 · Herramientas de trabajo ===================== --}}
+    {!! $parteHeader(12, 'Herramientas de trabajo') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>La empresa te entrega lo necesario para trabajar (equipo de cómputo, papelería, entre otros). Están bajo tu cuidado y debes devolverlas en buen estado.</p>
+    </div>
+    <p>La empresa se obliga a proveerte los medios de trabajo necesarios (por ejemplo, equipo de cómputo o papelería).</p>
+    <p>Estas herramientas quedan bajo tu custodia y cuidado. Su pérdida, daño o destrucción es tu responsabilidad, salvo el deterioro normal por el uso.</p>
+    <p>Solo puedes usarlas para las labores relacionadas con tu contrato de trabajo. Darles un uso indebido o no cuidarlas se considera falta grave (Decreto 2351 de 1965, art. 7, literal a, numeral 6, que subrogó el art. 62 del CST).</p>
+    <p>Las herramientas son propiedad de la empresa: debes devolverlas cuando te lo pidan y, en todo caso, al terminar el contrato por cualquier causa.</p>
+    <p>El suministro de estas herramientas no constituye salario ni beneficio legal o extralegal, conforme a los artículos 15 y 16 de la Ley 50 de 1990 y el artículo 17 de la Ley 344 de 1996. Por tratarse de una liberalidad, la empresa puede modificar, adicionar o suprimir este suministro sin que se considere una desmejora de tus condiciones.</p>
+    <div class="caja caja--importante">
+        <p class="caja-titulo"><img src="{{ $icono('callout-importante') }}" alt="">Importante</p>
+        <p>Si pierdes, dañas o no devuelves una herramienta de trabajo, autorizas a la empresa a descontar su valor comercial de las sumas que te adeude: salarios, prestaciones sociales, vacaciones, intereses de cesantía, u otras acreencias a tu favor, ya sea durante el contrato o al momento de su liquidación.</p>
+    </div>
+
+    <div class="page-break"></div>
+
+    {{-- ===================== PARTE 13 · Tratamiento de datos personales ===================== --}}
+    {!! $parteHeader(13, 'Tratamiento de datos personales') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>Autorizas a la empresa a recolectar y usar tus datos personales —incluyendo datos sensibles— para fines relacionados con tu contrato de trabajo, conforme a la Ley 1581 de 2012 (Habeas Data).</p>
+    </div>
+    <p>Autorizas a la empresa a recolectar, almacenar, usar, actualizar y tratar tus datos personales: identificación, contacto, género, estado civil, fecha y lugar de nacimiento, salario, cuenta bancaria, historia laboral y académica, datos biométricos y de seguridad social, entre otros.</p>
+    <p>Estos datos se usan para: cumplir las obligaciones legales y contractuales de tu contrato; administrar tu nómina, seguridad social y bienestar laboral; atender requerimientos de autoridades administrativas o judiciales; adelantar procesos disciplinarios y evaluaciones de desempeño; y cumplir las políticas internas y el reglamento interno de trabajo.</p>
+    <p>Tienes derecho a conocer, actualizar, rectificar y suprimir tus datos personales, y a revocar esta autorización cuando sea procedente, mediante solicitud dirigida a la empresa o ante la Superintendencia de Industria y Comercio.</p>
+    <p>Esta autorización sigue vigente después de terminado el contrato, por el tiempo necesario para cumplir obligaciones legales, contables, laborales o de archivo.</p>
+
+    {{-- ===================== PARTE 14 · Políticas y cambios laborales ===================== --}}
+    {!! $parteHeader(14, 'Políticas y cambios laborales') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>Debes conocer y cumplir las políticas internas de la empresa, asistir a las capacitaciones que te asignen, y aceptar los ajustes razonables que la empresa haga a tus condiciones de trabajo.</p>
+    </div>
+    <p>Te comprometes a recibir y asimilar las capacitaciones que la empresa considere necesarias para tu cargo, para ascensos o promociones, o para cubrir nuevas necesidades del negocio.</p>
+    <p>Declaras conocer y entender las políticas y procedimientos de la empresa relacionados con tus funciones, y te comprometes a mantenerte actualizado(a) sobre ellos, así como a informarte de los nuevos que se establezcan. Si tienes personas a cargo, debes procurar que ellas también estén informadas.</p>
+    <p>Aceptas que la empresa pueda ajustar tu jornada, tu lugar de trabajo, tu cargo o funciones, o tu forma de remuneración, en ejercicio de su facultad de dirección, siempre que esos cambios no afecten tu honor o dignidad ni impliquen una desmejora sustancial o un perjuicio grave para ti (art. 23 CST, modificado por el art. 1&ordm; de la Ley 50 de 1990).</p>
+
+    {{-- ===================== PARTE 15 · Descuentos autorizados ===================== --}}
+    {!! $parteHeader(15, 'Descuentos autorizados') !!}
+    <div class="caja caja--simple">
+        <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
+        <p>Autorizas a la empresa a hacer los descuentos de ley sobre tu salario y prestaciones, y puedes autorizar por escrito otros descuentos adicionales.</p>
+    </div>
+    <p>Autorizas a la empresa a realizar las deducciones o descuentos de tus acreencias laborales permitidos por el artículo 150 del CST (modificado por el art. 22 de la Ley 1911 de 2018).</p>
+    <p>Puedes autorizar por escrito otros descuentos adicionales sobre tus acreencias laborales, conforme al artículo 151 del CST (modificado por el art. 19 de la Ley 1429 de 2010).</p>
+    <p>Al terminar el contrato, puedes autorizar por escrito que se descuenten de tus prestaciones sociales o de cualquier suma a tu favor, los valores que le debas a la empresa por cualquier concepto.</p>
+
+    {{-- ===================== PARTE 16 · Disposiciones finales ===================== --}}
+    {!! $parteHeader(16, 'Disposiciones finales') !!}
+    <p>Este contrato reemplaza en su totalidad, y deja sin efecto, cualquier otro contrato, acuerdo u oferta anterior entre las partes sobre lo mismo, ya sea verbal o escrito.</p>
+    <p>Cualquier modificación futura a este contrato debe hacerse por escrito y formará parte integrante de este documento.</p>
+
+    {{-- ===================== PARTE 17 · Cierre del contrato — Firmas ===================== --}}
+    {!! $parteHeader(17, 'Cierre del contrato — Firmas') !!}
+    <p>Para constancia de lo anterior, se firma por las partes en {{ $lugarContratacion }}, el día {{ $fechaFirma }}.</p>
+    <table class="firma">
+        <tr>
+            <td>
+                <div class="linea"></div>
+                <strong>EL EMPLEADOR</strong><br>
+                {{ $nombreEmpresa }}<br>
+                NIT. {{ $nit }}<br>
+                {{ $representanteLegal }}
+            </td>
+            <td>
+                <div class="linea"></div>
+                <strong>EL TRABAJADOR / LA TRABAJADORA</strong><br>
+                {{ $nombreTrabajador }}<br>
+                {{ ucfirst($tipoDocumentoLabel) }} N.&ordm; {{ $numeroDocumento }}
+            </td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    {{-- ===================== PARTE 18 · Glosario de términos legales ===================== --}}
+    {!! $parteHeader(18, 'Glosario de términos legales') !!}
+    <p>Algunos términos técnicos no se pueden traducir sin perder precisión jurídica. Aquí te los explicamos:</p>
+    <table class="tabla-glosario">
+        <tr><td class="termino">Justa causa</td><td>Motivo válido y reconocido por la ley para que el empleador o el trabajador terminen el contrato de forma unilateral.</td></tr>
+        <tr><td class="termino">Parafiscales</td><td>Aportes obligatorios que paga la empresa a entidades como el SENA, el ICBF y las cajas de compensación familiar.</td></tr>
+        <tr><td class="termino">SARLAFT</td><td>Sistema de Administración del Riesgo de Lavado de Activos y Financiación del Terrorismo: controles que deben cumplir ciertos cargos y empresas.</td></tr>
+        <tr><td class="termino">Derechos patrimoniales de autor</td><td>Derechos económicos sobre una obra (por ejemplo, explotarla, venderla o licenciarla). Se pueden ceder a otra persona o empresa.</td></tr>
+        <tr><td class="termino">Derechos morales de autor</td><td>Derecho a ser reconocido como autor de una obra y a que se respete su integridad. No se pueden ceder ni vender: siempre son del creador.</td></tr>
+        <tr><td class="termino">Propiedad industrial</td><td>Protección legal de invenciones, marcas, diseños o secretos comerciales usados en una actividad económica.</td></tr>
+        <tr><td class="termino">Habeas Data</td><td>Derecho constitucional a conocer, actualizar y rectificar la información que las entidades tienen sobre ti (Ley 1581 de 2012).</td></tr>
+        <tr><td class="termino">Horario flexible</td><td>Duración de la jornada distinta a la habitual, entre 4 y 9 horas, sin que se causen horas extras mientras el promedio semanal no exceda la jornada máxima de 42 horas.</td></tr>
+        <tr><td class="termino">Trabajo suplementario</td><td>Horas trabajadas por encima de tu jornada ordinaria; también se conoce como &ldquo;horas extra&rdquo;.</td></tr>
+        <tr><td class="termino">Recargo</td><td>Valor adicional que se paga por trabajar en horario nocturno, domingo o festivo.</td></tr>
+        <tr><td class="termino">Debido proceso disciplinario</td><td>Procedimiento que debe seguir la empresa antes de sancionarte, para garantizar tu derecho a conocer los hechos, las pruebas y a defenderte.</td></tr>
+    </table>
+
+    @isset($empresa)
     @include('pdfs.components.membrete-empresa', ['empresa' => $empresa])
 @endisset
 
 </body>
+
 </html>

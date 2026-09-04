@@ -68,7 +68,7 @@ class ContratoPdfMuestraEmailTrabajadorTest extends TestCase
     {
         $html = view('pdfs.contratos.termino-indefinido', $this->datosBase())->render();
 
-        $this->assertStringContainsString('CORREO ELECTRÓNICO DEL TRABAJADOR', $html);
+        $this->assertStringContainsString('Correo electrónico', $html);
         $this->assertStringContainsString('juan.perez@empresa.com', $html);
     }
 
@@ -76,7 +76,7 @@ class ContratoPdfMuestraEmailTrabajadorTest extends TestCase
     {
         $html = view('pdfs.contratos.obra-labor', $this->datosBase())->render();
 
-        $this->assertStringContainsString('CORREO ELECTRÓNICO DEL TRABAJADOR', $html);
+        $this->assertStringContainsString('Correo electrónico', $html);
         $this->assertStringContainsString('juan.perez@empresa.com', $html);
     }
 }

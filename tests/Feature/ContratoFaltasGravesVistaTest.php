@@ -42,7 +42,7 @@ class ContratoFaltasGravesVistaTest extends TestCase
     {
         $html = view('pdfs.contratos.termino-indefinido', $this->datosBase())->render();
 
-        $this->assertStringNotContainsString('se consideran también', $html);
+        $this->assertStringNotContainsString('Faltas graves adicionales según el Reglamento Interno', $html);
     }
 
     public function test_agrega_las_conductas_del_rit_cuando_el_origen_es_rit(): void
@@ -53,7 +53,7 @@ class ContratoFaltasGravesVistaTest extends TestCase
             'faltasGravesGravisima' => ['Agredir físicamente a un compañero'],
         ]))->render();
 
-        $this->assertStringContainsString('se consideran también', $html);
+        $this->assertStringContainsString('Faltas graves adicionales según el Reglamento Interno', $html);
         $this->assertStringContainsString('Llegar tarde de forma reiterada', $html);
         $this->assertStringContainsString('Agredir físicamente a un compañero', $html);
     }
