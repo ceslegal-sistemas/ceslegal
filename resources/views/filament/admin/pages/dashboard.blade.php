@@ -51,6 +51,16 @@
         @include('filament.components.dashboard-sugerencias-rit-notice', ['totalSugerencias' => $totalSugerencias])
     @endif
 
+    {{-- Pop-up insistente pedido por el jefe, además del banner de arriba
+         (que se conserva sin cambios) - solo 'cliente' (no 'bufete', que
+         gestiona el RIT de varias empresas y se vería bombardeado con un
+         modal por cada una). No guarda "ya lo cerré" en ningún lado a
+         propósito: debe reaparecer en cada carga del Dashboard mientras
+         siga pendiente, decisión explícita del usuario ("insistente"). --}}
+    @if($totalSugerencias > 0 && $usuarioDashboard && $usuarioDashboard->role === 'cliente')
+        @include('filament.components.dashboard-sugerencias-rit-modal', ['totalSugerencias' => $totalSugerencias])
+    @endif
+
     @if($totalContratosPorVencer > 0)
         @include('filament.components.dashboard-contratos-por-vencer-notice', ['totalContratos' => $totalContratosPorVencer])
     @endif
