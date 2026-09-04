@@ -49,11 +49,18 @@ class ContratoPdfMuestraEmailTrabajadorTest extends TestCase
         ];
     }
 
+    /**
+     * Etiqueta actualizada tras el rediseño "Legal Design" (2026-09-04): la
+     * tabla de información ya no usa mayúsculas sostenidas para las
+     * etiquetas ("Correo electrónico" en vez de "CORREO ELECTRÓNICO DEL
+     * TRABAJADOR") - el dato en sí sigue mostrándose, que es lo que pedía
+     * el usuario originalmente.
+     */
     public function test_termino_fijo_muestra_el_email_del_trabajador(): void
     {
         $html = view('pdfs.contratos.termino-fijo', $this->datosBase())->render();
 
-        $this->assertStringContainsString('CORREO ELECTRÓNICO DEL TRABAJADOR', $html);
+        $this->assertStringContainsString('Correo electrónico', $html);
         $this->assertStringContainsString('juan.perez@empresa.com', $html);
     }
 
