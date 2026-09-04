@@ -198,6 +198,16 @@ class EmpresaResource extends Resource
                         ->helperText('Desactive si la empresa ya no está en servicio')
                         ->inline(false),
 
+                    Forms\Components\FileUpload::make('logo_empresa_temp')
+                        ->label('Logo de la empresa')
+                        ->helperText('Formatos aceptados: PNG, JPG y SVG - máx. 5 MB. Se usa como marca de agua en los documentos generados.')
+                        ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/svg+xml'])
+                        ->disk('local')
+                        ->directory('logos-temp')
+                        ->visibility('private')
+                        ->maxSize(5120)
+                        ->nullable(),
+
                     // Los días laborales se definen en el Reglamento Interno (no aquí).
                     // Se conserva el campo legado oculto como respaldo por defecto.
                     Forms\Components\Hidden::make('dias_laborales')

@@ -16,6 +16,8 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
 class EditEmpresa extends EditRecord
@@ -200,6 +202,16 @@ class EditEmpresa extends EditRecord
 
                                 Forms\Components\Hidden::make('dias_laborales')
                                     ->default('lunes_viernes'),
+
+                                Forms\Components\FileUpload::make('logo_empresa_temp')
+                                    ->label('Logo de la empresa')
+                                    ->helperText('Formatos aceptados: PNG, JPG y SVG - máx. 5 MB. Se usa como marca de agua en los documentos generados.')
+                                    ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/svg+xml'])
+                                    ->disk('local')
+                                    ->directory('logos-temp')
+                                    ->visibility('private')
+                                    ->maxSize(5120)
+                                    ->nullable(),
                             ])->columns(['default' => 1, 'sm' => 2]),
                     ]),
 
@@ -415,5 +427,65 @@ class EditEmpresa extends EditRecord
                 ))
                 ->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * Persistir el logo subido (si se subió/reemplazó) - mismo patrón que
+     * CreateEmpresa.php usa para reglamento_docx_temp: nunca construir la
+     * ruta con storage_path("app/...") a mano, el disco 'local' tiene su
+     * raíz en storage/app/private.
+     */
+    protected function afterSave(): void
+    {
+        $rawLogoPath = $this->data['logo_empresa_temp'] ?? null;
+        $logoPath    = is_array($rawLogoPath) ? (reset($rawLogoPath) ?: null) : $rawLogoPath;
+
+        if (! is_string($logoPath) || $logoPath === '') {
+            return;
+        }
+
+        // Si ya apunta a la ruta permanente (no se cambió el archivo al editar),
+        // no hay temp que mover ni nada que recalcular.
+        if (str_starts_with($logoPath, 'logos/' . $this->record->id . '/')) {
+            return;
+        }
+
+        try {
+            // Misma lógica de conversión que Register.php::crearCuentaEmpresa() -
+            // JPG/PNG SIEMPRE se recodifican a PNG real con GD (nunca un move()
+            // plano, que dejaría un JPG con extensión .png y rompería
+            // LogoColorService), SVG se guarda tal cual (Imagick no disponible).
+            $extension = strtolower(pathinfo($logoPath, PATHINFO_EXTENSION));
+            $origenAbsoluto = Storage::disk('local')->path($logoPath);
+            $rutaPermanente = 'logos/' . $this->record->id . '/logo.png';
+
+            if ($extension === 'svg') {
+                $rutaPermanente = 'logos/' . $this->record->id . '/logo.svg';
+                Storage::disk('local')->move($logoPath, $rutaPermanente);
+            } else {
+                $imagenOrigen = $extension === 'jpg' || $extension === 'jpeg'
+                    ? @imagecreatefromjpeg($origenAbsoluto)
+                    : @imagecreatefrompng($origenAbsoluto);
+
+                if ($imagenOrigen !== false) {
+                    Storage::disk('local')->makeDirectory('logos/' . $this->record->id);
+                    imagepng($imagenOrigen, Storage::disk('local')->path($rutaPermanente));
+                    imagedestroy($imagenOrigen);
+                    Storage::disk('local')->delete($logoPath);
+                }
+            }
+
+            $rutaAbsoluta = Storage::disk('local')->path($rutaPermanente);
+
+            $this->record->update([
+                'logo_path' => $rutaPermanente,
+                'logo_color_acento' => app(\App\Services\LogoColorService::class)->colorDominante($rutaAbsoluta),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al procesar el logo de la empresa al editar', [
+                'empresa_id' => $this->record->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
