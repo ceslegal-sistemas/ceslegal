@@ -12,8 +12,12 @@
     $tieneContacto = $empresa->direccion || $empresa->telefono || $empresa->email_contacto;
 @endphp
 @if($logoBase64)
-<div style="position: fixed; top: 1.2cm; left: 1.5cm; z-index: 10;">
-    <img src="{{ $logoBase64 }}" style="height: 2.2cm; width: auto;">
+{{-- Logo pequeño: cabe dentro del margen superior más estrecho que usan
+     los 3 generadores (2cm) sin invadir el contenido - altura reducida a
+     propósito tras verificación visual real (el tamaño original de 2.2cm
+     se montaba sobre el título y la tabla de datos del contrato). --}}
+<div style="position: fixed; top: 0.3cm; left: 1.2cm; z-index: 10;">
+    <img src="{{ $logoBase64 }}" style="height: 1.2cm; width: auto;">
 </div>
 
 <div style="position: fixed; top: 0; left: 0.6cm; width: 0.35cm; height: 100%; background: {{ $colorAcento }}; z-index: 5;"></div>
