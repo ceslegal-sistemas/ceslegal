@@ -15,18 +15,18 @@
     $tieneContacto = $empresa->direccion || $empresa->telefono || $empresa->email_contacto;
 @endphp
 @if($logoBase64)
-{{-- Tercera ronda: las dos primeras posicionaban el logo y el pie con
-     coordenadas dentro del área de contenido (top/bottom positivos), pero
-     dompdf calcula `position: fixed` respecto al cuadro de contenido, no al
-     borde físico de la página - por eso chocaban con el texto cuando este
-     llegaba hasta arriba o abajo (visto en PDFs reales: el logo tapaba el
-     saludo, el pie se montaba sobre el último párrafo). Cada plantilla que
-     incluye este partial reservó una franja extra de 1.4cm arriba y 1.2cm
-     abajo en su `@page { margin: ... }` (ver comentario ahí) - acá el logo
-     y el pie se ubican con offset NEGATIVO para caer exactamente dentro de
-     esa franja reservada, nunca dentro del área de texto. --}}
-<div style="position: fixed; top: -1.2cm; left: 1.2cm; z-index: 10;">
-    <img src="{{ $logoBase64 }}" style="height: 0.9cm; width: auto;">
+{{-- Cuarta ronda: las tres anteriores resolvieron el choque con el texto
+     (reservando una franja de margen y usando offset negativo - ver
+     comentario del `@page` en cada plantilla), pero el resultado se veía
+     como un ícono huérfano flotando solo, sin nada que lo enmarque como un
+     membrete real (reportado por el usuario: "muy decepcionante"). Ahora el
+     logo y el pie van dentro de una franja de ancho completo con una línea
+     divisoria (borde inferior arriba, borde superior abajo) - el mismo
+     recurso visual que usa cualquier papel membretado real para separar el
+     encabezado/pie del cuerpo del documento, en vez de un elemento suelto
+     sin contexto. --}}
+<div style="position: fixed; top: -1.3cm; left: 0; width: 100%; height: 1.1cm; border-bottom: 1pt solid #cbd5e1; z-index: 10;">
+    <img src="{{ $logoBase64 }}" style="height: 1.05cm; width: auto;">
 </div>
 
 <div style="position: fixed; top: 40%; left: 32.5%; width: 35%; opacity: 0.05; z-index: 1;">
@@ -34,7 +34,7 @@
 </div>
 
 @if($tieneContacto)
-<div class="membrete-pie" style="position: fixed; bottom: -0.85cm; left: 0; width: 100%; text-align: center; font-size: 7.5pt; color: #555555;">
+<div class="membrete-pie" style="position: fixed; bottom: -1cm; left: 0; width: 100%; border-top: 1pt solid #cbd5e1; padding-top: 0.15cm; text-align: center; font-size: 7.5pt; color: #555555;">
     {{ collect([$empresa->direccion, $empresa->telefono, $empresa->email_contacto])->filter()->implode(' · ') }}
 </div>
 @endif
