@@ -1091,6 +1091,15 @@ HTML;
                 $documentoSancion = $this->inyectarTablaSanciones($documentoSancion, $proceso, $empresa);
             }
 
+            // Membrete de empresa (logo + franja + marca de agua + pie de página) -
+            // se inyecta al final, sobre el HTML ya resuelto (después de
+            // limpiarContenidoHTML()/envolverEnHTMLCompleto() y de la tabla de
+            // sanciones), nunca antes: la IA a veces devuelve su propio
+            // <!DOCTYPE>/<html> completo con su propio </body>, no controlado por
+            // código - mismo motivo por el que inyectarTablaSanciones() de arriba
+            // tampoco confía ciegamente en un </body>.
+            $documentoSancion = $this->inyectarMembreteSancion($documentoSancion, $empresa);
+
             // Guardar el documento generado como HTML temporal
             $htmlPath = $this->guardarDocumentoSancionHTML($documentoSancion, $proceso->codigo, $tipoSancion);
 
@@ -1604,6 +1613,29 @@ PROMPT;
             return str_replace($m[0], $m[0] . $tabla, $html);
         }
         return $html . $tabla; // último recurso: anexar al final
+    }
+
+    /**
+     * Inyecta el membrete de empresa en el documento de sanción. A
+     * diferencia del contrato (vistas Blade fijas) y la citación (HTML
+     * armado a mano en PHP), acá el `</body>` puede venir del propio texto
+     * de la IA, no siempre de envolverEnHTMLCompleto() - mismo motivo por
+     * el que inyectarTablaSanciones() de arriba tampoco confía ciegamente
+     * en un `</body>`. Si no se encuentra ninguno, se anexa al final.
+     */
+    private function inyectarMembreteSancion(string $html, $empresa): string
+    {
+        $membrete = view('pdfs.components.membrete-empresa', ['empresa' => $empresa])->render();
+
+        if (trim($membrete) === '') {
+            return $html;
+        }
+
+        if (str_contains($html, '</body>')) {
+            return str_replace('</body>', $membrete . '</body>', $html);
+        }
+
+        return $html . $membrete;
     }
 
     /**
