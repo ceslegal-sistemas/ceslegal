@@ -27,12 +27,15 @@
      de Word normal - el offset negativo saca el elemento del área de
      contenido (donde dompdf mide `position: fixed`) hacia el margen en
      blanco, sin necesitar más espacio del que ya había. --}}
-<div style="position: fixed; top: -1.6cm; left: 1.2cm; z-index: 10;">
-    {{-- max-width evita que un logo apaisado (ancho/bajo) se vea desproporcionado
-         al escalar solo por altura - cualquier logo que suba el cliente queda
-         acotado a esta caja (1.1cm alto x 3cm ancho como máximo), sin importar
-         su relación de aspecto original. --}}
-    <img src="{{ $logoBase64 }}" style="height: 1.1cm; max-width: 3cm; width: auto;">
+<div style="position: fixed; top: -1.8cm; left: 1.2cm; z-index: 10;">
+    {{-- max-height + max-width (sin height fijo) deja que Dompdf escoja cuál
+         restricción aplica según la forma real del logo: uno apaisado (ancho,
+         bajo) queda limitado por max-width; uno vertical/cuadrado (ej. icono
+         con el nombre apilado debajo) queda limitado por max-height en vez de
+         aplastarse a una altura fija minúscula. Con top:-1.8cm y max-height:
+         1.6cm, el logo queda siempre dentro de la banda del margen (2cm, el
+         más angosto de las 3 plantillas) con ~0.2cm de aire a cada lado. --}}
+    <img src="{{ $logoBase64 }}" style="max-height: 1.6cm; max-width: 3cm;">
 </div>
 
 <div style="position: fixed; top: 40%; left: 32.5%; width: 35%; opacity: 0.05; z-index: 1;">
