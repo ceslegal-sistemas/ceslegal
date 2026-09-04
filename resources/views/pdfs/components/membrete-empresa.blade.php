@@ -27,8 +27,12 @@
      de Word normal - el offset negativo saca el elemento del área de
      contenido (donde dompdf mide `position: fixed`) hacia el margen en
      blanco, sin necesitar más espacio del que ya había. --}}
-<div style="position: fixed; top: -1.7cm; left: 1.2cm; z-index: 10;">
-    <img src="{{ $logoBase64 }}" style="height: 0.8cm; width: auto;">
+<div style="position: fixed; top: -1.6cm; left: 1.2cm; z-index: 10;">
+    {{-- max-width evita que un logo apaisado (ancho/bajo) se vea desproporcionado
+         al escalar solo por altura - cualquier logo que suba el cliente queda
+         acotado a esta caja (1.1cm alto x 3cm ancho como máximo), sin importar
+         su relación de aspecto original. --}}
+    <img src="{{ $logoBase64 }}" style="height: 1.1cm; max-width: 3cm; width: auto;">
 </div>
 
 <div style="position: fixed; top: 40%; left: 32.5%; width: 35%; opacity: 0.05; z-index: 1;">
@@ -36,7 +40,7 @@
 </div>
 
 @if($tieneContacto)
-<div class="membrete-pie" style="position: fixed; bottom: -1.7cm; left: 0; width: 100%; text-align: center; font-size: 7pt; color: #555555;">
+<div class="membrete-pie" style="position: fixed; bottom: -1.15cm; left: 0; width: 100%; text-align: center; font-size: 7pt; color: #555555;">
     {{ collect([$empresa->direccion, $empresa->telefono, $empresa->email_contacto])->filter()->implode(' · ') }}
 </div>
 @endif
