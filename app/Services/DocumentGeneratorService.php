@@ -218,6 +218,7 @@ class DocumentGeneratorService
                         continue;
                     }
                     $etiqueta = $etiquetasGravedad[$motivo['gravedad'] ?? ''] ?? 'falta disciplinaria';
+                    $baseLegal = trim((string) ($motivo['base_legal'] ?? ''));
 
                     // Si la empresa no tiene RIT, esta conducta viene SIEMPRE del
                     // catálogo genérico de respaldo del CST
@@ -226,13 +227,22 @@ class DocumentGeneratorService
                     // Trabajo de {empresa}" sería fabricar un documento que no
                     // existe (bug real: PD-2026-0119, CES LEGAL S.A.S. sin RIT).
                     if ($tieneRIT) {
-                        $itemsNormas[] = '<li>Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong>: &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').</li>';
+                        // El número de artículo (ej. "Artículo 76 RIT") se extrae
+                        // de forma determinística al procesar el RIT - ver
+                        // ReglamentoInternoService::articuloQuePrecedeEnTexto().
+                        // Solo se cita cuando es un número real detectado en el
+                        // propio texto del RIT, nunca inventado (fuentes sin
+                        // número real, como el constructor de RIT, devuelven un
+                        // base_legal genérico sin dígitos).
+                        $articulo = $this->formatearCitaArticulo($baseLegal, 'RIT');
+                        $itemsNormas[] = $articulo
+                            ? '<li><strong>' . e($articulo) . '</strong> del Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong>: &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').</li>'
+                            : '<li>Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong>: &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').</li>';
                     } else {
-                        $baseLegal = trim((string) ($motivo['base_legal'] ?? ''));
-                        $fuenteCst = $baseLegal !== ''
-                            ? 'el Código Sustantivo del Trabajo (' . e($baseLegal) . ')'
-                            : 'el Código Sustantivo del Trabajo';
-                        $itemsNormas[] = '<li>' . $fuenteCst . ': &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').</li>';
+                        $articulo = $this->formatearCitaArticulo($baseLegal, 'CST');
+                        $itemsNormas[] = $articulo
+                            ? '<li><strong>' . e($articulo) . '</strong> del Código Sustantivo del Trabajo: &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').</li>'
+                            : '<li>el Código Sustantivo del Trabajo: &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').</li>';
                     }
                 }
 
@@ -375,22 +385,25 @@ class DocumentGeneratorService
            texto cuando el contenido llega hasta el borde. */
         @page { margin: 3.9cm 2.5cm 3.7cm 3cm; }
         body {
-            font-family: 'Calibri', 'Arial', sans-serif;
-            font-size: 11pt;
-            line-height: 1.5;
+            /* Tahoma 10pt, sin subrayados - mismo tipo de letra, tamaño y
+               estilo (títulos/artículos en negrilla simple, no subrayados
+               ni con tamaño distinto) que usa el bufete en sus citaciones
+               reales - ver docx de referencia "DELGADILLO RUBIO". */
+            font-family: 'Tahoma', 'Verdana', 'Arial', sans-serif;
+            font-size: 10pt;
+            line-height: 1.35;
             color: #000;
             text-align: justify;
         }
         .destinatario { margin-bottom: 18px; }
-        .destinatario p { margin: 0; line-height: 1.4; }
+        .destinatario p { margin: 0; line-height: 1.35; }
         .asunto { margin-bottom: 18px; }
         .asunto p { margin: 0; }
         p { margin: 0 0 12px 0; }
         h3 {
-            font-size: 11pt;
+            font-size: 10pt;
             font-weight: bold;
             margin: 18px 0 6px 0;
-            text-decoration: underline;
         }
         ul, ol { margin: 4px 0 12px 0; padding-left: 24px; }
         li { margin-bottom: 6px; }
@@ -526,15 +539,15 @@ class DocumentGeneratorService
 
     <!-- SECCIÓN 6: ADVERTENCIA -->
     <h3>Advertencia</h3>
-    <p>De no presentarse a la diligencia sin justa causa, la empresa procederá a continuar el proceso disciplinario con base en las pruebas disponibles, conforme a lo establecido en la Ley 2466 de 2025.</p>
+    <p>De no presentarse a la diligencia sin justa causa, la empresa procederá a continuar el proceso disciplinario con base en las pruebas disponibles.</p>
 
     <!-- SECCIÓN 7: SOLICITUDES PREVIAS -->
     <h3>Solicitudes Previas</h3>
-    <p>Las solicitudes sobre acompañantes, representación sindical y ajuste razonable por discapacidad deberán ser respondidas a través del <strong>formulario digital de descargos</strong> que recibirá por correo electrónico junto con esta comunicación, de conformidad con el Artículo 7 de la Ley 2466 de 2025. Dichas solicitudes incluyen:</p>
+    <p>Las solicitudes sobre acompañantes, representación sindical y ajuste razonable por discapacidad deberán ser respondidas a través del <strong>formulario digital de descargos</strong> que recibirá por correo electrónico junto con esta comunicación. Dichas solicitudes incluyen:</p>
     <ul>
         <li>Si asistirá acompañado(a) y en qué calidad (testigo, representante sindical, apoderado u otro).</li>
         <li>Si desea ser asistido(a) por uno o dos representantes del sindicato al que pertenezca.</li>
-        <li>Si requiere algún ajuste razonable para la comunicación o comprensión de la diligencia debido a una condición de discapacidad (Ley 2466/2025, Art. 7).</li>
+        <li>Si requiere algún ajuste razonable para la comunicación o comprensión de la diligencia debido a una condición de discapacidad.</li>
     </ul>
     <p>Para comunicaciones previas urgentes, puede contactar a la empresa al correo <strong>{$emailContacto}</strong>.</p>
 
@@ -553,7 +566,7 @@ class DocumentGeneratorService
     <!-- CONSTANCIA DE RECIBO -->
     <div class="constancia">
         <h3>CONSTANCIA DE RECIBO / NOTIFICACIÓN</h3>
-        <p><strong>Notificación electrónica (equivalencia funcional):</strong> De conformidad con los artículos 6 y 18 de la Ley 527 de 1999 y el principio de equivalencia funcional del mensaje de datos, si la presente comunicación fue entregada por correo electrónico al trabajador, el registro de envío, primera apertura, dirección IP y marca de tiempo constituyen <em>constancia idónea de notificación</em>, sin necesidad de firma física. La apertura del mensaje equivale al acuse de recibo (Art. 18 Ley 527/1999). La Ley 2466 de 2025 (Art. 7) permite expresamente el uso de tecnologías de la información en el proceso disciplinario.</p>
+        <p><strong>Notificación electrónica (equivalencia funcional):</strong> De conformidad con los artículos 6 y 18 de la Ley 527 de 1999 y el principio de equivalencia funcional del mensaje de datos, si la presente comunicación fue entregada por correo electrónico al trabajador, el registro de envío, primera apertura, dirección IP y marca de tiempo constituyen <em>constancia idónea de notificación</em>, sin necesidad de firma física. La apertura del mensaje equivale al acuse de recibo (Art. 18 Ley 527/1999).</p>
 
         <p><strong>Entrega en medio físico (cuando aplique):</strong> Si la comunicación fue entregada personalmente, el trabajador firma a continuación:</p>
 
@@ -578,6 +591,30 @@ HTML;
         $html = str_replace('</body>', $membrete . '</body>', $html);
 
         return $html;
+    }
+
+    /**
+     * Convierte un `base_legal` crudo (ej. "Artículo 76 RIT", "Art. 60 CST",
+     * "Art. 58 y 60 CST") en una cita de artículo lista para mostrar en negrilla
+     * (ej. "Artículo 76", "Artículo 60", "Artículos 58 y 60"). Devuelve null
+     * cuando el valor no trae un número real que citar (ej. "RIT de la empresa
+     * (constructor)" o "RIT de la empresa" - fuentes sin artículo detectado de
+     * forma determinística) para nunca inventar un número de artículo.
+     */
+    private function formatearCitaArticulo(?string $baseLegal, string $sufijo): ?string
+    {
+        $baseLegal = trim((string) $baseLegal);
+        if ($baseLegal === '' || !preg_match('/\d/', $baseLegal)) {
+            return null;
+        }
+
+        $texto = trim((string) preg_replace('/\s*' . preg_quote($sufijo, '/') . '\s*$/u', '', $baseLegal));
+        $texto = preg_replace('/^Art\.\s*/u', 'Artículo ', $texto);
+        if (preg_match('/\sy\s|,/u', $texto)) {
+            $texto = preg_replace('/^Artículo\s/u', 'Artículos ', $texto);
+        }
+
+        return $texto;
     }
 
     /**

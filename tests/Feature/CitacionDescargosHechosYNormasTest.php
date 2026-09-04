@@ -137,6 +137,49 @@ class CitacionDescargosHechosYNormasTest extends TestCase
         $this->assertStringContainsString('Artículo 58 del Código Sustantivo del Trabajo', $html);
     }
 
+    /**
+     * Pedido explícito del usuario: citar el número exacto del artículo del
+     * RIT real (ej. "ARTÍCULO 76"), no solo la conducta genérica - igual que
+     * en el docx de referencia. El número viene de la extracción determinística
+     * ReglamentoInternoService::articuloQuePrecedeEnTexto() (formato
+     * "Artículo N RIT" en base_legal), nunca inventado por la IA.
+     */
+    public function test_cita_el_numero_exacto_del_articulo_del_rit_cuando_la_extraccion_lo_detecto(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $trabajador = $this->crearTrabajador($empresa);
+
+        $conductaReal = 'No hacer uso adecuado y oportuno de la plataforma de registro de clientes dispuesta por la empresa.';
+
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id,
+            'nombre' => 'RIT de prueba',
+            'texto_completo' => 'ARTÍCULO 76. Texto completo de prueba del reglamento interno.',
+            'activo' => true,
+        ]);
+        $rit->conductas_sancionables = [
+            'leve' => [],
+            'grave' => [
+                ['conducta' => $conductaReal, 'medida' => 'Suspensión hasta 8 días', 'tipo' => 'suspension', 'dias_suspension' => 8, 'base_legal' => 'Artículo 76 RIT'],
+            ],
+            'gravisima' => [],
+        ];
+        $rit->saveQuietly();
+
+        $proceso = ProcesoDisciplinario::create([
+            'codigo' => 'PD-TEST-0076',
+            'empresa_id' => $empresa->id,
+            'trabajador_id' => $trabajador->id,
+            'hechos' => 'Hechos de prueba relacionados con el uso de la plataforma.',
+            'sanciones_laborales_ids' => [$conductaReal],
+        ]);
+
+        $html = $this->invocarGenerarHTML($proceso);
+
+        $this->assertStringContainsString('<strong>Artículo 76</strong> del Reglamento Interno de Trabajo', $html);
+        $this->assertStringContainsString($conductaReal, $html);
+    }
+
     public function test_usa_la_clasificacion_de_ia_como_respaldo_cuando_no_hubo_seleccion_manual(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
@@ -287,7 +330,9 @@ class CitacionDescargosHechosYNormasTest extends TestCase
 
         $this->assertStringContainsString($conductaGenerica, $html);
         $this->assertStringNotContainsString('Reglamento Interno de Trabajo de', $html);
-        $this->assertStringContainsString('el Código Sustantivo del Trabajo (Art. 60 CST)', $html);
+        // Se cita el número exacto del artículo del CST, en negrilla como en
+        // la citación de referencia del bufete.
+        $this->assertStringContainsString('<strong>Artículo 60</strong> del Código Sustantivo del Trabajo', $html);
 
         // La tabla de sanciones tampoco puede atribuirse a un RIT inexistente.
         $this->assertStringNotContainsString('Conductas reguladas por el Reglamento Interno', $html);
