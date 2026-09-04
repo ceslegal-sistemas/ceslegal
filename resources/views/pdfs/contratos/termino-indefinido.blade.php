@@ -881,6 +881,10 @@
         </tr>
     </table>
 
+    @isset($empresa)
+    @include('pdfs.components.membrete-empresa', ['empresa' => $empresa])
+@endisset
+
 </body>
 
 </html>

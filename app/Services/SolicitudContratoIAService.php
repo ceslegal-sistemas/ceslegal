@@ -754,6 +754,7 @@ class SolicitudContratoIAService
         $salario           = (float) ($solicitud->salario_propuesto ?? 0);
 
         return view($vista, [
+            'empresa'                  => $empresa,
             'nombreEmpresa'            => $empresa?->nombre_completo ?? '',
             'nit'                      => $empresa?->nit ?? '',
             'direccionEmpresa'         => $empresa?->direccion ?? '',
