@@ -324,7 +324,7 @@ class DocumentGeneratorService
         $htmlTelefonoEmpresa = $telefonoEmpresa ? "<p>Tel: {$telefonoEmpresa}</p>" : '';
         $htmlEmailFirma      = $emailContacto   ? "<p>{$emailContacto}</p>" : '';
 
-        return <<<HTML
+        $html = <<<HTML
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -526,6 +526,16 @@ class DocumentGeneratorService
 </body>
 </html>
 HTML;
+
+        // Membrete de empresa (logo + franja + marca de agua + pie de
+        // página) - mismo mecanismo que MARCA_AGUA_BORRADOR en
+        // SolicitudContratoIAService, capa puramente visual sin tocar el
+        // texto legal. No renderiza nada si la empresa no tiene logo (ver
+        // membrete-empresa.blade.php).
+        $membrete = view('pdfs.components.membrete-empresa', ['empresa' => $empresa])->render();
+        $html = str_replace('</body>', $membrete . '</body>', $html);
+
+        return $html;
     }
 
     /**
