@@ -174,12 +174,12 @@ class SolicitudContratoResource extends Resource
                                 ->label('Tipo de Contrato')
                                 ->required()
                                 ->options([
-                                    'Contrato a Término Fijo' => 'Contrato a Término Fijo - Duración determinada',
-                                    'Contrato a Término Indefinido' => 'Contrato a Término Indefinido - Sin fecha de terminación',
-                                    'Contrato de Obra o Labor' => 'Contrato de Obra o Labor - Por proyecto específico',
-                                    'Contrato de Prestación de Servicios' => 'Contrato de Prestación de Servicios - Independiente',
-                                    'Contrato de Aprendizaje' => 'Contrato de Aprendizaje - Estudiante/Aprendiz',
-                                    'Contrato Ocasional o Transitorio' => 'Contrato Ocasional o Transitorio - Máximo 30 días',
+                                    'Contrato a Término Fijo' => 'Término Fijo',
+                                    'Contrato a Término Indefinido' => 'Término Indefinido',
+                                    'Contrato de Obra o Labor' => 'Obra o Labor',
+                                    'Contrato de Prestación de Servicios' => 'Prestación de Servicios',
+                                    'Contrato de Aprendizaje' => 'Aprendizaje',
+                                    'Contrato Ocasional o Transitorio' => 'Ocasional o Transitorio',
                                 ])
                                 ->native(false)
                                 ->searchable()
@@ -214,6 +214,9 @@ class SolicitudContratoResource extends Resource
                                 ->default(now())
                                 ->native(false)
                                 ->displayFormat('d/m/Y H:i')
+                                // No tiene sentido registrar una solicitud con fecha
+                                // pasada a hoy - pedido explícito del usuario.
+                                ->minDate(today())
                                 ->helperText('Fecha y hora en que se realiza la solicitud')
                                 ->suffixIcon('heroicon-o-calendar'),
                         ])->columns(2),
@@ -542,7 +545,7 @@ class SolicitudContratoResource extends Resource
                                 ->columnSpanFull(),
 
                             Forms\Components\DatePicker::make('fecha_inicio_propuesta')
-                                ->label('Fecha de Inicio Propuesta')
+                                ->label('Fecha de Inicio')
                                 ->native(false)
                                 // today() en vez de now(): now() trae hora exacta
                                 // (H:i:s), y el mensaje de validación terminaba
@@ -561,35 +564,49 @@ class SolicitudContratoResource extends Resource
                                 // misma duración - no dejarla desactualizada apuntando al
                                 // inicio anterior.
                                 ->afterStateUpdated(fn(Set $set, Get $get) => $set('fecha_fin_contrato', self::calcularFechaFinDesdeDuracion($get)))
-                                ->helperText('Fecha propuesta para iniciar el contrato')
+                                ->helperText('Fecha para iniciar el contrato')
                                 ->placeholder('Seleccione la fecha...')
                                 ->suffixIcon('heroicon-o-calendar'),
 
                             Forms\Components\TextInput::make('salario_propuesto')
-                                ->label('Salario Propuesto')
+                                ->label('Salario')
                                 // Sin ->numeric(): fuerza <input type="number">, que
                                 // rechaza puntos de mil como separador (solo admite un
-                                // punto decimal). El punto de mil se agrega vía
-                                // afterStateUpdated() abajo - x-mask/$money (la forma
-                                // documentada por Filament) NO está compilado en los
-                                // assets JS de este proyecto (verificado: 0 ocurrencias
-                                // de "money"/"mask" en public/js/filament/support/support.js
-                                // incluso tras `artisan filament:assets`), así que en vez
-                                // de usarlo silenciosamente sin efecto, se resuelve con
-                                // el mismo mecanismo Livewire ya usado en este archivo.
+                                // punto decimal).
                                 ->rule('numeric')
                                 ->minValue(0)
-                                // 150ms (no 500ms como antes) - a pedido del usuario, para
-                                // que el separador de miles aparezca prácticamente en tiempo
-                                // real mientras digita, no tras una pausa notoria.
-                                ->live(debounce: '150ms')
-                                ->afterStateHydrated(fn(Set $set, $state) => $set('salario_propuesto', \App\Support\FormateoNumerico::miles($state)))
-                                ->afterStateUpdated(fn(Set $set, ?string $state) => $set('salario_propuesto', \App\Support\FormateoNumerico::miles($state)))
+                                // Bug real reportado por el usuario: el mecanismo anterior
+                                // (afterStateUpdated + FormateoNumerico::miles(), con
+                                // ->live(debounce) reenviando el valor a Livewire en cada
+                                // pulsación) competía con la digitación del usuario y le
+                                // comía dígitos (ej. "2.000.000" terminaba en "200.000").
+                                // El diagnóstico original decía que el mask nativo de
+                                // Filament (x-mask + $money) "no estaba compilado" porque
+                                // se buscó en public/js/filament/ - pero $money vive
+                                // embebido en el propio bundle de Livewire
+                                // (vendor/livewire/livewire/dist/livewire.js, siempre
+                                // servido vía la ruta livewire/livewire.js, sin depender
+                                // de ningún build de Filament), confirmado real en este
+                                // proyecto y ya en uso funcional en gestion-afiliaciones-arl
+                                // con el mismo stack (Filament v3 + Livewire v3). Formatea
+                                // 100% en el cliente (Alpine), sin ida y vuelta al servidor
+                                // mientras se escribe, eliminando la condición de carrera.
+                                // $money(input, delimiter_decimal, separador_miles, precision).
+                                // El ejemplo de gestion-afiliaciones-arl usa
+                                // $money($input, '.', ',', 0) - eso agrupa con COMAS
+                                // ("2,000,000", estilo EEUU). Se invierte a ',', '.' para
+                                // agrupar con PUNTOS ("2.000.000"), el formato colombiano
+                                // que ya usa el resto de la app (ej. "$3.500.000 COP" en
+                                // los contratos PDF) - verificado leyendo directamente
+                                // formatMoney() en vendor/livewire/livewire/dist/livewire.js.
+                                ->mask(\Filament\Support\RawJs::make(<<<'JS'
+                                    $money($input, ',', '.', 0)
+                                JS))
                                 ->stripCharacters('.')
                                 ->extraInputAttributes(['min' => 0, 'onkeydown' => "return !['-','+','e','E'].includes(event.key)"])
                                 ->prefix('$')
                                 ->placeholder('Ej: 2.500.000')
-                                ->helperText('Salario mensual propuesto para el cargo')
+                                ->helperText('Salario mensual para el cargo')
                                 ->suffixIcon('heroicon-o-currency-dollar'),
 
                             Forms\Components\Fieldset::make('Duración del Contrato')
@@ -605,8 +622,8 @@ class SolicitudContratoResource extends Resource
                                     // tiene desde dónde contar y no hace nada - antes esto
                                     // pasaba en silencio (bug real reportado por el usuario:
                                     // "no está calculando", cuando en realidad solo faltaba
-                                    // seleccionar la Fecha de Inicio Propuesta arriba). Ahora
-                                    // se avisa explícitamente en vez de quedar callado.
+                                    // seleccionar la Fecha de Inicio arriba). Ahora se avisa
+                                    // explícitamente en vez de quedar callado.
                                     Forms\Components\Placeholder::make('duracion_ayuda')
                                         ->hiddenLabel()
                                         ->content(function (Get $get) {
@@ -616,7 +633,7 @@ class SolicitudContratoResource extends Resource
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div style="display:flex;align-items:center;gap:.5rem;color:#d97706" class="dark:text-amber-400">'
                                                     . '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:22px;height:22px;flex-shrink:0"></lord-icon>'
-                                                    . '<span>Primero seleccione la Fecha de Inicio Propuesta (arriba) para poder calcular la fecha de terminación.</span>'
+                                                    . '<span>Primero seleccione la Fecha de Inicio (arriba) para poder calcular la fecha de terminación.</span>'
                                                     . '</div>'
                                                 );
                                             }
@@ -747,9 +764,14 @@ class SolicitudContratoResource extends Resource
                             // contra el código de Filament).
                             Forms\Components\ToggleButtons::make('periodo_pago')
                                 ->label('Período de Pago')
+                                // Sin días de pago exactos en las opciones (ej. "días 15
+                                // y último"): a qué fecha calendario exacta paga la
+                                // empresa dentro de esa periodicidad es política interna
+                                // suya, no una cláusula del contrato - pedido explícito
+                                // del usuario.
                                 ->options([
-                                    'mensual'   => 'Mensual (último día hábil del mes)',
-                                    'quincenal' => 'Quincenal (días 15 y último)',
+                                    'mensual'   => 'Mensual',
+                                    'quincenal' => 'Quincenal',
                                     'semanal'   => 'Semanal',
                                     'diario'    => 'Diario / jornaleros',
                                     'destajo'   => 'Por obra o destajo (según producción)',
@@ -1006,7 +1028,7 @@ class SolicitudContratoResource extends Resource
                     ->icon('heroicon-o-document-text')
                     ->schema([
                         Forms\Components\RichEditor::make('objeto_juridico_redactado')
-                            ->label('Objeto Jurídico Redactado')
+                            ->label('Objeto del Contrato')
                             ->toolbarButtons([
                                 'bold',
                                 'bulletList',
@@ -1015,8 +1037,8 @@ class SolicitudContratoResource extends Resource
                                 'undo',
                                 'redo',
                             ])
-                            ->placeholder('Redacte el objeto jurídico del contrato...')
-                            ->helperText('Redacción jurídica del objeto del contrato')
+                            ->placeholder('Redacte el objeto del contrato...')
+                            ->helperText('Redacción del objeto del contrato')
                             ->columnSpanFull(),
 
                         Forms\Components\RichEditor::make('observaciones_juridicas')
@@ -1390,6 +1412,13 @@ class SolicitudContratoResource extends Resource
                 Tables\Actions\CreateAction::make()
                     ->label('Crear Solicitud de Contrato'),
             ])
+            // Resalta la fila del contrato recién creado - el cliente aterriza
+            // aquí justo después de crearlo (ver
+            // CreateSolicitudContrato::getRedirectUrl()) y necesita ubicar de
+            // un vistazo cuál fila es la que debe aprobar o rechazar.
+            ->recordClasses(fn(SolicitudContrato $record) => session('solicitud_contrato_recien_creada') === $record->id
+                ? 'ring-2 ring-inset ring-primary-500 bg-primary-50 dark:bg-primary-500/10'
+                : null)
             ->defaultSort('fecha_solicitud', 'desc');
     }
 

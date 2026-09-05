@@ -9,7 +9,7 @@
 
 <div class="rit-viewer">
     <div class="rit-viewer-header">
-        <span class="rit-viewer-label">Objeto Jurídico Redactado</span>
+        <span class="rit-viewer-label">Objeto del Contrato</span>
         @if($texto)
             <span style="font-size:.75rem;color:#64748b">{{ number_format(strlen(strip_tags($texto))) }} caracteres</span>
         @endif

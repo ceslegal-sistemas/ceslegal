@@ -48,7 +48,7 @@ class VerSolicitudContratoTest extends TestCase
             ->assertSuccessful()
             ->assertSee($empresa->razon_social)
             ->assertSee('Juan Pérez')
-            ->assertSee('Objeto Jurídico Redactado')
+            ->assertSee('Objeto del Contrato')
             ->assertSee('Texto redactado por la IA.', false);
     }
 
