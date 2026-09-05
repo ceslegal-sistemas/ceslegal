@@ -105,4 +105,46 @@ class ViewModificacionContractualReskinTest extends TestCase
             ->assertSee('Texto del otrosí', false)
             ->assertDontSee('Aún sin redactar');
     }
+
+    /**
+     * Bug real reportado por el usuario (2026-09-05): para un Otrosí de
+     * Plazo, texto_otrosi_redactado guarda el documento HTML COMPLETO (con
+     * su propio <html><head><style>...) que alimenta el PDF - antes se
+     * inyectaba crudo con {!! !!} en esta página, y su <style> se filtraba a
+     * TODA la página del panel de Filament (rompía el layout), porque el
+     * div contenedor no es un iframe ni un sandbox. Ahora, para tipo
+     * "plazo", se muestra un aviso simple en vez del HTML crudo.
+     */
+    public function test_plazo_no_inyecta_el_html_crudo_del_otrosi_sino_un_aviso(): void
+    {
+        $user = User::factory()->create(['role' => 'super_admin', 'active' => true]);
+        $user->givePermissionTo(['view_any_modificacion::contractual', 'view_modificacion::contractual']);
+        $this->actingAs($user);
+
+        $solicitud = $this->crearSolicitud();
+        $modificacion = ModificacionContractual::create([
+            'solicitud_contrato_id' => $solicitud->id,
+            'tipo_modificacion' => 'plazo',
+            'valor_anterior' => '2026-07-01',
+            'valor_nuevo' => '2027-01-01',
+            'fecha_efectiva' => '2026-06-01',
+            'ruta_otrosi' => 'solicitudes-contrato/otrosies/prueba-plazo.pdf',
+            'texto_otrosi_redactado' => '<html><head><style>body{margin:0;padding:0;background:red;}</style></head><body><p>Otrosí completo</p></body></html>',
+            'estado' => 'otrosi_generado',
+        ]);
+        Storage::disk('local')->put($modificacion->ruta_otrosi, '%PDF-1.4 contenido de prueba');
+
+        // No se usa assertDontSee() sobre el contenido de texto_otrosi_redactado:
+        // Livewire serializa el $record completo (todos sus atributos) en un
+        // snapshot JSON embebido en la página para la hidratación del
+        // componente - ese JSON SÍ contiene el texto como dato inerte (nunca
+        // se aplica como CSS ni se ve en pantalla), así que buscarlo en el
+        // HTML crudo de la respuesta daría un falso positivo. Lo que
+        // realmente importa - y lo que se verifica aquí - es que ya NO se
+        // renderiza dentro de un <div>{!! !!}</div> visible en el DOM real.
+        $this->get(ModificacionContractualResource::getUrl('view', ['record' => $modificacion]))
+            ->assertSuccessful()
+            ->assertSee('Descargar Otrosí')
+            ->assertSee('El Otrosí de Plazo tiene diseño propio');
+    }
 }

@@ -43,12 +43,31 @@
     <div class="rit-viewer">
         <div class="rit-viewer-header">
             <span class="rit-viewer-label">Texto del Otrosí</span>
-            @if($record->texto_otrosi_redactado)
+            @if($record->texto_otrosi_redactado && $record->tipo_modificacion !== 'plazo')
                 <span style="font-size:.75rem;color:#64748b">{{ number_format(strlen(strip_tags($record->texto_otrosi_redactado))) }} caracteres</span>
             @endif
         </div>
         <div class="rit-viewer-body">
-            @if($record->texto_otrosi_redactado)
+            @if($record->tipo_modificacion === 'plazo')
+                {{-- Para "plazo" (Otrosí de Plazo), texto_otrosi_redactado es
+                     el documento HTML COMPLETO (con su propio <html><head>
+                     <style>...) que alimenta el PDF - inyectarlo crudo aquí
+                     con {!! !!} filtraba ese <style> a TODA la página del
+                     panel (rompía el layout de Filament), porque este div no
+                     es un iframe ni un sandbox. Bug real reportado por el
+                     usuario (2026-09-05): ya existía antes de esta migración
+                     con el CSS viejo (más liviano), pero el nuevo formato
+                     Legal Design lo hizo mucho más visible. Se reemplaza por
+                     un aviso simple - el documento real y bien formateado ya
+                     está disponible arriba en "Descargar Otrosí". --}}
+                <div class="rit-empty">
+                    <div class="rit-empty-icon">
+                        <svg style="width:26px;height:26px;color:#22c55e" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <p class="rit-empty-title">El Otrosí de Plazo tiene diseño propio</p>
+                    <p class="rit-empty-sub">Este documento usa su propio formato (membrete, colores y tipografía) y no se puede previsualizar como texto plano aquí. Use el botón "Descargar Otrosí" arriba para verlo tal como se firmará.</p>
+                </div>
+            @elseif($record->texto_otrosi_redactado)
                 <div class="rit-text">{!! $record->texto_otrosi_redactado !!}</div>
             @else
                 <div class="rit-empty">
