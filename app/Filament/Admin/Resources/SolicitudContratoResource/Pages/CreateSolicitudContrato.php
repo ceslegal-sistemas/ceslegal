@@ -65,7 +65,8 @@ class CreateSolicitudContrato extends CreateRecord
             Notification::make()
                 ->success()
                 ->title('Borrador generado')
-                ->body(SolicitudContratoResource::mensajeOrigenFaltasGraves($resultado['faltas_graves_origen']))
+                ->body(SolicitudContratoResource::mensajeOrigenFaltasGraves($resultado['faltas_graves_origen'])
+                    . ' Apruébalo o recházalo desde la fila resaltada abajo.')
                 ->send();
         } catch (\Throwable $e) {
             Log::error('SolicitudContrato: falló la generación automática del borrador', [
@@ -87,5 +88,22 @@ class CreateSolicitudContrato extends CreateRecord
                 ->body('Use "Regenerar Borrador" desde el listado para intentarlo de nuevo.')
                 ->send();
         }
+    }
+
+    /**
+     * Tras crear, Filament por defecto redirige a la página "Ver" del
+     * contrato - ahí el único botón visible es "Editar" (Aprobar/Rechazar
+     * solo existen como Table Actions en el listado), así que el cliente
+     * quedaba sin ninguna pista de qué hacer y terminaba entrando a
+     * "Editar" por descarte (hallazgo real del jefe, 2026-09-04). Se
+     * redirige directo al listado, donde sí puede aprobar o rechazar, y se
+     * deja el id en sesión para resaltar la fila nueva - ver
+     * SolicitudContratoResource::table()::recordClasses().
+     */
+    protected function getRedirectUrl(): string
+    {
+        session()->flash('solicitud_contrato_recien_creada', $this->record->id);
+
+        return static::getResource()::getUrl('index');
     }
 }
