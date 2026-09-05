@@ -187,11 +187,23 @@ class ProcesoDisciplinarioResource extends Resource
                                     Forms\Components\TextInput::make('numero_documento')
                                         ->label('Número de Documento')
                                         ->required()
-                                        ->numeric()
-                                        ->integer()
-                                        ->extraInputAttributes(['min' => 0, 'onkeydown' => "return event.key !== '-'"])
                                         ->maxLength(50)
-                                        ->placeholder('Ej: 1234567890'),
+                                        ->placeholder(fn(Get $get) => match ($get('tipo_documento')) {
+                                            'CC' => 'Ej: 1234567890',
+                                            'CE' => 'Ej: 9876543210',
+                                            'TI' => 'Ej: 1234567890123',
+                                            'PASS' => 'Ej: AB123456',
+                                            default => 'Ingrese el número',
+                                        })
+                                        // Mismo bug/patrón de fix que TrabajadorResource y
+                                        // SolicitudContratoResource: sin mask condicional, un
+                                        // pasaporte alfanumérico no se podía escribir.
+                                        ->mask(fn(Get $get) => match ($get('tipo_documento')) {
+                                            'CC' => '9999999999',
+                                            'CE' => '9999999999',
+                                            'TI' => '9999999999999',
+                                            default => null,
+                                        }),
 
                                     Forms\Components\Select::make('genero')
                                         ->label('Género')

@@ -346,9 +346,6 @@ class SolicitudContratoResource extends Resource
                                     Forms\Components\TextInput::make('trabajador_documento_numero')
                                         ->label('Número de Documento')
                                         ->required()
-                                        ->numeric()
-                                        ->integer()
-                                        ->extraInputAttributes(['min' => 0, 'onkeydown' => "return !['-','+','e','E','.'].includes(event.key)"])
                                         ->maxLength(50)
                                         ->placeholder(fn(Get $get) => match ($get('trabajador_documento_tipo')) {
                                             'CC' => 'Ej: 1234567890',
@@ -356,6 +353,17 @@ class SolicitudContratoResource extends Resource
                                             'TI' => 'Ej: 1234567890123',
                                             'PASS' => 'Ej: AB123456',
                                             default => 'Ingrese el número',
+                                        })
+                                        // Bug real reportado por el usuario: con ->numeric()->integer()
+                                        // incondicional, un pasaporte alfanumérico (ej. "AB123456") no
+                                        // se podía escribir. Mismo patrón ya usado en TrabajadorResource
+                                        // y CreateProcesoDisciplinario: sin mask para PASS (permite
+                                        // letras), con mask numérica para CC/CE/TI.
+                                        ->mask(fn(Get $get) => match ($get('trabajador_documento_tipo')) {
+                                            'CC' => '9999999999',
+                                            'CE' => '9999999999',
+                                            'TI' => '9999999999999',
+                                            default => null,
                                         })
                                         ->helperText('Número de identificación del trabajador')
                                         ->dehydratedWhenHidden(),
