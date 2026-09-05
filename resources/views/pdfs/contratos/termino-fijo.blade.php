@@ -113,6 +113,7 @@
         }
         table.tabla-mapa img { width: 16px; height: 16px; vertical-align: middle; margin-right: 5pt; }
         table.tabla-mapa .mapa-texto { font-size: 8.5pt; }
+        table.tabla-mapa .mapa-titulo-item { font-weight: bold; display: block; }
         a.mapa-link { color: inherit; text-decoration: none; display: block; }
 
         /* ===== Encabezado de cada PARTE ===== */
@@ -125,6 +126,10 @@
         table.parte-header img { width: 22px; height: 22px; }
         .parte-eyebrow { display: block; font-size: 7.5pt; font-weight: bold; letter-spacing: 0.4pt; opacity: 0.85; }
         .parte-titulo { font-size: 11.5pt; font-weight: bold; }
+
+        /* ===== Volver al Mapa del contrato (cierre de cada PARTE) ===== */
+        .volver-mapa { text-align: right; margin: -3pt 0 10pt 0; }
+        .volver-mapa a { font-size: 8pt; color: #1B5E63; text-decoration: none; }
 
         /* ===== Bloques de viñetas por tema (Parte 03 y Parte 08) ===== */
         .bloque-bullets { border: 1px solid #D8E2E1; border-radius: 4px; padding: 6pt 9pt; margin-bottom: 7pt; page-break-inside: avoid; }
@@ -187,54 +192,61 @@
     </div>
 
     {{-- ===================== MAPA DEL CONTRATO ===================== --}}
-    <p class="seccion-titulo">Mapa del contrato</p>
+    <p class="seccion-titulo" id="mapa-del-contrato">Mapa del contrato</p>
     <p>Así está organizado este contrato. Puedes ir directo a la sección que necesites.</p>
     <table class="tabla-mapa">
         <tr>
-            <td><a class="mapa-link" href="#parte-01"><img src="{{ $icono('parte-01') }}" alt=""><span class="mapa-texto"><strong>1.</strong> Quiénes firman y qué normas rigen este contrato.</span></a></td>
-            <td><a class="mapa-link" href="#parte-02"><img src="{{ $icono('parte-02') }}" alt=""><span class="mapa-texto"><strong>2.</strong> Cómo y dónde te notifica la empresa.</span></a></td>
+            <td><a class="mapa-link" href="#parte-01"><img src="{{ $icono('parte-01') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">1. Las partes y la ley aplicable</span>Quiénes firman y qué normas rigen este contrato.</span></a></td>
+            <td><a class="mapa-link" href="#parte-02"><img src="{{ $icono('parte-02') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">2. Datos de contacto</span>Cómo y dónde te notifica la empresa.</span></a></td>
         </tr>
         <tr>
-            <td><a class="mapa-link" href="#parte-03"><img src="{{ $icono('parte-03') }}" alt=""><span class="mapa-texto"><strong>3.</strong> Qué se espera de ti en el día a día.</span></a></td>
-            <td><a class="mapa-link" href="#parte-04"><img src="{{ $icono('parte-04') }}" alt=""><span class="mapa-texto"><strong>4.</strong> Cuánto y cómo te pagan.</span></a></td>
+            <td><a class="mapa-link" href="#parte-03"><img src="{{ $icono('parte-03') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">3. Tu cargo y obligaciones</span>Qué se espera de ti en el día a día.</span></a></td>
+            <td><a class="mapa-link" href="#parte-04"><img src="{{ $icono('parte-04') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">4. Salario</span>Cuánto y cómo te pagan.</span></a></td>
         </tr>
         <tr>
-            <td><a class="mapa-link" href="#parte-05"><img src="{{ $icono('parte-05') }}" alt=""><span class="mapa-texto"><strong>5.</strong> Horarios, horas extra y turnos.</span></a></td>
-            <td><a class="mapa-link" href="#parte-06"><img src="{{ $icono('parte-06') }}" alt=""><span class="mapa-texto"><strong>6.</strong> Tu día de descanso y los recargos.</span></a></td>
+            <td><a class="mapa-link" href="#parte-05"><img src="{{ $icono('parte-05') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">5. Jornada de trabajo</span>Horarios, horas extra y turnos.</span></a></td>
+            <td><a class="mapa-link" href="#parte-06"><img src="{{ $icono('parte-06') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">6. Descanso y recargos</span>Tu día de descanso y los recargos.</span></a></td>
         </tr>
         <tr>
-            <td><a class="mapa-link" href="#parte-07"><img src="{{ $icono('parte-07') }}" alt=""><span class="mapa-texto"><strong>7.</strong> Cuánto dura el contrato y sus prórrogas.</span></a></td>
-            <td><a class="mapa-link" href="#parte-08"><img src="{{ $icono('parte-08') }}" alt=""><span class="mapa-texto"><strong>8.</strong> Justas causas y faltas graves.</span></a></td>
+            <td><a class="mapa-link" href="#parte-07"><img src="{{ $icono('parte-07') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">7. Duración y período de prueba</span>Cuánto dura el contrato y sus prórrogas.</span></a></td>
+            <td><a class="mapa-link" href="#parte-08"><img src="{{ $icono('parte-08') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">8. Terminación</span>Justas causas y faltas graves.</span></a></td>
         </tr>
         <tr>
-            <td><a class="mapa-link" href="#parte-09"><img src="{{ $icono('parte-09') }}" alt=""><span class="mapa-texto"><strong>9.</strong> Qué pasa si te enfermas.</span></a></td>
-            <td><a class="mapa-link" href="#parte-10"><img src="{{ $icono('parte-10') }}" alt=""><span class="mapa-texto"><strong>10.</strong> La reserva de la información de la empresa.</span></a></td>
+            <td><a class="mapa-link" href="#parte-09"><img src="{{ $icono('parte-09') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">9. Incapacidades y exámenes médicos</span>Qué pasa si te enfermas.</span></a></td>
+            <td><a class="mapa-link" href="#parte-10"><img src="{{ $icono('parte-10') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">10. Confidencialidad</span>La reserva de la información de la empresa.</span></a></td>
         </tr>
         <tr>
-            <td><a class="mapa-link" href="#parte-11"><img src="{{ $icono('parte-11') }}" alt=""><span class="mapa-texto"><strong>11.</strong> Lo que creas en tu trabajo y el uso de tu imagen.</span></a></td>
-            <td><a class="mapa-link" href="#parte-12"><img src="{{ $icono('parte-12') }}" alt=""><span class="mapa-texto"><strong>12.</strong> Los equipos que te entrega la empresa.</span></a></td>
+            <td><a class="mapa-link" href="#parte-11"><img src="{{ $icono('parte-11') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">11. Propiedad intelectual</span>Lo que creas en tu trabajo y el uso de tu imagen.</span></a></td>
+            <td><a class="mapa-link" href="#parte-12"><img src="{{ $icono('parte-12') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">12. Herramientas de trabajo</span>Los equipos que te entrega la empresa.</span></a></td>
         </tr>
         <tr>
-            <td><a class="mapa-link" href="#parte-13"><img src="{{ $icono('parte-13') }}" alt=""><span class="mapa-texto"><strong>13.</strong> Cómo se usan tus datos personales.</span></a></td>
-            <td><a class="mapa-link" href="#parte-14"><img src="{{ $icono('parte-14') }}" alt=""><span class="mapa-texto"><strong>14.</strong> Capacitación y ajustes en tus condiciones.</span></a></td>
+            <td><a class="mapa-link" href="#parte-13"><img src="{{ $icono('parte-13') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">13. Tratamiento de datos personales</span>Cómo se usan tus datos personales.</span></a></td>
+            <td><a class="mapa-link" href="#parte-14"><img src="{{ $icono('parte-14') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">14. Políticas y cambios laborales</span>Capacitación y ajustes en tus condiciones.</span></a></td>
         </tr>
         <tr>
-            <td><a class="mapa-link" href="#parte-15"><img src="{{ $icono('parte-15') }}" alt=""><span class="mapa-texto"><strong>15.</strong> Qué se te puede descontar del salario.</span></a></td>
-            <td><a class="mapa-link" href="#parte-16"><img src="{{ $icono('parte-16') }}" alt=""><span class="mapa-texto"><strong>16.</strong> Vigencia y modificaciones del contrato.</span></a></td>
+            <td><a class="mapa-link" href="#parte-15"><img src="{{ $icono('parte-15') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">15. Descuentos autorizados</span>Qué se te puede descontar del salario.</span></a></td>
+            <td><a class="mapa-link" href="#parte-16"><img src="{{ $icono('parte-16') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">16. Disposiciones finales</span>Vigencia y modificaciones del contrato.</span></a></td>
         </tr>
         <tr>
-            <td><a class="mapa-link" href="#parte-17"><img src="{{ $icono('parte-17') }}" alt=""><span class="mapa-texto"><strong>17.</strong> El cierre formal del contrato.</span></a></td>
+            <td><a class="mapa-link" href="#parte-17"><img src="{{ $icono('parte-17') }}" alt=""><span class="mapa-texto"><span class="mapa-titulo-item">17. Firmas</span>El cierre formal del contrato.</span></a></td>
             <td></td>
         </tr>
     </table>
 
     @php
-        $parteHeader = function ($n, $titulo) use ($icono) {
+        $parteHeader = function ($n, $titulo, $eyebrowExtra = null) use ($icono) {
             $numero = str_pad((string) $n, 2, '0', STR_PAD_LEFT);
+            $eyebrow = 'PARTE ' . $numero . ' &middot;' . ($eyebrowExtra ? ' ' . e($eyebrowExtra) : '');
             return '<table id="parte-' . $numero . '" class="parte-header avoid-break"><tr>'
                 . '<td class="parte-icono-td"><img src="' . e($icono('parte-' . $numero . '-white')) . '" alt=""></td>'
-                . '<td><span class="parte-eyebrow">PARTE ' . $numero . ' &middot;</span><span class="parte-titulo">' . e($titulo) . '</span></td>'
+                . '<td><span class="parte-eyebrow">' . $eyebrow . '</span><span class="parte-titulo">' . e($titulo) . '</span></td>'
                 . '</tr></table>';
+        };
+        // Cierre de cada PARTE con enlace de regreso al mapa - presente en el
+        // docx real del jefe al final de cada sección (excepto la última,
+        // el Glosario, que no lo tiene).
+        $volverAlMapa = function () {
+            return '<p class="volver-mapa"><a href="#mapa-del-contrato">&uarr; Volver al Mapa del contrato</a></p>';
         };
     @endphp
 
@@ -255,6 +267,7 @@
     <p><strong>¿Qué ley rige este contrato?</strong></p>
     <p>Este contrato se rige por la legislación colombiana, principalmente por el Código Sustantivo del Trabajo (CST) y sus normas complementarias — incluida la Ley 2466 de 2025 (Reforma Laboral) —, por aplicarse el principio de territorialidad: la relación laboral se forma, se ejecuta y termina en Colombia.</p>
 
+    {!! $volverAlMapa() !!}
     {{-- ===================== PARTE 02 · Datos de contacto ===================== --}}
     {!! $parteHeader(2, 'Datos de contacto') !!}
     <div class="caja caja--simple">
@@ -273,6 +286,7 @@
         <p>Mantén siempre actualizados tu dirección, correo y celular. Una notificación legal se dará por válida aunque no la hayas recibido realmente, si fue enviada a los datos que la empresa tiene registrados.</p>
     </div>
 
+    {!! $volverAlMapa() !!}
     {{-- ===================== PARTE 03 · Tu cargo y obligaciones ===================== --}}
     {!! $parteHeader(3, 'Tu cargo y obligaciones') !!}
     <div class="caja caja--simple">
@@ -322,6 +336,7 @@
     <p>Si la empresa te pide prestar tus servicios a otra sociedad de su mismo grupo empresarial (filiales, matrices o subordinadas), esto no crea un contrato de trabajo distinto: para todos los efectos legales, tu único empleador sigue siendo la empresa que firma este contrato.</p>
     <p>Exigirte el cumplimiento de las obligaciones de este contrato no constituye, por sí solo, acoso laboral (Ley 1010 de 2006, artículo 8, literal i).</p>
 
+    {!! $volverAlMapa() !!}
     {{-- ===================== PARTE 04 · Salario ===================== --}}
     {!! $parteHeader(4, 'Salario') !!}
     <div class="caja caja--simple">
@@ -333,6 +348,7 @@
     <p>Dentro de este pago ya está incluida la remuneración de los descansos dominicales y festivos (Título VII, Capítulos I, II y III del CST).</p>
     <p>Si la empresa te reconoce beneficios extralegales distintos al salario (por ejemplo, alimentación, vivienda, transporte o vestuario), estos no se consideran salario y no se tienen en cuenta para liquidar tus prestaciones ni para el pago de aportes parafiscales, conforme a los artículos 15 y 16 de la Ley 50 de 1990 y el artículo 17 de la Ley 344 de 1996.</p>
 
+    {!! $volverAlMapa() !!}
     {{-- ===================== PARTE 05 · Jornada de trabajo ===================== --}}
     {!! $parteHeader(5, 'Jornada de trabajo') !!}
     <div class="caja caja--simple">
@@ -351,6 +367,7 @@
     <p><strong>Horas extra, trabajo nocturno, dominical o festivo</strong></p>
     <p>Para que la empresa te reconozca y pague trabajo suplementario (horas extra), nocturno, dominical o festivo, este debe haber sido autorizado previamente y por escrito. Si la necesidad surge de manera imprevista, debes informarlo por escrito a la mayor brevedad para su aprobación. Si el trabajo no fue autorizado o avisado y aprobado como se explica aquí, la empresa no está obligada a reconocerlo.</p>
 
+    {!! $volverAlMapa() !!}
     {{-- ===================== PARTE 06 · Descanso y recargos ===================== --}}
     {!! $parteHeader(6, 'Descanso y recargos') !!}
     <div class="caja caja--simple">
@@ -361,6 +378,7 @@
     <p>Si llegas a trabajar en tu día de descanso obligatorio, la empresa te reconocerá y pagará el recargo correspondiente conforme a la ley.</p>
     <p>Si trabajas de forma habitual más de dos {{ $diaDescansoObligatorio }}s al mes, además del recargo tienes derecho a un descanso compensatorio remunerado (art. 181 CST).</p>
 
+    {!! $volverAlMapa() !!}
     {{-- ===================== PARTE 07 · Duración y período de prueba ===================== --}}
     {!! $parteHeader(7, 'Duración y período de prueba') !!}
     <div class="caja caja--simple">
@@ -376,6 +394,7 @@
         <tr><td class="label">Durante el período de prueba</td><td>Cualquiera de las partes puede terminar el contrato en cualquier momento, sin previo aviso ni indemnización. Aun así, tienes derecho a todas las prestaciones que la ley determine a tu favor.</td></tr>
     </table>
 
+    {!! $volverAlMapa() !!}
     <div class="page-break"></div>
 
     {{-- ===================== PARTE 08 · Terminación ===================== --}}
@@ -451,6 +470,7 @@
     </div>
     <p>Además, eres responsable del dinero, los documentos, los recursos informáticos y la información que recibas o manejes por razón de tu cargo, sin poder disponer de ellos en tu beneficio ni en el de terceros, y debes rendir cuentas claras de su manejo a la empresa.</p>
 
+    {!! $volverAlMapa() !!}
     {{-- ===================== PARTE 09 · Incapacidades y exámenes médicos ===================== --}}
     {!! $parteHeader(9, 'Incapacidades y exámenes médicos') !!}
     <div class="caja caja--simple">
@@ -464,6 +484,7 @@
         <p>Negarte a practicarte los exámenes médicos o pruebas de laboratorio que la empresa te solicite se considera falta grave y puede ser causal de terminación del contrato con justa causa.</p>
     </div>
 
+    {!! $volverAlMapa() !!}
     {{-- ===================== PARTE 10 · Confidencialidad ===================== --}}
     {!! $parteHeader(10, 'Confidencialidad') !!}
     <div class="caja caja--simple">
@@ -479,6 +500,7 @@
         <p>Incumplir esta cláusula se considera falta grave y justa causa de terminación del contrato (Decreto 2351 de 1965, art. 7, literal a, numeral 6, en concordancia con el numeral 1 del art. 58 del CST), sin perjuicio de las acciones civiles o penales que la empresa o terceros puedan iniciar.</p>
     </div>
 
+    {!! $volverAlMapa() !!}
     {{-- ===================== PARTE 11 · Propiedad intelectual ===================== --}}
     {!! $parteHeader(11, 'Propiedad intelectual') !!}
     <div class="caja caja--simple">
@@ -500,6 +522,7 @@
         <p>Tanto para los derechos de autor como para la propiedad industrial, la ley entiende que tu salario ya remunera esta cesión, pues los desarrollos surgen en virtud de tu contrato de trabajo (Ley 23 de 1982 y Decisión 486 de 2000 de la CAN, en concordancia con el numeral 1&ordm; del artículo 132 del CST).</p>
     </div>
 
+    {!! $volverAlMapa() !!}
     {{-- ===================== PARTE 12 · Herramientas de trabajo ===================== --}}
     {!! $parteHeader(12, 'Herramientas de trabajo') !!}
     <div class="caja caja--simple">
@@ -516,6 +539,7 @@
         <p>Si pierdes, dañas o no devuelves una herramienta de trabajo, autorizas a la empresa a descontar su valor comercial de las sumas que te adeude: salarios, prestaciones sociales, vacaciones, intereses de cesantía, u otras acreencias a tu favor, ya sea durante el contrato o al momento de su liquidación.</p>
     </div>
 
+    {!! $volverAlMapa() !!}
     <div class="page-break"></div>
 
     {{-- ===================== PARTE 13 · Tratamiento de datos personales ===================== --}}
@@ -529,6 +553,7 @@
     <p>Tienes derecho a conocer, actualizar, rectificar y suprimir tus datos personales, y a revocar esta autorización cuando sea procedente, mediante solicitud dirigida a la empresa o ante la Superintendencia de Industria y Comercio.</p>
     <p>Esta autorización sigue vigente después de terminado el contrato, por el tiempo necesario para cumplir obligaciones legales, contables, laborales o de archivo.</p>
 
+    {!! $volverAlMapa() !!}
     {{-- ===================== PARTE 14 · Políticas y cambios laborales ===================== --}}
     {!! $parteHeader(14, 'Políticas y cambios laborales') !!}
     <div class="caja caja--simple">
@@ -539,6 +564,7 @@
     <p>Declaras conocer y entender las políticas y procedimientos de la empresa relacionados con tus funciones, y te comprometes a mantenerte actualizado(a) sobre ellos, así como a informarte de los nuevos que se establezcan. Si tienes personas a cargo, debes procurar que ellas también estén informadas.</p>
     <p>Aceptas que la empresa pueda ajustar tu jornada, tu lugar de trabajo, tu cargo o funciones, o tu forma de remuneración, en ejercicio de su facultad de dirección, siempre que esos cambios no afecten tu honor o dignidad ni impliquen una desmejora sustancial o un perjuicio grave para ti (art. 23 CST, modificado por el art. 1&ordm; de la Ley 50 de 1990).</p>
 
+    {!! $volverAlMapa() !!}
     {{-- ===================== PARTE 15 · Descuentos autorizados ===================== --}}
     {!! $parteHeader(15, 'Descuentos autorizados') !!}
     <div class="caja caja--simple">
@@ -548,14 +574,16 @@
     <p>Autorizas a la empresa a realizar las deducciones o descuentos de tus acreencias laborales permitidos por el artículo 150 del CST (modificado por el art. 22 de la Ley 1911 de 2018).</p>
     <p>Puedes autorizar por escrito otros descuentos adicionales sobre tus acreencias laborales, conforme al artículo 151 del CST (modificado por el art. 19 de la Ley 1429 de 2010).</p>
     <p>Al terminar el contrato, puedes autorizar por escrito que se descuenten de tus prestaciones sociales o de cualquier suma a tu favor, los valores que le debas a la empresa por cualquier concepto.</p>
+    {!! $volverAlMapa() !!}
 
     {{-- ===================== PARTE 16 · Disposiciones finales ===================== --}}
     {!! $parteHeader(16, 'Disposiciones finales') !!}
     <p>Este contrato reemplaza en su totalidad, y deja sin efecto, cualquier otro contrato, acuerdo u oferta anterior entre las partes sobre lo mismo, ya sea verbal o escrito.</p>
     <p>Cualquier modificación futura a este contrato debe hacerse por escrito y formará parte integrante de este documento.</p>
+    {!! $volverAlMapa() !!}
 
-    {{-- ===================== PARTE 17 · Cierre del contrato — Firmas ===================== --}}
-    {!! $parteHeader(17, 'Cierre del contrato — Firmas') !!}
+    {{-- ===================== PARTE 17 · Firmas ===================== --}}
+    {!! $parteHeader(17, 'Firmas', 'Cierre del contrato') !!}
     <p>Para constancia de lo anterior, se firma por las partes en {{ $lugarContratacion }}, el día {{ $fechaFirma }}.</p>
     <table class="firma">
         <tr>
@@ -574,11 +602,12 @@
             </td>
         </tr>
     </table>
+    {!! $volverAlMapa() !!}
 
     <div class="page-break"></div>
 
     {{-- ===================== PARTE 18 · Glosario de términos legales ===================== --}}
-    {!! $parteHeader(18, 'Glosario de términos legales') !!}
+    {!! $parteHeader(18, 'Glosario de términos legales', 'Para consultar cuando lo necesites') !!}
     <p>Algunos términos técnicos no se pueden traducir sin perder precisión jurídica. Aquí te los explicamos:</p>
     <table class="tabla-glosario">
         <tr><td class="termino">Justa causa</td><td>Motivo válido y reconocido por la ley para que el empleador o el trabajador terminen el contrato de forma unilateral.</td></tr>
