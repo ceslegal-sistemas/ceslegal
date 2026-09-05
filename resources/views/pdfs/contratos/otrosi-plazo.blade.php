@@ -5,6 +5,15 @@
     cláusula. Sin IA de por medio: se sustituyen variables sobre el texto
     exacto, mismo criterio ya aplicado a las 3 plantillas de contrato base.
 
+    Tratamiento visual "Legal Design" (2026-09-04, mismo look que
+    termino-fijo/termino-indefinido/obra-labor): franja teal de título,
+    caja "Importante" resaltando la nueva fecha de finalización, y
+    membrete de empresa - a pedido explícito del usuario ("necesito que
+    use el mismo formato y plantilla del contrato... estética Legal
+    Design completa"). El documento sigue siendo de una sola "sección"
+    (no tiene PARTE 01/02/etc. ni mapa del contrato - es un otrosí corto,
+    no un contrato completo).
+
     Variables esperadas:
       $numeroOtrosi
       $nombreEmpresa, $nit, $representanteLegal
@@ -15,7 +24,18 @@
       $duracionProrrogaTexto (duración de la nueva prórroga)
       $fechaFinAnteriorTexto, $fechaFinNuevaTexto
       $fechaFirma
+      $empresa (Model, para el membrete - puede no venir en vistas antiguas)
 --}}
+@php
+    $iconosDir = public_path('images/contrato-legal-design');
+    $icono = function (string $nombre) use ($iconosDir) {
+        $ruta = $iconosDir . DIRECTORY_SEPARATOR . $nombre . '.svg';
+        if (!is_file($ruta)) {
+            return '';
+        }
+        return 'data:image/svg+xml;base64,' . base64_encode(file_get_contents($ruta));
+    };
+@endphp
 <html>
 
 <head>
@@ -24,11 +44,13 @@
             margin: 2.5cm 2.3cm;
         }
 
+        * { box-sizing: border-box; }
+
         html,
         body {
             font-family: 'Tahoma', 'DejaVu Sans', Arial, sans-serif;
             font-size: 10.5pt;
-            color: #000;
+            color: #2A2A2A;
         }
 
         body {
@@ -38,14 +60,6 @@
             text-align: justify;
         }
 
-        h1 {
-            font-size: 12pt;
-            font-weight: bold;
-            text-align: center;
-            text-transform: uppercase;
-            margin: 0 0 16pt 0;
-        }
-
         p {
             margin: 0 0 9pt 0;
         }
@@ -53,6 +67,24 @@
         .clausula-titulo {
             font-weight: bold;
         }
+
+        /* ===== Encabezado de título (mismo lenguaje visual que las
+             PARTE de los contratos Legal Design) ===== */
+        table.documento-header {
+            width: 100%; border-collapse: collapse; background: #1B5E63;
+            margin: 0 0 16pt 0; border-radius: 4px;
+        }
+        table.documento-header td { padding: 9pt 12pt; color: #fff; vertical-align: middle; }
+        table.documento-header td.icono-td { width: 34px; }
+        table.documento-header img { width: 24px; height: 24px; }
+        table.documento-header .titulo { font-size: 12.5pt; font-weight: bold; }
+
+        /* ===== Caja "Importante" ===== */
+        .caja { border-radius: 4px; padding: 8pt 10pt; margin: 12pt 0; page-break-inside: avoid; }
+        .caja--importante { background: #FBEAEA; }
+        .caja-titulo { font-weight: bold; margin: 0 0 3pt 0; }
+        .caja-titulo img { width: 11pt; height: 11pt; vertical-align: -1.5pt; margin-right: 3pt; }
+        .caja p:last-child { margin-bottom: 0; }
 
         table.firma {
             width: 100%;
@@ -72,7 +104,12 @@
 
 <body>
 
-    <h1>Otrosí de Plazo No. {{ $numeroOtrosi }} entre {{ $nombreEmpresa }}, y {{ $nombreTrabajador }}</h1>
+    <table class="documento-header">
+        <tr>
+            <td class="icono-td"><img src="{{ $icono('parte-07-white') }}" alt=""></td>
+            <td><span class="titulo">Otrosí de Plazo No. {{ $numeroOtrosi }} entre {{ $nombreEmpresa }}, y {{ $nombreTrabajador }}</span></td>
+        </tr>
+    </table>
 
     <p>Entre {{ $representanteLegal }}, identificado como aparece al pie de su firma, en su condición de
         Gerente de la empresa {{ $nombreEmpresa }}, sociedad con domicilio en el municipio de
@@ -107,6 +144,13 @@
         períodos iguales o inferiores al inicialmente pactado, al cabo de los cuales el término de renovación
         no puede ser inferior a un (1) año, y así sucesivamente.</p>
 
+    <div class="caja caja--importante">
+        <p class="caja-titulo"><img src="{{ $icono('callout-importante') }}" alt="">Importante</p>
+        <p>Con este otrosí, tu contrato queda prorrogado hasta el <strong>{{ $fechaFinNuevaTexto }}</strong>.
+            Si ninguna de las partes avisa por escrito lo contrario con al menos 30 días de anticipación a esa
+            fecha, el contrato se renovará automáticamente por un período igual.</p>
+    </div>
+
     <p><span class="clausula-titulo">TERCERA. – EFECTOS:</span> Para todos los efectos legales se deja
         constancia que las demás cláusulas del contrato principal de trabajo no sufren ninguna modificación y
         en consecuencia continúan vigentes.</p>
@@ -137,6 +181,10 @@
 
     <p style="margin-top:30pt;">Con la presente firma certifico que EL EMPLEADOR ha hecho entrega de una
         copia del OTROSÍ DE PLAZO No. {{ $numeroOtrosi }}, al señor(a) {{ $nombreTrabajador }}.</p>
+
+    @isset($empresa)
+    @include('pdfs.components.membrete-empresa', ['empresa' => $empresa])
+@endisset
 
 </body>
 

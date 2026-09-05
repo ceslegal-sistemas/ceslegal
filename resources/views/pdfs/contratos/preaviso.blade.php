@@ -4,6 +4,14 @@
     2026.docx). Texto literal - no resumir ni reformular. Sin IA de por
     medio: se sustituyen variables sobre el texto exacto.
 
+    Tratamiento visual "Legal Design" (2026-09-04, mismo look que
+    termino-fijo/termino-indefinido/obra-labor): franja teal de título,
+    caja "Importante" resaltando la fecha de finalización del contrato, y
+    membrete de empresa - a pedido explícito del usuario ("necesito que
+    use el mismo formato y plantilla del contrato... estética Legal
+    Design completa"). Sigue siendo una carta de una sola página, sin
+    PARTE 01/02/etc. ni mapa del contrato.
+
     Variables esperadas:
       $municipioEmpresa, $departamentoEmpresa
       $fechaCarta
@@ -11,7 +19,18 @@
       $fechaContratoOriginalTexto
       $fechaFinContratoTexto
       $nombreEmpresa, $nit, $representanteLegal
+      $empresa (Model, para el membrete - puede no venir en vistas antiguas)
 --}}
+@php
+    $iconosDir = public_path('images/contrato-legal-design');
+    $icono = function (string $nombre) use ($iconosDir) {
+        $ruta = $iconosDir . DIRECTORY_SEPARATOR . $nombre . '.svg';
+        if (!is_file($ruta)) {
+            return '';
+        }
+        return 'data:image/svg+xml;base64,' . base64_encode(file_get_contents($ruta));
+    };
+@endphp
 <html>
 
 <head>
@@ -20,11 +39,13 @@
             margin: 2.5cm 2.3cm;
         }
 
+        * { box-sizing: border-box; }
+
         html,
         body {
             font-family: 'Tahoma', 'DejaVu Sans', Arial, sans-serif;
             font-size: 10.5pt;
-            color: #000;
+            color: #2A2A2A;
         }
 
         body {
@@ -41,10 +62,35 @@
         .no-justificar {
             text-align: left;
         }
+
+        /* ===== Encabezado de título (mismo lenguaje visual que las
+             PARTE de los contratos Legal Design) ===== */
+        table.documento-header {
+            width: 100%; border-collapse: collapse; background: #1B5E63;
+            margin: 0 0 16pt 0; border-radius: 4px;
+        }
+        table.documento-header td { padding: 9pt 12pt; color: #fff; vertical-align: middle; }
+        table.documento-header td.icono-td { width: 34px; }
+        table.documento-header img { width: 24px; height: 24px; }
+        table.documento-header .titulo { font-size: 12.5pt; font-weight: bold; }
+
+        /* ===== Caja "Importante" ===== */
+        .caja { border-radius: 4px; padding: 8pt 10pt; margin: 12pt 0; page-break-inside: avoid; }
+        .caja--importante { background: #FBEAEA; }
+        .caja-titulo { font-weight: bold; margin: 0 0 3pt 0; }
+        .caja-titulo img { width: 11pt; height: 11pt; vertical-align: -1.5pt; margin-right: 3pt; }
+        .caja p:last-child { margin-bottom: 0; }
     </style>
 </head>
 
 <body>
+
+    <table class="documento-header">
+        <tr>
+            <td class="icono-td"><img src="{{ $icono('parte-08-white') }}" alt=""></td>
+            <td><span class="titulo">Comunicación de No Prórroga al contrato de trabajo</span></td>
+        </tr>
+    </table>
 
     <p class="no-justificar">{{ $municipioEmpresa }}, {{ $departamentoEmpresa }}, {{ $fechaCarta }}.</p>
 
@@ -69,6 +115,14 @@
         certificado laboral, carta de autorización de retiro de cesantías y constancia del pago de los aportes
         a seguridad social de los últimos tres (3) meses.</p>
 
+    <div class="caja caja--importante">
+        <p class="caja-titulo"><img src="{{ $icono('callout-importante') }}" alt="">Importante</p>
+        <p>Tu contrato de trabajo finaliza el <strong>{{ $fechaFinContratoTexto }}</strong>. Ese día recibirás
+            la autorización para el examen médico de egreso, tu liquidación, el certificado laboral, la carta
+            de autorización de retiro de cesantías y la constancia de pago de aportes a seguridad social de
+            los últimos 3 meses.</p>
+    </div>
+
     <p>Le deseamos los mejores éxitos en sus actividades futuras.</p>
 
     <p>Cordialmente,</p>
@@ -80,6 +134,10 @@
         {{ $representanteLegal }}.<br>
         Representante legal.
     </p>
+
+    @isset($empresa)
+    @include('pdfs.components.membrete-empresa', ['empresa' => $empresa])
+@endisset
 
 </body>
 

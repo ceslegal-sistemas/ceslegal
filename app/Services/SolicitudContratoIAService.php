@@ -461,6 +461,7 @@ class SolicitudContratoIAService
             : Carbon::parse($solicitud->fecha_inicio_propuesta ?? $fechaFinAnterior);
 
         return view('pdfs.contratos.otrosi-plazo', [
+            'empresa'                    => $empresa,
             'numeroOtrosi'               => $solicitud->veces_prorrogado + 1,
             'nombreEmpresa'              => $empresa?->nombre_completo ?? '',
             'nit'                        => $empresa?->nit ?? '',
@@ -935,6 +936,7 @@ class SolicitudContratoIAService
             : 'la fecha de suscripción del contrato';
 
         $html = view('pdfs.contratos.preaviso', [
+            'empresa'                    => $empresa,
             'municipioEmpresa'           => $empresa?->ciudad ?? '',
             'departamentoEmpresa'        => $empresa?->departamento ?? '',
             'fechaCarta'                 => now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY'),

@@ -102,4 +102,58 @@ class MembreteEnContratosTest extends TestCase
 
         $this->assertStringNotContainsString('membrete-pie', $html);
     }
+
+    /**
+     * Otrosí de Plazo y Preaviso no llevaban membrete (a diferencia de las 3
+     * plantillas de contrato base) - corregido a pedido del usuario
+     * (2026-09-05, "mismo formato y plantilla... estética Legal Design
+     * completa"). El Service ahora pasa 'empresa' a ambas vistas.
+     */
+    public function test_otrosi_plazo_incluye_el_membrete_si_la_empresa_tiene_logo(): void
+    {
+        $empresa = $this->crearEmpresaConLogo();
+
+        $html = view('pdfs.contratos.otrosi-plazo', [
+            'empresa' => $empresa,
+            'numeroOtrosi' => 1,
+            'nombreEmpresa' => 'EMPRESA ABC S.A.S',
+            'nit' => '900123456-7',
+            'representanteLegal' => 'Carlos Ruiz',
+            'municipioEmpresa' => 'Bogotá',
+            'departamentoEmpresa' => 'Cundinamarca',
+            'nombreTrabajador' => 'Juan Pérez',
+            'tipoDocumentoLabel' => 'cédula de ciudadanía',
+            'numeroDocumento' => '1234567890',
+            'fechaContratoOriginalTexto' => '1 de enero de 2026',
+            'duracionInicialTexto' => '6 meses',
+            'duracionProrrogaTexto' => '6 meses',
+            'fechaFinAnteriorTexto' => '1 de julio de 2026',
+            'fechaFinNuevaTexto' => '1 de enero de 2027',
+            'fechaFirma' => '1 de julio de 2026',
+        ])->render();
+
+        $this->assertStringContainsString('membrete-pie', $html);
+    }
+
+    public function test_preaviso_incluye_el_membrete_si_la_empresa_tiene_logo(): void
+    {
+        $empresa = $this->crearEmpresaConLogo();
+
+        $html = view('pdfs.contratos.preaviso', [
+            'empresa' => $empresa,
+            'municipioEmpresa' => 'Bogotá',
+            'departamentoEmpresa' => 'Cundinamarca',
+            'fechaCarta' => '1 de julio de 2026',
+            'nombreTrabajador' => 'Juan Pérez',
+            'tipoDocumentoLabel' => 'cédula de ciudadanía',
+            'numeroDocumento' => '1234567890',
+            'fechaContratoOriginalTexto' => '1 de enero de 2026',
+            'fechaFinContratoTexto' => '1 de julio de 2026',
+            'nombreEmpresa' => 'EMPRESA ABC S.A.S',
+            'nit' => '900123456-7',
+            'representanteLegal' => 'Carlos Ruiz',
+        ])->render();
+
+        $this->assertStringContainsString('membrete-pie', $html);
+    }
 }
