@@ -602,24 +602,29 @@
 
     {{-- ===================== PARTE 17 · Firmas ===================== --}}
     {!! $parteHeader(17, 'Firmas', 'Cierre del contrato') !!}
-    <p>Para constancia de lo anterior, se firma por las partes en {{ $lugarContratacion }}, el día {{ $fechaFirma }}.</p>
-    <table class="firma">
-        <tr>
-            <td>
-                <div class="linea"></div>
-                <strong>EL EMPLEADOR</strong><br>
-                {{ $nombreEmpresa }}<br>
-                NIT. {{ $nit }}<br>
-                {{ $representanteLegal }}
-            </td>
-            <td>
-                <div class="linea"></div>
-                <strong>EL TRABAJADOR / LA TRABAJADORA</strong><br>
-                {{ $nombreTrabajador }}<br>
-                {{ ucfirst($tipoDocumentoLabel) }} N.&ordm; {{ $numeroDocumento }}
-            </td>
-        </tr>
-    </table>
+    {{-- avoid-break: la firma nunca debe quedar sola en una página, separada
+         del párrafo "Para constancia..." que la introduce (hallazgo real del
+         usuario, 2026-09-05). --}}
+    <div class="avoid-break">
+        <p>Para constancia de lo anterior, se firma por las partes en {{ $lugarContratacion }}, el día {{ $fechaFirma }}.</p>
+        <table class="firma">
+            <tr>
+                <td>
+                    <div class="linea"></div>
+                    <strong>EL EMPLEADOR</strong><br>
+                    {{ $nombreEmpresa }}<br>
+                    NIT. {{ $nit }}<br>
+                    {{ $representanteLegal }}
+                </td>
+                <td>
+                    <div class="linea"></div>
+                    <strong>EL TRABAJADOR / LA TRABAJADORA</strong><br>
+                    {{ $nombreTrabajador }}<br>
+                    {{ ucfirst($tipoDocumentoLabel) }} N.&ordm; {{ $numeroDocumento }}
+                </td>
+            </tr>
+        </table>
+    </div>
     {!! $volverAlMapa() !!}
 
     <div class="page-break"></div>

@@ -99,6 +99,11 @@
             padding-top: 30pt;
             font-size: 10.5pt;
         }
+
+        /* La firma nunca debe quedar sola en una página, separada del
+           municipio/fecha que la introduce ni de la certificación de
+           entrega que la cierra (hallazgo real del usuario, 2026-09-05). */
+        .avoid-break { page-break-inside: avoid; }
     </style>
 </head>
 
@@ -159,28 +164,30 @@
         sin ningún vicio de la voluntad como error, fuerza o dolo y en prueba de ello imponen su firma en dos
         ejemplares del mismo tenor y valor, en el municipio y fecha que se indican a continuación:</p>
 
-    <p><strong>MUNICIPIO:</strong> {{ $municipioEmpresa }}, {{ $departamentoEmpresa }}.
-        &nbsp;&nbsp;&nbsp;&nbsp;<strong>FECHA:</strong> {{ $fechaFirma }}.</p>
+    <div class="avoid-break">
+        <p><strong>MUNICIPIO:</strong> {{ $municipioEmpresa }}, {{ $departamentoEmpresa }}.
+            &nbsp;&nbsp;&nbsp;&nbsp;<strong>FECHA:</strong> {{ $fechaFirma }}.</p>
 
-    <table class="firma">
-        <tr>
-            <td>
-                <strong>EL EMPLEADOR</strong><br>
-                {{ $nombreEmpresa }}<br>
-                NIT. {{ $nit }}<br>
-                {{ $representanteLegal }}<br>
-                Representante legal
-            </td>
-            <td>
-                <strong>EL TRABAJADOR</strong><br>
-                {{ $nombreTrabajador }}<br>
-                {{ ucfirst($tipoDocumentoLabel) }} No. {{ $numeroDocumento }}
-            </td>
-        </tr>
-    </table>
+        <table class="firma">
+            <tr>
+                <td>
+                    <strong>EL EMPLEADOR</strong><br>
+                    {{ $nombreEmpresa }}<br>
+                    NIT. {{ $nit }}<br>
+                    {{ $representanteLegal }}<br>
+                    Representante legal
+                </td>
+                <td>
+                    <strong>EL TRABAJADOR</strong><br>
+                    {{ $nombreTrabajador }}<br>
+                    {{ ucfirst($tipoDocumentoLabel) }} No. {{ $numeroDocumento }}
+                </td>
+            </tr>
+        </table>
 
-    <p style="margin-top:30pt;">Con la presente firma certifico que EL EMPLEADOR ha hecho entrega de una
-        copia del OTROSÍ DE PLAZO No. {{ $numeroOtrosi }}, al señor(a) {{ $nombreTrabajador }}.</p>
+        <p style="margin-top:30pt;">Con la presente firma certifico que EL EMPLEADOR ha hecho entrega de una
+            copia del OTROSÍ DE PLAZO No. {{ $numeroOtrosi }}, al señor(a) {{ $nombreTrabajador }}.</p>
+    </div>
 
     @isset($empresa)
     @include('pdfs.components.membrete-empresa', ['empresa' => $empresa])

@@ -80,6 +80,11 @@
         .caja-titulo { font-weight: bold; margin: 0 0 3pt 0; }
         .caja-titulo img { width: 11pt; height: 11pt; vertical-align: -1.5pt; margin-right: 3pt; }
         .caja p:last-child { margin-bottom: 0; }
+
+        /* La firma nunca debe quedar sola en una página, separada del cierre
+           de la carta ("Le deseamos..."/"Cordialmente,") que la introduce
+           (hallazgo real del usuario, 2026-09-05). */
+        .avoid-break { page-break-inside: avoid; }
     </style>
 </head>
 
@@ -123,17 +128,19 @@
             los últimos 3 meses.</p>
     </div>
 
-    <p>Le deseamos los mejores éxitos en sus actividades futuras.</p>
+    <div class="avoid-break">
+        <p>Le deseamos los mejores éxitos en sus actividades futuras.</p>
 
-    <p>Cordialmente,</p>
+        <p>Cordialmente,</p>
 
-    <p style="margin-top:35pt;">
-        ________________________________.<br>
-        {{ $nombreEmpresa }}.<br>
-        NIT. {{ $nit }}.<br>
-        {{ $representanteLegal }}.<br>
-        Representante legal.
-    </p>
+        <p style="margin-top:35pt;">
+            ________________________________.<br>
+            {{ $nombreEmpresa }}.<br>
+            NIT. {{ $nit }}.<br>
+            {{ $representanteLegal }}.<br>
+            Representante legal.
+        </p>
+    </div>
 
     @isset($empresa)
     @include('pdfs.components.membrete-empresa', ['empresa' => $empresa])
