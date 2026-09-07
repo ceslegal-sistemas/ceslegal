@@ -19,22 +19,40 @@ use Illuminate\Support\Facades\Log;
  * un artículo/parágrafo por bloque) y el ensamblaje final lo hace PHP,
  * de forma determinística, para que el resto del texto sea
  * estructuralmente imposible que cambie.
+ *
+ * Dos "recetas" según DocumentoLegal::incorporar_completo (bug real
+ * reportado por un abogado externo el 2026-09-07: una política que debía
+ * ir íntegra como anexo terminó resumida en un parágrafo, porque el
+ * motor solo sabía hacer ajustes quirúrgicos de un párrafo):
+ * - false (la mayoría): receta quirúrgica de siempre, un bloque.
+ * - true: el documento se copia LITERAL (nunca lo redacta la IA) como
+ *   Anexo al final del RIT; la IA solo redacta un título corto y un
+ *   párrafo breve de referencia cruzada para insertar en el cuerpo.
+ * En ambos casos la IA también hace una verificación cruzada y avisa si
+ * el documento parece necesitar la otra receta - el abogado pudo
+ * equivocarse al marcar la casilla al subirlo.
  */
 class RitActualizacionAutomaticaService
 {
     /**
-     * Evalúa si el documento legal justifica un cambio quirúrgico en el
-     * RIT. Devuelve null si la IA concluye que no hace falta ningún
-     * cambio (el llamador debe entonces mantener la notificación
-     * genérica-pero-filtrada que ya dispara la taxonomía), o un arreglo
-     * ['bloque_indice','tipo_cambio','texto_anterior','texto_propuesto','justificacion']
-     * listo para persistir como SugerenciaActualizacionRit.
+     * Evalúa si el documento legal justifica un cambio en el RIT.
+     * Devuelve null si la IA concluye que no hace falta ningún cambio (el
+     * llamador debe entonces mantener la notificación genérica-pero-filtrada
+     * que ya dispara la taxonomía), o un arreglo listo para persistir como
+     * SugerenciaActualizacionRit vía crearSugerencia().
      */
     public function evaluarCambio(ReglamentoInterno $rit, DocumentoLegal $documento): ?array
     {
         $bloques = RitDiffService::partirEnBloques((string) $rit->texto_completo);
         if (empty($bloques)) {
             return null;
+        }
+
+        if ($documento->incorporar_completo) {
+            $prompt = $this->construirPromptAnexo($bloques, $documento);
+            $respuesta = $this->llamarGemini($prompt);
+
+            return $this->parsearRespuestaAnexo($respuesta, $bloques, $documento);
         }
 
         $prompt = $this->construirPromptEvaluacion($bloques, $documento);
@@ -98,6 +116,13 @@ class RitActualizacionAutomaticaService
         numerado entre corchetes - el número es su identificador real):
         {$bloquesTexto}
 
+        VERIFICACIÓN ADICIONAL: este documento fue marcado para un ajuste
+        puntual (un solo párrafo), NO como anexo completo. Si el documento es
+        en realidad una política/protocolo/código que declara ser "parte
+        integral del Reglamento" o pide anexarse completo - y por lo tanto
+        NO se puede resumir fielmente en un solo párrafo - repórtalo en
+        "requiere_anexo_completo" en vez de forzar un resumen.
+
         Responde ÚNICAMENTE con un JSON válido, sin texto adicional ni
         bloques de código markdown, con esta forma exacta:
 
@@ -110,7 +135,9 @@ class RitActualizacionAutomaticaService
           "tipo_cambio": "modificar" o "eliminar" o "agregar",
           "bloque_indice": <número entre corchetes del bloque afectado - para "agregar", el bloque DESPUÉS del cual se inserta el nuevo>,
           "texto_propuesto": "<texto completo del bloque nuevo o modificado - null si tipo_cambio es 'eliminar'>",
-          "justificacion": "<por qué este cambio es necesario, citando específicamente qué parte del documento legal lo exige>"
+          "justificacion": "<por qué este cambio es necesario, citando específicamente qué parte del documento legal lo exige>",
+          "requiere_anexo_completo": true o false,
+          "motivo_incoherencia": "<solo si requiere_anexo_completo es true: por qué este documento no se puede resumir en un párrafo>"
         }
         PROMPT;
     }
@@ -153,6 +180,111 @@ class RitActualizacionAutomaticaService
             'texto_anterior'   => $tipoCambio === 'agregar' ? null : $bloques[$bloqueIndice],
             'texto_propuesto'  => $tipoCambio === 'eliminar' ? null : (string) ($datos['texto_propuesto'] ?? ''),
             'justificacion'    => (string) ($datos['justificacion'] ?? ''),
+            'alerta_incoherencia' => !empty($datos['requiere_anexo_completo'])
+                ? (string) ($datos['motivo_incoherencia'] ?? 'La IA detectó que este documento podría necesitar incorporarse completo como Anexo, no solo un ajuste puntual.')
+                : null,
+        ];
+    }
+
+    /**
+     * Prompt de la segunda receta (DocumentoLegal::incorporar_completo =
+     * true): la IA NUNCA redacta ni resume el documento - solo propone un
+     * título de anexo y un párrafo breve de referencia cruzada para el
+     * cuerpo del RIT. El texto del anexo se copia literal en PHP, en
+     * parsearRespuestaAnexo().
+     */
+    private function construirPromptAnexo(array $bloques, DocumentoLegal $documento): string
+    {
+        $bloquesTexto = '';
+        foreach ($bloques as $indice => $texto) {
+            $bloquesTexto .= "[{$indice}] {$texto}\n";
+        }
+        $bloquesTexto = mb_substr($bloquesTexto, 0, 60000);
+
+        $documentoTexto = $documento->fragmentos()->pluck('contenido')->implode("\n\n");
+        $documentoTexto = mb_substr($documentoTexto, 0, 40000);
+
+        return <<<PROMPT
+        Eres un abogado laboral colombiano. Este documento legal fue marcado
+        explícitamente para incorporarse COMPLETO y LITERAL como un Anexo del
+        Reglamento Interno de Trabajo (RIT) de una empresa - NO debes
+        resumirlo ni reescribirlo, el texto se copia aparte, palabra por
+        palabra, por fuera de tu respuesta.
+
+        PROHIBICIÓN ABSOLUTA: no reproduzcas ni resumas el contenido del
+        documento en tu respuesta. Tu única tarea es: (1) proponer un título
+        corto para el anexo, y (2) redactar un párrafo BREVE (2 a 4 líneas)
+        para insertar en el cuerpo del RIT que remita al anexo, señalando el
+        bloque existente más afín donde insertarlo.
+
+        VERIFICACIÓN ADICIONAL: evalúa también si este documento en realidad
+        NO amerita ir como anexo completo - si es un ajuste menor que
+        bastaría resolver con un párrafo puntual dentro del cuerpo del RIT,
+        repórtalo en "parece_ser_puntual" (el abogado que lo subió pudo
+        marcar la casilla por error).
+
+        DOCUMENTO LEGAL ("{$documento->titulo}"):
+        {$documentoTexto}
+
+        BLOQUES ACTUALES DEL RIT (cada línea es un bloque independiente,
+        numerado entre corchetes - el número es su identificador real):
+        {$bloquesTexto}
+
+        Responde ÚNICAMENTE con un JSON válido, sin texto adicional ni
+        bloques de código markdown, con esta forma exacta:
+        {
+          "titulo_anexo": "<título corto del anexo, ej. 'Política de Prevención de Acoso Sexual y Discriminación'>",
+          "bloque_indice": <número entre corchetes del bloque del cuerpo DESPUÉS del cual insertar el párrafo de referencia>,
+          "texto_referencia": "<párrafo breve que remite al anexo>",
+          "justificacion": "<por qué este documento exige incorporarse como anexo completo>",
+          "parece_ser_puntual": true o false,
+          "motivo_incoherencia": "<solo si parece_ser_puntual es true: por qué en realidad bastaba un ajuste puntual>"
+        }
+        PROMPT;
+    }
+
+    private function parsearRespuestaAnexo(string $respuesta, array $bloques, DocumentoLegal $documento): ?array
+    {
+        $limpio = trim($respuesta);
+        $limpio = preg_replace('/^```json\s*|\s*```$/i', '', $limpio) ?? $limpio;
+
+        $datos = json_decode($limpio, true);
+        if (!is_array($datos)) {
+            Log::warning('RitActualizacionAutomaticaService: respuesta de IA (anexo) no es JSON válido', [
+                'respuesta' => $respuesta,
+            ]);
+            return null;
+        }
+
+        $bloqueIndice = $datos['bloque_indice'] ?? null;
+        if (!is_numeric($bloqueIndice) || !array_key_exists((int) $bloqueIndice, $bloques)) {
+            Log::warning('RitActualizacionAutomaticaService: bloque_indice fuera de rango (anexo)', ['datos' => $datos]);
+            return null;
+        }
+
+        // El texto del anexo NUNCA lo genera la IA - se copia literal de
+        // FragmentoDocumento (mismo campo que ya usa TemaClasificadorService),
+        // justo el requisito que motivó esta receta: el documento debe ir
+        // palabra por palabra, no resumido.
+        $textoAnexo = $documento->fragmentos()->orderBy('orden')->pluck('contenido')->implode("\n\n");
+        if (trim($textoAnexo) === '') {
+            Log::warning('RitActualizacionAutomaticaService: documento sin fragmentos, no se puede anexar completo', [
+                'documento_id' => $documento->id,
+            ]);
+            return null;
+        }
+
+        return [
+            'bloque_indice'       => (int) $bloqueIndice,
+            'tipo_cambio'         => 'anexar_completo',
+            'texto_anterior'      => null,
+            'texto_propuesto'     => (string) ($datos['texto_referencia'] ?? ''),
+            'titulo_anexo'        => trim((string) ($datos['titulo_anexo'] ?? $documento->titulo)),
+            'texto_anexo'         => $textoAnexo,
+            'justificacion'       => (string) ($datos['justificacion'] ?? ''),
+            'alerta_incoherencia' => !empty($datos['parece_ser_puntual'])
+                ? (string) ($datos['motivo_incoherencia'] ?? 'La IA detectó que este documento podría necesitar solo un ajuste puntual, no un anexo completo.')
+                : null,
         ];
     }
 
@@ -166,7 +298,10 @@ class RitActualizacionAutomaticaService
             'tipo_cambio'            => $cambio['tipo_cambio'],
             'texto_anterior'         => $cambio['texto_anterior'],
             'texto_propuesto'        => $cambio['texto_propuesto'],
+            'titulo_anexo'           => $cambio['titulo_anexo'] ?? null,
+            'texto_anexo'            => $cambio['texto_anexo'] ?? null,
             'justificacion_ia'       => $cambio['justificacion'],
+            'alerta_incoherencia'    => $cambio['alerta_incoherencia'] ?? null,
             'estado'                 => 'pendiente',
         ]);
     }
@@ -206,7 +341,10 @@ class RitActualizacionAutomaticaService
         $indice = $sugerencia->bloque_indice;
         $bloqueActual = $bloques[$indice] ?? null;
 
-        if ($sugerencia->tipo_cambio !== 'agregar' && $bloqueActual !== $sugerencia->texto_anterior) {
+        // 'anexar_completo' se ancla al cuerpo igual que 'agregar' (inserta
+        // DESPUÉS de un bloque existente, nunca reemplaza uno) - por eso
+        // comparte la misma excepción a la re-verificación de contenido.
+        if (!in_array($sugerencia->tipo_cambio, ['agregar', 'anexar_completo'], true) && $bloqueActual !== $sugerencia->texto_anterior) {
             // El índice ya no apunta al bloque original: el RIT cambió entre que
             // se propuso el cambio y el cliente lo aprobó (editó su reglamento,
             // aplicó otra sugerencia, etc.).
@@ -247,6 +385,15 @@ class RitActualizacionAutomaticaService
                 break;
             case 'agregar':
                 array_splice($bloques, $indice + 1, 0, [$sugerencia->texto_propuesto]);
+                break;
+            case 'anexar_completo':
+                // El párrafo de referencia se inserta en el cuerpo (igual que
+                // 'agregar') y el documento completo se agrega como su
+                // propio Anexo al final - ambas inserciones en el mismo
+                // arreglo, antes de la única escritura a BD de abajo, para
+                // que queden atómicas (las dos o ninguna).
+                array_splice($bloques, $indice + 1, 0, [$sugerencia->texto_propuesto]);
+                $bloques[] = mb_strtoupper($sugerencia->titulo_anexo) . "\n\n" . $sugerencia->texto_anexo;
                 break;
         }
 

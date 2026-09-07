@@ -21,9 +21,10 @@ class SugerenciaActualizacionRit extends Model
     protected $table = 'sugerencias_actualizacion_rit';
 
     public const TIPOS_CAMBIO = [
-        'modificar' => 'Modificar bloque existente',
-        'agregar'   => 'Agregar bloque nuevo',
-        'eliminar'  => 'Eliminar bloque existente',
+        'modificar'        => 'Modificar bloque existente',
+        'agregar'          => 'Agregar bloque nuevo',
+        'eliminar'         => 'Eliminar bloque existente',
+        'anexar_completo'  => 'Incorporar documento completo como Anexo',
     ];
 
     protected $fillable = [
@@ -34,7 +35,10 @@ class SugerenciaActualizacionRit extends Model
         'tipo_cambio',
         'texto_anterior',
         'texto_propuesto',
+        'titulo_anexo',
+        'texto_anexo',
         'justificacion_ia',
+        'alerta_incoherencia',
         'estado',
         'resuelto_por',
         'resuelto_en',

@@ -83,6 +83,16 @@ html:not(.dark) .rit-sug-item{border-bottom-color:rgba(0,0,0,.06)}
 .rit-sug-just{font-size:.825rem;line-height:1.6;color:#94a3b8;margin:0 0 .85rem}
 html:not(.dark) .rit-sug-just{color:#57534e}
 .rit-sug-fuente{font-size:.7rem;color:#64748b;margin:0 0 .5rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.rit-sug-alerta{display:flex;gap:.5rem;align-items:flex-start;font-size:.78rem;line-height:1.5;color:#b45309;background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.25);border-radius:.5rem;padding:.6rem .8rem;margin:0 0 .85rem}
+html.dark .rit-sug-alerta{color:#fbbf24;background:rgba(217,119,6,.12);border-color:rgba(217,119,6,.3)}
+.rit-sug-alerta svg{width:16px;height:16px;flex-shrink:0;margin-top:1px}
+.rit-sug-anexo{border:1px solid rgba(255,255,255,.1);border-radius:.5rem;margin:0 0 .85rem;background:rgba(255,255,255,.03)}
+html:not(.dark) .rit-sug-anexo{border-color:rgba(0,0,0,.08);background:rgba(0,0,0,.02)}
+.rit-sug-anexo summary{cursor:pointer;padding:.7rem .9rem;font-size:.8125rem;font-weight:600;color:#e2e8f0;list-style:none;display:flex;align-items:center;gap:.4rem}
+html:not(.dark) .rit-sug-anexo summary{color:#292524}
+.rit-sug-anexo summary::before{content:'📎';font-size:.85rem}
+.rit-sug-anexo-texto{max-height:40vh;overflow-y:auto;padding:0 1rem 1rem;font-family:'Georgia','Times New Roman',serif;font-size:.825rem;line-height:1.8;color:#cbd5e1;white-space:pre-wrap;word-break:break-word}
+html:not(.dark) .rit-sug-anexo-texto{color:#44403c}
 
 /* Pedido explícito del usuario: este bloque no debe verse como un
    visor de documento más - es una acción pendiente del cliente. */
@@ -354,12 +364,28 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
           <p class="rit-sug-fuente">Motivado por: {{ $sugerencia->documentoLegal?->titulo ?? 'Documento legal' }}</p>
           <p class="rit-sug-just">{{ $sugerencia->justificacion_ia }}</p>
 
-          @include('filament.components.rit-redline', [
-              'cambios' => app(\App\Services\RitDiffService::class)->compararDocumentos(
-                  (string) $sugerencia->texto_anterior,
-                  (string) $sugerencia->texto_propuesto,
-              ),
-          ])
+          @if($sugerencia->alerta_incoherencia)
+            <div class="rit-sug-alerta">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+              <span>{{ $sugerencia->alerta_incoherencia }}</span>
+            </div>
+          @endif
+
+          @if($sugerencia->tipo_cambio === 'anexar_completo')
+            <details class="rit-sug-anexo">
+              <summary>Se agregará como Anexo: {{ $sugerencia->titulo_anexo }}</summary>
+              <div class="rit-sug-anexo-texto">{{ $sugerencia->texto_anexo }}</div>
+            </details>
+          @endif
+
+          @if($sugerencia->texto_propuesto || $sugerencia->texto_anterior)
+            @include('filament.components.rit-redline', [
+                'cambios' => app(\App\Services\RitDiffService::class)->compararDocumentos(
+                    (string) $sugerencia->texto_anterior,
+                    (string) $sugerencia->texto_propuesto,
+                ),
+            ])
+          @endif
 
           <div class="rit-actions" style="margin-top:.5rem">
             <button wire:click="aprobarSugerencia({{ $sugerencia->id }})" class="rit-btn rit-btn-success">

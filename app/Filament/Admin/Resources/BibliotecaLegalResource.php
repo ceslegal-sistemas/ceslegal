@@ -66,6 +66,13 @@ class BibliotecaLegalResource extends Resource
                             ->rows(2)
                             ->placeholder('Breve descripción del contenido o relevancia del documento')
                             ->columnSpanFull(),
+
+                        Forms\Components\Toggle::make('incorporar_completo')
+                            ->label('Debe incorporarse íntegro al RIT')
+                            ->helperText('Actívelo si este documento es una política, protocolo o código que la empresa debe adoptar COMPLETO dentro de su Reglamento Interno (ej. declara "hace parte integral del RIT" o "se anexa al presente Reglamento") - no un simple ajuste puntual a un artículo existente. Si lo activa, el sistema propondrá agregarlo como Anexo, palabra por palabra, en vez de resumirlo en un párrafo.')
+                            ->default(false)
+                            ->inline(false)
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
 
@@ -122,6 +129,15 @@ class BibliotecaLegalResource extends Resource
                     ->label('Referencia')
                     ->searchable()
                     ->placeholder('-'),
+
+                Tables\Columns\IconColumn::make('incorporar_completo')
+                    ->label('Anexo íntegro')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-document-duplicate')
+                    ->falseIcon('heroicon-o-minus')
+                    ->trueColor('warning')
+                    ->falseColor('gray')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')

@@ -13,6 +13,7 @@ class DocumentoLegal extends Model
     protected $fillable = [
         'titulo',
         'tipo',
+        'incorporar_completo',
         'referencia',
         'descripcion',
         'archivo_path',
@@ -26,6 +27,7 @@ class DocumentoLegal extends Model
 
     protected $casts = [
         'activo' => 'boolean',
+        'incorporar_completo' => 'boolean',
         'total_fragmentos' => 'integer',
         'total_palabras'   => 'integer',
     ];
