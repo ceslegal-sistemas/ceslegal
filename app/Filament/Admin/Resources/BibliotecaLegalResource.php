@@ -410,6 +410,17 @@ class BibliotecaLegalResource extends Resource
                     ->url(fn(DocumentoLegal $record) => route('biblioteca.descargar', $record))
                     ->openUrlInNewTab(),
 
+                Tables\Actions\Action::make('ver_impacto')
+                    ->label('Ver impacto')
+                    ->icon('heroicon-o-building-office-2')
+                    ->color('gray')
+                    ->visible(fn(DocumentoLegal $record) => static::tieneSugerencias($record))
+                    ->modalHeading('Impacto de este documento en los Reglamentos')
+                    ->modalWidth(\Filament\Support\Enums\MaxWidth::Large)
+                    ->modalContent(fn(DocumentoLegal $record) => view('filament.components.biblioteca-legal-impacto', ['documento' => $record]))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar'),
+
                 Tables\Actions\EditAction::make()
                     ->label('Editar'),
 
@@ -433,11 +444,25 @@ class BibliotecaLegalResource extends Resource
                     ->visible(fn(DocumentoLegal $record) => $record->activo && static::tieneSugerencias($record))
                     ->requiresConfirmation()
                     ->modalHeading('Desactivar documento')
-                    ->modalDescription('Este documento ya generó sugerencias de actualización en uno o más Reglamentos, por eso no se puede eliminar sin perder esa trazabilidad legal. Al desactivarlo, deja de usarse para nuevas sugerencias, pero conserva el historial de lo que ya cambió.')
+                    ->modalWidth(\Filament\Support\Enums\MaxWidth::Large)
+                    ->modalContent(fn(DocumentoLegal $record) => view('filament.components.biblioteca-legal-impacto', [
+                        'documento' => $record,
+                        'intro' => 'No se puede eliminar sin perder la trazabilidad legal de estos cambios. Al desactivarlo, deja de usarse para nuevas sugerencias, pero conserva el historial de lo que ya cambió en cada empresa.',
+                    ]))
                     ->modalSubmitActionLabel('Desactivar')
                     ->action(function (DocumentoLegal $record) {
                         $record->update(['activo' => false]);
                         Notification::make()->success()->title('Documento desactivado')->send();
+                    }),
+
+                Tables\Actions\Action::make('activar')
+                    ->label('Activar')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn(DocumentoLegal $record) => !$record->activo)
+                    ->action(function (DocumentoLegal $record) {
+                        $record->update(['activo' => true]);
+                        Notification::make()->success()->title('Documento activado')->send();
                     }),
             ])
             ->bulkActions([

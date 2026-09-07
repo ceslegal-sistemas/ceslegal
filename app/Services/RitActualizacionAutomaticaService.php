@@ -405,6 +405,8 @@ class RitActualizacionAutomaticaService
             'resuelto_en'  => now(),
         ]);
 
+        $this->marcarNotificacionComoLeida($sugerencia);
+
         return true;
     }
 
@@ -415,6 +417,27 @@ class RitActualizacionAutomaticaService
             'resuelto_por' => $resolutor->id,
             'resuelto_en'  => now(),
         ]);
+
+        $this->marcarNotificacionComoLeida($sugerencia);
+    }
+
+    /**
+     * Bug real reportado por el usuario (2026-09-07): al aprobar/rechazar
+     * una sugerencia desde "Mi Reglamento Interno", la tarjeta de "Cambios
+     * sugeridos" desaparece correctamente, pero la notificación de la
+     * campana (App\Models\Notificacion, sistema propio - NO el de
+     * Filament) que invitaba a revisarla queda huérfana: sigue diciendo
+     * "¿Desea actualizarlo?" sobre algo que ya se resolvió. Se marca como
+     * leída (no se borra - conserva el historial de que llegó) en cuanto
+     * la sugerencia deja de estar pendiente.
+     */
+    private function marcarNotificacionComoLeida(SugerenciaActualizacionRit $sugerencia): void
+    {
+        \App\Models\Notificacion::where('relacionado_tipo', SugerenciaActualizacionRit::class)
+            ->where('relacionado_id', $sugerencia->id)
+            ->where('leida', false)
+            ->get()
+            ->each->marcarComoLeida();
     }
 
     /**
