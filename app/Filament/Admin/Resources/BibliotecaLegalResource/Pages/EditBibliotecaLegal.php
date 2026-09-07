@@ -74,7 +74,10 @@ class EditBibliotecaLegal extends EditRecord
                 ->openUrlInNewTab(),
 
             Actions\DeleteAction::make()
-                ->label('Eliminar documento'),
+                ->label('Eliminar documento')
+                ->before(function () {
+                    BibliotecaLegalResource::bloquearSiTieneSugerencias(collect([$this->record]));
+                }),
         ];
     }
 }

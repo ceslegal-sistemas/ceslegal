@@ -110,4 +110,23 @@ class BibliotecaLegalNoBorraConSugerenciasTest extends TestCase
 
         $this->assertNull(DocumentoLegal::find($documento->id));
     }
+
+    /**
+     * Regresión exacta del bug real: el primer fix solo cubrió el botón
+     * "Eliminar" de la tabla/listado - la página "Editar" tiene su PROPIA
+     * acción de eliminar (EditBibliotecaLegal::getHeaderActions()), separada
+     * por completo, que seguía sin la guarda.
+     */
+    public function test_no_deja_eliminar_desde_la_pagina_de_editar_si_tiene_sugerencias(): void
+    {
+        Permission::findOrCreate('update_biblioteca::legal', 'web');
+        $usuario = $this->usuario();
+        $usuario->givePermissionTo('update_biblioteca::legal');
+        $documento = $this->crearDocumentoConSugerencia();
+
+        Livewire::test(BibliotecaLegalResource\Pages\EditBibliotecaLegal::class, ['record' => $documento->id])
+            ->callAction('delete');
+
+        $this->assertNotNull(DocumentoLegal::find($documento->id), 'El documento no debía eliminarse desde Editar.');
+    }
 }

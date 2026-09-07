@@ -351,7 +351,7 @@ class BibliotecaLegalResource extends Resource
      * borrado - nunca se auto-desactiva en su lugar, para no sorprender al
      * usuario con un efecto secundario que no pidió.
      */
-    protected static function bloquearSiTieneSugerencias(\Illuminate\Support\Collection $documentos): void
+    public static function bloquearSiTieneSugerencias(\Illuminate\Support\Collection $documentos): void
     {
         $conSugerencias = $documentos->filter(
             fn (DocumentoLegal $documento) => $documento->sugerencias()->withoutGlobalScopes()->exists()
