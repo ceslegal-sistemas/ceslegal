@@ -285,6 +285,23 @@ class BibliotecaLegalService
 
         $extension = strtolower(pathinfo($rutaAbsoluta, PATHINFO_EXTENSION));
 
+        return $this->extraerTextoDeArchivo($rutaAbsoluta, $extension);
+    }
+
+    /**
+     * Igual que extraerTexto(), pero recibe la ruta+extensión directamente
+     * en vez de un DocumentoLegal ya persistido - reutilizable para
+     * autocompletar el formulario de creación a partir del archivo
+     * temporal que Livewire sube ANTES de guardar el registro (ver
+     * BibliotecaLegalResource, sugerencia de metadatos al subir el
+     * archivo). La extensión se pasa explícita porque el nombre del
+     * archivo temporal de Livewire no siempre la conserva de forma
+     * confiable en la ruta.
+     */
+    public function extraerTextoDeArchivo(string $rutaAbsoluta, string $extension): string
+    {
+        $extension = strtolower($extension);
+
         return match ($extension) {
             'pdf'        => $this->extraerTextoPDF($rutaAbsoluta),
             'docx'       => $this->extraerTextoDocx($rutaAbsoluta),
@@ -590,6 +607,155 @@ class BibliotecaLegalService
                 return null;
             }
         });
+    }
+
+    /**
+     * Variante SIN el fallback a Gemini Vision, para el autocompletado del
+     * formulario de creación (sugerirMetadatos()): un PDF escaneado que
+     * necesite OCR no debe pagarse dos veces (una para la sugerencia previa
+     * y otra en el procesamiento real vía "Encolar"). Si la extracción
+     * nativa no rinde texto suficiente, devuelve null y el formulario
+     * simplemente queda sin autocompletar - nunca bloquea la subida.
+     */
+    public function extraerTextoRapidoSinIA(string $rutaAbsoluta, string $extension): ?string
+    {
+        try {
+            return match (strtolower($extension)) {
+                'pdf' => (function () use ($rutaAbsoluta) {
+                    $parser = new \Smalot\PdfParser\Parser();
+                    $texto = $this->limpiarTexto($parser->parseFile($rutaAbsoluta)->getText());
+                    return mb_strlen($texto) >= 200 ? $texto : null;
+                })(),
+                'docx' => $this->extraerTextoDocx($rutaAbsoluta),
+                'txt'  => $this->limpiarTexto(file_get_contents($rutaAbsoluta)),
+                default => null,
+            };
+        } catch (\Throwable $e) {
+            Log::info('BibliotecaLegal: extraerTextoRapidoSinIA falló, se deja el formulario sin autocompletar', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    // ─── Sugerencia de metadatos al subir (autocompletar) ───────────────────────
+
+    /**
+     * Sugiere titulo/tipo/referencia/fecha_expedicion/incorporar_completo a
+     * partir del texto ya extraído del archivo - se llama justo después de
+     * subir el archivo en el formulario de creación, ANTES de guardar nada,
+     * para ahorrarle trabajo al abogado. Nunca lanza excepción: si Gemini
+     * falla o no hay cuota, devuelve [] y el formulario queda igual que
+     * hoy (sin sugerencias), nunca bloquea la subida.
+     *
+     * @return array{titulo?: string, tipo?: string, referencia?: string, fecha_expedicion?: string, incorporar_completo?: bool, justificacion_incorporar_completo?: string}
+     */
+    public function sugerirMetadatos(string $texto): array
+    {
+        $texto = trim($texto);
+        if ($texto === '' || empty($this->apiKey)) {
+            return [];
+        }
+
+        // Título, tipo, fecha y la frase "parte integral del RIT" casi
+        // siempre aparecen en la primera página/sección - no hace falta (ni
+        // conviene, por cuota) mandar el documento completo.
+        $extracto = mb_substr($texto, 0, 6000);
+        $tiposValidos = implode(', ', array_keys(DocumentoLegal::$tiposLabels));
+
+        $prompt = <<<PROMPT
+        Eres un asistente que ayuda a un abogado laboral colombiano a
+        catalogar un documento legal recién subido a una biblioteca legal.
+
+        Lee este extracto (puede ser el inicio de una sentencia, ley,
+        concepto o política) y sugiere metadatos para catalogarlo. Si algún
+        dato no es identificable con confianza en el texto, usa null para
+        ese campo - nunca inventes.
+
+        EXTRACTO DEL DOCUMENTO:
+        {$extracto}
+
+        Responde ÚNICAMENTE con un JSON válido, sin texto adicional ni
+        bloques de código markdown, con esta forma exacta:
+        {
+          "titulo": "<título corto y descriptivo, o null>",
+          "tipo": "<uno exacto de: {$tiposValidos}, o null si no es claro>",
+          "referencia": "<número de sentencia/ley/radicado si aparece, o null>",
+          "fecha_expedicion": "<fecha en formato YYYY-MM-DD si aparece explícita, o null>",
+          "incorporar_completo": true o false,
+          "justificacion_incorporar_completo": "<breve, solo si incorporar_completo es true: qué frase del texto indica que debe incorporarse completo, ej. 'declara ser parte integral del Reglamento'>"
+        }
+        PROMPT;
+
+        try {
+            $respuesta = $this->llamarGeminiTexto($prompt);
+            $limpio = preg_replace('/^```json\s*|\s*```$/i', '', trim($respuesta)) ?? $respuesta;
+            $datos = json_decode($limpio, true);
+
+            if (!is_array($datos)) {
+                return [];
+            }
+
+            $sugerencia = [];
+
+            if (!empty($datos['titulo'])) {
+                $sugerencia['titulo'] = trim((string) $datos['titulo']);
+            }
+            if (!empty($datos['tipo']) && array_key_exists($datos['tipo'], DocumentoLegal::$tiposLabels)) {
+                $sugerencia['tipo'] = $datos['tipo'];
+            }
+            if (!empty($datos['referencia'])) {
+                $sugerencia['referencia'] = trim((string) $datos['referencia']);
+            }
+            if (!empty($datos['fecha_expedicion']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $datos['fecha_expedicion'])) {
+                $sugerencia['fecha_expedicion'] = $datos['fecha_expedicion'];
+            }
+            if (!empty($datos['incorporar_completo'])) {
+                $sugerencia['incorporar_completo'] = true;
+                $sugerencia['justificacion_incorporar_completo'] = (string) ($datos['justificacion_incorporar_completo'] ?? '');
+            }
+
+            return $sugerencia;
+
+        } catch (\Throwable $e) {
+            Log::warning('BibliotecaLegal: sugerirMetadatos falló, se deja el formulario sin autocompletar', [
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /** Mismo patrón de llamada a Gemini (cascada + reintento) ya usado en RitActualizacionAutomaticaService/TemaClasificadorService. */
+    protected function llamarGeminiTexto(string $prompt): string
+    {
+        $modelosCascada = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+        $lastError = null;
+
+        foreach ($modelosCascada as $model) {
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->apiKey}";
+
+            $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                ->timeout(30)
+                ->post($url, [
+                    'contents' => [['parts' => [['text' => $prompt]]]],
+                    'generationConfig' => [
+                        'temperature'     => 0.1,
+                        'maxOutputTokens' => 1024,
+                        'thinkingConfig'  => ['thinkingBudget' => 0],
+                    ],
+                ]);
+
+            if ($response->successful()) {
+                $texto = $response->json('candidates.0.content.parts.0.text') ?? '';
+                if (!empty($texto)) {
+                    return trim($texto);
+                }
+            }
+
+            $lastError = $response->body();
+        }
+
+        throw new \RuntimeException('No se pudo sugerir metadatos con IA: ' . $lastError);
     }
 
     protected function cosineSimilarity(array $a, array $b): float

@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class DocumentoLegal extends Model
 {
@@ -15,6 +17,9 @@ class DocumentoLegal extends Model
         'tipo',
         'incorporar_completo',
         'referencia',
+        'fecha_expedicion',
+        'fuente_emisor',
+        'reemplaza_a_id',
         'descripcion',
         'archivo_path',
         'archivo_nombre_original',
@@ -28,6 +33,7 @@ class DocumentoLegal extends Model
     protected $casts = [
         'activo' => 'boolean',
         'incorporar_completo' => 'boolean',
+        'fecha_expedicion' => 'date',
         'total_fragmentos' => 'integer',
         'total_palabras'   => 'integer',
     ];
@@ -57,6 +63,18 @@ class DocumentoLegal extends Model
     public function sugerencias(): HasMany
     {
         return $this->hasMany(\App\Models\SugerenciaActualizacionRit::class);
+    }
+
+    /** El documento anterior que este reemplaza/deroga (trazabilidad de versiones). */
+    public function reemplazaA(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'reemplaza_a_id');
+    }
+
+    /** Inversa: el documento (si existe) que ya declaró reemplazar a este. */
+    public function reemplazadoPor(): HasOne
+    {
+        return $this->hasOne(self::class, 'reemplaza_a_id');
     }
 
     public function getTipoLabelAttribute(): string

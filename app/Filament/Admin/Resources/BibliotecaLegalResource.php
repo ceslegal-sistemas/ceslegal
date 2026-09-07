@@ -62,6 +62,30 @@ class BibliotecaLegalResource extends Resource
                             ->maxLength(100)
                             ->helperText('Número de sentencia, artículo o referencia oficial'),
 
+                        Forms\Components\DatePicker::make('fecha_expedicion')
+                            ->label('Fecha de expedición')
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->helperText('La fecha real del documento (sentencia, ley, política) - no la de hoy'),
+
+                        Forms\Components\TextInput::make('fuente_emisor')
+                            ->label('Fuente / Emisor')
+                            ->maxLength(255)
+                            ->placeholder('Ej: Corte Constitucional, Ministerio de Trabajo, Política interna de la empresa')
+                            ->helperText('Úselo cuando "Tipo de documento" no alcance a precisar quién lo expidió'),
+
+                        Forms\Components\Select::make('reemplaza_a_id')
+                            ->label('Reemplaza / deroga a')
+                            ->native(false)
+                            ->searchable()
+                            ->options(
+                                fn(?DocumentoLegal $record) => DocumentoLegal::query()
+                                    ->when($record, fn($q) => $q->where('id', '!=', $record->id))
+                                    ->orderBy('titulo')
+                                    ->pluck('titulo', 'id')
+                            )
+                            ->helperText('Si este documento deroga o actualiza uno anterior de la biblioteca, selecciónelo aquí para conservar la trazabilidad'),
+
                         Forms\Components\Textarea::make('descripcion')
                             ->label('Descripción breve')
                             ->rows(2)
@@ -73,6 +97,26 @@ class BibliotecaLegalResource extends Resource
                             ->helperText('Actívelo si este documento es una política, protocolo o código que la empresa debe adoptar COMPLETO dentro de su Reglamento Interno (ej. declara "hace parte integral del RIT" o "se anexa al presente Reglamento") - no un simple ajuste puntual a un artículo existente. Si lo activa, el sistema propondrá agregarlo como Anexo, palabra por palabra, en vez de resumirlo en un párrafo.')
                             ->default(false)
                             ->inline(false)
+                            ->columnSpanFull(),
+
+                        Forms\Components\Placeholder::make('reemplazado_por_info')
+                            ->label('')
+                            ->visible(fn(?DocumentoLegal $record) => $record?->reemplazadoPor !== null)
+                            ->content(fn(?DocumentoLegal $record) => new HtmlString(
+                                '<div style="padding:.6rem .9rem;border-radius:.5rem;background:rgba(99,102,241,.08);font-size:.8125rem;color:#64748b">'
+                                . 'Este documento fue reemplazado por: <strong>' . e($record?->reemplazadoPor?->titulo) . '</strong>'
+                                . '</div>'
+                            ))
+                            ->columnSpanFull(),
+
+                        Forms\Components\Placeholder::make('temas_normativos_info')
+                            ->label('Temas Normativos detectados por la IA')
+                            ->visible(fn(?DocumentoLegal $record) => $record?->exists && $record->temasNormativos->isNotEmpty())
+                            ->content(fn(?DocumentoLegal $record) => new HtmlString(
+                                collect($record?->temasNormativos)
+                                    ->map(fn($tema) => '<span style="display:inline-block;padding:.15rem .6rem;margin:0 .3rem .3rem 0;border-radius:999px;background:rgba(34,197,94,.12);color:#15803d;font-size:.75rem;font-weight:600">' . e($tema->nombre) . '</span>')
+                                    ->implode('')
+                            ))
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
@@ -89,6 +133,8 @@ class BibliotecaLegalResource extends Resource
                             ->maxSize(20480) // 20 MB
                             ->storeFileNamesIn('archivo_nombre_original')
                             ->helperText('Máximo 20 MB. Se aceptan PDF, DOCX y TXT.')
+                            ->live()
+                            ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => static::sugerirMetadatosAlSubir($state, $set, $get))
                             ->columnSpanFull(),
                     ]),
 
@@ -103,6 +149,84 @@ class BibliotecaLegalResource extends Resource
                     ])
                     ->hiddenOn('create'),
             ]);
+    }
+
+    /**
+     * Autocompletar con IA (2026-09-07): en cuanto se sube el archivo en el
+     * formulario de creación, ANTES de guardar nada, se extrae su texto y
+     * se le pide a la IA que sugiera título/tipo/referencia/fecha/si debe
+     * incorporarse completo. Solo llena campos que el abogado no haya
+     * tocado todavía (nunca sobreescribe algo ya escrito a mano) y nunca
+     * bloquea la subida si algo falla - ver BibliotecaLegalService::
+     * sugerirMetadatos() y extraerTextoRapidoSinIA() para el detalle de por
+     * qué no usa el fallback de Gemini Vision aquí (evita pagar OCR dos
+     * veces por el mismo archivo).
+     */
+    protected static function sugerirMetadatosAlSubir($state, Forms\Set $set, Forms\Get $get): void
+    {
+        if (! $state instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+            return;
+        }
+
+        try {
+            $extension = strtolower($state->getClientOriginalExtension());
+            $ruta = $state->getRealPath() ?: $state->path();
+
+            $servicio = app(\App\Services\BibliotecaLegalService::class);
+            $texto = $servicio->extraerTextoRapidoSinIA($ruta, $extension);
+
+            if (empty($texto)) {
+                return;
+            }
+
+            $sugerencia = $servicio->sugerirMetadatos($texto);
+            if (empty($sugerencia)) {
+                return;
+            }
+
+            $camposLlenados = [];
+
+            if (!empty($sugerencia['titulo']) && blank($get('titulo'))) {
+                $set('titulo', $sugerencia['titulo']);
+                $camposLlenados[] = 'Título';
+            }
+            if (!empty($sugerencia['tipo']) && blank($get('tipo'))) {
+                $set('tipo', $sugerencia['tipo']);
+                $camposLlenados[] = 'Tipo de documento';
+            }
+            if (!empty($sugerencia['referencia']) && blank($get('referencia'))) {
+                $set('referencia', $sugerencia['referencia']);
+                $camposLlenados[] = 'Referencia';
+            }
+            if (!empty($sugerencia['fecha_expedicion']) && blank($get('fecha_expedicion'))) {
+                $set('fecha_expedicion', $sugerencia['fecha_expedicion']);
+                $camposLlenados[] = 'Fecha de expedición';
+            }
+            if (!empty($sugerencia['incorporar_completo']) && !$get('incorporar_completo')) {
+                $set('incorporar_completo', true);
+                $camposLlenados[] = 'Debe incorporarse íntegro al RIT';
+            }
+
+            if (empty($camposLlenados)) {
+                return;
+            }
+
+            $cuerpo = 'Revíselos antes de guardar: ' . implode(', ', $camposLlenados) . '.';
+            if (!empty($sugerencia['justificacion_incorporar_completo'])) {
+                $cuerpo .= ' ' . $sugerencia['justificacion_incorporar_completo'];
+            }
+
+            Notification::make()
+                ->info()
+                ->title('La IA sugirió algunos campos')
+                ->body($cuerpo)
+                ->send();
+
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::info('BibliotecaLegal: autocompletar con IA falló, se deja el formulario sin sugerencias', [
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     public static function table(Table $table): Table
@@ -130,6 +254,19 @@ class BibliotecaLegalResource extends Resource
                     ->label('Referencia')
                     ->searchable()
                     ->placeholder('-'),
+
+                Tables\Columns\TextColumn::make('fecha_expedicion')
+                    ->label('Fecha de expedición')
+                    ->date('d/m/Y')
+                    ->sortable()
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('temas_normativos_count')
+                    ->label('Temas')
+                    ->counts('temasNormativos')
+                    ->alignCenter()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\IconColumn::make('incorporar_completo')
                     ->label('Anexo íntegro')
