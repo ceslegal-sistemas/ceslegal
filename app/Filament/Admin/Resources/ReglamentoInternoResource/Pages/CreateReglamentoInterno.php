@@ -1617,6 +1617,16 @@ class CreateReglamentoInterno extends CreateRecord
                 ($empresa->departamento ?? '')
         );
 
+        // 3.1 Sincronizar el número de empleados de vuelta a la Empresa. Antes
+        //     solo se guardaba dentro de respuestas_cuestionario (este RIT) -
+        //     nunca en Empresa.numero_empleados, así que "Mi empresa" (paso 4)
+        //     seguía mostrando el campo vacío y "Pendiente de determinar" en
+        //     el paso 5, aunque el cliente ya lo hubiera respondido acá. Bug
+        //     real reportado por el usuario (2026-09-07).
+        if (!empty($data['num_trabajadores']) && (int) $empresa->numero_empleados !== (int) $data['num_trabajadores']) {
+            $empresa->update(['numero_empleados' => (int) $data['num_trabajadores']]);
+        }
+
         // 4. Guardar cuestionario PRIMERO en estado 'generando' - si la UI se cierra o
         //    el navegador falla, las respuestas no se pierden y el job puede completarse.
         //

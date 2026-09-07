@@ -52,6 +52,41 @@ class EditEmpresa extends EditRecord
         ];
     }
 
+    /**
+     * Bug real reportado por el usuario (2026-09-07): tras subir el logo y
+     * guardar, al volver a "Mi empresa" el campo de subida aparecía vacío -
+     * el cliente pensaba que no se había guardado y volvía a subirlo.
+     * 'logo_empresa_temp' es un campo VIRTUAL (solo recibe el upload,
+     * afterSave() lo mueve a logo_path) - nadie lo rellenaba de vuelta
+     * desde logo_path al abrir el formulario, así que siempre nacía vacío
+     * sin importar si ya había un logo guardado.
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        if (!empty($data['logo_path']) && empty($data['logo_empresa_temp'])) {
+            $data['logo_empresa_temp'] = $data['logo_path'];
+        }
+
+        return $data;
+    }
+
+    /**
+     * Pedido explícito del usuario (2026-09-07): al guardar, volver siempre
+     * al Paso 1 (no quedarse en el paso donde estaba) - el Wizard persiste
+     * el paso actual en la query string (?paso=N, ver ->persistStepInQueryString
+     * en form()), así que basta con redirigir a la URL SIN ese parámetro
+     * para que el wizard vuelva a nacer en el primer paso.
+     */
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('edit', ['record' => $this->record]);
+    }
+
+    protected function getSavedNotificationTitle(): ?string
+    {
+        return 'Guardado';
+    }
+
     // Se quita la barra de acciones estándar de EditRecord (quedaba "por
     // fuera" del wizard, visible en todos los pasos). "Guardar cambios" y
     // "Cancelar" ahora viven dentro del propio wizard, en el pie del último
