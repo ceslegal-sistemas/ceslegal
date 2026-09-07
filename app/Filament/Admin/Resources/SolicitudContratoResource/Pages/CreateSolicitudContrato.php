@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\SolicitudContratoResource\Pages;
 use App\Filament\Admin\Resources\SolicitudContratoResource;
 use App\Filament\Admin\Resources\SolicitudContratoResource\Concerns\CompletaDetallesCargoConIA;
 use App\Services\SolicitudContratoIAService;
+use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +15,17 @@ class CreateSolicitudContrato extends CreateRecord
     use CompletaDetallesCargoConIA;
 
     protected static string $resource = SolicitudContratoResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\Action::make('volver')
+                ->label('Volver al listado')
+                ->icon('heroicon-o-arrow-left')
+                ->color('gray')
+                ->url(fn() => static::getResource()::getUrl('index')),
+        ];
+    }
 
     // Vista custom: oculta el stepper nativo de Filament (el wizard usa su
     // propio encabezado de paso con barra de progreso, el Paso Bienvenida ya

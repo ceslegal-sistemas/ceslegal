@@ -1826,19 +1826,16 @@ class CreateProcesoDisciplinario extends CreateRecord
     // Acciones y cabecera
     // ──────────────────────────────────────────────────────────────────────────
 
-    // protected function getHeaderActions(): array
-    // {
-    //     return [
-    //         Actions\Action::make('tutorial')
-    //             ->label('¿Necesitas ayuda?')
-    //             ->icon('heroicon-o-question-mark-circle')
-    //             ->color('gray')
-    //             ->extraAttributes([
-    //                 'data-tour' => 'help-button',
-    //                 'onclick'   => 'window.iniciarTour(); return false;',
-    //             ]),
-    //     ];
-    // }
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\Action::make('volver')
+                ->label('Volver al listado')
+                ->icon('heroicon-o-arrow-left')
+                ->color('gray')
+                ->url(fn() => static::getResource()::getUrl('index')),
+        ];
+    }
 
     protected function getRedirectUrl(): string
     {

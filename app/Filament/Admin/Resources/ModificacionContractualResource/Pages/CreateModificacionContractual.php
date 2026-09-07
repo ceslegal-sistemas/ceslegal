@@ -3,11 +3,28 @@
 namespace App\Filament\Admin\Resources\ModificacionContractualResource\Pages;
 
 use App\Filament\Admin\Resources\ModificacionContractualResource;
+use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateModificacionContractual extends CreateRecord
 {
     protected static string $resource = ModificacionContractualResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\Action::make('volver')
+                ->label('Volver al listado')
+                ->icon('heroicon-o-arrow-left')
+                ->color('gray')
+                ->url(fn() => static::getResource()::getUrl('index')),
+        ];
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('index');
+    }
 
     // Vista custom: oculta el stepper nativo de Filament (el wizard usa su
     // propio step-header de marca) - mismo patrón que

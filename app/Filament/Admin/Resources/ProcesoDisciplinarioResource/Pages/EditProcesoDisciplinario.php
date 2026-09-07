@@ -19,8 +19,24 @@ class EditProcesoDisciplinario extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('volver')
+                ->label('Volver al listado')
+                ->icon('heroicon-o-arrow-left')
+                ->color('gray')
+                ->url(fn() => static::getResource()::getUrl('index')),
+
             Actions\DeleteAction::make(),
         ];
+    }
+
+    /**
+     * Pedido explícito del usuario (2026-09-07): que al guardar cambios se
+     * regrese al listado con aviso, en vez de quedarse en la misma página de
+     * edición confiando en que el usuario entienda las migajas de pan.
+     */
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('index');
     }
 
     /**
