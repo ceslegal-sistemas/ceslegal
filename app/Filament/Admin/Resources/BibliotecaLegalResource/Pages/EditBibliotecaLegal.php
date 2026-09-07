@@ -75,8 +75,25 @@ class EditBibliotecaLegal extends EditRecord
 
             Actions\DeleteAction::make()
                 ->label('Eliminar documento')
+                ->visible(fn() => !BibliotecaLegalResource::tieneSugerencias($this->record))
                 ->before(function () {
+                    // Misma defensa adicional que en la tabla - ver comentario ahí.
                     BibliotecaLegalResource::bloquearSiTieneSugerencias(collect([$this->record]));
+                }),
+
+            Actions\Action::make('desactivar_bloqueado')
+                ->label('Desactivar')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->visible(fn() => $this->record->activo && BibliotecaLegalResource::tieneSugerencias($this->record))
+                ->requiresConfirmation()
+                ->modalHeading('Desactivar documento')
+                ->modalDescription('Este documento ya generó sugerencias de actualización en uno o más Reglamentos, por eso no se puede eliminar sin perder esa trazabilidad legal. Al desactivarlo, deja de usarse para nuevas sugerencias, pero conserva el historial de lo que ya cambió.')
+                ->modalSubmitActionLabel('Desactivar')
+                ->action(function () {
+                    $this->record->update(['activo' => false]);
+                    $this->record->refresh();
+                    \Filament\Notifications\Notification::make()->success()->title('Documento desactivado')->send();
                 }),
         ];
     }

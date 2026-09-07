@@ -16,9 +16,12 @@ use Tests\TestCase;
 /**
  * Bug real en producción (2026-09-07): eliminar un DocumentoLegal con
  * sugerencias de actualización del RIT asociadas tiraba un 500 (Integrity
- * constraint violation 1451, FK RESTRICT en documento_legal_id). El fix
- * bloquea el borrado con un mensaje claro en vez de dejar que la FK
- * reviente - y nunca borra ni desactiva nada por su cuenta.
+ * constraint violation 1451, FK RESTRICT en documento_legal_id). Primer fix:
+ * bloquear el borrado con un mensaje. El usuario pidió ir más allá: si de
+ * todas formas no se puede eliminar, el botón "Eliminar" no debería ni
+ * aparecer - se reemplaza por un botón "Desactivar" real (un clic, sin
+ * pasar por el formulario de Editar) cuando el documento tiene sugerencias
+ * asociadas.
  */
 class BibliotecaLegalNoBorraConSugerenciasTest extends TestCase
 {
@@ -65,15 +68,26 @@ class BibliotecaLegalNoBorraConSugerenciasTest extends TestCase
         return $documento;
     }
 
-    public function test_no_deja_eliminar_un_documento_con_sugerencias_asociadas(): void
+    public function test_el_boton_eliminar_no_aparece_si_el_documento_tiene_sugerencias(): void
     {
         $this->usuario();
         $documento = $this->crearDocumentoConSugerencia();
 
         Livewire::test(BibliotecaLegalResource\Pages\ListBibliotecaLegals::class)
-            ->callTableAction('delete', $documento);
+            ->assertTableActionHidden('delete', $documento)
+            ->assertTableActionVisible('desactivar_bloqueado', $documento);
+    }
 
-        $this->assertNotNull(DocumentoLegal::find($documento->id), 'El documento no debía eliminarse.');
+    public function test_el_boton_desactivar_reemplaza_a_eliminar_y_funciona(): void
+    {
+        $this->usuario();
+        $documento = $this->crearDocumentoConSugerencia();
+
+        Livewire::test(BibliotecaLegalResource\Pages\ListBibliotecaLegals::class)
+            ->callTableAction('desactivar_bloqueado', $documento);
+
+        $this->assertNotNull(DocumentoLegal::find($documento->id), 'Desactivar no debe borrar el registro.');
+        $this->assertFalse($documento->fresh()->activo);
         $this->assertDatabaseHas('sugerencias_actualizacion_rit', ['documento_legal_id' => $documento->id]);
     }
 
@@ -117,7 +131,7 @@ class BibliotecaLegalNoBorraConSugerenciasTest extends TestCase
      * acción de eliminar (EditBibliotecaLegal::getHeaderActions()), separada
      * por completo, que seguía sin la guarda.
      */
-    public function test_no_deja_eliminar_desde_la_pagina_de_editar_si_tiene_sugerencias(): void
+    public function test_en_la_pagina_editar_tambien_se_reemplaza_eliminar_por_desactivar(): void
     {
         Permission::findOrCreate('update_biblioteca::legal', 'web');
         $usuario = $this->usuario();
@@ -125,8 +139,22 @@ class BibliotecaLegalNoBorraConSugerenciasTest extends TestCase
         $documento = $this->crearDocumentoConSugerencia();
 
         Livewire::test(BibliotecaLegalResource\Pages\EditBibliotecaLegal::class, ['record' => $documento->id])
-            ->callAction('delete');
+            ->assertActionHidden('delete')
+            ->assertActionVisible('desactivar_bloqueado')
+            ->callAction('desactivar_bloqueado');
 
-        $this->assertNotNull(DocumentoLegal::find($documento->id), 'El documento no debía eliminarse desde Editar.');
+        $this->assertNotNull(DocumentoLegal::find($documento->id));
+        $this->assertFalse($documento->fresh()->activo);
+    }
+
+    public function test_el_boton_desactivar_no_aparece_si_ya_esta_inactivo(): void
+    {
+        $this->usuario();
+        $documento = $this->crearDocumentoConSugerencia();
+        $documento->update(['activo' => false]);
+
+        Livewire::test(BibliotecaLegalResource\Pages\ListBibliotecaLegals::class)
+            ->assertTableActionHidden('delete', $documento)
+            ->assertTableActionHidden('desactivar_bloqueado', $documento);
     }
 }

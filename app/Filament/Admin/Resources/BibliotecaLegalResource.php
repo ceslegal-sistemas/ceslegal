@@ -278,9 +278,29 @@ class BibliotecaLegalResource extends Resource
 
                 Tables\Actions\DeleteAction::make()
                     ->label('Eliminar')
+                    ->visible(fn(DocumentoLegal $record) => !static::tieneSugerencias($record))
                     ->requiresConfirmation()
                     ->before(function (DocumentoLegal $record) {
+                        // Defensa adicional ante una sugerencia creada justo
+                        // entre que se renderizó la fila (->visible() de
+                        // arriba) y que el usuario confirmó el modal - el
+                        // caso normal ya lo cubre ->visible() ocultando el
+                        // botón, esto es solo por si esa ventana se abre.
                         static::bloquearSiTieneSugerencias(collect([$record]));
+                    }),
+
+                Tables\Actions\Action::make('desactivar_bloqueado')
+                    ->label('Desactivar')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->visible(fn(DocumentoLegal $record) => $record->activo && static::tieneSugerencias($record))
+                    ->requiresConfirmation()
+                    ->modalHeading('Desactivar documento')
+                    ->modalDescription('Este documento ya generó sugerencias de actualización en uno o más Reglamentos, por eso no se puede eliminar sin perder esa trazabilidad legal. Al desactivarlo, deja de usarse para nuevas sugerencias, pero conserva el historial de lo que ya cambió.')
+                    ->modalSubmitActionLabel('Desactivar')
+                    ->action(function (DocumentoLegal $record) {
+                        $record->update(['activo' => false]);
+                        Notification::make()->success()->title('Documento desactivado')->send();
                     }),
             ])
             ->bulkActions([
@@ -351,10 +371,15 @@ class BibliotecaLegalResource extends Resource
      * borrado - nunca se auto-desactiva en su lugar, para no sorprender al
      * usuario con un efecto secundario que no pidió.
      */
+    public static function tieneSugerencias(DocumentoLegal $documento): bool
+    {
+        return $documento->sugerencias()->withoutGlobalScopes()->exists();
+    }
+
     public static function bloquearSiTieneSugerencias(\Illuminate\Support\Collection $documentos): void
     {
         $conSugerencias = $documentos->filter(
-            fn (DocumentoLegal $documento) => $documento->sugerencias()->withoutGlobalScopes()->exists()
+            fn (DocumentoLegal $documento) => static::tieneSugerencias($documento)
         );
 
         if ($conSugerencias->isEmpty()) {
