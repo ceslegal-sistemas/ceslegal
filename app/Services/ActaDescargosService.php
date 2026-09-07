@@ -188,8 +188,15 @@ class ActaDescargosService
             $descripcionPruebas = $diligencia->descripcion_pruebas ?? '';
 
             // ── Cierre ───────────────────────────────────────────────────────
-            $fechaCierre = $diligencia->tiempo_limite
-                ? \Carbon\Carbon::parse($diligencia->tiempo_limite)->timezone('America/Bogota')
+            // Bug real reportado por el usuario (2026-09-07): usaba
+            // tiempo_limite, que NO es la hora real de cierre - es el plazo
+            // límite del día para completar la diligencia
+            // (DiligenciaDescargo::fecha_acceso_permitida->endOfDay(), por
+            // eso siempre salía 11:59 PM). foto_fin_en es el timestamp real
+            // de la verificación facial de cierre - ya se usa correctamente
+            // más arriba en este mismo método para la leyenda de esa foto.
+            $fechaCierre = $diligencia->foto_fin_en
+                ? \Carbon\Carbon::parse($diligencia->foto_fin_en)->timezone('America/Bogota')
                 : now()->timezone('America/Bogota');
 
             $horaFin          = $fechaCierre->format('h:i A');
