@@ -54,6 +54,11 @@ class DocumentoLegal extends Model
         return $this->belongsToMany(TemaNormativo::class, 'documento_legal_tema');
     }
 
+    public function sugerencias(): HasMany
+    {
+        return $this->hasMany(\App\Models\SugerenciaActualizacionRit::class);
+    }
+
     public function getTipoLabelAttribute(): string
     {
         return static::$tiposLabels[$this->tipo] ?? $this->tipo;

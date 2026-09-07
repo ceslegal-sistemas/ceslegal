@@ -8,6 +8,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Support\Exceptions\Halt;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Storage;
@@ -277,7 +278,10 @@ class BibliotecaLegalResource extends Resource
 
                 Tables\Actions\DeleteAction::make()
                     ->label('Eliminar')
-                    ->requiresConfirmation(),
+                    ->requiresConfirmation()
+                    ->before(function (DocumentoLegal $record) {
+                        static::bloquearSiTieneSugerencias(collect([$record]));
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -313,7 +317,10 @@ class BibliotecaLegalResource extends Resource
                         ->action(fn($records) => $records->each->update(['activo' => false])),
 
                     Tables\Actions\DeleteBulkAction::make()
-                        ->label('Eliminar seleccionados'),
+                        ->label('Eliminar seleccionados')
+                        ->before(function (\Illuminate\Support\Collection $records) {
+                            static::bloquearSiTieneSugerencias($records);
+                        }),
                 ]),
             ])
             ->defaultSort('updated_at', 'desc')
@@ -327,6 +334,45 @@ class BibliotecaLegalResource extends Resource
                     ->label('Subir primer documento')
                     ->icon('heroicon-o-plus'),
             ]);
+    }
+
+    /**
+     * Bug real reportado en producción (2026-09-07): eliminar un
+     * DocumentoLegal con sugerencias de actualización del RIT asociadas
+     * (SugerenciaActualizacionRit.documento_legal_id) tira un 500 por la FK
+     * RESTRICT - y aunque no la tirara, borrar el documento fuente de un
+     * cambio ya aprobado en el RIT de un cliente destruiría la trazabilidad
+     * legal de por qué cambió su Reglamento (justo el tipo de evidencia que
+     * evita disputas futuras). El sistema ya tiene el mecanismo correcto
+     * para retirar un documento sin perder ese historial: el toggle
+     * "Documento activo" (ver aplicarSugerencia() en
+     * RitActualizacionAutomaticaService, que ya valida
+     * documentoLegal->activo antes de aplicar). Por eso aquí se bloquea el
+     * borrado - nunca se auto-desactiva en su lugar, para no sorprender al
+     * usuario con un efecto secundario que no pidió.
+     */
+    protected static function bloquearSiTieneSugerencias(\Illuminate\Support\Collection $documentos): void
+    {
+        $conSugerencias = $documentos->filter(
+            fn (DocumentoLegal $documento) => $documento->sugerencias()->withoutGlobalScopes()->exists()
+        );
+
+        if ($conSugerencias->isEmpty()) {
+            return;
+        }
+
+        Notification::make()
+            ->danger()
+            ->title('No se puede eliminar')
+            ->body(
+                $conSugerencias->count() === 1
+                    ? "\"{$conSugerencias->first()->titulo}\" ya generó sugerencias de actualización en uno o más Reglamentos - eliminarlo borraría la trazabilidad legal de esos cambios. Use \"Desactivar\" en su lugar."
+                    : 'Uno o más documentos seleccionados ya generaron sugerencias de actualización en Reglamentos - eliminarlos borraría esa trazabilidad legal. Use "Desactivar" en su lugar.'
+            )
+            ->persistent()
+            ->send();
+
+        throw new Halt();
     }
 
     /** Genera el contenido del modal de previsualización */
