@@ -1,8 +1,16 @@
-{{-- Guía "Tu proceso" - datos desde GuiaProcesoService. Un solo root (widget Filament). --}}
-@include('filament.components.lupe-hero-styles')
+{{--
+    Guía "Tu proceso" - datos desde GuiaProcesoService. Un solo root (widget Filament).
+
+    IMPORTANTE (mismo bug real encontrado en emitir-sancion-pasos.blade.php,
+    2026-09-07): los Widgets de Filament SON componentes Livewire reales -
+    exigen un único elemento raíz. El @include de abajo (un <style>) NO
+    puede ir antes del <div class="pg-wrap"> raíz, o rompe la detección del
+    componente en el cliente. Va DENTRO del div raíz.
+--}}
 @php $g = $guia; @endphp
 
 <div class="pg-wrap">
+    @include('filament.components.lupe-hero-styles')
     @if(($g['estado'] ?? 'oculto') === 'oculto')
         {{-- nada --}}
 

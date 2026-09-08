@@ -6,10 +6,19 @@
     de Filament) - riesgo de contraste asumido explícitamente por el
     usuario tras advertírselo. Sin navegador conectado para verificar -
     pendiente de confirmación visual una vez desplegado.
---}}
-@include('filament.components.lupe-hero-styles')
 
+    IMPORTANTE (bug real de producción, 2026-09-07): este archivo es la
+    plantilla raíz de un componente Livewire real (App\Livewire\
+    EmitirSancionPasos) - Livewire EXIGE que el componente tenga un único
+    elemento raíz. El primer intento de este rediseño puso el @include de
+    abajo ANTES del <div> raíz, agregando un <style> como hermano al mismo
+    nivel - Livewire perdía el rastro del componente real y cualquier
+    wire:click (ej. irAPaso2) fallaba con "Public method not found" en
+    producción. El @include debe ir DENTRO del único <div> raíz, nunca
+    antes.
+--}}
 <div class="rit-hero es-hero">
+    @include('filament.components.lupe-hero-styles')
     <div class="rit-orb-b"></div>
     <div class="rit-orb-g"></div>
     <div class="rit-overlay"></div>
