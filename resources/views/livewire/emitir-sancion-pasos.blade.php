@@ -1,28 +1,25 @@
 {{--
-    Rediseño .rit-hero pedido explícito por el usuario (2026-09-07): mismo
-    degradado + orbes que ya usan los banners del Dashboard, aplicado a TODO
-    el fondo del modal (incluidas las cajas de alerta/análisis/validación
-    que ya tenían su propio estilo pensado para fondo blanco/gris estándar
-    de Filament) - riesgo de contraste asumido explícitamente por el
-    usuario tras advertírselo. Sin navegador conectado para verificar -
-    pendiente de confirmación visual una vez desplegado.
+    REVERTIDO (2026-09-08): el rediseño .rit-hero de este archivo se quitó
+    por completo. Motivo real, no solo estético: el usuario confirmó dos
+    veces que el degradado/orbes eran imperceptibles aquí - este modal es
+    una lista larga de tarjetas opacas apiladas (análisis, validaciones V6,
+    potestad, exoneración), así que los orbes decorativos (posicionados en
+    las esquinas del contenedor completo) quedan fuera de vista en cuanto
+    se hace scroll, y las tarjetas opacas tapan cualquier fondo detrás de
+    todas formas.
 
-    IMPORTANTE (bug real de producción, 2026-09-07): este archivo es la
-    plantilla raíz de un componente Livewire real (App\Livewire\
-    EmitirSancionPasos) - Livewire EXIGE que el componente tenga un único
-    elemento raíz. El primer intento de este rediseño puso el @include de
-    abajo ANTES del <div> raíz, agregando un <style> como hermano al mismo
-    nivel - Livewire perdía el rastro del componente real y cualquier
-    wire:click (ej. irAPaso2) fallaba con "Public method not found" en
-    producción. El @include debe ir DENTRO del único <div> raíz, nunca
-    antes.
+    Nota aparte, NO relacionada con este revert: el usuario reportó un pie
+    de botones duplicado (footer propio del Paso 2 del wizard + footer
+    nativo de Filament del Paso 3, ambos visibles a la vez) y luego aclaró
+    que ese problema YA EXISTÍA antes de este rediseño de hoy - no lo causó
+    envolver esta plantilla en .rit-hero. Sigue abierto como bug aparte,
+    pendiente de investigación propia (ver ProcesoDisciplinarioResource.php,
+    condición de mountedTableActionsData/paso_actual del footer nativo).
+
+    El rediseño real de este modal se hace aparte, con un plan claro antes
+    de tocar código otra vez.
 --}}
-<div class="rit-hero es-hero">
-    @include('filament.components.lupe-hero-styles')
-    <div class="rit-orb-b"></div>
-    <div class="rit-orb-g"></div>
-    <div class="rit-overlay"></div>
-    <div style="position:relative;z-index:2">
+<div>
     @if ($paso === 1)
         {{--
             wire:key REQUERIDO: sin esto, el morph de Livewire (sin keys)
@@ -254,5 +251,4 @@
             </div>
         </div>
     @endif
-    </div>
 </div>
