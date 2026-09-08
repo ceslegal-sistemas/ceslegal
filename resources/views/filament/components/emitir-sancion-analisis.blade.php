@@ -184,10 +184,10 @@ html.dark {
 .esa-card-soft::before { display: none; }
 .esa-label {
     font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
-    font-size: 10px;
+    font-size: 11.5px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.09em;
     color: var(--esa-label);
     margin: 0 0 6px;
 }
@@ -292,7 +292,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <span class="esa-accent-text"
                               style="--a-light:{{ $gc['accentLight'] }};--a-dark:{{ $gc['accent'] }};
-                                     font-size:17px;font-weight:800;line-height:1.2;">
+                                     font-size:19px;font-weight:800;line-height:1.2;">
                             {{ $gc['label'] }}
                         </span>
                         @if($esReincidencia)
@@ -304,7 +304,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
 
             @if($justificacion)
                 <hr class="esa-divider">
-                <p style="font-size:13px;color:var(--esa-text);line-height:1.6;margin:0;">
+                <p style="font-size:14px;color:var(--esa-text);line-height:1.7;margin:0;">
                     {{ $justificacion }}
                 </p>
             @endif
@@ -349,17 +349,17 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
          style="background: linear-gradient(135deg, rgba(96,165,250,0.10) 0%, transparent 100%);
                 border-left: 3px solid #60a5fa;">
         <div style="padding:14px 18px;">
-            <div style="display:flex;align-items:flex-start;gap:10px;">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2"
-                     style="width:22px;height:22px;color:#2563eb;flex-shrink:0;margin-top:1px;">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                </svg>
+            <div style="display:flex;align-items:flex-start;gap:11px;">
+                <lord-icon
+                    src="https://cdn.lordicon.com/wpsdctqb.json"
+                    trigger="loop" delay="700" stroke="bold"
+                    colors="primary:#2563eb,secondary:#93c5fd"
+                    style="width:36px;height:36px;flex-shrink:0;margin-top:-2px;">
+                </lord-icon>
                 <div style="flex:1;min-width:0;">
-                    <p class="esa-label" style="color:#1d4ed8;">Análisis de las pruebas del trabajador (lectura IA)</p>
-                    <p style="font-size:12.5px;color:var(--esa-text);line-height:1.6;margin:0 0 6px;white-space:pre-line;">{{ $analisisPruebas }}</p>
-                    <p style="font-size:11.5px;color:var(--esa-muted);line-height:1.5;margin:0;font-style:italic;">
+                    <p class="esa-label" style="color:#1d4ed8;font-size:11.5px;">Análisis de las pruebas del trabajador (lectura IA)</p>
+                    <p style="font-size:13.5px;color:var(--esa-text);line-height:1.65;margin:0 0 6px;white-space:pre-line;">{{ $analisisPruebas }}</p>
+                    <p style="font-size:12px;color:var(--esa-muted);line-height:1.55;margin:0;font-style:italic;">
                         La IA lee y resume las pruebas, pero no verifica su autenticidad: confirme con la fuente (EPS, tránsito, aseguradora). La decisión es del funcionario.
                     </p>
                 </div>
@@ -374,16 +374,16 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
          style="background: linear-gradient(135deg, rgba(251,146,60,0.13) 0%, transparent 100%);
                 border-left: 3px solid #fb923c;">
         <div style="padding:13px 18px;">
-            <div style="display:flex;align-items:flex-start;gap:10px;">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2"
-                     style="width:22px;height:22px;color:#ea7317;flex-shrink:0;margin-top:1px;">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-                </svg>
+            <div style="display:flex;align-items:flex-start;gap:11px;">
+                <lord-icon
+                    src="https://cdn.lordicon.com/lltgvngb.json"
+                    trigger="loop" delay="500" stroke="bold"
+                    colors="primary:#ea7317,secondary:#fb923c"
+                    style="width:36px;height:36px;flex-shrink:0;margin-top:-2px;">
+                </lord-icon>
                 <div style="flex:1;min-width:0;">
-                    <p class="esa-label" style="color:#b45309;">Opciones sujetas a verificación</p>
-                    <p style="font-size:12.5px;color:var(--esa-text);line-height:1.6;margin:0 0 7px;">
+                    <p class="esa-label" style="color:#b45309;font-size:11.5px;">Opciones sujetas a verificación</p>
+                    <p style="font-size:13.5px;color:var(--esa-text);line-height:1.65;margin:0 0 7px;">
                         {{ $mensaje ?: 'Las opciones de abajo aplican solo si, tras verificar las pruebas del trabajador, la falta se mantiene. Si la justificación se confirma, no procede sanción.' }}
                     </p>
                     {{-- <p style="font-size:12px;line-height:1.55;margin:0;padding:7px 10px;border-radius:8px;
@@ -450,12 +450,12 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                             <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
                                 <span class="esa-accent-text"
                                       style="--a-light:{{ $sc['accentLight'] }};--a-dark:{{ $sc['accent'] }};
-                                             font-size:{{ $esPrincipal ? '15px' : '13px' }};
+                                             font-size:{{ $esPrincipal ? '17px' : '14.5px' }};
                                              font-weight:{{ $esPrincipal ? '800' : '600' }};
                                              line-height:1.2;">
                                     {{ $sc['label'] }}
                                     @if($s === 'suspension' && $diasSusp && $esPrincipal)
-                                        <span style="font-size:12px;font-weight:400;color:var(--esa-days);">
+                                        <span style="font-size:13px;font-weight:400;color:var(--esa-days);">
                                             &nbsp;·&nbsp;{{ $diasSusp }} día{{ $diasSusp > 1 ? 's' : '' }}
                                         </span>
                                     @endif
@@ -526,7 +526,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
         @if($mensaje && !$esCondicional)
             <div style="padding:0 18px 14px;">
                 <hr class="esa-divider" style="margin-top:4px;">
-                <p style="font-size:12px;color:var(--esa-muted);line-height:1.6;margin:0;">
+                <p style="font-size:13.5px;color:var(--esa-text);line-height:1.65;margin:0;">
                     {{ $mensaje }}
                 </p>
             </div>
@@ -604,21 +604,21 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                 border-left: 3px solid #4ade80;">
         <div style="padding:16px 18px;">
             <div style="display:flex;align-items:flex-start;gap:11px;">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2"
-                     style="width:26px;height:26px;color:#16a34a;flex-shrink:0;margin-top:1px;">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                </svg>
+                <lord-icon
+                    src="https://cdn.lordicon.com/lvrxlmju.json"
+                    trigger="loop" delay="500" stroke="bold"
+                    colors="primary:#16a34a,secondary:#4ade80"
+                    style="width:36px;height:36px;flex-shrink:0;margin-top:-2px;">
+                </lord-icon>
                 <div style="flex:1;min-width:0;">
-                    <p class="esa-label" style="color:#15803d;">La IA no recomienda sanción</p>
+                    <p class="esa-label" style="color:#15803d;font-size:11.5px;">La IA no recomienda sanción</p>
                     @if($mensaje)
-                        <p style="font-size:13px;color:var(--esa-text);line-height:1.6;margin:0 0 6px;">
+                        <p style="font-size:14px;color:var(--esa-text);line-height:1.65;margin:0 0 6px;font-weight:500;">
                             {{ $mensaje }}
                         </p>
                     @endif
                     @if($noSancionTxt)
-                        <p style="font-size:12.5px;color:var(--esa-muted);line-height:1.6;margin:0 0 10px;">
+                        <p style="font-size:13px;color:var(--esa-muted);line-height:1.6;margin:0 0 10px;">
                             {{ $noSancionTxt }}
                         </p>
                     @endif

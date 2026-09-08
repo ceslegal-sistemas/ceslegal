@@ -6,15 +6,28 @@
 --}}
 <style>
 .rit-hero{position:relative;overflow:hidden;border-radius:1.25rem;padding:2rem 1.75rem;background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%)}
-html:not(.dark) .rit-hero{background:#fff;border:1px solid rgba(0,0,0,.07);box-shadow:0 4px 28px rgba(0,0,0,.08)}
+{{--
+    Bug real reportado por el usuario (2026-09-08): en modo claro el
+    "hero" se veía como una tarjeta blanca plana, sin ningún indicio de
+    rediseño - dos causas combinadas: (1) el fondo era #fff puro sin
+    ningún tinte de marca, y (2) .rit-overlay (pensado para oscurecer el
+    degradado oscuro detrás del texto) en modo claro hacía un lavado
+    blanco casi opaco (75% en el centro) que tapaba cualquier color de
+    los orbes/fondo, sin importar qué tan vívidos fueran. Se sube la
+    opacidad de los orbes, se le da un tinte cálido de marca al fondo, y
+    se baja mucho el lavado blanco del overlay para que el tinte y los
+    orbes sí se noten - manteniendo el look "limpio" apropiado para modo
+    claro (no se copia el degradado oscuro completo).
+--}}
+html:not(.dark) .rit-hero{background:linear-gradient(150deg,#fff1f2 0%,#fff7ed 55%,#ffffff 100%);border:1px solid rgba(225,29,72,.16);box-shadow:0 6px 26px rgba(225,29,72,.1)}
 .rit-orb-b{position:absolute;width:280px;height:280px;top:-80px;right:-60px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.45),transparent 70%);filter:blur(28px);pointer-events:none;animation:rit-fb 14s ease-in-out infinite}
 .rit-orb-g{position:absolute;width:200px;height:200px;bottom:-60px;left:-40px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.2),transparent 70%);filter:blur(24px);pointer-events:none;animation:rit-fg 18s ease-in-out infinite}
 @keyframes rit-fb{0%,100%{transform:translate(0,0)}40%{transform:translate(-18px,14px)}70%{transform:translate(12px,-10px)}}
 @keyframes rit-fg{0%,100%{transform:translate(0,0)}35%{transform:translate(14px,-16px)}65%{transform:translate(-10px,8px)}}
-html:not(.dark) .rit-orb-b{background:radial-gradient(circle,rgba(251,113,133,.15),transparent 70%)!important}
-html:not(.dark) .rit-orb-g{background:radial-gradient(circle,rgba(201,168,76,.18),transparent 70%)!important}
+html:not(.dark) .rit-orb-b{background:radial-gradient(circle,rgba(225,29,72,.35),transparent 70%)!important}
+html:not(.dark) .rit-orb-g{background:radial-gradient(circle,rgba(201,168,76,.35),transparent 70%)!important}
 .rit-overlay{position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse 80% 90% at 50% 50%,rgba(3,8,20,.75) 0%,rgba(3,8,20,.4) 55%,transparent 100%)}
-html:not(.dark) .rit-overlay{background:radial-gradient(ellipse 75% 85% at 50% 40%,rgba(255,255,255,.75) 0%,rgba(255,255,255,.35) 55%,transparent 100%)}
+html:not(.dark) .rit-overlay{background:radial-gradient(ellipse 75% 85% at 50% 40%,rgba(255,255,255,.3) 0%,rgba(255,255,255,.12) 55%,transparent 100%)}
 .rit-badge{display:inline-flex;align-items:center;gap:.4rem;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.35rem .9rem;border-radius:2rem;border:1px solid}
 .rit-badge-ia{background:rgba(251,113,133,.13);border-color:rgba(251,113,133,.3);color:#fb7185}
 html:not(.dark) .rit-badge-ia{background:rgba(225,29,72,.08);border-color:rgba(225,29,72,.2);color:#be123c}
