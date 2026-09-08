@@ -1,4 +1,5 @@
 {{-- Guía "Tu proceso" - datos desde GuiaProcesoService. Un solo root (widget Filament). --}}
+@include('filament.components.lupe-hero-styles')
 @php $g = $guia; @endphp
 
 <div class="pg-wrap">
@@ -52,24 +53,26 @@
             // "Listos para sancionar" que sí es accionable.
             $todosCompletos = collect($g['pasos'])->every(fn($p) => $p['estado'] === 'done');
         @endphp
-        <div class="pg-card">
+        <div class="rit-hero pg-hero">
+            <div class="rit-orb-b"></div>
+            <div class="rit-orb-g"></div>
+            <div class="rit-overlay"></div>
+            <div style="position:relative;z-index:2">
             @if($todosCompletos)
-                <div class="pg-head pg-head-compacto">
-                    <div>
-                        <p class="pg-kicker">{{ $g['empresa']->razon_social ?? '' }}</p>
-                        <p class="pg-completo">
-                            @svg('heroicon-o-check-badge', 'pg-completo-ico')
-                            Proceso configurado - los 5 pasos están al día
-                        </p>
-                    </div>
-                </div>
+                <span class="rit-badge rit-badge-sub">
+                    <lord-icon src="https://cdn.lordicon.com/lvrxlmju.json" trigger="loop" delay="800" stroke="bold"
+                        colors="primary:#86efac,secondary:#86efac" data-pt-icon
+                        data-pt-dark="primary:#86efac,secondary:#86efac"
+                        data-pt-light="primary:#166534,secondary:#166534"
+                        style="width:16px;height:16px;flex-shrink:0">
+                    </lord-icon>
+                    {{ $g['empresa']->razon_social ?? '' }}
+                </span>
+                <h1 class="rit-title">Proceso configurado</h1>
+                <p class="rit-sub">Los 5 pasos de su gestión disciplinaria están al día.</p>
             @else
-                <div class="pg-head">
-                    <div>
-                        <p class="pg-kicker">Tu proceso</p>
-                        <h2 class="pg-h2">{{ $g['empresa']->razon_social ?? '' }}</h2>
-                    </div>
-                </div>
+                <span class="rit-badge rit-badge-ia">Tu proceso</span>
+                <h1 class="rit-title">{{ $g['empresa']->razon_social ?? '' }}</h1>
 
                 {{-- Fila de pasos --}}
                 <div class="pg-steps">
@@ -133,6 +136,7 @@
                     </div>
                 </div>
             @endif
+            </div>
         </div>
     @endif
 
@@ -146,15 +150,14 @@
         .pg-lead{font-size:.85rem;line-height:1.5;color:#78716c;margin:.35rem 0 .9rem;max-width:60ch}
         html.dark .pg-lead{color:#a8a29e}
         .pg-head{margin-bottom:1.1rem}
-        /* Estado "todo completo" - línea compacta en vez del timeline grande */
-        .pg-head-compacto{margin-bottom:0}
-        .pg-completo{display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;color:#15803d;margin:.15rem 0 0}
-        html.dark .pg-completo{color:#86efac}
-        .pg-completo-ico{width:18px;height:18px;flex-shrink:0}
+        /* Marco .rit-hero (ver lupe-hero-styles) para el estado "ok" - mismo
+           lenguaje visual que los banners del Dashboard, pedido explícito
+           del usuario (2026-09-07). */
+        .pg-hero .rit-badge{margin-bottom:.5rem}
         /* Listos para sancionar - scroll interno para no estirar la página cuando hay muchos */
         .pg-listos-scroll{max-height:19rem;overflow-y:auto;padding-right:.25rem}
         /* pasos - una sola fila en escritorio, scroll horizontal en móvil (nunca se corta) */
-        .pg-steps{display:flex;flex-wrap:nowrap;gap:0;align-items:flex-start;margin-bottom:1.1rem}
+        .pg-steps{display:flex;flex-wrap:nowrap;gap:0;align-items:flex-start;margin-top:1.25rem;margin-bottom:1.1rem;position:relative;z-index:2}
         .pg-step{position:relative;display:flex;flex-direction:column;align-items:center;flex:1 1 0;min-width:0;gap:.4rem;padding:0 .15rem}
         .pg-node{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;
             background:#f5f5f4;border:2px solid #e7e5e4;color:#a8a29e;z-index:1}

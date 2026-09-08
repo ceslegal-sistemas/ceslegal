@@ -12,9 +12,19 @@
         // que el cliente tenga que abrir nada. Sin withoutGlobalScopes():
         // ScopedToBufeteOrEmpresa ya filtra exactamente como se necesita acá
         // (cliente -> su empresa; bufete -> su selector o todas las suyas).
+        //
+        // Bug real reportado por el usuario (2026-09-07): al desactivar el
+        // documento origen de una sugerencia, la tarjeta real en "Mi
+        // Reglamento Interno" (MiReglamentoInterno::cargarSugerenciasPendientes())
+        // ya filtraba por documentoLegal.activo y dejaba de mostrarla - pero
+        // este conteo NO tenía el mismo filtro, así que el banner y el modal
+        // insistente seguían apareciendo para una sugerencia que ya no tenía
+        // adónde llevar al cliente ("Revisar y actualizar" no mostraba nada).
         $usuarioDashboard = auth()->user();
         $totalSugerencias = ($usuarioDashboard && in_array($usuarioDashboard->role, ['cliente', 'bufete'], true))
-            ? \App\Models\SugerenciaActualizacionRit::where('estado', 'pendiente')->count()
+            ? \App\Models\SugerenciaActualizacionRit::where('estado', 'pendiente')
+                ->whereHas('documentoLegal', fn($q) => $q->where('activo', true))
+                ->count()
             : 0;
 
         // Contratos a término fijo por vencer (ventana de 45 días, ver

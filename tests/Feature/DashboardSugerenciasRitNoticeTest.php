@@ -70,6 +70,24 @@ class DashboardSugerenciasRitNoticeTest extends TestCase
             ->assertDontSee('actualización legal que aplica a su Reglamento Interno');
     }
 
+    /**
+     * Bug real reportado por el usuario (2026-09-07): al desactivar el
+     * documento origen, la tarjeta de "Mi Reglamento Interno" ya dejaba de
+     * mostrar la sugerencia (filtra por documentoLegal.activo), pero el
+     * banner/modal del Dashboard no tenían el mismo filtro y seguían
+     * apareciendo para algo que ya no había dónde revisar.
+     */
+    public function test_no_muestra_el_banner_si_el_documento_origen_esta_desactivado(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $sugerencia = $this->crearSugerenciaPendiente($empresa);
+        $sugerencia->documentoLegal->update(['activo' => false]);
+        $user = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresa->id, 'active' => true]);
+
+        Livewire::actingAs($user)->test(Dashboard::class)
+            ->assertDontSee('actualización legal que aplica a su Reglamento Interno');
+    }
+
     public function test_no_muestra_el_banner_a_super_admin(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
