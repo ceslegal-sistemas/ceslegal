@@ -41,43 +41,65 @@
                 'sancion'    => ['src' => 'bduzytli.json', 'state' => null],
             ];
             $lordCheck = ['src' => 'lvrxlmju.json', 'state' => 'hover-loading'];
+
+            // Pedido explícito del usuario (2026-09-07, tras ver una captura
+            // real): una vez completados los 5 pasos, el timeline grande se
+            // queda para siempre en verde (el paso "Emitir sanción" pasa a
+            // 'done' con el primer sanción emitida, aunque después se
+            // acumulen más pendientes) - ocupa mucho espacio mostrando algo
+            // que ya no es información nueva. Se reemplaza por una línea
+            // compacta, dejando el protagonismo a "Emitir sanciones"/
+            // "Listos para sancionar" que sí es accionable.
+            $todosCompletos = collect($g['pasos'])->every(fn($p) => $p['estado'] === 'done');
         @endphp
         <div class="pg-card">
-            <div class="pg-head">
-                <div>
-                    <p class="pg-kicker">Tu proceso</p>
-                    <h2 class="pg-h2">{{ $g['empresa']->razon_social ?? '' }}</h2>
-                </div>
-            </div>
-
-            {{-- Fila de pasos --}}
-            <div class="pg-steps">
-                @foreach($g['pasos'] as $i => $paso)
-                    @php
-                        $ic = $paso['estado'] === 'done' ? $lordCheck : ($lord[$paso['clave']] ?? null);
-                        // Color del icono según el estado del nodo (fondo de color -> blanco).
-                        $icColor = $paso['estado'] === 'pending'
-                            ? 'primary:#a8a29e,secondary:#a8a29e'
-                            : 'primary:#ffffff,secondary:#ffffff';
-                    @endphp
-                    <div class="pg-step pg-{{ $paso['estado'] }}">
-                        <span class="pg-node">
-                            @if($ic)
-                                <lord-icon
-                                    src="https://cdn.lordicon.com/{{ $ic['src'] }}"
-                                    trigger="loop-on-hover"
-                                    @if(!empty($ic['state'])) state="{{ $ic['state'] }}" @endif
-                                    colors="{{ $icColor }}"
-                                    class="pg-node-lord"></lord-icon>
-                            @else
-                                @svg('heroicon-o-minus', 'pg-node-ico')
-                            @endif
-                        </span>
-                        <span class="pg-step-label">{{ $paso['label'] }}</span>
-                        @if(!$loop->last)<span class="pg-line"></span>@endif
+            @if($todosCompletos)
+                <div class="pg-head pg-head-compacto">
+                    <div>
+                        <p class="pg-kicker">{{ $g['empresa']->razon_social ?? '' }}</p>
+                        <p class="pg-completo">
+                            @svg('heroicon-o-check-badge', 'pg-completo-ico')
+                            Proceso configurado - los 5 pasos están al día
+                        </p>
                     </div>
-                @endforeach
-            </div>
+                </div>
+            @else
+                <div class="pg-head">
+                    <div>
+                        <p class="pg-kicker">Tu proceso</p>
+                        <h2 class="pg-h2">{{ $g['empresa']->razon_social ?? '' }}</h2>
+                    </div>
+                </div>
+
+                {{-- Fila de pasos --}}
+                <div class="pg-steps">
+                    @foreach($g['pasos'] as $i => $paso)
+                        @php
+                            $ic = $paso['estado'] === 'done' ? $lordCheck : ($lord[$paso['clave']] ?? null);
+                            // Color del icono según el estado del nodo (fondo de color -> blanco).
+                            $icColor = $paso['estado'] === 'pending'
+                                ? 'primary:#a8a29e,secondary:#a8a29e'
+                                : 'primary:#ffffff,secondary:#ffffff';
+                        @endphp
+                        <div class="pg-step pg-{{ $paso['estado'] }}">
+                            <span class="pg-node">
+                                @if($ic)
+                                    <lord-icon
+                                        src="https://cdn.lordicon.com/{{ $ic['src'] }}"
+                                        trigger="loop-on-hover"
+                                        @if(!empty($ic['state'])) state="{{ $ic['state'] }}" @endif
+                                        colors="{{ $icColor }}"
+                                        class="pg-node-lord"></lord-icon>
+                                @else
+                                    @svg('heroicon-o-minus', 'pg-node-ico')
+                                @endif
+                            </span>
+                            <span class="pg-step-label">{{ $paso['label'] }}</span>
+                            @if(!$loop->last)<span class="pg-line"></span>@endif
+                        </div>
+                    @endforeach
+                </div>
+            @endif
 
             {{-- Acción siguiente --}}
             @if($accion = ($g['accion'] ?? null))
@@ -94,17 +116,21 @@
                 </div>
             @endif
 
-            {{-- Listos para sancionar --}}
+            {{-- Listos para sancionar - con scroll interno cuando hay
+                 muchos (captura real del usuario mostró 16 filas
+                 estirando toda la página) en vez de crecer sin límite. --}}
             @if(!empty($g['listos']))
                 <div class="pg-listos">
-                    <p class="pg-listos-title">Listos para sancionar</p>
-                    @foreach($g['listos'] as $l)
-                        <a href="{{ $g['sancion_url'] }}" class="pg-listo">
-                            @svg('heroicon-o-scale', 'pg-listo-ico')
-                            <span><strong>{{ $l['trabajador'] }}</strong> · {{ $l['codigo'] }}</span>
-                            <span class="pg-listo-cta">Emitir sanción →</span>
-                        </a>
-                    @endforeach
+                    <p class="pg-listos-title">Listos para sancionar ({{ count($g['listos']) }})</p>
+                    <div class="pg-listos-scroll">
+                        @foreach($g['listos'] as $l)
+                            <a href="{{ $g['sancion_url'] }}" class="pg-listo">
+                                @svg('heroicon-o-scale', 'pg-listo-ico')
+                                <span><strong>{{ $l['trabajador'] }}</strong> · {{ $l['codigo'] }}</span>
+                                <span class="pg-listo-cta">Emitir sanción →</span>
+                            </a>
+                        @endforeach
+                    </div>
                 </div>
             @endif
         </div>
@@ -120,6 +146,13 @@
         .pg-lead{font-size:.85rem;line-height:1.5;color:#78716c;margin:.35rem 0 .9rem;max-width:60ch}
         html.dark .pg-lead{color:#a8a29e}
         .pg-head{margin-bottom:1.1rem}
+        /* Estado "todo completo" - línea compacta en vez del timeline grande */
+        .pg-head-compacto{margin-bottom:0}
+        .pg-completo{display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;color:#15803d;margin:.15rem 0 0}
+        html.dark .pg-completo{color:#86efac}
+        .pg-completo-ico{width:18px;height:18px;flex-shrink:0}
+        /* Listos para sancionar - scroll interno para no estirar la página cuando hay muchos */
+        .pg-listos-scroll{max-height:19rem;overflow-y:auto;padding-right:.25rem}
         /* pasos - una sola fila en escritorio, scroll horizontal en móvil (nunca se corta) */
         .pg-steps{display:flex;flex-wrap:nowrap;gap:0;align-items:flex-start;margin-bottom:1.1rem}
         .pg-step{position:relative;display:flex;flex-direction:column;align-items:center;flex:1 1 0;min-width:0;gap:.4rem;padding:0 .15rem}
