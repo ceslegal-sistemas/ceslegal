@@ -1,4 +1,19 @@
-<div>
+{{--
+    Rediseño .rit-hero pedido explícito por el usuario (2026-09-07): mismo
+    degradado + orbes que ya usan los banners del Dashboard, aplicado a TODO
+    el fondo del modal (incluidas las cajas de alerta/análisis/validación
+    que ya tenían su propio estilo pensado para fondo blanco/gris estándar
+    de Filament) - riesgo de contraste asumido explícitamente por el
+    usuario tras advertírselo. Sin navegador conectado para verificar -
+    pendiente de confirmación visual una vez desplegado.
+--}}
+@include('filament.components.lupe-hero-styles')
+
+<div class="rit-hero es-hero">
+    <div class="rit-orb-b"></div>
+    <div class="rit-orb-g"></div>
+    <div class="rit-overlay"></div>
+    <div style="position:relative;z-index:2">
     @if ($paso === 1)
         {{--
             wire:key REQUERIDO: sin esto, el morph de Livewire (sin keys)
@@ -230,4 +245,5 @@
             </div>
         </div>
     @endif
+    </div>
 </div>
