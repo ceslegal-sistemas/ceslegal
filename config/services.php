@@ -67,8 +67,10 @@ return [
         'token'   => env('CAP_TEST_TOKEN', ''),
     ],
 
+    // n8n consulta este contexto por HTTP (no al revés - ver rutas/web.php,
+    // AsistentePanelContextoController) desde el workflow que atiende el
+    // widget de Chatwoot embebido en el panel 'empresa'.
     'asistente_panel' => [
-        'webhook_url' => env('ASISTENTE_PANEL_WEBHOOK_URL'),
         'secret' => env('ASISTENTE_PANEL_SECRET'),
     ],
 

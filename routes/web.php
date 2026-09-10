@@ -43,6 +43,12 @@ Route::post('/tts', \App\Http\Controllers\TtsController::class)
     ->middleware('auth')
     ->name('tts');
 
+// Consultado por n8n (tool HTTP del AI Agent que atiende la burbuja de
+// Chatwoot en el panel 'empresa') - servidor-a-servidor, secreto compartido
+// via header, sin sesión/auth (ver AsistentePanelContextoController).
+Route::get('/internal/asistente-panel/contexto', [\App\Http\Controllers\AsistentePanelContextoController::class, 'contexto'])
+    ->name('asistente-panel.contexto');
+
 Route::post('/transcribir', \App\Http\Controllers\TranscribeController::class)
     ->middleware('auth')
     ->name('transcribir');

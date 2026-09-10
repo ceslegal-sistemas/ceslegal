@@ -8,37 +8,9 @@ use App\Models\ProcesoDisciplinario;
 use App\Models\SolicitudContrato;
 use App\Models\SugerenciaActualizacionRit;
 use App\Models\User;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class AsistentePanelService
 {
-    public function responder(User $usuario, string $conversationId, string $mensaje): string
-    {
-        $mensajeError = 'No pude responder en este momento. Intenta de nuevo en unos minutos.';
-
-        $payload = [
-            'conversation_id' => $conversationId,
-            'message' => $mensaje,
-            'contexto' => $this->resolverContexto($usuario, $usuario->empresa),
-        ];
-
-        try {
-            $response = Http::timeout(20)
-                ->withHeaders(['X-Internal-Secret' => config('services.asistente_panel.secret')])
-                ->post(config('services.asistente_panel.webhook_url'), $payload);
-
-            if (! $response->successful()) {
-                Log::warning('AsistentePanelService: respuesta no exitosa de n8n', ['status' => $response->status()]);
-                return $mensajeError;
-            }
-
-            return $response->json('reply') ?? $mensajeError;
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            Log::warning('AsistentePanelService: no se pudo conectar con n8n', ['error' => $e->getMessage()]);
-            return $mensajeError;
-        }
-    }
     public function resolverContexto(User $usuario, ?Empresa $empresa): array
     {
         if (! $empresa) {
