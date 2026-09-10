@@ -151,4 +151,39 @@ class AsistentePanelServiceTest extends TestCase
 
         $this->assertSame(1, $contexto['procesos_disciplinarios_abiertos']);
     }
+
+    public function test_cuenta_trabajadores_activos_registrados_distinto_de_numero_empleados(): void
+    {
+        // numero_empleados es un campo aparte (declarado por el cliente al
+        // construir el RIT) - puede estar vacio aunque ya haya trabajadores
+        // reales cargados en el sistema. Bug real reportado por el usuario:
+        // "cuantos trabajadores tengo registrados?" devolvia "no tengo esa
+        // informacion" para una empresa real con trabajadores reales, porque
+        // solo se consultaba numero_empleados.
+        $empresa = Empresa::factory()->create(['active' => true, 'numero_empleados' => null]);
+
+        \App\Models\Trabajador::create([
+            'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '111',
+            'nombres' => 'Carlos', 'apellidos' => 'Ruiz', 'cargo' => 'Analista', 'area' => 'Operaciones',
+            'fecha_ingreso' => '2026-01-01', 'active' => true,
+        ]);
+        \App\Models\Trabajador::create([
+            'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '222',
+            'nombres' => 'Marta', 'apellidos' => 'Diaz', 'cargo' => 'Auxiliar', 'area' => 'Operaciones',
+            'fecha_ingreso' => '2026-01-01', 'active' => true,
+        ]);
+        // Inactivo: no debe contar.
+        \App\Models\Trabajador::create([
+            'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '333',
+            'nombres' => 'Pedro', 'apellidos' => 'Lopez', 'cargo' => 'Auxiliar', 'area' => 'Operaciones',
+            'fecha_ingreso' => '2026-01-01', 'active' => false,
+        ]);
+
+        $user = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresa->id, 'active' => true]);
+
+        $contexto = app(AsistentePanelService::class)->resolverContexto($user, $empresa);
+
+        $this->assertNull($contexto['numero_empleados']);
+        $this->assertSame(2, $contexto['trabajadores_registrados']);
+    }
 }
