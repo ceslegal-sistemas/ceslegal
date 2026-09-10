@@ -10,6 +10,7 @@ use App\Models\SugerenciaActualizacionRit;
 use App\Models\User;
 use App\Services\AsistentePanelService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
@@ -150,5 +151,58 @@ class AsistentePanelServiceTest extends TestCase
         $contexto = app(AsistentePanelService::class)->resolverContexto($user, $empresa);
 
         $this->assertSame(1, $contexto['procesos_disciplinarios_abiertos']);
+    }
+
+    public function test_responder_arma_el_payload_correcto_y_devuelve_el_reply(): void
+    {
+        config(['services.asistente_panel.webhook_url' => 'https://n8n.example.test/webhook/asistente_panel']);
+        config(['services.asistente_panel.secret' => 'secreto-de-prueba']);
+
+        Http::fake([
+            'n8n.example.test/*' => Http::response(['reply' => 'Tu RIT está al día.', 'conversation_id' => 'abc-123'], 200),
+        ]);
+
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $user = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresa->id, 'active' => true]);
+
+        $respuesta = app(AsistentePanelService::class)->responder($user, 'abc-123', '¿Cómo está mi RIT?');
+
+        $this->assertSame('Tu RIT está al día.', $respuesta);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://n8n.example.test/webhook/asistente_panel'
+                && $request->hasHeader('X-Internal-Secret', 'secreto-de-prueba')
+                && $request['conversation_id'] === 'abc-123'
+                && $request['message'] === '¿Cómo está mi RIT?'
+                && array_key_exists('contexto', $request->data());
+        });
+    }
+
+    public function test_responder_devuelve_mensaje_generico_si_n8n_responde_con_error(): void
+    {
+        config(['services.asistente_panel.webhook_url' => 'https://n8n.example.test/webhook/asistente_panel']);
+        Http::fake(['n8n.example.test/*' => Http::response(null, 500)]);
+
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $user = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresa->id, 'active' => true]);
+
+        $respuesta = app(AsistentePanelService::class)->responder($user, 'abc-123', 'hola');
+
+        $this->assertSame('No pude responder en este momento. Intenta de nuevo en unos minutos.', $respuesta);
+    }
+
+    public function test_responder_devuelve_mensaje_generico_si_no_hay_conexion(): void
+    {
+        config(['services.asistente_panel.webhook_url' => 'https://n8n.example.test/webhook/asistente_panel']);
+        Http::fake(function () {
+            throw new \Illuminate\Http\Client\ConnectionException('timeout de prueba');
+        });
+
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $user = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresa->id, 'active' => true]);
+
+        $respuesta = app(AsistentePanelService::class)->responder($user, 'abc-123', 'hola');
+
+        $this->assertSame('No pude responder en este momento. Intenta de nuevo en unos minutos.', $respuesta);
     }
 }

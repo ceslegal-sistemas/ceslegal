@@ -67,6 +67,11 @@ return [
         'token'   => env('CAP_TEST_TOKEN', ''),
     ],
 
+    'asistente_panel' => [
+        'webhook_url' => env('ASISTENTE_PANEL_WEBHOOK_URL'),
+        'secret' => env('ASISTENTE_PANEL_SECRET'),
+    ],
+
     'ia' => [
         'provider' => env('IA_PROVIDER', 'gemini'),
         // Registro opt-in de tokens de Gemini (para el reporte de costos).
