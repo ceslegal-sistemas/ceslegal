@@ -21,7 +21,7 @@ return new class extends Migration
             $table->text('analisis_normativo');
             $table->text('conclusion');
             $table->enum('recomendacion', ['archivo', 'sancion']);
-            $table->enum('tipo_sancion_recomendada', ['llamado_atencion', 'suspension', 'terminacion'])->nullable();
+            $table->enum('tipo_sancion_recomendada', ['llamado_atencion', 'suspension', 'terminacion', 'no_sancion', 'multa'])->nullable();
             $table->text('fundamento_legal');
             $table->text('observaciones')->nullable();
             $table->timestamps();

@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreignId('abogado_analisis_id')->nullable()->constrained('users')->onDelete('restrict');
             $table->text('analisis_impugnacion')->nullable();
             $table->enum('decision_final', ['confirma_sancion', 'revoca_sancion', 'modifica_sancion'])->nullable();
-            $table->enum('nueva_sancion_tipo', ['llamado_atencion', 'suspension', 'terminacion'])->nullable();
+            $table->enum('nueva_sancion_tipo', ['llamado_atencion', 'suspension', 'terminacion', 'no_sancion', 'multa'])->nullable();
             $table->text('fundamento_decision')->nullable();
             $table->dateTime('fecha_decision')->nullable();
             $table->boolean('documento_generado')->default(false);

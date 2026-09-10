@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('sanciones', function (Blueprint $table) {
             $table->id();
             $table->foreignId('proceso_id')->constrained('procesos_disciplinarios')->onDelete('cascade');
-            $table->enum('tipo_sancion', ['llamado_atencion', 'suspension', 'terminacion']);
+            $table->enum('tipo_sancion', ['llamado_atencion', 'suspension', 'terminacion', 'multa', 'no_sancion']);
             $table->integer('dias_suspension')->nullable();
             $table->date('fecha_inicio_suspension')->nullable();
             $table->date('fecha_fin_suspension')->nullable();
