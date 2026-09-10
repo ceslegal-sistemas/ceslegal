@@ -74,6 +74,11 @@ return [
         'secret' => env('ASISTENTE_PANEL_SECRET'),
     ],
 
+    'chatwoot' => [
+        'website_token' => env('CHATWOOT_WEBSITE_TOKEN'),
+        'base_url' => env('CHATWOOT_BASE_URL', 'https://contactenos.ceslegal.co'),
+    ],
+
     'ia' => [
         'provider' => env('IA_PROVIDER', 'gemini'),
         // Registro opt-in de tokens de Gemini (para el reporte de costos).

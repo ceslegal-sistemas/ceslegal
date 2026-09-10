@@ -41,7 +41,19 @@ class EmpresaPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
             ->widgets([
                 // Widgets personalizados se cargan desde el Dashboard
-            ]);
+            ])
+            // Burbuja de Chatwoot (2026-09-10) - visible en todo el panel
+            // 'empresa', solo para 'cliente' (no 'bufete': el asistente
+            // habla de "tu empresa", sin sentido para una firma que
+            // gestiona varias). El guard de role aquí es una segunda capa -
+            // Filament\Http\Middleware\Authenticate ya bloquea con 403 a
+            // cualquier no-cliente antes de llegar a renderizar esta página.
+            ->renderHook(
+                \Filament\View\PanelsRenderHook::BODY_END,
+                fn () => auth()->user()?->role === 'cliente'
+                    ? view('filament.components.chatwoot-widget')->render()
+                    : '',
+            );
 
         $panel = $this->aplicarConfigComun($panel);
 
