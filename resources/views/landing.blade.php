@@ -85,6 +85,12 @@
                                 <a href="#services">Servicios</a>
                             </li>
                             <li>
+                                <a href="#diferenciales">Diferenciales</a>
+                            </li>
+                            <li>
+                                <a href="#como-funciona">Cómo funciona</a>
+                            </li>
+                            <li>
                                 <a href="#contact">Contacto</a>
                             </li>
                             <li>
@@ -628,6 +634,87 @@
                     </div>
                 </div>
                 <!-- row end -->
+                <!-- divider start -->
+                <div class="divider-l"></div>
+                <!-- divider end -->
+                <!-- row start -->
+                <div class="row">
+                    <div class="services-steps-wrapper">
+                        <!-- col start -->
+                        <div class="col-md-4 col-all services-block">
+                            <!-- section subtitle start -->
+                            <h4 class="service-heading">
+                                <span class="color-switch">Contratos</span> y otrosíes
+                            </h4>
+                            <!-- section subtitle end -->
+                            <!-- divider start -->
+                            <div class="divider-m"></div>
+                            <!-- divider end -->
+                            <!-- section subtitle start -->
+                            <div class="service-number">
+                                4
+                            </div>
+                            <!-- section subtitle end -->
+                            <!-- section txt start -->
+                            <p>
+                                Genere contratos a término fijo, indefinido o por obra, y otrosíes de modificación - con alertas automáticas antes de que venza un contrato.
+                            </p>
+                            <!-- section txt end -->
+                        </div>
+                        <!-- col end -->
+                        <!-- divider start -->
+                        <div class="divider-l visible-mobile-devices"></div>
+                        <!-- divider end -->
+                        <!-- col start -->
+                        <div class="col-md-4 col-all services-block pull-up">
+                            <!-- section subtitle start -->
+                            <h4 class="service-heading">
+                                <span class="color-switch">Documentos</span> y notificaciones
+                            </h4>
+                            <!-- section subtitle end -->
+                            <!-- divider start -->
+                            <div class="divider-m"></div>
+                            <!-- divider end -->
+                            <!-- section subtitle start -->
+                            <div class="service-number">
+                                5
+                            </div>
+                            <!-- section subtitle end -->
+                            <!-- section txt start -->
+                            <p>
+                                Citaciones, actas y sanciones en PDF con su propio membrete, notificadas desde su correo corporativo con seguimiento de apertura.
+                            </p>
+                            <!-- section txt end -->
+                        </div>
+                        <!-- col end -->
+                        <!-- divider start -->
+                        <div class="divider-l visible-mobile-devices"></div>
+                        <!-- divider end -->
+                        <!-- col start -->
+                        <div class="col-md-4 col-all services-block pull-up">
+                            <!-- section subtitle start -->
+                            <h4 class="service-heading">
+                                <span class="color-switch">Asistente</span> con IA
+                            </h4>
+                            <!-- section subtitle end -->
+                            <!-- divider start -->
+                            <div class="divider-m"></div>
+                            <!-- divider end -->
+                            <!-- section subtitle start -->
+                            <div class="service-number">
+                                6
+                            </div>
+                            <!-- section subtitle end -->
+                            <!-- section txt start -->
+                            <p>
+                                Sus trabajadores preguntan por chat el estado de su RIT o sus procesos - la IA responde con datos reales de su propia empresa.
+                            </p>
+                            <!-- section txt end -->
+                        </div>
+                        <!-- col end -->
+                    </div>
+                </div>
+                <!-- row end -->
             </div>
             <!-- container end -->
             <!-- divider start -->
@@ -635,6 +722,301 @@
             <!-- divider end -->
         </section>
         <!-- services end -->
+        <!-- diferenciales start -->
+        <section id="diferenciales" class="section-all bg-light">
+            <!-- divider start -->
+            <div class="divider-xl"></div>
+            <!-- divider end -->
+            <!-- container start -->
+            <div class="container">
+                <!-- row start -->
+                <div class="row">
+                    <!-- col start -->
+                    <div class="col-lg-12">
+                        <!-- section subtitle start -->
+                        <h2 class="hero-subheading hero-subheading-dark">
+                            <span>03.</span>Diferenciales
+                        </h2>
+                        <!-- section subtitle end -->
+                        <!-- divider start -->
+                        <div class="divider-m"></div>
+                        <!-- divider end -->
+                        <!-- section title start -->
+                        <h2 class="hero-heading hero-heading-dark">
+                            Por qué <span>elegirnos</span>
+                        </h2>
+                        <!-- section title end -->
+                    </div>
+                    <!-- col end -->
+                </div>
+                <!-- row end -->
+                <!-- divider start -->
+                <div class="divider-l"></div>
+                <!-- divider end -->
+                <!-- row start -->
+                <div class="row">
+                    <!-- col start -->
+                    <div class="col-md-6 col-all">
+                        <!-- section subtitle start -->
+                        <h4>
+                            <span class="color-switch">Fundamento</span> jurídico real
+                        </h4>
+                        <!-- section subtitle end -->
+                        <!-- divider start -->
+                        <div class="divider-m"></div>
+                        <!-- divider end -->
+                        <!-- section txt start -->
+                        <div class="txt">
+                            <p>
+                                No son opiniones de IA: cada salida cita su fuente documental - Constitución, jurisprudencia y Código Sustantivo del Trabajo.
+                            </p>
+                        </div>
+                        <!-- section txt end -->
+                        <!-- divider start -->
+                        <div class="divider-l visible-mobile-devices"></div>
+                        <!-- divider end -->
+                    </div>
+                    <!-- col end -->
+                    <!-- col start -->
+                    <div class="col-md-6 col-all">
+                        <!-- section subtitle start -->
+                        <h4>
+                            <span class="color-switch">Debido</span> proceso garantizado
+                        </h4>
+                        <!-- section subtitle end -->
+                        <!-- divider start -->
+                        <div class="divider-m"></div>
+                        <!-- divider end -->
+                        <!-- section txt start -->
+                        <div class="txt">
+                            <p>
+                                Enfoque garantista que protege el proceso y blinda a la empresa frente a demandas y acciones de repetición.
+                            </p>
+                        </div>
+                        <!-- section txt end -->
+                    </div>
+                    <!-- col end -->
+                </div>
+                <!-- row end -->
+                <!-- divider start -->
+                <div class="divider-l"></div>
+                <!-- divider end -->
+                <!-- row start -->
+                <div class="row">
+                    <!-- col start -->
+                    <div class="col-md-6 col-all">
+                        <!-- section subtitle start -->
+                        <h4>
+                            <span class="color-switch">Grupos</span> protegidos
+                        </h4>
+                        <!-- section subtitle end -->
+                        <!-- divider start -->
+                        <div class="divider-m"></div>
+                        <!-- divider end -->
+                        <!-- section txt start -->
+                        <div class="txt">
+                            <p>
+                                Verifica si el trabajador pertenece a un grupo especialmente protegido por la ley, porque la norma aplica distinto.
+                            </p>
+                        </div>
+                        <!-- section txt end -->
+                        <!-- divider start -->
+                        <div class="divider-l visible-mobile-devices"></div>
+                        <!-- divider end -->
+                    </div>
+                    <!-- col end -->
+                    <!-- col start -->
+                    <div class="col-md-6 col-all">
+                        <!-- section subtitle start -->
+                        <h4>
+                            <span class="color-switch">Opciones</span>, no imposiciones
+                        </h4>
+                        <!-- section subtitle end -->
+                        <!-- divider start -->
+                        <div class="divider-m"></div>
+                        <!-- divider end -->
+                        <!-- section txt start -->
+                        <div class="txt">
+                            <p>
+                                El sistema presenta las medidas posibles con sus riesgos legales; la empresa elige la más adecuada dentro del marco.
+                            </p>
+                        </div>
+                        <!-- section txt end -->
+                    </div>
+                    <!-- col end -->
+                </div>
+                <!-- row end -->
+                <!-- divider start -->
+                <div class="divider-l"></div>
+                <!-- divider end -->
+                <!-- row start -->
+                <div class="row">
+                    <!-- col start -->
+                    <div class="col-md-6 col-all">
+                        <!-- section subtitle start -->
+                        <h4>
+                            <span class="color-switch">Auditoría</span> de RIT
+                        </h4>
+                        <!-- section subtitle end -->
+                        <!-- divider start -->
+                        <div class="divider-m"></div>
+                        <!-- divider end -->
+                        <!-- section txt start -->
+                        <div class="txt">
+                            <p>
+                                Revisa su reglamento sección por sección y genera una versión mejorada conforme a la ley vigente.
+                            </p>
+                        </div>
+                        <!-- section txt end -->
+                        <!-- divider start -->
+                        <div class="divider-l visible-mobile-devices"></div>
+                        <!-- divider end -->
+                    </div>
+                    <!-- col end -->
+                    <!-- col start -->
+                    <div class="col-md-6 col-all">
+                        <!-- section subtitle start -->
+                        <h4>
+                            <span class="color-switch">Trazabilidad</span> total
+                        </h4>
+                        <!-- section subtitle end -->
+                        <!-- divider start -->
+                        <div class="divider-m"></div>
+                        <!-- divider end -->
+                        <!-- section txt start -->
+                        <div class="txt">
+                            <p>
+                                Cada correo, documento y decisión queda registrado y verificable, listo para soportar cualquier instancia.
+                            </p>
+                        </div>
+                        <!-- section txt end -->
+                    </div>
+                    <!-- col end -->
+                </div>
+                <!-- row end -->
+            </div>
+            <!-- container end -->
+            <!-- divider start -->
+            <div class="divider-xl"></div>
+            <!-- divider end -->
+        </section>
+        <!-- diferenciales end -->
+        <!-- como funciona start -->
+        <section id="como-funciona" class="section-all bg-dark">
+            <!-- divider start -->
+            <div class="divider-xl"></div>
+            <!-- divider end -->
+            <!-- container start -->
+            <div class="container">
+                <!-- row start -->
+                <div class="row">
+                    <!-- col start -->
+                    <div class="col-lg-12">
+                        <!-- section subtitle start -->
+                        <h2 class="hero-subheading hero-subheading-dark">
+                            <span>04.</span>Cómo funciona
+                        </h2>
+                        <!-- section subtitle end -->
+                        <!-- divider start -->
+                        <div class="divider-m"></div>
+                        <!-- divider end -->
+                        <!-- section title start -->
+                        <h2 class="hero-heading hero-heading-dark">
+                            De la falta a la <span>sanción</span>
+                        </h2>
+                        <!-- section title end -->
+                    </div>
+                    <!-- col end -->
+                </div>
+                <!-- row end -->
+                <!-- divider start -->
+                <div class="divider-l"></div>
+                <!-- divider end -->
+                <!-- row start -->
+                <div class="row">
+                    <div class="services-steps-wrapper">
+                        <!-- col start -->
+                        <div class="col-md-4 col-all services-block">
+                            <!-- section subtitle start -->
+                            <h4 class="service-heading">
+                                <span class="color-switch">Registre</span> el incidente
+                            </h4>
+                            <!-- section subtitle end -->
+                            <!-- divider start -->
+                            <div class="divider-m"></div>
+                            <!-- divider end -->
+                            <!-- section subtitle start -->
+                            <div class="service-number">
+                                1
+                            </div>
+                            <!-- section subtitle end -->
+                            <!-- section txt start -->
+                            <p>
+                                Describa qué pasó - la IA clasifica la gravedad, revisa su RIT y le alerta si el caso requiere manejo especial.
+                            </p>
+                            <!-- section txt end -->
+                        </div>
+                        <!-- col end -->
+                        <!-- divider start -->
+                        <div class="divider-l visible-mobile-devices"></div>
+                        <!-- divider end -->
+                        <!-- col start -->
+                        <div class="col-md-4 col-all services-block pull-up">
+                            <!-- section subtitle start -->
+                            <h4 class="service-heading">
+                                <span class="color-switch">Cite</span> a descargos
+                            </h4>
+                            <!-- section subtitle end -->
+                            <!-- divider start -->
+                            <div class="divider-m"></div>
+                            <!-- divider end -->
+                            <!-- section subtitle start -->
+                            <div class="service-number">
+                                2
+                            </div>
+                            <!-- section subtitle end -->
+                            <!-- section txt start -->
+                            <p>
+                                El trabajador responde un formulario dinámico; la IA hace seguimiento respetando su derecho de defensa.
+                            </p>
+                            <!-- section txt end -->
+                        </div>
+                        <!-- col end -->
+                        <!-- divider start -->
+                        <div class="divider-l visible-mobile-devices"></div>
+                        <!-- divider end -->
+                        <!-- col start -->
+                        <div class="col-md-4 col-all services-block pull-up">
+                            <!-- section subtitle start -->
+                            <h4 class="service-heading">
+                                <span class="color-switch">Emita</span> y notifique
+                            </h4>
+                            <!-- section subtitle end -->
+                            <!-- divider start -->
+                            <div class="divider-m"></div>
+                            <!-- divider end -->
+                            <!-- section subtitle start -->
+                            <div class="service-number">
+                                3
+                            </div>
+                            <!-- section subtitle end -->
+                            <!-- section txt start -->
+                            <p>
+                                Con 8 validaciones de calidad y verificación facial de quien autoriza. El documento sale con su membrete y queda trazado para siempre.
+                            </p>
+                            <!-- section txt end -->
+                        </div>
+                        <!-- col end -->
+                    </div>
+                </div>
+                <!-- row end -->
+            </div>
+            <!-- container end -->
+            <!-- divider start -->
+            <div class="divider-xl"></div>
+            <!-- divider end -->
+        </section>
+        <!-- como funciona end -->
         <!-- contact start -->
         <section id="contact" class="section-all">
             <!-- container start -->
@@ -653,7 +1035,7 @@
                         <div class="parallax-content">
                             <!-- section subtitle start -->
                             <h2 class="hero-subheading">
-                                <span>03.</span>Hablemos
+                                <span>05.</span>Hablemos
                             </h2>
                             <!-- section subtitle end -->
                             <!-- divider start -->
