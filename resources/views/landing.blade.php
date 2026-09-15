@@ -79,10 +79,10 @@
                     <div class="logo">
                         <a class="navbar-brand logo" href="/">
                             <!-- logo light start -->
-                            <img alt="LUPE Legal" class="logo-light" src="/landing-v2/img/logo-light.png">
+                            <img alt="LUPE Legal" class="logo-light" src="/landing-v2/img/logo-light.png?v=3">
                             <!-- logo light end -->
                             <!-- logo dark start -->
-                            <img alt="LUPE Legal" class="logo-dark" src="/landing-v2/img/logo-dark.png">
+                            <img alt="LUPE Legal" class="logo-dark" src="/landing-v2/img/logo-dark.png?v=3">
                             <!-- logo dark end -->
                         </a>
                     </div>
@@ -1143,7 +1143,7 @@
                 <div class="row footer-credits">
                     <!-- footer logo start -->
                     <div class="footer-credits-logo">
-                        <a href="/"><img alt="LUPE Legal" src="/landing-v2/img/logo-footer.png"></a>
+                        <a href="/"><img alt="LUPE Legal" src="/landing-v2/img/logo-footer.png?v=3"></a>
                     </div>
                     <!-- footer logo end -->
                     <!-- divider start -->
