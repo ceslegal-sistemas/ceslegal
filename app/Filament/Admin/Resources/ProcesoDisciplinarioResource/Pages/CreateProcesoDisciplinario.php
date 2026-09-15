@@ -28,6 +28,25 @@ class CreateProcesoDisciplinario extends CreateRecord
     use HasWizard;
     use HasVerificacionFotografica;
 
+    /**
+     * Extraído como método estático testeable en vez de un closure inline
+     * en ->visible()/->required() - navegar el Wizard con fillForm()/
+     * nextStep() es "sabidamente frágil" en este proyecto (ver memoria
+     * filament-wizard-fillform-no-aplica.md), así que la lógica de decisión
+     * se prueba directamente, sin depender de montar el Wizard completo.
+     */
+    public static function tieneRiesgoLegalAlto(?string $clasificacionJson): bool
+    {
+        if (!$clasificacionJson) {
+            return false;
+        }
+
+        $clasificacion = json_decode($clasificacionJson, true);
+
+        return is_array($clasificacion)
+            && ($clasificacion['categoria_riesgo_legal'] ?? null) === 'posible_acoso_o_violencia';
+    }
+
     protected static string $resource = ProcesoDisciplinarioResource::class;
 
     public function getTitle(): string
@@ -547,6 +566,16 @@ class CreateProcesoDisciplinario extends CreateRecord
                                                 ->label(fn($livewire) => $livewire->mejorando ? 'Generando...' : 'Generar redacción con IA')
                                                 ->icon('heroicon-m-sparkles')
                                                 ->color('primary')
+                                                // Paso recomendado para CUALQUIER caso (pedido
+                                                // explícito del usuario, 2026-09-11) - no solo
+                                                // cuando se detecta riesgo legal alto. La
+                                                // redacción asistida corrige lenguaje inapropiado,
+                                                // acusaciones sin presuntivo y referencias
+                                                // discriminatorias antes de que el usuario tenga
+                                                // que descubrirlas una por una con las validaciones
+                                                // de bloqueo del campo.
+                                                ->badge('Recomendado')
+                                                ->badgeColor('success')
                                                 ->tooltip('La IA generará una redacción profesional completa usando todos los datos del caso')
                                                 ->disabled(fn(Get $get, $livewire) => $livewire->mejorando || mb_strlen($get('descripcion_hecho') ?? '') < 10)
                                                 ->action(fn($livewire) => $livewire->generarRedaccion()),
@@ -711,6 +740,43 @@ class CreateProcesoDisciplinario extends CreateRecord
                                     );
                                 })
                                 ->visible(fn(Forms\Get $get) => filled($get('clasificacion_incidente_ia')))
+                                ->columnSpanFull(),
+
+                            // Aviso prominente + gate de reconocimiento obligatorio para
+                            // categoria_riesgo_legal='posible_acoso_o_violencia' - ver
+                            // IADescargoService::clasificarIncidente(). A diferencia del
+                            // aviso de "información incompleta" (nunca bloquea, a
+                            // propósito), este SÍ bloquea "Siguiente": es un caso
+                            // cualitativamente distinto (completo, pero de altísimo
+                            // riesgo legal), pedido explícito del usuario tras un caso
+                            // real. El bloqueo usa validación estándar de Filament
+                            // (->required()->accepted()), no depende de "deshabilitar
+                            // el botón reactivamente" (eso sí es sabidamente frágil en
+                            // este Wizard, ver el comentario del aviso de arriba).
+                            Forms\Components\Placeholder::make('aviso_riesgo_legal_alto')
+                                ->hiddenLabel()
+                                ->content(function (Forms\Get $get) {
+                                    if (!static::tieneRiesgoLegalAlto($get('clasificacion_incidente_ia'))) {
+                                        return new HtmlString('');
+                                    }
+                                    $c = json_decode($get('clasificacion_incidente_ia'), true);
+
+                                    return new HtmlString(
+                                        view('filament.components.aviso-riesgo-legal-alto', [
+                                            'justificacion' => $c['justificacion_riesgo_legal'] ?? '',
+                                        ])->render()
+                                    );
+                                })
+                                ->visible(fn(Forms\Get $get) => static::tieneRiesgoLegalAlto($get('clasificacion_incidente_ia')))
+                                ->columnSpanFull(),
+
+                            Forms\Components\Checkbox::make('reconoce_riesgo_legal_especial')
+                                ->label('Entiendo que este caso requiere manejo especial, mantuve la presunción de inocencia al redactar los hechos, y asumo la responsabilidad de continuar con este proceso.')
+                                ->live()
+                                ->required(fn(Forms\Get $get) => static::tieneRiesgoLegalAlto($get('clasificacion_incidente_ia')))
+                                ->accepted(fn(Forms\Get $get) => static::tieneRiesgoLegalAlto($get('clasificacion_incidente_ia')))
+                                ->visible(fn(Forms\Get $get) => static::tieneRiesgoLegalAlto($get('clasificacion_incidente_ia')))
+                                ->dehydrated(false)
                                 ->columnSpanFull(),
 
                             Forms\Components\Hidden::make('clasificacion_incidente_ia')
