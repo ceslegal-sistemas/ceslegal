@@ -24,6 +24,28 @@
         <link href="https://fonts.googleapis.com/css?family=Raleway:100,200,300,400,500,600,700,800,900%7CMontserrat:400,400i,500,500i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet" type=
             "text/css">
         <!-- google fonts end -->
+        <!--
+            La plantilla ancla el espaciado del párrafo junto al número
+            grande (.service-number) al ID "#services" en vez de a la
+            clase reutilizable - por eso el mismo bloque numerado, al
+            reusarlo en la sección "Cómo funciona" (id distinto), quedaba
+            con el texto tapado por el número. Se replica exactamente la
+            misma regla (mismos valores, mismos breakpoints) para el
+            nuevo ID, sin tocar style.css.
+        -->
+        <style>
+            #como-funciona p { position: relative; padding-left: 135px; text-align: left; margin: -7px 0; }
+            @media only screen and (max-width: 880px) { #como-funciona p { padding-left: 110px; } }
+            @media only screen and (max-width: 768px) { #como-funciona p { padding-left: 90px; } }
+            /* El footer original de la plantilla es minimalista a propósito
+               (texto de 9-10px), pero al quitar dirección/teléfono/mapa
+               (datos que no teníamos reales) quedó con muy poco peso visual.
+               Se sube tamaño/espaciado del texto y se separa del logo con
+               una línea sutil, sin tocar el CSS base de la plantilla. */
+            #footer .social-icons { font-size: 13px; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(0,0,0,.08); display: inline-block; }
+            #footer .social-icons li span { padding: 0 14px; }
+            #footer .copyright { font-size: 11px; margin-top: .5rem !important; }
+        </style>
     </head>
     <body>
         <!-- preloader start -->
