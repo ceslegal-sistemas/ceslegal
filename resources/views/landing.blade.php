@@ -51,6 +51,20 @@
             #footer .social-icons { font-size: 13px; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(0,0,0,.08); display: inline-block; }
             #footer .social-icons li span { padding: 0 14px; }
             #footer .copyright { font-size: 11px; margin-top: .5rem !important; }
+            /* Bug real (2026-09-15): el circulo decorativo ".timeline-image"
+               (contador de 1.472 articulos) esta pensado para superponerse
+               sobre la seccion siguiente con un offset fijo (top:200px en
+               escritorio, top:183px en movil - ver style.css) - en escritorio
+               hay suficiente aire antes del titulo "Los Servicios", pero en
+               movil el mismo offset tapaba el encabezado "02. Que resuelve /
+               Los Servicios". Se reduce el offset solo en movil, sin tocar
+               style.css. */
+            @media only screen and (max-width: 880px) {
+                .timeline-image { top: 90px !important; }
+            }
+            @media only screen and (max-width: 480px) {
+                .timeline-image { top: 60px !important; }
+            }
         </style>
     </head>
     <body>
