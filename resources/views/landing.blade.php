@@ -15,7 +15,13 @@
         <meta property="og:title" content="LUPE Legal - Gestión disciplinaria con respaldo jurídico">
         <meta property="og:description" content="Plataforma que construye, ejecuta y documenta todo tu proceso disciplinario laboral con IA anclada a la Constitución, la jurisprudencia y el Código Sustantivo del Trabajo.">
         <meta property="og:image" content="{{ asset('images/lupe-og-image.png') }}">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
         <meta property="og:url" content="{{ url()->current() }}">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="LUPE Legal - Gestión disciplinaria con respaldo jurídico">
+        <meta name="twitter:description" content="Plataforma que construye, ejecuta y documenta todo tu proceso disciplinario laboral con IA anclada a la Constitución, la jurisprudencia y el Código Sustantivo del Trabajo.">
+        <meta name="twitter:image" content="{{ asset('images/lupe-og-image.png') }}">
         <!-- style start -->
         <link href="/landing-v2/css/plugins.css" media="all" rel="stylesheet" type="text/css">
         <link href="/landing-v2/css/style.css" media="all" rel="stylesheet" type="text/css">
