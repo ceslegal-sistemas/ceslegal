@@ -82,11 +82,18 @@ class GenerarRecomendacionYRevisarV6Job implements ShouldQueue
             'validaciones_v6_puntos_clave'     => $r['puntosClave'],
         ]);
 
+        // Instrumentación temporal (2026-09-15, ver backlog-optimizar-tiempo-generacion-recomendacion-sancion.md):
+        // desglose de tiempo por etapa para saber dónde optimizar antes de tocar
+        // nada - quitar/limpiar una vez que se decida qué optimizar.
         Log::info('GenerarRecomendacionYRevisarV6Job: completado', [
             'proceso_id'   => $this->proceso->id,
             'estado'       => $r['estado'],
             'corregido'    => $r['motivoCorreccion'] !== null,
             'duracion_s'   => round(microtime(true) - $inicio, 1),
+            'tiempos'      => array_merge(
+                $resultado['tiempos'] ?? [],
+                $r['tiempos'] ?? [],
+            ),
         ]);
     }
 

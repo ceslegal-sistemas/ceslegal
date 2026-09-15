@@ -16,6 +16,13 @@ class IAAnalisisSancionService
      */
     public function analizarYSugerirSanciones(ProcesoDisciplinario $proceso): array
     {
+        // Instrumentación temporal (2026-09-15, ver backlog-optimizar-tiempo-generacion-recomendacion-sancion.md):
+        // el usuario reportó que emitir sanción tarda 1-2 min - antes de optimizar
+        // a ciegas, se mide cuánto tarda cada etapa real. Quitar/limpiar una vez
+        // que se decida qué optimizar (no es instrumentación permanente).
+        $tiempos = [];
+        $t0 = microtime(true);
+
         try {
             // Obtener información del contexto
             $trabajador = $proceso->trabajador;
@@ -36,8 +43,12 @@ class IAAnalisisSancionService
             // Obtener jurisprudencia curada relevante (modelo Jurisprudencia)
             $contextoJurisprudencia = $this->obtenerContextoJurisprudencia($proceso);
 
+            $tiempos['contexto_previo_s'] = round(microtime(true) - $t0, 2);
+
             // Analizar (multimodal) las pruebas que el trabajador adjuntó en sus descargos
+            $tPruebas = microtime(true);
             $contextoPruebas = $this->analizarPruebasTrabajador($proceso, strip_tags($proceso->hechos ?? ''));
+            $tiempos['analisis_pruebas_s'] = round(microtime(true) - $tPruebas, 2);
 
             // Construir el prompt para la IA
             $prompt = $this->construirPromptAnalisisSancion(
@@ -59,7 +70,9 @@ class IAAnalisisSancionService
                 'cantidad_procesos_previos' => count($historialProcesos),
             ]);
 
+            $tAnalisis = microtime(true);
             $analisisTexto = $this->llamarGemini($prompt);
+            $tiempos['analisis_principal_s'] = round(microtime(true) - $tAnalisis, 2);
 
             // Parsear la respuesta de la IA
             $analisis = $this->parsearAnalisisIA($analisisTexto);
@@ -69,15 +82,19 @@ class IAAnalisisSancionService
                 $analisis['analisis_pruebas'] = $contextoPruebas;
             }
 
+            $tiempos['total_s'] = round(microtime(true) - $t0, 2);
+
             Log::info('Análisis de sanciones completado', [
                 'proceso_id' => $proceso->id,
                 'sanciones_sugeridas' => $analisis['sanciones_disponibles'] ?? [],
                 'gravedad' => $analisis['gravedad'] ?? 'desconocida',
+                'tiempos' => $tiempos,
             ]);
 
             return [
                 'success' => true,
                 'analisis' => $analisis,
+                'tiempos' => $tiempos,
             ];
 
         } catch (\Exception $e) {
@@ -85,6 +102,7 @@ class IAAnalisisSancionService
                 'proceso_id' => $proceso->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+                'tiempos' => $tiempos,
             ]);
 
             // Retornar opciones por defecto en caso de error
@@ -92,6 +110,7 @@ class IAAnalisisSancionService
                 'success' => false,
                 'error' => $e->getMessage(),
                 'analisis' => $this->obtenerOpcionesPorDefecto(),
+                'tiempos' => $tiempos,
             ];
         }
     }
@@ -1293,7 +1312,10 @@ PROMPT;
      */
     public function ejecutarRevisionCompletaV6(ProcesoDisciplinario $proceso, array $analisisSancion): array
     {
+        // Instrumentación temporal (2026-09-15) - ver nota en analizarYSugerirSanciones().
+        $tPool = microtime(true);
         $resultados = $this->ejecutarValidacionesV6($proceso, $analisisSancion);
+        $tiempoPoolV6 = round(microtime(true) - $tPool, 2);
 
         $todosFallaron = collect($resultados)->every(fn($r) => isset($r['error']));
 
@@ -1309,11 +1331,13 @@ PROMPT;
         // en sí. El checklist que se muestra abajo queda con el chequeo
         // ORIGINAL (evidencia de qué disparó la corrección); el aviso "esta
         // recomendación se ajustó automáticamente" explica el cambio arriba.
+        $tiempoCorreccion = 0.0;
         if (!$todosFallaron) {
             $filas = $this->evaluarMotoresV6($resultados);
             $hallazgosGraves = array_filter($filas, fn($f) => $f['estado'] === 'riesgo');
 
             if (!empty($hallazgosGraves)) {
+                $tCorreccion = microtime(true);
                 try {
                     $corregido = $this->corregirRecomendacionConHallazgosV6($proceso, $analisisSancion, $hallazgosGraves);
 
@@ -1333,6 +1357,7 @@ PROMPT;
                         'error'      => $e->getMessage(),
                     ]);
                 }
+                $tiempoCorreccion = round(microtime(true) - $tCorreccion, 2);
             }
         }
 
@@ -1343,6 +1368,10 @@ PROMPT;
             'analisisOriginal'  => $analisisOriginal,
             'motivoCorreccion'  => $motivoCorreccion,
             'puntosClave'       => [],
+            'tiempos'           => [
+                'pool_v6_s'    => $tiempoPoolV6,
+                'correccion_s' => $tiempoCorreccion,
+            ],
         ];
     }
 
