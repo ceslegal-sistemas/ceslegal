@@ -107,6 +107,8 @@ class IADescargoService
                 'nivel_interrogatorio_minimo'     => 'CONVERSACIONAL',
                 'factores_riesgo'          => [],
                 'conducta_rit_aplicable'   => '',
+                'categoria_riesgo_legal'   => 'ninguna',
+                'justificacion_riesgo_legal' => '',
                 'justificacion'            => '',
                 'error'                    => null,
             ];
@@ -172,6 +174,8 @@ class IADescargoService
                 $resultado['gravedad_estimada']        = 'no_determinable';
                 $resultado['certeza']                  = 'baja';
                 $resultado['nivel_interrogatorio_minimo'] = 'CONVERSACIONAL';
+                $resultado['categoria_riesgo_legal']   = 'ninguna';
+                $resultado['justificacion_riesgo_legal'] = '';
             }
 
             // Salvaguarda de código: solo se aceptan como "fragmento a revisar"
@@ -209,6 +213,20 @@ class IADescargoService
                 ? $conductaPropuesta
                 : '';
 
+            // Salvaguarda de código: categoria_riesgo_legal solo se conserva si
+            // es EXACTAMENTE uno de los 2 valores permitidos - cualquier otra
+            // cosa que el modelo devuelva (typo, valor inventado, capitalización
+            // distinta) se normaliza a 'ninguna' en vez de arriesgar que un
+            // valor no reconocido active/desactive el aviso de riesgo legal de
+            // forma impredecible en la UI.
+            $categoriaRiesgo = $resultado['categoria_riesgo_legal'] ?? 'ninguna';
+            $resultado['categoria_riesgo_legal'] = in_array($categoriaRiesgo, ['ninguna', 'posible_acoso_o_violencia'], true)
+                ? $categoriaRiesgo
+                : 'ninguna';
+            if ($resultado['categoria_riesgo_legal'] === 'ninguna') {
+                $resultado['justificacion_riesgo_legal'] = '';
+            }
+
             $resultado['error'] = null;
 
             Log::channel('descargos')->info('[IA] Clasificación de incidente OK', [
@@ -238,6 +256,8 @@ class IADescargoService
                 'nivel_interrogatorio_minimo'     => 'CONVERSACIONAL',
                 'factores_riesgo'          => [],
                 'conducta_rit_aplicable'   => '',
+                'categoria_riesgo_legal'   => 'ninguna',
+                'justificacion_riesgo_legal' => '',
                 'justificacion'            => '',
                 'error'                    => 'El análisis automático no estuvo disponible: ' . $e->getMessage(),
             ];
@@ -429,6 +449,8 @@ SALIDA - responde ÚNICAMENTE este JSON:
   "nivel_interrogatorio_minimo": "INVESTIGATIVO",
   "factores_riesgo": [],
   "conducta_rit_aplicable": "",
+  "categoria_riesgo_legal": "ninguna",
+  "justificacion_riesgo_legal": "",
   "justificacion": ""
 }
 Si informacion_suficiente es false: deja gravedad_estimada en "no_determinable", certeza en "baja",
@@ -453,6 +475,16 @@ o una causal legal) - en esos casos dejar fragmentos_a_revisar vacío, esa petic
 elementos_faltantes.
 factores_riesgo: máximo 3 puntos cortos (ej. "Posible causal de terminación según el RIT",
 "Reincidencia real registrada el 12/03/2025", "Cargo de manejo y confianza").
+categoria_riesgo_legal: usa EXACTAMENTE uno de estos dos valores: "ninguna" o
+"posible_acoso_o_violencia". Marca "posible_acoso_o_violencia" SOLO cuando el relato describe
+explícitamente: contacto físico no consentido, insinuación o proposición de naturaleza sexual,
+violencia física, o amenazas directas contra la integridad de una persona. NO la uses para faltas
+graves genéricas (robo, agresión verbal, incumplimiento de funciones, abandono del puesto) por más
+graves que sean - esta categoría es específica a conductas que en Colombia tienen un marco legal
+propio distinto al disciplinario ordinario. Ante la duda, usa "ninguna" - nunca la marques para
+llamar la atención o por precaución excesiva.
+justificacion_riesgo_legal: si la categoría es "posible_acoso_o_violencia", máximo 30 palabras
+explicando qué parte del relato lo sugiere. Cadena vacía si la categoría es "ninguna".
 justificacion: máximo 40 palabras, citando solo el RIT o la normativa suministrada.
 No agregues absolutamente ningún texto antes ni después del JSON.
 PROMPT;
