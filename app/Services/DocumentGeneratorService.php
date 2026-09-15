@@ -247,7 +247,7 @@ class DocumentGeneratorService
                 }
 
                 if (!empty($itemsNormas)) {
-                    $itemsNormas[] = '<li>Artículo 58 del Código Sustantivo del Trabajo, que establece las obligaciones especiales del trabajador frente al empleador.</li>';
+                    $itemsNormas[] = '<li><strong> Artículo 58</strong> del Código Sustantivo del Trabajo, que establece las obligaciones especiales del trabajador frente al empleador.</li>';
                     $itemsNormas[] = '<li>Las cláusulas del contrato de trabajo suscrito entre las partes.</li>';
                     $normasHTML = '<ul>' . implode('', $itemsNormas) . '</ul>';
                 }
@@ -260,7 +260,7 @@ class DocumentGeneratorService
                     ? 'el Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong> (depositado ante el Ministerio del Trabajo), en sus disposiciones sobre obligaciones, conducta y disciplina del trabajador, y '
                     : '';
                 $normasHTML = '<ul>
-                    <li>' . $referenciaRIT . 'el Artículo 58 del Código Sustantivo del Trabajo, que establece las obligaciones especiales del trabajador frente al empleador.</li>
+                    <li>' . $referenciaRIT . '<strong> Artículo 58</strong> del Código Sustantivo del Trabajo, que establece las obligaciones especiales del trabajador frente al empleador.</li>
                     <li>Las cláusulas del contrato de trabajo suscrito entre las partes.</li>
                 </ul>';
             }
