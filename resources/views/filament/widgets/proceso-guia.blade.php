@@ -15,24 +15,32 @@
         {{-- nada --}}
 
     @elseif($g['estado'] === 'sin_empresa')
-        {{-- Bufete recién registrado: solo crear la primera empresa --}}
-        <div class="pg-card pg-onboard">
-            <lord-icon src="https://cdn.lordicon.com/bduzytli.json" trigger="loop" delay="600"
-                colors="primary:#e11d48,secondary:#fb923c" style="width:96px;height:96px"></lord-icon>
-            <div class="pg-onboard-txt">
-                <p class="pg-kicker">Primer paso</p>
-                <h2 class="pg-h2">Cree su primera empresa</h2>
-                <p class="pg-lead">Para gestionar reglamentos, trabajadores y descargos, primero registre una empresa. Luego selecciónela en la barra superior para habilitar todo.</p>
-                <a href="{{ $g['accion']['url'] }}" class="pg-btn pg-btn-primary">{{ $g['accion']['label'] }}</a>
+        {{-- Bufete recién registrado: solo crear la primera empresa - mismo
+             lenguaje visual .rit-hero que el resto de los banners del
+             Dashboard (2026-09-15, pedido explícito del usuario). --}}
+        <div class="rit-hero pg-hero">
+            <div class="rit-orb-b"></div>
+            <div class="rit-orb-g"></div>
+            <div class="rit-overlay"></div>
+            <div style="position:relative;z-index:2">
+                <span class="rit-badge rit-badge-ia">Primer paso</span>
+                <h1 class="rit-title">Cree su primera empresa</h1>
+                <p class="rit-sub">Para gestionar reglamentos, trabajadores y descargos, primero registre una empresa. Luego selecciónela en la barra superior para habilitar todo.</p>
+                <div class="rit-actions">
+                    <a href="{{ $g['accion']['url'] }}" class="rit-btn rit-btn-cta">{{ $g['accion']['label'] }}</a>
+                </div>
             </div>
         </div>
 
     @elseif($g['estado'] === 'sin_seleccion')
-        <div class="pg-card pg-hint">
-            @svg('heroicon-o-building-office-2', 'pg-hint-ico')
-            <div>
-                <h2 class="pg-h2">Seleccione una empresa</h2>
-                <p class="pg-lead">Elija una empresa en el selector de la barra superior para ver su proceso paso a paso.</p>
+        <div class="rit-hero pg-hero">
+            <div class="rit-orb-b"></div>
+            <div class="rit-orb-g"></div>
+            <div class="rit-overlay"></div>
+            <div style="position:relative;z-index:2">
+                <span class="rit-badge rit-badge-none">Selección pendiente</span>
+                <h1 class="rit-title">Seleccione una empresa</h1>
+                <p class="rit-sub">Elija una empresa en el selector de la barra superior para ver su proceso paso a paso.</p>
             </div>
         </div>
 
@@ -149,18 +157,10 @@
     @endif
 
     <style>
-        .pg-card{background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:1rem;padding:1.25rem 1.5rem;box-shadow:0 4px 20px rgba(28,25,23,.05)}
-        html.dark .pg-card{background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.07)}
-        .pg-kicker{font-size:.66rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#be123c;margin:0 0 2px}
-        html.dark .pg-kicker{color:#fb7185}
-        .pg-h2{font-family:'Space Grotesk',sans-serif;font-size:1.15rem;font-weight:700;margin:0;color:#1c1917}
-        html.dark .pg-h2{color:#f5f5f4}
-        .pg-lead{font-size:.85rem;line-height:1.5;color:#78716c;margin:.35rem 0 .9rem;max-width:60ch}
-        html.dark .pg-lead{color:#a8a29e}
-        .pg-head{margin-bottom:1.1rem}
-        /* Marco .rit-hero (ver lupe-hero-styles) para el estado "ok" - mismo
-           lenguaje visual que los banners del Dashboard, pedido explícito
-           del usuario (2026-09-07). */
+        /* Marco .rit-hero (ver lupe-hero-styles), usado en TODOS los estados
+           de este widget - mismo lenguaje visual que los banners del
+           Dashboard, pedido explícito del usuario (2026-09-07, extendido a
+           los estados de onboarding el 2026-09-15). */
         .pg-hero .rit-badge{margin-bottom:.5rem}
         /* Listos para sancionar - scroll interno para no estirar la página cuando hay muchos */
         .pg-listos-scroll{max-height:19rem;overflow-y:auto;padding-right:.25rem}
@@ -204,14 +204,6 @@
         .pg-btn:hover{filter:brightness(1.05);transform:translateY(-1px)}
         .pg-btn-primary{background:linear-gradient(135deg,#e11d48,#f97316);color:#fff}
         .pg-btn-sancion{background:#dc2626;color:#fff}
-        /* onboarding */
-        .pg-onboard{display:flex;gap:1.5rem;align-items:center}
-        @media(max-width:640px){.pg-onboard{flex-direction:column;text-align:center}}
-        .pg-onboard lord-icon{flex-shrink:0}
-        /* hint */
-        .pg-hint{display:flex;gap:1rem;align-items:center}
-        .pg-hint-ico{width:40px;height:40px;color:#be123c;flex-shrink:0}
-        html.dark .pg-hint-ico{color:#fb7185}
         /* listos */
         .pg-listos{margin-top:1rem;padding-top:.9rem;border-top:1px solid rgba(0,0,0,.06)}
         html.dark .pg-listos{border-color:rgba(255,255,255,.07)}

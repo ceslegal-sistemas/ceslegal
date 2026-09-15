@@ -53,5 +53,17 @@ html:not(.dark) .rit-btn-secondary{background:rgba(0,0,0,.04);border-color:rgba(
 html:not(.dark) .rit-btn-success{background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.22);color:#166534}
 .rit-btn-danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#fca5a5}
 html:not(.dark) .rit-btn-danger{background:rgba(220,38,38,.07);border-color:rgba(220,38,38,.2);color:#b91c1c}
+{{--
+    Variante "CTA sólida" (2026-09-15): las variantes rit-btn-* de arriba son
+    translúcidas, pensadas para acciones secundarias del hero. Cuando el hero
+    tiene UNA sola acción crítica (ej. "Construir RIT con IA" cuando no hay
+    RIT activo), esa acción necesita más peso visual que un botón traslúcido
+    más - degradado sólido de marca, texto blanco, sombra, mismo lenguaje que
+    .pg-btn-primary usado en la guía "Tu proceso".
+--}}
+.rit-btn-cta{background:linear-gradient(135deg,#e11d48,#f97316);border-color:transparent;color:#fff!important;font-weight:700;padding:.75rem 1.5rem;font-size:.875rem;box-shadow:0 8px 22px rgba(225,29,72,.35);transition:filter .15s,transform .15s}
+.rit-btn-cta:hover{opacity:1;filter:brightness(1.08);transform:translateY(-1px)}
+html:not(.dark) .rit-btn-cta{box-shadow:0 8px 22px rgba(225,29,72,.22)}
+@media(prefers-reduced-motion:reduce){.rit-btn-cta:hover{transform:none}}
 @keyframes rit-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 </style>
