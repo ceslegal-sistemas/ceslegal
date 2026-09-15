@@ -83,122 +83,76 @@
                 la recomendación principal de arriba sigue siendo válida.
             </p>
         @elseif($estado === 'completado')
-            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 0 4px;">
-                @if($numOk > 0)
-                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#16a34a;background:rgba(22,163,74,.1);border-radius:999px;padding:3px 9px;">
-                        <svg style="width:12px;height:12px;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                        {{ $numOk }} sin observaciones
-                    </span>
-                @endif
-                @if($numRevisables > 0)
-                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:#b45309;background:rgba(217,119,6,.1);border-radius:999px;padding:3px 9px;">
-                        <svg style="width:12px;height:12px;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
-                        {{ $numRevisables }} con observaciones para revisar (opcional)
-                    </span>
-                @endif
-                @if($en)
-                    <span style="font-size:11px;color:var(--esa-muted);opacity:.75;white-space:nowrap;">{{ $en->diffForHumans() }}</span>
-                @endif
-            </div>
-            <p style="font-size:11.5px;color:var(--esa-muted);line-height:1.5;margin:0 0 12px;">
-                Esto es un apoyo adicional, no reemplaza su criterio. Puede confirmar la sanción sin necesidad de abrir estos puntos - ábralos abajo solo si quiere ver el detalle.
-            </p>
+            @php
+                $filasConHallazgos = collect($filas)->filter(fn($f) => !empty($f['hallazgos']));
+                // No accionables: sin hallazgos, ya sea porque el motor calificó
+                // bien ('ok') o porque no hubo dato para evaluarlo ('na') - ambos
+                // casos se colapsan juntos (ninguno requiere revisar nada), pero
+                // los 'na' se anotan como "no disponible" dentro de la misma lista
+                // para no perder esa distinción.
+                $filasSinHallazgos = collect($filas)->reject(fn($f) => !empty($f['hallazgos']));
+            @endphp
 
-            @if(!empty($puntosClave))
-                <div class="v6chk-item" style="border-left-color:#d97706;margin-bottom:8px;">
-                    <div class="v6chk-head" style="cursor:default;">
-                        <svg style="width:16px;height:16px;flex-shrink:0;color:#d97706;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
-                        <span style="font-size:12.5px;font-weight:600;color:var(--esa-text);">Puntos a revisar</span>
+            @if($en)
+                <p style="font-size:11px;color:var(--esa-muted);opacity:.75;margin:8px 0 10px;text-align:right;">{{ $en->diffForHumans() }}</p>
+            @endif
+
+            @if($filasConHallazgos->isNotEmpty() || !empty($puntosClave))
+                <div style="border-radius:10px;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);padding:12px 14px;margin-bottom:10px;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <lord-icon src="https://cdn.lordicon.com/lltgvngb.json" trigger="loop" delay="500" colors="primary:#f87171,secondary:#fca5a5" style="width:22px;height:22px;flex-shrink:0;"></lord-icon>
+                        <p style="font-size:11px;font-weight:700;color:#f87171;margin:0;text-transform:uppercase;letter-spacing:.05em;">
+                            Requiere su atención ({{ !empty($puntosClave) ? count($puntosClave) : $filasConHallazgos->count() }})
+                        </p>
                     </div>
-                    <div class="v6chk-body">
-                        @foreach($puntosClave as $punto)
-                            <div class="v6chk-li"><span style="flex-shrink:0;color:#d97706;">›</span>{{ $punto }}</div>
-                        @endforeach
+                    <div style="font-size:12.5px;color:var(--esa-text);line-height:1.7;padding-left:4px;">
+                        @if(!empty($puntosClave))
+                            @foreach($puntosClave as $punto)
+                                <div>› {{ $punto }}</div>
+                            @endforeach
+                        @else
+                            @foreach($filasConHallazgos as $fila)
+                                @foreach($fila['hallazgos'] as $h)
+                                    <div>› {{ $h }}</div>
+                                @endforeach
+                            @endforeach
+                        @endif
                     </div>
                 </div>
             @endif
 
-            <details @if(!empty($puntosClave)) {{-- colapsado: ya se mostró el resumen de arriba --}} @else open @endif>
-                <summary style="cursor:pointer;font-size:11.5px;color:var(--esa-muted);list-style:none;display:flex;align-items:center;gap:5px;margin:0 0 6px;">
-                    <svg style="width:12px;height:12px;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 4.707a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L10.586 10 7.293 6.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-                    Ver detalle por revisión
-                </summary>
-                <div style="display:flex;flex-direction:column;gap:5px;">
-                    @foreach($filas as $fila)
-                        @php
-                            $color = match($fila['estado']) {
-                                'ok' => '#16a34a', 'atencion' => '#d97706', 'riesgo' => '#dc2626', default => '#9ca3af',
-                            };
-                            $tieneDetalle = !empty($fila['hallazgos']);
-                            $esMotorRiesgo = ($onRiskOpen ?? false) && $fila['titulo'] === 'Resistencia ante una revisión judicial';
-                        @endphp
-                        {{--
-                            Esta fila ya no bloquea el avance del wizard - solo se deja
-                            registro de auditoría si el cliente decide abrirla (ver
-                            acknowledgeRisk() en EmitirSancionPasos.php). Por eso no lleva
-                            ningún resalte/pulso: es lectura opcional, igual que las demás.
+            @if($filasSinHallazgos->isNotEmpty())
+                <details @if(empty($puntosClave) && $filasConHallazgos->isEmpty()) open @endif style="border-radius:10px;background:rgba(0,0,0,.02);padding:9px 14px;">
+                    <summary style="cursor:pointer;font-size:11.5px;color:var(--esa-muted);list-style:none;display:flex;align-items:center;gap:6px;">
+                        <lord-icon src="https://cdn.lordicon.com/lvrxlmju.json" trigger="hover" colors="primary:#16a34a,secondary:#4ade80" style="width:16px;height:16px;flex-shrink:0;"></lord-icon>
+                        {{ $filasSinHallazgos->count() }} chequeo{{ $filasSinHallazgos->count() > 1 ? 's' : '' }} sin observaciones
+                    </summary>
+                    <div style="margin-top:8px;font-size:12px;color:var(--esa-muted);line-height:1.8;padding-left:22px;">
+                        {{ $filasSinHallazgos->map(fn($f) => $f['estado'] === 'na' ? "{$f['titulo']} (no disponible)" : $f['titulo'])->implode(' · ') }}
+                    </div>
+                </details>
+            @endif
 
-                            Bug corregido (se mantiene el fix aunque ya no sea obligatoria):
-                            wire:click directo sobre un <details> hace que, al llegar la
-                            respuesta de Livewire, el morph del DOM borre el atributo "open"
-                            (el HTML renderizado en el servidor nunca lo incluye) y la fila
-                            se cierra sola justo después de abrirse.
-
-                            Fix de dos partes, ambas necesarias:
-                            1) x-on:toggle en vez de wire:click: el toggle nativo del
-                               <details> ya ocurrió (100% del lado del cliente) antes de
-                               llamar a $wire.acknowledgeRisk(), así que abrir/cerrar ya no
-                               depende de que la petición a Livewire tenga éxito o de cuándo
-                               vuelva. Solo se llama cuando efectivamente quedó abierto
-                               ($event.target.open), no al cerrar.
-                            2) wire:ignore.self en el <details>: aunque (1) ya desacopla el
-                               toggle de la petición, la petición de todos modos dispara un
-                               re-render y ESE morph seguiría pisando "open" si no se
-                               protege el elemento. wire:ignore.self congela los atributos
-                               propios del <details> (incluido "open") sin congelar sus
-                               hijos, que se siguen actualizando con normalidad.
-                        --}}
-                        <{{ $tieneDetalle ? 'details' : 'div' }} class="v6chk-item" style="border-left-color:{{ $color }};"
-                            @if($esMotorRiesgo && $tieneDetalle)
-                                wire:ignore.self
-                                x-on:toggle="if ($event.target.open) { $wire.acknowledgeRisk() }"
-                            @elseif($esMotorRiesgo)
-                                wire:click="acknowledgeRisk"
-                            @endif
-                        >
-                            <{{ $tieneDetalle ? 'summary' : 'div' }} class="v6chk-head">
-                                @if($fila['estado'] === 'ok')
-                                    <svg style="width:16px;height:16px;flex-shrink:0;color:{{ $color }};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                                @elseif($fila['estado'] === 'na')
-                                    <svg style="width:16px;height:16px;flex-shrink:0;color:{{ $color }};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                                @elseif($fila['estado'] === 'atencion')
-                                    <svg style="width:16px;height:16px;flex-shrink:0;color:{{ $color }};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
-                                @else
-                                    <svg style="width:16px;height:16px;flex-shrink:0;color:{{ $color }};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                                @endif
-                                <span style="flex:1;min-width:0;font-size:12.5px;font-weight:600;color:var(--esa-text);{{ $fila['estado'] === 'ok' ? 'opacity:.8' : '' }}">{{ $fila['titulo'] }}</span>
-                                @if($fila['estado'] === 'na')
-                                    <span style="font-size:11px;color:var(--esa-muted);">no disponible</span>
-                                @elseif(!$tieneDetalle)
-                                    <span style="font-size:11px;color:var(--esa-muted);">Sin observaciones</span>
-                                @else
-                                    <svg class="v6chk-chevron" style="width:13px;height:13px;flex-shrink:0;color:var(--esa-muted);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 4.707a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L10.586 10 7.293 6.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-                                @endif
-                            </{{ $tieneDetalle ? 'summary' : 'div' }}>
-                            @if($tieneDetalle)
-                                <div class="v6chk-body">
-                                    @foreach($fila['hallazgos'] as $h)
-                                        <div class="v6chk-li"><span style="flex-shrink:0;color:{{ $color }};">›</span>{{ $h }}</div>
-                                    @endforeach
-                                    @if($fila['ocultos'] > 0)
-                                        <div class="v6chk-li" style="font-style:italic;opacity:.7;">+{{ $fila['ocultos'] }} observación{{ $fila['ocultos'] > 1 ? 'es' : '' }} adicional{{ $fila['ocultos'] > 1 ? 'es' : '' }}.</div>
-                                    @endif
-                                </div>
-                            @endif
-                        </{{ $tieneDetalle ? 'details' : 'div' }}>
-                    @endforeach
-                </div>
-            </details>
+            {{-- Fila de riesgo con auditoría obligatoria (acknowledgeRisk): si tiene
+                 hallazgos ya quedó dentro del bloque "Requiere su atención" de arriba,
+                 pero el x-on:toggle/wire:ignore.self debe seguir presente en algún
+                 <details> real - se renderiza aparte, oculto tras un <details> propio
+                 dentro del bloque rojo si aplica. --}}
+            @foreach($filas as $fila)
+                @php
+                    $esMotorRiesgo = ($onRiskOpen ?? false) && $fila['titulo'] === 'Resistencia ante una revisión judicial';
+                @endphp
+                @if($esMotorRiesgo && !empty($fila['hallazgos']))
+                    <details wire:ignore.self x-on:toggle="if ($event.target.open) { $wire.acknowledgeRisk() }" style="margin-top:8px;border-radius:10px;background:rgba(220,38,38,.05);padding:9px 14px;">
+                        <summary style="cursor:pointer;font-size:11.5px;color:var(--esa-muted);">Ver detalle: {{ $fila['titulo'] }}</summary>
+                        <div style="margin-top:8px;font-size:12px;color:var(--esa-text);line-height:1.7;">
+                            @foreach($fila['hallazgos'] as $h)
+                                <div>› {{ $h }}</div>
+                            @endforeach
+                        </div>
+                    </details>
+                @endif
+            @endforeach
         @endif
     </div>
 </div>
