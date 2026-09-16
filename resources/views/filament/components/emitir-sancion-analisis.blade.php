@@ -15,13 +15,19 @@
     // sanción - eso ocurre en el Paso 2 ("Decidir la sanción"). Por defecto true
     // (uso histórico: la tarjeta completa, con botones, en el formulario viejo).
     $modoDecision = $modoDecision ?? true;
-    // Ícono (heroicon) y color por tipo de sanción - los mismos de "Decisión de Sanción".
+    // 'lord' reutiliza los mismos IDs que $scMap (abajo) para cada tipo de
+    // sancion punitiva, para que el icono sea el MISMO sin importar en que
+    // tarjeta aparezca. 'no_sancion' NO existe en $scMap - su icono viene
+    // del bloque "No procede sancion" (linea ~608). Reemplaza el heroicon
+    // pequeno que estos botones usaban antes - cambio deliberado pedido
+    // por el usuario el 2026-09-10 para unificar "Otras sanciones" y "La
+    // IA recomienda", que comparten este mismo boton.
     $sancionMeta = [
-        'llamado_atencion' => ['icon' => 'heroicon-o-chat-bubble-bottom-center-text', 'c' => '#2563eb'],
-        'suspension'       => ['icon' => 'heroicon-o-clock',                          'c' => '#d97706'],
-        'multa'            => ['icon' => 'heroicon-o-banknotes',                       'c' => '#6b7280'],
-        'terminacion'      => ['icon' => 'heroicon-o-x-circle',                        'c' => '#dc2626'],
-        'no_sancion'       => ['icon' => 'heroicon-o-check-circle',                    'c' => '#16a34a'],
+        'llamado_atencion' => ['lord' => 'https://cdn.lordicon.com/jdgfsfzr.json', 'c' => '#2563eb'],
+        'suspension'       => ['lord' => 'https://cdn.lordicon.com/uphbloed.json', 'c' => '#d97706'],
+        'multa'            => ['lord' => 'https://cdn.lordicon.com/eaegfqtv.json', 'c' => '#6b7280'],
+        'terminacion'      => ['lord' => 'https://cdn.lordicon.com/hmpomorl.json', 'c' => '#dc2626'],
+        'no_sancion'       => ['lord' => 'https://cdn.lordicon.com/lvrxlmju.json', 'c' => '#16a34a'],
     ];
     $gravedad       = $analisis['gravedad'] ?? 'leve';
     $esReincidencia = $analisis['es_reincidencia'] ?? false;
@@ -476,7 +482,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                         </div>
 
                         {{-- Botón badge: aplicar esta sanción --}}
-                        @php $m = $sancionMeta[$s] ?? ['icon' => 'heroicon-o-scale', 'c' => '#6b7280']; @endphp
+                        @php $m = $sancionMeta[$s] ?? ['lord' => 'https://cdn.lordicon.com/eaegfqtv.json', 'c' => '#6b7280']; @endphp
                         @if($modoDecision)
                             <button type="button"
                                 x-on:click="sancionSel = @js($s); $wire.selectDecision(@js($s))"
@@ -485,7 +491,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                                     ? 'background:{{ $m['c'] }};border-color:{{ $m['c'] }};color:#fff;'
                                     : 'background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
                                 style="flex-shrink:0;background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
-                                @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
+                                <lord-icon src="{{ $m['lord'] }}" trigger="hover" colors="primary:{{ $m['c'] }},secondary:{{ $m['c'] }}" style="width:18px;height:18px;flex-shrink:0;"></lord-icon>
                                 <span x-text="sancionSel === @js($s) ? 'Sanción seleccionada' : 'Aplicar esta sanción'"></span>
                             </button>
                         @endif
@@ -573,7 +579,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;padding:11px 18px 16px;">
             @foreach($otrasSanciones as $val => $label)
-                @php $m = $sancionMeta[$val] ?? ['icon' => 'heroicon-o-scale', 'c' => '#6b7280']; @endphp
+                @php $m = $sancionMeta[$val] ?? ['lord' => 'https://cdn.lordicon.com/eaegfqtv.json', 'c' => '#6b7280']; @endphp
                 @if($modoDecision)
                     <button type="button"
                         x-on:click="sancionSel = @js($val); $wire.selectDecision(@js($val))"
@@ -589,7 +595,7 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                                 : 'background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};'"
                             style="background:{{ $m['c'] }}14;border-color:{{ $m['c'] }}59;color:{{ $m['c'] }};">
                         @endif
-                        @svg($m['icon'], '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
+                        <lord-icon src="{{ $m['lord'] }}" trigger="hover" colors="primary:{{ $m['c'] }},secondary:{{ $m['c'] }}" style="width:18px;height:18px;flex-shrink:0;"></lord-icon>
                         <span x-text="sancionSel === @js($val) ? 'Sanción seleccionada' : @js($val === 'no_sancion' ? $label : 'Aplicar: ' . $label)"></span>
                     </button>
                 @endif
@@ -633,7 +639,9 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                                 ? 'background:#16a34a;border-color:#16a34a;color:#fff;'
                                 : 'background:#16a34a14;border-color:#16a34a59;color:#15803d;'"
                             style="background:#16a34a14;border-color:#16a34a59;color:#15803d;">
-                            @svg('heroicon-o-check-circle', '', ['style' => 'width:15px;height:15px;flex-shrink:0;'])
+                            {{-- Mismo icono que 'no_sancion' en $sancionMeta, pero este boton
+                                 vive en un bloque de codigo separado (no pasa por $m/$sancionMeta). --}}
+                            <lord-icon src="https://cdn.lordicon.com/lvrxlmju.json" trigger="hover" colors="primary:#16a34a,secondary:#16a34a" style="width:18px;height:18px;flex-shrink:0;"></lord-icon>
                             <span x-text="sancionSel === 'no_sancion' ? 'Sanción seleccionada' : 'Aplicar: No Aplicar Sanción'"></span>
                         </button>
                     @endif
