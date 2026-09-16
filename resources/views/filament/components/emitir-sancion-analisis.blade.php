@@ -529,10 +529,63 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
     </div>
     @endif
 
+    {{-- ── No procede sanción (exoneración clara, sin opciones) ──────────── --}}
+    {{-- Se coloca ANTES de "Otras sanciones" (bug real reportado por el usuario
+         con captura de pantalla, 2026-09-16): cuando la recomendación de la IA
+         ES "no sancionar" ($sancionesValidas vacío), esta tarjeta verde ES la
+         recomendación real - debe aparecer primero, igual que la Tarjeta 2
+         "La IA recomienda" aparece primero cuando sí hay una sanción punitiva
+         recomendada. Antes quedaba después de "Otras sanciones", dando la
+         impresión de que la recomendación real aparecía al final. --}}
+    @if(empty($sancionesValidas))
+    <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+        <div class="rit-orb-b"></div>
+        <div class="rit-orb-g"></div>
+        <div class="rit-overlay"></div>
+        <div style="position:relative;z-index:2;display:flex;align-items:flex-start;gap:11px;">
+            <lord-icon
+                src="https://cdn.lordicon.com/lvrxlmju.json"
+                trigger="loop" delay="500" stroke="bold"
+                colors="primary:#86efac,secondary:#86efac"
+                style="width:36px;height:36px;flex-shrink:0;margin-top:-2px;">
+            </lord-icon>
+            <div style="flex:1;min-width:0;">
+                <span class="rit-badge rit-badge-sub">La IA no recomienda sanción</span>
+                @if($mensaje)
+                    <p class="rit-sub" style="margin-top:.5rem;font-weight:500;">
+                        {{ $mensaje }}
+                    </p>
+                @endif
+                @if($noSancionTxt)
+                    <p class="rit-sub" style="margin-top:.35rem;">
+                        {{ $noSancionTxt }}
+                    </p>
+                @endif
+
+                {{-- Botón: aplicar "No Aplicar Sanción" (la decisión recomendada) --}}
+                @if(array_key_exists('no_sancion', $opcionesSancion) && $modoDecision)
+                    <button type="button"
+                        x-on:click="sancionSel = 'no_sancion'; $wire.selectDecision('no_sancion')"
+                        class="esa-badge-btn"
+                        style="margin-top:.75rem;background:#16a34a14;border-color:#16a34a59;color:#86efac;"
+                        :style="sancionSel === 'no_sancion'
+                            ? 'margin-top:.75rem;background:#16a34a;border-color:#16a34a;color:#fff;'
+                            : 'margin-top:.75rem;background:#16a34a14;border-color:#16a34a59;color:#86efac;'">
+                        {{-- Mismo icono que 'no_sancion' en $sancionMeta, pero este boton
+                             vive en un bloque de codigo separado (no pasa por $m/$sancionMeta). --}}
+                        <lord-icon src="https://cdn.lordicon.com/lvrxlmju.json" trigger="hover" colors="primary:#16a34a,secondary:#16a34a" style="width:18px;height:18px;flex-shrink:0;"></lord-icon>
+                        <span x-text="sancionSel === 'no_sancion' ? 'Sanción seleccionada' : 'Aplicar: No Aplicar Sanción'"></span>
+                    </button>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- ── Otras sanciones (no recomendadas por la IA) ──────────────────── --}}
     @php
         // Incluye "No Aplicar Sanción", salvo cuando ESA es justo la recomendación
-        // (caso sin sanciones válidas: allí se aplica desde la tarjeta verde de abajo).
+        // (caso sin sanciones válidas: allí se aplica desde la tarjeta verde de arriba).
         $recomiendaNoSancion = empty($sancionesValidas);
         $otrasSanciones = collect($opcionesSancion)
             ->reject(fn($label, $val) =>
@@ -588,52 +641,6 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                     </button>
                 @endif
             @endforeach
-        </div>
-    </div>
-    @endif
-
-    {{-- ── No procede sanción (exoneración clara, sin opciones) ──────────── --}}
-    @if(empty($sancionesValidas))
-    <div class="rit-hero" style="padding:1.25rem 1.5rem;">
-        <div class="rit-orb-b"></div>
-        <div class="rit-orb-g"></div>
-        <div class="rit-overlay"></div>
-        <div style="position:relative;z-index:2;display:flex;align-items:flex-start;gap:11px;">
-            <lord-icon
-                src="https://cdn.lordicon.com/lvrxlmju.json"
-                trigger="loop" delay="500" stroke="bold"
-                colors="primary:#86efac,secondary:#86efac"
-                style="width:36px;height:36px;flex-shrink:0;margin-top:-2px;">
-            </lord-icon>
-            <div style="flex:1;min-width:0;">
-                <span class="rit-badge rit-badge-sub">La IA no recomienda sanción</span>
-                @if($mensaje)
-                    <p class="rit-sub" style="margin-top:.5rem;font-weight:500;">
-                        {{ $mensaje }}
-                    </p>
-                @endif
-                @if($noSancionTxt)
-                    <p class="rit-sub" style="margin-top:.35rem;">
-                        {{ $noSancionTxt }}
-                    </p>
-                @endif
-
-                {{-- Botón: aplicar "No Aplicar Sanción" (la decisión recomendada) --}}
-                @if(array_key_exists('no_sancion', $opcionesSancion) && $modoDecision)
-                    <button type="button"
-                        x-on:click="sancionSel = 'no_sancion'; $wire.selectDecision('no_sancion')"
-                        class="esa-badge-btn"
-                        style="margin-top:.75rem;background:#16a34a14;border-color:#16a34a59;color:#86efac;"
-                        :style="sancionSel === 'no_sancion'
-                            ? 'margin-top:.75rem;background:#16a34a;border-color:#16a34a;color:#fff;'
-                            : 'margin-top:.75rem;background:#16a34a14;border-color:#16a34a59;color:#86efac;'">
-                        {{-- Mismo icono que 'no_sancion' en $sancionMeta, pero este boton
-                             vive en un bloque de codigo separado (no pasa por $m/$sancionMeta). --}}
-                        <lord-icon src="https://cdn.lordicon.com/lvrxlmju.json" trigger="hover" colors="primary:#16a34a,secondary:#16a34a" style="width:18px;height:18px;flex-shrink:0;"></lord-icon>
-                        <span x-text="sancionSel === 'no_sancion' ? 'Sanción seleccionada' : 'Aplicar: No Aplicar Sanción'"></span>
-                    </button>
-                @endif
-            </div>
         </div>
     </div>
     @endif
