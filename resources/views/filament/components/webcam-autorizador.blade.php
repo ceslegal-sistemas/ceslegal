@@ -630,9 +630,11 @@ button.wca-btn-secondary:hover {
         <div x-show="!disclaimerAceptado">
             <div class="wca-card">
                 <p class="wca-card-label">
-                    <svg style="width:12px;height:12px;flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.746 3.746 0 0121 12z"/>
-                    </svg>
+                    <lord-icon src="https://cdn.lordicon.com/wpsdctqb.json" trigger="hover" stroke="bold"
+                        colors="primary:#fecdd3,secondary:#fecdd3" data-pt-icon
+                        data-pt-dark="primary:#fecdd3,secondary:#fecdd3"
+                        data-pt-light="primary:#be123c,secondary:#be123c"
+                        style="width:14px;height:14px;flex-shrink:0"></lord-icon>
                     Autorización de tratamiento de datos personales
                 </p>
                 <p style="margin:0;font-size:13px;line-height:1.6;color:var(--wca-text);">{{ $disclaimerTexto }}</p>
@@ -749,9 +751,7 @@ button.wca-btn-secondary:hover {
                         </span>
                         <span x-show="estadoRostro === 'ok' && !alertaAccesorios"
                               class="wca-badge" style="background:rgba(22,101,52,0.85);color:#86efac;display:none;">
-                            <svg style="width:11px;height:11px;" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
+                            <lord-icon src="https://cdn.lordicon.com/lvrxlmju.json" trigger="hover" colors="primary:#86efac,secondary:#86efac" style="width:11px;height:11px;flex-shrink:0;"></lord-icon>
                             Parpadeo confirmado - capturando
                         </span>
                         <span x-show="estadoRostro === 'ok' && alertaAccesorios"
@@ -769,9 +769,7 @@ button.wca-btn-secondary:hover {
                 <div x-show="alertaAccesorios"
                      style="display:none;padding:10px 14px;background:rgba(180,83,9,0.15);border:1px solid rgba(251,191,36,0.35);border-radius:10px;">
                     <div style="display:flex;align-items:flex-start;gap:8px;">
-                        <svg style="width:16px;height:16px;color:#d97706;flex-shrink:0;margin-top:1px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
+                        <lord-icon src="https://cdn.lordicon.com/lltgvngb.json" trigger="hover" colors="primary:#d97706,secondary:#d97706" style="width:16px;height:16px;flex-shrink:0;margin-top:1px;"></lord-icon>
                         <p x-text="alertaAccesorios" style="font-size:12px;color:var(--wca-alert-text);margin:0;line-height:1.5;"></p>
                     </div>
                 </div>
@@ -830,9 +828,7 @@ button.wca-btn-secondary:hover {
                     <img :src="fotoCapturada" style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);" alt="Foto de verificación"/>
                     <div style="position:absolute;top:10px;right:10px;">
                         <span class="wca-badge" style="background:rgba(22,101,52,0.90);color:#86efac;">
-                            <svg style="width:11px;height:11px;" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
+                            <lord-icon src="https://cdn.lordicon.com/lvrxlmju.json" trigger="hover" colors="primary:#86efac,secondary:#86efac" style="width:11px;height:11px;flex-shrink:0;"></lord-icon>
                             Foto registrada
                         </span>
                     </div>
