@@ -123,10 +123,10 @@
             @if (!$decision)
                 <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-400 dark:border-amber-600 space-y-3">
                     <div class="flex items-start gap-3">
-                        <lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:36px;height:36px;flex-shrink:0;margin-top:2px"></lord-icon>
+                        <lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:42px;height:42px;flex-shrink:0;margin-top:2px"></lord-icon>
                         <div>
                             <p class="font-semibold text-amber-900 dark:text-amber-100 text-base">Falta elegir la sanción</p>
-                            <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">Seleccione una opción abajo (<strong>"Aplicar esta sanción"</strong> o una de las alternativas) para continuar.</p>
+                            <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">Seleccione una opción abajo para continuar.</p>
                         </div>
                     </div>
                 </div>
