@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use AlexSyvolap\FilamentConfetti\Confetti;
 use App\Models\Empresa;
 use App\Models\User;
 use LevelUp\Experience\Models\Achievement;
@@ -120,10 +121,27 @@ class LogroDescargosService
 
     /**
      * Notificación (mismo sistema nativo de notificaciones ya usado en todo
-     * el proyecto) + flag de confeti en sesión - el Dashboard ya tiene el
-     * mismo patrón para "celebrar_registro_rit" (Confetti::fireworks() al
-     * hacer mount()), se reutiliza la misma mecánica sin duplicar código de
-     * animación.
+     * el proyecto) + confeti INMEDIATO donde sea que esté el cliente.
+     *
+     * Antes esto ponía un flag en sesión ('celebrar_logro') que solo
+     * `Dashboard::mount()` leía - bug real reportado por el usuario: si
+     * emitía la sanción desde el listado de Procesos Disciplinarios (no
+     * desde el Dashboard) y no navegaba al Dashboard después, el flag
+     * quedaba puesto pero nunca se consumía, así que solo veía la
+     * notificación de la campanita, nunca el confeti.
+     *
+     * `Confetti::fireworks()->shoot()` ya resuelve esto por su cuenta (ver
+     * vendor/alexsyvolap/filament-confetti/src/ConfettiBuilder.php): si se
+     * llama DURANTE una petición Livewire en curso (que es justo lo que pasa
+     * aquí - este método se dispara desde ProcesoDisciplinarioObserver
+     * mientras el cliente ejecuta una acción de Filament/Livewire), dispara
+     * el evento del navegador de inmediato sobre lo que sea que el cliente
+     * tenga abierto en ese momento. Si por algún motivo se llamara fuera de
+     * una petición Livewire (ej. un comando de consola), el propio paquete
+     * cae a session()->flash(), que su propio render hook (registrado
+     * globalmente en ambos paneles, ver ConfiguraPanelCompartido.php) ya
+     * consume solo en la siguiente carga de página - sin necesitar el flag
+     * manual que había aquí antes.
      */
     private function celebrar(Empresa $empresa, Achievement $achievement): void
     {
@@ -144,6 +162,8 @@ class LogroDescargosService
             );
         }
 
-        session()->put('celebrar_logro', $achievement->name);
+        if (class_exists(Confetti::class)) {
+            Confetti::fireworks()->shoot();
+        }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use AlexSyvolap\FilamentConfetti\Confetti;
 use App\Models\Empresa;
 use App\Models\User;
 use App\Services\LogroDescargosService;
@@ -69,6 +70,14 @@ class LogroDescargosServiceTest extends TestCase
      * la tabla estándar de Laravel `notifications` (via el trait
      * Notifiable) - no en el modelo App\Models\Notificacion (confirmado sin
      * ningún uso real en el código, tabla legacy).
+     *
+     * El confeti ya NO depende de un flag manual leído solo por el
+     * Dashboard (bug real reportado por el usuario 2026-09-16 - ver
+     * LogroDescargosService::celebrar()) - ahora dispara
+     * Confetti::fireworks()->shoot() directamente. Fuera de una petición
+     * Livewire real (como en este test), el propio paquete cae a
+     * session()->flash(Confetti::EVENT, [...]) - se verifica esa señal en
+     * vez de la clave 'celebrar_logro' que ya no existe.
      */
     public function test_notifica_y_marca_confeti_solo_al_desbloquear_por_primera_vez(): void
     {
@@ -82,7 +91,7 @@ class LogroDescargosServiceTest extends TestCase
                 fn ($n) => ($n->data['title'] ?? null) === '¡Nuevo logro desbloqueado!'
             )
         );
-        $this->assertSame('Primer plazo cumplido', session('celebrar_logro'));
+        $this->assertNotEmpty(session(Confetti::EVENT));
     }
 
     public function test_no_vuelve_a_notificar_un_logro_ya_desbloqueado(): void
@@ -92,7 +101,7 @@ class LogroDescargosServiceTest extends TestCase
         $service = app(LogroDescargosService::class);
 
         $service->registrarPlazoCumplido($empresa);
-        session()->forget('celebrar_logro');
+        session()->forget(Confetti::EVENT);
 
         $service->registrarPlazoCumplido($empresa);
 

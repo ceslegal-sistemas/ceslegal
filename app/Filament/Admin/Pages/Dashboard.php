@@ -34,11 +34,12 @@ class Dashboard extends BaseDashboard
             Confetti::fireworks()->shoot();
         }
 
-        // Mismo mecanismo para el desbloqueo de un logro de "Plazos de
-        // Descargos Cumplidos" - ver LogroDescargosService::celebrar().
-        if (session()->pull('celebrar_logro') && class_exists(Confetti::class)) {
-            Confetti::fireworks()->shoot();
-        }
+        // El confeti de logros (LogroDescargosService::celebrar()) YA NO depende de
+        // que el cliente aterrice aquí - se dispara directo desde donde sea que esté
+        // en el momento de desbloquear el logro (bug real reportado por el usuario:
+        // si emitía la sanción desde el listado de Procesos y no visitaba el
+        // Dashboard después, nunca veía el confeti, solo la notificación de la
+        // campanita).
     }
 
     protected function getHeaderActions(): array
