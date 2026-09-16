@@ -2,9 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\ArticuloLegal;
 use App\Models\ProcesoDisciplinario;
-use App\Services\BibliotecaLegalService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -656,140 +654,7 @@ SYSTEM;
      */
     private function buscarNormasRelevantes(string $texto, int $limite = 4, ?int $empresaId = null): string
     {
-        try {
-            $queryEmbedding = $this->obtenerEmbeddingTexto($texto);
-            if (!$queryEmbedding) {
-                return '';
-            }
-
-            $articulos = ArticuloLegal::whereNotNull('embedding')
-                ->activos()
-                ->paraEmpresa($empresaId)
-                ->get();
-            if ($articulos->isEmpty()) {
-                return '';
-            }
-
-            $scored = [];
-            foreach ($articulos as $articulo) {
-                $emb = $articulo->embedding; // cast 'array' ya decodifica el JSON
-                if (!is_array($emb) || empty($emb)) {
-                    continue;
-                }
-                $scored[] = [
-                    'articulo' => $articulo,
-                    'score'    => $this->cosineSimilarity($queryEmbedding, $emb),
-                ];
-            }
-
-            if (empty($scored)) {
-                return '';
-            }
-
-            usort($scored, fn($a, $b) => $b['score'] <=> $a['score']);
-
-            // Solo incluir artículos con similitud significativa (>= 0.55)
-            $top = array_filter(
-                array_slice($scored, 0, $limite),
-                fn($s) => $s['score'] >= 0.55
-            );
-
-            if (empty($top)) {
-                return '';
-            }
-
-            $lineas = [];
-            foreach ($top as $item) {
-                $art      = $item['articulo'];
-                $textoArt = $art->getRawOriginal('texto_completo') ?? $art->descripcion ?? '';
-                $fuente   = $art->fuente ? " - {$art->fuente}" : '';
-                $lineas[] = "[{$art->codigo}{$fuente}]";
-                $lineas[] = $art->titulo;
-                if ($textoArt) {
-                    $lineas[] = mb_substr($textoArt, 0, 600);
-                }
-                $lineas[] = '';
-            }
-
-            $resultado = trim(implode("\n", $lineas));
-
-            // Enriquecer con la Biblioteca Legal (sentencias, doctrina, CST en PDF)
-            try {
-                $fragmentosBiblioteca = app(BibliotecaLegalService::class)
-                    ->buscarFragmentos($texto, limite: 4, umbral: 0.60);
-                if (!empty($fragmentosBiblioteca)) {
-                    $resultado = $resultado
-                        ? $resultado . "\n\n" . $fragmentosBiblioteca
-                        : $fragmentosBiblioteca;
-                }
-            } catch (\Throwable $e) {
-                Log::warning('EvaluacionHechosService: biblioteca RAG error', ['error' => $e->getMessage()]);
-            }
-
-            return $resultado;
-        } catch (\Exception $e) {
-            Log::warning('EvaluacionHechosService::buscarNormasRelevantes', ['error' => $e->getMessage()]);
-            return '';
-        }
-    }
-
-    /**
-     * Genera el embedding vectorial de un texto de consulta (RETRIEVAL_QUERY)
-     * usando Gemini gemini-embedding-001.
-     */
-    private function obtenerEmbeddingTexto(string $texto): ?array
-    {
-        $apiKey = config('services.ia.gemini.api_key')
-            ?? config('services.gemini.api_key')
-            ?? ($this->provider === 'gemini' ? ($this->config['api_key'] ?? null) : null);
-
-        if (!$apiKey) {
-            return null;
-        }
-
-        // Cachear por hash: los hechos del proceso no cambian, no tiene sentido
-        // recalcular el embedding cada vez que se evalúan.
-        $cacheKey = 'emb_query_' . md5($texto);
-
-        return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(24), function () use ($texto, $apiKey) {
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={$apiKey}";
-
-            try {
-                $response = Http::timeout(10)->post($url, [
-                    'content'  => ['parts' => [['text' => $texto]]],
-                    'taskType' => 'RETRIEVAL_QUERY',
-                ]);
-
-                if (!$response->successful()) {
-                    return null;
-                }
-
-                $values = $response->json('embedding.values');
-                return is_array($values) && !empty($values) ? $values : null;
-            } catch (\Exception) {
-                return null;
-            }
-        });
-    }
-
-    /**
-     * Calcula la similitud coseno entre dos vectores de la misma dimensión.
-     */
-    private function cosineSimilarity(array $a, array $b): float
-    {
-        $dot  = 0.0;
-        $magA = 0.0;
-        $magB = 0.0;
-        $n    = min(count($a), count($b));
-
-        for ($i = 0; $i < $n; $i++) {
-            $dot  += $a[$i] * $b[$i];
-            $magA += $a[$i] * $a[$i];
-            $magB += $b[$i] * $b[$i];
-        }
-
-        $denom = sqrt($magA) * sqrt($magB);
-        return $denom > 0.0 ? (float) ($dot / $denom) : 0.0;
+        return app(ConsultaLegalService::class)->buscarContenidoRelevante($texto, $empresaId, $limite);
     }
 
     // ──────────────────────────────────────────────────────────────────────────

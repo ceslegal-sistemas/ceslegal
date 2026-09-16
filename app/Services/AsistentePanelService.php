@@ -12,6 +12,30 @@ use App\Models\User;
 
 class AsistentePanelService
 {
+    public function __construct(protected ConsultaLegalService $consultaLegal)
+    {
+    }
+
+    /**
+     * Busca artículos legales reales (RIT propio de la empresa + CST universal
+     * + Biblioteca Legal) relevantes para una pregunta libre del cliente en el
+     * chat - nunca deja que el Agente de IA de n8n responda de su
+     * conocimiento general, siempre ancla la respuesta en contenido real (ver
+     * ConsultaLegalService).
+     *
+     * @return array{encontrado: bool, contenido: string}
+     */
+    public function buscarArticuloLegal(User $usuario, string $pregunta): array
+    {
+        $empresa = $usuario->empresa;
+        $contenido = $this->consultaLegal->buscarContenidoRelevante($pregunta, $empresa?->id);
+
+        return [
+            'encontrado' => $contenido !== '',
+            'contenido'  => $contenido,
+        ];
+    }
+
     public function resolverContexto(User $usuario, ?Empresa $empresa): array
     {
         if (! $empresa) {

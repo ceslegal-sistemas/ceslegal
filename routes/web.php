@@ -49,6 +49,12 @@ Route::post('/tts', \App\Http\Controllers\TtsController::class)
 Route::get('/internal/asistente-panel/contexto', [\App\Http\Controllers\AsistentePanelContextoController::class, 'contexto'])
     ->name('asistente-panel.contexto');
 
+// Tool adicional del mismo AI Agent, invocada solo bajo demanda cuando el
+// cliente pregunta por un artículo/norma concreta (dispara una búsqueda
+// semántica real - ver AsistentePanelConsultaLegalController).
+Route::post('/internal/asistente-panel/consultar-legal', [\App\Http\Controllers\AsistentePanelConsultaLegalController::class, 'consultar'])
+    ->name('asistente-panel.consultar-legal');
+
 Route::post('/transcribir', \App\Http\Controllers\TranscribeController::class)
     ->middleware('auth')
     ->name('transcribir');
