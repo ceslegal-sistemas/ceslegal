@@ -480,6 +480,12 @@ button.wca-btn-secondary:hover {
 
          iniciarDeteccionAccesorios() {
              if (this.intervaloAccesorios) clearInterval(this.intervaloAccesorios);
+             // 7000ms (antes 4000ms): mismo ajuste que
+             // verificacion-facial-descargos.blade.php - cada tick dispara una
+             // llamada síncrona real a Gemini Vision, y con 4000ms un plan de
+             // hosting compartido con pocos procesos PHP-FPM concurrentes se
+             // saturó durante una diligencia real (incidente 2026-09-16:
+             // Cloudflare 522/520).
              this.intervaloAccesorios = setInterval(async () => {
                  if (this.fotoCapturada || this.revisandoAccesorios || this.verificandoAccesoriosVivo) return;
                  // También corre en 'falta_parpadeo', no solo en 'ok'. Con la
@@ -509,7 +515,7 @@ button.wca-btn-secondary:hover {
                      this.alertaAccesorios = $wire.alertaAccesoriosAutorizador;
                  } catch (e) {}
                  this.verificandoAccesoriosVivo = false;
-             }, 4000);
+             }, 7000);
          },
 
          async tomarFoto() {

@@ -279,6 +279,13 @@
 
         iniciarDeteccionAccesorios() {
             if (this.intervaloAccesorios) clearInterval(this.intervaloAccesorios);
+            // 7000ms (antes 4000ms): cada tick dispara una llamada síncrona real a
+            // Gemini Vision (VerificacionFacialService::detectarAccesorios()). Con
+            // el intervalo anterior, un plan de hosting compartido con pocos
+            // procesos PHP-FPM concurrentes se saturó durante una diligencia real
+            // (incidente 2026-09-16: Cloudflare 522/520) - espaciar las llamadas
+            // reduce cuántas compiten a la vez por esos procesos, sin perder la
+            // detección en vivo.
             this.intervaloAccesorios = setInterval(async () => {
                 if (this.fotoCapturada || this.revisandoAccesorios || this.verificandoAccesoriosVivo) return;
                 if (this.estadoRostro !== 'ok' && this.estadoRostro !== 'falta_parpadeo') return;
@@ -299,7 +306,7 @@
                     this.alertaAccesorios = $wire.alertaAccesorios;
                 } catch (e) {}
                 this.verificandoAccesoriosVivo = false;
-            }, 4000);
+            }, 7000);
         },
 
         async tomarFoto() {
