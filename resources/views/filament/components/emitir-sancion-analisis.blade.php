@@ -69,6 +69,9 @@
     }
 
     // ── Configuración visual por gravedad ─────────────────────────────────────
+    // 'badge' mapea a las clases rit-badge-* de lupe-hero-styles.blade.php -
+    // usado por la Tarjeta 1 (rediseño .rit-hero, 2026-09-16, pedido explícito
+    // del usuario de unificar todo el modal a este lenguaje visual).
     $gc = match(true) {
         $gravedad === 'muy_grave' => [
             'label'      => 'Falta Muy Grave',
@@ -78,6 +81,7 @@
             'border'     => 'rgba(248,113,113,0.35)',
             'lord'       => 'hmpomorl.json',
             'lordColors' => 'primary:#f87171,secondary:#fca5a5',
+            'badge'      => 'rit-badge-danger',
         ],
         $gravedad === 'grave' => [
             'label'      => 'Falta Grave',
@@ -87,6 +91,7 @@
             'border'     => 'rgba(251,191,36,0.35)',
             'lord'       => 'hmpomorl.json',
             'lordColors' => 'primary:#fbbf24,secondary:#fde68a',
+            'badge'      => 'rit-badge-warning',
         ],
         default => [
             'label'      => 'Falta Leve',
@@ -96,6 +101,7 @@
             'border'     => 'rgba(74,222,128,0.30)',
             'lord'       => 'fikcyfpp.json',
             'lordColors' => 'primary:#4ade80,secondary:#86efac',
+            'badge'      => 'rit-badge-sub',
         ],
     };
 
@@ -280,71 +286,63 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
 <div class="space-y-3" wire:ignore x-data="{ sancionSel: null }">
 
     {{-- ── Tarjeta 1: Gravedad de la falta ────────────────────────────── --}}
-    <div class="esa-card"
-         style="background: linear-gradient(135deg, {{ $gc['glow'] }} 0%, transparent 100%);
-                border-left: 3px solid {{ $gc['accent'] }};">
-        <div style="padding: 16px 18px;">
+    <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+        <div class="rit-orb-b"></div>
+        <div class="rit-orb-g"></div>
+        <div class="rit-overlay"></div>
+        <div style="position:relative;z-index:2;display:flex;align-items:flex-start;gap:12px;">
+            <lord-icon
+                src="https://cdn.lordicon.com/{{ $gc['lord'] }}"
+                trigger="loop" delay="900" stroke="bold"
+                colors="{{ $gc['lordColors'] }}"
+                style="width:40px;height:40px;flex-shrink:0;margin-top:-2px">
+            </lord-icon>
 
-            <div style="display:flex; align-items:flex-start; gap:12px;">
-                <lord-icon
-                    src="https://cdn.lordicon.com/{{ $gc['lord'] }}"
-                    trigger="loop" delay="900" stroke="bold"
-                    colors="{{ $gc['lordColors'] }}"
-                    style="width:40px;height:40px;flex-shrink:0;margin-top:-2px">
-                </lord-icon>
+            <div style="flex:1;min-width:0;">
+                <span class="rit-badge {{ $gc['badge'] }}">
+                    Análisis IA - Gravedad de la falta
+                </span>
 
-                <div style="flex:1;min-width:0;">
-                    <p class="esa-label">Análisis IA - Gravedad de la falta</p>
-
-                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                        <span class="esa-accent-text"
-                              style="--a-light:{{ $gc['accentLight'] }};--a-dark:{{ $gc['accent'] }};
-                                     font-size:19px;font-weight:800;line-height:1.2;">
-                            {{ $gc['label'] }}
-                        </span>
-                        @if($esReincidencia)
-                            <span class="esa-badge-reincidencia">Reincidencia</span>
-                        @endif
-                    </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:.5rem;">
+                    <h1 class="rit-title" style="margin:0;">{{ $gc['label'] }}</h1>
+                    @if($esReincidencia)
+                        <span class="esa-badge-reincidencia">Reincidencia</span>
+                    @endif
                 </div>
-            </div>
 
-            @if($justificacion)
-                <hr class="esa-divider">
-                <p style="font-size:14px;color:var(--esa-text);line-height:1.7;margin:0;">
-                    {{ $justificacion }}
-                </p>
-            @endif
+                @if($justificacion)
+                    <p class="rit-sub" style="margin-top:.5rem;">{{ $justificacion }}</p>
+                @endif
+            </div>
         </div>
     </div>
 
     {{-- ── Alerta de fuero / estabilidad reforzada (Fase 1) ────────────── --}}
     @if($mostrarFuero)
-    <div class="esa-card"
-         style="background: linear-gradient(135deg, rgba(251,146,60,0.13) 0%, transparent 100%);
-                border-left: 3px solid #fb923c;">
-        <div style="padding:14px 18px;">
-            <div style="display:flex;align-items:flex-start;gap:11px;">
-                <lord-icon
-                    src="https://cdn.lordicon.com/lltgvngb.json"
-                    trigger="loop"
-                    delay="500"
-                    colors="primary:#ea7317,secondary:#fb923c"
-                    style="width:40px;height:40px;flex-shrink:0;margin-top:-3px;">
-                </lord-icon>
-                <div style="flex:1;min-width:0;">
-                    <p class="esa-label" style="color:#b45309;">Verificar fuero / estabilidad laboral reforzada</p>
-                    @if(!empty($alertaFuero['indicios']))
-                        <p style="font-size:12.5px;color:var(--esa-text);line-height:1.6;margin:0 0 5px;">
-                            <strong>Indicios:</strong> {{ $alertaFuero['indicios'] }}
-                        </p>
-                    @endif
-                    @if(!empty($alertaFuero['recomendacion']))
-                        <p style="font-size:12.5px;color:var(--esa-text);line-height:1.6;margin:0;">
-                            {{ $alertaFuero['recomendacion'] }}
-                        </p>
-                    @endif
-                </div>
+    <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+        <div class="rit-orb-b"></div>
+        <div class="rit-orb-g"></div>
+        <div class="rit-overlay"></div>
+        <div style="position:relative;z-index:2;display:flex;align-items:flex-start;gap:11px;">
+            <lord-icon
+                src="https://cdn.lordicon.com/lltgvngb.json"
+                trigger="loop"
+                delay="500"
+                colors="primary:#fbbf24,secondary:#fbbf24"
+                style="width:40px;height:40px;flex-shrink:0;margin-top:-3px;">
+            </lord-icon>
+            <div style="flex:1;min-width:0;">
+                <span class="rit-badge rit-badge-warning">Verificar fuero / estabilidad laboral reforzada</span>
+                @if(!empty($alertaFuero['indicios']))
+                    <p class="rit-sub" style="margin-top:.5rem;">
+                        <strong>Indicios:</strong> {{ $alertaFuero['indicios'] }}
+                    </p>
+                @endif
+                @if(!empty($alertaFuero['recomendacion']))
+                    <p class="rit-sub" style="margin-top:.35rem;">
+                        {{ $alertaFuero['recomendacion'] }}
+                    </p>
+                @endif
             </div>
         </div>
     </div>
@@ -352,24 +350,23 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
 
     {{-- ── Análisis de pruebas aportadas por el trabajador (multimodal) ──── --}}
     @if($analisisPruebas !== '')
-    <div class="esa-card"
-         style="background: linear-gradient(135deg, rgba(96,165,250,0.10) 0%, transparent 100%);
-                border-left: 3px solid #60a5fa;">
-        <div style="padding:14px 18px;">
-            <div style="display:flex;align-items:flex-start;gap:11px;">
-                <lord-icon
-                    src="https://cdn.lordicon.com/wpsdctqb.json"
-                    trigger="loop" delay="700" stroke="bold"
-                    colors="primary:#2563eb,secondary:#93c5fd"
-                    style="width:36px;height:36px;flex-shrink:0;margin-top:-2px;">
-                </lord-icon>
-                <div style="flex:1;min-width:0;">
-                    <p class="esa-label" style="color:#1d4ed8;font-size:11.5px;">Análisis de las pruebas del trabajador (lectura IA)</p>
-                    <p style="font-size:13.5px;color:var(--esa-text);line-height:1.65;margin:0 0 6px;white-space:pre-line;">{{ $analisisPruebas }}</p>
-                    <p style="font-size:12px;color:var(--esa-muted);line-height:1.55;margin:0;font-style:italic;">
-                        La IA lee y resume las pruebas, pero no verifica su autenticidad: confirme con la fuente (EPS, tránsito, aseguradora). La decisión es del funcionario.
-                    </p>
-                </div>
+    <div class="rit-hero" style="padding:1.15rem 1.5rem;">
+        <div class="rit-orb-b"></div>
+        <div class="rit-orb-g"></div>
+        <div class="rit-overlay"></div>
+        <div style="position:relative;z-index:2;display:flex;align-items:flex-start;gap:11px;">
+            <lord-icon
+                src="https://cdn.lordicon.com/wpsdctqb.json"
+                trigger="loop" delay="700" stroke="bold"
+                colors="primary:#93c5fd,secondary:#93c5fd"
+                style="width:36px;height:36px;flex-shrink:0;margin-top:-2px;">
+            </lord-icon>
+            <div style="flex:1;min-width:0;">
+                <span class="rit-badge rit-badge-info">Análisis de las pruebas del trabajador (lectura IA)</span>
+                <p class="rit-sub" style="margin-top:.5rem;white-space:pre-line;">{{ $analisisPruebas }}</p>
+                <p class="rit-sub" style="margin-top:.35rem;font-style:italic;opacity:.85;">
+                    La IA lee y resume las pruebas, pero no verifica su autenticidad: confirme con la fuente (EPS, tránsito, aseguradora). La decisión es del funcionario.
+                </p>
             </div>
         </div>
     </div>
@@ -377,31 +374,22 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
 
     {{-- ── Aviso condicional: el rango aplica solo si se verifican las pruebas ── --}}
     @if($esCondicional && !empty($sancionesValidas))
-    <div class="esa-card"
-         style="background: linear-gradient(135deg, rgba(251,146,60,0.13) 0%, transparent 100%);
-                border-left: 3px solid #fb923c;">
-        <div style="padding:13px 18px;">
-            <div style="display:flex;align-items:flex-start;gap:11px;">
-                <lord-icon
-                    src="https://cdn.lordicon.com/lltgvngb.json"
-                    trigger="loop" delay="500" stroke="bold"
-                    colors="primary:#ea7317,secondary:#fb923c"
-                    style="width:36px;height:36px;flex-shrink:0;margin-top:-2px;">
-                </lord-icon>
-                <div style="flex:1;min-width:0;">
-                    <p class="esa-label" style="color:#b45309;font-size:11.5px;">Opciones sujetas a verificación</p>
-                    <p style="font-size:13.5px;color:var(--esa-text);line-height:1.65;margin:0 0 7px;">
-                        {{ $mensaje ?: 'Las opciones de abajo aplican solo si, tras verificar las pruebas del trabajador, la falta se mantiene. Si la justificación se confirma, no procede sanción.' }}
-                    </p>
-                    {{-- <p style="font-size:12px;line-height:1.55;margin:0;padding:7px 10px;border-radius:8px;
-                              background:rgba(74,222,128,0.10);border:1px solid rgba(74,222,128,0.30);color:var(--esa-text);">
-                        <strong style="color:#15803d;">Cómo proceder:</strong>
-                        verifique primero las pruebas. Si la justificación es válida, en
-                        <strong>“Decisión de Sanción”</strong> marque
-                        <strong style="color:#15803d;">“No Aplicar Sanción”</strong>.
-                        Si la falta se mantiene, elija una de las opciones de arriba.
-                    </p> --}}
-                </div>
+    <div class="rit-hero" style="padding:1.1rem 1.5rem;">
+        <div class="rit-orb-b"></div>
+        <div class="rit-orb-g"></div>
+        <div class="rit-overlay"></div>
+        <div style="position:relative;z-index:2;display:flex;align-items:flex-start;gap:11px;">
+            <lord-icon
+                src="https://cdn.lordicon.com/lltgvngb.json"
+                trigger="loop" delay="500" stroke="bold"
+                colors="primary:#fbbf24,secondary:#fbbf24"
+                style="width:36px;height:36px;flex-shrink:0;margin-top:-2px;">
+            </lord-icon>
+            <div style="flex:1;min-width:0;">
+                <span class="rit-badge rit-badge-warning">Opciones sujetas a verificación</span>
+                <p class="rit-sub" style="margin-top:.5rem;">
+                    {{ $mensaje ?: 'Las opciones de abajo aplican solo si, tras verificar las pruebas del trabajador, la falta se mantiene. Si la justificación se confirma, no procede sanción.' }}
+                </p>
             </div>
         </div>
     </div>
@@ -606,46 +594,45 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
 
     {{-- ── No procede sanción (exoneración clara, sin opciones) ──────────── --}}
     @if(empty($sancionesValidas))
-    <div class="esa-card"
-         style="background: linear-gradient(135deg, rgba(74,222,128,0.11) 0%, transparent 100%);
-                border-left: 3px solid #4ade80;">
-        <div style="padding:16px 18px;">
-            <div style="display:flex;align-items:flex-start;gap:11px;">
-                <lord-icon
-                    src="https://cdn.lordicon.com/lvrxlmju.json"
-                    trigger="loop" delay="500" stroke="bold"
-                    colors="primary:#16a34a,secondary:#4ade80"
-                    style="width:36px;height:36px;flex-shrink:0;margin-top:-2px;">
-                </lord-icon>
-                <div style="flex:1;min-width:0;">
-                    <p class="esa-label" style="color:#15803d;font-size:11.5px;">La IA no recomienda sanción</p>
-                    @if($mensaje)
-                        <p style="font-size:14px;color:var(--esa-text);line-height:1.65;margin:0 0 6px;font-weight:500;">
-                            {{ $mensaje }}
-                        </p>
-                    @endif
-                    @if($noSancionTxt)
-                        <p style="font-size:13px;color:var(--esa-muted);line-height:1.6;margin:0 0 10px;">
-                            {{ $noSancionTxt }}
-                        </p>
-                    @endif
+    <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+        <div class="rit-orb-b"></div>
+        <div class="rit-orb-g"></div>
+        <div class="rit-overlay"></div>
+        <div style="position:relative;z-index:2;display:flex;align-items:flex-start;gap:11px;">
+            <lord-icon
+                src="https://cdn.lordicon.com/lvrxlmju.json"
+                trigger="loop" delay="500" stroke="bold"
+                colors="primary:#86efac,secondary:#86efac"
+                style="width:36px;height:36px;flex-shrink:0;margin-top:-2px;">
+            </lord-icon>
+            <div style="flex:1;min-width:0;">
+                <span class="rit-badge rit-badge-sub">La IA no recomienda sanción</span>
+                @if($mensaje)
+                    <p class="rit-sub" style="margin-top:.5rem;font-weight:500;">
+                        {{ $mensaje }}
+                    </p>
+                @endif
+                @if($noSancionTxt)
+                    <p class="rit-sub" style="margin-top:.35rem;">
+                        {{ $noSancionTxt }}
+                    </p>
+                @endif
 
-                    {{-- Botón: aplicar "No Aplicar Sanción" (la decisión recomendada) --}}
-                    @if(array_key_exists('no_sancion', $opcionesSancion) && $modoDecision)
-                        <button type="button"
-                            x-on:click="sancionSel = 'no_sancion'; $wire.selectDecision('no_sancion')"
-                            class="esa-badge-btn"
-                            :style="sancionSel === 'no_sancion'
-                                ? 'background:#16a34a;border-color:#16a34a;color:#fff;'
-                                : 'background:#16a34a14;border-color:#16a34a59;color:#15803d;'"
-                            style="background:#16a34a14;border-color:#16a34a59;color:#15803d;">
-                            {{-- Mismo icono que 'no_sancion' en $sancionMeta, pero este boton
-                                 vive en un bloque de codigo separado (no pasa por $m/$sancionMeta). --}}
-                            <lord-icon src="https://cdn.lordicon.com/lvrxlmju.json" trigger="hover" colors="primary:#16a34a,secondary:#16a34a" style="width:18px;height:18px;flex-shrink:0;"></lord-icon>
-                            <span x-text="sancionSel === 'no_sancion' ? 'Sanción seleccionada' : 'Aplicar: No Aplicar Sanción'"></span>
-                        </button>
-                    @endif
-                </div>
+                {{-- Botón: aplicar "No Aplicar Sanción" (la decisión recomendada) --}}
+                @if(array_key_exists('no_sancion', $opcionesSancion) && $modoDecision)
+                    <button type="button"
+                        x-on:click="sancionSel = 'no_sancion'; $wire.selectDecision('no_sancion')"
+                        class="esa-badge-btn"
+                        style="margin-top:.75rem;background:#16a34a14;border-color:#16a34a59;color:#86efac;"
+                        :style="sancionSel === 'no_sancion'
+                            ? 'margin-top:.75rem;background:#16a34a;border-color:#16a34a;color:#fff;'
+                            : 'margin-top:.75rem;background:#16a34a14;border-color:#16a34a59;color:#86efac;'">
+                        {{-- Mismo icono que 'no_sancion' en $sancionMeta, pero este boton
+                             vive en un bloque de codigo separado (no pasa por $m/$sancionMeta). --}}
+                        <lord-icon src="https://cdn.lordicon.com/lvrxlmju.json" trigger="hover" colors="primary:#16a34a,secondary:#16a34a" style="width:18px;height:18px;flex-shrink:0;"></lord-icon>
+                        <span x-text="sancionSel === 'no_sancion' ? 'Sanción seleccionada' : 'Aplicar: No Aplicar Sanción'"></span>
+                    </button>
+                @endif
             </div>
         </div>
     </div>

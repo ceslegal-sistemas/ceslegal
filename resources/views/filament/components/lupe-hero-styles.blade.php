@@ -37,6 +37,10 @@ html:not(.dark) .rit-badge-sub{background:rgba(22,163,74,.08);border-color:rgba(
 html:not(.dark) .rit-badge-none{background:rgba(100,116,139,.07);border-color:rgba(100,116,139,.2);color:#475569}
 .rit-badge-danger{background:rgba(239,68,68,.13);border-color:rgba(239,68,68,.3);color:#fca5a5}
 html:not(.dark) .rit-badge-danger{background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.2);color:#b91c1c}
+.rit-badge-warning{background:rgba(217,119,6,.13);border-color:rgba(251,191,36,.32);color:#fbbf24}
+html:not(.dark) .rit-badge-warning{background:rgba(180,83,9,.08);border-color:rgba(217,119,6,.22);color:#b45309}
+.rit-badge-info{background:rgba(37,99,235,.14);border-color:rgba(96,165,250,.32);color:#93c5fd}
+html:not(.dark) .rit-badge-info{background:rgba(29,78,216,.08);border-color:rgba(37,99,235,.22);color:#1d4ed8}
 .rit-title{font-size:1.25rem;font-weight:700;color:#f1f5f9;margin:.5rem 0 .25rem;letter-spacing:-.015em}
 html:not(.dark) .rit-title{color:#1c1917}
 .rit-sub{font-size:.8125rem;color:#94a3b8;margin:0}

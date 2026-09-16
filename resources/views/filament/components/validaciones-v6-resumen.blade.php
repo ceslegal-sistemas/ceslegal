@@ -59,13 +59,16 @@
 @endphp
 
 @if($estado)
-{{-- esa-card-soft (definida en emitir-sancion-analisis.blade.php, siempre incluida
-     antes de este parcial en el Paso 1 del wizard): mismo look "sección del
-     documento" que el resto, en vez de otra tarjeta oscura apilada. --}}
-<div class="esa-card v6chk-wrap esa-card-soft" style="margin-top:6px;" @if(in_array($estado, ['pendiente', 'procesando'], true)) wire:poll.4000ms @endif>
-    <div style="padding:14px 18px;">
-        <p class="esa-label">Revisión de calidad de la recomendación</p>
-        <p style="font-size:11px;color:var(--esa-muted);line-height:1.5;margin:2px 0 0;">
+{{-- @include('filament.components.lupe-hero-styles') YA está incluido por
+     emitir-sancion-analisis.blade.php, que siempre precede a este parcial en
+     el Paso 1 del wizard - no se repite aquí para no duplicar el <style>. --}}
+<div class="rit-hero v6chk-wrap" style="padding:1.15rem 1.5rem;margin-top:6px;" @if(in_array($estado, ['pendiente', 'procesando'], true)) wire:poll.4000ms @endif>
+    <div class="rit-orb-b"></div>
+    <div class="rit-orb-g"></div>
+    <div class="rit-overlay"></div>
+    <div style="position:relative;z-index:2">
+        <span class="rit-badge rit-badge-ia">Revisión de calidad de la recomendación</span>
+        <p class="rit-sub" style="margin-top:.5rem;">
             Chequeo automático aparte, no reemplaza los puntos anteriores.
         </p>
 
