@@ -13,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\On;
 
 class ListProcesoDisciplinarios extends ListRecords
 {
@@ -22,6 +23,51 @@ class ListProcesoDisciplinarios extends ListRecords
 
     public ?int  $feedbackProcesoId            = null;
     public bool  $mostrarFeedbackAutomatico    = false;
+
+    /**
+     * Recibe el evento que EmitirSancionPasos::confirmarDecision() despacha al
+     * completar el Paso 2 ("Decidir la sanción"). ANTES esto lo hacía un puente
+     * Alpine (x-on:emitir-sancion-paso2-completo.window="$wire.$set(...)") en
+     * emitir-sancion-pasos-wrapper.blade.php - se retiró porque causaba un bug
+     * real reportado por el usuario con captura de pantalla: el footer del
+     * Paso 3 (nativo, Cancelar/Volver a Decisión/Continuar) aparecía correcto,
+     * pero el CONTENIDO del wizard (Paso 2 completo, con su propio footer
+     * Cancelar/Volver/Continuar a Autorizar) seguía visible debajo, sin
+     * ocultarse nunca.
+     *
+     * Causa raíz (confirmada leyendo vendor/filament/tables/src/Concerns/HasActions.php,
+     * método getMountedTableActionForm()): Filament CACHEA el formulario de la
+     * acción montada (hasCachedForm('mountedTableActionForm')) y solo lo
+     * reconstruye - re-evaluando los ->visible() de sus campos - cuando se
+     * invoca a través de una Action/método real de Livewire. Un $wire.$set()
+     * crudo desde Alpine actualiza la propiedad, pero NUNCA pasa por ese
+     * mecanismo, así que los campos del formulario (el Group con el wizard, la
+     * Section "Verificación del Autorizador") quedaban congelados en el estado
+     * de cuando el formulario se cacheó por primera vez (paso_actual=1). Los
+     * botones nativos del footer (modalSubmitAction/modalCancelAction/
+     * extraModalFooterActions) SÍ se veían bien porque esos NO pasan por el
+     * form cacheado - se evalúan aparte, en fresco, en cada render. La misma
+     * razón explica por qué "Volver a Decisión" (extraModalFooterActions,
+     * ProcesoDisciplinarioResource.php) SÍ funcionaba: es una Action real, su
+     * ->action() se invoca como una llamada de método de Livewire, no como un
+     * set() de propiedad en bruto.
+     *
+     * Fix: mover esta transición a un listener de Livewire real (este método)
+     * en vez de al bridge de Alpine - una llamada de método SÍ dispara el
+     * mismo mecanismo de invalidación que ya usa "Volver a Decisión".
+     */
+    #[On('emitir-sancion-paso2-completo')]
+    public function recibirDecisionSancion(string $tipoSancion, string $razonDivergencia = '', bool $exoneracionAceptada = false): void
+    {
+        if (!isset($this->mountedTableActionsData[0])) {
+            return;
+        }
+
+        $this->mountedTableActionsData[0]['tipo_sancion'] = $tipoSancion;
+        $this->mountedTableActionsData[0]['razon_divergencia'] = $razonDivergencia;
+        $this->mountedTableActionsData[0]['exoneracion_aceptada'] = $exoneracionAceptada;
+        $this->mountedTableActionsData[0]['paso_actual'] = 3;
+    }
 
     public function mount(): void
     {
