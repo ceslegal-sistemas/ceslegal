@@ -576,6 +576,18 @@ class Register extends BaseRegister
             }
         }
 
+        // Bug real reportado por el usuario (2026-09-15): cuando $ritOpcion queda en
+        // 'despues' (empresa no obligada a tener RIT y el cliente no lo sube ni lo
+        // construye), ninguna de las 2 ramas de arriba se ejecuta, así que
+        // $this->redirectUrl nunca se fija - getRedirectUrl() cae al comportamiento
+        // por defecto de Filament, que redirige al panel desde donde se envió el
+        // formulario ('admin'). Un usuario 'cliente' no puede acceder a /admin -> 403.
+        // Mismo patrón que las 2 ramas anteriores: no se sobreescribe si ya hay un
+        // redirect a PayU pendiente.
+        if (empty($this->redirectUrl)) {
+            $this->redirectUrl = \App\Filament\Admin\Pages\Dashboard::getUrl(panel: 'empresa');
+        }
+
         // Persistir el logo subido (si se subió) - mismo patrón que reglamento_docx_temp:
         // nunca construir la ruta con storage_path("app/...") a mano, el disco 'local' de
         // este proyecto tiene su raíz en storage/app/private (config/filesystems.php).
