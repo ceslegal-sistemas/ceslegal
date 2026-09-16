@@ -1,3 +1,4 @@
+@include('filament.components.lupe-hero-styles')
 {{--
     Tarjetas de Análisis IA + Recomendaciones para el modal "Emitir Sanción"
     Variables esperadas: $analisis (array), $recomendacion (array|null)
@@ -649,48 +650,30 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
         // Solo se muestran las garantías que NO se cumplen (riesgo / por verificar).
         $gRiesgos = collect($gEtiquetas)->filter(fn($lbl, $k) => isset($garantias[$k]) && ($garantias[$k]['estado'] ?? '') !== 'cumple');
     @endphp
-    <div class="esa-card esa-card-soft">
-        <div style="padding:14px 18px;">
-            <p class="esa-label">¿La sanción se sostiene? - puntos a revisar</p>
+    <div class="rit-hero" style="padding:1.5rem 1.5rem;">
+        <div class="rit-orb-b"></div>
+        <div class="rit-orb-g"></div>
+        <div class="rit-overlay"></div>
+        <div style="position:relative;z-index:2">
             @if($gRiesgos->isEmpty())
-                <div style="display:flex;align-items:center;gap:9px;margin-top:9px;">
-                    <span class="esa-accent-text"
-                          style="--a-light:#15803d;--a-dark:#4ade80;flex-shrink:0;font-size:10px;font-weight:700;
-                                 padding:2px 8px;border-radius:100px;background:rgba(74,222,128,0.12);
-                                 border:1px solid rgba(74,222,128,0.30);">OK</span>
-                    <span style="font-size:12.5px;color:var(--esa-text);">Todas las garantías se cumplen; sin puntos de riesgo.</span>
-                </div>
+                <span class="rit-badge rit-badge-sub">
+                    <lord-icon src="https://cdn.lordicon.com/lvrxlmju.json" trigger="loop" delay="500" colors="primary:#86efac,secondary:#86efac" style="width:16px;height:16px;flex-shrink:0"></lord-icon>
+                    Puntos a revisar
+                </span>
+                <h1 class="rit-title">Todas las garantías se cumplen</h1>
+                <p class="rit-sub">No hay puntos de riesgo identificados en el debido proceso.</p>
             @else
-            <div style="display:flex;flex-direction:column;gap:8px;margin-top:9px;">
-                @foreach($gRiesgos as $gk => $glabel)
-                    @php
-                        $g      = $garantias[$gk];
-                        $estado = $g['estado'] ?? 'no_determinable';
-                        $nota   = $g['nota'] ?? '';
-                        $cfg = match($estado) {
-                            'riesgo'    => ['#b45309', '#fbbf24', 'rgba(251,191,36,0.13)', 'rgba(251,191,36,0.32)', 'Riesgo'],
-                            'no_cumple' => ['#b91c1c', '#f87171', 'rgba(248,113,113,0.13)', 'rgba(248,113,113,0.32)', 'No cumple'],
-                            default     => ['#6b7280', '#9ca3af', 'rgba(120,120,120,0.10)', 'var(--esa-border)', 'Por verificar'],
-                        };
-                    @endphp
-                    <div style="display:flex;align-items:flex-start;gap:9px;">
-                        <span class="esa-accent-text"
-                              style="--a-light:{{ $cfg[0] }};--a-dark:{{ $cfg[1] }};
-                                     flex-shrink:0;font-size:10px;font-weight:700;
-                                     padding:2px 8px;border-radius:100px;
-                                     background:{{ $cfg[2] }};border:1px solid {{ $cfg[3] }};
-                                     min-width:80px;text-align:center;">
-                            {{ $cfg[4] }}
-                        </span>
-                        <div style="flex:1;min-width:0;">
-                            <span style="font-size:12.5px;font-weight:600;color:var(--esa-text);">{{ $glabel }}</span>
-                            @if($nota)
-                                <span style="font-size:12px;color:var(--esa-muted);"> - {{ $nota }}</span>
-                            @endif
-                        </div>
-                    </div>
-                @endforeach
-            </div>
+                <span class="rit-badge rit-badge-danger">
+                    <lord-icon src="https://cdn.lordicon.com/lltgvngb.json" trigger="loop" delay="500" colors="primary:#fca5a5,secondary:#fca5a5" style="width:16px;height:16px;flex-shrink:0"></lord-icon>
+                    Puntos a revisar
+                </span>
+                <h1 class="rit-title">{{ $gRiesgos->count() }} de {{ count($gEtiquetas) }} garantías necesita{{ $gRiesgos->count() === 1 ? '' : 'n' }} su atención</h1>
+                <p class="rit-sub">
+                    @foreach($gRiesgos as $gk => $glabel)
+                        @php $nota = $garantias[$gk]['nota'] ?? ''; @endphp
+                        {{ $glabel }}{{ $nota ? ' - ' . $nota : '' }}{{ !$loop->last ? '. ' : '.' }}
+                    @endforeach
+                </p>
             @endif
         </div>
     </div>
