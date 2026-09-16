@@ -2368,12 +2368,18 @@ class ProcesoDisciplinarioResource extends Resource
                                     Forms\Components\Placeholder::make('declaracion_texto')
                                         ->hiddenLabel()
                                         ->content(fn() => new \Illuminate\Support\HtmlString(
-                                            '<style>:root{--decl-bg:rgba(0,0,0,0.03);--decl-border:rgba(0,0,0,0.10);--decl-left:rgba(0,0,0,0.15);--decl-label:rgba(0,0,0,0.45);--decl-text:rgba(17,24,39,0.78);}' .
-                                                'html.dark{--decl-bg:rgba(255,255,255,0.04);--decl-border:rgba(255,255,255,0.10);--decl-left:rgba(255,255,255,0.25);--decl-label:rgba(255,255,255,0.38);--decl-text:rgba(255,255,255,0.72);}</style>' .
-                                                '<div style="padding:14px 16px;background:var(--decl-bg);border-radius:12px;border:1px solid var(--decl-border);border-left:3px solid var(--decl-left);">' .
-                                                '<p style="font-size:10px;font-weight:700;color:var(--decl-label);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px;">Declaración del Autorizador</p>' .
-                                                '<p style="font-size:13px;color:var(--decl-text);line-height:1.6;margin:0;">Al marcar la casilla a continuación, declaro que tengo la potestad disciplinaria para emitir esta sanción, que he revisado los hechos del proceso y las evidencias aportadas, y que autorizo expresamente la emisión de esta decisión disciplinaria. Entiendo que esta acción queda registrada con fecha, hora e imagen de verificación como parte del expediente del proceso.</p>' .
-                                                '</div>'
+                                            \Illuminate\Support\Facades\Blade::render(
+                                                '@include(\'filament.components.lupe-hero-styles\')' .
+                                                '<div class="rit-hero" style="padding:1.25rem 1.5rem;">' .
+                                                '<div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>' .
+                                                '<div style="position:relative;z-index:2">' .
+                                                '<span class="rit-badge rit-badge-sub">' .
+                                                '<lord-icon src="https://cdn.lordicon.com/wpsdctqb.json" trigger="loop" delay="500" colors="primary:#86efac,secondary:#86efac" style="width:16px;height:16px;flex-shrink:0"></lord-icon>' .
+                                                'Declaración del Autorizador</span>' .
+                                                '<h1 class="rit-title">Confirme su autorización</h1>' .
+                                                '<p class="rit-sub">Al marcar la casilla a continuación, declara que tiene la potestad disciplinaria para emitir esta sanción, que revisó los hechos del proceso y las evidencias aportadas, y que autoriza expresamente la emisión de esta decisión disciplinaria. Entiende que esta acción queda registrada con fecha, hora e imagen de verificación como parte del expediente del proceso.</p>' .
+                                                '</div></div>'
+                                            )
                                         )),
 
                                     Forms\Components\Checkbox::make('declaracion_aceptada')
