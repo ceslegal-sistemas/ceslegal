@@ -2255,35 +2255,40 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->visible(false),
 
                             // ── Aviso sin RIT ─────────────────────────────────────────────────
-                            Forms\Components\Section::make('Empresa sin Reglamento Interno de Trabajo')
-                                ->icon('heroicon-o-exclamation-triangle')
-                                ->iconColor('warning')
-                                ->schema([
-                                    Forms\Components\Placeholder::make('aviso_sin_rit')
-                                        ->hiddenLabel()
-                                        ->content(function () use ($sinRit) {
-                                            if (!$sinRit) return '';
-                                            $purchaseUrl = config('ces.rit_purchase_url');
-                                            $boton       = $purchaseUrl
-                                                ? "<a href=\"{$purchaseUrl}\" target=\"_blank\" rel=\"noopener\" class=\"inline-flex items-center gap-2 px-4 py-2.5 mt-1 rounded-lg bg-primary-600 text-white font-semibold text-sm hover:bg-primary-700 transition-colors shadow-sm\">Adquirir Reglamento Interno</a>"
-                                                : '';
-                                            $html  = '<div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-400 dark:border-amber-600 space-y-3">';
-                                            $html .= '<div class="flex items-start gap-3">';
-                                            $html .= '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:36px;height:36px;flex-shrink:0;margin-top:2px"></lord-icon>';
-                                            $html .= '<div><p class="font-semibold text-amber-900 dark:text-amber-100 text-base">Esta empresa no tiene Reglamento Interno de Trabajo (RIT)</p>';
-                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300 mt-1">Los artículos 111 a 115 del Código Sustantivo del Trabajo establecen que el empleador <strong>solo puede imponer las sanciones expresamente previstas en el RIT</strong> debidamente aprobado y registrado ante el Ministerio del Trabajo.</p>';
-                                            $html .= '</div></div>';
-                                            $html .= '<div class="bg-amber-100 dark:bg-amber-800/30 rounded-lg p-3 border border-amber-300 dark:border-amber-700">';
-                                            $html .= '<p class="text-sm font-semibold text-amber-900 dark:text-amber-100">Por esta vez, no es posible aplicar suspensión ni llamado de atención</p>';
-                                            $html .= '<p class="text-sm text-amber-700 dark:text-amber-300 mt-1">El descargo a este trabajador fue iniciado cuando la empresa no contaba con un RIT vigente. La única opción legalmente segura para este proceso es la <strong>terminación del contrato con justa causa</strong> (Art. 62 CST).</p>';
-                                            $html .= '</div>';
-                                            if ($boton) $html .= "<div>{$boton}</div>";
-                                            $html .= '</div>';
-                                            return new \Illuminate\Support\HtmlString($html);
-                                        }),
-                                ])
+                            // Rediseño .rit-hero (2026-09-16, pedido explícito del usuario de
+                            // unificar todo el modal a este lenguaje visual) - reemplaza la
+                            // Section con chrome propio (icono+heading de Filament) por un
+                            // Placeholder bare, mismo patrón que "Declaración del Autorizador".
+                            Forms\Components\Placeholder::make('aviso_sin_rit')
+                                ->hiddenLabel()
                                 ->visible($sinRit)
-                                ->collapsible(false),
+                                ->content(function () use ($sinRit) {
+                                    if (!$sinRit) return '';
+                                    $purchaseUrl = config('ces.rit_purchase_url');
+                                    $boton       = $purchaseUrl
+                                        ? '<a href="' . e($purchaseUrl) . '" target="_blank" rel="noopener" class="rit-btn rit-btn-cta" style="margin-top:.75rem;">Adquirir Reglamento Interno</a>'
+                                        : '';
+
+                                    return new \Illuminate\Support\HtmlString(
+                                        \Illuminate\Support\Facades\Blade::render(
+                                            '@include(\'filament.components.lupe-hero-styles\')' .
+                                            '<div class="rit-hero" style="padding:1.25rem 1.5rem;">' .
+                                            '<div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>' .
+                                            '<div style="position:relative;z-index:2">' .
+                                            '<span class="rit-badge rit-badge-warning">' .
+                                            '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#fbbf24,secondary:#fbbf24" style="width:16px;height:16px;flex-shrink:0"></lord-icon>' .
+                                            'Empresa sin Reglamento Interno de Trabajo</span>' .
+                                            '<h1 class="rit-title">Esta empresa no tiene RIT</h1>' .
+                                            '<p class="rit-sub">Los artículos 111 a 115 del Código Sustantivo del Trabajo establecen que el empleador <strong>solo puede imponer las sanciones expresamente previstas en el RIT</strong> debidamente aprobado y registrado ante el Ministerio del Trabajo.</p>' .
+                                            '<div style="margin-top:1rem;padding:.85rem 1rem;border-radius:.75rem;background:rgba(0,0,0,.15);border:1px solid rgba(251,191,36,.25);">' .
+                                            '<p style="font-size:.8125rem;font-weight:700;color:#fbbf24;margin:0 0 .35rem;">Por esta vez, no es posible aplicar suspensión ni llamado de atención</p>' .
+                                            '<p class="rit-sub" style="margin:0;">El descargo a este trabajador fue iniciado cuando la empresa no contaba con un RIT vigente. La única opción legalmente segura para este proceso es la <strong>terminación del contrato con justa causa</strong> (Art. 62 CST).</p>' .
+                                            '</div>' .
+                                            $boton .
+                                            '</div></div>'
+                                        )
+                                    );
+                                }),
 
                             // Hidden: datos para el action handler
                             Forms\Components\Hidden::make('analisis_cache')

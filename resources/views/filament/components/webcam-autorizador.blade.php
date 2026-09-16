@@ -38,6 +38,7 @@
     // solicita siquiera el permiso del navegador antes del consentimiento.
     $disclaimerTexto = $disclaimerTexto ?? 'AUTORIZACIÓN DE TRATAMIENTO DE DATOS PERSONALES: Esta diligencia se realizará a través de medios digitales, electrónicos y/o virtuales, por lo cual autorizo que mi dirección IP, la fecha y hora exactas de cada acción, el canal de verificación utilizado, las fotografías tomadas en el desarrollo de la diligencia y en general el tratamiento de mis datos personales sean tratados conforme a la Ley 1581 de 2012 y demás normas que la adicionen, modifiquen y/o complementen.';
 @endphp
+@include('filament.components.lupe-hero-styles')
 
 <style>
 /* ── Variables modo claro (default) / oscuro (html.dark) ─────────── */
@@ -621,28 +622,30 @@ button.wca-btn-secondary:hover {
      "
      @modal-closed.window="detenerCamara()">
 
-    <div class="space-y-3">
+    <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+    <div class="rit-orb-b"></div>
+    <div class="rit-orb-g"></div>
+    <div class="rit-overlay"></div>
+    <div class="space-y-3" style="position:relative;z-index:2">
 
         {{-- ══ Autorización de datos personales (Ley 1581 de 2012) - obligatoria.
-             Mismo lenguaje visual que "Declaración del Autorizador" (el
-             Placeholder justo arriba en este modal), para que ambas tarjetas
-             de declaración/consentimiento se lean como una misma familia. ══ --}}
+             Mismo lenguaje visual .rit-hero que el resto del modal (2026-09-16,
+             pedido explícito del usuario) - ya no necesita su propia tarjeta
+             .wca-card anidada, vive directamente dentro del marco exterior. ══ --}}
         <div x-show="!disclaimerAceptado">
-            <div class="wca-card">
-                <p class="wca-card-label">
-                    <lord-icon src="https://cdn.lordicon.com/wpsdctqb.json" trigger="hover" stroke="bold"
-                        colors="primary:#fecdd3,secondary:#fecdd3" data-pt-icon
-                        data-pt-dark="primary:#fecdd3,secondary:#fecdd3"
-                        data-pt-light="primary:#be123c,secondary:#be123c"
-                        style="width:14px;height:14px;flex-shrink:0"></lord-icon>
-                    Autorización de tratamiento de datos personales
-                </p>
-                <p style="margin:0;font-size:13px;line-height:1.6;color:var(--wca-text);">{{ $disclaimerTexto }}</p>
-            </div>
+            <span class="rit-badge rit-badge-ia">
+                <lord-icon src="https://cdn.lordicon.com/wpsdctqb.json" trigger="hover" stroke="bold"
+                    colors="primary:#fecdd3,secondary:#fecdd3" data-pt-icon
+                    data-pt-dark="primary:#fecdd3,secondary:#fecdd3"
+                    data-pt-light="primary:#be123c,secondary:#be123c"
+                    style="width:14px;height:14px;flex-shrink:0"></lord-icon>
+                Autorización de tratamiento de datos personales
+            </span>
+            <p class="rit-sub" style="margin-top:.5rem;">{{ $disclaimerTexto }}</p>
 
             <label class="wca-consent">
                 <input type="checkbox" x-model="disclaimerMarcado" style="margin-top:2px;flex-shrink:0;accent-color:var(--wca-brand-solid);">
-                <span style="font-size:13px;line-height:1.55;color:var(--wca-text);">
+                <span class="rit-sub">
                     He leído y acepto la autorización de tratamiento de mis datos personales.
                 </span>
             </label>
@@ -844,5 +847,6 @@ button.wca-btn-secondary:hover {
             </div>
 
         </div>{{-- /!errorCamara --}}
+    </div>
     </div>
 </div>
