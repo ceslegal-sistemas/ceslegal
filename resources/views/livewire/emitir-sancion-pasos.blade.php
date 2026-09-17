@@ -121,13 +121,17 @@
         @endphp
         <div class="space-y-6" wire:key="emitir-sancion-paso-{{ $paso }}">
             @if (!$decision)
-                <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-400 dark:border-amber-600 space-y-3">
-                    <div class="flex items-start gap-3">
-                        <lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:42px;height:42px;flex-shrink:0;margin-top:2px"></lord-icon>
-                        <div>
-                            <p class="font-semibold text-amber-900 dark:text-amber-100 text-base">Falta elegir la sanción</p>
-                            <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">Seleccione una opción abajo para continuar.</p>
-                        </div>
+                <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+                    <div class="rit-orb-b"></div>
+                    <div class="rit-orb-g"></div>
+                    <div class="rit-overlay"></div>
+                    <div style="position:relative;z-index:2">
+                        <span class="rit-badge rit-badge-warning">
+                            <lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#fbbf24,secondary:#fbbf24" style="width:16px;height:16px;flex-shrink:0"></lord-icon>
+                            Acción requerida
+                        </span>
+                        <h1 class="rit-title">Falta elegir la sanción</h1>
+                        <p class="rit-sub">Seleccione una opción abajo para continuar.</p>
                     </div>
                 </div>
             @endif
