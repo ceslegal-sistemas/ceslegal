@@ -30,6 +30,7 @@
 @endphp
 
 <div class="space-y-5"
+    wire:key="descargos-verificacion-{{ $fase }}"
     x-data="{
         disclaimerAceptado: false,
         disclaimerMarcado: false,
