@@ -37,6 +37,24 @@
     // mejorado - no pedía ninguno. Se bloquea la cámara hasta aceptar: así no se
     // solicita siquiera el permiso del navegador antes del consentimiento.
     $disclaimerTexto = $disclaimerTexto ?? 'AUTORIZACIÓN DE TRATAMIENTO DE DATOS PERSONALES: Esta diligencia se realizará a través de medios digitales, electrónicos y/o virtuales, por lo cual autorizo que mi dirección IP, la fecha y hora exactas de cada acción, el canal de verificación utilizado, las fotografías tomadas en el desarrollo de la diligencia y en general el tratamiento de mis datos personales sean tratados conforme a la Ley 1581 de 2012 y demás normas que la adicionen, modifiquen y/o complementen.';
+
+    // El x-init se construye aquí como un string plano (nunca con @if/@else/@endif
+    // directamente dentro del atributo): Livewire 3 (SupportMorphAwareBladeCompilation)
+    // envuelve automáticamente los bloques @if/@endif con comentarios HTML
+    // (<!--[if BLOCK]><![endif]-->) para su diffing de DOM - dentro de un atributo
+    // como x-init="..." esos comentarios quedan pegados como texto literal en medio
+    // del JavaScript, rompiendo la sintaxis (bug real encontrado en QA 2026-09-16:
+    // "Alpine Expression Error: Unexpected token ')'" - iniciarCamara() nunca se
+    // ejecutaba, la verificación se quedaba en "Cargando verificación..." para
+    // siempre, sin importar los permisos de cámara).
+    $stepJs = \Illuminate\Support\Js::from($wizardStepId);
+    $jsInit = $wizardStepId
+        ? 'if (step === ' . $stepJs . ') { iniciarCamara() }'
+            . ' $watch(\'step\', (valor) => {'
+            . ' if (valor === ' . $stepJs . ') { iniciarCamara() }'
+            . ' else { detenerCamara() }'
+            . ' })'
+        : 'iniciarCamara()';
 @endphp
 @include('filament.components.lupe-hero-styles')
 
@@ -615,17 +633,7 @@ button.wca-btn-secondary:hover {
              if (this.timerFallback) { clearTimeout(this.timerFallback); this.timerFallback = null; }
          }
      }"
-     x-init="
-        @if($wizardStepId)
-            if (step === {{ Illuminate\Support\Js::from($wizardStepId) }}) { iniciarCamara() }
-            $watch('step', (valor) => {
-                if (valor === {{ Illuminate\Support\Js::from($wizardStepId) }}) { iniciarCamara() }
-                else { detenerCamara() }
-            })
-        @else
-            iniciarCamara()
-        @endif
-     "
+     x-init="{{ $jsInit }}"
      @modal-closed.window="detenerCamara()">
 
     <div class="rit-hero" style="padding:1.25rem 1.5rem;">
