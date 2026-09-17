@@ -280,13 +280,15 @@
 
         iniciarDeteccionAccesorios() {
             if (this.intervaloAccesorios) clearInterval(this.intervaloAccesorios);
-            // 7000ms (antes 4000ms): cada tick dispara una llamada síncrona real a
-            // Gemini Vision (VerificacionFacialService::detectarAccesorios()). Con
-            // el intervalo anterior, un plan de hosting compartido con pocos
-            // procesos PHP-FPM concurrentes se saturó durante una diligencia real
-            // (incidente 2026-09-16: Cloudflare 522/520) - espaciar las llamadas
-            // reduce cuántas compiten a la vez por esos procesos, sin perder la
-            // detección en vivo.
+            // 5000ms (4000ms->7000ms->5000ms el mismo día, 2026-09-16): a 7000ms
+            // la espera se sentía tediosa para el trabajador en una demo real en
+            // vivo. 5s es un punto medio deliberado - la causa raíz real para
+            // escalar a muchos clientes simultáneos NO es este timer, es que
+            // DocumentGeneratorService::generarYEnviarSancion() (paso "confirmar
+            // días de suspensión" en Emitir Sanción) corre síncrono dentro de la
+            // petición web en vez de en una cola, a diferencia del análisis
+            // inicial de gravedad que sí usa GenerarRecomendacionYRevisarV6Job -
+            // ese patrón (cola + polling de progreso) es el que falta extender ahí.
             this.intervaloAccesorios = setInterval(async () => {
                 if (this.fotoCapturada || this.revisandoAccesorios || this.verificandoAccesoriosVivo) return;
                 if (this.estadoRostro !== 'ok' && this.estadoRostro !== 'falta_parpadeo') return;
@@ -307,7 +309,7 @@
                     this.alertaAccesorios = $wire.alertaAccesorios;
                 } catch (e) {}
                 this.verificandoAccesoriosVivo = false;
-            }, 7000);
+            }, 5000);
         },
 
         async tomarFoto() {

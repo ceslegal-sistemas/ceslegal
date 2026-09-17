@@ -2709,7 +2709,16 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->duration(8000)
                                     ->send();
 
-                                redirect(static::getUrl('index'));
+                                // redirect() aquí (sin `return`) igual funciona: Livewire
+                                // reemplaza el binding global 'redirect' por uno propio que
+                                // agrega el destino como "efecto" en la MISMA respuesta -
+                                // llega junto con el evento de confeti (LogroDescargosService,
+                                // disparado por el observer al guardar el estado) y lo corta
+                                // a medio segundo (bug real reportado 2026-09-16). Se retrasa
+                                // con JS para darle tiempo a la animación.
+                                $action->getLivewire()->js(
+                                    'setTimeout(() => { window.location = ' . json_encode(static::getUrl('index')) . '; }, 4000)'
+                                );
                             } catch (\Exception $e) {
                                 \Filament\Notifications\Notification::make()
                                     ->danger()
@@ -2740,7 +2749,11 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->duration(8000)
                                 ->send();
 
-                            redirect(static::getUrl('index'));
+                            // Ver comentario gemelo arriba (constancia sin sanción): se
+                            // retrasa el redirect para no cortar el confeti.
+                            $action->getLivewire()->js(
+                                'setTimeout(() => { window.location = ' . json_encode(static::getUrl('index')) . '; }, 4000)'
+                            );
                         } catch (\Exception $e) {
                             \Filament\Notifications\Notification::make()
                                 ->danger()
@@ -2806,7 +2819,7 @@ class ProcesoDisciplinarioResource extends Resource
                             !empty($record->trabajador->email) &&
                             auth()->user()?->hasAnyRole(['super_admin', 'abogado', 'cliente']);
                     })
-                    ->action(function (ProcesoDisciplinario $record, array $data) {
+                    ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
                         try {
                             // Guardar días de suspensión
                             $record->dias_suspension = $data['dias_suspension'];
@@ -2828,8 +2841,11 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->duration(8000)
                                 ->send();
 
-                            // Refrescar la página
-                            redirect(static::getUrl('index'));
+                            // Refrescar la página, con retraso para no cortar el confeti
+                            // (ver comentario gemelo en la Action 'emitir_sancion' arriba).
+                            $action->getLivewire()->js(
+                                'setTimeout(() => { window.location = ' . json_encode(static::getUrl('index')) . '; }, 4000)'
+                            );
                         } catch (\Exception $e) {
                             // Notificar error
                             \Filament\Notifications\Notification::make()
@@ -3758,7 +3774,7 @@ class ProcesoDisciplinarioResource extends Resource
                             $record->estado === 'sancion_emitida' &&
                                 !empty($record->trabajador?->email)
                         )
-                        ->action(function (ProcesoDisciplinario $record, array $data) {
+                        ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
                             if ($data['tipo_sancion'] === 'suspension') {
                                 $analisis = json_decode($data['analisis_cache'], true);
                                 $opcionesDiasSuspension = self::opcionesDiasSuspension($analisis);
@@ -3786,7 +3802,11 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->duration(8000)
                                     ->send();
 
-                                redirect(static::getUrl('index'));
+                                // Ver comentario gemelo en la Action 'emitir_sancion': retraso
+                                // para no cortar el confeti.
+                                $action->getLivewire()->js(
+                                    'setTimeout(() => { window.location = ' . json_encode(static::getUrl('index')) . '; }, 4000)'
+                                );
                             } catch (\Exception $e) {
                                 \Filament\Notifications\Notification::make()
                                     ->danger()
