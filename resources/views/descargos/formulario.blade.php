@@ -80,6 +80,7 @@
     </style>
 
     @livewireStyles
+    <script src="https://cdn.lordicon.com/lordicon.js"></script>
 </head>
 <body class="bg-gray-100 antialiased">
     @livewire('formulario-descargos', ['diligencia' => $diligencia])

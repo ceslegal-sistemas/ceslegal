@@ -826,20 +826,24 @@
     <script>
         // Confirmación con branding LUPE Legal (antes: icono "?" gris por
         // defecto de SweetAlert2, sin identidad de marca - ver
-        // backlog-branding-3-pantallas-2026-09-16). Función nombrada en vez
-        // de código inline en @click: un SVG con comillas dobles dentro de un
-        // atributo HTML también de comillas dobles rompería el parseo (mismo
-        // tipo de bug real que ya ocurrió esta noche en otro archivo).
+        // backlog-branding-3-pantallas-2026-09-16). Lord-icon en vez de un
+        // SVG plano (regla del proyecto: iconografía siempre con Lordicon,
+        // ver memoria no-emojis-usar-lordicon) - mismo ícono "xjsqfzte" que
+        // es el hero por defecto de los wizards de bienvenida
+        // (bienvenida-hero.blade.php), reutilizado aquí para mantener la
+        // misma identidad visual del proyecto LUPE Legal. Función nombrada
+        // en vez de código inline en @click: un ícono con comillas dobles
+        // dentro de un atributo HTML también de comillas dobles rompería el
+        // parseo (mismo tipo de bug real que ya ocurrió esta noche en otro
+        // archivo).
         window.confirmarIniciarDiligencia = function (wire) {
             Swal.fire({
                 title: '¿Iniciar diligencia?',
                 text: 'Sus respuestas se guardarán automáticamente. Puede tomarse el tiempo que necesite.',
                 iconHtml: `
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                        stroke-width="1.5" stroke="#e11d48" style="width:2.5em;height:2.5em">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M9 12.75L11.25 15 15 9.75M21 12c0 4.556-3.04 8.35-7.19 9.56a2.25 2.25 0 01-1.62 0C7.04 20.35 4 16.556 4 12V6.638a2.25 2.25 0 011.5-2.122l6-2.25a2.25 2.25 0 011.5 0l6 2.25a2.25 2.25 0 011.5 2.122V12z" />
-                    </svg>
+                    <lord-icon src="https://cdn.lordicon.com/xjsqfzte.json" trigger="loop"
+                        colors="primary:#e11d48,secondary:#e11d48"
+                        style="width:64px;height:64px"></lord-icon>
                 `,
                 customClass: { icon: 'border-0', popup: 'rounded-2xl' },
                 showCancelButton: true,

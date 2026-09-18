@@ -27,12 +27,29 @@ class BrandingModalesIniciarDiligenciaYFeedbackTest extends TestCase
         $this->assertSame(1, substr_count($fuente, 'Swal.fire('), 'Swal.fire debe llamarse una sola vez, desde la función nombrada, no inline en el botón.');
     }
 
-    public function test_iniciar_diligencia_ya_no_usa_el_icono_generico_de_sweetalert2(): void
+    public function test_iniciar_diligencia_usa_lord_icon_no_svg_plano_ni_icono_generico(): void
     {
         $fuente = file_get_contents(resource_path('views/livewire/formulario-descargos.blade.php'));
 
-        $this->assertStringNotContainsString("icon: 'question'", $fuente);
-        $this->assertStringContainsString('iconHtml:', $fuente);
+        // Aislar el bloque de la función confirmarIniciarDiligencia: el
+        // resto del archivo sí tiene SVGs planos preexistentes (avatar del
+        // trabajador, triángulo de advertencia, ícono del botón) fuera de
+        // alcance de este fix - solo el ícono del modal debe usar lord-icon.
+        preg_match('/window\.confirmarIniciarDiligencia = function.*?\n        \};/s', $fuente, $matches);
+        $bloque = $matches[0] ?? '';
+
+        $this->assertNotEmpty($bloque, 'No se encontró la función confirmarIniciarDiligencia.');
+        $this->assertStringNotContainsString("icon: 'question'", $bloque);
+        $this->assertStringContainsString('iconHtml:', $bloque);
+        $this->assertStringContainsString('<lord-icon', $bloque);
+        $this->assertStringNotContainsString('<svg', $bloque, 'No debe quedar ningún SVG plano inventado para este ícono.');
+    }
+
+    public function test_la_pagina_host_carga_el_script_de_lordicon(): void
+    {
+        $fuente = file_get_contents(resource_path('views/descargos/formulario.blade.php'));
+
+        $this->assertStringContainsString('cdn.lordicon.com/lordicon.js', $fuente);
     }
 
     public function test_feedback_ya_no_usa_heading_icono_generico_de_filament(): void
