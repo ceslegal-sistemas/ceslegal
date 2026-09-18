@@ -1273,6 +1273,23 @@ class ProcesoDisciplinarioResource extends Resource
                         $record->trabajador->cargo ?? ''
                     ),
 
+                Tables\Columns\TextColumn::make('emision_sancion_estado')
+                    ->label('Generación de Sanción')
+                    ->badge()
+                    ->color(fn(?string $state): string => match ($state) {
+                        'procesando' => 'warning',
+                        'completado' => 'success',
+                        'error' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn(?string $state): string => match ($state) {
+                        'procesando' => 'Generando...',
+                        'completado' => 'Completado',
+                        'error' => 'Error - reintentar',
+                        default => '',
+                    })
+                    ->visible(fn(?string $state): bool => filled($state)),
+
                 Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')
                     ->sortable()
@@ -1545,6 +1562,7 @@ class ProcesoDisciplinarioResource extends Resource
             ])
             ->defaultPaginationPageOption(5)
             ->deferLoading()
+            ->poll('5s')
             ->filters([
                 Tables\Filters\SelectFilter::make('estado')
                     ->label('Estado')
@@ -2699,35 +2717,24 @@ class ProcesoDisciplinarioResource extends Resource
                         // generación o el envío, el proceso conserva su estado original.
                         if ($data['tipo_sancion'] === 'no_sancion') {
                             try {
-                                $service = new \App\Services\DocumentGeneratorService();
-                                $service->generarYEnviarConstanciaNoSancion($record);
+                                $record->update(['emision_sancion_estado' => 'procesando']);
+                                \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, null);
 
                                 \Filament\Notifications\Notification::make()
                                     ->success()
-                                    ->title('Proceso cerrado - Sin sanción')
-                                    ->body('Se generó la constancia de no sanción con IA y se envió al trabajador. El proceso quedó registrado y cerrado.')
+                                    ->title('Generando la constancia de no sanción...')
+                                    ->body('Se está generando con IA y se enviará al trabajador en unos momentos. Verás el estado en la tabla.')
                                     ->duration(8000)
                                     ->send();
-
-                                // redirect() aquí (sin `return`) igual funciona: Livewire
-                                // reemplaza el binding global 'redirect' por uno propio que
-                                // agrega el destino como "efecto" en la MISMA respuesta -
-                                // llega junto con el evento de confeti (LogroDescargosService,
-                                // disparado por el observer al guardar el estado) y lo corta
-                                // a medio segundo (bug real reportado 2026-09-16). Se retrasa
-                                // con JS para darle tiempo a la animación.
-                                $action->getLivewire()->js(
-                                    'setTimeout(() => { window.location = ' . json_encode(static::getUrl('index')) . '; }, 4000)'
-                                );
                             } catch (\Exception $e) {
                                 \Filament\Notifications\Notification::make()
                                     ->danger()
-                                    ->title('Error al cerrar sin sanción')
-                                    ->body('No se pudo generar o enviar la constancia: ' . $e->getMessage() . '. El proceso mantiene su estado original.')
+                                    ->title('Error al iniciar el cierre sin sanción')
+                                    ->body('No se pudo encolar la generación: ' . $e->getMessage() . '. El proceso mantiene su estado original.')
                                     ->persistent()
                                     ->send();
 
-                                \Illuminate\Support\Facades\Log::error('Error al cerrar proceso sin sanción', [
+                                \Illuminate\Support\Facades\Log::error('Error al encolar cierre de proceso sin sanción', [
                                     'proceso_id' => $record->id,
                                     'error' => $e->getMessage(),
                                     'trace' => $e->getTraceAsString(),
@@ -2739,30 +2746,24 @@ class ProcesoDisciplinarioResource extends Resource
 
                         // Si no es suspensión, proceder directamente
                         try {
-                            $service = new \App\Services\DocumentGeneratorService();
-                            $result = $service->generarYEnviarSancion($record, $data['tipo_sancion']);
+                            $record->update(['emision_sancion_estado' => 'procesando']);
+                            \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, $data['tipo_sancion']);
 
                             \Filament\Notifications\Notification::make()
                                 ->success()
-                                ->title('¡Sanción emitida!')
-                                ->body('El documento de sanción fue generado con IA en lenguaje claro y enviado exitosamente al trabajador.')
+                                ->title('Generando el documento de sanción...')
+                                ->body('Se está generando con IA y se enviará al trabajador en unos momentos. Verás el estado en la tabla.')
                                 ->duration(8000)
                                 ->send();
-
-                            // Ver comentario gemelo arriba (constancia sin sanción): se
-                            // retrasa el redirect para no cortar el confeti.
-                            $action->getLivewire()->js(
-                                'setTimeout(() => { window.location = ' . json_encode(static::getUrl('index')) . '; }, 4000)'
-                            );
                         } catch (\Exception $e) {
                             \Filament\Notifications\Notification::make()
                                 ->danger()
-                                ->title('Error al emitir sanción')
-                                ->body('No se pudo completar la operación: ' . $e->getMessage() . '. El proceso mantiene su estado original.')
+                                ->title('Error al iniciar la emisión de sanción')
+                                ->body('No se pudo encolar la generación: ' . $e->getMessage() . '. El proceso mantiene su estado original.')
                                 ->persistent()
                                 ->send();
 
-                            \Illuminate\Support\Facades\Log::error('Error al emitir sanción', [
+                            \Illuminate\Support\Facades\Log::error('Error al encolar emisión de sanción', [
                                 'proceso_id' => $record->id,
                                 'tipo_sancion' => $data['tipo_sancion'] ?? 'N/A',
                                 'error' => $e->getMessage(),
@@ -2819,15 +2820,15 @@ class ProcesoDisciplinarioResource extends Resource
                             !empty($record->trabajador->email) &&
                             auth()->user()?->hasAnyRole(['super_admin', 'abogado', 'cliente']);
                     })
-                    ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
+                    ->action(function (ProcesoDisciplinario $record, array $data) {
                         try {
                             // Guardar días de suspensión
                             $record->dias_suspension = $data['dias_suspension'];
                             $record->save();
 
-                            // Generar y enviar sanción
-                            $service = new \App\Services\DocumentGeneratorService();
-                            $result = $service->generarYEnviarSancion($record, 'suspension');
+                            // Generar y enviar sanción (en cola, ver GenerarYEnviarSancionJob)
+                            $record->update(['emision_sancion_estado' => 'procesando']);
+                            \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, 'suspension');
 
                             // Limpiar sesión
                             session()->forget('tipo_sancion_pendiente_' . $record->id);
@@ -2836,22 +2837,16 @@ class ProcesoDisciplinarioResource extends Resource
                             // Notificar éxito
                             \Filament\Notifications\Notification::make()
                                 ->success()
-                                ->title('¡Sanción de suspensión emitida!')
-                                ->body("El documento de suspensión de {$data['dias_suspension']} día(s) fue generado y enviado exitosamente al trabajador.")
+                                ->title('Generando el documento de suspensión...')
+                                ->body("Se está generando el documento de suspensión de {$data['dias_suspension']} día(s) con IA y se enviará al trabajador en unos momentos. Verás el estado en la tabla.")
                                 ->duration(8000)
                                 ->send();
-
-                            // Refrescar la página, con retraso para no cortar el confeti
-                            // (ver comentario gemelo en la Action 'emitir_sancion' arriba).
-                            $action->getLivewire()->js(
-                                'setTimeout(() => { window.location = ' . json_encode(static::getUrl('index')) . '; }, 4000)'
-                            );
                         } catch (\Exception $e) {
                             // Notificar error
                             \Filament\Notifications\Notification::make()
                                 ->danger()
-                                ->title('Error al emitir sanción')
-                                ->body('No se pudo completar la operación: ' . $e->getMessage())
+                                ->title('Error al iniciar la emisión de sanción')
+                                ->body('No se pudo encolar la generación: ' . $e->getMessage())
                                 ->persistent()
                                 ->send();
 
@@ -3774,7 +3769,7 @@ class ProcesoDisciplinarioResource extends Resource
                             $record->estado === 'sancion_emitida' &&
                                 !empty($record->trabajador?->email)
                         )
-                        ->action(function (ProcesoDisciplinario $record, array $data, Tables\Actions\Action $action) {
+                        ->action(function (ProcesoDisciplinario $record, array $data) {
                             if ($data['tipo_sancion'] === 'suspension') {
                                 $analisis = json_decode($data['analisis_cache'], true);
                                 $opcionesDiasSuspension = self::opcionesDiasSuspension($analisis);
@@ -3792,30 +3787,24 @@ class ProcesoDisciplinarioResource extends Resource
                             }
 
                             try {
-                                $service = new \App\Services\DocumentGeneratorService();
-                                $result = $service->generarYEnviarSancion($record, $data['tipo_sancion']);
+                                $record->update(['emision_sancion_estado' => 'procesando']);
+                                \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, $data['tipo_sancion']);
 
                                 \Filament\Notifications\Notification::make()
                                     ->success()
-                                    ->title('¡Sanción re-generada!')
-                                    ->body('El documento de sanción fue generado con IA y enviado exitosamente al trabajador.')
+                                    ->title('Re-generando el documento de sanción...')
+                                    ->body('Se está generando con IA y se enviará al trabajador en unos momentos. Verás el estado en la tabla.')
                                     ->duration(8000)
                                     ->send();
-
-                                // Ver comentario gemelo en la Action 'emitir_sancion': retraso
-                                // para no cortar el confeti.
-                                $action->getLivewire()->js(
-                                    'setTimeout(() => { window.location = ' . json_encode(static::getUrl('index')) . '; }, 4000)'
-                                );
                             } catch (\Exception $e) {
                                 \Filament\Notifications\Notification::make()
                                     ->danger()
-                                    ->title('Error al re-generar sanción')
-                                    ->body('No se pudo completar la operación: ' . $e->getMessage())
+                                    ->title('Error al iniciar la re-generación de sanción')
+                                    ->body('No se pudo encolar la generación: ' . $e->getMessage())
                                     ->persistent()
                                     ->send();
 
-                                \Illuminate\Support\Facades\Log::error('Error al re-generar sanción', [
+                                \Illuminate\Support\Facades\Log::error('Error al encolar re-generación de sanción', [
                                     'proceso_id' => $record->id,
                                     'tipo_sancion' => $data['tipo_sancion'] ?? 'N/A',
                                     'error' => $e->getMessage(),

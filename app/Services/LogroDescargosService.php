@@ -4,6 +4,7 @@ namespace App\Services;
 
 use AlexSyvolap\FilamentConfetti\Confetti;
 use App\Models\Empresa;
+use App\Models\ProcesoDisciplinario;
 use App\Models\User;
 use LevelUp\Experience\Models\Achievement;
 
@@ -79,7 +80,7 @@ class LogroDescargosService
      * revierta la sanción, a cambio de premiar la puntualidad tan pronto
      * se resuelve el fondo del asunto.
      */
-    public function registrarPlazoCumplido(Empresa $empresa): void
+    public function registrarPlazoCumplido(Empresa $empresa, ?ProcesoDisciplinario $proceso = null): void
     {
         foreach (self::UMBRALES as $nombre => $meta) {
             $achievement = Achievement::where('name', $nombre)->first();
@@ -88,11 +89,11 @@ class LogroDescargosService
                 continue;
             }
 
-            $this->incrementarLogro($empresa, $achievement, $meta);
+            $this->incrementarLogro($empresa, $achievement, $meta, $proceso);
         }
     }
 
-    private function incrementarLogro(Empresa $empresa, Achievement $achievement, int $meta): void
+    private function incrementarLogro(Empresa $empresa, Achievement $achievement, int $meta, ?ProcesoDisciplinario $proceso = null): void
     {
         $incremento = (int) round(100 / $meta);
         $yaGranted = $empresa->allAchievements()->find($achievement->id);
@@ -115,7 +116,7 @@ class LogroDescargosService
         }
 
         if ($progresoDespues >= 100) {
-            $this->celebrar($empresa, $achievement);
+            $this->celebrar($empresa, $achievement, $proceso);
         }
     }
 
@@ -131,19 +132,17 @@ class LogroDescargosService
      * notificación de la campanita, nunca el confeti.
      *
      * `Confetti::fireworks()->shoot()` ya resuelve esto por su cuenta (ver
-     * vendor/alexsyvolap/filament-confetti/src/ConfettiBuilder.php): si se
-     * llama DURANTE una petición Livewire en curso (que es justo lo que pasa
-     * aquí - este método se dispara desde ProcesoDisciplinarioObserver
-     * mientras el cliente ejecuta una acción de Filament/Livewire), dispara
-     * el evento del navegador de inmediato sobre lo que sea que el cliente
-     * tenga abierto en ese momento. Si por algún motivo se llamara fuera de
-     * una petición Livewire (ej. un comando de consola), el propio paquete
-     * cae a session()->flash(), que su propio render hook (registrado
-     * globalmente en ambos paneles, ver ConfiguraPanelCompartido.php) ya
-     * consume solo en la siguiente carga de página - sin necesitar el flag
-     * manual que había aquí antes.
+     * vendor/alexsyvolap/filament-confetti/src/ConfettiBuilder.php) SIEMPRE
+     * QUE se llame durante una petición Livewire en curso. Desde que
+     * generarYEnviarSancion() corre dentro de GenerarYEnviarSancionJob (cola,
+     * proceso CLI sin sesión HTTP real), este método ya no tiene esa petición
+     * Livewire disponible cuando $proceso viene informado - en ese caso se
+     * omite el confeti en vivo (caso raro: cruzar el 100% de un logro justo
+     * en esa sanción) y solo se deja constancia en el proceso para que la
+     * tabla lo pueda mostrar; la notificación de campana sí llega siempre,
+     * no depende de Livewire.
      */
-    private function celebrar(Empresa $empresa, Achievement $achievement): void
+    private function celebrar(Empresa $empresa, Achievement $achievement, ?ProcesoDisciplinario $proceso = null): void
     {
         $usuarios = User::where('empresa_id', $empresa->id)
             ->where('active', true)
@@ -160,6 +159,13 @@ class LogroDescargosService
                 mensaje: "Su empresa desbloqueó el logro \"{$achievement->name}\": {$achievement->description}",
                 prioridad: 'baja',
             );
+        }
+
+        if ($proceso) {
+            $proceso->logro_desbloqueado_nombre = $achievement->name;
+            $proceso->saveQuietly();
+
+            return;
         }
 
         if (class_exists(Confetti::class)) {

@@ -6,17 +6,18 @@ use Tests\TestCase;
 
 /**
  * Bug real reportado por el usuario en producción (2026-09-16, tarde-noche,
- * mismo día del demo): al emitir una sanción, el confeti (LogroDescargosService
- * ::celebrar(), disparado por ProcesoDisciplinarioObserver al guardar el
- * estado 'sancion_emitida') se cortaba a medio segundo porque
- * `redirect(static::getUrl('index'));` navegaba de inmediato en la MISMA
- * respuesta de Livewire - confirmado técnicamente: Livewire reemplaza el
- * binding global 'redirect' por uno propio que agrega el destino como
- * "efecto" de la respuesta sin necesitar `return` (ver
- * SupportRedirects::dehydrate() en el vendor de Livewire).
+ * mismo día del demo): al emitir una sanción, el confeti se cortaba a medio
+ * segundo porque `redirect(static::getUrl('index'));` navegaba de inmediato
+ * en la MISMA respuesta de Livewire. El parche de esa noche fue un
+ * `setTimeout` antes de redirigir (commit 47bc5d4).
  *
- * Fix: reemplazar el redirect inmediato por un `setTimeout` vía
- * `$action->getLivewire()->js(...)`, dando tiempo a la animación.
+ * Ese parche quedó OBSOLETO al mover generarYEnviarSancion()/
+ * generarYEnviarConstanciaNoSancion() a GenerarYEnviarSancionJob (cola): los
+ * 4 puntos que emiten una sanción ya no ejecutan la operación lenta de forma
+ * síncrona, así que ya no hay nada que redirigir tras esperar - el usuario se
+ * queda viendo la tabla, que muestra el estado vía el badge
+ * `emision_sancion_estado` con poll(). Ver
+ * docs/superpowers/specs/2026-09-18-generar-sancion-cola-asincrona-design.md.
  */
 class EmitirSancionConfettiSinRedirectInmediatoTest extends TestCase
 {
@@ -24,30 +25,23 @@ class EmitirSancionConfettiSinRedirectInmediatoTest extends TestCase
     {
         $fuente = file_get_contents(app_path('Filament/Admin/Resources/ProcesoDisciplinarioResource.php'));
 
-        // Antes había 5 ocurrencias de redirect(static::getUrl('index')) sin
-        // return - Livewire lo aplica igual como "efecto" de la respuesta (ver
-        // SupportRedirects::dehydrate() en el vendor), llegando junto con el
-        // confeti y cortándolo a medio segundo. Los 4 puntos que SÍ emiten una
-        // sanción (y disparan el confeti vía el observer al guardar
-        // 'sancion_emitida') ahora retrasan la navegación. Solo queda 1 sin
-        // tocar: la resolución de impugnación, que cierra el proceso
-        // directamente a 'cerrado' - nunca pasa por 'sancion_emitida', así que
-        // no dispara confeti y no necesitaba el fix.
+        // La resolución de impugnación cierra el proceso directo a 'cerrado'
+        // - nunca pasa por 'sancion_emitida', no dispara confeti, nunca
+        // necesitó el fix. Es el único bare-redirect que debe quedar.
         $ocurrencias = substr_count($fuente, "redirect(static::getUrl('index'));");
 
         $this->assertSame(1, $ocurrencias);
     }
 
-    public function test_el_redirect_retrasado_via_js_esta_presente_4_veces(): void
+    public function test_ya_no_queda_el_parche_de_setTimeout_porque_la_emision_es_asincrona(): void
     {
         $fuente = file_get_contents(app_path('Filament/Admin/Resources/ProcesoDisciplinarioResource.php'));
 
-        // Cuenta específicamente el patrón setTimeout(...window.location...) que
-        // reemplaza al redirect inmediato - no el conteo genérico de
-        // getLivewire()->js(), que también incluye el listener 'modal-closed'
-        // ya existente desde antes (sin relación con este bug).
-        $ocurrencias = substr_count($fuente, "setTimeout(() => { window.location = ");
+        // El parche de setTimeout+redirect ya no aplica: los 4 puntos que
+        // emiten sanción ahora despachan GenerarYEnviarSancionJob y no
+        // redirigen - no hay nada que "esperar" en la misma petición.
+        $ocurrencias = substr_count($fuente, 'setTimeout(() => { window.location = ');
 
-        $this->assertSame(4, $ocurrencias, 'Se esperaban los 4 puntos: constancia sin sanción, emitir sanción directo, confirmar días de suspensión y re-generar sanción.');
+        $this->assertSame(0, $ocurrencias);
     }
 }

@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use AlexSyvolap\FilamentConfetti\Confetti;
 use App\Models\Empresa;
+use App\Models\ProcesoDisciplinario;
+use App\Models\Trabajador;
 use App\Models\User;
 use App\Services\LogroDescargosService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -130,6 +132,47 @@ class LogroDescargosServiceTest extends TestCase
         $this->assertSame('Gestor puntual', $estado['actual']['nombre']);
         $this->assertSame(1, $estado['actual']['count']);
         $this->assertSame(5, $estado['actual']['meta']);
+    }
+
+    /**
+     * GenerarYEnviarSancionJob corre en cola (proceso CLI, sin petición
+     * Livewire real) - Confetti::fireworks()->shoot() no se transmitiría ahí
+     * (ver comentario en LogroDescargosService::celebrar()). Cuando se pasa
+     * un $proceso, el logro desbloqueado se deja registrado en el propio
+     * proceso para que la tabla lo muestre, en vez de intentar el confeti.
+     */
+    public function test_con_un_proceso_informado_deja_constancia_del_logro_en_vez_de_confeti(): void
+    {
+        // TimelineService::registrarCreacion() (disparado por el observer al
+        // crear el proceso) usa auth()->id() ?? 1 como user_id - la columna
+        // es FK real, necesita un usuario con id=1.
+        User::factory()->create(['id' => 1, 'role' => 'super_admin', 'active' => true]);
+
+        $empresa = $this->crearEmpresa();
+        $trabajador = Trabajador::create([
+            'empresa_id' => $empresa->id,
+            'tipo_documento' => 'CC',
+            'numero_documento' => '999',
+            'genero' => 'masculino',
+            'nombres' => 'Ana',
+            'apellidos' => 'Gómez',
+            'cargo' => 'Auxiliar',
+            'email' => 'ana@test.com',
+            'telefono' => '3009999999',
+            'direccion' => 'Calle 9',
+            'active' => true,
+        ]);
+        $proceso = ProcesoDisciplinario::create([
+            'empresa_id' => $empresa->id,
+            'trabajador_id' => $trabajador->id,
+            'hechos' => 'Hechos de prueba.',
+        ]);
+
+        app(LogroDescargosService::class)->registrarPlazoCumplido($empresa, $proceso);
+
+        $proceso->refresh();
+        $this->assertSame('Primer plazo cumplido', $proceso->logro_desbloqueado_nombre);
+        $this->assertEmpty(session(Confetti::EVENT));
     }
 
     public function test_estado_dashboard_actual_es_null_cuando_los_3_logros_estan_completos(): void

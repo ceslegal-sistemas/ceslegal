@@ -403,7 +403,7 @@ class ProcesoDisciplinarioObserver
                             ->exists();
 
                         if (!$huboTerminoVencido) {
-                            $this->logroDescargosService->registrarPlazoCumplido($proceso->empresa);
+                            $this->logroDescargosService->registrarPlazoCumplido($proceso->empresa, $proceso);
                         }
                     }
                 }

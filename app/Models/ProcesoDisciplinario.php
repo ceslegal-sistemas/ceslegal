@@ -73,6 +73,9 @@ class ProcesoDisciplinario extends Model
         'analisis_recomendacion_original',
         'correccion_v6_motivo',
         'validaciones_v6_puntos_clave',
+        'emision_sancion_estado',
+        'emision_sancion_error',
+        'logro_desbloqueado_nombre',
     ];
 
     protected $casts = [
