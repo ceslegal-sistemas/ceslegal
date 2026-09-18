@@ -284,8 +284,8 @@
             // la espera se sentía tediosa para el trabajador en una demo real en
             // vivo. 5s es un punto medio deliberado - la causa raíz real para
             // escalar a muchos clientes simultáneos NO es este timer, es que
-            // DocumentGeneratorService::generarYEnviarSancion() (paso "confirmar
-            // días de suspensión" en Emitir Sanción) corre síncrono dentro de la
+            // DocumentGeneratorService::generarYEnviarSancion() (paso 'confirmar
+            // días de suspensión' en Emitir Sanción) corre síncrono dentro de la
             // petición web en vez de en una cola, a diferencia del análisis
             // inicial de gravedad que sí usa GenerarRecomendacionYRevisarV6Job -
             // ese patrón (cola + polling de progreso) es el que falta extender ahí.
