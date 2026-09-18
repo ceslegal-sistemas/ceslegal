@@ -1273,31 +1273,6 @@ class ProcesoDisciplinarioResource extends Resource
                         $record->trabajador->cargo ?? ''
                     ),
 
-                Tables\Columns\TextColumn::make('emision_sancion_estado')
-                    ->label('Generación de Sanción')
-                    ->badge()
-                    ->color(fn(?string $state): string => match ($state) {
-                        'procesando' => 'warning',
-                        'completado' => 'success',
-                        'error' => 'danger',
-                        default => 'gray',
-                    })
-                    // No usar ->visible(fn ($state) => ...) aquí: en una
-                    // COLUMNA (no en una celda), Filament también evalúa
-                    // ->visible() al construir el menú de "columnas
-                    // visibles" (CanToggleColumns), sin ningún $record en
-                    // contexto - pedir $state ahí fuerza a calcular el
-                    // estado de la celda contra un $record null y revienta
-                    // (bug real en producción, 2026-09-18). formatStateUsing
-                    // devuelve null para que Filament simplemente no
-                    // renderice el badge cuando no hay estado.
-                    ->formatStateUsing(fn(?string $state): ?string => match ($state) {
-                        'procesando' => 'Generando...',
-                        'completado' => 'Completado',
-                        'error' => 'Error - reintentar',
-                        default => null,
-                    }),
-
                 Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')
                     ->sortable()
@@ -1567,6 +1542,31 @@ class ProcesoDisciplinarioResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('emision_sancion_estado')
+                    ->label('Generación de Sanción')
+                    ->badge()
+                    ->color(fn(?string $state): string => match ($state) {
+                        'procesando' => 'warning',
+                        'completado' => 'success',
+                        'error' => 'danger',
+                        default => 'gray',
+                    })
+                    // No usar ->visible(fn ($state) => ...) aquí: en una
+                    // COLUMNA (no en una celda), Filament también evalúa
+                    // ->visible() al construir el menú de "columnas
+                    // visibles" (CanToggleColumns), sin ningún $record en
+                    // contexto - pedir $state ahí fuerza a calcular el
+                    // estado de la celda contra un $record null y revienta
+                    // (bug real en producción, 2026-09-18). formatStateUsing
+                    // devuelve null para que Filament simplemente no
+                    // renderice el badge cuando no hay estado.
+                    ->formatStateUsing(fn(?string $state): ?string => match ($state) {
+                        'procesando' => 'Generando...',
+                        'completado' => 'Completado',
+                        'error' => 'Error - reintentar',
+                        default => null,
+                    }),
             ])
             ->defaultPaginationPageOption(5)
             ->deferLoading()
