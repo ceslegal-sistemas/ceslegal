@@ -1552,6 +1552,12 @@ class ProcesoDisciplinarioResource extends Resource
                         'error' => 'danger',
                         default => 'gray',
                     })
+                    ->icon(fn(?string $state): ?string => match ($state) {
+                        'procesando' => 'heroicon-o-arrow-path',
+                        'completado' => 'heroicon-o-check-circle',
+                        'error' => 'heroicon-o-exclamation-triangle',
+                        default => null,
+                    })
                     // No usar ->visible(fn ($state) => ...) aquí: en una
                     // COLUMNA (no en una celda), Filament también evalúa
                     // ->visible() al construir el menú de "columnas
@@ -2727,12 +2733,13 @@ class ProcesoDisciplinarioResource extends Resource
                             try {
                                 $record->update(['emision_sancion_estado' => 'procesando']);
                                 \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, null);
+                                session()->flash('proceso_disciplinario_generando_sancion', $record->id);
 
                                 \Filament\Notifications\Notification::make()
                                     ->success()
                                     ->title('Generando la constancia de no sanción...')
-                                    ->body('Se está generando con IA y se enviará al trabajador en unos momentos. Verás el estado en la tabla.')
-                                    ->duration(8000)
+                                    ->body('Puede tardar 1-2 minutos. Busque la fila resaltada abajo: la columna "Generación de Sanción" mostrará "Completado" cuando esté listo y se envíe al trabajador.')
+                                    ->persistent()
                                     ->send();
                             } catch (\Exception $e) {
                                 \Filament\Notifications\Notification::make()
@@ -2756,12 +2763,13 @@ class ProcesoDisciplinarioResource extends Resource
                         try {
                             $record->update(['emision_sancion_estado' => 'procesando']);
                             \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, $data['tipo_sancion']);
+                            session()->flash('proceso_disciplinario_generando_sancion', $record->id);
 
                             \Filament\Notifications\Notification::make()
                                 ->success()
                                 ->title('Generando el documento de sanción...')
-                                ->body('Se está generando con IA y se enviará al trabajador en unos momentos. Verás el estado en la tabla.')
-                                ->duration(8000)
+                                ->body('Puede tardar 1-2 minutos. Busque la fila resaltada abajo: la columna "Generación de Sanción" mostrará "Completado" cuando esté listo y se envíe al trabajador.')
+                                ->persistent()
                                 ->send();
                         } catch (\Exception $e) {
                             \Filament\Notifications\Notification::make()
@@ -2837,6 +2845,7 @@ class ProcesoDisciplinarioResource extends Resource
                             // Generar y enviar sanción (en cola, ver GenerarYEnviarSancionJob)
                             $record->update(['emision_sancion_estado' => 'procesando']);
                             \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, 'suspension');
+                            session()->flash('proceso_disciplinario_generando_sancion', $record->id);
 
                             // Limpiar sesión
                             session()->forget('tipo_sancion_pendiente_' . $record->id);
@@ -2846,8 +2855,8 @@ class ProcesoDisciplinarioResource extends Resource
                             \Filament\Notifications\Notification::make()
                                 ->success()
                                 ->title('Generando el documento de suspensión...')
-                                ->body("Se está generando el documento de suspensión de {$data['dias_suspension']} día(s) con IA y se enviará al trabajador en unos momentos. Verás el estado en la tabla.")
-                                ->duration(8000)
+                                ->body("Puede tardar 1-2 minutos (suspensión de {$data['dias_suspension']} día(s)). Busque la fila resaltada abajo: la columna \"Generación de Sanción\" mostrará \"Completado\" cuando esté listo y se envíe al trabajador.")
+                                ->persistent()
                                 ->send();
                         } catch (\Exception $e) {
                             // Notificar error
@@ -3797,12 +3806,13 @@ class ProcesoDisciplinarioResource extends Resource
                             try {
                                 $record->update(['emision_sancion_estado' => 'procesando']);
                                 \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, $data['tipo_sancion']);
+                                session()->flash('proceso_disciplinario_generando_sancion', $record->id);
 
                                 \Filament\Notifications\Notification::make()
                                     ->success()
                                     ->title('Re-generando el documento de sanción...')
-                                    ->body('Se está generando con IA y se enviará al trabajador en unos momentos. Verás el estado en la tabla.')
-                                    ->duration(8000)
+                                    ->body('Puede tardar 1-2 minutos. Busque la fila resaltada abajo: la columna "Generación de Sanción" mostrará "Completado" cuando esté listo y se envíe al trabajador.')
+                                    ->persistent()
                                     ->send();
                             } catch (\Exception $e) {
                                 \Filament\Notifications\Notification::make()
@@ -3925,6 +3935,14 @@ class ProcesoDisciplinarioResource extends Resource
                         ->label('Restaurar seleccionados'),
                 ]),
             ])
+            // Resalta la fila cuya sanción se acaba de encolar (mismo patrón
+            // ya probado en SolicitudContratoResource): sin esto, un usuario
+            // nuevo que le da clic a "Emitir Sanción" cae de vuelta al
+            // listado sin ninguna pista de dónde mirar - hallazgo real del
+            // usuario (2026-09-18).
+            ->recordClasses(fn(ProcesoDisciplinario $record) => session('proceso_disciplinario_generando_sancion') === $record->id
+                ? 'ring-2 ring-inset ring-warning-500 bg-warning-50 dark:bg-warning-500/10'
+                : null)
             ->defaultSort('created_at', 'desc');
     }
 
