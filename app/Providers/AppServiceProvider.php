@@ -9,10 +9,12 @@ use App\Models\DocumentoLegal;
 use App\Models\ProcesoDisciplinario;
 use App\Models\ReglamentoInterno;
 use App\Models\SolicitudContrato;
+use App\Models\User;
 use App\Observers\DocumentoLegalObserver;
 use App\Observers\ProcesoDisciplinarioObserver;
 use App\Observers\ReglamentoInternoObserver;
 use App\Observers\SolicitudContratoObserver;
+use App\Observers\UserObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -34,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
         ProcesoDisciplinario::observe(ProcesoDisciplinarioObserver::class);
         SolicitudContrato::observe(SolicitudContratoObserver::class);
         ReglamentoInterno::observe(ReglamentoInternoObserver::class);
+        User::observe(UserObserver::class);
 
         // Quita el botón "Crear y crear otro" de TODOS los formularios de
         // creación del panel (pedido del usuario 2026-08-13). $canCreateAnother
