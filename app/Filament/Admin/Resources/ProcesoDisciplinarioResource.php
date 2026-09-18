@@ -1282,13 +1282,21 @@ class ProcesoDisciplinarioResource extends Resource
                         'error' => 'danger',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn(?string $state): string => match ($state) {
+                    // No usar ->visible(fn ($state) => ...) aquí: en una
+                    // COLUMNA (no en una celda), Filament también evalúa
+                    // ->visible() al construir el menú de "columnas
+                    // visibles" (CanToggleColumns), sin ningún $record en
+                    // contexto - pedir $state ahí fuerza a calcular el
+                    // estado de la celda contra un $record null y revienta
+                    // (bug real en producción, 2026-09-18). formatStateUsing
+                    // devuelve null para que Filament simplemente no
+                    // renderice el badge cuando no hay estado.
+                    ->formatStateUsing(fn(?string $state): ?string => match ($state) {
                         'procesando' => 'Generando...',
                         'completado' => 'Completado',
                         'error' => 'Error - reintentar',
-                        default => '',
-                    })
-                    ->visible(fn(?string $state): bool => filled($state)),
+                        default => null,
+                    }),
 
                 Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')
