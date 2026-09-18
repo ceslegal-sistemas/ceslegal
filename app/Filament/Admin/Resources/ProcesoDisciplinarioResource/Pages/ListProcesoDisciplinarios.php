@@ -7,6 +7,7 @@ use App\Filament\Concerns\HasVerificacionFotografica;
 use App\Models\Feedback;
 use App\Models\ProcesoDisciplinario;
 use Filament\Actions;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -127,11 +128,15 @@ class ListProcesoDisciplinarios extends ListRecords
                 ->icon('heroicon-o-star')
                 ->color('warning')
                 ->visible(fn () => auth()->user()?->role !== 'super_admin')
-                ->modalHeading('Diligencia completada - ¿Cómo te fue?')
-                ->modalDescription('Tu opinión nos ayuda a mejorar. Todos los campos son obligatorios.')
-                ->modalIcon('heroicon-o-document-check')
                 ->modalWidth('lg')
                 ->form([
+                    // Branding LUPE Legal (antes: heading/icono genéricos de
+                    // Filament) - mismo patrón ya usado en otros modales de
+                    // este recurso, ver feedback-diligencia-hero.blade.php.
+                    Placeholder::make('feedback_hero')
+                        ->hiddenLabel()
+                        ->content(fn () => view('filament.components.feedback-diligencia-hero')),
+
                     Radio::make('calificacion')
                         ->label('¿Cómo calificarías la experiencia con este proceso?')
                         ->options([

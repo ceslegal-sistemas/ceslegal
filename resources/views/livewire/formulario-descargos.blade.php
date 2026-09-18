@@ -471,24 +471,7 @@
                         ])
 
                         {{-- Botón iniciar --}}
-                        <button type="button" x-data
-                            @click="
-                                Swal.fire({
-                                    title: '¿Iniciar diligencia?',
-                                    text: 'Sus respuestas se guardarán automáticamente. Puede tomarse el tiempo que necesite.',
-                                    icon: 'question',
-                                    showCancelButton: true,
-                                    confirmButtonColor: '#e11d48',
-                                    cancelButtonColor: '#6b7280',
-                                    confirmButtonText: 'Sí, iniciar',
-                                    cancelButtonText: 'Cancelar',
-                                    reverseButtons: true
-                                }).then((result) => {
-                                    if (result.isConfirmed) {
-                                        $wire.iniciarDiligencia();
-                                    }
-                                })
-                            "
+                        <button type="button" x-data @click="confirmarIniciarDiligencia($wire)"
                             class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl shadow-sm transition-colors">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd"
@@ -841,6 +824,37 @@
     {{-- Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        // Confirmación con branding LUPE Legal (antes: icono "?" gris por
+        // defecto de SweetAlert2, sin identidad de marca - ver
+        // backlog-branding-3-pantallas-2026-09-16). Función nombrada en vez
+        // de código inline en @click: un SVG con comillas dobles dentro de un
+        // atributo HTML también de comillas dobles rompería el parseo (mismo
+        // tipo de bug real que ya ocurrió esta noche en otro archivo).
+        window.confirmarIniciarDiligencia = function (wire) {
+            Swal.fire({
+                title: '¿Iniciar diligencia?',
+                text: 'Sus respuestas se guardarán automáticamente. Puede tomarse el tiempo que necesite.',
+                iconHtml: `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        stroke-width="1.5" stroke="#e11d48" style="width:2.5em;height:2.5em">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9 12.75L11.25 15 15 9.75M21 12c0 4.556-3.04 8.35-7.19 9.56a2.25 2.25 0 01-1.62 0C7.04 20.35 4 16.556 4 12V6.638a2.25 2.25 0 011.5-2.122l6-2.25a2.25 2.25 0 011.5 0l6 2.25a2.25 2.25 0 011.5 2.122V12z" />
+                    </svg>
+                `,
+                customClass: { icon: 'border-0', popup: 'rounded-2xl' },
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sí, iniciar',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true,
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    wire.iniciarDiligencia();
+                }
+            });
+        };
+
         document.addEventListener('livewire:initialized', () => {
             Livewire.on('descargosFinalizados', () => {
                 // El feedback modal se maneja por Livewire
