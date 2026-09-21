@@ -31,6 +31,7 @@ class Empresa extends Model
         'departamento',
         'representante_legal',
         'representante_legal_cedula',
+        'token_socializacion_rit',
         'active',
         'dias_laborales',
         'dias_habiles',
