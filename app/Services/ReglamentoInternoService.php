@@ -258,12 +258,44 @@ class ReglamentoInternoService
             : [];
 
         if (!empty($config) && is_array($config)) {
-            $fmt = fn(array $s): string => match ($s['tipo_sancion'] ?? '') {
-                'llamado_atencion' => 'Llamado de atención',
-                'suspension'       => 'Suspensión' . (!empty($s['dias_suspension']) ? ' hasta ' . $s['dias_suspension'] . ' día(s)' : ''),
-                'terminacion'      => 'Terminación del contrato con justa causa',
-                'no_sancion'       => 'No aplica sanción',
-                default            => ucfirst(str_replace('_', ' ', (string) ($s['tipo_sancion'] ?? ''))),
+            // Resume todas las conductas de la misma gravedad en un solo texto
+            // por SANCIÓN (agrupado por tipo, no por conducta) - bug real
+            // reportado (2026-09-18, proceso PD-2026-0126): varias conductas
+            // "graves" configuradas cada una con su propia cantidad de días de
+            // suspensión (2, 3, 5, 4) hacían que la columna mostrara "Suspensión
+            // hasta 2 día(s) / Suspensión hasta 3 día(s) / ..." en vez de un
+            // rango legible. Cuando todas las conductas de suspensión de esa
+            // gravedad comparten el mismo tipo, se muestra el rango de días; solo
+            // se separa con "/" cuando de verdad hay sanciones de tipo distinto
+            // (ej. suspensión Y terminación conviviendo en "grave").
+            $resumirSanciones = function (array $sanciones): string {
+                $porTipo = [];
+                foreach ($sanciones as $s) {
+                    $porTipo[$s['tipo_sancion'] ?? ''][] = $s;
+                }
+
+                $partes = [];
+                foreach ($porTipo as $tipo => $items) {
+                    $partes[] = match ($tipo) {
+                        'llamado_atencion' => 'Llamado de atención',
+                        'suspension' => (function () use ($items): string {
+                            $dias = array_values(array_unique(array_filter(
+                                array_map(fn($s) => $s['dias_suspension'] ?? null, $items)
+                            )));
+                            sort($dias);
+                            return match (count($dias)) {
+                                0 => 'Suspensión',
+                                1 => 'Suspensión hasta ' . $dias[0] . ' día(s)',
+                                default => 'Suspensión de ' . $dias[0] . ' a ' . end($dias) . ' día(s)',
+                            };
+                        })(),
+                        'terminacion' => 'Terminación del contrato con justa causa',
+                        'no_sancion' => 'No aplica sanción',
+                        default => ucfirst(str_replace('_', ' ', (string) $tipo)),
+                    };
+                }
+
+                return implode(' / ', array_values(array_unique(array_filter($partes))));
             };
 
             $grupos = ['leve' => ['c' => [], 's' => []], 'grave' => ['c' => [], 's' => []], 'muy_grave' => ['c' => [], 's' => []]];
@@ -271,7 +303,7 @@ class ReglamentoInternoService
                 $g = $s['tipo_falta'] ?? '';
                 if (!isset($grupos[$g])) continue;
                 if (!empty($s['nombre'])) $grupos[$g]['c'][] = $s['nombre'];
-                $grupos[$g]['s'][] = $fmt($s);
+                $grupos[$g]['s'][] = $s;
             }
 
             $filas = [];
@@ -280,7 +312,7 @@ class ReglamentoInternoService
                 $filas[] = [
                     'gravedad'  => $etiqueta[$g],
                     'conductas' => array_values(array_unique($grupos[$g]['c'])),
-                    'sancion'   => implode(' / ', array_values(array_unique(array_filter($grupos[$g]['s'])))),
+                    'sancion'   => $resumirSanciones($grupos[$g]['s']),
                 ];
             }
             if (!empty($filas)) return $filas;
