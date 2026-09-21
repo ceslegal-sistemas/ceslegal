@@ -13,6 +13,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class GenerarTextoRITJob implements ShouldQueue
@@ -82,17 +83,23 @@ class GenerarTextoRITJob implements ShouldQueue
         // que asuma "el activo" en singular (descarga, generación de
         // contratos, próximas auditorías). $rit todavía no está activo en
         // este punto, así que no hace falta excluirlo explícitamente.
-        ReglamentoInterno::desactivarActivosDe($empresa->id);
+        //
+        // DB::transaction() (2026-09-21): desactivar y activar eran 2 pasos
+        // separados - si el worker mataba el job justo en medio (timeout,
+        // caída del servidor), la empresa quedaba SIN ningún RIT activo.
+        // Atómico ahora, mismo patrón ya usado en AceptacionMejoraRITService.
+        DB::transaction(function () use ($empresa, $rit, $textoRIT) {
+            ReglamentoInterno::desactivarActivosDe($empresa->id);
 
-        // Persistir texto y activar el reglamento
-        $rit->update([
-            'nombre'               => 'Reglamento Interno generado con IA - ' . now()->format('d/m/Y'),
-            'texto_completo'       => $textoRIT,
-            'activo'               => true,
-            'estado_generacion'    => 'completado',
-            'mensaje_error_ia'     => null,
-            'progreso_generacion'  => null,
-        ]);
+            $rit->update([
+                'nombre'               => 'Reglamento Interno generado con IA - ' . now()->format('d/m/Y'),
+                'texto_completo'       => $textoRIT,
+                'activo'               => true,
+                'estado_generacion'    => 'completado',
+                'mensaje_error_ia'     => null,
+                'progreso_generacion'  => null,
+            ]);
+        });
 
         // Guardar DOCX en disco público (no fatal si falla)
         $rutaDocx = $service->guardarDocxPublico($textoRIT, $empresa);

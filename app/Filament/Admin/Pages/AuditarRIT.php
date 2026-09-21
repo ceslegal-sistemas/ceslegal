@@ -22,6 +22,7 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -369,11 +370,16 @@ class AuditarRIT extends Page implements HasForms, HasActions
             return;
         }
 
-        // Desactivar todos los reglamentos de la empresa y activar el mejorado
-        ReglamentoInterno::desactivarActivosDe($this->empresa->id);
+        // Desactivar todos los reglamentos de la empresa y activar el mejorado.
+        // DB::transaction() (2026-09-21): si algo interrumpe la ejecución justo
+        // entre desactivar y activar, la empresa quedaba sin ningún RIT activo -
+        // mismo patrón ya usado en AceptacionMejoraRITService.
+        DB::transaction(function () {
+            ReglamentoInterno::desactivarActivosDe($this->empresa->id);
 
-        $this->ritMejorado->update(['activo' => true]);
-        $this->auditoria->update(['decision_mejora' => 'adoptado']);
+            $this->ritMejorado->update(['activo' => true]);
+            $this->auditoria->update(['decision_mejora' => 'adoptado']);
+        });
 
         $this->ritMejorado = $this->ritMejorado->fresh();
         $this->auditoria   = $this->auditoria->fresh();

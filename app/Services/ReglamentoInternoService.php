@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\FragmentoReglamento;
 use App\Models\ReglamentoInterno;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -78,9 +79,15 @@ class ReglamentoInternoService
         // Desactivar todos los registros anteriores para que solo quede este como activo.
         // Se hace antes de crear el nuevo para que la relación hasOne(activo=true).latest()
         // no devuelva un registro antiguo de IA cuando coexisten varios por empresa.
-        ReglamentoInterno::desactivarActivosDe($empresaId);
+        //
+        // DB::transaction() (2026-09-21): si algo interrumpe la ejecución justo
+        // entre desactivar y crear el nuevo, la empresa quedaba sin ningún RIT
+        // activo - mismo patrón ya usado en AceptacionMejoraRITService.
+        $reglamento = DB::transaction(function () use ($empresaId, $campos) {
+            ReglamentoInterno::desactivarActivosDe($empresaId);
 
-        $reglamento = ReglamentoInterno::create($campos);
+            return ReglamentoInterno::create($campos);
+        });
 
         Log::info('ReglamentoInternoService: documento registrado', [
             'empresa_id' => $empresaId,
