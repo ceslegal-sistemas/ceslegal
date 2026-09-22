@@ -18,12 +18,15 @@
             color: #ffffff;
             text-align: center;
         }
-        .band-top { padding: 26px 20px; }
-        .band-top .marca { font-size: 22px; font-weight: 700; letter-spacing: .08em; margin: 0; }
+        .band-top { padding: 16px 20px; }
+        .band-top p { font-size: 11px; font-weight: 700; letter-spacing: .1em; margin: 0; color: #fecdd3; }
         .band-bottom { padding: 16px 20px; position: fixed; bottom: 0; left: 0; }
         .band-bottom p { font-size: 11px; margin: 0; color: #fecdd3; }
 
-        .contenido { padding: 46px 55px 30px; text-align: center; }
+        .contenido { padding: 34px 55px 30px; text-align: center; }
+
+        .logo-empresa { display: block; margin: 0 auto 22px; }
+        .logo-empresa img { max-height: 64px; max-width: 220px; display: block; margin: 0 auto; }
 
         .kicker {
             display: block;
@@ -32,14 +35,14 @@
             letter-spacing: .14em;
             text-transform: uppercase;
             color: #be123c;
-            margin: 0 0 18px;
+            margin: 0 0 16px;
         }
 
         .titulo {
-            font-size: 38px;
+            font-size: 34px;
             font-weight: 700;
             line-height: 1.22;
-            margin: 0 0 16px;
+            margin: 0 0 14px;
             color: #1c1917;
         }
 
@@ -48,22 +51,22 @@
             font-size: 15px;
             font-weight: 600;
             color: #78716c;
-            margin: 0 0 30px;
+            margin: 0 0 26px;
         }
 
         .qr-marco {
             position: relative;
             display: block;
-            width: 300px;
-            height: 300px;
-            padding: 26px;
-            margin: 0 auto 34px;
+            width: 280px;
+            height: 280px;
+            padding: 24px;
+            margin: 0 auto 30px;
         }
-        .qr-marco img { width: 300px; height: 300px; display: block; }
+        .qr-marco img { width: 280px; height: 280px; display: block; }
         .esquina {
             position: absolute;
-            width: 30px;
-            height: 30px;
+            width: 28px;
+            height: 28px;
             border-color: #be123c;
             border-style: solid;
             border-width: 0;
@@ -73,28 +76,25 @@
         .esquina-bl { bottom: 0; left: 0; border-bottom-width: 5px; border-left-width: 5px; border-radius: 0 0 0 6px; }
         .esquina-br { bottom: 0; right: 0; border-bottom-width: 5px; border-right-width: 5px; border-radius: 0 0 6px 0; }
 
-        .pasos { width: 100%; border-collapse: collapse; margin: 0 0 30px; }
+        .pasos { width: 100%; border-collapse: collapse; margin: 0 0 26px; }
         .pasos td {
             width: 33.33%;
             text-align: center;
             vertical-align: top;
             padding: 0 10px;
-            font-size: 12.5px;
-            color: #44403c;
-            line-height: 1.45;
         }
-        .paso-num {
-            display: inline-block;
-            width: 26px;
-            height: 26px;
-            line-height: 26px;
+        .paso-icono {
+            display: block;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             background: #be123c;
-            color: #ffffff;
-            font-weight: 700;
-            font-size: 13px;
-            margin-bottom: 8px;
+            margin: 0 auto 10px;
+            padding: 10px;
         }
+        .paso-icono img { width: 24px; height: 24px; display: block; margin: 0 auto; }
+        .paso-label { font-size: 11px; font-weight: 700; color: #be123c; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 3px; }
+        .paso-texto { font-size: 12px; color: #44403c; line-height: 1.4; margin: 0; }
 
         .nota {
             font-size: 11.5px;
@@ -107,10 +107,14 @@
 </head>
 <body>
     <div class="band band-top">
-        <p class="marca">LUPE LEGAL</p>
+        <p>LUPE LEGAL</p>
     </div>
 
     <div class="contenido">
+        @if($logoBase64)
+            <div class="logo-empresa"><img src="{{ $logoBase64 }}" alt="{{ $empresa->razon_social }}"></div>
+        @endif
+
         <span class="kicker">Reglamento Interno de Trabajo</span>
         <h1 class="titulo">Escanea y conoce<br>tus derechos y deberes</h1>
         <span class="empresa">{{ $empresa->razon_social }}</span>
@@ -126,16 +130,25 @@
         <table class="pasos">
             <tr>
                 <td>
-                    <span class="paso-num">1</span><br>
-                    Abre la cámara de tu celular
+                    <div class="paso-icono">
+                        <img src="{{ $iconoCamara }}" alt="">
+                    </div>
+                    <p class="paso-label">Paso 1</p>
+                    <p class="paso-texto">Abre la cámara de tu celular</p>
                 </td>
                 <td>
-                    <span class="paso-num">2</span><br>
-                    Apunta al código QR
+                    <div class="paso-icono">
+                        <img src="{{ $iconoScan }}" alt="">
+                    </div>
+                    <p class="paso-label">Paso 2</p>
+                    <p class="paso-texto">Apunta al código QR</p>
                 </td>
                 <td>
-                    <span class="paso-num">3</span><br>
-                    Lee y acepta el Reglamento
+                    <div class="paso-icono">
+                        <img src="{{ $iconoCheck }}" alt="">
+                    </div>
+                    <p class="paso-label">Paso 3</p>
+                    <p class="paso-texto">Lee y acepta el Reglamento</p>
                 </td>
             </tr>
         </table>
