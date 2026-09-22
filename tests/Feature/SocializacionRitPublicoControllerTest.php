@@ -73,4 +73,28 @@ class SocializacionRitPublicoControllerTest extends TestCase
         $response->assertSee("primary:", false);
         $response->assertSee('#e11d48', false);
     }
+
+    /**
+     * Hipótesis diagnosticada (2026-09-22): esta página lleva un token CSRF
+     * y un snapshot de Livewire propios de cada visita - si un proxy/CDN
+     * delante del hosting (ya documentado cacheando assets estáticos en
+     * este mismo dominio) la cachea como una página normal, todos los
+     * visitantes reciben el MISMO token CSRF congelado y el submit del
+     * formulario falla siempre con 419 sin ningún aviso visible.
+     */
+    public function test_no_es_cacheable_por_un_proxy_o_cdn(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $token = $empresa->tokenSocializacionRit();
+
+        $response = $this->get('/rit/socializar/' . $token);
+
+        $response->assertOk();
+        // Symfony normaliza el header (agrega max-age=0 y reordena), por eso
+        // se verifica que contenga las directivas clave, no el string exacto.
+        $cacheControl = $response->headers->get('Cache-Control');
+        $this->assertStringContainsString('no-store', $cacheControl);
+        $this->assertStringContainsString('no-cache', $cacheControl);
+        $this->assertStringContainsString('private', $cacheControl);
+    }
 }

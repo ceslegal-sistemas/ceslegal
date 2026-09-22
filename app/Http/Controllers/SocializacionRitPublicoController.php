@@ -23,6 +23,16 @@ class SocializacionRitPublicoController extends Controller
             abort(404);
         }
 
-        return view('rit.socializacion', ['empresa' => $empresa]);
+        // Esta pagina lleva un token CSRF y un snapshot de Livewire propios de
+        // CADA visita/sesion - si un proxy/CDN delante del hosting (Cloudflare,
+        // ya documentado cacheando assets estaticos en este mismo dominio) la
+        // cachea como una pagina normal, TODOS los visitantes reciben el MISMO
+        // token CSRF congelado del momento en que se cacheo, que nunca coincide
+        // con su propia sesion -> el submit del formulario falla siempre con
+        // 419, y Livewire no muestra ningun aviso visible ante ese error.
+        return response()
+            ->view('rit.socializacion', ['empresa' => $empresa])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+            ->header('Pragma', 'no-cache');
     }
 }

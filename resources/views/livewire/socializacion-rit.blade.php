@@ -55,7 +55,7 @@
                         </div>
 
                         <div>
-                            <select wire:model="tipoDocumento" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                            <select id="rit-tipo-documento" wire:model="tipoDocumento" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 <option value="CC">Cédula de Ciudadanía</option>
                                 <option value="CE">Cédula de Extranjería</option>
                                 <option value="TI">Tarjeta de Identidad</option>
@@ -65,7 +65,12 @@
                         </div>
 
                         <div>
-                            <input type="text" wire:model="numeroDocumento" placeholder="Número de documento" inputmode="numeric"
+                            {{-- Pedido explícito del usuario (2026-09-22): el campo dejaba escribir
+                                 letras y sin límite de longitud. Pasaporte SÍ puede ser alfanumérico,
+                                 por eso el filtro solo aplica a CC/CE/TI. --}}
+                            <input type="text" id="rit-numero-documento" wire:model="numeroDocumento" placeholder="Número de documento"
+                                inputmode="numeric" maxlength="15" autocomplete="off"
+                                oninput="var t=document.getElementById('rit-tipo-documento'); if (t && t.value !== 'PASS') { this.value = this.value.replace(/[^0-9]/g, ''); }"
                                 class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                             @error('numeroDocumento') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                         </div>

@@ -71,9 +71,14 @@ class SocializacionRit extends Component
      */
     public function buscarTrabajador(): void
     {
+        // CC/CE/TI son siempre numéricos; pasaporte sí puede ser alfanumérico.
+        $reglaNumero = $this->tipoDocumento === 'PASS'
+            ? 'required|string|max:15'
+            : 'required|digits_between:1,15';
+
         $this->validate([
             'tipoDocumento' => 'required|in:CC,CE,TI,PASS',
-            'numeroDocumento' => 'required|string|max:50',
+            'numeroDocumento' => $reglaNumero,
         ]);
 
         $trabajador = Trabajador::withoutGlobalScope('bufeteOrEmpresa')

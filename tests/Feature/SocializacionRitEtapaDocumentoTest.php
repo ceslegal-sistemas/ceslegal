@@ -113,4 +113,34 @@ class SocializacionRitEtapaDocumentoTest extends TestCase
             ->assertSet('trabajadorExistente', true)
             ->assertSet('trabajadorId', $trabajadorExistente->id);
     }
+
+    /**
+     * Bug real reportado por el usuario (2026-09-22): el campo dejaba
+     * escribir letras y sin límite de longitud para cédula/CE/TI, que
+     * siempre deben ser numéricos (a diferencia de pasaporte).
+     */
+    public function test_rechaza_letras_en_el_documento_para_cc(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('tipoDocumento', 'CC')
+            ->set('numeroDocumento', '123ABC456')
+            ->call('buscarTrabajador')
+            ->assertHasErrors(['numeroDocumento']);
+    }
+
+    public function test_permite_letras_en_el_documento_para_pasaporte(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('tipoDocumento', 'PASS')
+            ->set('numeroDocumento', 'AB123456')
+            ->call('buscarTrabajador')
+            ->assertHasNoErrors()
+            ->assertSet('etapa', 'datos');
+    }
 }
