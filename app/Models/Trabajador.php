@@ -77,6 +77,41 @@ class Trabajador extends Model
         return $this->hasMany(ProcesoDisciplinario::class);
     }
 
+    public function aceptacionesReglamentoInterno(): HasMany
+    {
+        return $this->hasMany(AceptacionReglamentoInterno::class);
+    }
+
+    /**
+     * ¿Ya aceptó la versión del RIT que está activa AHORA MISMO en su
+     * empresa? Si el RIT cambió desde su última aceptación (aunque haya
+     * aceptado una versión anterior), devuelve false - debe volver a
+     * aceptar la nueva.
+     *
+     * withoutGlobalScope: este método se usa tanto desde el panel admin
+     * (TrabajadorResource) como desde el flujo público de socialización del
+     * RIT (sin sesión, o con sesión de OTRO bufete/empresa activa en el
+     * mismo navegador) - siempre debe resolver el RIT activo de la empresa
+     * REAL de este trabajador ($this->empresa_id), nunca filtrado por la
+     * empresa/bufete de quien esté preguntando.
+     */
+    public function aceptoRitVigente(): bool
+    {
+        $ritActivo = ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
+            ->where('empresa_id', $this->empresa_id)
+            ->where('activo', true)
+            ->latest('updated_at')
+            ->first();
+
+        if (!$ritActivo) {
+            return false;
+        }
+
+        return $this->aceptacionesReglamentoInterno()
+            ->where('reglamento_interno_id', $ritActivo->id)
+            ->exists();
+    }
+
     public function getNombreCompletoAttribute(): string
     {
         return "{$this->nombres} {$this->apellidos}";
