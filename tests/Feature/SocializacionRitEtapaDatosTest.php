@@ -82,4 +82,68 @@ class SocializacionRitEtapaDatosTest extends TestCase
             ->call('guardarDatos')
             ->assertHasErrors(['email', 'telefono']);
     }
+
+    /**
+     * Pedido explícito del usuario (2026-09-22): en cargos deberían salir
+     * los cargos que hay en el RIT, igual que en Solicitud de Contrato.
+     */
+    public function test_carga_los_cargos_del_organigrama_del_rit(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        // El organigrama se genera como una actualizacion SEPARADA de la
+        // creacion del RIT (ver MiReglamentoInterno::generarOrganigramaAction())
+        // - si se pusiera en el mismo create(), ReglamentoInternoObserver lo
+        // borraria de inmediato (isDirty('texto_completo') dispara la
+        // invalidacion de cache de organigrama/sanciones/conductas).
+        $rit = ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        $rit->update([
+            'organigrama' => [
+                ['nombre_cargo' => 'Jefe de Bodega', 'instancia_sancionatoria' => 'ninguna'],
+                ['nombre_cargo' => 'Auxiliar de Bodega', 'instancia_sancionatoria' => 'ninguna'],
+            ],
+        ]);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('tipoDocumento', 'CC')
+            ->set('numeroDocumento', '787878787')
+            ->call('buscarTrabajador')
+            ->assertSet('cargosDisponibles', ['Jefe de Bodega' => 'Jefe de Bodega', 'Auxiliar de Bodega' => 'Auxiliar de Bodega']);
+    }
+
+    public function test_usa_catalogo_generico_si_el_rit_no_tiene_organigrama(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('tipoDocumento', 'CC')
+            ->set('numeroDocumento', '898989898')
+            ->call('buscarTrabajador')
+            ->assertSet('cargosDisponibles', fn ($cargos) => array_key_exists('Vendedor', $cargos));
+    }
+
+    public function test_permite_cargo_personalizado_con_otro(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('tipoDocumento', 'CC')
+            ->set('numeroDocumento', '909090909')
+            ->call('buscarTrabajador')
+            ->set('nombres', 'Cargo')
+            ->set('apellidos', 'Personalizado')
+            ->set('genero', 'masculino')
+            ->set('cargo', '__otro__')
+            ->set('cargoPersonalizado', 'Especialista en Drones')
+            ->set('email', 'personalizado@example.com')
+            ->set('telefono', '3009998888')
+            ->call('guardarDatos')
+            ->assertSet('etapa', 'foto');
+
+        $this->assertDatabaseHas('trabajadores', [
+            'numero_documento' => '909090909',
+            'cargo' => 'Especialista en Drones',
+        ]);
+    }
 }

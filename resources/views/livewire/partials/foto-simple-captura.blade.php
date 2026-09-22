@@ -263,7 +263,7 @@
 
     <div x-show="!errorCamara" style="display:none" class="space-y-4">
         <div x-show="!fotoCapturada" style="display:none" class="space-y-3">
-            <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
+            <div class="relative rounded-xl overflow-hidden bg-black" style="aspect-ratio: 4 / 3; width: 100%;">
                 <video x-ref="video" autoplay playsinline muted
                     class="w-full h-full object-cover"
                     style="transform: scaleX(-1);"></video>

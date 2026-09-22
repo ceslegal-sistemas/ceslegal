@@ -25,6 +25,8 @@ class SocializacionRit extends Component
     public string $apellidos = '';
     public string $genero = '';
     public string $cargo = '';
+    public string $cargoPersonalizado = '';
+    public array $cargosDisponibles = [];
     public string $email = '';
     public string $telefono = '';
     public string $direccion = '';
@@ -69,6 +71,46 @@ class SocializacionRit extends Component
     }
 
     /**
+     * Mismo listado de cargos que usa la creación de Solicitud de Contrato
+     * (SolicitudContratoResource::getCargosParaSelect(), organigrama del
+     * RIT via ReglamentoInternoService::cargosDeEmpresa()) - PERO no se
+     * reutiliza esa función directamente: internamente hace
+     * ReglamentoInterno::where('empresa_id', ...) SIN
+     * withoutGlobalScope('bufeteOrEmpresa'), lo cual es correcto en un
+     * contexto autenticado del panel admin pero NO en esta ruta pública
+     * (mismo Gotcha crítico #3 de este componente). Se replica la misma
+     * lógica aquí usando resolverRitActivo(), que sí es scope-safe.
+     */
+    private function cargarCargosDisponibles(): void
+    {
+        $rit = $this->resolverRitActivo();
+        $organigrama = $rit
+            ? ($rit->respuestas_cuestionario['cargos'] ?? $rit->organigrama ?? [])
+            : [];
+
+        $cargos = [];
+        foreach ($organigrama as $item) {
+            $nombre = trim((string) ($item['nombre_cargo'] ?? ''));
+            if ($nombre !== '') {
+                $cargos[$nombre] = $nombre;
+            }
+        }
+
+        // Sin organigrama todavia (RIT de texto libre sin "Generar
+        // organigrama" en Mi Reglamento Interno): mismo catalogo generico
+        // de respaldo que usa Solicitud de Contrato - metodo puramente
+        // estatico, sin consulta a BD ni dependencia de scope/sesion, por
+        // eso es seguro reutilizarlo tal cual en esta ruta publica.
+        if (empty($cargos)) {
+            foreach (\App\Filament\Admin\Resources\SolicitudContratoResource::getCargos() as $cargo) {
+                $cargos[$cargo] = $cargo;
+            }
+        }
+
+        $this->cargosDisponibles = $cargos;
+    }
+
+    /**
      * Busca al trabajador SIEMPRE dentro de $this->empresa (resuelta por
      * token en el controlador) - el empresa_id nunca sale de un campo del
      * formulario, para no cruzar trabajadores entre empresas distintas.
@@ -86,6 +128,8 @@ class SocializacionRit extends Component
             'numeroDocumento' => $reglaNumero,
         ]);
 
+        $this->cargarCargosDisponibles();
+
         $trabajador = Trabajador::withoutGlobalScope('bufeteOrEmpresa')
             ->where('empresa_id', $this->empresa->id)
             ->where('tipo_documento', $this->tipoDocumento)
@@ -98,10 +142,19 @@ class SocializacionRit extends Component
             $this->nombres = $trabajador->nombres;
             $this->apellidos = $trabajador->apellidos;
             $this->genero = $trabajador->genero;
-            $this->cargo = $trabajador->cargo;
             $this->email = (string) $trabajador->email;
             $this->telefono = (string) $trabajador->telefono;
             $this->direccion = (string) $trabajador->direccion;
+
+            // Si el cargo ya guardado no esta en la lista actual del
+            // organigrama (texto libre de antes, o el RIT cambio de
+            // cargos), cae a "Otro" precargado en vez de perder el dato.
+            if (array_key_exists($trabajador->cargo, $this->cargosDisponibles)) {
+                $this->cargo = $trabajador->cargo;
+            } else {
+                $this->cargo = '__otro__';
+                $this->cargoPersonalizado = $trabajador->cargo;
+            }
 
             if ($trabajador->aceptoRitVigente()) {
                 $this->etapa = 'ya_acepto';
@@ -118,11 +171,14 @@ class SocializacionRit extends Component
             'nombres' => 'required|string|max:255',
             'apellidos' => 'required|string|max:255',
             'genero' => 'required|string',
-            'cargo' => 'required|string|max:255',
+            'cargo' => 'required|string',
+            'cargoPersonalizado' => $this->cargo === '__otro__' ? 'required|string|max:255' : 'nullable|string|max:255',
             'email' => 'required|email',
             'telefono' => 'required|string|max:50',
             'direccion' => 'nullable|string',
         ]);
+
+        $cargoFinal = $this->cargo === '__otro__' ? $this->cargoPersonalizado : $this->cargo;
 
         $trabajador = Trabajador::withoutGlobalScope('bufeteOrEmpresa')->updateOrCreate(
             [
@@ -134,7 +190,7 @@ class SocializacionRit extends Component
                 'nombres' => $this->nombres,
                 'apellidos' => $this->apellidos,
                 'genero' => $this->genero,
-                'cargo' => $this->cargo,
+                'cargo' => $cargoFinal,
                 'email' => $this->email ?: null,
                 'telefono' => $this->telefono ?: null,
                 'direccion' => $this->direccion ?: null,
@@ -273,6 +329,22 @@ class SocializacionRit extends Component
                 'user_agent' => (string) request()->userAgent(),
             ]
         );
+
+        // Fail-open: si el correo falla (SMTP caido, direccion invalida
+        // que paso la validacion basica, etc.) no debe bloquear el registro
+        // ya guardado - el trabajador ya quedo aceptado en la BD.
+        if ($this->email) {
+            try {
+                \Illuminate\Support\Facades\Mail::to($this->email)->send(
+                    new \App\Mail\RitAceptado(trim("{$this->nombres} {$this->apellidos}"), $this->empresa->razon_social)
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('SocializacionRit: fallo al enviar correo de confirmacion', [
+                    'trabajador_id' => $this->trabajadorId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         $this->etapa = 'completado';
     }

@@ -109,9 +109,23 @@
                                 @error('genero') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <input type="text" wire:model="cargo" placeholder="Cargo" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                                {{-- Mismo listado que usa Solicitud de Contrato: cargos reales
+                                     del organigrama del RIT, con "Otro" para personalizar. --}}
+                                <select wire:model.live="cargo" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                                    <option value="">Selecciona tu cargo</option>
+                                    @foreach($cargosDisponibles as $valor => $etiqueta)
+                                        <option value="{{ $valor }}">{{ $etiqueta }}</option>
+                                    @endforeach
+                                    <option value="__otro__">--- Otro (personalizado) ---</option>
+                                </select>
                                 @error('cargo') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
+                            @if($cargo === '__otro__')
+                                <div>
+                                    <input type="text" wire:model="cargoPersonalizado" placeholder="Escribe tu cargo" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                                    @error('cargoPersonalizado') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
+                                </div>
+                            @endif
                             <div>
                                 <input type="email" wire:model="email" placeholder="Correo electrónico" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 @error('email') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
