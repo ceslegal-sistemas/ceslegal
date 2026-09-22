@@ -48,7 +48,8 @@ class TrabajadorResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery();
+        $query = parent::getEloquentQuery()
+            ->with(['empresa.reglamentoInterno', 'aceptacionesReglamentoInterno']);
         $user  = auth()->user();
 
         if ($user && $user->hasRole('cliente')) {
@@ -532,6 +533,14 @@ class TrabajadorResource extends Resource
                     ->formatStateUsing(fn($state) => (string) ($state ?? 0))
                     ->color(fn($state): string => ($state > 0) ? 'warning' : 'success')
                     ->toggleable(),
+
+                Tables\Columns\TextColumn::make('rit_vigente')
+                    ->label('RIT vigente')
+                    ->getStateUsing(fn (Trabajador $record) => $record->aceptoRitVigente()
+                        ? 'Aceptado (' . $record->aceptacionesReglamentoInterno->firstWhere('reglamento_interno_id', $record->empresa?->reglamentoInterno?->id)?->aceptado_en?->format('d/m/Y') . ')'
+                        : 'Pendiente')
+                    ->badge()
+                    ->color(fn (Trabajador $record) => $record->aceptoRitVigente() ? 'success' : 'warning'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('empresa')
