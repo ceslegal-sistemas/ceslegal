@@ -14,6 +14,10 @@
     $descargaUrl = $tiene
         ? ($esAdmin && $empresa ? route('rit.descargar.admin', $empresa) : route('rit.descargar'))
         : null;
+    // Poster imprimible con el QR del link fijo de socializacion - mismo criterio de acceso que $descargaUrl.
+    $posterUrl = $tiene
+        ? ($esAdmin && $empresa ? route('rit.poster.admin', $empresa) : route('rit.poster'))
+        : null;
 @endphp
 
 {{-- Auto-refresh cada 15s mientras se está generando --}}
@@ -329,6 +333,7 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
           </button>
           <a class="rit-btn rit-btn-secondary" x-bind:href="'https://wa.me/?text=' + encodeURIComponent('Conoce el Reglamento Interno de Trabajo: ' + url)" target="_blank" rel="noopener">WhatsApp</a>
           <a class="rit-btn rit-btn-secondary" x-bind:href="'mailto:?subject=' + encodeURIComponent('Reglamento Interno de Trabajo') + '&body=' + encodeURIComponent('Conoce el Reglamento Interno de Trabajo aquí: ' + url)">Correo</a>
+          <a class="rit-btn rit-btn-secondary" href="{{ $posterUrl }}" target="_blank" rel="noopener">Poster QR</a>
         </div>
       </div>
     </div>

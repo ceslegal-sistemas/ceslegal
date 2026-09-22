@@ -16,6 +16,14 @@ class MiReglamentoInternoBotonCompartirTest extends TestCase
         $this->assertStringContainsString('mailto:', $fuente);
     }
 
+    public function test_incluye_el_boton_de_poster_qr(): void
+    {
+        $fuente = file_get_contents(resource_path('views/filament/pages/mi-reglamento-interno.blade.php'));
+
+        $this->assertStringContainsString('posterUrl', $fuente);
+        $this->assertStringContainsString('Poster QR', $fuente);
+    }
+
     /**
      * Pedido explícito del usuario (2026-09-22): el banner debe verse ANTES
      * del texto del reglamento, para quedar visible sin scroll al entrar a

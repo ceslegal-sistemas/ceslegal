@@ -180,6 +180,27 @@ Route::get('/descargar/rit/admin/{empresa}', function (\App\Models\Empresa $empr
     return \App\Support\RitDescarga::responder($empresa);
 })->middleware(['auth'])->name('rit.descargar.admin');
 
+// Poster imprimible con el QR del link fijo de socializacion del RIT
+Route::get('/descargar/rit/poster', function () {
+    $user    = auth()->user();
+    $empresa = $user?->empresa;
+
+    if (!$empresa) {
+        abort(403, 'No autorizado');
+    }
+
+    return \App\Support\RitPoster::responder($empresa);
+})->middleware(['auth'])->name('rit.poster');
+
+Route::get('/descargar/rit/poster/admin/{empresa}', function (\App\Models\Empresa $empresa) {
+    $user = auth()->user();
+    if (!$user || (!$user->hasRole('super_admin') && !$user->hasRole('abogado') && !$user->esAbogadoDeBufete())) {
+        abort(403, 'No autorizado');
+    }
+
+    return \App\Support\RitPoster::responder($empresa);
+})->middleware(['auth'])->name('rit.poster.admin');
+
 // Descarga de documentos de la Biblioteca Legal
 Route::get('/biblioteca-legal/{documento}/descargar', function (\App\Models\DocumentoLegal $documento) {
     abort_if(!auth()->user()?->hasRole('super_admin'), 403);
