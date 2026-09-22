@@ -216,13 +216,19 @@ class SocializacionRit extends Component
 
         $this->ritActivoTextoCompleto = (string) $ritActivo->texto_completo;
         // Legal Design: nadie lee el reglamento completo en este paso - se
-        // muestran los temas que ya tiene clasificados (taxonomia fija de 27
-        // temas, sin llamada nueva a IA) como resumen simple, con el texto
-        // completo disponible aparte para quien SI quiera leerlo entero.
+        // muestra, por cada tema clasificado, el resumen ESPECIFICO que la
+        // IA ya genero sobre lo que ESTE RIT dice (ver
+        // TemaClasificadorService::asegurarResumenesSimples(), calculado al
+        // guardar el RIT, no aqui) - con respaldo a la descripcion generica
+        // del tema si por algun motivo (fallo de IA, RIT recien migrado)
+        // todavia no tiene resumen propio.
         $this->temasRit = $ritActivo->temasNormativos()
             ->activos()
-            ->get(['temas_normativos.nombre', 'temas_normativos.descripcion'])
-            ->map(fn ($tema) => ['nombre' => $tema->nombre, 'descripcion' => $tema->descripcion])
+            ->get(['temas_normativos.id', 'temas_normativos.nombre', 'temas_normativos.descripcion'])
+            ->map(fn ($tema) => [
+                'nombre' => $tema->nombre,
+                'descripcion' => $tema->pivot->resumen_simple ?: $tema->descripcion,
+            ])
             ->all();
 
         if ($ultimaAceptacion) {

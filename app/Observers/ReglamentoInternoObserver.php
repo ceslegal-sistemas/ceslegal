@@ -72,5 +72,6 @@ class ReglamentoInternoObserver
         }
 
         $this->clasificador->asegurarTemas($rit);
+        $this->clasificador->asegurarResumenesSimples($rit);
     }
 }

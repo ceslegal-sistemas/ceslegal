@@ -36,6 +36,103 @@ class TemaClasificadorService
     }
 
     /**
+     * Genera un resumen simple y ESPECÍFICO (no la descripción genérica del
+     * tema) de lo que el texto REAL de este RIT dice sobre cada uno de sus
+     * temas ya clasificados - pensado para un trabajador sin formación
+     * jurídica, "para cualquiera", una sola llamada IA para todos los temas
+     * a la vez. Se calcula al GUARDAR el RIT (mismo momento que
+     * asegurarTemas(), vía ReglamentoInternoObserver), nunca durante el
+     * registro del trabajador - así nadie espera a la IA en vivo.
+     */
+    public function asegurarResumenesSimples(ReglamentoInterno $rit): void
+    {
+        if (empty($rit->texto_completo)) {
+            return;
+        }
+
+        $temas = $rit->temasNormativos()->get(['temas_normativos.id', 'temas_normativos.nombre', 'temas_normativos.descripcion']);
+        if ($temas->isEmpty()) {
+            return;
+        }
+
+        $hashActual = hash('sha256', $rit->texto_completo);
+        $yaTieneTodos = $temas->every(fn (TemaNormativo $t) => !empty($t->pivot->resumen_simple));
+        if ($rit->resumen_simple_texto_hash === $hashActual && $yaTieneTodos) {
+            return;
+        }
+
+        try {
+            $resumenes = $this->generarResumenesSimples($rit->texto_completo, $temas);
+        } catch (\Throwable $e) {
+            Log::warning('TemaClasificadorService: fallo al generar resumenes simples, se dejan sin resumen', [
+                'reglamento_interno_id' => $rit->id,
+                'error' => $e->getMessage(),
+            ]);
+            return;
+        }
+
+        foreach ($resumenes as $temaId => $resumen) {
+            if ($temas->contains('id', $temaId)) {
+                $rit->temasNormativos()->updateExistingPivot($temaId, ['resumen_simple' => $resumen]);
+            }
+        }
+
+        $rit->forceFill(['resumen_simple_texto_hash' => $hashActual])->saveQuietly();
+    }
+
+    /**
+     * @param \Illuminate\Support\Collection<int, TemaNormativo> $temas
+     * @return array<int, string> tema_id => resumen
+     */
+    private function generarResumenesSimples(string $texto, \Illuminate\Support\Collection $temas): array
+    {
+        $listaTemas = $temas->map(fn (TemaNormativo $t) => "- ID {$t->id}: {$t->nombre}")->implode("\n");
+
+        $prompt = <<<PROMPT
+        Eres un asistente que explica reglamentos internos de trabajo a
+        personas SIN formación jurídica, incluyendo personas con baja
+        escolaridad. Dado el texto real de un Reglamento Interno de
+        Trabajo, escribe para CADA uno de los siguientes temas un resumen
+        de máximo 2 frases cortas, en español muy sencillo, que diga
+        ESPECÍFICAMENTE qué dice ESTE reglamento sobre ese tema (números,
+        plazos, montos, reglas concretas si el texto los menciona) - NO
+        una definición general del tema, sino lo que ESTE documento
+        establece. Dirígete al trabajador de forma directa ("tú").
+
+        Responde ÚNICAMENTE con un array JSON, sin markdown, con este
+        formato exacto: [{"id": 3, "resumen": "..."}, {"id": 7, "resumen": "..."}]
+
+        TEMAS A RESUMIR:
+        {$listaTemas}
+
+        TEXTO DEL REGLAMENTO (puede estar truncado):
+        {$this->truncar($texto)}
+        PROMPT;
+
+        // 2048: cada resumen son 2 frases x hasta ~13 temas tipicos por RIT -
+        // el limite de 1024 usado para la clasificacion (solo IDs) se
+        // queda corto para texto real.
+        $respuesta = $this->llamarGemini($prompt, 2048);
+
+        $limpio = trim($respuesta);
+        $limpio = preg_replace('/^```json\s*|\s*```$/i', '', $limpio) ?? $limpio;
+        $decodificado = json_decode($limpio, true);
+
+        if (!is_array($decodificado)) {
+            return [];
+        }
+
+        $resultado = [];
+        foreach ($decodificado as $item) {
+            if (isset($item['id'], $item['resumen']) && is_numeric($item['id'])) {
+                $resultado[(int) $item['id']] = (string) $item['resumen'];
+            }
+        }
+
+        return $resultado;
+    }
+
+    /**
      * Un DocumentoLegal no se vuelve a editar tras procesado - sin
      * staleness por hash, se clasifica una sola vez.
      */
@@ -129,7 +226,7 @@ class TemaClasificadorService
      * (y otros servicios de este proyecto) - sin trait compartido, es la
      * convención ya establecida en el repo.
      */
-    private function llamarGemini(string $prompt): string
+    private function llamarGemini(string $prompt, int $maxOutputTokens = 1024): string
     {
         $config = config('services.ia.gemini', []);
         $apiKey = $config['api_key'] ?? '';
@@ -146,7 +243,7 @@ class TemaClasificadorService
             'contents' => [['parts' => [['text' => $prompt]]]],
             'generationConfig' => [
                 'temperature'     => 0.1,
-                'maxOutputTokens' => 1024,
+                'maxOutputTokens' => $maxOutputTokens,
                 'topP'            => 0.95,
                 // Sin esto, Gemini 2.5 consume parte de maxOutputTokens en
                 // "thinking" interno antes de responder, y la respuesta

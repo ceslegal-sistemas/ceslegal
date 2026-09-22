@@ -36,6 +36,7 @@ class ReglamentoInterno extends Model
         'tipos_contrato',
         'temas_texto_hash',
         'temas_clasificados_en',
+        'resumen_simple_texto_hash',
     ];
 
     protected $casts = [
@@ -71,7 +72,8 @@ class ReglamentoInterno extends Model
 
     public function temasNormativos(): BelongsToMany
     {
-        return $this->belongsToMany(TemaNormativo::class, 'reglamento_interno_tema');
+        return $this->belongsToMany(TemaNormativo::class, 'reglamento_interno_tema')
+            ->withPivot('resumen_simple');
     }
 
     public function esMejorado(): bool

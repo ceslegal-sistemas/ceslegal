@@ -165,8 +165,8 @@
 
                             <details class="text-sm">
                                 <summary class="cursor-pointer text-primary-600 font-medium">Ver el Reglamento completo</summary>
-                                <div class="prose max-w-none text-sm whitespace-pre-line border border-gray-200 rounded-xl p-4 mt-2 max-h-96 overflow-y-auto">
-                                    {{ $ritActivoTextoCompleto }}
+                                <div class="prose max-w-none text-sm border border-gray-200 rounded-xl p-4 mt-2 max-h-96 overflow-y-auto">
+                                    {!! preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '<strong>$1</strong>', nl2br(e($ritActivoTextoCompleto))) !!}
                                 </div>
                             </details>
                         @else
@@ -182,8 +182,8 @@
                                  texto completo, no solo el diff, si el trabajador lo prefiere. --}}
                             <details class="text-sm">
                                 <summary class="cursor-pointer text-primary-600 font-medium">Ver el Reglamento completo</summary>
-                                <div class="prose max-w-none whitespace-pre-line border border-gray-200 rounded-xl p-4 mt-2 max-h-96 overflow-y-auto">
-                                    {{ $ritActivoTextoCompleto }}
+                                <div class="prose max-w-none border border-gray-200 rounded-xl p-4 mt-2 max-h-96 overflow-y-auto">
+                                    {!! preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '<strong>$1</strong>', nl2br(e($ritActivoTextoCompleto))) !!}
                                 </div>
                             </details>
                         @endif
