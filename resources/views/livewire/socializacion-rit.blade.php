@@ -1,11 +1,10 @@
-@include('filament.components.lupe-hero-styles')
-
 @php
     $pasos = ['documento' => 1, 'datos' => 2, 'foto' => 3, 'presentacion_rit' => 4, 'aceptacion' => 5];
     $pasoActual = $pasos[$etapa] ?? null;
 @endphp
 
 <div class="min-h-screen bg-gray-50 sm:bg-gray-100 sm:py-8 sm:px-4">
+    @include('filament.components.lupe-hero-styles')
     <div class="sm:max-w-xl sm:mx-auto">
         <div class="bg-white sm:rounded-2xl sm:shadow-lg sm:border sm:border-gray-200 min-h-screen sm:min-h-0 sm:overflow-hidden">
             <header class="bg-white border-b border-gray-200 sticky top-0 z-10 sm:static sm:rounded-t-2xl">
