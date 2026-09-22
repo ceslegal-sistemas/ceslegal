@@ -65,4 +65,30 @@ class RitPosterDescargaTest extends TestCase
         $this->assertNotSame($htmlA, $htmlB);
         $this->assertStringContainsString('data:image/svg+xml;base64,', $htmlA);
     }
+
+    /**
+     * Pedido explícito del usuario (2026-09-22, en mayúsculas): el poster es
+     * de la empresa que paga el servicio, no de LUPE Legal - no debe
+     * mencionarla en ninguna parte, y debe usar el color de marca de la
+     * empresa (logo_color_acento) en vez del rojo de LUPE.
+     */
+    public function test_no_menciona_lupe_legal_y_usa_el_color_de_marca_de_la_empresa(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true, 'logo_color_acento' => '#1d4ed8']);
+
+        $html = \App\Support\RitPoster::html($empresa);
+
+        $this->assertStringNotContainsStringIgnoringCase('lupe legal', $html);
+        $this->assertStringContainsString('#1d4ed8', $html);
+    }
+
+    public function test_usa_un_color_de_respaldo_si_la_empresa_no_configuro_uno(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true, 'logo_color_acento' => null]);
+
+        $html = \App\Support\RitPoster::html($empresa);
+
+        $this->assertStringNotContainsStringIgnoringCase('lupe legal', $html);
+        $this->assertStringContainsString('#27272a', $html);
+    }
 }

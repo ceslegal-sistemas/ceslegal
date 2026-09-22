@@ -8,50 +8,53 @@
         body {
             margin: 0;
             font-family: 'Helvetica', 'Arial', sans-serif;
-            color: #1c1917;
-            background: #ffffff;
-        }
-
-        .band {
-            width: 100%;
-            background: #be123c;
             color: #ffffff;
-            text-align: center;
+            background: {{ $colorAcento }};
         }
-        .band-top { padding: 16px 20px; }
-        .band-top p { font-size: 11px; font-weight: 700; letter-spacing: .1em; margin: 0; color: #fecdd3; }
-        .band-bottom { padding: 16px 20px; position: fixed; bottom: 0; left: 0; }
-        .band-bottom p { font-size: 11px; margin: 0; color: #fecdd3; }
 
-        .contenido { padding: 34px 55px 30px; text-align: center; }
+        .pagina { width: 100%; padding: 50px 45px; text-align: center; }
 
-        .logo-empresa { display: block; margin: 0 auto 22px; }
-        .logo-empresa img { max-height: 64px; max-width: 220px; display: block; margin: 0 auto; }
-
-        .kicker {
+        .logo-empresa { display: block; margin: 0 auto 20px; }
+        .logo-empresa img {
+            max-height: 90px;
+            max-width: 260px;
             display: block;
-            font-size: 12px;
+            margin: 0 auto;
+            padding: 10px 16px;
+            background: #ffffff;
+            border-radius: 14px;
+        }
+
+        .empresa-nombre {
+            display: block;
+            font-size: 20px;
             font-weight: 700;
-            letter-spacing: .14em;
-            text-transform: uppercase;
-            color: #be123c;
-            margin: 0 0 16px;
+            letter-spacing: .01em;
+            margin: 0 0 34px;
         }
 
         .titulo {
-            font-size: 34px;
+            font-size: 40px;
             font-weight: 700;
-            line-height: 1.22;
-            margin: 0 0 14px;
-            color: #1c1917;
+            line-height: 1.2;
+            margin: 0 0 10px;
         }
 
-        .empresa {
+        .kicker {
             display: block;
-            font-size: 15px;
-            font-weight: 600;
-            color: #78716c;
-            margin: 0 0 26px;
+            font-size: 12.5px;
+            font-weight: 700;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            opacity: .75;
+            margin: 0 0 40px;
+        }
+
+        .tarjeta {
+            background: #ffffff;
+            border-radius: 22px;
+            padding: 34px 30px 26px;
+            margin: 0 auto 34px;
         }
 
         .qr-marco {
@@ -60,14 +63,14 @@
             width: 280px;
             height: 280px;
             padding: 24px;
-            margin: 0 auto 30px;
+            margin: 0 auto 8px;
         }
         .qr-marco img { width: 280px; height: 280px; display: block; }
         .esquina {
             position: absolute;
             width: 28px;
             height: 28px;
-            border-color: #be123c;
+            border-color: {{ $colorAcento }};
             border-style: solid;
             border-width: 0;
         }
@@ -76,88 +79,73 @@
         .esquina-bl { bottom: 0; left: 0; border-bottom-width: 5px; border-left-width: 5px; border-radius: 0 0 0 6px; }
         .esquina-br { bottom: 0; right: 0; border-bottom-width: 5px; border-right-width: 5px; border-radius: 0 0 6px 0; }
 
-        .pasos { width: 100%; border-collapse: collapse; margin: 0 0 26px; }
+        .pasos { width: 100%; border-collapse: collapse; }
         .pasos td {
             width: 33.33%;
             text-align: center;
             vertical-align: top;
-            padding: 0 10px;
+            padding: 0 8px;
         }
         .paso-icono {
             display: block;
-            width: 44px;
-            height: 44px;
+            width: 46px;
+            height: 46px;
             border-radius: 50%;
-            background: #be123c;
-            margin: 0 auto 10px;
-            padding: 10px;
+            background: #f4f4f5;
+            margin: 0 auto 9px;
+            padding: 11px;
         }
         .paso-icono img { width: 24px; height: 24px; display: block; margin: 0 auto; }
-        .paso-label { font-size: 11px; font-weight: 700; color: #be123c; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 3px; }
-        .paso-texto { font-size: 12px; color: #44403c; line-height: 1.4; margin: 0; }
+        .paso-texto { font-size: 12px; color: #3f3f46; line-height: 1.4; margin: 0; font-weight: 600; }
 
         .nota {
-            font-size: 11.5px;
-            color: #a8a29e;
+            font-size: 12px;
+            opacity: .8;
             max-width: 420px;
             margin: 0 auto;
-            line-height: 1.5;
+            line-height: 1.6;
         }
     </style>
 </head>
 <body>
-    <div class="band band-top">
-        <p>LUPE LEGAL</p>
-    </div>
-
-    <div class="contenido">
+    <div class="pagina">
         @if($logoBase64)
             <div class="logo-empresa"><img src="{{ $logoBase64 }}" alt="{{ $empresa->razon_social }}"></div>
+        @else
+            <span class="empresa-nombre">{{ $empresa->razon_social }}</span>
         @endif
 
-        <span class="kicker">Reglamento Interno de Trabajo</span>
         <h1 class="titulo">Escanea y conoce<br>tus derechos y deberes</h1>
-        <span class="empresa">{{ $empresa->razon_social }}</span>
+        <span class="kicker">Reglamento Interno de Trabajo</span>
 
-        <div class="qr-marco">
-            <div class="esquina esquina-tl"></div>
-            <div class="esquina esquina-tr"></div>
-            <div class="esquina esquina-bl"></div>
-            <div class="esquina esquina-br"></div>
-            <img src="data:image/svg+xml;base64,{{ $qrBase64 }}" alt="Código QR del Reglamento Interno">
+        <div class="tarjeta">
+            <div class="qr-marco">
+                <div class="esquina esquina-tl"></div>
+                <div class="esquina esquina-tr"></div>
+                <div class="esquina esquina-bl"></div>
+                <div class="esquina esquina-br"></div>
+                <img src="data:image/svg+xml;base64,{{ $qrBase64 }}" alt="Código QR del Reglamento Interno">
+            </div>
+
+            <table class="pasos">
+                <tr>
+                    <td>
+                        <div class="paso-icono"><img src="{{ $iconoCamara }}" alt=""></div>
+                        <p class="paso-texto">Abre la cámara</p>
+                    </td>
+                    <td>
+                        <div class="paso-icono"><img src="{{ $iconoScan }}" alt=""></div>
+                        <p class="paso-texto">Apunta al código</p>
+                    </td>
+                    <td>
+                        <div class="paso-icono"><img src="{{ $iconoCheck }}" alt=""></div>
+                        <p class="paso-texto">Lee y acepta</p>
+                    </td>
+                </tr>
+            </table>
         </div>
 
-        <table class="pasos">
-            <tr>
-                <td>
-                    <div class="paso-icono">
-                        <img src="{{ $iconoCamara }}" alt="">
-                    </div>
-                    <p class="paso-label">Paso 1</p>
-                    <p class="paso-texto">Abre la cámara de tu celular</p>
-                </td>
-                <td>
-                    <div class="paso-icono">
-                        <img src="{{ $iconoScan }}" alt="">
-                    </div>
-                    <p class="paso-label">Paso 2</p>
-                    <p class="paso-texto">Apunta al código QR</p>
-                </td>
-                <td>
-                    <div class="paso-icono">
-                        <img src="{{ $iconoCheck }}" alt="">
-                    </div>
-                    <p class="paso-label">Paso 3</p>
-                    <p class="paso-texto">Lee y acepta el Reglamento</p>
-                </td>
-            </tr>
-        </table>
-
-        <p class="nota">Este código siempre lleva a la versión vigente del Reglamento, sin importar cuántas veces la empresa lo actualice.</p>
-    </div>
-
-    <div class="band band-bottom">
-        <p>Generado por LUPE Legal · {{ now()->format('d/m/Y') }}</p>
+        <p class="nota">Este código siempre lleva a la versión vigente del Reglamento, sin importar cuántas veces se actualice.</p>
     </div>
 </body>
 </html>
