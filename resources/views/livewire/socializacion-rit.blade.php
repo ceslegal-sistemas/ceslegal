@@ -5,7 +5,7 @@
 
 <div class="min-h-screen bg-gray-50 sm:bg-gray-100 sm:py-8 sm:px-4">
     @include('filament.components.lupe-hero-styles')
-    <div class="sm:max-w-xl sm:mx-auto">
+    <div class="sm:max-w-xl lg:max-w-3xl sm:mx-auto">
         <div class="bg-white sm:rounded-2xl sm:shadow-lg sm:border sm:border-gray-200 min-h-screen sm:min-h-0 sm:overflow-hidden">
             <header class="bg-white border-b border-gray-200 sticky top-0 z-10 sm:static sm:rounded-t-2xl">
                 <div class="px-4 sm:px-6 py-4">
@@ -150,7 +150,7 @@
                                  clasificada, sin IA nueva), el texto completo queda disponible
                                  aparte para quien de verdad quiera leerlo entero. --}}
                             @if(count($temasRit) > 0)
-                                <div class="space-y-2.5">
+                                <div class="space-y-2.5 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3">
                                     @foreach($temasRit as $tema)
                                         <div class="flex items-start gap-3 p-3.5 bg-gray-50 rounded-xl">
                                             <div class="w-2 h-2 rounded-full bg-primary-500 mt-1.5 flex-shrink-0"></div>
