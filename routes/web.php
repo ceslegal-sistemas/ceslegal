@@ -62,6 +62,10 @@ Route::post('/transcribir', \App\Http\Controllers\TranscribeController::class)
 Route::get('/descargos/{token}', [DescargoPublicoController::class, 'mostrarAcceso'])
     ->name('descargos.acceso');
 
+Route::get('/rit/socializar/{token}', [\App\Http\Controllers\SocializacionRitPublicoController::class, 'mostrar'])
+    ->name('rit.socializar')
+    ->where('token', '[a-f0-9]+');
+
 // Aceptación de invitación de un bufete a una empresa (enlace por token)
 Route::get('/bufete/invitacion/{token}', [\App\Http\Controllers\BufeteInvitacionController::class, 'aceptar'])
     ->name('bufete.invitacion.aceptar')
