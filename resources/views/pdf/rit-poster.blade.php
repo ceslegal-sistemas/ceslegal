@@ -89,11 +89,11 @@
                 <td><span class="paso-num">1.</span> Abre la cámara de tu celular.</td>
             </tr>
             <tr>
-                <td class="paso-icono-td"></td>
+                <td class="paso-icono-td"><img src="{{ $iconoQr }}" alt=""></td>
                 <td><span class="paso-num">2.</span> Apunta al código QR de arriba.</td>
             </tr>
             <tr>
-                <td class="paso-icono-td"></td>
+                <td class="paso-icono-td"><img src="{{ $iconoCheck }}" alt=""></td>
                 <td><span class="paso-num">3.</span> Lee el Reglamento y acéptalo desde tu celular.</td>
             </tr>
         </table>

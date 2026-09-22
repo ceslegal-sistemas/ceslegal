@@ -52,7 +52,8 @@ class RitPoster
             'logoBase64' => self::logoBase64($empresa),
             'iconoPortada' => self::iconoLegalDesign('portada'),
             'iconoTelefono' => self::iconoLegalDesign('parte-02'),
-            'iconoTelefonoBlanco' => self::iconoLegalDesign('parte-02-white'),
+            'iconoQr' => self::iconoLegalDesign('rit-poster-qr-icon'),
+            'iconoCheck' => self::iconoLegalDesign('rit-poster-check-icon'),
         ])->render();
     }
 
