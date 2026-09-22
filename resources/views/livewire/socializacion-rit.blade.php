@@ -55,7 +55,7 @@
                         </div>
 
                         <div>
-                            <select wire:model="tipoDocumento" class="w-full text-base border-gray-300 rounded-xl focus:border-primary-500 focus:ring-primary-500">
+                            <select wire:model="tipoDocumento" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 <option value="CC">Cédula de Ciudadanía</option>
                                 <option value="CE">Cédula de Extranjería</option>
                                 <option value="TI">Tarjeta de Identidad</option>
@@ -66,7 +66,7 @@
 
                         <div>
                             <input type="text" wire:model="numeroDocumento" placeholder="Número de documento" inputmode="numeric"
-                                class="w-full text-base border-gray-300 rounded-xl focus:border-primary-500 focus:ring-primary-500">
+                                class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                             @error('numeroDocumento') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                         </div>
 
@@ -88,15 +88,15 @@
 
                         <div class="space-y-4">
                             <div>
-                                <input type="text" wire:model="nombres" placeholder="Nombres" class="w-full text-base border-gray-300 rounded-xl focus:border-primary-500 focus:ring-primary-500">
+                                <input type="text" wire:model="nombres" placeholder="Nombres" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 @error('nombres') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <input type="text" wire:model="apellidos" placeholder="Apellidos" class="w-full text-base border-gray-300 rounded-xl focus:border-primary-500 focus:ring-primary-500">
+                                <input type="text" wire:model="apellidos" placeholder="Apellidos" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 @error('apellidos') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <select wire:model="genero" class="w-full text-base border-gray-300 rounded-xl focus:border-primary-500 focus:ring-primary-500">
+                                <select wire:model="genero" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                     <option value="">Género</option>
                                     <option value="masculino">Masculino</option>
                                     <option value="femenino">Femenino</option>
@@ -105,15 +105,15 @@
                                 @error('genero') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <input type="text" wire:model="cargo" placeholder="Cargo" class="w-full text-base border-gray-300 rounded-xl focus:border-primary-500 focus:ring-primary-500">
+                                <input type="text" wire:model="cargo" placeholder="Cargo" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 @error('cargo') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <input type="email" wire:model="email" placeholder="Correo (opcional)" class="w-full text-base border-gray-300 rounded-xl focus:border-primary-500 focus:ring-primary-500">
+                                <input type="email" wire:model="email" placeholder="Correo (opcional)" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 @error('email') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <input type="text" wire:model="telefono" placeholder="Teléfono (opcional)" class="w-full text-base border-gray-300 rounded-xl focus:border-primary-500 focus:ring-primary-500">
+                                <input type="text" wire:model="telefono" placeholder="Teléfono (opcional)" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 @error('telefono') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
@@ -174,7 +174,7 @@
                         </div>
 
                         <label class="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
-                            <input type="checkbox" wire:model="declaracionAceptada" class="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 flex-shrink-0">
+                            <input type="checkbox" wire:model="declaracionAceptada" class="mt-0.5 rounded border border-gray-300 text-primary-600 focus:ring-2 focus:ring-primary-500 flex-shrink-0">
                             <span class="text-sm text-gray-700">Declaro que leí y entendí el Reglamento Interno de Trabajo de {{ $empresa->razon_social }}.</span>
                         </label>
                         @error('declaracionAceptada') <p class="text-sm text-danger-600">{{ $message }}</p> @enderror

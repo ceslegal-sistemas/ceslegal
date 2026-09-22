@@ -39,4 +39,29 @@ class SocializacionRitParidadVisualDescargosTest extends TestCase
         $this->assertStringContainsString('Procesando...', $fuente);
         $this->assertStringContainsString('wire:loading.delay', $fuente);
     }
+
+    /**
+     * Bug real reportado por el usuario (2026-09-22): los campos se veían
+     * totalmente planos, sin borde ni relleno visible. Causa raíz: Tailwind
+     * pone `border-width:0` en TODO por defecto (preflight) - una clase
+     * `border-gray-300` (solo color) sin la utilidad `border` (ancho) no
+     * dibuja ningún borde. Lo mismo pasa con `focus:ring-primary-500` (color)
+     * sin `focus:ring-2` (ancho). Verifica que cada input/select tenga
+     * explícitamente ambas utilidades de ancho, no solo las de color.
+     */
+    public function test_los_campos_tienen_ancho_de_borde_y_de_anillo_explicito(): void
+    {
+        $fuente = file_get_contents(resource_path('views/livewire/socializacion-rit.blade.php'));
+
+        $this->assertMatchesRegularExpression(
+            '/class="[^"]*\bborder\b[^"]*border-gray-300[^"]*"/',
+            $fuente,
+            'Los campos deben tener la utilidad "border" (ancho), no solo "border-gray-300" (color).'
+        );
+        $this->assertMatchesRegularExpression(
+            '/class="[^"]*focus:ring-2[^"]*focus:ring-primary-500[^"]*"/',
+            $fuente,
+            'Los campos deben tener "focus:ring-2" (ancho), no solo "focus:ring-primary-500" (color).'
+        );
+    }
 }
