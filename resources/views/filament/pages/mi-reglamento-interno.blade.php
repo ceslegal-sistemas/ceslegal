@@ -56,6 +56,8 @@ html:not(.dark) .rit-btn-secondary{background:rgba(0,0,0,.04);border-color:rgba(
 html:not(.dark) .rit-btn-success{background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.22);color:#166534}
 .rit-btn-danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#fca5a5}
 html:not(.dark) .rit-btn-danger{background:rgba(220,38,38,.07);border-color:rgba(220,38,38,.2);color:#b91c1c}
+.rit-link-input{flex:1;min-width:200px;padding:.5rem .75rem;border-radius:.5rem;border:1px solid rgba(255,255,255,.15);font-size:.8125rem;background:rgba(255,255,255,.06);color:#e2e8f0}
+html:not(.dark) .rit-link-input{border-color:rgba(0,0,0,.12);background:#fff;color:#1c1917}
 .rit-viewer{border-radius:1rem;border:1px solid rgba(255,255,255,.09);overflow:hidden;margin-top:1.25rem}
 html:not(.dark) .rit-viewer{border-color:rgba(0,0,0,.08);box-shadow:0 2px 12px rgba(0,0,0,.06)}
 .rit-viewer-header{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.125rem;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04)}
@@ -311,6 +313,26 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
 
   {{-- ── VIEWER / EMPTY STATE ── --}}
   @elseif($tiene)
+    {{-- Pedido explícito del usuario: este banner debe verse ANTES del texto
+         del reglamento, no después - debe quedar visible al entrar a la
+         página sin necesidad de hacer scroll. --}}
+    <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+      <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+      <div style="position:relative;z-index:2" x-data="{ copiado: false, url: {{ \Illuminate\Support\Js::from($empresa->urlSocializacionRit()) }} }">
+        <span class="rit-badge rit-badge-ia">Socializa el RIT</span>
+        <h1 class="rit-title">Comparte el Reglamento con tus trabajadores</h1>
+        <p class="rit-sub">Este link es fijo: siempre lleva a la versión vigente del Reglamento, sin importar cuántas veces lo actualices.</p>
+        <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+          <input type="text" readonly x-bind:value="url" onclick="this.select()" class="rit-link-input">
+          <button type="button" class="rit-btn rit-btn-secondary" x-on:click="navigator.clipboard.writeText(url); copiado = true; setTimeout(() => copiado = false, 2000)">
+            <span x-text="copiado ? 'Copiado' : 'Copiar'"></span>
+          </button>
+          <a class="rit-btn rit-btn-secondary" x-bind:href="'https://wa.me/?text=' + encodeURIComponent('Conoce el Reglamento Interno de Trabajo: ' + url)" target="_blank" rel="noopener">WhatsApp</a>
+          <a class="rit-btn rit-btn-secondary" x-bind:href="'mailto:?subject=' + encodeURIComponent('Reglamento Interno de Trabajo') + '&body=' + encodeURIComponent('Conoce el Reglamento Interno de Trabajo aquí: ' + url)">Correo</a>
+        </div>
+      </div>
+    </div>
+
     <div class="rit-viewer">
       <div class="rit-viewer-header">
         {{-- "vigente" deja claro que este texto YA está guardado, no es un
@@ -344,25 +366,6 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
           <svg style="width:16px;height:16px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
           Construir Reglamento Interno con IA
         </a>
-      </div>
-    </div>
-  @endif
-
-  @if($tiene)
-    <div class="rit-hero" style="padding:1.25rem 1.5rem;margin-top:1rem;">
-      <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
-      <div style="position:relative;z-index:2" x-data="{ copiado: false, url: {{ \Illuminate\Support\Js::from($empresa->urlSocializacionRit()) }} }">
-        <span class="rit-badge rit-badge-ia">Socializa el RIT</span>
-        <h1 class="rit-title">Comparte el Reglamento con tus trabajadores</h1>
-        <p class="rit-sub">Este link es fijo: siempre lleva a la versión vigente del Reglamento, sin importar cuántas veces lo actualices.</p>
-        <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;">
-          <input type="text" readonly x-bind:value="url" onclick="this.select()" style="flex:1;min-width:200px;padding:.5rem .75rem;border-radius:.5rem;border:1px solid rgba(0,0,0,.12);font-size:.8125rem;">
-          <button type="button" class="rit-btn rit-btn-secondary" x-on:click="navigator.clipboard.writeText(url); copiado = true; setTimeout(() => copiado = false, 2000)">
-            <span x-text="copiado ? 'Copiado' : 'Copiar'"></span>
-          </button>
-          <a class="rit-btn rit-btn-secondary" x-bind:href="'https://wa.me/?text=' + encodeURIComponent('Conoce el Reglamento Interno de Trabajo: ' + url)" target="_blank" rel="noopener">WhatsApp</a>
-          <a class="rit-btn rit-btn-secondary" x-bind:href="'mailto:?subject=' + encodeURIComponent('Reglamento Interno de Trabajo') + '&body=' + encodeURIComponent('Conoce el Reglamento Interno de Trabajo aquí: ' + url)">Correo</a>
-        </div>
       </div>
     </div>
   @endif

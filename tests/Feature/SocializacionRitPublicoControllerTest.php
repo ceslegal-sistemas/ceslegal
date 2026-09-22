@@ -53,4 +53,24 @@ class SocializacionRitPublicoControllerTest extends TestCase
         $response->assertOk();
         $response->assertViewHas('empresa', fn ($empresa) => $empresa->id === $empresaDelToken->id);
     }
+
+    /**
+     * Bug real reportado por el usuario (2026-09-22): la interfaz del
+     * trabajador se veía sin estilo (botones invisibles) porque este host
+     * page no tenía el tailwind.config con la paleta 'primary' que sí tiene
+     * descargos/formulario.blade.php - sin ese config, clases como
+     * bg-primary-600 no generan ningún estilo con el build CDN de Tailwind.
+     */
+    public function test_incluye_el_tailwind_config_con_la_paleta_primary(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $token = $empresa->tokenSocializacionRit();
+
+        $response = $this->get('/rit/socializar/' . $token);
+
+        $response->assertOk();
+        $response->assertSee('tailwind.config', false);
+        $response->assertSee("primary:", false);
+        $response->assertSee('#e11d48', false);
+    }
 }

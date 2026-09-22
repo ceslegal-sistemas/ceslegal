@@ -17,22 +17,29 @@ class MiReglamentoInternoBotonCompartirTest extends TestCase
     }
 
     /**
-     * Ancla en un string UNICO y ya verificado en el archivo real (la
-     * cadena "@if($tiene)" aparece 2 veces en un lugar equivocado - dentro
-     * de la fila de botones del header - por eso NO se usa como ancla aquí).
-     * "Construir Reglamento Interno con IA" aparece una sola vez, cerca de
-     * donde termina el bloque real del visor - el banner nuevo debe quedar
-     * despues de esa linea.
+     * Pedido explícito del usuario (2026-09-22): el banner debe verse ANTES
+     * del texto del reglamento, para quedar visible sin scroll al entrar a
+     * la página. "Texto del reglamento vigente" aparece una sola vez en el
+     * archivo, justo en el header del visor.
      */
-    public function test_el_banner_esta_despues_del_visor_del_rit_no_dentro_de_rit_actions(): void
+    public function test_el_banner_esta_antes_del_texto_del_reglamento_vigente(): void
     {
         $fuente = file_get_contents(resource_path('views/filament/pages/mi-reglamento-interno.blade.php'));
 
-        $posicionAncla = strpos($fuente, 'Construir Reglamento Interno con IA');
         $posicionBanner = strpos($fuente, 'urlSocializacionRit');
+        $posicionAncla = strpos($fuente, 'Texto del reglamento vigente');
 
-        $this->assertNotFalse($posicionAncla, 'No se encontró el ancla esperada en el archivo.');
         $this->assertNotFalse($posicionBanner, 'No se encontró el banner nuevo.');
-        $this->assertGreaterThan($posicionAncla, $posicionBanner, 'El banner de compartir debe estar DESPUÉS del bloque del visor del RIT, no dentro de la fila de botones .rit-actions.');
+        $this->assertNotFalse($posicionAncla, 'No se encontró el ancla esperada en el archivo.');
+        $this->assertLessThan($posicionAncla, $posicionBanner, 'El banner de compartir debe estar ANTES del texto del reglamento vigente.');
+    }
+
+    public function test_el_input_del_link_tiene_estilos_de_contraste_para_ambos_modos(): void
+    {
+        $fuente = file_get_contents(resource_path('views/filament/pages/mi-reglamento-interno.blade.php'));
+
+        $this->assertStringContainsString('rit-link-input', $fuente);
+        $this->assertMatchesRegularExpression('/\.rit-link-input\{[^}]*background:rgba\(255,255,255,\.06\)/', $fuente);
+        $this->assertMatchesRegularExpression('/html:not\(\.dark\) \.rit-link-input\{[^}]*background:#fff/', $fuente);
     }
 }
