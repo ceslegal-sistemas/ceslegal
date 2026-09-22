@@ -195,14 +195,20 @@
                     </div>
                 @elseif ($etapa === 'aceptacion')
                     <div class="space-y-5">
-                        <div>
-                            <h2 class="text-base font-semibold text-gray-900 mb-1">Última confirmación</h2>
-                            <p class="text-sm text-gray-500">Confirma que leíste y entendiste el Reglamento.</p>
+                        <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+                            <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+                            <div style="position:relative;z-index:2">
+                                <span class="rit-badge rit-badge-ia">Último paso</span>
+                                <h1 class="rit-title">Confirma que entendiste el Reglamento</h1>
+                                <p class="rit-sub">Con esto quedas registrado(a) como trabajador(a) de {{ $empresa->razon_social }} que conoce el Reglamento Interno.</p>
+                            </div>
                         </div>
 
-                        <label class="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
-                            <input type="checkbox" wire:model="declaracionAceptada" class="mt-0.5 rounded border border-gray-300 text-primary-600 focus:ring-2 focus:ring-primary-500 flex-shrink-0">
-                            <span class="text-sm text-gray-700">Declaro que leí y entendí el Reglamento Interno de Trabajo de {{ $empresa->razon_social }}.</span>
+                        <label class="flex items-start gap-3 p-4 rounded-xl border-2 border-gray-200 bg-gray-50 cursor-pointer">
+                            <input type="checkbox" wire:model="declaracionAceptada" class="mt-0.5 w-5 h-5 rounded border border-gray-300 text-primary-600 focus:ring-2 focus:ring-primary-500 flex-shrink-0">
+                            <span class="text-sm text-gray-700">
+                                <span class="font-semibold text-gray-900">Declaro que leí y entendí</span> el Reglamento Interno de Trabajo de <span class="font-semibold text-gray-900">{{ $empresa->razon_social }}</span>.
+                            </span>
                         </label>
                         @error('declaracionAceptada') <p class="text-sm text-danger-600">{{ $message }}</p> @enderror
 
