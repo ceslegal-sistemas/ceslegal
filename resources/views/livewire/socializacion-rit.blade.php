@@ -97,6 +97,29 @@
                             Continuar
                         </button>
                     </div>
+                @elseif ($etapa === 'aceptacion')
+                    <div class="space-y-4">
+                        <label class="flex items-start gap-3">
+                            <input type="checkbox" wire:model="declaracionAceptada" class="mt-1 rounded border-gray-300">
+                            <span class="text-sm text-gray-700">Declaro que leí y entendí el Reglamento Interno de Trabajo de {{ $empresa->razon_social }}.</span>
+                        </label>
+                        @error('declaracionAceptada') <p class="text-sm text-danger-600">{{ $message }}</p> @enderror
+                        <button type="button" wire:click="aceptarReglamento" class="w-full bg-primary-600 text-white font-semibold rounded-xl py-3">
+                            Aceptar
+                        </button>
+                    </div>
+                @elseif ($etapa === 'completado')
+                    <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+                        <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+                        <div style="position:relative;z-index:2">
+                            <span class="rit-badge rit-badge-sub">
+                                <lord-icon src="https://cdn.lordicon.com/wpsdctqb.json" trigger="loop" delay="800" stroke="bold" colors="primary:#86efac,secondary:#86efac" style="width:16px;height:16px;flex-shrink:0"></lord-icon>
+                                Registro exitoso
+                            </span>
+                            <h1 class="rit-title">¡Gracias!</h1>
+                            <p class="rit-sub">Tu registro y aceptación del Reglamento Interno quedaron guardados.</p>
+                        </div>
+                    </div>
                 @endif
             </main>
         </div>

@@ -33,6 +33,8 @@ class SocializacionRit extends Component
     public array $cambiosRit = [];
     public string $ritActivoTextoCompleto = '';
 
+    public bool $declaracionAceptada = false;
+
     public function mount(Empresa $empresa): void
     {
         $this->empresa = $empresa;
@@ -179,6 +181,29 @@ class SocializacionRit extends Component
         }
 
         $this->etapa = 'presentacion_rit';
+    }
+
+    public function aceptarReglamento(): void
+    {
+        $this->validate([
+            'declaracionAceptada' => 'accepted',
+        ]);
+
+        $ritActivo = $this->resolverRitActivo(); // NUNCA $this->empresa->reglamentoInterno - ver Gotcha crítico #3
+
+        \App\Models\AceptacionReglamentoInterno::updateOrCreate(
+            [
+                'trabajador_id' => $this->trabajadorId,
+                'reglamento_interno_id' => $ritActivo->id,
+            ],
+            [
+                'aceptado_en' => now(),
+                'ip_aceptacion' => request()->ip(),
+                'user_agent' => (string) request()->userAgent(),
+            ]
+        );
+
+        $this->etapa = 'completado';
     }
 
     public function render()
