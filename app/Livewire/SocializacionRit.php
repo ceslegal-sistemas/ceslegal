@@ -29,6 +29,10 @@ class SocializacionRit extends Component
     public string $telefono = '';
     public string $direccion = '';
 
+    public bool $esPrimeraAceptacion = true;
+    public array $cambiosRit = [];
+    public string $ritActivoTextoCompleto = '';
+
     public function mount(Empresa $empresa): void
     {
         $this->empresa = $empresa;
@@ -144,6 +148,34 @@ class SocializacionRit extends Component
             Storage::disk('local')->put($ruta, $contenido);
 
             $trabajador->update(['foto_referencia_path' => $ruta]);
+        }
+
+        $trabajadorObj = Trabajador::withoutGlobalScope('bufeteOrEmpresa')->find($this->trabajadorId);
+        $ritActivo = $this->resolverRitActivo(); // NUNCA $this->empresa->reglamentoInterno - ver Gotcha crítico #3
+        $ultimaAceptacion = $trabajadorObj?->aceptacionesReglamentoInterno()
+            ->latest('aceptado_en')
+            ->first();
+
+        $this->ritActivoTextoCompleto = (string) $ritActivo->texto_completo;
+
+        if ($ultimaAceptacion) {
+            $this->esPrimeraAceptacion = false;
+
+            // $ultimaAceptacion->reglamentoInterno (belongsTo) dispararía
+            // OTRA consulta sin proteger contra ReglamentoInterno::
+            // ScopedToBufeteOrEmpresa - mismo riesgo del Gotcha crítico #3,
+            // esta vez en una relación belongsTo en vez de hasOne. Siempre
+            // resolver por id con withoutGlobalScope explícito, nunca vía
+            // la relación directa, en NINGÚN modelo que use ese scope.
+            $versionAnterior = ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
+                ->find($ultimaAceptacion->reglamento_interno_id);
+
+            $this->cambiosRit = app(\App\Services\RitDiffService::class)->compararDocumentos(
+                (string) $versionAnterior->texto_completo,
+                $this->ritActivoTextoCompleto
+            );
+        } else {
+            $this->esPrimeraAceptacion = true;
         }
 
         $this->etapa = 'presentacion_rit';

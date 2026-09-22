@@ -61,6 +61,42 @@
                     </div>
                 @elseif ($etapa === 'foto')
                     @include('livewire.partials.foto-simple-captura')
+                @elseif ($etapa === 'presentacion_rit')
+                    <div class="space-y-4">
+                        @if ($esPrimeraAceptacion)
+                            <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+                                <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+                                <div style="position:relative;z-index:2">
+                                    <span class="rit-badge rit-badge-ia">Reglamento Interno</span>
+                                    <h1 class="rit-title">Conoce el Reglamento Interno de {{ $empresa->razon_social }}</h1>
+                                </div>
+                            </div>
+                            <div class="prose max-w-none text-sm whitespace-pre-line border border-gray-200 rounded-xl p-4 max-h-96 overflow-y-auto">
+                                {{ $ritActivoTextoCompleto }}
+                            </div>
+                        @else
+                            <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+                                <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+                                <div style="position:relative;z-index:2">
+                                    <span class="rit-badge rit-badge-warning">Actualización</span>
+                                    <h1 class="rit-title">Esto cambió en el Reglamento Interno</h1>
+                                </div>
+                            </div>
+                            @include('filament.components.rit-redline', ['cambios' => $cambiosRit])
+                            {{-- Pedido explicito del spec (seccion 6): opcion de ver el
+                                 texto completo, no solo el diff, si el trabajador lo prefiere. --}}
+                            <details class="text-sm">
+                                <summary class="cursor-pointer text-primary-600 font-medium">Ver el Reglamento completo</summary>
+                                <div class="prose max-w-none whitespace-pre-line border border-gray-200 rounded-xl p-4 mt-2 max-h-96 overflow-y-auto">
+                                    {{ $ritActivoTextoCompleto }}
+                                </div>
+                            </details>
+                        @endif
+
+                        <button type="button" wire:click="$set('etapa', 'aceptacion')" class="w-full bg-primary-600 text-white font-semibold rounded-xl py-3">
+                            Continuar
+                        </button>
+                    </div>
                 @endif
             </main>
         </div>
