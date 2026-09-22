@@ -266,6 +266,23 @@ class Empresa extends Model
         return $this->hasOne(ReglamentoInterno::class)->where('activo', true)->latest('updated_at');
     }
 
+    public function tokenSocializacionRit(): string
+    {
+        if (!$this->token_socializacion_rit) {
+            // bin2hex(random_bytes(32)) = 64 caracteres hex, mismo esquema
+            // que DiligenciaDescargo::generarTokenAcceso() - consistencia
+            // con el unico precedente de token publico del proyecto.
+            $this->update(['token_socializacion_rit' => bin2hex(random_bytes(32))]);
+        }
+
+        return $this->token_socializacion_rit;
+    }
+
+    public function urlSocializacionRit(): string
+    {
+        return route('rit.socializar', ['token' => $this->tokenSocializacionRit()]);
+    }
+
     public function suscripcion(): HasOne
     {
         return $this->hasOne(Suscripcion::class)->latest();
