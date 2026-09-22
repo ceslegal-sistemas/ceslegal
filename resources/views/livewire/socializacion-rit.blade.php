@@ -113,11 +113,11 @@
                                 @error('cargo') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <input type="email" wire:model="email" placeholder="Correo (opcional)" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                                <input type="email" wire:model="email" placeholder="Correo electrónico" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 @error('email') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <input type="text" wire:model="telefono" placeholder="Teléfono (opcional)" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                                <input type="text" wire:model="telefono" placeholder="Teléfono" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 @error('telefono') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
@@ -141,11 +141,34 @@
                                 <div style="position:relative;z-index:2">
                                     <span class="rit-badge rit-badge-ia">Reglamento Interno</span>
                                     <h1 class="rit-title">Conoce el Reglamento Interno de {{ $empresa->razon_social }}</h1>
+                                    <p class="rit-sub">Esto es lo que regula, explicado sencillo. No hace falta leer todo el documento.</p>
                                 </div>
                             </div>
-                            <div class="prose max-w-none text-sm whitespace-pre-line border border-gray-200 rounded-xl p-4 max-h-96 overflow-y-auto">
-                                {{ $ritActivoTextoCompleto }}
-                            </div>
+
+                            {{-- Legal Design: nadie lee un reglamento completo desde el celular -
+                                 se muestran los temas que cubre en lenguaje simple (taxonomía ya
+                                 clasificada, sin IA nueva), el texto completo queda disponible
+                                 aparte para quien de verdad quiera leerlo entero. --}}
+                            @if(count($temasRit) > 0)
+                                <div class="space-y-2.5">
+                                    @foreach($temasRit as $tema)
+                                        <div class="flex items-start gap-3 p-3.5 bg-gray-50 rounded-xl">
+                                            <div class="w-2 h-2 rounded-full bg-primary-500 mt-1.5 flex-shrink-0"></div>
+                                            <div>
+                                                <p class="text-sm font-semibold text-gray-900 m-0">{{ $tema['nombre'] }}</p>
+                                                <p class="text-xs text-gray-500 m-0 mt-0.5">{{ $tema['descripcion'] }}</p>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            <details class="text-sm">
+                                <summary class="cursor-pointer text-primary-600 font-medium">Ver el Reglamento completo</summary>
+                                <div class="prose max-w-none text-sm whitespace-pre-line border border-gray-200 rounded-xl p-4 mt-2 max-h-96 overflow-y-auto">
+                                    {{ $ritActivoTextoCompleto }}
+                                </div>
+                            </details>
                         @else
                             <div class="rit-hero" style="padding:1.25rem 1.5rem;">
                                 <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>

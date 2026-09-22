@@ -32,6 +32,7 @@ class SocializacionRit extends Component
     public bool $esPrimeraAceptacion = true;
     public array $cambiosRit = [];
     public string $ritActivoTextoCompleto = '';
+    public array $temasRit = [];
 
     public bool $declaracionAceptada = false;
 
@@ -114,8 +115,8 @@ class SocializacionRit extends Component
             'apellidos' => 'required|string|max:255',
             'genero' => 'required|string',
             'cargo' => 'required|string|max:255',
-            'email' => 'nullable|email',
-            'telefono' => 'nullable|string|max:50',
+            'email' => 'required|email',
+            'telefono' => 'required|string|max:50',
             'direccion' => 'nullable|string',
         ]);
 
@@ -164,6 +165,15 @@ class SocializacionRit extends Component
             ->first();
 
         $this->ritActivoTextoCompleto = (string) $ritActivo->texto_completo;
+        // Legal Design: nadie lee el reglamento completo en este paso - se
+        // muestran los temas que ya tiene clasificados (taxonomia fija de 27
+        // temas, sin llamada nueva a IA) como resumen simple, con el texto
+        // completo disponible aparte para quien SI quiera leerlo entero.
+        $this->temasRit = $ritActivo->temasNormativos()
+            ->activos()
+            ->get(['temas_normativos.nombre', 'temas_normativos.descripcion'])
+            ->map(fn ($tema) => ['nombre' => $tema->nombre, 'descripcion' => $tema->descripcion])
+            ->all();
 
         if ($ultimaAceptacion) {
             $this->esPrimeraAceptacion = false;

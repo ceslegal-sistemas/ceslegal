@@ -47,6 +47,30 @@ class SocializacionRitPresentacionRitTest extends TestCase
             ->assertSee('Texto completo del RIT');
     }
 
+    /**
+     * Pedido explicito del usuario (2026-09-22): nadie lee el texto completo
+     * del reglamento - debe mostrar un resumen simple (Legal Design) con los
+     * temas que ya tiene clasificados, no el texto crudo de una.
+     */
+    public function test_primera_aceptacion_muestra_los_temas_en_lenguaje_simple(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $rit = ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'Texto completo del RIT.']);
+        $tema = \App\Models\TemaNormativo::create(['nombre' => 'Jornada laboral', 'descripcion' => 'Horarios y horas extras.', 'activo' => true]);
+        $rit->temasNormativos()->attach($tema->id);
+        $trabajador = Trabajador::create([
+            'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '565656565',
+            'genero' => 'masculino', 'nombres' => 'Con', 'apellidos' => 'Temas', 'cargo' => 'X', 'active' => true,
+        ]);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('trabajadorId', $trabajador->id)
+            ->call('guardarFotoSimple', $this->fotoBase64DePrueba())
+            ->assertSee('Jornada laboral')
+            ->assertSee('Horarios y horas extras.');
+    }
+
     public function test_reaceptacion_muestra_el_diff_no_el_texto_completo_sin_marcar(): void
     {
         \Illuminate\Support\Facades\Storage::fake('local');

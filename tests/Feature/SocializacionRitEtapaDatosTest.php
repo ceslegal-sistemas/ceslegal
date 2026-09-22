@@ -27,6 +27,8 @@ class SocializacionRitEtapaDatosTest extends TestCase
             ->set('apellidos', 'Torres')
             ->set('genero', 'masculino')
             ->set('cargo', 'Vendedor')
+            ->set('email', 'juan.torres@example.com')
+            ->set('telefono', '3001234567')
             ->call('guardarDatos')
             ->assertSet('etapa', 'foto');
 
@@ -52,9 +54,32 @@ class SocializacionRitEtapaDatosTest extends TestCase
             ->set('numeroDocumento', '444555666')
             ->call('buscarTrabajador')
             ->assertSet('nombres', 'Carla')
+            ->set('email', 'carla.rios@example.com')
+            ->set('telefono', '3007654321')
             ->call('guardarDatos')
             ->assertSet('etapa', 'foto');
 
         $this->assertSame(1, Trabajador::where('numero_documento', '444555666')->count());
+    }
+
+    /**
+     * Pedido explícito del usuario (2026-09-22): correo y teléfono son
+     * obligatorios (antes eran opcionales).
+     */
+    public function test_correo_y_telefono_son_obligatorios(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('tipoDocumento', 'CC')
+            ->set('numeroDocumento', '777888999')
+            ->call('buscarTrabajador')
+            ->set('nombres', 'Sin')
+            ->set('apellidos', 'Contacto')
+            ->set('genero', 'masculino')
+            ->set('cargo', 'Operario')
+            ->call('guardarDatos')
+            ->assertHasErrors(['email', 'telefono']);
     }
 }
