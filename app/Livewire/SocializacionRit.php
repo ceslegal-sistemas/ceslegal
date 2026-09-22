@@ -36,6 +36,10 @@ class SocializacionRit extends Component
 
     public bool $declaracionAceptada = false;
 
+    public string $alertaAccesorios = '';
+    public string $errorValidacionFoto = '';
+    public bool $validandoFoto = false;
+
     public function mount(Empresa $empresa): void
     {
         $this->empresa = $empresa;
@@ -140,6 +144,52 @@ class SocializacionRit extends Component
 
         $this->trabajadorId = $trabajador->id;
         $this->etapa = 'foto';
+    }
+
+    /**
+     * Pre-captura: detecta accesorios faciales (gorra, tapabocas, gafas
+     * oscuras, etc.) antes de mostrar el preview - mismo servicio y mismo
+     * criterio fail-open que FormularioDescargos::verificarAccesorios().
+     * Esta foto se guarda como foto_referencia_path del trabajador, que
+     * luego AWS Rekognition usa en descargos para confirmar que es la misma
+     * persona - por eso importa que quede sin accesorios que tapen el rostro.
+     */
+    public function verificarAccesorios(string $base64): void
+    {
+        $this->alertaAccesorios = '';
+        try {
+            $resultado = app(\App\Services\VerificacionFacialService::class)->detectarAccesorios($base64);
+            if (!($resultado['ok'] ?? true)) {
+                $this->alertaAccesorios = $resultado['motivo']
+                    ?? 'Por favor retire cualquier accesorio que cubra su rostro antes de tomar la foto.';
+            }
+        } catch (\Throwable $e) {
+            // fail-open: si falla la deteccion, se permite continuar
+        }
+    }
+
+    /**
+     * Punto de entrada real desde el front (Capa 2 - Gemini Vision valida
+     * calidad: gafas, tapabocas, blur, etc.). No hay Capa 3 (Rekognition)
+     * aqui: este es precisamente el paso que CREA foto_referencia_path, no
+     * hay nada contra qué comparar todavia.
+     */
+    public function validarFotoConIA(string $fotoBase64): void
+    {
+        $this->validandoFoto = true;
+        $this->errorValidacionFoto = '';
+
+        $resultado = app(\App\Services\VerificacionFacialService::class)->validarCalidadFoto($fotoBase64);
+
+        if (!$resultado['ok']) {
+            $this->validandoFoto = false;
+            $this->errorValidacionFoto = $resultado['motivo']
+                ?? 'La foto no cumple los requisitos. Por favor intente de nuevo.';
+            return;
+        }
+
+        $this->validandoFoto = false;
+        $this->guardarFotoSimple($fotoBase64);
     }
 
     public function guardarFotoSimple(string $fotoBase64): void

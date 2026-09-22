@@ -6,6 +6,7 @@ use App\Models\Empresa;
 use App\Models\ReglamentoInterno;
 use App\Models\Trabajador;
 use App\Livewire\SocializacionRit;
+use App\Services\VerificacionFacialService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -60,5 +61,74 @@ class SocializacionRitEtapaFotoTest extends TestCase
             ->call('guardarFotoSimple', $this->fotoBase64DePrueba());
 
         $this->assertSame('fotos_referencia/ya_existente.jpg', $trabajador->fresh()->foto_referencia_path);
+    }
+
+    /**
+     * Pedido explícito del usuario (2026-09-22): esta foto se usa después
+     * como foto_referencia_path para que AWS Rekognition confirme identidad
+     * en un proceso real de descargos - por eso pasa por el mismo servicio
+     * de verificación (Capa 2 Gemini Vision) que usa FormularioDescargos.
+     */
+    public function test_verificar_accesorios_marca_alerta_si_detecta_algo(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $this->mock(VerificacionFacialService::class, function ($mock) {
+            $mock->shouldReceive('detectarAccesorios')->once()->andReturn([
+                'ok' => false,
+                'motivo' => 'Por favor retire las gafas oscuras.',
+            ]);
+        });
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->call('verificarAccesorios', $this->fotoBase64DePrueba())
+            ->assertSet('alertaAccesorios', 'Por favor retire las gafas oscuras.');
+    }
+
+    public function test_validar_foto_con_ia_rechaza_foto_de_mala_calidad_sin_avanzar(): void
+    {
+        Storage::fake('local');
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        $trabajador = Trabajador::create([
+            'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '111222444',
+            'genero' => 'masculino', 'nombres' => 'Rechazo', 'apellidos' => 'Foto', 'cargo' => 'X', 'active' => true,
+        ]);
+        $this->mock(VerificacionFacialService::class, function ($mock) {
+            $mock->shouldReceive('validarCalidadFoto')->once()->andReturn([
+                'ok' => false,
+                'motivo' => 'La foto está borrosa.',
+            ]);
+        });
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('trabajadorId', $trabajador->id)
+            ->set('etapa', 'foto')
+            ->call('validarFotoConIA', $this->fotoBase64DePrueba())
+            ->assertSet('etapa', 'foto')
+            ->assertSet('errorValidacionFoto', 'La foto está borrosa.');
+
+        $this->assertNull($trabajador->fresh()->foto_referencia_path);
+    }
+
+    public function test_validar_foto_con_ia_guarda_y_avanza_si_pasa_la_calidad(): void
+    {
+        Storage::fake('local');
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        $trabajador = Trabajador::create([
+            'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '111222555',
+            'genero' => 'femenino', 'nombres' => 'Foto', 'apellidos' => 'Valida', 'cargo' => 'X', 'active' => true,
+        ]);
+        $this->mock(VerificacionFacialService::class, function ($mock) {
+            $mock->shouldReceive('validarCalidadFoto')->once()->andReturn(['ok' => true, 'motivo' => null]);
+        });
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('trabajadorId', $trabajador->id)
+            ->set('etapa', 'foto')
+            ->call('validarFotoConIA', $this->fotoBase64DePrueba())
+            ->assertSet('etapa', 'presentacion_rit');
+
+        $this->assertNotNull($trabajador->fresh()->foto_referencia_path);
     }
 }
