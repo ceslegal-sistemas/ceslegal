@@ -10,7 +10,7 @@ class ClasificarTemasRit extends Command
 {
     protected $signature = 'rit:clasificar-temas {--todos : Reclasificar incluso los que ya tienen temas_texto_hash actualizado}';
 
-    protected $description = 'Clasifica por temas normativos los RIT activos (backfill inicial, 1 llamada IA por RIT)';
+    protected $description = 'Clasifica por temas normativos los RIT activos y genera sus resumenes simples (backfill inicial, 2 llamadas IA por RIT)';
 
     public function handle(TemaClasificadorService $clasificador): int
     {
@@ -27,7 +27,7 @@ class ClasificarTemasRit extends Command
             return self::SUCCESS;
         }
 
-        if (!$this->confirm("Se van a clasificar {$rits->count()} RIT (1 llamada IA cada uno). ¿Continuar?", true)) {
+        if (!$this->confirm("Se van a clasificar {$rits->count()} RIT (2 llamadas IA cada uno: temas + resumenes simples). ¿Continuar?", true)) {
             $this->warn('Cancelado.');
             return self::SUCCESS;
         }
@@ -41,6 +41,7 @@ class ClasificarTemasRit extends Command
         foreach ($rits as $rit) {
             try {
                 $clasificador->asegurarTemas($rit);
+                $clasificador->asegurarResumenesSimples($rit);
                 $exitosos++;
             } catch (\Throwable $e) {
                 $fallidos++;
