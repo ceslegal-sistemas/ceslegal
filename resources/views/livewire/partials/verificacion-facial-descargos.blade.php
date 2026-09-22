@@ -316,6 +316,25 @@
             try {
                 const canvas = this.$refs.canvas;
                 const video  = this.$refs.video;
+
+                // Causa raiz real encontrada en socializacion-rit (fotos de
+                // referencia de 13KB, casi en blanco): si la camara tarda en
+                // iniciar (navegadores embebidos restrictivos, ej. WhatsApp
+                // en iOS), videoWidth/videoHeight pueden seguir en 0 en el
+                // momento de la captura, produciendo un canvas vacio/
+                // degenerado. Se espera (sondeo por condicion) hasta 3s a
+                // que el video tenga dimensiones reales antes de capturar.
+                let intentos = 0;
+                while ((!video.videoWidth || !video.videoHeight) && intentos < 30) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    intentos++;
+                }
+                if (!video.videoWidth || !video.videoHeight) {
+                    this.revisandoAccesorios = false;
+                    this.errorCamara = true;
+                    return;
+                }
+
                 canvas.width  = video.videoWidth;
                 canvas.height = video.videoHeight;
                 const ctx = canvas.getContext('2d');
@@ -456,10 +475,16 @@
 
     <div x-show="disclaimerAceptado && !errorCamara" style="display:none" class="space-y-4">
         <div x-show="!fotoCapturada" style="display:none" class="space-y-3">
-            {{-- Video con encuadre guía oval --}}
-            <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3]">
+            {{-- Video con encuadre guía oval. Truco clásico "padding-bottom"
+                 para forzar 4:3 SIN depender de la propiedad CSS moderna
+                 aspect-ratio (no soportada en motores WebKit viejos, como el
+                 navegador embebido de WhatsApp en iOS - causa real
+                 confirmada de que el video se viera diminuto en una esquina
+                 en socializacion-rit). Funciona en cualquier navegador desde
+                 CSS2. --}}
+            <div class="relative rounded-xl overflow-hidden bg-black" style="width: 100%; height: 0; padding-bottom: 75%;">
                 <video x-ref="video" autoplay playsinline muted
-                    class="w-full h-full object-cover"
+                    class="absolute inset-0 w-full h-full object-cover"
                     style="transform: scaleX(-1);"></video>
 
                 <svg class="absolute inset-0 w-full h-full pointer-events-none"

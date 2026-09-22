@@ -541,6 +541,21 @@ button.wca-btn-secondary:hover {
              try {
                  const canvas = this.$refs.canvas;
                  const video  = this.$refs.video;
+
+                 // Mismo fix aplicado en verificacion-facial-descargos.blade.php
+                 // y foto-simple-captura.blade.php: si la camara tarda en dar
+                 // un frame real, videoWidth/videoHeight en 0 producian una
+                 // captura vacia/degenerada.
+                 let intentos = 0;
+                 while ((!video.videoWidth || !video.videoHeight) && intentos < 30) {
+                     await new Promise(resolve => setTimeout(resolve, 100));
+                     intentos++;
+                 }
+                 if (!video.videoWidth || !video.videoHeight) {
+                     this.errorCamara = true;
+                     return;
+                 }
+
                  canvas.width  = video.videoWidth;
                  canvas.height = video.videoHeight;
                  const ctx = canvas.getContext('2d');
