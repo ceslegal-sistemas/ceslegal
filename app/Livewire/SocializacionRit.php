@@ -5,6 +5,8 @@ namespace App\Livewire;
 use App\Models\Empresa;
 use App\Models\ReglamentoInterno;
 use App\Models\Trabajador;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Component;
 
 class SocializacionRit extends Component
@@ -126,6 +128,25 @@ class SocializacionRit extends Component
 
         $this->trabajadorId = $trabajador->id;
         $this->etapa = 'foto';
+    }
+
+    public function guardarFotoSimple(string $fotoBase64): void
+    {
+        $trabajador = Trabajador::withoutGlobalScope('bufeteOrEmpresa')->findOrFail($this->trabajadorId);
+
+        // Nunca sobrescribir una foto de referencia ya existente (podria
+        // haber sido tomada antes con mejor calidad, ej. subida manual por
+        // el admin) - solo se llena si estaba vacia.
+        if (!$trabajador->foto_referencia_path) {
+            [, $datos] = explode(',', $fotoBase64, 2);
+            $contenido = base64_decode($datos);
+            $ruta = 'fotos_referencia/' . $trabajador->id . '_' . Str::random(8) . '.jpg';
+            Storage::disk('local')->put($ruta, $contenido);
+
+            $trabajador->update(['foto_referencia_path' => $ruta]);
+        }
+
+        $this->etapa = 'presentacion_rit';
     }
 
     public function render()

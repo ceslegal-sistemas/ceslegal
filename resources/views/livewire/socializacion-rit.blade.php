@@ -59,6 +59,8 @@
                             Continuar
                         </button>
                     </div>
+                @elseif ($etapa === 'foto')
+                    @include('livewire.partials.foto-simple-captura')
                 @endif
             </main>
         </div>
