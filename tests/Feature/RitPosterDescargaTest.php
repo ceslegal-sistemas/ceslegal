@@ -69,26 +69,34 @@ class RitPosterDescargaTest extends TestCase
     /**
      * Pedido explícito del usuario (2026-09-22, en mayúsculas): el poster es
      * de la empresa que paga el servicio, no de LUPE Legal - no debe
-     * mencionarla en ninguna parte, y debe usar el color de marca de la
-     * empresa (logo_color_acento) en vez del rojo de LUPE.
+     * mencionarla en ninguna parte.
      */
-    public function test_no_menciona_lupe_legal_y_usa_el_color_de_marca_de_la_empresa(): void
+    public function test_no_menciona_lupe_legal(): void
     {
-        $empresa = Empresa::factory()->create(['active' => true, 'logo_color_acento' => '#1d4ed8']);
+        $empresa = Empresa::factory()->create(['active' => true]);
 
         $html = \App\Support\RitPoster::html($empresa);
 
         $this->assertStringNotContainsStringIgnoringCase('lupe legal', $html);
-        $this->assertStringContainsString('#1d4ed8', $html);
     }
 
-    public function test_usa_un_color_de_respaldo_si_la_empresa_no_configuro_uno(): void
+    /**
+     * Segundo pedido explícito (2026-09-22): usar el mismo sistema "Legal
+     * Design" real de los contratos (paleta teal fija del sistema, no un
+     * color por empresa) y los mismos iconos reales de Lordicon (SVG
+     * estático, ya presentes en public/images/contrato-legal-design/) en
+     * vez de iconos genéricos inventados.
+     */
+    public function test_usa_la_paleta_teal_y_los_iconos_reales_de_legal_design(): void
     {
-        $empresa = Empresa::factory()->create(['active' => true, 'logo_color_acento' => null]);
+        $empresa = Empresa::factory()->create(['active' => true]);
 
         $html = \App\Support\RitPoster::html($empresa);
 
-        $this->assertStringNotContainsStringIgnoringCase('lupe legal', $html);
-        $this->assertStringContainsString('#27272a', $html);
+        $this->assertStringContainsString('#1B5E63', $html);
+        $this->assertStringContainsString('#E4F1F1', $html);
+
+        $portada = base64_encode(file_get_contents(public_path('images/contrato-legal-design/portada.svg')));
+        $this->assertStringContainsString($portada, $html);
     }
 }
