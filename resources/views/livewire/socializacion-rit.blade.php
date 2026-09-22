@@ -42,6 +42,23 @@
                             Continuar
                         </button>
                     </div>
+                @elseif ($etapa === 'datos')
+                    <div class="space-y-4">
+                        <input type="text" wire:model="nombres" placeholder="Nombres" class="w-full rounded-lg border-gray-300">
+                        <input type="text" wire:model="apellidos" placeholder="Apellidos" class="w-full rounded-lg border-gray-300">
+                        <select wire:model="genero" class="w-full rounded-lg border-gray-300">
+                            <option value="">Género</option>
+                            <option value="masculino">Masculino</option>
+                            <option value="femenino">Femenino</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                        <input type="text" wire:model="cargo" placeholder="Cargo" class="w-full rounded-lg border-gray-300">
+                        <input type="email" wire:model="email" placeholder="Correo (opcional)" class="w-full rounded-lg border-gray-300">
+                        <input type="text" wire:model="telefono" placeholder="Teléfono (opcional)" class="w-full rounded-lg border-gray-300">
+                        <button type="button" wire:click="guardarDatos" class="w-full bg-primary-600 text-white font-semibold rounded-xl py-3">
+                            Continuar
+                        </button>
+                    </div>
                 @endif
             </main>
         </div>

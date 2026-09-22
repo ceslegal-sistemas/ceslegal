@@ -19,6 +19,14 @@ class SocializacionRit extends Component
     public ?int $trabajadorId = null;
     public bool $trabajadorExistente = false;
 
+    public string $nombres = '';
+    public string $apellidos = '';
+    public string $genero = '';
+    public string $cargo = '';
+    public string $email = '';
+    public string $telefono = '';
+    public string $direccion = '';
+
     public function mount(Empresa $empresa): void
     {
         $this->empresa = $empresa;
@@ -69,6 +77,13 @@ class SocializacionRit extends Component
         if ($trabajador) {
             $this->trabajadorId = $trabajador->id;
             $this->trabajadorExistente = true;
+            $this->nombres = $trabajador->nombres;
+            $this->apellidos = $trabajador->apellidos;
+            $this->genero = $trabajador->genero;
+            $this->cargo = $trabajador->cargo;
+            $this->email = (string) $trabajador->email;
+            $this->telefono = (string) $trabajador->telefono;
+            $this->direccion = (string) $trabajador->direccion;
 
             if ($trabajador->aceptoRitVigente()) {
                 $this->etapa = 'ya_acepto';
@@ -77,6 +92,40 @@ class SocializacionRit extends Component
         }
 
         $this->etapa = 'datos';
+    }
+
+    public function guardarDatos(): void
+    {
+        $this->validate([
+            'nombres' => 'required|string|max:255',
+            'apellidos' => 'required|string|max:255',
+            'genero' => 'required|string',
+            'cargo' => 'required|string|max:255',
+            'email' => 'nullable|email',
+            'telefono' => 'nullable|string|max:50',
+            'direccion' => 'nullable|string',
+        ]);
+
+        $trabajador = Trabajador::withoutGlobalScope('bufeteOrEmpresa')->updateOrCreate(
+            [
+                'empresa_id' => $this->empresa->id,
+                'tipo_documento' => $this->tipoDocumento,
+                'numero_documento' => $this->numeroDocumento,
+            ],
+            [
+                'nombres' => $this->nombres,
+                'apellidos' => $this->apellidos,
+                'genero' => $this->genero,
+                'cargo' => $this->cargo,
+                'email' => $this->email ?: null,
+                'telefono' => $this->telefono ?: null,
+                'direccion' => $this->direccion ?: null,
+                'active' => true,
+            ]
+        );
+
+        $this->trabajadorId = $trabajador->id;
+        $this->etapa = 'foto';
     }
 
     public function render()
