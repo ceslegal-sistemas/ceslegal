@@ -348,6 +348,25 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
     </div>
   @endif
 
+  @if($tiene)
+    <div class="rit-hero" style="padding:1.25rem 1.5rem;margin-top:1rem;">
+      <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+      <div style="position:relative;z-index:2" x-data="{ copiado: false, url: {{ \Illuminate\Support\Js::from($empresa->urlSocializacionRit()) }} }">
+        <span class="rit-badge rit-badge-ia">Socializa el RIT</span>
+        <h1 class="rit-title">Comparte el Reglamento con tus trabajadores</h1>
+        <p class="rit-sub">Este link es fijo: siempre lleva a la versión vigente del Reglamento, sin importar cuántas veces lo actualices.</p>
+        <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+          <input type="text" readonly x-bind:value="url" onclick="this.select()" style="flex:1;min-width:200px;padding:.5rem .75rem;border-radius:.5rem;border:1px solid rgba(0,0,0,.12);font-size:.8125rem;">
+          <button type="button" class="rit-btn rit-btn-secondary" x-on:click="navigator.clipboard.writeText(url); copiado = true; setTimeout(() => copiado = false, 2000)">
+            <span x-text="copiado ? 'Copiado' : 'Copiar'"></span>
+          </button>
+          <a class="rit-btn rit-btn-secondary" x-bind:href="'https://wa.me/?text=' + encodeURIComponent('Conoce el Reglamento Interno de Trabajo: ' + url)" target="_blank" rel="noopener">WhatsApp</a>
+          <a class="rit-btn rit-btn-secondary" x-bind:href="'mailto:?subject=' + encodeURIComponent('Reglamento Interno de Trabajo') + '&body=' + encodeURIComponent('Conoce el Reglamento Interno de Trabajo aquí: ' + url)">Correo</a>
+        </div>
+      </div>
+    </div>
+  @endif
+
   {{-- Cambios quirúrgicos propuestos por IA (Plan B): un documento legal
        nuevo justifica ajustar un bloque puntual del RIT vigente. Nunca se
        aplica solo - queda a la espera de que el cliente/bufete lo apruebe
