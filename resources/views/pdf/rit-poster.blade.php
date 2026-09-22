@@ -22,8 +22,8 @@
             margin: 0 0 18pt;
         }
 
-        .logo-empresa { text-align: center; margin-bottom: 10pt; }
-        .logo-empresa img { max-height: 60px; max-width: 220px; }
+        .logo-empresa { text-align: center; margin-bottom: 16pt; }
+        .logo-empresa img { max-height: 150px; max-width: 380px; }
         .empresa-nombre { text-align: center; font-size: 11pt; font-weight: bold; color: #555; margin: 0 0 20pt; }
 
         .titulo-principal {
