@@ -178,7 +178,7 @@
                 const video  = this.$refs.video;
 
                 // Causa raiz real de fotos rotas/diminutas (13KB, casi en
-                // blanco): el boton manual de "Tomar foto" (unico camino
+                // blanco): el boton manual de Tomar foto (unico camino
                 // cuando face-api no cargo, ej. navegador embebido de
                 // WhatsApp) no validaba que el video ya tuviera un frame
                 // real antes de capturar - si la camara tarda en iniciar en
