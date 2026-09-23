@@ -22,12 +22,14 @@ class SocializacionRitEtapaDatosTest extends TestCase
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')
             ->set('numeroDocumento', '333444555')
+            ->set('numeroDocumentoConfirmacion', '333444555')
             ->call('buscarTrabajador')
             ->set('nombres', 'Juan')
             ->set('apellidos', 'Torres')
             ->set('genero', 'masculino')
             ->set('cargo', 'Vendedor')
             ->set('email', 'juan.torres@example.com')
+            ->set('emailConfirmacion', 'juan.torres@example.com')
             ->set('telefono', '3001234567')
             ->call('guardarDatos')
             ->assertSet('etapa', 'foto');
@@ -52,9 +54,11 @@ class SocializacionRitEtapaDatosTest extends TestCase
         $componente = Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')
             ->set('numeroDocumento', '444555666')
+            ->set('numeroDocumentoConfirmacion', '444555666')
             ->call('buscarTrabajador')
             ->assertSet('nombres', 'Carla')
             ->set('email', 'carla.rios@example.com')
+            ->set('emailConfirmacion', 'carla.rios@example.com')
             ->set('telefono', '3007654321')
             ->call('guardarDatos')
             ->assertSet('etapa', 'foto');
@@ -74,6 +78,7 @@ class SocializacionRitEtapaDatosTest extends TestCase
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')
             ->set('numeroDocumento', '777888999')
+            ->set('numeroDocumentoConfirmacion', '777888999')
             ->call('buscarTrabajador')
             ->set('nombres', 'Sin')
             ->set('apellidos', 'Contacto')
@@ -106,6 +111,7 @@ class SocializacionRitEtapaDatosTest extends TestCase
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')
             ->set('numeroDocumento', '787878787')
+            ->set('numeroDocumentoConfirmacion', '787878787')
             ->call('buscarTrabajador')
             ->assertSet('cargosDisponibles', ['Jefe de Bodega' => 'Jefe de Bodega', 'Auxiliar de Bodega' => 'Auxiliar de Bodega']);
     }
@@ -118,8 +124,35 @@ class SocializacionRitEtapaDatosTest extends TestCase
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')
             ->set('numeroDocumento', '898989898')
+            ->set('numeroDocumentoConfirmacion', '898989898')
             ->call('buscarTrabajador')
             ->assertSet('cargosDisponibles', fn ($cargos) => array_key_exists('Vendedor', $cargos));
+    }
+
+    /**
+     * Pedido explícito del usuario (2026-09-22): confirmar el correo
+     * escribiéndolo de nuevo (no basta con pegarlo) antes de guardar.
+     */
+    public function test_rechaza_si_la_confirmacion_de_correo_no_coincide(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('tipoDocumento', 'CC')
+            ->set('numeroDocumento', '111222333')
+            ->set('numeroDocumentoConfirmacion', '111222333')
+            ->call('buscarTrabajador')
+            ->set('nombres', 'Correo')
+            ->set('apellidos', 'Distinto')
+            ->set('genero', 'masculino')
+            ->set('cargo', 'Vendedor')
+            ->set('email', 'correcto@example.com')
+            ->set('emailConfirmacion', 'incorrecto@example.com')
+            ->set('telefono', '3001112222')
+            ->call('guardarDatos')
+            ->assertHasErrors(['emailConfirmacion'])
+            ->assertSet('etapa', 'datos');
     }
 
     public function test_permite_cargo_personalizado_con_otro(): void
@@ -130,6 +163,7 @@ class SocializacionRitEtapaDatosTest extends TestCase
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')
             ->set('numeroDocumento', '909090909')
+            ->set('numeroDocumentoConfirmacion', '909090909')
             ->call('buscarTrabajador')
             ->set('nombres', 'Cargo')
             ->set('apellidos', 'Personalizado')
@@ -137,6 +171,7 @@ class SocializacionRitEtapaDatosTest extends TestCase
             ->set('cargo', '__otro__')
             ->set('cargoPersonalizado', 'Especialista en Drones')
             ->set('email', 'personalizado@example.com')
+            ->set('emailConfirmacion', 'personalizado@example.com')
             ->set('telefono', '3009998888')
             ->call('guardarDatos')
             ->assertSet('etapa', 'foto');

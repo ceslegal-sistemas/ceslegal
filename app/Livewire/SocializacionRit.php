@@ -17,6 +17,7 @@ class SocializacionRit extends Component
 
     public string $tipoDocumento = 'CC';
     public string $numeroDocumento = '';
+    public string $numeroDocumentoConfirmacion = '';
 
     public ?int $trabajadorId = null;
     public bool $trabajadorExistente = false;
@@ -28,6 +29,7 @@ class SocializacionRit extends Component
     public string $cargoPersonalizado = '';
     public array $cargosDisponibles = [];
     public string $email = '';
+    public string $emailConfirmacion = '';
     public string $telefono = '';
     public string $direccion = '';
 
@@ -126,6 +128,9 @@ class SocializacionRit extends Component
         $this->validate([
             'tipoDocumento' => 'required|in:CC,CE,TI,PASS',
             'numeroDocumento' => $reglaNumero,
+            'numeroDocumentoConfirmacion' => 'required|same:numeroDocumento',
+        ], [
+            'numeroDocumentoConfirmacion.same' => 'El número no coincide. Verifica que sea igual arriba y abajo.',
         ]);
 
         $this->cargarCargosDisponibles();
@@ -174,8 +179,11 @@ class SocializacionRit extends Component
             'cargo' => 'required|string',
             'cargoPersonalizado' => $this->cargo === '__otro__' ? 'required|string|max:255' : 'nullable|string|max:255',
             'email' => 'required|email',
+            'emailConfirmacion' => 'required|same:email',
             'telefono' => 'required|string|max:50',
             'direccion' => 'nullable|string',
+        ], [
+            'emailConfirmacion.same' => 'Los correos no coinciden. Verifica que sea igual arriba y abajo.',
         ]);
 
         $cargoFinal = $this->cargo === '__otro__' ? $this->cargoPersonalizado : $this->cargo;

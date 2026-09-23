@@ -31,6 +31,7 @@ class SocializacionRitEtapaDocumentoTest extends TestCase
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')
             ->set('numeroDocumento', '555666777')
+            ->set('numeroDocumentoConfirmacion', '555666777')
             ->call('buscarTrabajador')
             ->assertSet('etapa', 'datos')
             ->assertSet('trabajadorExistente', false);
@@ -51,6 +52,7 @@ class SocializacionRitEtapaDocumentoTest extends TestCase
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')
             ->set('numeroDocumento', '1010101010')
+            ->set('numeroDocumentoConfirmacion', '1010101010')
             ->call('buscarTrabajador')
             ->assertSet('etapa', 'ya_acepto');
     }
@@ -75,6 +77,7 @@ class SocializacionRitEtapaDocumentoTest extends TestCase
         Livewire::test(SocializacionRit::class, ['empresa' => $empresaA])
             ->set('tipoDocumento', 'CC')
             ->set('numeroDocumento', '2020202020')
+            ->set('numeroDocumentoConfirmacion', '2020202020')
             ->call('buscarTrabajador')
             ->assertSet('etapa', 'datos')
             ->assertSet('trabajadorExistente', false);
@@ -109,6 +112,7 @@ class SocializacionRitEtapaDocumentoTest extends TestCase
         Livewire::test(SocializacionRit::class, ['empresa' => $empresaDelToken])
             ->set('tipoDocumento', 'CC')
             ->set('numeroDocumento', '3030303030')
+            ->set('numeroDocumentoConfirmacion', '3030303030')
             ->call('buscarTrabajador')
             ->assertSet('trabajadorExistente', true)
             ->assertSet('trabajadorId', $trabajadorExistente->id);
@@ -131,6 +135,24 @@ class SocializacionRitEtapaDocumentoTest extends TestCase
             ->assertHasErrors(['numeroDocumento']);
     }
 
+    /**
+     * Pedido explícito del usuario (2026-09-22): confirmar la cédula
+     * escribiéndola de nuevo (no basta con pegarla) antes de avanzar.
+     */
+    public function test_rechaza_si_la_confirmacion_de_documento_no_coincide(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('tipoDocumento', 'CC')
+            ->set('numeroDocumento', '555666777')
+            ->set('numeroDocumentoConfirmacion', '555666778')
+            ->call('buscarTrabajador')
+            ->assertHasErrors(['numeroDocumentoConfirmacion'])
+            ->assertSet('etapa', 'documento');
+    }
+
     public function test_permite_letras_en_el_documento_para_pasaporte(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
@@ -139,6 +161,7 @@ class SocializacionRitEtapaDocumentoTest extends TestCase
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'PASS')
             ->set('numeroDocumento', 'AB123456')
+            ->set('numeroDocumentoConfirmacion', 'AB123456')
             ->call('buscarTrabajador')
             ->assertHasNoErrors()
             ->assertSet('etapa', 'datos');

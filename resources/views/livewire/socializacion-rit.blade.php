@@ -74,6 +74,17 @@
                             @error('numeroDocumento') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                         </div>
 
+                        <div>
+                            {{-- Pedido explícito del usuario (2026-09-22): confirmar el documento
+                                 escribiéndolo de nuevo (sin pegar) reduce el riesgo de un typo que
+                                 mande la foto biométrica de referencia al registro equivocado. --}}
+                            <input type="text" wire:model="numeroDocumentoConfirmacion" placeholder="Confirma tu número de documento"
+                                inputmode="numeric" maxlength="15" autocomplete="off" onpaste="return false"
+                                oninput="var t=document.getElementById('rit-tipo-documento'); if (t && t.value !== 'PASS') { this.value = this.value.replace(/[^0-9]/g, ''); }"
+                                class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                            @error('numeroDocumentoConfirmacion') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
+                        </div>
+
                         <button wire:click="buscarTrabajador" wire:loading.attr="disabled" wire:target="buscarTrabajador" type="button"
                             class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm transition-colors">
                             <svg wire:loading wire:target="buscarTrabajador" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,6 +140,15 @@
                             <div>
                                 <input type="email" wire:model="email" placeholder="Correo electrónico" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 @error('email') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                {{-- Pedido explícito del usuario (2026-09-22): confirmar el correo
+                                     escribiéndolo de nuevo (sin pegar), a este correo llega el
+                                     comprobante de aceptación del Reglamento. --}}
+                                <input type="email" wire:model="emailConfirmacion" placeholder="Confirma tu correo electrónico"
+                                    onpaste="return false"
+                                    class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                                @error('emailConfirmacion') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <input type="text" wire:model="telefono" placeholder="Teléfono" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
