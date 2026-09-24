@@ -841,6 +841,34 @@ HTML;
     }
 
     /**
+     * Envía el correo informativo de "con copia a" (pedido explícito del
+     * usuario, 2026-09-24) a cada correo en $proceso->correos_cc - un
+     * mensaje aparte dirigido a un jefe/RRHH, no una copia literal de la
+     * citación formal. Fail-open por diseño: cada envío se intenta de
+     * forma independiente y un fallo solo se registra en el log, nunca
+     * interrumpe generarYEnviarCitacion() (la citación real al trabajador
+     * ya se envió antes de llegar aquí).
+     */
+    public function notificarCorreosCC(ProcesoDisciplinario $proceso, string $pdfPath): void
+    {
+        $correosCc = collect($proceso->correos_cc ?? [])
+            ->filter(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL))
+            ->unique();
+
+        foreach ($correosCc as $email) {
+            try {
+                Mail::to($email)->send(new \App\Mail\CitacionDescargosNotificacionCC($proceso, $pdfPath));
+            } catch (\Throwable $e) {
+                Log::warning('No se pudo enviar la notificación de copia (CC) de la citación', [
+                    'proceso_id' => $proceso->id,
+                    'email_cc' => $email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
+    /**
      * Generar y enviar citación (proceso completo)
      */
     public function generarYEnviarCitacion(ProcesoDisciplinario $proceso): array
@@ -932,6 +960,13 @@ HTML;
 
             // Enviar por email (con o sin link según la modalidad)
             $this->enviarCitacionPorEmail($proceso, $pdfPath, $linkDescargos, $fechaAccesoPermitida);
+
+            // Notificar (correo informativo aparte, NO un CC tecnico) a
+            // quien se haya indicado en "correos_cc" - fail-open: un fallo
+            // aca nunca debe bloquear la citacion real ya enviada al
+            // trabajador (misma logica que el resto de correos secundarios
+            // de este servicio).
+            $this->notificarCorreosCC($proceso, $pdfPath);
 
             // Cambiar estado automáticamente a "descargos_pendientes"
             // IMPORTANTE: Hacer esto ANTES de refresh() para que el Observer lo detecte correctamente

@@ -1045,6 +1045,13 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->label('Hora de la audiencia')
                                 ->required()
                                 ->helperText('Horario Colombia (UTC-5)'),
+
+                            Forms\Components\TagsInput::make('correos_cc')
+                                ->label('Con copia a (opcional)')
+                                ->placeholder('correo@ejemplo.com')
+                                ->helperText('Notifica a un jefe o RRHH que debe enterarse de esta citación. Presione Enter o coma para agregar cada correo.')
+                                ->nullable()
+                                ->columnSpanFull(),
                         ])
                         ->columns(2),
 
