@@ -133,6 +133,105 @@ class TemaClasificadorService
     }
 
     /**
+     * Genera UNA pregunta verdadero/falso por cada tema clasificado, sobre
+     * lo que ESTE RIT en particular dice de ese tema (no una definición
+     * genérica) - se usa como quiz de comprensión antes de que el
+     * trabajador pueda aceptar el reglamento (ver SocializacionRit,
+     * pedido "excéntrico" del usuario 2026-09-23). Mismo patrón de cacheo
+     * por hash que asegurarResumenesSimples() - reutiliza la MISMA columna
+     * resumen_simple_texto_hash (no una columna de hash nueva: la pregunta
+     * es parte del mismo paquete de contenido derivado del texto del RIT).
+     */
+    public function asegurarPreguntasQuiz(ReglamentoInterno $rit): void
+    {
+        if (empty($rit->texto_completo)) {
+            return;
+        }
+
+        $temas = $rit->temasNormativos()->get(['temas_normativos.id', 'temas_normativos.nombre', 'temas_normativos.descripcion']);
+        if ($temas->isEmpty()) {
+            return;
+        }
+
+        $hashActual = hash('sha256', $rit->texto_completo);
+        $yaTieneTodas = $temas->every(fn (TemaNormativo $t) => !empty($t->pivot->pregunta_vf));
+        if ($rit->resumen_simple_texto_hash === $hashActual && $yaTieneTodas) {
+            return;
+        }
+
+        try {
+            $preguntas = $this->generarPreguntasQuiz($rit->texto_completo, $temas);
+        } catch (\Throwable $e) {
+            Log::warning('TemaClasificadorService: fallo al generar preguntas de quiz, se dejan sin pregunta', [
+                'reglamento_interno_id' => $rit->id,
+                'error' => $e->getMessage(),
+            ]);
+            return;
+        }
+
+        foreach ($preguntas as $temaId => $pregunta) {
+            if ($temas->contains('id', $temaId)) {
+                $rit->temasNormativos()->updateExistingPivot($temaId, [
+                    'pregunta_vf' => $pregunta['pregunta'],
+                    'respuesta_correcta' => $pregunta['respuesta'],
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param \Illuminate\Support\Collection<int, TemaNormativo> $temas
+     * @return array<int, array{pregunta: string, respuesta: bool}> tema_id => pregunta
+     */
+    private function generarPreguntasQuiz(string $texto, \Illuminate\Support\Collection $temas): array
+    {
+        $listaTemas = $temas->map(fn (TemaNormativo $t) => "- ID {$t->id}: {$t->nombre}")->implode("\n");
+
+        $prompt = <<<PROMPT
+        Eres un asistente que verifica si una persona SIN formación
+        jurídica entendió un Reglamento Interno de Trabajo. Dado el texto
+        real de un Reglamento Interno de Trabajo, escribe para CADA uno de
+        los siguientes temas UNA pregunta de verdadero o falso, en español
+        muy sencillo, sobre algo ESPECÍFICO que ESTE reglamento dice sobre
+        ese tema (un número, un plazo, una regla concreta) - NO una
+        pregunta de cultura general sobre el tema. La pregunta debe tener
+        una respuesta objetivamente verificable en el texto. Dirígete al
+        trabajador de forma directa ("tú").
+
+        Responde ÚNICAMENTE con un array JSON, sin markdown, con este
+        formato exacto: [{"id": 3, "pregunta": "...", "respuesta": true}, {"id": 7, "pregunta": "...", "respuesta": false}]
+
+        TEMAS:
+        {$listaTemas}
+
+        TEXTO DEL REGLAMENTO (puede estar truncado):
+        {$this->truncar($texto)}
+        PROMPT;
+
+        $respuesta = $this->llamarGemini($prompt, 2048);
+
+        $limpio = trim($respuesta);
+        $limpio = preg_replace('/^```json\s*|\s*```$/i', '', $limpio) ?? $limpio;
+        $decodificado = json_decode($limpio, true);
+
+        if (!is_array($decodificado)) {
+            return [];
+        }
+
+        $resultado = [];
+        foreach ($decodificado as $item) {
+            if (isset($item['id'], $item['pregunta'], $item['respuesta']) && is_numeric($item['id'])) {
+                $resultado[(int) $item['id']] = [
+                    'pregunta' => (string) $item['pregunta'],
+                    'respuesta' => (bool) $item['respuesta'],
+                ];
+            }
+        }
+
+        return $resultado;
+    }
+
+    /**
      * Un DocumentoLegal no se vuelve a editar tras procesado - sin
      * staleness por hash, se clasifica una sola vez.
      */
