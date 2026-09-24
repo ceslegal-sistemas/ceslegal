@@ -51,6 +51,14 @@
         $estadoLogros = ($usuarioDashboard && $usuarioDashboard->role === 'cliente' && $empresaUsuario)
             ? app(\App\Services\LogroDescargosService::class)->estadoDashboard($empresaUsuario)
             : null;
+
+        // Tarjeta "100% aceptó el RIT" - solo 'cliente' con empresa y con un
+        // RIT activo (sin RIT, ya se muestra $sinRit arriba y esta tarjeta
+        // no aplica).
+        $estadoSocializacionRit = ($usuarioDashboard && $usuarioDashboard->role === 'cliente' && $empresaUsuario && !$sinRit)
+            ? app(\App\Services\LogroSocializacionRitService::class)->estadoDashboard($empresaUsuario)
+            : null;
+        $posterUrlDashboard = $estadoSocializacionRit ? route('rit.poster') : null;
     @endphp
 
     @if($sinRit)
@@ -77,6 +85,14 @@
 
     @if($estadoLogros)
         @include('filament.components.dashboard-logro-descargos-notice', ['estadoLogros' => $estadoLogros])
+    @endif
+
+    @if($estadoSocializacionRit)
+        @include('filament.components.dashboard-socializacion-rit-notice', [
+            'estadoSocializacionRit' => $estadoSocializacionRit,
+            'empresaUsuario' => $empresaUsuario,
+            'posterUrlDashboard' => $posterUrlDashboard,
+        ])
     @endif
 
     {{-- Guía "Tu proceso" a todo el ancho, fuera del grid de widgets (garantiza full-width). --}}
