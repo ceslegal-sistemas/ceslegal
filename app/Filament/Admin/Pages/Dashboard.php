@@ -34,6 +34,19 @@ class Dashboard extends BaseDashboard
             Confetti::fireworks()->shoot();
         }
 
+        // Logro "Reglamento 100% aceptado": se otorga desde la sesion PUBLICA
+        // anonima del trabajador (SocializacionRit::aceptarReglamento()), sin
+        // ningun usuario del panel viendo la pantalla - por eso NO puede
+        // usar el mismo mecanismo en vivo de LogroDescargosService::celebrar().
+        // Se marca un campo persistente en Empresa al otorgarlo, y aca se
+        // revisa/limpia la PRIMERA vez que cualquier usuario del panel de
+        // esa empresa visita el Dashboard despues.
+        $empresaUsuario = auth()->user()?->empresa;
+        if ($empresaUsuario?->logro_socializacion_rit_pendiente_celebrar && class_exists(Confetti::class)) {
+            $empresaUsuario->forceFill(['logro_socializacion_rit_pendiente_celebrar' => null])->save();
+            Confetti::fireworks()->shoot();
+        }
+
         // El confeti de logros (LogroDescargosService::celebrar()) YA NO depende de
         // que el cliente aterrice aquí - se dispara directo desde donde sea que esté
         // en el momento de desbloquear el logro (bug real reportado por el usuario:
