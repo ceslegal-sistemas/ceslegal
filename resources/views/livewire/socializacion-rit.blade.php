@@ -313,7 +313,7 @@
     </div>
 
     {{-- Loading: mismo patron que formulario-descargos.blade.php --}}
-    <div wire:loading.delay wire:target="buscarTrabajador, guardarDatos, guardarFotoSimple, aceptarReglamento"
+    <div wire:loading.delay wire:target="buscarTrabajador, guardarDatos, iniciarQuiz, guardarFotoSimple, responderQuiz, aceptarReglamento"
         class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl p-5 flex items-center gap-4 mx-4">
             <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24">
