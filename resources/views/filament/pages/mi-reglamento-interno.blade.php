@@ -18,6 +18,12 @@
     $posterUrl = $tiene
         ? ($esAdmin && $empresa ? route('rit.poster.admin', $empresa) : route('rit.poster'))
         : null;
+    // Mismo dato que la tarjeta del Dashboard (dashboard-socializacion-rit-notice) -
+    // se muestra aquí también para que el banner de compartir se vea consistente
+    // en ambos lugares (pedido del usuario, 2026-09-24).
+    $estadoSocializacionRit = ($tiene && $empresa)
+        ? app(\App\Services\LogroSocializacionRitService::class)->estadoDashboard($empresa)
+        : null;
 @endphp
 
 {{-- Auto-refresh cada 15s mientras se está generando --}}
@@ -321,6 +327,20 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
          del reglamento, no después - debe quedar visible al entrar a la
          página sin necesidad de hacer scroll. --}}
     @include('filament.components.rit-compartir-banner', ['empresa' => $empresa, 'posterUrl' => $posterUrl])
+
+    @if($estadoSocializacionRit && $estadoSocializacionRit['total'] > 0)
+      <div class="rit-hero" style="margin-top:.75rem;padding:1rem 1.5rem;">
+        <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+        <div style="position:relative;z-index:2">
+          <p class="text-sm font-semibold text-gray-900 m-0">
+            {{ $estadoSocializacionRit['aceptados'] }} de {{ $estadoSocializacionRit['total'] }} trabajadores han aceptado el Reglamento Interno vigente
+          </p>
+          <div style="margin-top:.5rem;height:8px;border-radius:999px;background:rgba(148,163,184,.2);overflow:hidden;position:relative;z-index:2">
+            <div style="height:100%;border-radius:999px;background:linear-gradient(90deg,#22c55e,#86efac);width:{{ max(4, $estadoSocializacionRit['porcentaje']) }}%"></div>
+          </div>
+        </div>
+      </div>
+    @endif
 
     <div class="rit-viewer">
       <div class="rit-viewer-header">

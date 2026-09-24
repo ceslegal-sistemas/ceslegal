@@ -70,4 +70,6 @@ html:not(.dark) .rit-btn-danger{background:rgba(220,38,38,.07);border-color:rgba
 html:not(.dark) .rit-btn-cta{box-shadow:0 8px 22px rgba(225,29,72,.22)}
 @media(prefers-reduced-motion:reduce){.rit-btn-cta:hover{transform:none}}
 @keyframes rit-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.rit-link-input{flex:1;min-width:200px;padding:.5rem .75rem;border-radius:.5rem;border:1px solid rgba(255,255,255,.15);font-size:.8125rem;background:rgba(255,255,255,.06);color:#e2e8f0}
+html:not(.dark) .rit-link-input{border-color:rgba(0,0,0,.12);background:#fff;color:#1c1917}
 </style>
