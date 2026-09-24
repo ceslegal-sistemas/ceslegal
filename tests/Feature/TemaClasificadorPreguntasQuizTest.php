@@ -94,4 +94,24 @@ class TemaClasificadorPreguntasQuizTest extends TestCase
 
         $this->assertNull($rit->temasNormativos()->find($tema->id)->pivot->pregunta_vf);
     }
+
+    public function test_guarda_el_hash_del_texto_al_generar_las_preguntas(): void
+    {
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => \App\Models\Empresa::factory()->create()->id,
+            'activo' => true,
+            'fuente' => 'construido_ia',
+            'texto_completo' => 'Articulo 1. Texto de prueba para hash.',
+        ]);
+        $tema = TemaNormativo::create(['nombre' => 'Tema Z', 'descripcion' => 'Desc.', 'activo' => true]);
+        $rit->temasNormativos()->attach($tema->id);
+
+        $this->fakearGemini([
+            ['id' => $tema->id, 'pregunta' => '¿Pregunta de prueba?', 'respuesta' => true],
+        ]);
+
+        app(TemaClasificadorService::class)->asegurarPreguntasQuiz($rit);
+
+        $this->assertSame(hash('sha256', $rit->texto_completo), $rit->fresh()->resumen_simple_texto_hash);
+    }
 }

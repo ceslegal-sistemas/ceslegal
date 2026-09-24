@@ -177,6 +177,8 @@ class TemaClasificadorService
                 ]);
             }
         }
+
+        $rit->forceFill(['resumen_simple_texto_hash' => $hashActual])->saveQuietly();
     }
 
     /**
