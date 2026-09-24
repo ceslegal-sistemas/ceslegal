@@ -109,4 +109,26 @@ class SocializacionRitAceptacionTest extends TestCase
 
         Mail::assertNothingSent();
     }
+
+    public function test_aceptar_revisa_y_otorga_el_logro_de_100_por_ciento(): void
+    {
+        $this->seed(\Database\Seeders\LogrosSeeder::class);
+
+        $empresa = \App\Models\Empresa::factory()->create(['active' => true, 'numero_empleados' => null]);
+        \App\Models\ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+        ]);
+        $trabajador = \App\Models\Trabajador::create([
+            'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '444555666',
+            'genero' => 'masculino', 'nombres' => 'Unico', 'apellidos' => 'Trabajador', 'cargo' => 'Op', 'active' => true,
+        ]);
+
+        \Livewire\Livewire::test(\App\Livewire\SocializacionRit::class, ['empresa' => $empresa])
+            ->set('trabajadorId', $trabajador->id)
+            ->set('declaracionAceptada', true)
+            ->call('aceptarReglamento');
+
+        $logro = \LevelUp\Experience\Models\Achievement::where('name', \App\Services\LogroSocializacionRitService::NOMBRE_LOGRO)->first();
+        $this->assertNotNull($empresa->allAchievements()->find($logro->id));
+    }
 }

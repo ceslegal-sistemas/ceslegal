@@ -398,6 +398,8 @@ class SocializacionRit extends Component
             ]
         );
 
+        app(\App\Services\LogroSocializacionRitService::class)->revisarYOtorgar($this->empresa);
+
         // Fail-open: si el correo falla (SMTP caido, direccion invalida
         // que paso la validacion basica, etc.) no debe bloquear el registro
         // ya guardado - el trabajador ya quedo aceptado en la BD.
