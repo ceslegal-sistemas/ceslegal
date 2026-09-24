@@ -30,6 +30,10 @@ class LogrosSeeder extends Seeder
                 'name' => 'Constancia total',
                 'description' => 'Cerró 10 procesos disciplinarios dentro del plazo legal.',
             ],
+            [
+                'name' => 'Reglamento 100% aceptado',
+                'description' => 'El 100% de los trabajadores activos aceptó la versión vigente del Reglamento Interno de Trabajo.',
+            ],
         ];
 
         foreach ($logros as $logro) {
