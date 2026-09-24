@@ -1,5 +1,5 @@
 @php
-    $pasos = ['documento' => 1, 'datos' => 2, 'foto' => 3, 'presentacion_rit' => 4, 'aceptacion' => 5];
+    $pasos = ['documento' => 1, 'datos' => 2, 'foto' => 3, 'presentacion_rit' => 4, 'quiz' => 5, 'aceptacion' => 6];
     $pasoActual = $pasos[$etapa] ?? null;
 @endphp
 
@@ -222,10 +222,50 @@
                             </details>
                         @endif
 
-                        <button type="button" wire:click="$set('etapa', 'aceptacion')"
+                        <button type="button" wire:click="iniciarQuiz" wire:loading.attr="disabled" wire:target="iniciarQuiz"
                             class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl shadow-sm transition-colors">
                             Continuar
                         </button>
+                    </div>
+                @elseif ($etapa === 'quiz')
+                    @php
+                        $preguntaActual = $quizPreguntas[$quizIndiceActual] ?? null;
+                    @endphp
+                    <div class="space-y-4">
+                        <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+                            <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+                            <div style="position:relative;z-index:2">
+                                <span class="rit-badge rit-badge-ia">
+                                    Pregunta {{ $quizIndiceActual + 1 }} de {{ count($quizPreguntas) }}
+                                </span>
+                                <h1 class="rit-title">¿Entendiste bien el Reglamento?</h1>
+                                <p class="rit-sub">Confirma que leíste con atención respondiendo esta pregunta.</p>
+                            </div>
+                        </div>
+
+                        @if ($preguntaActual)
+                            <div class="p-4 rounded-xl border-2 border-gray-200 bg-gray-50">
+                                <p class="text-sm font-semibold text-gray-900 m-0">{{ $preguntaActual['pregunta'] }}</p>
+                            </div>
+
+                            @if ($quizRespuestaIncorrecta)
+                                <div class="p-3.5 rounded-xl bg-danger-50 border border-danger-200">
+                                    <p class="text-xs font-semibold text-danger-700 m-0">Esa respuesta no es correcta.</p>
+                                    <p class="text-xs text-danger-600 m-0 mt-1">{{ $preguntaActual['explicacion'] }}</p>
+                                </div>
+                            @endif
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <button type="button" wire:click="responderQuiz(true)" wire:loading.attr="disabled" wire:target="responderQuiz"
+                                    class="flex items-center justify-center gap-2 px-5 py-3.5 bg-white border-2 border-gray-200 hover:border-primary-400 active:bg-gray-50 text-gray-900 font-semibold rounded-xl transition-colors">
+                                    Verdadero
+                                </button>
+                                <button type="button" wire:click="responderQuiz(false)" wire:loading.attr="disabled" wire:target="responderQuiz"
+                                    class="flex items-center justify-center gap-2 px-5 py-3.5 bg-white border-2 border-gray-200 hover:border-primary-400 active:bg-gray-50 text-gray-900 font-semibold rounded-xl transition-colors">
+                                    Falso
+                                </button>
+                            </div>
+                        @endif
                     </div>
                 @elseif ($etapa === 'aceptacion')
                     <div class="space-y-5">
