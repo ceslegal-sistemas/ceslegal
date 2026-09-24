@@ -37,6 +37,7 @@ class ListArticuloLegals extends ListRecords
                     }
 
                     ActualizarArticulosCstJob::dispatch(auth()->id());
+                    $this->dispatch('scraper-cst-iniciado');
 
                     Notification::make()
                         ->success()
