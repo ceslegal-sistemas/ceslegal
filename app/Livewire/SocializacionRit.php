@@ -38,6 +38,10 @@ class SocializacionRit extends Component
     public string $ritActivoTextoCompleto = '';
     public array $temasRit = [];
 
+    public array $quizPreguntas = [];
+    public int $quizIndiceActual = 0;
+    public bool $quizRespuestaIncorrecta = false;
+
     public bool $declaracionAceptada = false;
 
     public string $alertaAccesorios = '';
@@ -316,6 +320,62 @@ class SocializacionRit extends Component
         }
 
         $this->etapa = 'presentacion_rit';
+    }
+
+    /**
+     * Se llama al salir de 'presentacion_rit'. Elige 3 temas al azar entre
+     * los que tienen pregunta_vf generada para el RIT activo - si hay
+     * menos de 3 usa los que haya, si hay 0 salta la etapa entera
+     * (fail-open: un fallo de IA generando el quiz nunca debe bloquear la
+     * aceptación real del reglamento).
+     */
+    public function iniciarQuiz(): void
+    {
+        $ritActivo = $this->resolverRitActivo(); // NUNCA $this->empresa->reglamentoInterno - ver Gotcha crítico #3
+
+        $this->quizPreguntas = $ritActivo->temasNormativos()
+            ->activos()
+            ->wherePivotNotNull('pregunta_vf')
+            ->get(['temas_normativos.id', 'temas_normativos.nombre', 'temas_normativos.descripcion'])
+            ->map(fn ($tema) => [
+                'pregunta' => $tema->pivot->pregunta_vf,
+                'respuesta_correcta' => (bool) $tema->pivot->respuesta_correcta,
+                'explicacion' => $tema->pivot->resumen_simple ?: $tema->descripcion,
+            ])
+            ->shuffle()
+            ->take(3)
+            ->values()
+            ->all();
+
+        $this->quizIndiceActual = 0;
+        $this->quizRespuestaIncorrecta = false;
+
+        $this->etapa = empty($this->quizPreguntas) ? 'aceptacion' : 'quiz';
+    }
+
+    /**
+     * Sin límite de intentos (decisión explícita del spec): si falla,
+     * queda en la MISMA pregunta con quizRespuestaIncorrecta=true (la vista
+     * muestra la explicación) hasta que marque la correcta.
+     */
+    public function responderQuiz(bool $respuesta): void
+    {
+        $preguntaActual = $this->quizPreguntas[$this->quizIndiceActual] ?? null;
+        if (!$preguntaActual) {
+            return;
+        }
+
+        if ($respuesta !== $preguntaActual['respuesta_correcta']) {
+            $this->quizRespuestaIncorrecta = true;
+            return;
+        }
+
+        $this->quizRespuestaIncorrecta = false;
+        $this->quizIndiceActual++;
+
+        if ($this->quizIndiceActual >= count($this->quizPreguntas)) {
+            $this->etapa = 'aceptacion';
+        }
     }
 
     public function aceptarReglamento(): void
