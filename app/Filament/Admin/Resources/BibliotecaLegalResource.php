@@ -506,7 +506,7 @@ class BibliotecaLegalResource extends Resource
                 ]),
             ])
             ->defaultSort('updated_at', 'desc')
-            ->poll('10s')
+            ->poll(fn () => \App\Models\DocumentoLegal::query()->where('estado', 'procesando')->exists() ? '10s' : null)
             ->striped()
             ->emptyStateHeading('Biblioteca vacía')
             ->emptyStateDescription('Suba sentencias, artículos del CST o doctrina para que la IA las use como fuente de verdad.')

@@ -19,6 +19,12 @@ class StatsOverviewWidget extends BaseWidget
 
     protected static ?int $sort = 1;
 
+    // Filament sondea cada 5s por defecto para cualquier widget - estas
+    // estadísticas no cambian tan rápido como para justificarlo, y con el
+    // Dashboard siendo la página más visitada del panel, ese sondeo
+    // constante contribuía a la saturación del hosting compartido.
+    protected static ?string $pollingInterval = null;
+
     /**
      * Genera URL con filtro de estado para la lista de procesos
      */

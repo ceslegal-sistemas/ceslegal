@@ -1576,7 +1576,7 @@ class ProcesoDisciplinarioResource extends Resource
             ])
             ->defaultPaginationPageOption(5)
             ->deferLoading()
-            ->poll('5s')
+            ->poll(fn () => ProcesoDisciplinario::query()->where('emision_sancion_estado', 'procesando')->exists() ? '5s' : null)
             ->filters([
                 Tables\Filters\SelectFilter::make('estado')
                     ->label('Estado')

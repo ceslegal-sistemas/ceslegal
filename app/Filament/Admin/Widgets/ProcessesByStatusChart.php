@@ -20,6 +20,12 @@ class ProcessesByStatusChart extends ChartWidget
 
     protected static ?string $maxHeight = '350px';
 
+    // Filament sondea cada 5s por defecto para cualquier ChartWidget - este
+    // gráfico no necesita refrescarse solo, y con el Dashboard siendo la
+    // página más visitada del panel, ese sondeo constante contribuía a la
+    // saturación del hosting compartido.
+    protected static ?string $pollingInterval = null;
+
     // Etiquetas claras para el usuario
     const ETIQUETAS_ESTADO = [
         'apertura' => 'Iniciados',

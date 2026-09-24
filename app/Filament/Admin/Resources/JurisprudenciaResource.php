@@ -92,7 +92,7 @@ class JurisprudenciaResource extends Resource
                 Tables\Columns\TextColumn::make('updated_at')->label('Actualizado')->since()->sortable(),
             ])
             ->defaultSort('updated_at', 'desc')
-            ->poll('10s')
+            ->poll(fn () => Jurisprudencia::query()->whereIn('estado', ['pendiente', 'procesando'])->exists() ? '10s' : null)
             ->filters([
                 Tables\Filters\SelectFilter::make('estado')->options([
                     'pendiente' => 'Pendiente', 'procesando' => 'Procesando', 'procesado' => 'Procesado', 'error' => 'Error',
