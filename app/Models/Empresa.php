@@ -37,6 +37,7 @@ class Empresa extends Model
         'dias_habiles',
         'actividad_economica_id',
         'numero_empleados',
+        'logro_socializacion_rit_pendiente_celebrar',
         'google_oauth_email',
         'google_oauth_tokens',
     ];
