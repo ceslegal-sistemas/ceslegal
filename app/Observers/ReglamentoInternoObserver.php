@@ -73,5 +73,6 @@ class ReglamentoInternoObserver
 
         $this->clasificador->asegurarTemas($rit);
         $this->clasificador->asegurarResumenesSimples($rit);
+        $this->clasificador->asegurarPreguntasQuiz($rit);
     }
 }
