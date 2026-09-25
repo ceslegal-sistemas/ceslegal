@@ -212,6 +212,12 @@ class DocumentGeneratorService
             if (!empty($motivosIncidente)) {
                 $etiquetasGravedad = ['leve' => 'falta leve', 'grave' => 'falta grave', 'muy_grave' => 'falta muy grave'];
                 $itemsNormas = [];
+                // Códigos de artículo CST ("Art. 58 CST") ya citados arriba con
+                // su texto verbatim - evita repetir el mismo artículo dos veces
+                // (bug real 2026-09-25: la conducta citaba "Art. 58 CST" y el
+                // respaldo genérico de abajo volvía a citar "Artículo 58" con
+                // otra redacción, como si fueran dos normas distintas).
+                $codigosCstYaCitados = [];
                 foreach ($motivosIncidente as $motivo) {
                     $nombreConducta = trim((string) ($motivo['nombre'] ?? ''));
                     if ($nombreConducta === '') {
@@ -246,14 +252,28 @@ class DocumentGeneratorService
                             : '<li>Reglamento Interno de Trabajo de <strong>' . $nombreEmpresa . '</strong>: &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').</li>';
                     } else {
                         $articulo = $this->formatearCitaArticulo($baseLegal, 'CST');
-                        $itemsNormas[] = $articulo
-                            ? '<li><strong>' . e($articulo) . '</strong> del Código Sustantivo del Trabajo: &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').</li>'
-                            : '<li>el Código Sustantivo del Trabajo: &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').</li>';
+                        $textosVerbatim = $this->textosVerbatimCst($baseLegal);
+                        $citaHTML = $articulo
+                            ? '<strong>' . e($articulo) . '</strong> del Código Sustantivo del Trabajo: &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').'
+                            : 'el Código Sustantivo del Trabajo: &laquo;' . e($nombreConducta) . '&raquo; (calificada como ' . $etiqueta . ').';
+
+                        foreach ($textosVerbatim as $verbatim) {
+                            $citaHTML .= '<blockquote class="cita-verbatim">' . e($verbatim['texto']) . '</blockquote>';
+                            $codigosCstYaCitados[] = $verbatim['codigo'];
+                        }
+
+                        $itemsNormas[] = '<li>' . $citaHTML . '</li>';
                     }
                 }
 
                 if (!empty($itemsNormas)) {
-                    $itemsNormas[] = '<li><strong> Artículo 58</strong> del Código Sustantivo del Trabajo, que establece las obligaciones especiales del trabajador frente al empleador.</li>';
+                    // El respaldo genérico del Art. 58 solo se agrega si NINGUNA
+                    // conducta de arriba ya citó ese mismo artículo - citarlo dos
+                    // veces con redacciones distintas confundía al trabajador
+                    // (bug real 2026-09-25).
+                    if (!in_array('Art. 58 CST', $codigosCstYaCitados, true)) {
+                        $itemsNormas[] = '<li><strong> Artículo 58</strong> del Código Sustantivo del Trabajo, que establece las obligaciones especiales del trabajador frente al empleador.</li>';
+                    }
                     $itemsNormas[] = '<li>Las cláusulas del contrato de trabajo suscrito entre las partes.</li>';
                     $normasHTML = '<ul>' . implode('', $itemsNormas) . '</ul>';
                 }
@@ -399,6 +419,14 @@ class DocumentGeneratorService
         .destinatario p { margin: 0; line-height: 1.35; }
         .asunto { margin-bottom: 18px; }
         .asunto p { margin: 0; }
+        .cita-verbatim {
+            margin: 4px 0 8px 0;
+            padding: 4px 10px;
+            border-left: 2px solid #666;
+            font-size: 9pt;
+            font-style: italic;
+            color: #333;
+        }
         p { margin: 0 0 12px 0; }
         h3 {
             font-size: 10pt;
@@ -594,6 +622,45 @@ HTML;
     }
 
     /**
+     * Busca el texto LITERAL (verbatim) del/los artículo(s) del CST citados en
+     * un `base_legal` crudo (ej. "Art. 58 CST", "Art. 58 y 60 CST"), en la
+     * tabla articulos_legales (poblada por el scraper real de leyes.co, ver
+     * ScrapearArticulosCst - codigo formato "Art. {N} CST", texto_completo
+     * verbatim). Pedido explícito del usuario (2026-09-25): la citación no
+     * debe resumir ni inventar el contenido del artículo - debe citarlo tal
+     * cual está en la fuente real, y solo el que aplica (nunca todos).
+     * Fail-open: si no se encuentra el artículo en la tabla (ej. aún no se
+     * ha corrido el scraper), no se muestra texto verbatim - la citación
+     * sigue mostrando el número de artículo igual que antes.
+     *
+     * @return array<int, array{codigo: string, texto: string}>
+     */
+    private function textosVerbatimCst(string $baseLegal): array
+    {
+        if (!preg_match('/CST\s*$/iu', trim($baseLegal))) {
+            return [];
+        }
+
+        if (!preg_match_all('/\d+/', $baseLegal, $matches)) {
+            return [];
+        }
+
+        return collect($matches[0])
+            ->unique()
+            ->map(fn (string $numero) => \App\Models\ArticuloLegal::activos()
+                ->where('codigo', "Art. {$numero} CST")
+                ->first())
+            ->filter()
+            ->map(fn (\App\Models\ArticuloLegal $articulo) => [
+                'codigo' => $articulo->codigo,
+                'texto' => trim((string) $articulo->texto_completo),
+            ])
+            ->filter(fn (array $a) => $a['texto'] !== '')
+            ->values()
+            ->all();
+    }
+
+    /**
      * Convierte un `base_legal` crudo (ej. "Artículo 76 RIT", "Art. 60 CST",
      * "Art. 58 y 60 CST") en una cita de artículo lista para mostrar en negrilla
      * (ej. "Artículo 76", "Artículo 60", "Artículos 58 y 60"). Devuelve null
@@ -610,7 +677,11 @@ HTML;
 
         $texto = trim((string) preg_replace('/\s*' . preg_quote($sufijo, '/') . '\s*$/u', '', $baseLegal));
         $texto = preg_replace('/^Art\.\s*/u', 'Artículo ', $texto);
-        if (preg_match('/\sy\s|,/u', $texto)) {
+        // Bug real reportado por el usuario (2026-09-25): pluralizar también
+        // con una coma sola convertía "Art. 58, numeral 1° CST" (UN artículo
+        // con numeral) en "Artículos 58, numeral 1°" - la coma NO implica
+        // varios artículos por sí sola, solo " y " lo hace (ej. "Art. 58 y 60 CST").
+        if (preg_match('/\sy\s/u', $texto)) {
             $texto = preg_replace('/^Artículo\s/u', 'Artículos ', $texto);
         }
 

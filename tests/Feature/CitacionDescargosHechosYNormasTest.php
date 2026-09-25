@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ArticuloLegal;
 use App\Models\Empresa;
 use App\Models\ProcesoDisciplinario;
 use App\Models\ReglamentoInterno;
@@ -385,5 +386,49 @@ class CitacionDescargosHechosYNormasTest extends TestCase
         // esa conducta puntual no viene del texto real del RIT de la empresa.
         $this->assertStringNotContainsString('CST</strong> del Reglamento Interno de Trabajo', $html);
         $this->assertStringContainsString('<strong>Artículo 58</strong> del Código Sustantivo del Trabajo: &laquo;' . $conductaGenerica, $html);
+    }
+
+    /**
+     * Pedido explícito del usuario (2026-09-25): la citación no debe resumir
+     * ni inventar el contenido del artículo citado - debe mostrar el texto
+     * LITERAL tal como está en articulos_legales (la tabla real, scrapeada
+     * del CST, ver /admin/articulo-legals), y solo el artículo que aplica a
+     * esa conducta puntual, no todos.
+     */
+    public function test_muestra_el_texto_verbatim_del_articulo_del_cst_citado(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $trabajador = $this->crearTrabajador($empresa);
+
+        ArticuloLegal::create([
+            'codigo' => 'Art. 58 CST',
+            'titulo' => 'Obligaciones especiales del trabajador',
+            'descripcion' => 'Obligaciones del trabajador',
+            'texto_completo' => 'Son obligaciones especiales del trabajador: 1a. Realizar personalmente la labor...',
+            'activo' => true,
+        ]);
+        // Un artículo NO citado por esta conducta - su texto no debe aparecer.
+        ArticuloLegal::create([
+            'codigo' => 'Art. 60 CST',
+            'titulo' => 'Prohibiciones a los trabajadores',
+            'descripcion' => 'Prohibiciones del trabajador',
+            'texto_completo' => 'Se prohíbe a los trabajadores...',
+            'activo' => true,
+        ]);
+
+        $conductaGenerica = 'Llegadas tarde reiteradas sin justificación';
+
+        $proceso = ProcesoDisciplinario::create([
+            'codigo' => 'PD-TEST-VERBATIM',
+            'empresa_id' => $empresa->id,
+            'trabajador_id' => $trabajador->id,
+            'hechos' => 'El trabajador llegó tarde de forma reiterada sin justificación.',
+            'sanciones_laborales_ids' => [$conductaGenerica],
+        ]);
+
+        $html = $this->invocarGenerarHTML($proceso);
+
+        $this->assertStringContainsString('Son obligaciones especiales del trabajador: 1a. Realizar personalmente la labor...', $html);
+        $this->assertStringNotContainsString('Se prohíbe a los trabajadores...', $html);
     }
 }

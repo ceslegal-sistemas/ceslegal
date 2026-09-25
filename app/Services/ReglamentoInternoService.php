@@ -761,6 +761,15 @@ PROMPT;
     public function conductasCstBase(): array
     {
         return [
+            // Bug real reportado por el usuario (2026-09-25): las 3 conductas
+            // "leve" citaban "Art. 58 CST" - el Art. 58 real SÍ aplica (deber
+            // general de acatar el reglamento/instrucciones y de conservar
+            // los instrumentos), confirmado contra el texto oficial. El
+            // problema no era el número sino que la citación nunca mostraba
+            // el TEXTO real del artículo, solo el número - ver
+            // DocumentGeneratorService::citarArticuloLegal(), que ahora
+            // busca el texto verbatim en articulos_legales (tabla real
+            // scrapeada del CST) en vez de resumir/inventar.
             'leve' => [
                 ['conducta' => 'Llegadas tarde reiteradas sin justificación',        'medida' => 'Llamado de atención escrito', 'tipo' => 'llamado_atencion', 'dias_suspension' => null, 'base_legal' => 'Art. 58 CST'],
                 ['conducta' => 'Ausentarse del puesto por corto tiempo sin permiso',  'medida' => 'Llamado de atención escrito', 'tipo' => 'llamado_atencion', 'dias_suspension' => null, 'base_legal' => 'Art. 58 CST'],
