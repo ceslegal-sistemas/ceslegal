@@ -938,61 +938,14 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->columnSpanFull(),
                         ]),
 
-                    // ── Descripción jurídica ──────────────────────────────────
-                    // Se genera SOLA al llegar a este paso (mismo patrón que el
-                    // clasificador de gravedad del Paso 2: se dispara automático, pero
-                    // la acción manual se deja siempre visible por si el cliente quiere
-                    // volver a ejecutarla). El disparador va en un componente Blade
-                    // propio (auto-generar-hechos), no en ->extraAttributes() de la
-                    // Section: un primer intento con extraAttributes() en la Section no
-                    // disparaba (la Section envuelve su contenido en marcado propio que
-                    // aparentemente rompe el anidamiento que necesita el x-init) - un
-                    // <div> propio, igual que el de la cámara de "Verificación", sí
-                    // funciona (ver memoria filament-wizard-x-init-eager).
-                    Forms\Components\View::make('filament.components.auto-generar-hechos')
-                        ->key('proc_auto_generar_hechos')
-                        ->columnSpanFull(),
-
-                    Forms\Components\Section::make('Descripción jurídica')
-                        ->description('La IA redacta los hechos en lenguaje formal para el expediente disciplinario.')
-                        ->icon('heroicon-o-sparkles')
-                        // Acción en el encabezado de la sección, como texto (mismo
-                        // estilo que "Generar redacción con IA"/"Clasificar gravedad
-                        // con IA" del Paso 2, que van como hintActions del campo) - no
-                        // un botón de ancho completo.
-                        ->headerActions([
-                            Forms\Components\Actions\Action::make('generar_hechos')
-                                ->label(fn(Get $get, $livewire) => $livewire->generandoHechos
-                                    ? 'Generando...'
-                                    : (filled($get('hechos_ia')) ? 'Volver a generar con IA' : 'Generar con IA'))
-                                ->icon('heroicon-m-sparkles')
-                                ->color('gray')
-                                ->link()
-                                ->disabled(fn($livewire) => $livewire->generandoHechos)
-                                ->action(fn($livewire) => $livewire->generarHechos()),
-                        ])
-                        ->schema([
-                            Forms\Components\Placeholder::make('generando_hechos_aviso')
-                                ->hiddenLabel()
-                                ->content(new HtmlString(
-                                    '<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">'
-                                    . '<svg class="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">'
-                                    . '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>'
-                                    . '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>'
-                                    . '</svg>'
-                                    . '<span>Redactando la descripción jurídica con IA...</span>'
-                                    . '</div>'
-                                ))
-                                ->visible(fn($livewire) => $livewire->generandoHechos)
-                                ->columnSpanFull(),
-
-                            Forms\Components\Textarea::make('hechos_ia')
-                                ->label('Descripción generada (editable)')
-                                ->helperText('Revise y edite si es necesario antes de crear el proceso.')
-                                ->rows(8)
-                                ->hidden(fn(Get $get) => empty($get('hechos_ia')))
-                                ->columnSpanFull(),
-                        ]),
+                    // La "Descripción jurídica" (hechos_ia) ya NO se genera ni se
+                    // muestra en este paso - pedido explícito del usuario
+                    // (2026-09-25): era molesto que el cliente la viera, y generarla
+                    // en vivo mientras el cliente seguía llenando fecha/hora de la
+                    // audiencia causaba una carrera real (el re-render de la
+                    // respuesta de la IA pisaba esos campos). Ahora se genera sola,
+                    // en silencio, dentro de beforeCreate() al hacer clic en "Crear
+                    // proceso y enviar citación" - ver ese método.
 
                     // ── Audiencia de descargos ────────────────────────────────
                     Forms\Components\Section::make('Audiencia de descargos')
@@ -2085,10 +2038,25 @@ class CreateProcesoDisciplinario extends CreateRecord
         }
 
         if (!self::hechosYaGenerados($this->data, $this->datosExtraidos)) {
+            // Generación automática pedida por el usuario (2026-09-25): antes
+            // se disparaba sola al llegar al paso "Revisión y envío" (x-init
+            // de auto-generar-hechos.blade.php), en una llamada Livewire
+            // aparte y visible (sección "Descripción jurídica" con textarea
+            // editable) - si el cliente cambiaba la fecha/hora de la
+            // audiencia MIENTRAS esa llamada (lenta, real a la IA) seguía en
+            // vuelo, el re-render de la respuesta pisaba esos campos con un
+            // snapshot más viejo, borrándolos. Ahora se genera aquí mismo, de
+            // forma síncrona, dentro de la MISMA petición del botón "Crear
+            // proceso y enviar citación" - sin carrera posible, y sin que el
+            // cliente tenga que ver ni tocar nada de esto.
+            $this->generarHechos();
+        }
+
+        if (!self::hechosYaGenerados($this->data, $this->datosExtraidos)) {
             Notification::make()
-                ->warning()
-                ->title('Descripción jurídica requerida')
-                ->body('Debe generar la descripción jurídica en el paso de Revisión antes de crear el proceso.')
+                ->danger()
+                ->title('No se pudo generar la descripción jurídica')
+                ->body('Intente crear el proceso nuevamente. Si el problema persiste, contacte a soporte.')
                 ->persistent()
                 ->send();
 

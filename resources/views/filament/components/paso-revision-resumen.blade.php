@@ -650,25 +650,17 @@
                 </div>
             @endif
 
-            {{-- Badge estado --}}
-            @if ($chat_listo)
-                <span class="er-badge done er-a3">
-                    <svg style="width:11px;height:11px;flex-shrink:0" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Descripción generada · Listo para enviar
-                </span>
-            @else
-                <span class="er-badge pending er-a3">
-                    <svg style="width:11px;height:11px;flex-shrink:0" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                    </svg>
-                    En revisión · Genere la descripción jurídica
-                </span>
-            @endif
+            {{-- Badge estado - la descripción jurídica ya no se genera ni se
+                 muestra en este paso (pedido del usuario 2026-09-25): se
+                 genera sola, en silencio, al hacer clic en "Crear proceso y
+                 enviar citación" - $chat_listo ya no aplica aquí. --}}
+            <span class="er-badge done er-a3">
+                <svg style="width:11px;height:11px;flex-shrink:0" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Listo para enviar
+            </span>
 
             {{-- ══════════ RESUMEN DEL EXPEDIENTE (mismo hero, sin corte) ══════════ --}}
             <div class="er-a4" style="text-align:left;margin-top:1.125rem;">
