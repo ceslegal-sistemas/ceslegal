@@ -193,13 +193,29 @@ class IADescargoService
             ));
 
             // Salvaguarda de código: conducta_rit_aplicable solo se conserva si
-            // coincide EXACTAMENTE (literal) con una entrada real del catálogo
-            // que se le pasó al prompt - nunca se confía en el modelo para esto,
-            // igual que fragmentos_a_revisar arriba. Sirve para poblar
+            // coincide con una entrada real del catálogo que se le pasó al
+            // prompt - nunca se confía en el modelo para inventar una - igual
+            // que fragmentos_a_revisar arriba. Sirve para poblar
             // automáticamente sanciones_laborales_ids en el proceso (ver
             // CreateProcesoDisciplinario::mutateFormDataBeforeCreate()), que de
             // lo contrario queda vacío y la tabla de sanciones del documento cae
             // al catálogo completo.
+            //
+            // Bug real reportado por el usuario (2026-09-25, RENBEL, proceso de
+            // acoso laboral): pese a instruir "copia LITERAL, sin cambiar ni una
+            // letra", la comparación era ===, byte a byte - un solo espacio de
+            // más/de menos o una mayúscula distinta que el modelo introdujera
+            // (algo que ocurre incluso siguiendo la instrucción al pie de la
+            // letra) hacía fallar la coincidencia en silencio, cayendo al texto
+            // genérico de respaldo aunque el catálogo SÍ tuviera la conducta
+            // exacta (en este caso "El acoso laboral o sexual..."). Se compara
+            // normalizando espacios y mayúsculas - sigue siendo la MISMA
+            // garantía de seguridad (nunca se acepta algo que no sea, en
+            // esencia, una entrada real y completa del catálogo), solo tolera
+            // variaciones superficiales de formato. Se usa siempre el texto
+            // LITERAL del catálogo (nunca la versión del modelo) para citar.
+            $normalizar = static fn (string $s): string => mb_strtolower(trim(preg_replace('/\s+/', ' ', $s)));
+
             $conductaPropuesta = $resultado['conducta_rit_aplicable'] ?? '';
             $conductasValidas  = [];
             foreach (['leve', 'grave', 'gravisima'] as $g) {
@@ -209,9 +225,16 @@ class IADescargoService
                     }
                 }
             }
-            $resultado['conducta_rit_aplicable'] = (is_string($conductaPropuesta) && in_array($conductaPropuesta, $conductasValidas, true))
-                ? $conductaPropuesta
-                : '';
+
+            $resultado['conducta_rit_aplicable'] = '';
+            if (is_string($conductaPropuesta) && $conductaPropuesta !== '') {
+                foreach ($conductasValidas as $conductaReal) {
+                    if ($normalizar($conductaReal) === $normalizar($conductaPropuesta)) {
+                        $resultado['conducta_rit_aplicable'] = $conductaReal;
+                        break;
+                    }
+                }
+            }
 
             // Salvaguarda de código: categoria_riesgo_legal solo se conserva si
             // es EXACTAMENTE uno de los 2 valores permitidos - cualquier otra

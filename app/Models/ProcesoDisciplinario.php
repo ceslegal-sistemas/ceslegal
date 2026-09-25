@@ -461,11 +461,17 @@ class ProcesoDisciplinario extends Model
         $conductas = app(\App\Services\ReglamentoInternoService::class)
             ->conductasSancionablesDeEmpresa((int) $this->empresa_id);
 
+        // Comparación tolerante a espacios/mayúsculas (2026-09-25, mismo fix
+        // que IADescargoService::clasificarIncidente()) - defensa adicional
+        // por si clasificacion_incidente_ia quedó guardado (antes de ese fix)
+        // con una variación mínima de formato respecto al catálogo actual.
+        $normalizar = static fn (string $s): string => mb_strtolower(trim(preg_replace('/\s+/', ' ', $s)));
+
         foreach (['leve' => 'leve', 'grave' => 'grave', 'gravisima' => 'muy_grave'] as $g => $gv) {
             foreach ($conductas[$g] ?? [] as $c) {
-                if (($c['conducta'] ?? null) === $conductaRit) {
+                if (!empty($c['conducta']) && $normalizar($c['conducta']) === $normalizar($conductaRit)) {
                     return [[
-                        'nombre'       => $conductaRit,
+                        'nombre'       => $c['conducta'],
                         'gravedad'     => $gv,
                         'medida'       => $c['medida'] ?? '',
                         'tipo'         => $c['tipo'] ?? '',
