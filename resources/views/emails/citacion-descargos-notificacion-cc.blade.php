@@ -43,8 +43,8 @@
         }
         .info-box {
             background-color: #f9fafb;
-            border-left: 4px solid #2563eb;
-            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
             padding: 14px 16px;
             margin: 0 0 20px 0;
             font-size: 14px;
