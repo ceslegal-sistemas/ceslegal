@@ -188,10 +188,10 @@
 
         <div class="header">
             <h1>Recordatorio: Su audiencia es manana</h1>
-            <p>{{ $empresa->razon_social }} &mdash; Proceso {{ $proceso->codigo }}</p>
+            <p>{{ $empresa->razon_social }} - Proceso {{ $proceso->codigo }}</p>
         </div>
 
-        <div class="urgente-band">Accion requerida manana &mdash; lea este correo completo</div>
+        <div class="urgente-band">Accion requerida manana - lea este correo completo</div>
 
         <div class="content">
 

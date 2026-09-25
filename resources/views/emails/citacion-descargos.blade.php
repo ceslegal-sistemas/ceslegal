@@ -203,7 +203,7 @@
         {{-- HEADER --}}
         <div class="header">
             <h1>Citación a Audiencia de Descargos</h1>
-            <p>{{ $empresa->razon_social }} &mdash; Proceso {{ $proceso->codigo }}</p>
+            <p>{{ $empresa->razon_social }} - Proceso {{ $proceso->codigo }}</p>
         </div>
 
         <div class="urgente-band">Acción requerida de su parte</div>
@@ -231,7 +231,7 @@
                 <div class="cta-label">Enlace para sus descargos en línea</div>
                 <p class="cta-desc">
                     El <strong>día de la audiencia</strong> ingrese aquí para presentar sus descargos.<br>
-                    Guárdelo ahora &mdash; solo funciona ese día.
+                    Guárdelo ahora - solo funciona ese día.
                 </p>
                 <a href="{{ $linkDescargos }}" class="btn-primary">
                     Acceder al formulario de descargos

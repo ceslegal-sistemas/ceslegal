@@ -1072,6 +1072,11 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->placeholder('correo@ejemplo.com')
                                 ->helperText('Notifica a un jefe o RRHH que debe enterarse de esta citación. Presione Enter o coma para agregar cada correo.')
                                 ->nullable()
+                                // Bug real reportado por el usuario (2026-09-25): un correo
+                                // guardado en el navegador (ej. superadmin@gmail.com) se
+                                // autocompletó en vez del que se estaba escribiendo
+                                // (superadmin@ceslegal.co), sin que el usuario lo notara.
+                                ->extraInputAttributes(['autocomplete' => 'off'])
                                 ->nestedRecursiveRules(['email'])
                                 ->validationMessages([
                                     'correos_cc.*.email' => 'Ese correo no tiene un formato válido, corríjalo antes de continuar.',

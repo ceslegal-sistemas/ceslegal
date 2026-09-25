@@ -339,4 +339,51 @@ class CitacionDescargosHechosYNormasTest extends TestCase
         $this->assertStringContainsString('Conductas reguladas por el Código Sustantivo del Trabajo', $html);
         $this->assertStringNotContainsString('Tabla conforme al Reglamento Interno de Trabajo de', $html);
     }
+
+    /**
+     * Bug real reportado por el usuario (2026-09-25, RENBEL - empresa que SÍ
+     * tiene RIT activo): "Artículo 58 CST del Reglamento Interno de Trabajo
+     * de RENBEL S.A.S." - una cita que mezcla el catálogo genérico de
+     * respaldo del CST (conductasCstBase(), base_legal siempre termina en
+     * "CST") con el nombre del RIT real, porque
+     * ReglamentoInternoService::conductasSancionablesDeEmpresa() cae a ese
+     * catálogo genérico si el RIT vigente aún no tiene
+     * conductas_sancionables extraídas (aunque SÍ tenga un RIT activo). El
+     * código de la citación asumía que "empresa con RIT" implicaba que
+     * CUALQUIER conducta devuelta venía del texto real del RIT. Distinto del
+     * caso ya cubierto arriba (empresa SIN ningún RIT) - aquí la empresa SÍ
+     * tiene RIT activo, pero esta conducta puntual igual vino del genérico.
+     */
+    public function test_no_atribuye_al_rit_real_una_conducta_que_vino_del_catalogo_generico_aunque_la_empresa_tenga_rit(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $trabajador = $this->crearTrabajador($empresa);
+
+        // RIT activo, pero SIN conductas_sancionables extraídas todavía -
+        // conductasSancionablesDeEmpresa() cae al catálogo genérico del CST.
+        ReglamentoInterno::create([
+            'empresa_id' => $empresa->id,
+            'nombre' => 'RIT de RENBEL',
+            'texto_completo' => 'Texto completo de prueba del reglamento interno de RENBEL.',
+            'activo' => true,
+        ]);
+
+        $conductaGenerica = 'Llegadas tarde reiteradas sin justificación';
+
+        $proceso = ProcesoDisciplinario::create([
+            'codigo' => 'PD-TEST-RENBEL',
+            'empresa_id' => $empresa->id,
+            'trabajador_id' => $trabajador->id,
+            'hechos' => 'El trabajador llegó tarde de forma reiterada sin justificación.',
+            'sanciones_laborales_ids' => [$conductaGenerica],
+        ]);
+
+        $html = $this->invocarGenerarHTML($proceso);
+
+        $this->assertStringContainsString($conductaGenerica, $html);
+        // NO debe decir "Artículo 58 CST del Reglamento Interno de Trabajo" -
+        // esa conducta puntual no viene del texto real del RIT de la empresa.
+        $this->assertStringNotContainsString('CST</strong> del Reglamento Interno de Trabajo', $html);
+        $this->assertStringContainsString('<strong>Artículo 58</strong> del Código Sustantivo del Trabajo: &laquo;' . $conductaGenerica, $html);
+    }
 }

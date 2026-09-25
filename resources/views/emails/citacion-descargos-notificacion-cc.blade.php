@@ -24,7 +24,6 @@
             border: 1px solid #e5e7eb;
         }
         .header {
-            background-color: #1e40af;
             color: white;
             padding: 24px 30px 18px;
             text-align: center;
@@ -67,9 +66,12 @@
 
         @include('emails.components.logo-empresa-header', ['empresa' => $empresa])
 
-        <div class="header">
+        {{-- Color de marca REAL de la empresa (extraído de su logo por
+             LogoColorService al subirlo), no un azul genérico - inline
+             porque muchos clientes de correo no aplican bien clases CSS. --}}
+        <div class="header" style="background-color: {{ $empresa->logo_color_acento ?? '#3A3A3A' }};">
             <h1>Citación a descargos - Copia informativa</h1>
-            <p>{{ $empresa->razon_social }} &mdash; Proceso {{ $proceso->codigo }}</p>
+            <p>{{ $empresa->razon_social }} - Proceso {{ $proceso->codigo }}</p>
         </div>
 
         <div class="content">

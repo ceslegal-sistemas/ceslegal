@@ -6,19 +6,15 @@
     correo), este partial usa flujo normal de documento, seguro para
     Gmail/Outlook/etc. Si la empresa no tiene logo cargado, no muestra nada
     (mismo comportamiento del membrete de PDF).
+
+    No se embebe en base64 (bug real 2026-09-25: Gmail no renderiza de forma
+    confiable imágenes base64 en el cuerpo del correo, se ve como un icono de
+    imagen rota) - se usa una URL firmada real que el cliente de correo
+    busca por su cuenta, sin sesión de panel activa (ver ruta
+    'logo-empresa.mostrar').
 --}}
-@php
-    $logoBase64 = null;
-    if ($empresa->logo_path) {
-        $rutaAbsoluta = \Illuminate\Support\Facades\Storage::disk('local')->path($empresa->logo_path);
-        if (is_file($rutaAbsoluta)) {
-            $mime = mime_content_type($rutaAbsoluta) ?: 'image/png';
-            $logoBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($rutaAbsoluta));
-        }
-    }
-@endphp
-@if($logoBase64)
+@if($empresa->logo_path)
 <div style="text-align:center; padding:20px 20px 0 20px;">
-    <img src="{{ $logoBase64 }}" alt="{{ $empresa->razon_social }}" style="max-height:60px; max-width:220px;">
+    <img src="{{ \Illuminate\Support\Facades\URL::signedRoute('logo-empresa.mostrar', $empresa) }}" alt="{{ $empresa->razon_social }}" style="max-height:60px; max-width:220px;">
 </div>
 @endif

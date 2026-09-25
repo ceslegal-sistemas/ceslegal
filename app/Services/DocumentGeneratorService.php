@@ -220,13 +220,19 @@ class DocumentGeneratorService
                     $etiqueta = $etiquetasGravedad[$motivo['gravedad'] ?? ''] ?? 'falta disciplinaria';
                     $baseLegal = trim((string) ($motivo['base_legal'] ?? ''));
 
-                    // Si la empresa no tiene RIT, esta conducta viene SIEMPRE del
-                    // catálogo genérico de respaldo del CST
-                    // (ReglamentoInternoService::conductasCstBase()), nunca de un
-                    // reglamento real - citarla como "Reglamento Interno de
-                    // Trabajo de {empresa}" sería fabricar un documento que no
-                    // existe (bug real: PD-2026-0119, CES LEGAL S.A.S. sin RIT).
-                    if ($tieneRIT) {
+                    // Aunque la EMPRESA tenga RIT, ESTA conducta puntual pudo
+                    // haber caído al catálogo genérico de respaldo del CST
+                    // (ReglamentoInternoService::conductasCstBase(), base_legal
+                    // termina siempre en "CST") si su RIT real no la cubre -
+                    // citarla como "del Reglamento Interno de Trabajo de
+                    // {empresa}" en ese caso sería fabricar una cita que no
+                    // existe en su reglamento (bug real 2026-09-25: "Artículo
+                    // 58 CST del Reglamento Interno de Trabajo de RENBEL
+                    // S.A.S." - mezclaba el catálogo genérico con el nombre
+                    // del RIT real). Además del caso ya cubierto (empresa sin
+                    // RIT, bug PD-2026-0119, CES LEGAL S.A.S.).
+                    $esConductaDeCatalogoGenericoCst = (bool) preg_match('/CST\s*$/iu', $baseLegal);
+                    if ($tieneRIT && !$esConductaDeCatalogoGenericoCst) {
                         // El número de artículo (ej. "Artículo 76 RIT") se extrae
                         // de forma determinística al procesar el RIT - ver
                         // ReglamentoInternoService::articuloQuePrecedeEnTexto().

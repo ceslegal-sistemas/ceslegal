@@ -176,6 +176,23 @@ Route::get('/storage/local/{path}', function (string $path) {
         ->header('Cache-Control', 'private, max-age=300');
 })->where('path', '.*')->middleware(['signed', 'auth'])->name('storage.local.temporary');
 
+// Logo de empresa para correos HTML (Gmail, Outlook, etc. no renderizan de
+// forma confiable imágenes base64 embebidas - necesitan una URL real que
+// puedan buscar ellos mismos, sin sesión de panel activa). Sin ->middleware('auth')
+// a propósito: quien abre el correo no está autenticado en el panel. La firma
+// evita que se pueda enumerar/adivinar el logo de otra empresa.
+Route::get('/storage/logo-empresa/{empresa}', function (\App\Models\Empresa $empresa) {
+    if (!$empresa->logo_path || !\Illuminate\Support\Facades\Storage::disk('local')->exists($empresa->logo_path)) {
+        abort(404);
+    }
+
+    $mime = \Illuminate\Support\Facades\Storage::disk('local')->mimeType($empresa->logo_path) ?: 'image/png';
+
+    return response(\Illuminate\Support\Facades\Storage::disk('local')->get($empresa->logo_path), 200)
+        ->header('Content-Type', $mime)
+        ->header('Cache-Control', 'public, max-age=86400');
+})->middleware(['signed'])->name('logo-empresa.mostrar');
+
 // Descarga del RIT del cliente autenticado
 Route::get('/descargar/rit', function () {
     $user    = auth()->user();
