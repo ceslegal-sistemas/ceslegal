@@ -47,6 +47,23 @@ class CreateProcesoDisciplinario extends CreateRecord
             && ($clasificacion['categoria_riesgo_legal'] ?? null) === 'posible_acoso_o_violencia';
     }
 
+    /**
+     * No usar $chatListo para esta validación: es una bandera transitoria
+     * (solo controla qué panel mostrar en la UI) que NO sobrevive a una
+     * recarga de página - a diferencia de $data (el formulario), que sí se
+     * restaura desde el borrador de sesión en mount(). Tras una recarga
+     * (ej. un 522/429 de Cloudflare a mitad de sesión), el usuario veía la
+     * descripción ya generada en el textarea pero igual se bloqueaba la
+     * creación porque chatListo volvía a false. Se valida el mismo dato que
+     * realmente usa mutateFormDataBeforeCreate().
+     */
+    public static function hechosYaGenerados(array $data, array $datosExtraidos): bool
+    {
+        $hechos = $data['hechos_ia'] ?? $datosExtraidos['hechos'] ?? '';
+
+        return trim((string) $hechos) !== '';
+    }
+
     protected static string $resource = ProcesoDisciplinarioResource::class;
 
     public function getTitle(): string
@@ -2037,7 +2054,7 @@ class CreateProcesoDisciplinario extends CreateRecord
             $this->halt();
         }
 
-        if (!$this->chatListo || empty($this->datosExtraidos['hechos'])) {
+        if (!self::hechosYaGenerados($this->data, $this->datosExtraidos)) {
             Notification::make()
                 ->warning()
                 ->title('Descripción jurídica requerida')

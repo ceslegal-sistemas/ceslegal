@@ -50,6 +50,30 @@ class CreateProcesoDisciplinarioRiesgoLegalTest extends TestCase
         $this->assertFalse(CreateProcesoDisciplinario::tieneRiesgoLegalAlto('esto no es json'));
     }
 
+    /**
+     * Bug real reportado por el usuario (2026-09-25): tras una recarga de
+     * página (típicamente por un 522/429 de Cloudflare a mitad de sesión),
+     * $chatListo volvía a false aunque la descripción ya generada seguía
+     * visible en el textarea (restaurada desde el borrador de sesión en
+     * mount()) - bloqueaba "Crear" con "Descripción jurídica requerida"
+     * pese a que el dato sí estaba presente.
+     */
+    public function test_hechos_ya_generados_es_true_si_hechos_ia_tiene_texto_aunque_datos_extraidos_este_vacio(): void
+    {
+        $this->assertTrue(CreateProcesoDisciplinario::hechosYaGenerados(['hechos_ia' => 'Texto generado por IA.'], []));
+    }
+
+    public function test_hechos_ya_generados_usa_datos_extraidos_si_no_hay_hechos_ia(): void
+    {
+        $this->assertTrue(CreateProcesoDisciplinario::hechosYaGenerados([], ['hechos' => 'Texto generado por IA.']));
+    }
+
+    public function test_hechos_ya_generados_es_false_sin_ningun_texto(): void
+    {
+        $this->assertFalse(CreateProcesoDisciplinario::hechosYaGenerados([], []));
+        $this->assertFalse(CreateProcesoDisciplinario::hechosYaGenerados(['hechos_ia' => '   '], []));
+    }
+
     public function test_la_pagina_de_crear_renderiza_sin_error(): void
     {
         // Mismo criterio que CrearSolicitudContratoWizardTest.php: confirma
