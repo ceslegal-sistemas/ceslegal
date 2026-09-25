@@ -158,6 +158,24 @@ Route::get('/admin/fotos-descargos/{diligencia}/{tipo}', function ($diligenciaId
         ->header('Cache-Control', 'private, max-age=3600');
 })->middleware(['auth'])->name('admin.fotos-descargos');
 
+// Foto de referencia del trabajador (subida por admin o tomada en la
+// socializacion del RIT) - vive en disco 'local' (privado), por eso no se
+// puede enlazar con una URL /storage/... normal (Filament FileUpload con
+// ->disk('local') genera ese enlace roto porque el disco 'local' de este
+// proyecto no tiene raiz en storage/app/public - ver gotcha-storage-disco-local-private).
+Route::get('/admin/foto-referencia-trabajador/{trabajador}', function (\App\Models\Trabajador $trabajador) {
+    $ruta = $trabajador->foto_referencia_path;
+    if (!$ruta || !\Illuminate\Support\Facades\Storage::disk('local')->exists($ruta)) {
+        abort(404);
+    }
+
+    $mime = \Illuminate\Support\Facades\Storage::disk('local')->mimeType($ruta) ?: 'image/jpeg';
+
+    return response(\Illuminate\Support\Facades\Storage::disk('local')->get($ruta), 200)
+        ->header('Content-Type', $mime)
+        ->header('Cache-Control', 'private, max-age=3600');
+})->middleware(['auth'])->name('admin.foto-referencia-trabajador');
+
 // Descarga del RIT del cliente autenticado
 Route::get('/descargar/rit', function () {
     $user    = auth()->user();
