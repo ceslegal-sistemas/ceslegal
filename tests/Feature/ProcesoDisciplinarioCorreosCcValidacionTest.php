@@ -42,6 +42,29 @@ class ProcesoDisciplinarioCorreosCcValidacionTest extends TestCase
             ->assertHasFormErrors(['correos_cc.0' => 'email']);
     }
 
+    /**
+     * Bug real reportado por el usuario (2026-09-25): "superadmin@ceslegal.co,
+     * jprendon@gmail.com" quedaba como UN solo tag en vez de dos - splitKeys
+     * por defecto de Filament TagsInput es [], así que la coma no separaba
+     * nada (el JS de tags-input.js solo confirma un tag con la tecla Enter o
+     * con las teclas de splitKeys, ver vendor/filament/forms/resources/js/
+     * components/tags-input.js). El texto de ayuda ya decía "presione Enter
+     * o coma" pero el código nunca lo hacía. No se puede probar el
+     * comportamiento real de Alpine.js con PHPUnit, así que se verifica que
+     * el campo esté configurado correctamente en el código fuente.
+     */
+    public function test_el_campo_separa_tags_con_coma(): void
+    {
+        $fuente = file_get_contents(app_path('Filament/Admin/Resources/ProcesoDisciplinarioResource/Pages/CreateProcesoDisciplinario.php'));
+
+        $posicionCampo = strpos($fuente, "TagsInput::make('correos_cc')");
+        $posicionSplit = strpos($fuente, "->splitKeys([','])", $posicionCampo ?: 0);
+
+        $this->assertNotFalse($posicionCampo, 'No se encontró el campo correos_cc.');
+        $this->assertNotFalse($posicionSplit, 'El campo correos_cc debe tener ->splitKeys([\',\']) para que la coma separe tags.');
+        $this->assertLessThan($posicionSplit - $posicionCampo, 500, '->splitKeys no está cerca de la definición de correos_cc.');
+    }
+
     public function test_no_marca_error_si_todos_los_correos_son_validos(): void
     {
         $this->autenticar();

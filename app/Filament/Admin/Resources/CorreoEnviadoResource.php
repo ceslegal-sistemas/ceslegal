@@ -120,6 +120,10 @@ class CorreoEnviadoResource extends Resource
                 ->placeholder('correo@ejemplo.com')
                 ->helperText('Presione Enter o coma para agregar cada email')
                 ->nullable()
+                // Mismo bug real encontrado en correos_cc de CreateProcesoDisciplinario
+                // (2026-09-25): sin esto, la coma no separaba nada (splitKeys por
+                // defecto es []) - "a@x.com, b@y.com" quedaba en UN solo tag.
+                ->splitKeys([','])
                 ->columnSpanFull(),
         ];
     }

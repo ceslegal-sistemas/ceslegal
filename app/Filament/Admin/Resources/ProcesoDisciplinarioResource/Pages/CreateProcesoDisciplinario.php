@@ -1072,6 +1072,12 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->placeholder('correo@ejemplo.com')
                                 ->helperText('Notifica a un jefe o RRHH que debe enterarse de esta citación. Presione Enter o coma para agregar cada correo.')
                                 ->nullable()
+                                // Bug real reportado por el usuario (2026-09-25): sin esto,
+                                // la coma no separaba nada (splitKeys por defecto es []),
+                                // así que "correo1@x.com, correo2@y.com" quedaba como UN
+                                // solo tag en vez de dos, aunque el texto de ayuda ya decía
+                                // "presione Enter o coma".
+                                ->splitKeys([','])
                                 // Bug real reportado por el usuario (2026-09-25): un correo
                                 // guardado en el navegador (ej. superadmin@gmail.com) se
                                 // autocompletó en vez del que se estaba escribiendo
