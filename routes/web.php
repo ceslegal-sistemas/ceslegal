@@ -158,23 +158,23 @@ Route::get('/admin/fotos-descargos/{diligencia}/{tipo}', function ($diligenciaId
         ->header('Cache-Control', 'private, max-age=3600');
 })->middleware(['auth'])->name('admin.fotos-descargos');
 
-// Foto de referencia del trabajador (subida por admin o tomada en la
-// socializacion del RIT) - vive en disco 'local' (privado), por eso no se
-// puede enlazar con una URL /storage/... normal (Filament FileUpload con
-// ->disk('local') genera ese enlace roto porque el disco 'local' de este
-// proyecto no tiene raiz en storage/app/public - ver gotcha-storage-disco-local-private).
-Route::get('/admin/foto-referencia-trabajador/{trabajador}', function (\App\Models\Trabajador $trabajador) {
-    $ruta = $trabajador->foto_referencia_path;
-    if (!$ruta || !\Illuminate\Support\Facades\Storage::disk('local')->exists($ruta)) {
+// URL temporal genérica para CUALQUIER archivo del disco 'local' (privado) -
+// habilitada vía Storage::disk('local')->buildTemporaryUrlsUsing() en
+// AppServiceProvider::boot(). Esto es lo que Filament usa automáticamente
+// para el enlace de abrir/descargar de cualquier FileUpload con
+// ->disk('local')->visibility('private') en TODO el panel, no solo un campo
+// puntual - ver gotcha-storage-disco-local-private.
+Route::get('/storage/local/{path}', function (string $path) {
+    if (!\Illuminate\Support\Facades\Storage::disk('local')->exists($path)) {
         abort(404);
     }
 
-    $mime = \Illuminate\Support\Facades\Storage::disk('local')->mimeType($ruta) ?: 'image/jpeg';
+    $mime = \Illuminate\Support\Facades\Storage::disk('local')->mimeType($path) ?: 'application/octet-stream';
 
-    return response(\Illuminate\Support\Facades\Storage::disk('local')->get($ruta), 200)
+    return response(\Illuminate\Support\Facades\Storage::disk('local')->get($path), 200)
         ->header('Content-Type', $mime)
-        ->header('Cache-Control', 'private, max-age=3600');
-})->middleware(['auth'])->name('admin.foto-referencia-trabajador');
+        ->header('Cache-Control', 'private, max-age=300');
+})->where('path', '.*')->middleware(['signed', 'auth'])->name('storage.local.temporary');
 
 // Descarga del RIT del cliente autenticado
 Route::get('/descargar/rit', function () {

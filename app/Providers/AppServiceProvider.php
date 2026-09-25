@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Cache\RateLimiting\Limit;
 use App\Models\DocumentoLegal;
 use App\Models\ProcesoDisciplinario;
@@ -45,6 +47,22 @@ class AppServiceProvider extends ServiceProvider
         // CreateXxx propia la redeclara, esta única llamada la desactiva en
         // todas a la vez (misma storage por herencia de static properties).
         \Filament\Resources\Pages\CreateRecord::disableCreateAnother();
+
+        // El disco 'local' de este proyecto es privado (storage/app/private,
+        // ver gotcha-storage-disco-local-private) - Laravel no soporta
+        // temporaryUrl() nativamente en el driver local, así que cualquier
+        // FileUpload de Filament con ->disk('local')->visibility('private')
+        // no mostraba enlace de abrir/descargar. Este callback lo habilita
+        // de forma genérica para TODO el panel (no solo un campo puntual):
+        // Filament pide una URL temporal, y esta la resuelve con una ruta
+        // firmada que sirve el archivo real.
+        Storage::disk('local')->buildTemporaryUrlsUsing(
+            fn (string $path, \DateTimeInterface $expiration, array $options) => URL::temporarySignedRoute(
+                'storage.local.temporary',
+                $expiration,
+                array_merge($options, ['path' => $path]),
+            )
+        );
 
         // Rate limiter para llamadas a Gemini API desde la cola
         // 800/min deja margen sobre el límite de 1,000 RPM con billing habilitado

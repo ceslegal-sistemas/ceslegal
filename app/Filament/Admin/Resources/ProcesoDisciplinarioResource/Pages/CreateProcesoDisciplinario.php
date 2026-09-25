@@ -1051,6 +1051,10 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->placeholder('correo@ejemplo.com')
                                 ->helperText('Notifica a un jefe o RRHH que debe enterarse de esta citación. Presione Enter o coma para agregar cada correo.')
                                 ->nullable()
+                                ->nestedRecursiveRules(['email'])
+                                ->validationMessages([
+                                    'correos_cc.*.email' => 'Ese correo no tiene un formato válido, corríjalo antes de continuar.',
+                                ])
                                 ->columnSpanFull(),
                         ])
                         ->columns(2),

@@ -450,21 +450,14 @@ class TrabajadorResource extends Resource
                             ->label('Foto del trabajador')
                             ->image()
                             ->disk('local')
+                            ->visibility('private')
                             ->directory('private/fotos-referencia')
                             ->imagePreviewHeight('200')
                             ->maxSize(5120)
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                            ->helperText('JPG, PNG o WebP · máx 5 MB · el rostro debe ser claramente visible'),
-                        // El disco 'local' de este proyecto es privado (storage/app/private) -
-                        // ->openable()/->downloadable() de Filament generan un enlace roto
-                        // (/storage/...) porque asumen la raíz pública por defecto. Se enlaza
-                        // en su lugar a una ruta autenticada que sirve el archivo real.
-                        Forms\Components\Placeholder::make('foto_referencia_ver')
-                            ->hiddenLabel()
-                            ->visible(fn ($record) => filled($record?->foto_referencia_path))
-                            ->content(fn ($record) => new \Illuminate\Support\HtmlString(
-                                '<a href="' . route('admin.foto-referencia-trabajador', $record) . '" target="_blank" rel="noopener" class="fi-link text-sm font-medium text-primary-600">Ver foto actual</a>'
-                            )),
+                            ->helperText('JPG, PNG o WebP · máx 5 MB · el rostro debe ser claramente visible')
+                            ->downloadable()
+                            ->openable(),
                     ]),
             ]);
     }
