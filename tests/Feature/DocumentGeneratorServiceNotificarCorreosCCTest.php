@@ -96,6 +96,25 @@ class DocumentGeneratorServiceNotificarCorreosCCTest extends TestCase
         Mail::assertSent(CitacionDescargosNotificacionCC::class, fn ($mail) => $mail->hasTo('valido@example.com'));
     }
 
+    /**
+     * Respaldo del lado del servidor (2026-09-25, "prepáralo para cualquier
+     * error de capa 8"): si correos_cc llegó a guardarse con el mismo correo
+     * repetido en mayúsculas distintas (por otra vía que no sea el
+     * formulario, ej. API o dato viejo), nunca debe enviarse dos veces al
+     * mismo destinatario.
+     */
+    public function test_no_envia_dos_veces_al_mismo_correo_con_distinta_mayuscula(): void
+    {
+        Mail::fake();
+
+        $proceso = $this->crearProceso(['Jefe@Ejemplo.com', 'jefe@ejemplo.com', ' jefe@ejemplo.com ']);
+
+        app(DocumentGeneratorService::class)->notificarCorreosCC($proceso, $this->pdfDePrueba());
+
+        Mail::assertSent(CitacionDescargosNotificacionCC::class, 1);
+        Mail::assertSent(CitacionDescargosNotificacionCC::class, fn ($mail) => $mail->hasTo('jefe@ejemplo.com'));
+    }
+
     public function test_no_bloquea_si_un_envio_falla(): void
     {
         Mail::shouldReceive('to->send')->andThrow(new \RuntimeException('SMTP caido'));

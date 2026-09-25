@@ -1076,14 +1076,29 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 // la coma no separaba nada (splitKeys por defecto es []),
                                 // así que "correo1@x.com, correo2@y.com" quedaba como UN
                                 // solo tag en vez de dos, aunque el texto de ayuda ya decía
-                                // "presione Enter o coma".
-                                ->splitKeys([','])
+                                // "presione Enter o coma". Se agrega también salto de línea
+                                // como separador, para cuando se pega una lista de correos
+                                // copiada de Excel/Outlook (uno por línea).
+                                ->splitKeys([',', "\n"])
                                 // Bug real reportado por el usuario (2026-09-25): un correo
                                 // guardado en el navegador (ej. superadmin@gmail.com) se
                                 // autocompletó en vez del que se estaba escribiendo
                                 // (superadmin@ceslegal.co), sin que el usuario lo notara.
                                 ->extraInputAttributes(['autocomplete' => 'off'])
                                 ->nestedRecursiveRules(['email'])
+                                // Endurecido a pedido del usuario (2026-09-25, "prepáralo
+                                // para cualquier error de capa 8"): dos tags que son el
+                                // mismo correo con distinta mayúscula/minúscula (ej.
+                                // "Jefe@x.com" y "jefe@x.com") no se detectan como
+                                // duplicados por el dedupe nativo del TagsInput (comparación
+                                // exacta de string) - sin esto, el mismo jefe recibiría la
+                                // notificación dos veces.
+                                ->rule(fn () => function (string $attribute, $value, \Closure $fail) {
+                                    $normalizados = array_map(fn ($v) => mb_strtolower(trim((string) $v)), (array) $value);
+                                    if (count($normalizados) !== count(array_unique($normalizados))) {
+                                        $fail('Hay un correo repetido en "Con copia a" (puede diferir solo en mayúsculas/minúsculas). Elimine el duplicado.');
+                                    }
+                                })
                                 ->validationMessages([
                                     'correos_cc.*.email' => 'Ese correo no tiene un formato válido, corríjalo antes de continuar.',
                                 ])

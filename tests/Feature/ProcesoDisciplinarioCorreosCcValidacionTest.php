@@ -58,11 +58,28 @@ class ProcesoDisciplinarioCorreosCcValidacionTest extends TestCase
         $fuente = file_get_contents(app_path('Filament/Admin/Resources/ProcesoDisciplinarioResource/Pages/CreateProcesoDisciplinario.php'));
 
         $posicionCampo = strpos($fuente, "TagsInput::make('correos_cc')");
-        $posicionSplit = strpos($fuente, "->splitKeys([','])", $posicionCampo ?: 0);
+        $posicionSplit = strpos($fuente, "->splitKeys([',', \"\\n\"])", $posicionCampo ?: 0);
 
         $this->assertNotFalse($posicionCampo, 'No se encontró el campo correos_cc.');
-        $this->assertNotFalse($posicionSplit, 'El campo correos_cc debe tener ->splitKeys([\',\']) para que la coma separe tags.');
+        $this->assertNotFalse($posicionSplit, 'El campo correos_cc debe tener ->splitKeys([\',\', "\n"]) para que la coma y el salto de línea separen tags.');
         $this->assertLessThan($posicionSplit - $posicionCampo, 500, '->splitKeys no está cerca de la definición de correos_cc.');
+    }
+
+    /**
+     * Endurecido a pedido del usuario (2026-09-25, "prepáralo para cualquier
+     * error de capa 8"): dos correos iguales salvo mayúsculas/minúsculas no
+     * se detectan como duplicados por el dedupe nativo del TagsInput
+     * (comparación exacta de string) - sin esta regla, el mismo destinatario
+     * recibiría la notificación dos veces.
+     */
+    public function test_rechaza_dos_correos_iguales_con_distinta_mayuscula(): void
+    {
+        $this->autenticar();
+
+        Livewire::test(CreateProcesoDisciplinario::class)
+            ->set('data.correos_cc', ['Jefe@Ejemplo.com', 'jefe@ejemplo.com'])
+            ->call('create')
+            ->assertHasFormErrors(['correos_cc']);
     }
 
     public function test_no_marca_error_si_todos_los_correos_son_validos(): void

@@ -857,7 +857,12 @@ HTML;
      */
     public function notificarCorreosCC(ProcesoDisciplinario $proceso, string $pdfPath): void
     {
+        // trim() + strtolower() como respaldo: el formulario ya valida formato
+        // y duplicados por mayúsculas/minúsculas, pero correos_cc pudo haberse
+        // guardado por otra vía (API, dato viejo) - nunca enviar dos veces al
+        // mismo destinatario por una diferencia de mayúsculas.
         $correosCc = collect($proceso->correos_cc ?? [])
+            ->map(fn ($email) => mb_strtolower(trim((string) $email)))
             ->filter(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL))
             ->unique();
 
