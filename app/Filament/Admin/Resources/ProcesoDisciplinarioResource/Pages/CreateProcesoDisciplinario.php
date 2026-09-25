@@ -567,13 +567,17 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         ])
                                         ->rows(7)
                                         ->placeholder('Ej: El trabajador llegó dos horas tarde sin avisar y no respondió los mensajes del supervisor...')
-                                        // debounce en 2.5s (antes 800ms): el análisis de
-                                        // lenguaje es barato y puede seguir siendo casi
-                                        // inmediato, pero ahora este mismo evento también
-                                        // dispara autoClasificarGravedad() (llamada real a la
-                                        // IA) - un debounce más largo evita lanzarla en cada
-                                        // pausa breve mientras el usuario sigue escribiendo.
-                                        ->live(debounce: 2500)
+                                        // onBlur en vez de debounce (2026-09-25, bug real
+                                        // reportado por el usuario): con debounce, si el
+                                        // usuario pausaba a pensar (disparando el análisis)
+                                        // y luego seguía escribiendo ANTES de que la llamada a
+                                        // la IA (autoClasificarGravedad, lenta) respondiera,
+                                        // Livewire sincronizaba el textarea con el texto de
+                                        // antes de la pausa al re-renderizar - borrando lo
+                                        // escrito de más. onBlur solo dispara el análisis al
+                                        // salir del campo (clic en otro lado, tab), nunca
+                                        // mientras el usuario sigue escribiendo activamente.
+                                        ->live(onBlur: true)
                                         ->afterStateUpdated(function ($livewire) {
                                             $livewire->analizarDescripcion();
                                             $livewire->autoClasificarGravedad();
