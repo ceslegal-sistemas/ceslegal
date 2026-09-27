@@ -135,7 +135,10 @@ class CitacionDescargosHechosYNormasTest extends TestCase
         $this->assertStringContainsString($conductaReal, $html);
         $this->assertStringContainsString('falta leve', $html);
         // El anclaje general al Art. 58 CST se conserva como respaldo adicional.
-        $this->assertStringContainsString('Artículo 58 del Código Sustantivo del Trabajo', $html);
+        // El número "58" va en <strong>, así que el texto plano se corta en
+        // medio de la frase - se verifica el fragmento HTML real (bug del
+        // test, no de la app: el texto SÍ se lee bien en el navegador).
+        $this->assertStringContainsString('<strong> Artículo 58</strong> del Código Sustantivo del Trabajo', $html);
     }
 
     /**
@@ -298,7 +301,10 @@ class CitacionDescargosHechosYNormasTest extends TestCase
         $html = $this->invocarGenerarHTML($proceso);
 
         $this->assertStringNotContainsString('Reglamento Interno de Trabajo de', $html);
-        $this->assertStringContainsString('Artículo 58 del Código Sustantivo del Trabajo', $html);
+        // El número "58" va en <strong>, así que el texto plano se corta en
+        // medio de la frase - se verifica el fragmento HTML real (bug del
+        // test, no de la app: el texto SÍ se lee bien en el navegador).
+        $this->assertStringContainsString('<strong> Artículo 58</strong> del Código Sustantivo del Trabajo', $html);
     }
 
     /**
