@@ -69,6 +69,7 @@ class SolicitudCambioEmpresaResource extends Resource
                         'tipo_societario' => $record->empresa->tipo_societario,
                         'nit' => $record->empresa->nit,
                         'representante_legal' => $record->empresa->representante_legal,
+                        'representante_legal_cedula' => $record->empresa->representante_legal_cedula,
                     ])
                     ->form([
                         Forms\Components\Placeholder::make('mensaje_cliente')
@@ -81,6 +82,11 @@ class SolicitudCambioEmpresaResource extends Resource
                             ->options(\App\Models\Empresa::TIPOS_SOCIETARIOS),
                         Forms\Components\TextInput::make('nit')->label('NIT')->required(),
                         Forms\Components\TextInput::make('representante_legal')->label('Representante Legal')->required(),
+                        // Pedido explícito del usuario (2026-09-25): la cédula del
+                        // representante legal es inalcanzable para clientes ya
+                        // registrados antes de este campo - se agrega/corrige aquí
+                        // mismo, vía la misma solicitud de cambio de siempre.
+                        Forms\Components\TextInput::make('representante_legal_cedula')->label('Cédula del Representante Legal'),
                     ])
                     ->modalHeading('Aprobar solicitud de cambio')
                     ->modalSubmitActionLabel('Guardar y aprobar')
@@ -90,6 +96,7 @@ class SolicitudCambioEmpresaResource extends Resource
                             'tipo_societario' => $data['tipo_societario'],
                             'nit' => $data['nit'],
                             'representante_legal' => $data['representante_legal'],
+                            'representante_legal_cedula' => $data['representante_legal_cedula'],
                         ]);
 
                         $record->update([

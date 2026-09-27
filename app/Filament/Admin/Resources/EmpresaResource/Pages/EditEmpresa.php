@@ -222,7 +222,13 @@ class EditEmpresa extends EditRecord
                                     ->label('Cédula del Representante Legal')
                                     ->maxLength(50)
                                     ->placeholder('Ej: 1234567890')
-                                    ->helperText('Necesaria para generar contratos de trabajo a término fijo')
+                                    // Pedido explícito del usuario (2026-09-25): las empresas
+                                    // registradas antes de que este campo existiera en el
+                                    // registro no tienen forma de llenarlo - se corrige por
+                                    // el mismo mecanismo de "Solicitar cambio" de arriba.
+                                    ->helperText(fn(Get $get) => (auth()->user()?->isCliente() ?? false)
+                                        ? 'Necesaria para generar contratos de trabajo a término fijo. Si está vacía, use "Solicitar cambio" arriba para agregarla.'
+                                        : 'Necesaria para generar contratos de trabajo a término fijo')
                                     ->suffixIcon('heroicon-o-identification')
                                     ->disabled(fn() => auth()->user()?->isCliente() ?? false),
 

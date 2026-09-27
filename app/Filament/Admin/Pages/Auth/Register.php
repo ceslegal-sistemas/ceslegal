@@ -129,6 +129,17 @@ class Register extends BaseRegister
                                 ->placeholder('Ej: Juan Pérez García')
                                 ->suffixIcon('heroicon-o-user'),
 
+                            // Pedido explícito del usuario (2026-09-25): antes nunca se
+                            // pedía en el registro y quedaba inalcanzable para el cliente
+                            // (el campo en "Mi Empresa" está bloqueado tras el registro) -
+                            // ver backlog-cedula-representante-legal-inalcanzable.
+                            Forms\Components\TextInput::make('representante_legal_cedula')
+                                ->label('Cédula del Representante Legal')
+                                ->maxLength(50)
+                                ->placeholder('Ej: 1234567890')
+                                ->helperText('Necesaria para generar contratos de trabajo a término fijo')
+                                ->suffixIcon('heroicon-o-identification'),
+
                             Forms\Components\TextInput::make('telefono')
                                 ->label('Teléfono / Celular')
                                 ->tel()
@@ -483,6 +494,7 @@ class Register extends BaseRegister
             'tipo_societario'        => $data['tipo_societario'] ?? null,
             'nit'                    => $data['nit'],
             'representante_legal'    => $data['representante_legal'],
+            'representante_legal_cedula' => $data['representante_legal_cedula'] ?? null,
             'telefono'               => $data['telefono'] ?? null,
             'email_contacto'         => $data['email_contacto'] ?? null,
             'direccion'              => $data['direccion'] ?? null,
