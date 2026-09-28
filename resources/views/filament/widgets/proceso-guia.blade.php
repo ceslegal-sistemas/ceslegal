@@ -224,11 +224,12 @@
         .pg-listos-title-row{display:flex;align-items:center;gap:.5rem;margin:0 0 .5rem}
         .pg-listos-title{font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#a8a29e}
         .pg-listo{display:flex;align-items:center;gap:.6rem;padding:.55rem .7rem;border-radius:.6rem;text-decoration:none;
-            font-size:.85rem;color:#44403c;background:rgba(220,38,38,.05);border:1px solid rgba(220,38,38,.12);margin-bottom:.4rem}
+            font-size:.85rem;color:#44403c;background:rgba(220,38,38,.05);border:1px solid rgba(220,38,38,.12);margin-bottom:.4rem;
+            transition:transform .15s,box-shadow .15s,background .15s}
         html.dark .pg-listo{color:#e7e5e4;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.18)}
-        .pg-listo:hover{background:rgba(220,38,38,.1)}
+        .pg-listo:hover{background:rgba(220,38,38,.1);transform:translateY(-1px);box-shadow:0 6px 16px rgba(220,38,38,.12)}
         .pg-listo-ico{width:18px;height:18px;color:#dc2626;flex-shrink:0}
         .pg-listo-cta{margin-left:auto;font-weight:700;color:#dc2626;font-size:.8rem}
-        @media(prefers-reduced-motion:reduce){.pg-btn:hover{transform:none}}
+        @media(prefers-reduced-motion:reduce){.pg-btn:hover{transform:none}.pg-listo:hover{transform:none}}
     </style>
 </div>
