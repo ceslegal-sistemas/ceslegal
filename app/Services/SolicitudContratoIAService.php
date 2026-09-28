@@ -937,6 +937,11 @@ PROMPT;
     {
         $solicitud = $modificacion->solicitudContrato;
 
+        // Logro "Cero Vencimientos" (2026-09-28): "a tiempo" significa que el
+        // plazo viejo (fecha_fin_contrato ANTES de sobrescribirlo abajo)
+        // todavía no había vencido en el momento de renovar.
+        $renovadoATiempo = Carbon::parse($solicitud->fecha_fin_contrato)->isFuture();
+
         $solicitud->update([
             'fecha_inicio_periodo_actual'  => Carbon::parse($solicitud->fecha_fin_contrato)->addDay(),
             'fecha_fin_contrato'           => $modificacion->valor_nuevo,
@@ -945,6 +950,13 @@ PROMPT;
             'notificado_vencimiento_en'    => null,
             'requiere_revision_manual_renovacion' => false,
         ]);
+
+        if ($renovadoATiempo && ($empresa = $solicitud->empresa)) {
+            app(\App\Services\LogroSimpleService::class)->incrementarGrupo(
+                $empresa,
+                \App\Services\LogroSimpleService::UMBRALES_RENOVACION_A_TIEMPO
+            );
+        }
     }
 
     /**

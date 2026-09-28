@@ -32,15 +32,20 @@ class LogrosVitrinaServiceTest extends TestCase
         return Empresa::factory()->create(['active' => true, 'numero_empleados' => null]);
     }
 
-    public function test_incluye_los_3_niveles_de_descargos_y_el_de_socializacion_rit(): void
+    public function test_incluye_todas_las_familias_de_logros(): void
     {
         $empresa = $this->crearEmpresa();
 
         $logros = app(LogrosVitrinaService::class)->paraEmpresa($empresa);
 
-        $this->assertCount(4, $logros);
         $this->assertSame(
-            ['Primer plazo cumplido', 'Gestor puntual', 'Constancia total', 'Reglamento 100% aceptado'],
+            [
+                'Primer plazo cumplido', 'Gestor puntual', 'Constancia total',
+                'Reglamento 100% aceptado',
+                'Constructor de RIT', 'Primer Otrosí',
+                'Primera Renovación a Tiempo', 'Renovador Confiable', 'Cero Vencimientos',
+                'Primera Actualización Aprobada', 'Reglamento Actualizado', 'Empresa Blindada',
+            ],
             array_column($logros, 'nombre')
         );
 

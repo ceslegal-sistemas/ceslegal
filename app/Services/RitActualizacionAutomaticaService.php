@@ -407,6 +407,16 @@ class RitActualizacionAutomaticaService
 
         $this->marcarNotificacionComoLeida($sugerencia);
 
+        // Logro "Empresa Blindada" (2026-09-28) - cada actualización del RIT
+        // aprobada cuenta, sin importar el tipo de cambio (modificar/agregar/
+        // eliminar/anexar_completo).
+        if ($empresa = $rit->empresa) {
+            app(\App\Services\LogroSimpleService::class)->incrementarGrupo(
+                $empresa,
+                \App\Services\LogroSimpleService::UMBRALES_ACTUALIZACION_RIT_APROBADA
+            );
+        }
+
         return true;
     }
 

@@ -16,6 +16,7 @@ class LogrosVitrinaService
     public function __construct(
         private readonly LogroDescargosService $logroDescargosService,
         private readonly LogroSocializacionRitService $logroSocializacionRitService,
+        private readonly LogroSimpleService $logroSimpleService,
     ) {
     }
 
@@ -41,6 +42,21 @@ class LogrosVitrinaService
                 'fecha_obtenido' => $estado['completo'] ? $pivot?->updated_at : null,
             ];
         }
+
+        // Logros agregados 2026-09-28 - ver LogroSimpleService.
+        if ($nivel = $this->logroSimpleService->nivelUnico($empresa, 'Constructor de RIT', 'Construya su primer Reglamento Interno con IA')) {
+            $logros[] = $nivel;
+        }
+
+        if ($nivel = $this->logroSimpleService->nivelUnico($empresa, 'Primer Otrosí', 'Formalice su primera modificación contractual')) {
+            $logros[] = $nivel;
+        }
+
+        $logros = array_merge(
+            $logros,
+            $this->logroSimpleService->nivelesDeGrupo($empresa, LogroSimpleService::UMBRALES_RENOVACION_A_TIEMPO, 'contratos renovados a tiempo'),
+            $this->logroSimpleService->nivelesDeGrupo($empresa, LogroSimpleService::UMBRALES_ACTUALIZACION_RIT_APROBADA, 'actualizaciones del RIT aprobadas'),
+        );
 
         return $logros;
     }

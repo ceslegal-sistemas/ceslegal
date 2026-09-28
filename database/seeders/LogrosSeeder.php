@@ -49,6 +49,40 @@ class LogrosSeeder extends Seeder
                 'name' => 'Reglamento 100% aceptado',
                 'description' => 'El 100% de los trabajadores activos aceptó la versión vigente del Reglamento Interno de Trabajo.',
             ],
+            // Logros agregados 2026-09-28 (pedido explícito del usuario) - ver
+            // LogroSimpleService.
+            [
+                'name' => 'Constructor de RIT',
+                'description' => 'Construyó su primer Reglamento Interno de Trabajo con el asistente de IA.',
+            ],
+            [
+                'name' => 'Primer Otrosí',
+                'description' => 'Formalizó su primera modificación contractual (Otrosí).',
+            ],
+            [
+                'name' => 'Primera Renovación a Tiempo',
+                'description' => 'Renovó un contrato de trabajo antes de que venciera su plazo.',
+            ],
+            [
+                'name' => 'Renovador Confiable',
+                'description' => 'Renovó 5 contratos de trabajo antes de que vencieran.',
+            ],
+            [
+                'name' => 'Cero Vencimientos',
+                'description' => 'Renovó 10 contratos de trabajo antes de que vencieran.',
+            ],
+            [
+                'name' => 'Primera Actualización Aprobada',
+                'description' => 'Aprobó su primera actualización sugerida del Reglamento Interno.',
+            ],
+            [
+                'name' => 'Reglamento Actualizado',
+                'description' => 'Aprobó 5 actualizaciones sugeridas del Reglamento Interno.',
+            ],
+            [
+                'name' => 'Empresa Blindada',
+                'description' => 'Aprobó 10 actualizaciones sugeridas del Reglamento Interno, manteniéndolo siempre al día.',
+            ],
         ];
 
         foreach ($logros as $logro) {

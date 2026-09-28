@@ -1673,6 +1673,13 @@ class CreateReglamentoInterno extends CreateRecord
             ]
         );
 
+        // Logro "Constructor de RIT" (2026-09-28) - se otorga al comenzar a
+        // construir el RIT con el wizard, no al terminar de generarlo (la
+        // redacción real corre en el job de abajo, fuera de este ciclo).
+        // otorgarUnicoSiNoExiste() es idempotente, así que no importa si
+        // este método se reejecuta reusando la misma fila 'generando'.
+        app(\App\Services\LogroSimpleService::class)->otorgarUnicoSiNoExiste($empresa, 'Constructor de RIT');
+
         // 5. Despachar el job al queue 'gemini' - la IA corre fuera del ciclo HTTP,
         //    sin límites de timeout del servidor web.
         GenerarTextoRITJob::dispatch($record, Auth::id());

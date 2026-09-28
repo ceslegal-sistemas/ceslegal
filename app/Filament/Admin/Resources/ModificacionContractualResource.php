@@ -620,6 +620,13 @@ class ModificacionContractualResource extends Resource
 
         app(SolicitudContratoIAService::class)->generarOtrosiPDF($modificacion);
 
+        // Logro "Primer Otrosí" (2026-09-28) - cualquier tipo de modificación
+        // formalizada cuenta (salario, cargo, jornada, tipo de contrato o
+        // plazo), no solo un tipo específico.
+        if ($empresa = $solicitud->empresa) {
+            app(\App\Services\LogroSimpleService::class)->otorgarUnicoSiNoExiste($empresa, 'Primer Otrosí');
+        }
+
         return $modificacion->refresh();
     }
 
