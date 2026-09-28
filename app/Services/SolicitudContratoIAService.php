@@ -407,6 +407,32 @@ class SolicitudContratoIAService
      * cambio. NO persiste - el llamador decide (el abogado/bufete revisa el
      * borrador antes de generar el PDF final).
      */
+    /**
+     * Botón opcional "Redactar con IA" del Motivo de Terminación de Contrato
+     * (con justa causa). Convierte una nota breve del abogado en un párrafo
+     * formal citando el registro del Art. 62 CST - puramente asistivo, el
+     * abogado puede editar/ignorar el resultado. No calcula nada (la
+     * indemnización sigue siendo 100% determinística, ver
+     * TerminacionContratoService).
+     */
+    public function redactarMotivoTerminacion(string $notaBreve, SolicitudContrato $solicitud): string
+    {
+        $prompt = <<<PROMPT
+Eres un asistente jurídico laboral colombiano. Redacta un párrafo formal (máximo 120 palabras) que
+describa la justa causa de terminación de un contrato de trabajo, basado ÚNICAMENTE en la siguiente
+nota breve del abogado. No inventes hechos que la nota no menciona. No cites artículos ni numerales
+específicos del CST (eso lo agrega el sistema por separado). Usa un tono formal, en español de
+Colombia, redactado en tercera persona sobre el trabajador.
+
+Cargo del trabajador: {$solicitud->cargo_contrato}
+Nota breve del abogado: "{$notaBreve}"
+
+Responde ÚNICAMENTE con el párrafo redactado, sin encabezados ni comillas.
+PROMPT;
+
+        return $this->llamarGemini($prompt, $solicitud->empresa_id);
+    }
+
     public function redactarOtrosi(ModificacionContractual $modificacion): string
     {
         // Prórroga de plazo: plantilla LITERAL con variables, sin IA de por

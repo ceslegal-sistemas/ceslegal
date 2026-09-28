@@ -5,7 +5,9 @@ namespace App\Filament\Admin\Resources;
 use App\Filament\Admin\Resources\SolicitudContratoResource\Pages;
 use App\Models\Empresa;
 use App\Models\SolicitudContrato;
+use App\Models\TerminacionContrato;
 use App\Models\Trabajador;
+use App\Services\TerminacionContratoService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -1300,6 +1302,33 @@ class SolicitudContratoResource extends Resource
                             ->send();
                     }),
 
+                // Backlog "Terminación de Contrato" (justa causa/Art. 62 CST,
+                // sin justa causa + indemnización Art. 64 CST) - solo para los
+                // 4 tipos realmente laborales (Prestación de Servicios es
+                // civil, Aprendizaje se rige por Ley 789/reglas SENA, ninguno
+                // de los 2 tiene indemnización del Art. 64). Mismo patrón de
+                // wizard-en-modal que "Solicitar un Cambio", nunca página
+                // completa (pedido explícito del usuario).
+                Tables\Actions\Action::make('terminarContrato')
+                    ->label('Terminar Contrato')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->visible(fn (SolicitudContrato $record) => $record->estado === 'aprobado'
+                        && in_array($record->tipo_contrato, SolicitudContrato::TIPOS_CONTRATO_LABORAL, true))
+                    ->modalWidth('lg')
+                    ->extraModalWindowAttributes(['class' => 'ces-hide-wizard-steps'])
+                    ->steps(fn (SolicitudContrato $record) => self::pasosTerminarContrato($record))
+                    ->modalSubmitActionLabel('Confirmar Terminación')
+                    ->action(function (SolicitudContrato $record, array $data) {
+                        app(TerminacionContratoService::class)->terminar($record, $data);
+
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Contrato terminado')
+                            ->body('El documento quedó generado y el trabajador se marcó como inactivo.')
+                            ->send();
+                    }),
+
                 Tables\Actions\Action::make('noRenovarContrato')
                     ->label('No renovar')
                     ->icon('heroicon-o-document-text')
@@ -1480,6 +1509,124 @@ class SolicitudContratoResource extends Resource
      * tabla de este Resource y ViewSolicitudContrato::enVentanaDeDecision(),
      * para no duplicar la condición en 2 lugares.
      */
+    /**
+     * Wizard de 2 pasos de "Terminar Contrato" (mismo patrón que
+     * ModificacionContractualResource::pasosSolicitarCambio()) - Paso 1
+     * captura el motivo, Paso 2 muestra el cálculo de indemnización YA
+     * resuelto (100% determinístico, sin IA) antes de confirmar.
+     */
+    public static function pasosTerminarContrato(SolicitudContrato $solicitud): array
+    {
+        return [
+            Forms\Components\Wizard\Step::make('El Motivo')
+                ->icon('heroicon-o-pencil-square')
+                ->schema([
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('sc_terminar_contrato_step_1')
+                        ->viewData([
+                            'step' => 1,
+                            'total' => 2,
+                            'title' => 'El Motivo',
+                            'accent' => '#e11d48',
+                            'lord' => 'https://cdn.lordicon.com/edcgvlnw.json',
+                            'subtitle' => "Contrato {$solicitud->codigo} - {$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}",
+                        ])
+                        ->columnSpanFull(),
+
+                    Forms\Components\Radio::make('tipo')
+                        ->label('¿Con o sin justa causa?')
+                        ->options(TerminacionContrato::TIPOS)
+                        ->required()
+                        ->live()
+                        ->columnSpanFull(),
+
+                    Forms\Components\DatePicker::make('fecha_terminacion')
+                        ->label('Fecha de terminación')
+                        ->default(now())
+                        ->required()
+                        ->native(false)
+                        ->displayFormat('d/m/Y'),
+
+                    Forms\Components\Textarea::make('motivo')
+                        ->label('Motivo')
+                        ->required(fn (Get $get) => $get('tipo') === 'con_justa_causa')
+                        ->visible(fn (Get $get) => $get('tipo') === 'con_justa_causa')
+                        ->minLength(5)
+                        ->rows(4)
+                        ->placeholder('Ej: llegó tarde repetidamente, ya con 2 llamados de atención previos.')
+                        ->hintAction(
+                            Forms\Components\Actions\Action::make('redactarMotivoConIA')
+                                ->label('Redactar con IA')
+                                ->icon('heroicon-o-sparkles')
+                                ->action(function (Set $set, Get $get) use ($solicitud) {
+                                    $notaBreve = trim((string) $get('motivo'));
+                                    if ($notaBreve === '') {
+                                        return;
+                                    }
+                                    $set('motivo', app(TerminacionContratoService::class)->redactarMotivo($notaBreve, $solicitud));
+                                })
+                        )
+                        ->columnSpanFull(),
+                ]),
+
+            Forms\Components\Wizard\Step::make('Revisar y Confirmar')
+                ->icon('heroicon-o-document-check')
+                ->schema([
+                    Forms\Components\View::make('filament.components.step-header')
+                        ->key('sc_terminar_contrato_step_2')
+                        ->viewData([
+                            'step' => 2,
+                            'total' => 2,
+                            'title' => 'Revisar y Confirmar',
+                            'accent' => '#f97316',
+                            'lord' => 'https://cdn.lordicon.com/hmpomorl.json',
+                            'subtitle' => 'Revise el detalle antes de confirmar - esta acción no se puede deshacer desde la interfaz.',
+                        ])
+                        ->columnSpanFull(),
+
+                    Forms\Components\Placeholder::make('resumen_terminacion')
+                        ->label('')
+                        ->content(fn (Get $get) => self::resumenTerminacionContrato($solicitud, $get))
+                        ->columnSpanFull(),
+                ]),
+        ];
+    }
+
+    private static function resumenTerminacionContrato(SolicitudContrato $solicitud, Get $get): \Illuminate\Support\HtmlString
+    {
+        $tipo = $get('tipo');
+        $fecha = $get('fecha_terminacion');
+
+        if (blank($tipo) || blank($fecha)) {
+            return new \Illuminate\Support\HtmlString('Complete el paso anterior.');
+        }
+
+        $fechaTexto = \Carbon\Carbon::parse($fecha)->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
+
+        if ($tipo === 'con_justa_causa') {
+            $motivo = e($get('motivo') ?? '');
+            return new \Illuminate\Support\HtmlString(
+                "<p>Terminación <strong>con justa causa</strong>, efectiva el <strong>{$fechaTexto}</strong>.</p>" .
+                "<p>Motivo: {$motivo}</p>"
+            );
+        }
+
+        try {
+            $calculo = app(TerminacionContratoService::class)
+                ->calcularIndemnizacion($solicitud, $tipo, \Carbon\Carbon::parse($fecha));
+        } catch (\RuntimeException $e) {
+            return new \Illuminate\Support\HtmlString('<span style="color:#dc2626">' . e($e->getMessage()) . '</span>');
+        }
+
+        $monto = number_format($calculo['monto'], 2);
+
+        return new \Illuminate\Support\HtmlString(
+            "<p>Terminación <strong>sin justa causa</strong>, efectiva el <strong>{$fechaTexto}</strong>.</p>" .
+            '<p>' . e($calculo['detalle']) . "</p>" .
+            "<p style=\"font-size:1.1em\">Indemnización total: <strong>\${$monto}</strong></p>"
+        );
+    }
+
     public static function enVentanaDeDecisionRenovacion(SolicitudContrato $record): bool
     {
         // "No renovar"/"Sí, renovar" solo tienen sentido sobre un contrato

@@ -6,6 +6,7 @@ use App\Models\Concerns\ScopedToBufeteOrEmpresa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -14,6 +15,17 @@ class SolicitudContrato extends Model
     use SoftDeletes, ScopedToBufeteOrEmpresa;
 
     protected $table = 'solicitudes_contrato';
+
+    // Únicos 4 tipos regidos por el CST (Prestación de Servicios es civil,
+    // Aprendizaje se rige por Ley 789/reglas SENA) - los únicos donde aplica
+    // el flujo de Terminación de Contrato (justa causa/Art. 62, indemnización
+    // Art. 64).
+    public const TIPOS_CONTRATO_LABORAL = [
+        'Contrato a Término Fijo',
+        'Contrato a Término Indefinido',
+        'Contrato de Obra o Labor',
+        'Contrato Ocasional o Transitorio',
+    ];
 
     /**
      * Propiedades PHP explícitas (NO columnas) usadas por
@@ -127,5 +139,10 @@ class SolicitudContrato extends Model
     {
         return $this->hasMany(ModificacionContractual::class)
             ->orderBy('fecha_efectiva', 'desc');
+    }
+
+    public function terminacion(): HasOne
+    {
+        return $this->hasOne(TerminacionContrato::class);
     }
 }
