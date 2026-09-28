@@ -17,13 +17,20 @@ class LogrosSeeder extends Seeder
 {
     public function run(): void
     {
-        // Mismo lord-icon para los 4 (ya usado y confirmado en el proyecto
-        // para "Logro desbloqueado" - ver dashboard-socializacion-rit-notice.blade.php).
         // 'image' es una columna de cjmellor/level-up sin usar hasta ahora -
         // se reutiliza para guardar la URL del lord-icon, no una imagen
         // subida, para que la vitrina "Mis Logros" (LogrosVitrinaService) no
         // tenga que inventar un ícono por su cuenta.
-        $iconoLogro = 'https://cdn.lordicon.com/wpsdctqb.json';
+        //
+        // NO usar 'wpsdctqb' (usado en el resto del proyecto para "logro
+        // desbloqueado") - se descubrió 2026-09-28 que ese JSON real es un
+        // ícono de EMAIL ("system-regular-59-email"), nunca un trofeo; se
+        // veía como un "@" genérico en "Mis Logros". Este archivo lo
+        // proveyó el usuario, descargado directamente de lordicon.com y
+        // verificado (nm: "doodle-motif-9-medal-first-place") antes de
+        // usarlo - vive en public/lordicons/ (mismo patrón ya usado por los
+        // lordicons de las páginas de error 403/404/500).
+        $iconoLogro = asset('lordicons/doodle-motif-1780-medal-first-place-hover-pinch.json');
 
         $logros = [
             [

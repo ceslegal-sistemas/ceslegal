@@ -21,13 +21,14 @@ class ReglamentoInternoResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        // Bufete: oculto hasta seleccionar una empresa específica en el topbar
-        // (sin empresa activa, "Construir RIT" no tendría sobre qué operar).
-        if (auth()->user()?->bufeteSinEmpresaActiva()) {
-            return false;
-        }
-
-        return parent::shouldRegisterNavigation();
+        // Oculto del menú a pedido explícito del usuario (2026-09-28): su
+        // propio getNavigationUrl() redirige a "Mi Reglamento Interno" (esa
+        // página ya tiene el botón "Construir Reglamento Interno con IA"),
+        // así que el ítem del menú era redundante - un clic que aterrizaba
+        // en otra pantalla del menú. Las páginas del Resource (create/edit)
+        // siguen existiendo y en uso real: mi-reglamento-interno.blade.php
+        // enlaza directo a ReglamentoInternoResource::getUrl('create').
+        return false;
     }
 
     public static function getNavigationUrl(): string
