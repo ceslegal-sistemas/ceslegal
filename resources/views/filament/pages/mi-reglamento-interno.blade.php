@@ -443,6 +443,10 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
     </div>
   @endif
 
+  @if($tiene)
+    @include('filament.components.rit-temas-cubiertos', ['reglamento' => $reglamento])
+  @endif
+
 </div>
 @endif
 </x-filament-panels::page>
