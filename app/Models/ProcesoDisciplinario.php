@@ -201,6 +201,15 @@ class ProcesoDisciplinario extends Model
         return $this->belongsTo(User::class, 'abogado_id');
     }
 
+    // Solo se llena cuando la sanción emitida fue "Terminación de Contrato"
+    // (ver DocumentGeneratorService::terminarContratoPorSancionDisciplinaria())
+    // - la Terminación de Contrato manual desde Historial de Contratos no la
+    // toca.
+    public function terminacionContrato(): HasOne
+    {
+        return $this->hasOne(TerminacionContrato::class);
+    }
+
     public function diligenciaDescargo(): HasOne
     {
         return $this->hasOne(DiligenciaDescargo::class, 'proceso_id');

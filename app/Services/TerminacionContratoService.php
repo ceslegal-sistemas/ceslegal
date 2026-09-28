@@ -155,7 +155,7 @@ class TerminacionContratoService
      * Orquesta todo el flujo: calcula (si aplica), crea el registro,
      * actualiza el contrato y al trabajador, y genera el documento formal.
      *
-     * @param array{tipo: string, motivo?: ?string, fecha_terminacion: string|Carbon} $datos
+     * @param array{tipo: string, motivo?: ?string, fecha_terminacion: string|Carbon, proceso_disciplinario_id?: ?int} $datos
      */
     public function terminar(SolicitudContrato $solicitud, array $datos): TerminacionContrato
     {
@@ -167,6 +167,7 @@ class TerminacionContratoService
         $terminacion = TerminacionContrato::create([
             'solicitud_contrato_id' => $solicitud->id,
             'abogado_id' => auth()->id(),
+            'proceso_disciplinario_id' => $datos['proceso_disciplinario_id'] ?? null,
             'tipo' => $tipo,
             'motivo' => $datos['motivo'] ?? null,
             'fecha_terminacion' => $fechaTerminacion,

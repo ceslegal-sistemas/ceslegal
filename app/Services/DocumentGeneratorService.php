@@ -2370,6 +2370,10 @@ HTML;
                     destinatario: $proceso->trabajador->email
                 );
 
+                if ($tipoSancion === 'terminacion') {
+                    $this->terminarContratoPorSancionDisciplinaria($proceso);
+                }
+
                 return [
                     'success' => true,
                     'message' => 'Sanción generada y enviada exitosamente',
@@ -2388,6 +2392,47 @@ HTML;
                 throw $e;
             }
         });
+    }
+
+    /**
+     * Fase 2 del "ecosistema conectado" (pedido explícito del usuario,
+     * 2026-09-27): cuando la sanción emitida es "Terminación de Contrato",
+     * ejecuta el mismo TerminacionContratoService que usa la acción manual
+     * de Historial de Contratos - causa SIEMPRE justa causa (es un despido
+     * disciplinario), motivo copiado de la conducta del RIT ya citada
+     * verbatim (cero doble digitación), enlazado a este proceso.
+     *
+     * Deliberadamente NO relanza excepciones: la sanción disciplinaria (ya
+     * generada, guardada y enviada por email en el método que llama a este)
+     * sigue siendo válida aunque el trabajador no tenga ningún contrato
+     * laboral vigente en el sistema - no hay nada que terminar en ese caso,
+     * y no debe tumbar el flujo normal de la sanción.
+     */
+    public function terminarContratoPorSancionDisciplinaria(ProcesoDisciplinario $proceso): void
+    {
+        try {
+            $contrato = \App\Models\SolicitudContrato::where('trabajador_id', $proceso->trabajador_id)
+                ->where('estado', 'aprobado')
+                ->whereIn('tipo_contrato', \App\Models\SolicitudContrato::TIPOS_CONTRATO_LABORAL)
+                ->latest('fecha_inicio_propuesta')
+                ->first();
+
+            if (!$contrato) {
+                return;
+            }
+
+            app(\App\Services\TerminacionContratoService::class)->terminar($contrato, [
+                'tipo' => 'con_justa_causa',
+                'motivo' => $proceso->sanciones_laborales_texto,
+                'fecha_terminacion' => now(),
+                'proceso_disciplinario_id' => $proceso->id,
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('No se pudo terminar automáticamente el contrato tras la sanción disciplinaria', [
+                'proceso_id' => $proceso->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

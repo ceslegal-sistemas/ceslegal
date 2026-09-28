@@ -22,6 +22,7 @@ class TerminacionContrato extends Model
         'solicitud_contrato_id',
         'empresa_id',
         'abogado_id',
+        'proceso_disciplinario_id',
         'tipo',
         'motivo',
         'fecha_terminacion',
@@ -55,6 +56,11 @@ class TerminacionContrato extends Model
     public function abogado(): BelongsTo
     {
         return $this->belongsTo(User::class, 'abogado_id');
+    }
+
+    public function procesoDisciplinario(): BelongsTo
+    {
+        return $this->belongsTo(ProcesoDisciplinario::class);
     }
 
     // Mismo patrón de ModificacionContractual: empresa_id SIEMPRE se deriva
