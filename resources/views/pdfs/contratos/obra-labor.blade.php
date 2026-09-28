@@ -278,7 +278,7 @@
         <p>{!! $objetoJuridico !!}</p>
     @endif
     <p><strong>¿Qué ley rige este contrato?</strong></p>
-    <p>Este contrato se rige por la legislación colombiana, principalmente por el Código Sustantivo del Trabajo (CST) y sus normas complementarias — incluida la Ley 2466 de 2025 (Reforma Laboral) —, por aplicarse el principio de territorialidad: la relación laboral se forma, se ejecuta y termina en Colombia.</p>
+    <p>Este contrato se rige por la legislación colombiana, principalmente por el Código Sustantivo del Trabajo (CST) y sus normas complementarias - incluida la Ley 2466 de 2025 (Reforma Laboral) -, por aplicarse el principio de territorialidad: la relación laboral se forma, se ejecuta y termina en Colombia.</p>
     {!! $volverAlMapa() !!}
 
     {{-- ===================== PARTE 02 · Datos de contacto ===================== --}}
@@ -309,7 +309,7 @@
     <div class="bloque-bullets">
         <p class="bloque-bullets-titulo">Tu trabajo y dedicación</p>
         <ul>
-            <li>Dedicar tu jornada y tu capacidad normal de trabajo a las funciones de tu cargo (manual de funciones — Anexo No. 1) y a las labores relacionadas, siguiendo las instrucciones de la empresa.</li>
+            <li>Dedicar tu jornada y tu capacidad normal de trabajo a las funciones de tu cargo (manual de funciones - Anexo No. 1) y a las labores relacionadas, siguiendo las instrucciones de la empresa.</li>
             <li>Prestar tus servicios de forma exclusiva: mientras dure este contrato no puedes trabajar para otro empleador ni por cuenta propia en el mismo oficio.</li>
             <li>Asistir puntualmente a tu jornada, a las reuniones y a las capacitaciones o inducciones a las que te citen.</li>
             <li>Aceptar traslados dentro de las sedes de la empresa en el territorio nacional y cumplir comisiones de servicio cuando se requiera.</li>
@@ -564,7 +564,7 @@
     {!! $parteHeader(13, 'Tratamiento de datos personales') !!}
     <div class="caja caja--simple">
         <p class="caja-titulo"><img src="{{ $icono('callout-simple') }}" alt="">En palabras simples</p>
-        <p>Autorizas a la empresa a recolectar y usar tus datos personales —incluyendo datos sensibles— para fines relacionados con tu contrato de trabajo, conforme a la Ley 1581 de 2012 (Habeas Data).</p>
+        <p>Autorizas a la empresa a recolectar y usar tus datos personales -incluyendo datos sensibles- para fines relacionados con tu contrato de trabajo, conforme a la Ley 1581 de 2012 (Habeas Data).</p>
     </div>
     <p>Autorizas a la empresa a recolectar, almacenar, usar, actualizar y tratar tus datos personales: identificación, contacto, género, estado civil, fecha y lugar de nacimiento, salario, cuenta bancaria, historia laboral y académica, datos biométricos y de seguridad social, entre otros.</p>
     <p>Estos datos se usan para: cumplir las obligaciones legales y contractuales de tu contrato; administrar tu nómina, seguridad social y bienestar laboral; atender requerimientos de autoridades administrativas o judiciales; adelantar procesos disciplinarios y evaluaciones de desempeño; y cumplir las políticas internas y el reglamento interno de trabajo.</p>

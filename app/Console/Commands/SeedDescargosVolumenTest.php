@@ -159,7 +159,7 @@ class SeedDescargosVolumenTest extends Command
 
         return ReglamentoInterno::create([
             'empresa_id'         => $empresa->id,
-            'nombre'             => 'RIT-QA-TEST — Reglamento Interno de Trabajo (empresa ficticia de pruebas)',
+            'nombre'             => 'RIT-QA-TEST - Reglamento Interno de Trabajo (empresa ficticia de pruebas)',
             'texto_completo'     => $this->textoRitTest(),
             'activo'             => true,
             'fuente'             => 'subido',
@@ -170,7 +170,7 @@ class SeedDescargosVolumenTest extends Command
     private function textoRitTest(): string
     {
         return <<<RIT
-        REGLAMENTO INTERNO DE TRABAJO — DISTRIBUIDORA QA DE PRUEBAS (DOCUMENTO FICTICIO DE PRUEBAS)
+        REGLAMENTO INTERNO DE TRABAJO - DISTRIBUIDORA QA DE PRUEBAS (DOCUMENTO FICTICIO DE PRUEBAS)
 
         CAPÍTULO I. DISPOSICIONES GENERALES
         El presente Reglamento Interno de Trabajo regula las relaciones laborales entre DISTRIBUIDORA QA DE PRUEBAS y sus trabajadores, de conformidad con el Código Sustantivo del Trabajo.

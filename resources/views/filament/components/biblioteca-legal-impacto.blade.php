@@ -69,7 +69,7 @@ html.dark .bli-detalle{color:#e2e8f0}
                         </span>
                         <div style="flex:1">
                             <span class="bli-detalle">{{ \App\Models\SugerenciaActualizacionRit::TIPOS_CAMBIO[$sugerencia->tipo_cambio] ?? $sugerencia->tipo_cambio }}</span>
-                            <span class="bli-meta"> — {{ $sugerencia->created_at->format('d/m/Y') }}</span>
+                            <span class="bli-meta"> - {{ $sugerencia->created_at->format('d/m/Y') }}</span>
                             @if($sugerencia->estado !== 'pendiente' && $sugerencia->resuelto_en)
                                 <span class="bli-meta">, {{ $sugerencia->estado === 'aprobada' ? 'aplicada' : 'rechazada' }} el {{ $sugerencia->resuelto_en->format('d/m/Y') }}@if($sugerencia->resueltoPor) por {{ $sugerencia->resueltoPor->name }}@endif</span>
                             @endif

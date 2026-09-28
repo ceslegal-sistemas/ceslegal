@@ -538,7 +538,7 @@ class ModificacionContractualResource extends Resource
                                 'title' => 'Renovar Contrato',
                                 'accent' => '#e11d48',
                                 'lord' => 'https://cdn.lordicon.com/edcgvlnw.json',
-                                'subtitle' => "Contrato {$solicitud->codigo} — {$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}",
+                                'subtitle' => "Contrato {$solicitud->codigo} - {$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}",
                             ])
                             ->columnSpanFull(),
 
@@ -559,7 +559,7 @@ class ModificacionContractualResource extends Resource
                             'title' => 'El Cambio',
                             'accent' => '#e11d48',
                             'lord' => 'https://cdn.lordicon.com/edcgvlnw.json',
-                            'subtitle' => "Contrato {$solicitud->codigo} — {$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}",
+                            'subtitle' => "Contrato {$solicitud->codigo} - {$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}",
                         ])
                         ->columnSpanFull(),
 
@@ -674,7 +674,7 @@ class ModificacionContractualResource extends Resource
                             )
                             ->getOptionLabelFromRecordUsing(
                                 fn (SolicitudContrato $record): string =>
-                                "{$record->codigo} — {$record->trabajador_nombres} {$record->trabajador_apellidos}"
+                                "{$record->codigo} - {$record->trabajador_nombres} {$record->trabajador_apellidos}"
                             )
                             ->searchable(['codigo', 'trabajador_nombres', 'trabajador_apellidos'])
                             ->preload()
@@ -752,7 +752,7 @@ class ModificacionContractualResource extends Resource
                                 $solicitud = SolicitudContrato::find($get('solicitud_contrato_id'));
 
                                 return $solicitud
-                                    ? "{$solicitud->codigo} — {$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}"
+                                    ? "{$solicitud->codigo} - {$solicitud->trabajador_nombres} {$solicitud->trabajador_apellidos}"
                                     : 'Seleccione un contrato en el paso anterior.';
                             })
                             ->columnSpanFull(),

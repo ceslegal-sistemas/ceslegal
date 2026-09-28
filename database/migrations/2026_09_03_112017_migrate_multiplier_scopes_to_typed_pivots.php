@@ -10,7 +10,7 @@ return new class extends Migration {
     {
         $oldTable = config('level-up.tables.multiplier_scopes', 'multiplier_scopes');
 
-        // Fresh v3 install — old morph table never existed. Nothing to do.
+        // Fresh v3 install - old morph table never existed. Nothing to do.
         if (! Schema::hasTable($oldTable)) {
             return;
         }

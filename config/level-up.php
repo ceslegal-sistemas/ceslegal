@@ -119,7 +119,7 @@ return [
     |-----------------------------------------------------------------------
     |
     | Configure the leaderboard. 'metrics' maps registry keys to
-    | RankingMetric classes — register custom metrics by adding entries.
+    | RankingMetric classes - register custom metrics by adding entries.
     | 'default_metric' is used when no metric is specified.
     |
     | 'week_starts_on' sets the boundary of Period::Week as a Carbon
@@ -128,18 +128,18 @@ return [
     | (start of day/week/month) are computed in; null uses the
     | application timezone.
     |
-    | 'boards' declares named Boards — leaderboards the package can
+    | 'boards' declares named Boards - leaderboards the package can
     | track over time. Each entry maps a board name to a 'metric'
     | (required registry key), an optional 'period' ('day', 'week',
     | or 'month'), an optional 'tier' (a tier name), and an optional
-    | 'track_top' (the tracked depth — how many top entries the
+    | 'track_top' (the tracked depth - how many top entries the
     | snapshot run stores and events, default 100). For example:
     | 'weekly-xp' => ['metric' => 'xp', 'period' => 'week'].
     |
     | 'snapshots.retention_days' controls how long snapshot runs are
     | kept; the level-up:snapshot-boards command prunes older runs.
     |
-    | 'league' declares the League — a competitive cycle built on one
+    | 'league' declares the League - a competitive cycle built on one
     | periodic Board. 'board' names the Board users compete on (it must
     | be declared under 'boards' and have a 'period'); leave it null and
     | the league machinery stays dormant. 'cohort_size' caps how many
@@ -206,9 +206,9 @@ return [
     'multiplier' => [
         'enabled' => false,
         'stack_strategy' => env(key: 'MULTIPLIER_STACK', default: 'compound'),
-        // 'compound'  — multipliers multiply each other: 2 × 5 = 10x
-        // 'additive'  — multipliers sum:              2 + 5 = 7x
-        // 'highest'   — only the largest applies:  max(2, 5) = 5x
+        // 'compound'  - multipliers multiply each other: 2 × 5 = 10x
+        // 'additive'  - multipliers sum:              2 + 5 = 7x
+        // 'highest'   - only the largest applies:  max(2, 5) = 5x
     ],
 
     /*

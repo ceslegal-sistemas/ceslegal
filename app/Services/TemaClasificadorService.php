@@ -258,7 +258,7 @@ class TemaClasificadorService
             return [];
         }
 
-        $listaTemas = $temas->map(fn (TemaNormativo $t) => "- ID {$t->id}: {$t->nombre} — {$t->descripcion}")->implode("\n");
+        $listaTemas = $temas->map(fn (TemaNormativo $t) => "- ID {$t->id}: {$t->nombre} - {$t->descripcion}")->implode("\n");
 
         $prompt = <<<PROMPT
         Eres un asistente legal especializado en derecho laboral colombiano.

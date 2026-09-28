@@ -60,7 +60,7 @@ class SolicitudContratoResource extends Resource
             ->group(static::getNavigationGroup())
             ->url(static::getUrl('index'))
             ->sort(1)
-            ->isActiveWhen(fn () => request()->routeIs(static::getRouteBaseName() . '.*') && ! request()->routeIs(static::getRouteBaseName() . '.create'));
+            ->isActiveWhen(fn() => request()->routeIs(static::getRouteBaseName() . '.*') && ! request()->routeIs(static::getRouteBaseName() . '.create'));
 
         return $items;
     }
@@ -287,8 +287,8 @@ class SolicitudContratoResource extends Resource
                                 ->visible(
                                     fn(Get $get) =>
                                     !$get('_usar_trabajador_existente')
-                                    || empty($get('trabajador_telefono'))
-                                    || empty($get('trabajador_direccion'))
+                                        || empty($get('trabajador_telefono'))
+                                        || empty($get('trabajador_direccion'))
                                 )
                                 // ->dehydratedWhenHidden() AQUÍ, en la Section, no solo en los
                                 // campos hijos: CanBeValidated::getValidationRules() (y por
@@ -642,9 +642,9 @@ class SolicitudContratoResource extends Resource
                                                 // algo" en emitir-sancion-pasos.blade.php.
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div style="display:flex;align-items:center;gap:.5rem;color:#d97706" class="dark:text-amber-400">'
-                                                    . '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:22px;height:22px;flex-shrink:0"></lord-icon>'
-                                                    . '<span>Primero seleccione la Fecha de Inicio (arriba) para poder calcular la fecha de terminación.</span>'
-                                                    . '</div>'
+                                                        . '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#d97706,secondary:#fbbf24" style="width:22px;height:22px;flex-shrink:0"></lord-icon>'
+                                                        . '<span>Primero seleccione la Fecha de Inicio (arriba) para poder calcular la fecha de terminación.</span>'
+                                                        . '</div>'
                                                 );
                                             }
 
@@ -1025,10 +1025,10 @@ class SolicitudContratoResource extends Resource
 
                                 return new \Illuminate\Support\HtmlString(
                                     '<button type="submit" wire:loading.attr="disabled" wire:target="' . $metodo . '" class="filament-button filament-button-size-md inline-flex items-center justify-center py-1 gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset dark:focus:ring-offset-0 min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700">'
-                                    . '<svg wire:loading wire:target="' . $metodo . '" style="width:14px;height:14px;margin-right:.35rem;animation:rit-spin 1s linear infinite;display:inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>'
-                                    . '<span wire:loading.remove wire:target="' . $metodo . '">' . $texto . '</span>'
-                                    . '<span wire:loading wire:target="' . $metodo . '">' . $textoCargando . '</span>'
-                                    . '</button>'
+                                        . '<svg wire:loading wire:target="' . $metodo . '" style="width:14px;height:14px;margin-right:.35rem;animation:rit-spin 1s linear infinite;display:inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>'
+                                        . '<span wire:loading.remove wire:target="' . $metodo . '">' . $texto . '</span>'
+                                        . '<span wire:loading wire:target="' . $metodo . '">' . $textoCargando . '</span>'
+                                        . '</button>'
                                 );
                             })()
                     ),
@@ -1297,10 +1297,10 @@ class SolicitudContratoResource extends Resource
                 // se retiró (hallazgo del propio usuario: "¿Osea Solicitar
                 // cambio y Sí, renovar es lo mismo?").
                 Tables\Actions\Action::make('solicitarCambio')
-                    ->label(fn (SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record) ? 'Sí, renovar' : 'Solicitar un Cambio')
-                    ->icon(fn (SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record) ? 'heroicon-o-arrow-path' : 'heroicon-o-pencil-square')
-                    ->color(fn (SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record) ? 'success' : 'primary')
-                    ->visible(fn (SolicitudContrato $record) => $record->estado === 'aprobado')
+                    ->label(fn(SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record) ? 'Sí, renovar' : 'Solicitar un Cambio')
+                    ->icon(fn(SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record) ? 'heroicon-o-arrow-path' : 'heroicon-o-pencil-square')
+                    ->color(fn(SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record) ? 'success' : 'primary')
+                    ->visible(fn(SolicitudContrato $record) => $record->estado === 'aprobado')
                     ->modalWidth('lg')
                     // El stepper nativo de Filament (pestañas "El Cambio" /
                     // "Revisar y Confirmar" arriba) quedaba duplicado con el
@@ -1309,7 +1309,7 @@ class SolicitudContratoResource extends Resource
                     // ocultarlo en los wizards de página completa
                     // (PanelBrandingServiceProvider).
                     ->extraModalWindowAttributes(['class' => 'ces-hide-wizard-steps'])
-                    ->steps(fn (SolicitudContrato $record) => ModificacionContractualResource::pasosSolicitarCambio($record))
+                    ->steps(fn(SolicitudContrato $record) => ModificacionContractualResource::pasosSolicitarCambio($record))
                     ->modalSubmitActionLabel('Confirmar y Generar Otrosí')
                     ->action(function (SolicitudContrato $record, array $data) {
                         ModificacionContractualResource::crearYGenerarOtrosi($record, $data);
@@ -1332,11 +1332,11 @@ class SolicitudContratoResource extends Resource
                     ->label('Terminar Contrato')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(fn (SolicitudContrato $record) => $record->estado === 'aprobado'
+                    ->visible(fn(SolicitudContrato $record) => $record->estado === 'aprobado'
                         && in_array($record->tipo_contrato, SolicitudContrato::TIPOS_CONTRATO_LABORAL, true))
                     ->modalWidth('lg')
                     ->extraModalWindowAttributes(['class' => 'ces-hide-wizard-steps'])
-                    ->steps(fn (SolicitudContrato $record) => self::pasosTerminarContrato($record))
+                    ->steps(fn(SolicitudContrato $record) => self::pasosTerminarContrato($record))
                     ->modalSubmitActionLabel('Confirmar Terminación')
                     ->action(function (SolicitudContrato $record, array $data) {
                         app(TerminacionContratoService::class)->terminar($record, $data);
@@ -1352,7 +1352,7 @@ class SolicitudContratoResource extends Resource
                     ->label('No renovar')
                     ->icon('heroicon-o-document-text')
                     ->color('danger')
-                    ->visible(fn (SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record))
+                    ->visible(fn(SolicitudContrato $record) => static::enVentanaDeDecisionRenovacion($record))
                     ->requiresConfirmation()
                     ->modalHeading('Generar Preaviso de no renovación')
                     ->modalDescription('Se generará el documento de preaviso y quedará registrado que decidió no renovar este contrato. Esta decisión se puede revertir manualmente si cambia de opinión antes del vencimiento.')
@@ -1413,7 +1413,7 @@ class SolicitudContratoResource extends Resource
                     // editar libremente mientras sigue en 'borrador'.
                     Tables\Actions\EditAction::make()
                         ->label('Editar')
-                        ->visible(fn (SolicitudContrato $record) => $record->estado === 'borrador'),
+                        ->visible(fn(SolicitudContrato $record) => $record->estado === 'borrador'),
                     Tables\Actions\DeleteAction::make()
                         ->label('Eliminar'),
 
@@ -1561,15 +1561,22 @@ class SolicitudContratoResource extends Resource
 
                     Forms\Components\DatePicker::make('fecha_terminacion')
                         ->label('Fecha de terminación')
-                        ->default(now())
+                        // ->default(now())
+                        // ->required()
+                        // ->native(false)
+                        // ->displayFormat('d/m/Y'),
                         ->required()
+                        ->default(now())
                         ->native(false)
-                        ->displayFormat('d/m/Y'),
+                        ->displayFormat('d/m/Y')
+                        ->minDate(today())
+                        ->helperText('Fecha en que se realiza la terminación del contrato, a partir de la cual se calcula la indemnización si aplica.')
+                        ->suffixIcon('heroicon-o-calendar'),
 
                     Forms\Components\Textarea::make('motivo')
                         ->label('Motivo')
-                        ->required(fn (Get $get) => $get('tipo') === 'con_justa_causa')
-                        ->visible(fn (Get $get) => $get('tipo') === 'con_justa_causa')
+                        ->required(fn(Get $get) => $get('tipo') === 'con_justa_causa')
+                        ->visible(fn(Get $get) => $get('tipo') === 'con_justa_causa')
                         ->minLength(5)
                         ->rows(4)
                         ->placeholder('Ej: llegó tarde repetidamente, ya con 2 llamados de atención previos.')
@@ -1605,7 +1612,7 @@ class SolicitudContratoResource extends Resource
 
                     Forms\Components\Placeholder::make('resumen_terminacion')
                         ->label('')
-                        ->content(fn (Get $get) => self::resumenTerminacionContrato($solicitud, $get))
+                        ->content(fn(Get $get) => self::resumenTerminacionContrato($solicitud, $get))
                         ->columnSpanFull(),
                 ]),
         ];
@@ -1626,7 +1633,7 @@ class SolicitudContratoResource extends Resource
             $motivo = e($get('motivo') ?? '');
             return new \Illuminate\Support\HtmlString(
                 "<p>Terminación <strong>con justa causa</strong>, efectiva el <strong>{$fechaTexto}</strong>.</p>" .
-                "<p>Motivo: {$motivo}</p>"
+                    "<p>Motivo: {$motivo}</p>"
             );
         }
 
@@ -1641,8 +1648,8 @@ class SolicitudContratoResource extends Resource
 
         return new \Illuminate\Support\HtmlString(
             "<p>Terminación <strong>sin justa causa</strong>, efectiva el <strong>{$fechaTexto}</strong>.</p>" .
-            '<p>' . e($calculo['detalle']) . "</p>" .
-            "<p style=\"font-size:1.1em\">Indemnización total: <strong>\${$monto}</strong></p>"
+                '<p>' . e($calculo['detalle']) . "</p>" .
+                "<p style=\"font-size:1.1em\">Indemnización total: <strong>\${$monto}</strong></p>"
         );
     }
 
