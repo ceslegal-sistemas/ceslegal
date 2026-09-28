@@ -55,41 +55,31 @@ class AceptacionReglamentoInternoTest extends TestCase
         ]);
     }
 
-    public function test_no_permite_dos_filas_para_el_mismo_trabajador_y_version(): void
+    /**
+     * Cambio deliberado (evidencia jurídica, 2026-09-28): antes había un
+     * UNIQUE(trabajador_id, reglamento_interno_id) que impedía esto - se
+     * quitó a propósito, porque cada aceptación es un registro histórico
+     * PERMANENTE (ver AceptacionRitService::registrar()), nunca se
+     * sobreescribe una anterior, ni siquiera para el mismo trabajador+RIT.
+     */
+    public function test_permite_varias_filas_para_el_mismo_trabajador_y_version(): void
     {
         [, $trabajador, $rit] = $this->crearTrabajadorYRit();
 
         AceptacionReglamentoInterno::create([
             'trabajador_id' => $trabajador->id,
             'reglamento_interno_id' => $rit->id,
-            'aceptado_en' => now(),
+            'aceptado_en' => now()->subDay(),
         ]);
-
-        $this->expectException(\Illuminate\Database\QueryException::class);
 
         AceptacionReglamentoInterno::create([
             'trabajador_id' => $trabajador->id,
             'reglamento_interno_id' => $rit->id,
             'aceptado_en' => now(),
         ]);
-    }
-
-    public function test_update_or_create_no_duplica_actualiza_la_fecha(): void
-    {
-        [, $trabajador, $rit] = $this->crearTrabajadorYRit();
-
-        AceptacionReglamentoInterno::updateOrCreate(
-            ['trabajador_id' => $trabajador->id, 'reglamento_interno_id' => $rit->id],
-            ['aceptado_en' => now()->subDay()]
-        );
-
-        AceptacionReglamentoInterno::updateOrCreate(
-            ['trabajador_id' => $trabajador->id, 'reglamento_interno_id' => $rit->id],
-            ['aceptado_en' => now()]
-        );
 
         $this->assertSame(
-            1,
+            2,
             AceptacionReglamentoInterno::where('trabajador_id', $trabajador->id)->count()
         );
     }

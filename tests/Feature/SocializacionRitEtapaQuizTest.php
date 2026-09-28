@@ -80,7 +80,7 @@ class SocializacionRitEtapaQuizTest extends TestCase
             ->assertSet('etapa', 'quiz');
     }
 
-    public function test_sin_preguntas_disponibles_salta_directo_a_aceptacion(): void
+    public function test_sin_preguntas_disponibles_salta_directo_a_foto_aceptacion(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
         ReglamentoInterno::create([
@@ -89,7 +89,7 @@ class SocializacionRitEtapaQuizTest extends TestCase
 
         $this->llevarATrabajadorAPresentacionRit($empresa)
             ->call('iniciarQuiz')
-            ->assertSet('etapa', 'aceptacion');
+            ->assertSet('etapa', 'foto_aceptacion');
     }
 
     public function test_responder_bien_avanza_a_la_siguiente_pregunta(): void
@@ -113,7 +113,7 @@ class SocializacionRitEtapaQuizTest extends TestCase
             ->assertSet('quizRespuestaIncorrecta', true);
     }
 
-    public function test_completar_las_3_preguntas_avanza_a_aceptacion(): void
+    public function test_completar_las_3_preguntas_avanza_a_foto_aceptacion(): void
     {
         [$empresa, $rit] = $this->crearRitConTemas(3);
 
@@ -123,6 +123,28 @@ class SocializacionRitEtapaQuizTest extends TestCase
             $componente->call('responderQuiz', true);
         }
 
-        $componente->assertSet('etapa', 'aceptacion');
+        $componente->assertSet('etapa', 'foto_aceptacion');
+    }
+
+    /**
+     * Evidencia jurídica (2026-09-28): cada intento (fallido o exitoso)
+     * queda registrado con su timestamp en $quizRespuestas - no solo el
+     * estado transitorio de la pregunta actual.
+     */
+    public function test_registra_cada_intento_en_quizrespuestas_con_timestamp(): void
+    {
+        [$empresa, $rit] = $this->crearRitConTemas(1);
+
+        $componente = $this->llevarATrabajadorAPresentacionRit($empresa)
+            ->call('iniciarQuiz')
+            ->call('responderQuiz', false)
+            ->call('responderQuiz', true);
+
+        $respuestas = $componente->get('quizRespuestas');
+
+        $this->assertCount(2, $respuestas[0]['intentos']);
+        $this->assertFalse($respuestas[0]['intentos'][0]['correcta']);
+        $this->assertTrue($respuestas[0]['intentos'][1]['correcta']);
+        $this->assertNotEmpty($respuestas[0]['intentos'][0]['respondido_en']);
     }
 }

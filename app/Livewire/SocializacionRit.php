@@ -42,11 +42,31 @@ class SocializacionRit extends Component
     public int $quizIndiceActual = 0;
     public bool $quizRespuestaIncorrecta = false;
 
+    /**
+     * Evidencia jurídica (2026-09-28): a diferencia de $quizPreguntas (solo
+     * el estado de la pregunta ACTUAL, transitorio), esto acumula CADA
+     * intento de CADA pregunta con su resultado y timestamp - se persiste
+     * completo en AceptacionReglamentoInterno.quiz_resultado al aceptar.
+     *
+     * @var array<int, array{pregunta: string, respuesta_correcta: bool, intentos: array<int, array{respuesta_dada: bool, correcta: bool, respondido_en: string}>}>
+     */
+    public array $quizRespuestas = [];
+
     public bool $declaracionAceptada = false;
 
     public string $alertaAccesorios = '';
     public string $errorValidacionFoto = '';
     public bool $validandoFoto = false;
+
+    /**
+     * Selfie tomada EN el momento de esta aceptación puntual (distinta de
+     * foto_referencia_path del trabajador, que puede venir de una sesión
+     * anterior sin relación con este acto - pedido explícito del usuario:
+     * exigir una foto nueva en cada aceptación).
+     */
+    public string $fotoAceptacionBase64 = '';
+    public string $errorValidacionFotoAceptacion = '';
+    public bool $validandoFotoAceptacion = false;
 
     public function mount(Empresa $empresa): void
     {
@@ -350,13 +370,23 @@ class SocializacionRit extends Component
         $this->quizIndiceActual = 0;
         $this->quizRespuestaIncorrecta = false;
 
-        $this->etapa = empty($this->quizPreguntas) ? 'aceptacion' : 'quiz';
+        // Evidencia jurídica: arranca vacío el registro de intentos de cada
+        // pregunta - responderQuiz() lo va llenando.
+        $this->quizRespuestas = array_map(
+            fn (array $p) => ['pregunta' => $p['pregunta'], 'respuesta_correcta' => $p['respuesta_correcta'], 'intentos' => []],
+            $this->quizPreguntas
+        );
+
+        $this->etapa = empty($this->quizPreguntas) ? 'foto_aceptacion' : 'quiz';
     }
 
     /**
      * Sin límite de intentos (decisión explícita del spec): si falla,
      * queda en la MISMA pregunta con quizRespuestaIncorrecta=true (la vista
-     * muestra la explicación) hasta que marque la correcta.
+     * muestra la explicación) hasta que marque la correcta. Cada intento
+     * (fallido o exitoso) queda registrado en $quizRespuestas con su
+     * timestamp - evidencia jurídica de que el trabajador realmente
+     * presentó el quiz, no solo que lo "saltó".
      */
     public function responderQuiz(bool $respuesta): void
     {
@@ -365,7 +395,15 @@ class SocializacionRit extends Component
             return;
         }
 
-        if ($respuesta !== $preguntaActual['respuesta_correcta']) {
+        $correcta = $respuesta === $preguntaActual['respuesta_correcta'];
+
+        $this->quizRespuestas[$this->quizIndiceActual]['intentos'][] = [
+            'respuesta_dada' => $respuesta,
+            'correcta' => $correcta,
+            'respondido_en' => now()->toISOString(),
+        ];
+
+        if (!$correcta) {
             $this->quizRespuestaIncorrecta = true;
             return;
         }
@@ -374,8 +412,36 @@ class SocializacionRit extends Component
         $this->quizIndiceActual++;
 
         if ($this->quizIndiceActual >= count($this->quizPreguntas)) {
-            $this->etapa = 'aceptacion';
+            $this->etapa = 'foto_aceptacion';
         }
+    }
+
+    /**
+     * Selfie de ESTA aceptación puntual (evidencia jurídica: distinta de la
+     * foto de referencia tomada en la etapa 'foto', que puede ser de una
+     * visita anterior sin relación con este acto de aceptación). Reusa el
+     * mismo servicio/criterio de calidad que validarFotoConIA(), pero NO
+     * toca foto_referencia_path ni pasa por guardarFotoSimple() - solo
+     * guarda el base64 en memoria, AceptacionRitService la persiste al
+     * llamar aceptarReglamento().
+     */
+    public function validarFotoAceptacionConIA(string $fotoBase64): void
+    {
+        $this->validandoFotoAceptacion = true;
+        $this->errorValidacionFotoAceptacion = '';
+
+        $resultado = app(\App\Services\VerificacionFacialService::class)->validarCalidadFoto($fotoBase64);
+
+        if (!$resultado['ok']) {
+            $this->validandoFotoAceptacion = false;
+            $this->errorValidacionFotoAceptacion = $resultado['motivo']
+                ?? 'La foto no cumple los requisitos. Por favor intente de nuevo.';
+            return;
+        }
+
+        $this->validandoFotoAceptacion = false;
+        $this->fotoAceptacionBase64 = $fotoBase64;
+        $this->etapa = 'aceptacion';
     }
 
     public function aceptarReglamento(): void
@@ -385,17 +451,15 @@ class SocializacionRit extends Component
         ]);
 
         $ritActivo = $this->resolverRitActivo(); // NUNCA $this->empresa->reglamentoInterno - ver Gotcha crítico #3
+        $trabajador = Trabajador::withoutGlobalScope('bufeteOrEmpresa')->findOrFail($this->trabajadorId);
 
-        \App\Models\AceptacionReglamentoInterno::updateOrCreate(
-            [
-                'trabajador_id' => $this->trabajadorId,
-                'reglamento_interno_id' => $ritActivo->id,
-            ],
-            [
-                'aceptado_en' => now(),
-                'ip_aceptacion' => request()->ip(),
-                'user_agent' => (string) request()->userAgent(),
-            ]
+        app(\App\Services\AceptacionRitService::class)->registrar(
+            $trabajador,
+            $ritActivo,
+            $this->quizRespuestas,
+            $this->fotoAceptacionBase64 ?: null,
+            request()->ip(),
+            (string) request()->userAgent(),
         );
 
         app(\App\Services\LogroSocializacionRitService::class)->revisarYOtorgar($this->empresa);

@@ -1,5 +1,5 @@
 @php
-    $pasos = ['documento' => 1, 'datos' => 2, 'foto' => 3, 'presentacion_rit' => 4, 'quiz' => 5, 'aceptacion' => 6];
+    $pasos = ['documento' => 1, 'datos' => 2, 'foto' => 3, 'presentacion_rit' => 4, 'quiz' => 5, 'foto_aceptacion' => 6, 'aceptacion' => 7];
     $pasoActual = $pasos[$etapa] ?? null;
 @endphp
 
@@ -267,6 +267,14 @@
                             </div>
                         @endif
                     </div>
+                @elseif ($etapa === 'foto_aceptacion')
+                    @include('livewire.partials.foto-simple-captura', [
+                        'wireKeyFoto' => 'foto-aceptacion-captura',
+                        'metodoValidarFoto' => 'validarFotoAceptacionConIA',
+                        'propiedadErrorFoto' => 'errorValidacionFotoAceptacion',
+                        'tituloFoto' => 'Una última foto para confirmar que eres tú',
+                        'subtituloFoto' => 'Esta foto queda como evidencia de que fuiste tú quien aceptó el Reglamento hoy.',
+                    ])
                 @elseif ($etapa === 'aceptacion')
                     <div class="space-y-5">
                         <div class="rit-hero" style="padding:1.25rem 1.5rem;">
@@ -313,7 +321,7 @@
     </div>
 
     {{-- Loading: mismo patron que formulario-descargos.blade.php --}}
-    <div wire:loading.delay wire:target="buscarTrabajador, guardarDatos, iniciarQuiz, guardarFotoSimple, responderQuiz, aceptarReglamento"
+    <div wire:loading.delay wire:target="buscarTrabajador, guardarDatos, iniciarQuiz, guardarFotoSimple, responderQuiz, validarFotoAceptacionConIA, aceptarReglamento"
         class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl p-5 flex items-center gap-4 mx-4">
             <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24">

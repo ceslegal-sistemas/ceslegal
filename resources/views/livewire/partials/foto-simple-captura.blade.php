@@ -21,8 +21,30 @@
     morphdom puede dejar el scope de Alpine sin inicializar al volver a esta
     etapa (mismo bug real ya ocurrido en emitir-sancion-pasos.blade.php y
     verificacion-facial-descargos.blade.php).
+
+    Parametrizable (2026-09-28) para reusarlo tambien en la etapa
+    'foto_aceptacion' (evidencia juridica: selfie nueva en CADA aceptacion,
+    separada de esta foto de referencia) sin duplicar las ~380 lineas de
+    deteccion de rostro/parpadeo/accesorios - solo cambia el metodo Livewire
+    que valida la foto final, la propiedad de error que observa, y los
+    textos. La deteccion de accesorios ($wire.verificarAccesorios /
+    alertaAccesorios) es igual en ambos casos, no se parametriza.
+
+    Variables opcionales (con default = comportamiento de siempre):
+      $wireKeyFoto (string)     - default 'foto-simple-captura'
+      $metodoValidarFoto (string) - default 'validarFotoConIA'
+      $propiedadErrorFoto (string) - default 'errorValidacionFoto'
+      $tituloFoto (string)      - default 'Tómate una foto'
+      $subtituloFoto (string)   - default texto de referencia biometrica
 --}}
-<div wire:key="foto-simple-captura" class="space-y-4"
+@php
+    $wireKeyFoto ??= 'foto-simple-captura';
+    $metodoValidarFoto ??= 'validarFotoConIA';
+    $propiedadErrorFoto ??= 'errorValidacionFoto';
+    $tituloFoto ??= 'Tómate una foto';
+    $subtituloFoto ??= 'La usaremos para confirmar que eres tú si más adelante te llaman a un proceso de descargos.';
+@endphp
+<div wire:key="{{ $wireKeyFoto }}" class="space-y-4"
     x-data="{
         stream: null,
         fotoCapturada: null,
@@ -262,7 +284,7 @@
      }"
      x-init="
         iniciarCamara();
-        $wire.$watch('errorValidacionFoto', value => {
+        $wire.$watch('{{ $propiedadErrorFoto }}', value => {
             if (value) { validando = false; errorValidacion = value; }
         });
         $wire.$watch('alertaAccesorios', value => { alertaAccesorios = value; });
@@ -270,8 +292,8 @@
      x-on:beforeunload.window="detenerCamara()">
 
     <div>
-        <h2 class="text-base font-semibold text-gray-900 mb-1">Tómate una foto</h2>
-        <p class="text-sm text-gray-500">La usaremos para confirmar que eres tú si más adelante te llaman a un proceso de descargos.</p>
+        <h2 class="text-base font-semibold text-gray-900 mb-1">{{ $tituloFoto }}</h2>
+        <p class="text-sm text-gray-500">{{ $subtituloFoto }}</p>
     </div>
 
     <template x-if="errorCamara">
@@ -372,7 +394,7 @@
                     Repetir
                 </button>
                 <button type="button"
-                    @click="validando = true; errorValidacion = ''; $wire.validarFotoConIA(fotoCapturada)"
+                    @click="validando = true; errorValidacion = ''; $wire.{{ $metodoValidarFoto }}(fotoCapturada)"
                     :disabled="validando"
                     class="flex-1 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-75">
                     <span x-show="!validando">Continuar</span>

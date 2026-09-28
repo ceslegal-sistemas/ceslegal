@@ -259,6 +259,11 @@ Route::get('/modificacion-contractual/{modificacion}/descargar', [\App\Http\Cont
     ->middleware(['auth'])
     ->name('modificacion-contractual.descargar');
 
+// Descarga del Acta de Socialización del RIT (evidencia jurídica, 2026-09-28)
+Route::get('/trabajador/{trabajador}/acta-rit/{aceptacion}', [\App\Http\Controllers\AceptacionRitDescargaController::class, 'descargar'])
+    ->middleware(['auth'])
+    ->name('trabajador.acta-rit.descargar');
+
 // Rutas de Email Tracking
 Route::get('/email/track/{token}.gif', [EmailTrackingController::class, 'pixel'])
     ->name('email.tracking.pixel');

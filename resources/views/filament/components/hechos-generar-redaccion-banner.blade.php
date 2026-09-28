@@ -16,7 +16,7 @@
         <div style="display:flex;align-items:center;gap:.6rem">
             <lord-icon src="https://cdn.lordicon.com/exymduqj.json" trigger="loop" delay="1000" stroke="bold" colors="primary:#fb7185,secondary:#fb7185" style="width:28px;height:28px;flex-shrink:0"></lord-icon>
             <div>
-                <p style="font-size:.825rem;font-weight:600;margin:0" class="text-stone-800 dark:text-stone-100">Escriba una idea breve y genere la redacción con IA</p>
+                <p style="font-size:.825rem;font-weight:600;margin:0" class="text-stone-800 dark:text-stone-100">Escriba un texto breve de lo ocurrido y genere la redacción con IA</p>
                 <p style="font-size:.75rem;margin:0" class="text-stone-600 dark:text-stone-300">La IA corrige el lenguaje, agrega presuntivo donde haga falta y redacta el texto profesional completo. Después puede editar el texto libremente.</p>
             </div>
         </div>

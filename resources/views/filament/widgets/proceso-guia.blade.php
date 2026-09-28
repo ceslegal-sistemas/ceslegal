@@ -150,6 +150,14 @@
                  widget) y solo reemplaza el "(N)" en texto plano por el
                  badge real de marca. --}}
             @if(!empty($g['listos']))
+                @php
+                    // Mismos 3 lord-icon ya verificados y usados en
+                    // rit-temas-cubiertos.blade.php (pedido explícito del
+                    // usuario, 2026-09-28: "cambia el icono... por iconos
+                    // lordicon igual") - reemplaza el heroicon-o-scale
+                    // estático por el mismo patrón de rotación.
+                    $iconosListos = ['hmpomorl.json', 'fikcyfpp.json', 'edcgvlnw.json'];
+                @endphp
                 <div class="pg-listos">
                     <p class="pg-listos-title-row">
                         <span class="pg-listos-title">Listos para sancionar</span>
@@ -158,7 +166,8 @@
                     <div class="pg-listos-scroll">
                         @foreach($g['listos'] as $l)
                             <a href="{{ $g['sancion_url'] }}" class="pg-listo">
-                                @svg('heroicon-o-scale', 'pg-listo-ico')
+                                <lord-icon class="pg-listo-ico" src="https://cdn.lordicon.com/{{ $iconosListos[$loop->index % 3] }}"
+                                    trigger="hover" colors="primary:#dc2626,secondary:#dc2626"></lord-icon>
                                 <span><strong>{{ $l['trabajador'] }}</strong> · {{ $l['codigo'] }}</span>
                                 <span class="pg-listo-cta">Emitir sanción →</span>
                             </a>

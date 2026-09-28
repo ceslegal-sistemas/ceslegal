@@ -568,44 +568,74 @@ class TrabajadorResource extends Resource
                     ->falseLabel('Solo inactivos'),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()
-                    ->label('Ver'),
-                Tables\Actions\EditAction::make()
-                    ->label('Editar'),
-                Tables\Actions\Action::make('desactivar')
-                    ->label('Desactivar')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->requiresConfirmation()
-                    ->modalHeading('Desactivar Trabajador')
-                    ->modalDescription(fn(Trabajador $record) => "¿Está seguro que desea desactivar al trabajador '{$record->nombre_completo}'? El trabajador no será eliminado, solo quedará marcado como inactivo.")
-                    ->modalSubmitActionLabel('Sí, desactivar')
-                    ->visible(fn(Trabajador $record) => $record->active)
-                    ->action(function (Trabajador $record) {
-                        $record->update(['active' => false]);
-                        \Filament\Notifications\Notification::make()
-                            ->success()
-                            ->title('Trabajador desactivado')
-                            ->body("El trabajador '{$record->nombre_completo}' ha sido desactivado.")
-                            ->send();
-                    }),
-                Tables\Actions\Action::make('activar')
-                    ->label('Activar')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->modalHeading('Activar Trabajador')
-                    ->modalDescription(fn(Trabajador $record) => "¿Está seguro que desea activar al trabajador '{$record->nombre_completo}'?")
-                    ->modalSubmitActionLabel('Sí, activar')
-                    ->visible(fn(Trabajador $record) => !$record->active)
-                    ->action(function (Trabajador $record) {
-                        $record->update(['active' => true]);
-                        \Filament\Notifications\Notification::make()
-                            ->success()
-                            ->title('Trabajador activado')
-                            ->body("El trabajador '{$record->nombre_completo}' ha sido activado.")
-                            ->send();
-                    }),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make()
+                        ->label('Ver'),
+                    Tables\Actions\EditAction::make()
+                        ->label('Editar'),
+                    Tables\Actions\Action::make('desactivar')
+                        ->label('Desactivar')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Desactivar Trabajador')
+                        ->modalDescription(fn(Trabajador $record) => "¿Está seguro que desea desactivar al trabajador '{$record->nombre_completo}'? El trabajador no será eliminado, solo quedará marcado como inactivo.")
+                        ->modalSubmitActionLabel('Sí, desactivar')
+                        ->visible(fn(Trabajador $record) => $record->active)
+                        ->action(function (Trabajador $record) {
+                            $record->update(['active' => false]);
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Trabajador desactivado')
+                                ->body("El trabajador '{$record->nombre_completo}' ha sido desactivado.")
+                                ->send();
+                        }),
+                    Tables\Actions\Action::make('activar')
+                        ->label('Activar')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Activar Trabajador')
+                        ->modalDescription(fn(Trabajador $record) => "¿Está seguro que desea activar al trabajador '{$record->nombre_completo}'?")
+                        ->modalSubmitActionLabel('Sí, activar')
+                        ->visible(fn(Trabajador $record) => !$record->active)
+                        ->action(function (Trabajador $record) {
+                            $record->update(['active' => true]);
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Trabajador activado')
+                                ->body("El trabajador '{$record->nombre_completo}' ha sido activado.")
+                                ->send();
+                        }),
+                ]),
+
+                // Evidencia jurídica (2026-09-28, pedido explícito del
+                // usuario): 1 acta -> descarga directa; 2+ actas (el RIT se
+                // actualizó y el trabajador volvió a aceptar) -> modal con
+                // el historial completo, la más reciente marcada "Vigente".
+                Tables\Actions\Action::make('descargar_acta')
+                    ->label('Descargar Acta')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('gray')
+                    ->url(fn (Trabajador $record) => route('trabajador.acta-rit.descargar', [
+                        'trabajador' => $record->id,
+                        'aceptacion' => $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->sortByDesc('aceptado_en')->first()?->id,
+                    ]))
+                    ->openUrlInNewTab()
+                    ->visible(fn (Trabajador $record) => $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->count() === 1),
+
+                Tables\Actions\Action::make('ver_actas')
+                    ->label(fn (Trabajador $record) => 'Ver Actas (' . $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->count() . ')')
+                    ->icon('heroicon-o-document-duplicate')
+                    ->color('gray')
+                    ->modalHeading('Actas de Socialización del RIT')
+                    ->modalContent(fn (Trabajador $record) => view('filament.admin.resources.trabajador-resource.actas-modal', [
+                        'actas' => $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->sortByDesc('aceptado_en')->values(),
+                        'trabajador' => $record,
+                    ]))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->visible(fn (Trabajador $record) => $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->count() >= 2),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

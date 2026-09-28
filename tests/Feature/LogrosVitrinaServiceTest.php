@@ -68,6 +68,7 @@ class LogrosVitrinaServiceTest extends TestCase
         ]);
         AceptacionReglamentoInterno::create([
             'trabajador_id' => $trabajador->id, 'reglamento_interno_id' => $rit->id, 'aceptado_en' => now(),
+            'texto_rit_hash' => hash('sha256', (string) $rit->texto_completo),
         ]);
         app(LogroSocializacionRitService::class)->revisarYOtorgar($empresa);
         $empresa->unsetRelation('allAchievements');

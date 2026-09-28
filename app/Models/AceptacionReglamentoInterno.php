@@ -12,13 +12,21 @@ class AceptacionReglamentoInterno extends Model
     protected $fillable = [
         'trabajador_id',
         'reglamento_interno_id',
+        'texto_rit_snapshot',
+        'texto_rit_hash',
         'aceptado_en',
         'ip_aceptacion',
         'user_agent',
+        'foto_aceptacion_path',
+        'quiz_resultado',
+        'ruta_acta',
+        'fecha_generacion_acta',
     ];
 
     protected $casts = [
         'aceptado_en' => 'datetime',
+        'quiz_resultado' => 'array',
+        'fecha_generacion_acta' => 'datetime',
     ];
 
     public function trabajador(): BelongsTo

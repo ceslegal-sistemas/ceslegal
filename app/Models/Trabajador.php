@@ -95,6 +95,16 @@ class Trabajador extends Model
      * REAL de este trabajador ($this->empresa_id), nunca filtrado por la
      * empresa/bufete de quien esté preguntando.
      */
+    /**
+     * Compara por HASH del texto, no por reglamento_interno_id (bug real de
+     * integridad probatoria corregido 2026-09-28: el Plan B puede mutar
+     * texto_completo del MISMO registro de RIT sin crear uno nuevo - con la
+     * comparación anterior, un trabajador que aceptó ANTES de esa mutación
+     * seguía marcado como "al día" para siempre, aunque el texto real ya
+     * fuera otro). Si el RIT nunca cambió de texto, el hash coincide y no
+     * hace falta volver a aceptar - solo un cambio de contenido real exige
+     * una nueva aceptación.
+     */
     public function aceptoRitVigente(): bool
     {
         $ritActivo = ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
@@ -103,12 +113,14 @@ class Trabajador extends Model
             ->latest('updated_at')
             ->first();
 
-        if (!$ritActivo) {
+        if (!$ritActivo || blank($ritActivo->texto_completo)) {
             return false;
         }
 
+        $hashVigente = hash('sha256', $ritActivo->texto_completo);
+
         return $this->aceptacionesReglamentoInterno()
-            ->where('reglamento_interno_id', $ritActivo->id)
+            ->where('texto_rit_hash', $hashVigente)
             ->exists();
     }
 

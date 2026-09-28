@@ -36,7 +36,10 @@ class TrabajadorResourceColumnaRitVigenteTest extends TestCase
             'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '565656565',
             'genero' => 'masculino', 'nombres' => 'Al', 'apellidos' => 'Dia', 'cargo' => 'X', 'active' => true,
         ]);
-        AceptacionReglamentoInterno::create(['trabajador_id' => $aceptado->id, 'reglamento_interno_id' => $rit->id, 'aceptado_en' => now()]);
+        AceptacionReglamentoInterno::create([
+            'trabajador_id' => $aceptado->id, 'reglamento_interno_id' => $rit->id, 'aceptado_en' => now(),
+            'texto_rit_hash' => hash('sha256', (string) $rit->texto_completo),
+        ]);
 
         $pendiente = Trabajador::create([
             'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '676767676',
