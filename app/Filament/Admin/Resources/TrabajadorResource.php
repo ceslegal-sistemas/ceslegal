@@ -72,7 +72,7 @@ class TrabajadorResource extends Resource
                             ->relationship(
                                 name: 'empresa',
                                 titleAttribute: 'razon_social',
-                                modifyQueryUsing: fn (Builder $query, ?\Illuminate\Database\Eloquent\Model $record) => $query->paraAsignar($record?->empresa_id),
+                                modifyQueryUsing: fn(Builder $query, ?\Illuminate\Database\Eloquent\Model $record) => $query->paraAsignar($record?->empresa_id),
                             )
                             ->searchable()
                             ->preload()
@@ -414,15 +414,15 @@ class TrabajadorResource extends Resource
                             ->rows(2)
                             ->placeholder('Ej: Calle 123 # 45-67, Barrio Centro')
                             ->helperText('Dirección completa')
-                            // ->columnSpanFull()
-                            ,
+                        // ->columnSpanFull()
+                        ,
                     ])->columns(2),
 
                 Forms\Components\Section::make('Estabilidad laboral reforzada / fuero')
                     ->description('Marque si al trabajador le aplica algún fuero o protección especial. El análisis de sanciones con IA usará esto para advertir antes de proponer una terminación. Registre solo la conclusión jurídica, no datos médicos. Dato sensible: úselo con autorización del titular (Ley 1581 de 2012).')
                     ->icon('heroicon-o-shield-check')
                     ->collapsible()
-                    ->collapsed(fn ($record) => empty($record?->tipos_fuero))
+                    ->collapsed(fn($record) => empty($record?->tipos_fuero))
                     ->schema([
                         Forms\Components\CheckboxList::make('tipos_fuero')
                             ->label('¿Tiene algún fuero o estabilidad reforzada?')
@@ -444,7 +444,7 @@ class TrabajadorResource extends Resource
                     ->description('Suba una foto clara del rostro del trabajador (desde su documento de identidad o una foto reciente). Esta imagen se usará para verificar automáticamente que sea el mismo trabajador al momento de los descargos.')
                     ->icon('heroicon-o-camera')
                     ->collapsible()
-                    ->collapsed(fn ($record) => $record?->foto_referencia_path === null)
+                    ->collapsed(fn($record) => $record?->foto_referencia_path === null)
                     ->schema([
                         Forms\Components\FileUpload::make('foto_referencia_path')
                             ->label('Foto del trabajador')
@@ -537,16 +537,16 @@ class TrabajadorResource extends Resource
 
                 Tables\Columns\TextColumn::make('rit_vigente')
                     ->label('RIT vigente')
-                    ->getStateUsing(fn (Trabajador $record) => $record->aceptoRitVigente()
+                    ->getStateUsing(fn(Trabajador $record) => $record->aceptoRitVigente()
                         ? 'Aceptado (' . $record->aceptacionesReglamentoInterno->firstWhere('reglamento_interno_id', $record->empresa?->reglamentoInterno?->id)?->aceptado_en?->format('d/m/Y') . ')'
                         : 'Pendiente')
                     ->badge()
-                    ->color(fn (Trabajador $record) => $record->aceptoRitVigente() ? 'success' : 'warning'),
+                    ->color(fn(Trabajador $record) => $record->aceptoRitVigente() ? 'success' : 'warning'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('empresa')
                     ->label('Empresa')
-                    ->relationship('empresa', 'razon_social', modifyQueryUsing: fn (Builder $query) => $query->paraAsignar())
+                    ->relationship('empresa', 'razon_social', modifyQueryUsing: fn(Builder $query) => $query->paraAsignar())
                     ->searchable()
                     ->preload()
                     ->multiple(),
@@ -568,6 +568,34 @@ class TrabajadorResource extends Resource
                     ->falseLabel('Solo inactivos'),
             ])
             ->actions([
+                // Evidencia jurídica (2026-09-28, pedido explícito del
+                // usuario): 1 acta -> descarga directa; 2+ actas (el RIT se
+                // actualizó y el trabajador volvió a aceptar) -> modal con
+                // el historial completo, la más reciente marcada "Vigente".
+                Tables\Actions\Action::make('descargar_acta')
+                    ->label('Descargar Acta')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('gray')
+                    ->url(fn(Trabajador $record) => route('trabajador.acta-rit.descargar', [
+                        'trabajador' => $record->id,
+                        'aceptacion' => $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->sortByDesc('aceptado_en')->first()?->id,
+                    ]))
+                    ->openUrlInNewTab()
+                    ->visible(fn(Trabajador $record) => $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->count() === 1),
+
+                Tables\Actions\Action::make('ver_actas')
+                    ->label(fn(Trabajador $record) => 'Ver Actas (' . $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->count() . ')')
+                    ->icon('heroicon-o-document-duplicate')
+                    ->color('gray')
+                    ->modalHeading('Actas de Socialización del RIT')
+                    ->modalContent(fn(Trabajador $record) => view('filament.admin.resources.trabajador-resource.actas-modal', [
+                        'actas' => $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->sortByDesc('aceptado_en')->values(),
+                        'trabajador' => $record,
+                    ]))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->visible(fn(Trabajador $record) => $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->count() >= 2),
+
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make()
                         ->label('Ver'),
@@ -608,34 +636,6 @@ class TrabajadorResource extends Resource
                                 ->send();
                         }),
                 ]),
-
-                // Evidencia jurídica (2026-09-28, pedido explícito del
-                // usuario): 1 acta -> descarga directa; 2+ actas (el RIT se
-                // actualizó y el trabajador volvió a aceptar) -> modal con
-                // el historial completo, la más reciente marcada "Vigente".
-                Tables\Actions\Action::make('descargar_acta')
-                    ->label('Descargar Acta')
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('gray')
-                    ->url(fn (Trabajador $record) => route('trabajador.acta-rit.descargar', [
-                        'trabajador' => $record->id,
-                        'aceptacion' => $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->sortByDesc('aceptado_en')->first()?->id,
-                    ]))
-                    ->openUrlInNewTab()
-                    ->visible(fn (Trabajador $record) => $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->count() === 1),
-
-                Tables\Actions\Action::make('ver_actas')
-                    ->label(fn (Trabajador $record) => 'Ver Actas (' . $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->count() . ')')
-                    ->icon('heroicon-o-document-duplicate')
-                    ->color('gray')
-                    ->modalHeading('Actas de Socialización del RIT')
-                    ->modalContent(fn (Trabajador $record) => view('filament.admin.resources.trabajador-resource.actas-modal', [
-                        'actas' => $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->sortByDesc('aceptado_en')->values(),
-                        'trabajador' => $record,
-                    ]))
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Cerrar')
-                    ->visible(fn (Trabajador $record) => $record->aceptacionesReglamentoInterno->whereNotNull('ruta_acta')->count() >= 2),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
