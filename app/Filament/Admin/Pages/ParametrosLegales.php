@@ -56,12 +56,24 @@ class ParametrosLegales extends Page implements HasForms
                     ->icon('heroicon-o-banknotes')
                     ->description('Se usa para calcular la indemnización de contratos a término indefinido (Art. 64 CST) - actualícelo cada vez que el Gobierno Nacional expida el nuevo decreto de salario mínimo.')
                     ->schema([
+                        // Mismo mecanismo de puntos de miles ya usado en
+                        // 'salario_propuesto' (SolicitudContratoResource) - sin
+                        // ->numeric() (fuerza <input type="number">, que rechaza
+                        // el punto como separador de miles), con el mask $money
+                        // de Livewire formateando en el cliente sin ida y vuelta
+                        // al servidor.
                         Forms\Components\TextInput::make('smlmv_vigente')
                             ->label('SMLMV vigente')
                             ->required()
-                            ->numeric()
+                            ->rule('numeric')
                             ->minValue(1)
+                            ->mask(\Filament\Support\RawJs::make(<<<'JS'
+                                $money($input, ',', '.', 0)
+                            JS))
+                            ->stripCharacters('.')
+                            ->extraInputAttributes(['onkeydown' => "return !['-','+','e','E'].includes(event.key)"])
                             ->prefix('$')
+                            ->placeholder('Ej: 1.423.500')
                             ->helperText('Valor del salario mínimo mensual vigente en Colombia, sin auxilio de transporte.'),
                     ]),
             ])
