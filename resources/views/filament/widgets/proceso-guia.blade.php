@@ -137,16 +137,36 @@
 
             {{-- Listos para sancionar - con scroll interno cuando hay
                  muchos (captura real del usuario mostró 16 filas
-                 estirando toda la página) en vez de crecer sin límite. --}}
+                 estirando toda la página) en vez de crecer sin límite.
+                 Rediseñado (2026-09-28, pedido explícito del usuario: "puede
+                 verse mejor") - avatar circular con iniciales del
+                 trabajador, franja de urgencia a la izquierda, título con
+                 ícono y contador como badge en vez de texto plano. --}}
             @if(!empty($g['listos']))
                 <div class="pg-listos">
-                    <p class="pg-listos-title">Listos para sancionar ({{ count($g['listos']) }})</p>
+                    <p class="pg-listos-title">
+                        @svg('heroicon-o-scale', 'pg-listos-title-ico')
+                        Listos para sancionar
+                        <span class="pg-listos-count">{{ count($g['listos']) }}</span>
+                    </p>
                     <div class="pg-listos-scroll">
                         @foreach($g['listos'] as $l)
+                            @php
+                                $iniciales = collect(explode(' ', trim($l['trabajador'])))
+                                    ->filter()
+                                    ->map(fn($p) => mb_strtoupper(mb_substr($p, 0, 1)))
+                                    ->take(2)
+                                    ->implode('');
+                            @endphp
                             <a href="{{ $g['sancion_url'] }}" class="pg-listo">
-                                @svg('heroicon-o-scale', 'pg-listo-ico')
-                                <span><strong>{{ $l['trabajador'] }}</strong> · {{ $l['codigo'] }}</span>
-                                <span class="pg-listo-cta">Emitir sanción →</span>
+                                <span class="pg-listo-avatar">{{ $iniciales }}</span>
+                                <span class="pg-listo-txt">
+                                    <span class="pg-listo-nombre">{{ $l['trabajador'] }}</span>
+                                    <span class="pg-listo-codigo">{{ $l['codigo'] }}</span>
+                                </span>
+                                <span class="pg-listo-cta">Emitir sanción
+                                    @svg('heroicon-o-arrow-right', 'pg-listo-cta-ico')
+                                </span>
                             </a>
                         @endforeach
                     </div>
@@ -204,16 +224,33 @@
         .pg-btn:hover{filter:brightness(1.05);transform:translateY(-1px)}
         .pg-btn-primary{background:linear-gradient(135deg,#e11d48,#f97316);color:#fff}
         .pg-btn-sancion{background:#dc2626;color:#fff}
-        /* listos */
+        /* listos (rediseñado 2026-09-28: avatar con iniciales, franja de
+           urgencia, contador como badge en vez de texto plano) */
         .pg-listos{margin-top:1rem;padding-top:.9rem;border-top:1px solid rgba(0,0,0,.06)}
         html.dark .pg-listos{border-color:rgba(255,255,255,.07)}
-        .pg-listos-title{font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#a8a29e;margin:0 0 .5rem}
-        .pg-listo{display:flex;align-items:center;gap:.6rem;padding:.55rem .7rem;border-radius:.6rem;text-decoration:none;
-            font-size:.85rem;color:#44403c;background:rgba(220,38,38,.05);border:1px solid rgba(220,38,38,.12);margin-bottom:.4rem}
-        html.dark .pg-listo{color:#e7e5e4;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.18)}
-        .pg-listo:hover{background:rgba(220,38,38,.1)}
-        .pg-listo-ico{width:18px;height:18px;color:#dc2626;flex-shrink:0}
-        .pg-listo-cta{margin-left:auto;font-weight:700;color:#dc2626;font-size:.8rem}
+        .pg-listos-title{display:flex;align-items:center;gap:.4rem;font-size:.72rem;font-weight:700;letter-spacing:.06em;
+            text-transform:uppercase;color:#78716c;margin:0 0 .6rem}
+        html.dark .pg-listos-title{color:#a8a29e}
+        .pg-listos-title-ico{width:14px;height:14px;color:#dc2626;flex-shrink:0}
+        .pg-listos-count{margin-left:.15rem;background:#dc2626;color:#fff;font-size:.68rem;font-weight:700;
+            padding:.1rem .45rem;border-radius:999px;letter-spacing:0}
+        .pg-listo{display:flex;align-items:center;gap:.7rem;padding:.6rem .75rem;border-radius:.7rem;text-decoration:none;
+            background:rgba(220,38,38,.05);border:1px solid rgba(220,38,38,.12);border-left:3px solid #dc2626;
+            margin-bottom:.45rem;transition:background .15s,transform .1s}
+        html.dark .pg-listo{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.18);border-left-color:#f87171}
+        .pg-listo:hover{background:rgba(220,38,38,.1);transform:translateX(2px)}
+        .pg-listo-avatar{flex-shrink:0;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+            background:#dc2626;color:#fff;font-size:.72rem;font-weight:700;letter-spacing:.02em}
+        html.dark .pg-listo-avatar{background:#f87171;color:#450a0a}
+        .pg-listo-txt{display:flex;flex-direction:column;gap:.05rem;min-width:0}
+        .pg-listo-nombre{font-size:.85rem;font-weight:700;color:#292524;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        html.dark .pg-listo-nombre{color:#f5f5f4}
+        .pg-listo-codigo{font-size:.72rem;color:#78716c}
+        html.dark .pg-listo-codigo{color:#a8a29e}
+        .pg-listo-cta{display:flex;align-items:center;gap:.25rem;margin-left:auto;flex-shrink:0;font-weight:700;color:#dc2626;font-size:.78rem}
+        html.dark .pg-listo-cta{color:#f87171}
+        .pg-listo-cta-ico{width:13px;height:13px}
+        @media(prefers-reduced-motion:reduce){.pg-listo:hover{transform:none}}
         @media(prefers-reduced-motion:reduce){.pg-btn:hover{transform:none}}
     </style>
 </div>

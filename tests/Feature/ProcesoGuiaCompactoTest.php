@@ -71,7 +71,11 @@ class ProcesoGuiaCompactoTest extends TestCase
 
         $html = view('filament.widgets.proceso-guia', ['guia' => $guia])->render();
 
+        // El contador ya no va como texto plano "(16)" pegado al título -
+        // se movió a un badge propio (rediseño 2026-09-28, pedido explícito
+        // del usuario: "puede verse mejor").
         $this->assertStringContainsString('pg-listos-scroll', $html);
-        $this->assertStringContainsString('Listos para sancionar (16)', $html);
+        $this->assertStringContainsString('Listos para sancionar', $html);
+        $this->assertStringContainsString('<span class="pg-listos-count">16</span>', $html);
     }
 }
