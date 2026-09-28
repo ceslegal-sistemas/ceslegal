@@ -72,10 +72,11 @@ class ProcesoGuiaCompactoTest extends TestCase
         $html = view('filament.widgets.proceso-guia', ['guia' => $guia])->render();
 
         // El contador ya no va como texto plano "(16)" pegado al título -
-        // se movió a un badge propio (rediseño 2026-09-28, pedido explícito
-        // del usuario: "puede verse mejor").
+        // usa el badge de marca ya existente (.rit-badge/.rit-badge-danger,
+        // el mismo que ya usa este archivo en la línea del "Tu proceso") en
+        // vez de una pastilla inventada.
         $this->assertStringContainsString('pg-listos-scroll', $html);
         $this->assertStringContainsString('Listos para sancionar', $html);
-        $this->assertStringContainsString('<span class="pg-listos-count">16</span>', $html);
+        $this->assertStringContainsString('<span class="rit-badge rit-badge-danger">16</span>', $html);
     }
 }

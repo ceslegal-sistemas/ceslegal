@@ -33,12 +33,11 @@ class MiReglamentoInternoTemasCubiertosTest extends TestCase
 
         $user = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresa->id, 'active' => true]);
 
-        // El contador ya no va como texto plano "(1)" pegado al título - se
-        // movió a un badge propio (rediseño 2026-09-28, pedido explícito del
-        // usuario: "puede verse mucho mejor y más atractivo").
+        // El contador usa el badge de marca ya existente
+        // (.rit-badge/.rit-badge-ia), no una pastilla inventada.
         Livewire::actingAs($user)->test(MiReglamentoInterno::class)
             ->assertSee('Temas que cubre su Reglamento')
-            ->assertSeeHtml('<span class="rit-temas-count">1</span>')
+            ->assertSeeHtml('<span class="rit-badge rit-badge-ia">1</span>')
             ->assertSee('Jornada laboral y horas extra')
             ->assertSee('Su Reglamento define horarios y turnos.');
     }
