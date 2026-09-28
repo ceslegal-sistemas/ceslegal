@@ -71,6 +71,45 @@ class LogroDescargosService
     }
 
     /**
+     * Progreso de CADA uno de los 3 niveles por separado (a diferencia de
+     * estadoDashboard(), que solo expone el siguiente pendiente) - usado
+     * por la vitrina "Mis Logros" para mostrar una medalla por nivel.
+     *
+     * @return array<int, array{nombre: string, descripcion: ?string, imagen: ?string, completado: bool, progreso_porcentaje: int, progreso_texto: string, fecha_obtenido: ?\Illuminate\Support\Carbon}>
+     */
+    public function todosLosNiveles(Empresa $empresa): array
+    {
+        $niveles = [];
+
+        foreach (self::UMBRALES as $nombre => $meta) {
+            $achievement = Achievement::where('name', $nombre)->first();
+            if (!$achievement) {
+                continue;
+            }
+
+            // withTimestamps(): allAchievements() del paquete no trae updated_at
+            // por defecto (a diferencia de achievements()) - se necesita para
+            // "fecha_obtenido" en la vitrina "Mis Logros".
+            $pivot = $empresa->allAchievements()->withTimestamps()->find($achievement->id)?->pivot;
+            $progreso = $pivot?->progress ?? 0;
+            $count = min($pivot?->count ?? 0, $meta);
+            $completado = $progreso >= 100;
+
+            $niveles[] = [
+                'nombre' => $achievement->name,
+                'descripcion' => $achievement->description,
+                'imagen' => $achievement->image,
+                'completado' => $completado,
+                'progreso_porcentaje' => min(100, $progreso),
+                'progreso_texto' => "{$count} de {$meta} procesos cerrados a tiempo",
+                'fecha_obtenido' => $completado ? $pivot?->updated_at : null,
+            ];
+        }
+
+        return $niveles;
+    }
+
+    /**
      * Se llama una vez por proceso disciplinario, al emitir la sanción
      * ('sancion_emitida'), siempre que ningún término legal del proceso
      * haya llegado a 'vencido' hasta ese punto - ver

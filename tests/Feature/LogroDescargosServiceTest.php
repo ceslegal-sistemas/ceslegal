@@ -175,6 +175,39 @@ class LogroDescargosServiceTest extends TestCase
         $this->assertEmpty(session(Confetti::EVENT));
     }
 
+    /**
+     * Pedido explícito del usuario (2026-09-25, vitrina "Mis Logros"): a
+     * diferencia de estadoDashboard() (solo el siguiente pendiente),
+     * todosLosNiveles() expone el progreso de los 3 niveles por separado -
+     * para mostrar una medalla por cada uno, no solo la próxima.
+     */
+    public function test_todos_los_niveles_expone_el_progreso_de_cada_nivel_por_separado(): void
+    {
+        $empresa = $this->crearEmpresa();
+        $service = app(LogroDescargosService::class);
+
+        $service->registrarPlazoCumplido($empresa);
+        $empresa->unsetRelation('allAchievements');
+
+        $niveles = $service->todosLosNiveles($empresa);
+
+        $this->assertCount(3, $niveles);
+
+        $this->assertSame('Primer plazo cumplido', $niveles[0]['nombre']);
+        $this->assertTrue($niveles[0]['completado']);
+        $this->assertSame(100, $niveles[0]['progreso_porcentaje']);
+        $this->assertNotNull($niveles[0]['fecha_obtenido']);
+
+        $this->assertSame('Gestor puntual', $niveles[1]['nombre']);
+        $this->assertFalse($niveles[1]['completado']);
+        $this->assertSame(20, $niveles[1]['progreso_porcentaje']);
+        $this->assertSame('1 de 5 procesos cerrados a tiempo', $niveles[1]['progreso_texto']);
+        $this->assertNull($niveles[1]['fecha_obtenido']);
+
+        $this->assertSame('Constancia total', $niveles[2]['nombre']);
+        $this->assertFalse($niveles[2]['completado']);
+    }
+
     public function test_estado_dashboard_actual_es_null_cuando_los_3_logros_estan_completos(): void
     {
         $empresa = $this->crearEmpresa();

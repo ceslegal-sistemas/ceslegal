@@ -17,6 +17,14 @@ class LogrosSeeder extends Seeder
 {
     public function run(): void
     {
+        // Mismo lord-icon para los 4 (ya usado y confirmado en el proyecto
+        // para "Logro desbloqueado" - ver dashboard-socializacion-rit-notice.blade.php).
+        // 'image' es una columna de cjmellor/level-up sin usar hasta ahora -
+        // se reutiliza para guardar la URL del lord-icon, no una imagen
+        // subida, para que la vitrina "Mis Logros" (LogrosVitrinaService) no
+        // tenga que inventar un ícono por su cuenta.
+        $iconoLogro = 'https://cdn.lordicon.com/wpsdctqb.json';
+
         $logros = [
             [
                 'name' => 'Primer plazo cumplido',
@@ -37,8 +45,12 @@ class LogrosSeeder extends Seeder
         ];
 
         foreach ($logros as $logro) {
-            Achievement::firstOrCreate(['name' => $logro['name']], [
+            // updateOrCreate (no firstOrCreate): si el logro ya existía sin
+            // 'image' (como en producción, sembrado antes de la vitrina de
+            // logros), esto lo completa en vez de dejarlo desactualizado.
+            Achievement::updateOrCreate(['name' => $logro['name']], [
                 'description' => $logro['description'],
+                'image' => $iconoLogro,
                 'is_secret' => false,
             ]);
         }
