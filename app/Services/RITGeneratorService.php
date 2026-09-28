@@ -104,6 +104,17 @@ class RITGeneratorService
                 $textoCapitulo = $this->llamarGemini($prompt, $empresa->id);
             }
 
+            // Organigrama: determinístico, nunca redactado por la IA (ver
+            // construirMarkupOrganigrama()) - se inserta al final del
+            // Capítulo VIII (Régimen Disciplinario), donde vive la facultad
+            // disciplinaria por cargo.
+            if ($cap['numero'] === 'VIII') {
+                $markupOrganigrama = self::construirMarkupOrganigrama($respuestas['cargos'] ?? []);
+                if ($markupOrganigrama !== '') {
+                    $textoCapitulo = rtrim($textoCapitulo) . "\n\n" . $markupOrganigrama;
+                }
+            }
+
             $partes[] = trim($textoCapitulo);
 
             preg_match_all('/^ARTÍCULO\s+\d+/imu', $textoCapitulo, $matches);
@@ -486,11 +497,16 @@ class RITGeneratorService
             if ($val === null || $val === '') continue;
 
             if ($key === 'cargos') {
+                // 'instancia_sancionatoria' reemplazó al booleano 'puede_sancionar'
+                // (ver CreateReglamentoInterno.php) - este método seguía leyendo
+                // el campo viejo, así que la IA siempre recibía "no sanciona" sin
+                // importar el valor real (bug real encontrado 2026-09-27 mientras
+                // se investigaba por qué el capítulo de cargos se veía genérico).
                 $txt = '';
                 foreach ((array) $val as $c) {
-                    $nombre   = $c['nombre_cargo'] ?? '';
-                    $sanciona = ($c['puede_sancionar'] ?? false) ? 'puede sancionar' : 'no sanciona';
-                    if ($nombre) $txt .= "  - {$nombre} ({$sanciona})\n";
+                    $nombre = $c['nombre_cargo'] ?? '';
+                    $instancia = self::etiquetaInstanciaSancionatoria($c['instancia_sancionatoria'] ?? 'ninguna');
+                    if ($nombre) $txt .= "  - {$nombre} ({$instancia})\n";
                 }
                 $lineas[] = "- Cargos:\n{$txt}";
             } elseif ($key === 'sucursales') {
@@ -531,6 +547,94 @@ class RITGeneratorService
                 $lineas[] = "- {$key}: {$val}";
             }
         }
+
+        return implode("\n", $lineas);
+    }
+
+    private static function etiquetaInstanciaSancionatoria(string $instancia): string
+    {
+        return match ($instancia) {
+            'primera_instancia' => 'primera instancia (impone la sanción)',
+            'segunda_instancia' => 'segunda instancia (resuelve apelaciones)',
+            default => 'sin facultad disciplinaria',
+        };
+    }
+
+    /**
+     * Construye el bloque determinístico del organigrama (marcado
+     * ORGANIGRAMA:/NIVEL:/FIN_ORGANIGRAMA, mismo mecanismo que TABLA:) a
+     * partir del array real de cargos - NUNCA se le pide a la IA que
+     * redacte la jerarquía en prosa (podría inventar o mezclar mal los
+     * datos); se arma en PHP con los datos reales y se inyecta ya resuelto
+     * en el Capítulo VIII. Devuelve '' si no hay cargos (nada que insertar).
+     *
+     * @param array<int, array{nombre_cargo?: string, instancia_sancionatoria?: string, reporta_a?: ?string}> $cargos
+     */
+    public static function construirMarkupOrganigrama(array $cargos): string
+    {
+        $nodos = collect($cargos)
+            ->map(fn($c) => [
+                'nombre' => trim((string) ($c['nombre_cargo'] ?? '')),
+                'instancia' => $c['instancia_sancionatoria'] ?? 'ninguna',
+                'reporta_a' => trim((string) ($c['reporta_a'] ?? '')),
+            ])
+            ->filter(fn($c) => $c['nombre'] !== '')
+            ->values();
+
+        if ($nodos->isEmpty()) {
+            return '';
+        }
+
+        $nombresValidos = $nodos->pluck('nombre')->all();
+        $filas = [];
+        $visitados = [];
+
+        // DFS pre-orden desde las raíces (sin 'reporta_a', o apuntando a un
+        // nombre que no existe en la lista - dato suelto, se trata como raíz
+        // en vez de perderlo). $visitados evita colgarse en un ciclo (A
+        // reporta a B, B reporta a A): un cargo ya visitado no se vuelve a
+        // recorrer como hijo de nadie más, queda como raíz donde se procesó
+        // primero.
+        $visitar = function (string $nombreActual, int $nivel) use (&$visitar, &$filas, &$visitados, $nodos) {
+            if (isset($visitados[$nombreActual])) {
+                return;
+            }
+            $visitados[$nombreActual] = true;
+
+            $nodo = $nodos->firstWhere('nombre', $nombreActual);
+            $filas[] = [$nivel, $nombreActual, self::etiquetaInstanciaSancionatoria($nodo['instancia'] ?? 'ninguna')];
+
+            foreach ($nodos as $hijo) {
+                if ($hijo['reporta_a'] === $nombreActual && !isset($visitados[$hijo['nombre']])) {
+                    $visitar($hijo['nombre'], $nivel + 1);
+                }
+            }
+        };
+
+        foreach ($nodos as $nodo) {
+            $esRaiz = $nodo['reporta_a'] === '' || !in_array($nodo['reporta_a'], $nombresValidos, true);
+            if ($esRaiz) {
+                $visitar($nodo['nombre'], 0);
+            }
+        }
+
+        // Cargos que quedaron fuera del recorrido anterior (solo posible por
+        // un ciclo puro sin ninguna raíz real) - se agregan igual como raíz,
+        // nunca se pierde un cargo que el cliente sí registró.
+        foreach ($nodos as $nodo) {
+            if (!isset($visitados[$nodo['nombre']])) {
+                $visitar($nodo['nombre'], 0);
+            }
+        }
+
+        $lineas = [
+            'Estructura organizacional y facultad disciplinaria por cargo:',
+            'ORGANIGRAMA:',
+        ];
+        foreach ($filas as [$nivel, $nombre, $instanciaTexto]) {
+            $lineas[] = "NIVEL: {$nivel} | {$nombre} | {$instanciaTexto}";
+        }
+        $lineas[] = 'FIN_ORGANIGRAMA';
 
         return implode("\n", $lineas);
     }
@@ -904,7 +1008,7 @@ PROMPT;
      * Convierte el texto plano del RIT a HTML profesional para DOMPDF.
      * Genera portada, encabezados de capítulo, artículos, parágrafos y listas con diseño formal.
      */
-    private function textoAHtml(string $textoRIT, Empresa $empresa): string
+    public function textoAHtml(string $textoRIT, Empresa $empresa): string
     {
         $eNombre        = htmlspecialchars($empresa->nombre_completo ?? $empresa->razon_social ?? '', ENT_QUOTES, 'UTF-8');
         $eNit           = htmlspecialchars($empresa->nit ?? '', ENT_QUOTES, 'UTF-8');
@@ -928,15 +1032,45 @@ PROMPT;
             $textoRIT = ltrim(substr($textoRIT, strpos($textoRIT, "\n")), "\r\n");
         }
 
-        $cuerpo     = '';
-        $enLista    = false;
-        $enTabla    = false;
-        $tablaHdr   = null;
-        $tablaRows  = [];
-        $lastCapNum = false;
+        $cuerpo         = '';
+        $enLista        = false;
+        $enTabla        = false;
+        $tablaHdr       = null;
+        $tablaRows      = [];
+        $enOrganigrama  = false;
+        $organigramaFilas = [];
+        $lastCapNum     = false;
 
         foreach (explode("\n", $textoRIT) as $linea) {
             $linea = rtrim($linea);
+
+            // ── INICIO DE ORGANIGRAMA (determinístico, ver
+            //    construirMarkupOrganigrama() - nunca lo redacta la IA) ───────
+            if (preg_match('/^ORGANIGRAMA:/iu', $linea)) {
+                if ($enLista) { $cuerpo .= '</div>'; $enLista = false; }
+                $enOrganigrama    = true;
+                $organigramaFilas = [];
+                $lastCapNum       = false;
+                continue;
+            }
+
+            // ── DENTRO DE ORGANIGRAMA ────────────────────────────────────────
+            if ($enOrganigrama) {
+                if (preg_match('/^NIVEL:\s*(\d+)\s*\|\s*([^|]+)\|\s*(.+)$/iu', $linea, $m)) {
+                    $organigramaFilas[] = [(int) $m[1], trim($m[2]), trim($m[3])];
+                } elseif (preg_match('/^FIN_ORGANIGRAMA/iu', $linea)) {
+                    $enOrganigrama = false;
+                    $cuerpo .= '<div class="rit-org">';
+                    foreach ($organigramaFilas as [$nivel, $nombre, $facultad]) {
+                        $cuerpo .= '<div class="rit-org-item" style="margin-left:' . ($nivel * 16) . 'pt">'
+                                 . '<span class="rit-org-nombre">' . htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8') . '</span>'
+                                 . '<span class="rit-org-facultad"> - ' . htmlspecialchars($facultad, ENT_QUOTES, 'UTF-8') . '</span>'
+                                 . '</div>';
+                    }
+                    $cuerpo .= '</div>';
+                }
+                continue;
+            }
 
             // ── INICIO DE TABLA ───────────────────────────────────────────────
             if (preg_match('/^TABLA:/iu', $linea)) {
@@ -1142,6 +1276,21 @@ body {
     padding: 3pt 5pt;
     text-align: left;
     vertical-align: top;
+}
+.rit-org {
+    margin-top: 6pt;
+    margin-bottom: 8pt;
+}
+.rit-org-item {
+    border-left: 0.75pt solid #000000;
+    padding: 2pt 0 2pt 8pt;
+    font-size: 9pt;
+}
+.rit-org-nombre {
+    font-weight: bold;
+}
+.rit-org-facultad {
+    font-style: italic;
 }
 </style>
 </head>

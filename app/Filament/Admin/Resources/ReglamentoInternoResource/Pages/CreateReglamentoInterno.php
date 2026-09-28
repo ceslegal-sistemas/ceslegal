@@ -543,8 +543,25 @@ class CreateReglamentoInterno extends CreateRecord
                                         ->reactive()
                                         ->default('ninguna')
                                         ->helperText('Solo los cargos con autoridad real deben tener esta facultad.'),
+                                    // Organigrama del RIT (2026-09-27): permite construir la
+                                    // jerarquía real de la empresa - las opciones son los demás
+                                    // cargos ya escritos en esta misma lista (mismo patrón de
+                                    // Select self-referencing ya usado abajo en
+                                    // 'periodicidad_diferenciada' -> $get('../../cargos')).
+                                    Forms\Components\Select::make('reporta_a')
+                                        ->label('Reporta a')
+                                        ->options(fn(Get $get) => collect($get('../../cargos') ?? [])
+                                            ->pluck('nombre_cargo')
+                                            ->filter()
+                                            ->reject(fn($nombre) => $nombre === $get('nombre_cargo'))
+                                            ->unique()
+                                            ->mapWithKeys(fn($c) => [$c => $c])
+                                            ->toArray())
+                                        ->searchable()
+                                        ->placeholder('Ninguno (cargo de mayor jerarquía)')
+                                        ->helperText('Déjelo vacío si este es el cargo más alto de la empresa.'),
                                 ])
-                                ->columns(['default' => 1, 'sm' => 2])
+                                ->columns(['default' => 1, 'sm' => 3])
                                 ->addActionLabel('Agregar otro cargo')
                                 ->minItems(1)
                                 ->defaultItems(1)
