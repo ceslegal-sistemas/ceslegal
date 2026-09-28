@@ -252,6 +252,14 @@ class EditEmpresa extends EditRecord
                                     ->directory('logos-temp')
                                     ->visibility('private')
                                     ->maxSize(5120)
+                                    // Sin ->image(), Filament nunca intenta la miniatura y solo
+                                    // muestra el chip genérico de archivo (nombre + peso) -
+                                    // bug real reportado por el usuario ("pareciera que estuviera
+                                    // roto"), 2026-09-28. El disco 'local' ya resuelve
+                                    // temporaryUrl() para archivos privados (ver
+                                    // AppServiceProvider::boot() y gotcha-storage-disco-local-private).
+                                    ->image()
+                                    ->imagePreviewHeight('120')
                                     ->nullable(),
                             ])->columns(['default' => 1, 'sm' => 2]),
                     ]),

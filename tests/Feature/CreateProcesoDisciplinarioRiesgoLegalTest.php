@@ -85,8 +85,14 @@ class CreateProcesoDisciplinarioRiesgoLegalTest extends TestCase
         $user->givePermissionTo(['create_proceso::disciplinario', 'view_any_proceso::disciplinario']);
         $this->actingAs($user);
 
+        // 'Recomendado' (badge del viejo hint action "Generar redacción con
+        // IA") ya no existe tras 2026-09-28: ese control se reemplazó por el
+        // banner "Paso recomendado" (mismo lenguaje visual que
+        // solicitud-contrato-detalles-cargo-ia-boton.blade.php) - se ancla a
+        // ese texto en su lugar, mismo propósito (confirmar que el HTML
+        // inicial del Wizard renderiza sin romperse).
         $this->get(ProcesoDisciplinarioResource::getUrl('create'))
             ->assertSuccessful()
-            ->assertSee('Recomendado');
+            ->assertSee('Paso recomendado');
     }
 }

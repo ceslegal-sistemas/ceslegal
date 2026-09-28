@@ -478,6 +478,10 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->columnSpanFull()
                                 ->visible(fn($livewire) => $livewire->feedbackQuienReporta !== ''),
 
+                            Forms\Components\View::make('filament.components.hechos-generar-redaccion-banner')
+                                ->key('hechos_generar_redaccion_banner')
+                                ->columnSpanFull(),
+
                             Forms\Components\Grid::make(3)
                                 ->schema([
                                     Forms\Components\Textarea::make('descripcion_hecho')
@@ -583,23 +587,12 @@ class CreateProcesoDisciplinario extends CreateRecord
                                             $livewire->autoClasificarGravedad();
                                         })
                                         ->hintActions([
-                                            Forms\Components\Actions\Action::make('generar_redaccion')
-                                                ->label(fn($livewire) => $livewire->mejorando ? 'Generando...' : 'Generar redacción con IA')
-                                                ->icon('heroicon-m-sparkles')
-                                                ->color('primary')
-                                                // Paso recomendado para CUALQUIER caso (pedido
-                                                // explícito del usuario, 2026-09-11) - no solo
-                                                // cuando se detecta riesgo legal alto. La
-                                                // redacción asistida corrige lenguaje inapropiado,
-                                                // acusaciones sin presuntivo y referencias
-                                                // discriminatorias antes de que el usuario tenga
-                                                // que descubrirlas una por una con las validaciones
-                                                // de bloqueo del campo.
-                                                ->badge('Recomendado')
-                                                ->badgeColor('success')
-                                                ->tooltip('La IA generará una redacción profesional completa usando todos los datos del caso')
-                                                ->disabled(fn(Get $get, $livewire) => $livewire->mejorando || mb_strlen($get('descripcion_hecho') ?? '') < 10)
-                                                ->action(fn($livewire) => $livewire->generarRedaccion()),
+                                            // "Generar redacción con IA" se movió al banner
+                                            // prominente "Paso recomendado" (mismo lenguaje visual
+                                            // que solicitud-contrato-detalles-cargo-ia-boton.blade.php,
+                                            // pedido explícito del usuario 2026-09-28) - ya no vive
+                                            // como hint action pequeño aquí, para no duplicar el
+                                            // control.
 
                                             // ── CLASIFICADOR DE INCIDENTE ──────────────────
                                             // Mismo clasificador que ProcesoDisciplinarioResource.php
@@ -614,6 +607,14 @@ class CreateProcesoDisciplinario extends CreateRecord
                                                 ->label('Clasificar gravedad con IA')
                                                 ->icon('heroicon-o-scale')
                                                 ->color('info')
+                                                // Oculto (pedido explícito del usuario, 2026-09-28):
+                                                // autoClasificarGravedad() ya llama a este mismo
+                                                // clasificarIncidente() automáticamente al salir del
+                                                // campo "¿Qué ocurrió?" (>= 60 caracteres) - el botón
+                                                // manual quedó redundante. No se borra el código por
+                                                // si hace falta reactivarlo (ej. si se sube el umbral
+                                                // de caracteres y hace falta un disparador manual).
+                                                ->hidden()
                                                 ->tooltip('La IA revisará el RIT, el CST y el historial del trabajador para estimar la gravedad de la falta')
                                                 ->requiresConfirmation()
                                                 ->modalHeading('Clasificar Gravedad con IA')

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SolicitudContrato;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SolicitudContratoDescargaController extends Controller
 {
@@ -27,11 +28,22 @@ class SolicitudContratoDescargaController extends Controller
         // usuario: el archivo en disco SÍ se actualizaba (confirmado por
         // fecha_generacion_contrato + filemtime), pero "Ver Contrato" seguía
         // mostrando la versión vieja.
+        //
+        // 'Content-Disposition' explícito (bug real reportado por el
+        // usuario, 2026-09-28): sin nombre propio, el visor de PDF de Chrome
+        // sugiere "descargar.pdf" (toma el último segmento de la URL de la
+        // ruta, /solicitud-contrato/{id}/descargar, no el nombre real del
+        // archivo en disco) al usar "Guardar como".
+        $nombreArchivo = ($solicitud->estado === 'aprobado' ? 'Contrato_' : 'Borrador_')
+            . self::sanitizarNombreArchivo($solicitud->codigo . '_' . $solicitud->trabajador_nombres . '_' . $solicitud->trabajador_apellidos)
+            . '.pdf';
+
         return response()->file($ruta, [
-            'Content-Type'  => 'application/pdf',
-            'Cache-Control' => 'no-cache, no-store, must-revalidate',
-            'Pragma'        => 'no-cache',
-            'Expires'       => '0',
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $nombreArchivo . '"',
+            'Cache-Control'       => 'no-cache, no-store, must-revalidate',
+            'Pragma'              => 'no-cache',
+            'Expires'             => '0',
         ]);
     }
 
@@ -50,11 +62,23 @@ class SolicitudContratoDescargaController extends Controller
 
         abort_if(!file_exists($ruta), 404, 'Archivo no encontrado.');
 
+        // Mismo fix de nombre de archivo que contrato() - ver ese método.
+        $nombreArchivo = 'Preaviso_'
+            . self::sanitizarNombreArchivo($solicitud->codigo . '_' . $solicitud->trabajador_nombres . '_' . $solicitud->trabajador_apellidos)
+            . '.pdf';
+
         return response()->file($ruta, [
-            'Content-Type'  => 'application/pdf',
-            'Cache-Control' => 'no-cache, no-store, must-revalidate',
-            'Pragma'        => 'no-cache',
-            'Expires'       => '0',
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $nombreArchivo . '"',
+            'Cache-Control'       => 'no-cache, no-store, must-revalidate',
+            'Pragma'              => 'no-cache',
+            'Expires'             => '0',
         ]);
+    }
+
+    /** Str::ascii() transiliera tildes/eñes (ej. "Pérez" -> "Perez") antes de quitar cualquier carácter no seguro para un nombre de archivo. */
+    private static function sanitizarNombreArchivo(string $texto): string
+    {
+        return preg_replace('/[^A-Za-z0-9\-_]/', '_', Str::ascii($texto));
     }
 }

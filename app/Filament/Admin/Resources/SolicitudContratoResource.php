@@ -159,14 +159,14 @@ class SolicitudContratoResource extends Resource
                                     );
                                 })
                                 ->disabled(fn() => auth()->user()?->isCliente() ?? false)
+                                // Oculto para 'cliente' (pedido explícito del usuario, 2026-09-28):
+                                // un cliente solo tiene UNA empresa, así que el campo (ya
+                                // deshabilitado, con el helper "asignada automáticamente") no
+                                // aportaba nada - solo ruido visual. Sigue dehydrated() para que
+                                // el valor por defecto (su propia empresa) se siga enviando.
+                                ->hidden(fn() => auth()->user()?->isCliente() ?? false)
                                 ->dehydrated()
-                                ->helperText(function () {
-                                    $user = auth()->user();
-
-                                    return $user && $user->isCliente()
-                                        ? 'Empresa asignada automáticamente'
-                                        : 'Seleccione la empresa para la cual se solicita el contrato';
-                                })
+                                ->helperText('Seleccione la empresa para la cual se solicita el contrato')
                                 ->placeholder('Busque y seleccione la empresa...')
                                 ->suffixIcon('heroicon-o-building-office')
                                 ->columnSpanFull(),
@@ -1009,9 +1009,28 @@ class SolicitudContratoResource extends Resource
                     // solicitud ya existente, el botón del último paso decía "Crear
                     // Solicitud" en vez de "Guardar Cambios".
                     ->submitAction(
+                        // Método Livewire real que dispara este submit: create()
+                        // en CreateRecord, save() en EditRecord - sin
+                        // wire:target apuntando al correcto, el spinner nunca
+                        // se activaría (hallazgo real del usuario, 2026-09-28:
+                        // el botón "Crear Solicitud" no mostraba ningún
+                        // indicador de carga mientras se generaba el borrador
+                        // con IA, que puede tardar varios segundos).
                         $form->getOperation() === 'view'
                             ? null
-                            : new \Illuminate\Support\HtmlString('<button type="submit" class="filament-button filament-button-size-md inline-flex items-center justify-center py-1 gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset dark:focus:ring-offset-0 min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700">' . ($form->getOperation() === 'edit' ? 'Guardar Cambios' : 'Crear Solicitud') . '</button>')
+                            : (function () use ($form): \Illuminate\Support\HtmlString {
+                                $metodo = $form->getOperation() === 'edit' ? 'save' : 'create';
+                                $texto  = $form->getOperation() === 'edit' ? 'Guardar Cambios' : 'Crear Solicitud';
+                                $textoCargando = $form->getOperation() === 'edit' ? 'Guardando...' : 'Creando...';
+
+                                return new \Illuminate\Support\HtmlString(
+                                    '<button type="submit" wire:loading.attr="disabled" wire:target="' . $metodo . '" class="filament-button filament-button-size-md inline-flex items-center justify-center py-1 gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset dark:focus:ring-offset-0 min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700">'
+                                    . '<svg wire:loading wire:target="' . $metodo . '" style="width:14px;height:14px;margin-right:.35rem;animation:rit-spin 1s linear infinite;display:inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>'
+                                    . '<span wire:loading.remove wire:target="' . $metodo . '">' . $texto . '</span>'
+                                    . '<span wire:loading wire:target="' . $metodo . '">' . $textoCargando . '</span>'
+                                    . '</button>'
+                                );
+                            })()
                     ),
 
                 // Oculta mientras se retira el rol "abogado" del sistema (tarea aparte, todavía sin agendar) -

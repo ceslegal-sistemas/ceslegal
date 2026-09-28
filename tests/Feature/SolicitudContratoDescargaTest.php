@@ -69,6 +69,39 @@ class SolicitudContratoDescargaTest extends TestCase
         );
     }
 
+    /**
+     * Bug real reportado por el usuario (2026-09-28): sin Content-Disposition
+     * explícito, el visor de PDF de Chrome sugería "descargar.pdf" al usar
+     * "Guardar como" (tomaba el último segmento de la URL de la ruta, no el
+     * nombre real del archivo en disco).
+     */
+    public function test_la_descarga_tiene_un_nombre_de_archivo_descriptivo(): void
+    {
+        $user = User::factory()->create(['role' => 'super_admin', 'active' => true]);
+        $this->actingAs($user);
+
+        $solicitud = $this->crearSolicitudConArchivo();
+
+        $disposition = $this->get(route('solicitud-contrato.descargar', $solicitud))
+            ->headers->get('Content-Disposition');
+
+        $this->assertStringContainsString("Borrador_{$solicitud->codigo}_Juan_Perez.pdf", $disposition);
+    }
+
+    public function test_el_nombre_de_archivo_dice_contrato_una_vez_aprobado(): void
+    {
+        $user = User::factory()->create(['role' => 'super_admin', 'active' => true]);
+        $this->actingAs($user);
+
+        $solicitud = $this->crearSolicitudConArchivo();
+        $solicitud->update(['estado' => 'aprobado']);
+
+        $disposition = $this->get(route('solicitud-contrato.descargar', $solicitud))
+            ->headers->get('Content-Disposition');
+
+        $this->assertStringContainsString("Contrato_{$solicitud->codigo}_Juan_Perez.pdf", $disposition);
+    }
+
     public function test_devuelve_404_si_la_solicitud_no_tiene_contrato_generado(): void
     {
         $user = User::factory()->create(['role' => 'super_admin', 'active' => true]);

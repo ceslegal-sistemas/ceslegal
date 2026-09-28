@@ -90,6 +90,59 @@ class ViewSolicitudContrato extends ViewRecord
             Actions\EditAction::make()
                 ->label('Editar')
                 ->visible(fn () => $this->record->estado === 'borrador'),
+
+            // Aprobar/Rechazar (pedido explícito del usuario, 2026-09-28):
+            // antes solo existían como Table Actions en el listado - al
+            // entrar a "Ver" (ej. desde el menú "Ver" del listado), el
+            // cliente solo veía "Editar" y no tenía forma de decidir sobre
+            // el borrador sin volver atrás. Mismo cuerpo exacto que
+            // SolicitudContratoResource::table() (aprobar/rechazar), para
+            // no duplicar comportamiento con matices distintos.
+            Actions\Action::make('aprobar')
+                ->label('Aprobar')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->visible(fn () => $this->record->estado === 'borrador')
+                ->requiresConfirmation()
+                ->modalDescription('Se generará el contrato final (protegido, sin marca de agua) y quedará aprobado.')
+                ->action(function () {
+                    $resultado = app(SolicitudContratoIAService::class)->generarContratoPDF($this->record, borrador: false);
+                    $this->record->refresh();
+
+                    Notification::make()
+                        ->success()
+                        ->title('Solicitud aprobada')
+                        ->body(SolicitudContratoResource::mensajeOrigenFaltasGraves($resultado['faltas_graves_origen']))
+                        ->send();
+                }),
+
+            Actions\Action::make('rechazar')
+                ->label('Rechazar')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->visible(fn () => $this->record->estado === 'borrador')
+                ->modalHeading('Rechazar solicitud')
+                ->modalDescription('Esta acción no se puede deshacer desde la interfaz. Indique el motivo para dejar constancia de por qué se rechazó.')
+                ->modalSubmitActionLabel('Rechazar')
+                ->form([
+                    \Filament\Forms\Components\Textarea::make('motivo')
+                        ->label('Motivo del rechazo')
+                        ->required()
+                        ->minLength(5)
+                        ->rows(3)
+                        ->placeholder('Ej: El cargo propuesto no está aprobado en el presupuesto de este trimestre.'),
+                ])
+                ->action(function (array $data) {
+                    $this->record->update([
+                        'estado' => 'rechazado',
+                        'motivo_rechazo' => $data['motivo'],
+                    ]);
+
+                    Notification::make()
+                        ->success()
+                        ->title('Solicitud rechazada')
+                        ->send();
+                }),
         ];
     }
 
