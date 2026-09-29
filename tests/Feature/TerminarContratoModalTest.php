@@ -101,7 +101,10 @@ class TerminarContratoModalTest extends TestCase
             ->callTableAction('terminarContrato', $solicitud, data: [
                 'tipo' => 'con_justa_causa',
                 'motivo' => 'Incumplimiento reiterado de sus funciones.',
-                'fecha_terminacion' => '2026-06-01',
+                // Relativa a hoy (no un string fijo): el DatePicker exige
+                // minDate(today()) - una fecha fija se vuelve invalida con
+                // el paso del tiempo (bug real encontrado 2026-09-29).
+                'fecha_terminacion' => now()->addDays(5)->format('Y-m-d'),
             ])
             ->assertHasNoTableActionErrors();
 
@@ -115,14 +118,19 @@ class TerminarContratoModalTest extends TestCase
     public function test_terminar_sin_justa_causa_calcula_y_registra_la_indemnizacion(): void
     {
         $this->actingAsAutorizado();
+        // Relativas a hoy y exactamente 30 dias de diferencia (lo que el
+        // test verifica abajo) - fechas fijas se vuelven invalidas con el
+        // paso del tiempo por el minDate(today()) del DatePicker (bug real
+        // encontrado 2026-09-29).
+        $fechaTerminacion = now()->addDays(5);
         $solicitud = $this->crearSolicitud([
-            'fecha_fin_contrato' => '2026-02-01',
+            'fecha_fin_contrato' => $fechaTerminacion->copy()->addDays(30)->format('Y-m-d'),
         ]);
 
         Livewire::test(ListSolicitudContratos::class)
             ->callTableAction('terminarContrato', $solicitud, data: [
                 'tipo' => 'sin_justa_causa',
-                'fecha_terminacion' => '2026-01-02',
+                'fecha_terminacion' => $fechaTerminacion->format('Y-m-d'),
             ])
             ->assertHasNoTableActionErrors();
 
