@@ -13,29 +13,38 @@ set -e
 APP_URL="$(grep -E '^APP_URL=' .env | head -1 | cut -d= -f2- | tr -d "\"' ")"
 APP_URL="${APP_URL:-http://localhost}"
 
-echo "==> 1/6  git pull"
+echo "==> 1/7  git pull"
 git pull
 
-echo "==> 2/6  composer install (--no-dev)"
+echo "==> 2/7  composer install (--no-dev)"
 COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader
 
-echo "==> 3/6  migraciones"
+echo "==> 3/7  npm install + build de assets (Vite/Tailwind)"
+# Sin este paso, public/build/manifest.json nunca existe en el servidor -
+# cualquier vista con @vite(...) revienta con 500 "Vite manifest not found"
+# (bug real 2026-09-28: las paginas publicas de RIT/descargos empezaron a
+# usar @vite() para dejar de depender del CDN fragil de Tailwind, pero el
+# deploy nunca habia compilado assets, asi que quedaron sin manifest).
+npm ci
+npm run build
+
+echo "==> 4/7  migraciones"
 php artisan migrate --force
 
-echo "==> 4/6  limpiar y recachear"
+echo "==> 5/7  limpiar y recachear"
 # Salvaguarda: algunos hosts no ejecutan el hook de composer que crea esta carpeta
 # (el paquete filament-notification-sound la necesita o falla el view:cache).
 mkdir -p vendor/moataz-01/filament-notification-sound/resources/views
 php artisan optimize:clear
 php artisan optimize
 
-echo "==> 5/6  resetear OPcache del SAPI web"
+echo "==> 6/7  resetear OPcache del SAPI web"
 echo '<?php opcache_reset(); echo "OPCACHE_RESET_OK ".PHP_VERSION;' > public/_oc.php
 curl -s "${APP_URL}/_oc.php" || echo "(no se pudo hacer curl; visita ${APP_URL}/_oc.php en el navegador)"
 echo
 rm -f public/_oc.php
 
-echo "==> 6/6  commit desplegado:"
+echo "==> 7/7  commit desplegado:"
 git log --oneline -1
 
 echo "==> LISTO. Reabre 'Emitir Sanción' (la cache de analisis se regenera sola)."
