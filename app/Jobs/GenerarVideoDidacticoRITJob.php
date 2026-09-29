@@ -21,11 +21,12 @@ class GenerarVideoDidacticoRITJob implements ShouldQueue
 
     /**
      * El video completo encadena hasta 4 llamadas a Gemini (1 clip inicial +
-     * hasta 3 "extend", ~40s totales) - cada una puede tardar hasta 180s
-     * (ver RitVideoDidacticoService::llamarGemini()), así que el timeout
-     * debe cubrir el peor caso de las 4 en serie.
+     * hasta 3 "extend", ~40s totales) - cada una puede tardar hasta 300s
+     * (ver RitVideoDidacticoService::llamarGemini() - 180s no alcanzó en
+     * producción, confirmado 2026-09-29 con cURL error 28), así que el
+     * timeout debe cubrir el peor caso de las 4 en serie con margen.
      */
-    public int $timeout = 900;
+    public int $timeout = 1500;
 
     /** Sin reintentos automáticos: cada intento fallido consume tokens de video igual que uno exitoso. */
     public int $tries = 1;

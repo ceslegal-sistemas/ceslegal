@@ -188,7 +188,12 @@ class RitVideoDidacticoService
             ],
         ], $camposExtra);
 
-        $response = Http::timeout(180)->post(
+        // 180s no alcanzó en producción (cURL error 28, confirmado
+        // 2026-09-29 con el log real: "Operation timed out after 180002
+        // milliseconds") - la generación de video real tarda más que eso.
+        // Corre dentro de un job en cola, no de una petición web, así que
+        // un timeout generoso no bloquea a ningún usuario esperando.
+        $response = Http::timeout(300)->post(
             "https://generativelanguage.googleapis.com/v1beta/interactions?key={$apiKey}",
             $payload
         );
