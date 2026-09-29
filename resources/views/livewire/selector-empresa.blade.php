@@ -1,7 +1,6 @@
-{{-- Selector de empresa activa (abogado de bufete) para el topbar del panel. --}}
+{{-- Selector de empresa activa (topbar) - bufete ve las suyas, super_admin/abogado interno ve TODAS con buscador. --}}
 @php
-    $activa = $activaId ? $empresas->firstWhere('id', $activaId) : null;
-    $label = $activa?->razon_social ?? 'Todas las empresas';
+    $label = $nombreActiva ?? 'Todas las empresas';
 @endphp
 
 <div x-data="{ open: false }" @keydown.escape="open = false" class="se-wrap" style="position:relative">
@@ -23,20 +22,29 @@
 
     <div x-show="open" x-cloak @click.outside="open = false" x-transition
         class="se-menu"
-        style="position:absolute;right:0;margin-top:.35rem;min-width:16rem;max-height:20rem;overflow:auto;
+        style="position:absolute;right:0;margin-top:.35rem;min-width:18rem;max-height:24rem;overflow:hidden;
+               display:flex;flex-direction:column;
                background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:.7rem;
-               box-shadow:0 12px 34px rgba(0,0,0,.12);z-index:50;padding:.35rem">
-        <button type="button" wire:click="todas" @click="open = false"
-            class="se-item" @style(['width:100%;text-align:left;padding:.45rem .6rem;border-radius:.45rem;font-size:.8rem;cursor:pointer;background:transparent', 'font-weight:700' => ! $activaId])>
-            Todas las empresas
-        </button>
-        <div style="height:1px;background:rgba(0,0,0,.06);margin:.3rem 0"></div>
-        @foreach ($empresas as $empresa)
-            <button type="button" wire:click="seleccionar({{ $empresa->id }})" @click="open = false"
-                class="se-item" @style(['width:100%;text-align:left;padding:.45rem .6rem;border-radius:.45rem;font-size:.8rem;cursor:pointer;background:transparent', 'font-weight:700;color:#2563eb' => $activaId === $empresa->id])>
-                {{ $empresa->razon_social }}
+               box-shadow:0 12px 34px rgba(0,0,0,.12);z-index:50">
+        <div style="padding:.5rem .5rem .35rem">
+            <input type="text" wire:model.live.debounce.300ms="busqueda" placeholder="Buscar empresa..."
+                style="width:100%;font-size:.8rem;padding:.4rem .6rem;border-radius:.5rem;border:1px solid rgba(0,0,0,.12);outline:none">
+        </div>
+        <div style="overflow-y:auto;padding:0 .35rem .35rem">
+            <button type="button" wire:click="todas" @click="open = false"
+                class="se-item" @style(['width:100%;text-align:left;padding:.45rem .6rem;border-radius:.45rem;font-size:.8rem;cursor:pointer;background:transparent', 'font-weight:700' => ! $activaId])>
+                Todas las empresas
             </button>
-        @endforeach
+            <div style="height:1px;background:rgba(0,0,0,.06);margin:.3rem 0"></div>
+            @forelse ($empresas as $empresa)
+                <button type="button" wire:click="seleccionar({{ $empresa->id }})" @click="open = false"
+                    class="se-item" @style(['width:100%;text-align:left;padding:.45rem .6rem;border-radius:.45rem;font-size:.8rem;cursor:pointer;background:transparent', 'font-weight:700;color:#2563eb' => $activaId === $empresa->id])>
+                    {{ $empresa->razon_social }}
+                </button>
+            @empty
+                <p style="padding:.5rem .6rem;font-size:.75rem;color:#94a3b8;margin:0">Ninguna empresa coincide.</p>
+            @endforelse
+        </div>
     </div>
 
     <style>

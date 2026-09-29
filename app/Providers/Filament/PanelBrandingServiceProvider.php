@@ -289,12 +289,23 @@ class PanelBrandingServiceProvider extends ServiceProvider
             HTML,
         );
 
-        // Selector de "empresa activa" en el topbar - solo para abogados de bufete.
+        // Selector de "empresa activa" en el topbar - abogados de bufete (solo
+        // las de su bufete) y super_admin/abogado interno (TODAS las
+        // empresas del sistema). Bug real reportado por el usuario
+        // (2026-09-29): sin este selector, super_admin no tenia ninguna
+        // forma de elegir empresa en "Mi Reglamento Interno" y siempre caia
+        // a Empresa::first() - la primera de la tabla, sin importar si
+        // tenia RIT o no.
         FilamentView::registerRenderHook(
             PanelsRenderHook::TOPBAR_END,
-            fn(): string => auth()->user()?->esAbogadoDeBufete()
-                ? \Illuminate\Support\Facades\Blade::render('@livewire(\'selector-empresa\')')
-                : '',
+            function (): string {
+                $user = auth()->user();
+                $puedeVer = $user && ($user->esAbogadoDeBufete() || $user->hasRole('super_admin') || $user->hasRole('abogado'));
+
+                return $puedeVer
+                    ? \Illuminate\Support\Facades\Blade::render('@livewire(\'selector-empresa\')')
+                    : '';
+            },
         );
 
         // ── Skeleton de navegación entre páginas ─────────────────────────────

@@ -33,4 +33,49 @@ class SelectorEmpresaTest extends TestCase
         Livewire::test(SelectorEmpresa::class)->call('todas');
         $this->assertNull(EmpresaActiva::id());
     }
+
+    /**
+     * Bug real reportado por el usuario (2026-09-29): super_admin no tenia
+     * ninguna forma de elegir empresa en "Mi Reglamento Interno" - el
+     * selector del topbar solo se mostraba para bufete, y super_admin
+     * siempre caia a Empresa::first() sin importar cual empresa necesitara
+     * ver de verdad.
+     */
+    public function test_super_admin_ve_y_puede_elegir_entre_todas_las_empresas(): void
+    {
+        $empresaA = Empresa::factory()->create(['razon_social' => 'ALFA', 'active' => true]);
+        $empresaB = Empresa::factory()->create(['razon_social' => 'BETA', 'active' => true]);
+        $superAdmin = User::factory()->create(['role' => 'super_admin', 'active' => true]);
+        $this->actingAs($superAdmin);
+
+        Livewire::test(SelectorEmpresa::class)
+            ->assertSee('ALFA')
+            ->assertSee('BETA')
+            ->call('seleccionar', $empresaB->id);
+
+        $this->assertSame($empresaB->id, EmpresaActiva::id());
+    }
+
+    public function test_super_admin_puede_filtrar_empresas_por_busqueda(): void
+    {
+        Empresa::factory()->create(['razon_social' => 'ALFA', 'active' => true]);
+        Empresa::factory()->create(['razon_social' => 'BETA', 'active' => true]);
+        $superAdmin = User::factory()->create(['role' => 'super_admin', 'active' => true]);
+        $this->actingAs($superAdmin);
+
+        Livewire::test(SelectorEmpresa::class)
+            ->set('busqueda', 'ALFA')
+            ->assertSee('ALFA')
+            ->assertDontSee('BETA');
+    }
+
+    public function test_un_cliente_no_ve_ninguna_empresa_en_el_selector(): void
+    {
+        $empresa = Empresa::factory()->create(['razon_social' => 'ALFA', 'active' => true]);
+        $cliente = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresa->id, 'active' => true]);
+        $this->actingAs($cliente);
+
+        Livewire::test(SelectorEmpresa::class)
+            ->assertDontSee('ALFA');
+    }
 }
