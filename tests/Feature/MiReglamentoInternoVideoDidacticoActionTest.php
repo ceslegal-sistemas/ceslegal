@@ -88,4 +88,54 @@ class MiReglamentoInternoVideoDidacticoActionTest extends TestCase
         $this->assertSame('generando', $rit->fresh()->video_didactico_estado);
         Bus::assertDispatched(GenerarVideoDidacticoRITJob::class, fn ($job) => $job->rit->id === $rit->id);
     }
+
+    /**
+     * Hallazgo real en producción (2026-09-29): un RIT con reglamento_origen_id
+     * (fuente=mejora_ia) pero cuyo origen NUNCA tuvo un video generado no debe
+     * narrar "qué cambió" - a ningún trabajador se le mostró nunca un video de
+     * esa versión vieja, así que no hay nada que "actualizar" desde su
+     * perspectiva. Debe explicar el reglamento en temas generales, como si
+     * fuera la primera vez.
+     */
+    public function test_no_usa_modo_cambios_si_el_origen_nunca_tuvo_video(): void
+    {
+        Bus::fake();
+
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $origen = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => false, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+        ]);
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'mejora_ia', 'texto_completo' => 'v2',
+            'reglamento_origen_id' => $origen->id,
+        ]);
+        $this->actingAsSuperAdmin($empresa);
+
+        Livewire::test(MiReglamentoInterno::class)
+            ->callAction('generarVideoDidactico');
+
+        Bus::assertDispatched(GenerarVideoDidacticoRITJob::class, fn ($job) => $job->rit->id === $rit->id && $job->cambios === []);
+    }
+
+    /** Si el origen SÍ tuvo video, ahí sí tiene sentido narrar qué cambió respecto a lo que ya vieron. */
+    public function test_usa_modo_cambios_si_el_origen_ya_tuvo_video(): void
+    {
+        Bus::fake();
+
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $origen = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => false, 'fuente' => 'construido_ia', 'texto_completo' => 'Capitulo uno. Texto original.',
+            'video_didactico_path' => 'rit-videos/fake.mp4', 'video_didactico_generado_en' => now(),
+        ]);
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'mejora_ia', 'texto_completo' => 'Capitulo uno. Texto modificado.',
+            'reglamento_origen_id' => $origen->id,
+        ]);
+        $this->actingAsSuperAdmin($empresa);
+
+        Livewire::test(MiReglamentoInterno::class)
+            ->callAction('generarVideoDidactico');
+
+        Bus::assertDispatched(GenerarVideoDidacticoRITJob::class, fn ($job) => $job->rit->id === $rit->id && $job->cambios !== []);
+    }
 }

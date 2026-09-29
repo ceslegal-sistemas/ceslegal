@@ -79,12 +79,20 @@ class RitVideoDidacticoService
         ]);
     }
 
+    /**
+     * Narración hablada únicamente, SIN texto/viñetas en pantalla - reportado
+     * en producción (2026-09-29): el texto que Gemini renderiza sobre el
+     * video sale ilegible/deformado, mientras que la voz narrada sí se
+     * entiende bien.
+     */
     private function promptInicial(?Empresa $empresa, string $primerSegmento, bool $conLogo): string
     {
         $prompt = "Video didáctico y profesional en español, para explicarle a un trabajador colombiano "
             . "el Reglamento Interno de Trabajo de la empresa \"{$empresa?->nombre_completo}\". "
-            . "Tono cercano y claro, sin lenguaje jurídico complicado. "
-            . "Empieza mostrando en pantalla, en una viñeta breve, este punto:\n{$primerSegmento}\n"
+            . "Un presentador habla directamente a cámara, con tono cercano y claro, sin lenguaje jurídico complicado. "
+            . "No muestres texto, viñetas ni subtítulos escritos en pantalla en ningún momento del video - "
+            . "solo narración hablada. "
+            . "Empieza explicando en voz este punto:\n{$primerSegmento}\n"
             . "Narración en español neutro colombiano. No incluya música con derechos de autor reconocibles.";
 
         if ($conLogo) {
@@ -97,7 +105,8 @@ class RitVideoDidacticoService
 
     private function promptExtension(string $segmento): string
     {
-        return "Continúa el video: ahora muestra en pantalla, en una viñeta breve y con el mismo tono y estilo, "
+        return "Continúa el video: el mismo presentador sigue hablando a cámara, con el mismo tono y estilo, "
+            . "explicando en voz (sin mostrar texto, viñetas ni subtítulos escritos en pantalla) "
             . "este siguiente punto del reglamento:\n{$segmento}\n"
             . 'Transición suave, sin corte abrupto de escena.';
     }

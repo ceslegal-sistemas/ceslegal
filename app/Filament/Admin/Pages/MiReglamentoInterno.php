@@ -506,16 +506,24 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                     return;
                 }
 
-                // Si este RIT viene de una versión anterior (mejora adoptada),
-                // el video se enfoca en "qué cambió" en vez de temas genéricos -
-                // ver RitVideoDidacticoService::generar(). Un clip de ~10s no
-                // alcanza para explicar el reglamento completo (hasta 27
-                // temas), pero sí para resaltar 2-3 cambios puntuales.
+                // El video habla de "qué cambió" SOLO si la versión anterior
+                // (el origen) ya tuvo su propio video generado - eso significa
+                // que a los trabajadores ya se les explicó esa versión antes,
+                // así que tiene sentido narrarles la diferencia. Si el origen
+                // nunca tuvo video (aunque el RIT técnicamente venga de una
+                // mejora IA - fuente=mejora_ia), nadie vio nunca un video de
+                // "la versión vieja", así que no hay nada que "actualizar"
+                // desde la perspectiva del trabajador: el video debe explicar
+                // el reglamento completo en temas generales, como si fuera la
+                // primera vez (hallazgo real en producción, 2026-09-29: Renbel
+                // tenía reglamento_origen_id pero nunca se le había generado
+                // video antes, y aun así salió narrando cambios puntuales en
+                // vez de una explicación general).
                 $cambios = [];
                 if ($this->reglamento->reglamento_origen_id) {
                     $origen = ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
                         ->find($this->reglamento->reglamento_origen_id);
-                    if ($origen?->texto_completo && $this->reglamento->texto_completo) {
+                    if ($origen?->video_didactico_generado_en && $origen->texto_completo && $this->reglamento->texto_completo) {
                         $cambios = app(\App\Services\RitDiffService::class)->compararDocumentos(
                             $origen->texto_completo,
                             $this->reglamento->texto_completo
