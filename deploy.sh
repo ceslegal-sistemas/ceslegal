@@ -19,14 +19,24 @@ git pull
 echo "==> 2/7  composer install (--no-dev)"
 COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader
 
-echo "==> 3/7  npm install + build de assets (Vite/Tailwind)"
-# Sin este paso, public/build/manifest.json nunca existe en el servidor -
-# cualquier vista con @vite(...) revienta con 500 "Vite manifest not found"
-# (bug real 2026-09-28: las paginas publicas de RIT/descargos empezaron a
-# usar @vite() para dejar de depender del CDN fragil de Tailwind, pero el
-# deploy nunca habia compilado assets, asi que quedaron sin manifest).
-npm ci
-npm run build
+echo "==> 3/7  build de assets (Vite/Tailwind)"
+# Sin esto, public/build/manifest.json no existe - cualquier vista con
+# @vite(...) revienta con 500 "Vite manifest not found" (bug real
+# 2026-09-28: las paginas publicas de RIT/descargos empezaron a usar
+# @vite() para dejar de depender del CDN fragil de Tailwind).
+#
+# Este host de Hostinger NO tiene npm/node en el PATH (confirmado
+# 2026-09-28: "npm: command not found") - por eso public/build/ dejo de
+# estar en .gitignore: los assets se compilan LOCALMENTE y se comprometen
+# al repo, y `git pull` ya los trae listos. Si algun dia este host (u
+# otro) SI tiene npm, este paso recompila con lo ultimo; si no, usa el
+# build ya versionado - nunca debe tumbar el resto del deploy.
+if command -v npm >/dev/null 2>&1; then
+    npm ci
+    npm run build
+else
+    echo "    (npm no disponible en este host - se usan los assets ya compilados y versionados en git)"
+fi
 
 echo "==> 4/7  migraciones"
 php artisan migrate --force
