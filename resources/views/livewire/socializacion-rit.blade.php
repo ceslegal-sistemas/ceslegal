@@ -175,7 +175,7 @@
                                 <div style="position:relative;z-index:2">
                                     <span class="rit-badge rit-badge-ia">Reglamento Interno</span>
                                     <h1 class="rit-title">Conoce el Reglamento Interno de {{ $empresa->razon_social }}</h1>
-                                    <p class="rit-sub">Esto es lo que regula, explicado sencillo. No hace falta leer todo el documento.</p>
+                                    <p class="rit-sub">Esto es lo que regula, explicado sencillo.</p>
                                 </div>
                             </div>
 
@@ -221,6 +221,16 @@
                                 </div>
                             </details>
                         @endif
+
+                        {{-- Botón de descarga real del RIT (pedido de Andrés Sarmiento en la
+                             reunión, 2026-09-29: el "Ver el Reglamento completo" expandible no
+                             es suficiente, el trabajador debe poder bajarlo). Ruta pública
+                             propia (rit.socializar.descargar) autorizada por el mismo token de
+                             esta página, nunca por sesión - mismo patrón que el video. --}}
+                        <a href="{{ route('rit.socializar.descargar', ['token' => $token]) }}" class="rit-btn rit-btn-secondary" style="width:100%;justify-content:center">
+                            <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                            Descargar Reglamento Interno
+                        </a>
 
                         {{-- Video didáctico "segunda socialización" (pedido del equipo,
                              2026-09-28) - generado UNA sola vez por el admin desde "Mi

@@ -70,4 +70,47 @@ class SocializacionRitPublicoController extends Controller
 
         return response()->file($ruta, ['Content-Type' => 'video/mp4']);
     }
+
+    /**
+     * Descarga el PDF del RIT ACTIVO de la empresa del token - mismo patrón de
+     * autorización que mostrar()/video() (poseer el token, nunca la sesión).
+     * Reusa RITGeneratorService::generarPDFTemp() como fallback si todavía no
+     * existe un PDF generado (mismo patrón que
+     * MiReglamentoInterno::downloadPDFMejorado()).
+     */
+    public function descargar(string $token)
+    {
+        $empresa = Empresa::withoutGlobalScope('bufeteOrEmpresa')
+            ->where('token_socializacion_rit', $token)
+            ->first();
+
+        if (!$empresa) {
+            abort(404);
+        }
+
+        $rit = ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
+            ->where('empresa_id', $empresa->id)
+            ->where('activo', true)
+            ->latest('updated_at')
+            ->first();
+
+        abort_if(!$rit, 404);
+
+        $nombreEmpresa = preg_replace('/[^A-Za-z0-9\-_]/', '_', $empresa->razon_social ?? 'empresa');
+        $nombreArchivo = "Reglamento_Interno_{$nombreEmpresa}.pdf";
+
+        if ($rit->ruta_pdf) {
+            $rutaAbsoluta = Storage::disk('local')->path($rit->ruta_pdf);
+            if (file_exists($rutaAbsoluta)) {
+                return response()->download($rutaAbsoluta, $nombreArchivo, ['Content-Type' => 'application/pdf']);
+            }
+        }
+
+        abort_if(empty($rit->texto_completo), 404);
+
+        $tmpPath = app(\App\Services\RITGeneratorService::class)->generarPDFTemp($rit->texto_completo, $empresa);
+
+        return response()->download($tmpPath, $nombreArchivo, ['Content-Type' => 'application/pdf'])
+            ->deleteFileAfterSend();
+    }
 }
