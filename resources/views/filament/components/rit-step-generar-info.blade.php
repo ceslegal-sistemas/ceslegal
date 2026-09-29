@@ -1,4 +1,12 @@
+{{--
+    Rediseño (2026-09-28, pedido explícito del usuario: mismo estilo .rit-hero
+    de "Socializa el RIT", sin la línea de acento izquierda de .pt-card - el
+    acento "verde" que tenía el borde ahora vive solo en el color del icono
+    principal, igual que antes). Barra compacta (no lleva bullets/footer),
+    contenido exactamente el mismo de antes.
+--}}
 @include('filament.components.pinfo-styles')
+@include('filament.components.lupe-hero-styles')
 
 <style>
 .rit-bar-title  { color: #86efac }
@@ -9,9 +17,9 @@ html:not(.dark) .rit-bar-hint   { color: #374151 }
 html:not(.dark) .rit-bar-hint strong { color: #111827 }
 </style>
 
-<div class="pt-card" style="border-left-color:#22c55e;padding:.875rem 1.125rem;">
-
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem 1rem;flex-wrap:wrap;">
+<div class="rit-hero" style="padding:.875rem 1.125rem;">
+    <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+    <div style="position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:.75rem 1rem;flex-wrap:wrap;">
 
         <div style="display:flex;align-items:center;gap:.625rem;flex:1;min-width:0;">
             <lord-icon src="https://cdn.lordicon.com/wpsdctqb.json" trigger="loop" delay="500" stroke="bold"
@@ -43,5 +51,4 @@ html:not(.dark) .rit-bar-hint strong { color: #111827 }
         </div>
 
     </div>
-
 </div>

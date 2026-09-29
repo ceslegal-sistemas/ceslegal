@@ -1,50 +1,60 @@
+{{--
+    Rediseño (2026-09-28, pedido explícito del usuario: mismo estilo .rit-hero
+    de "Socializa el RIT", sin la línea de acento izquierda de .pt-card - el
+    acento "verde" que tenía el borde ahora vive solo en el color del icono
+    principal, igual que antes).
+--}}
 @include('filament.components.pinfo-styles')
+@include('filament.components.lupe-hero-styles')
 
-<div class="pt-card" style="border-left-color:#22c55e;">
+<div class="rit-hero" style="padding:1.25rem 1.5rem;">
+    <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+    <div style="position:relative;z-index:2">
 
-    <div style="display:flex;align-items:center;gap:.625rem;margin-bottom:.625rem;">
-        <lord-icon src="https://cdn.lordicon.com/edcgvlnw.json" trigger="loop" delay="500" stroke="bold"
-            colors="primary:#4ade80,secondary:#86efac" data-pt-icon
-            data-pt-dark="primary:#4ade80,secondary:#86efac"
-            data-pt-light="primary:#16a34a,secondary:#22c55e"
-            style="width:32px;height:32px;flex-shrink:0">
-        </lord-icon>
-        <p class="pt-title">Seguridad y normas de convivencia</p>
-    </div>
-
-    <p class="pt-body">
-        La ley exige que el RIT incluya las normas de seguridad y salud en el trabajo.
-        Además, las reglas de conducta <strong>previenen conflictos antes de que ocurran</strong>.
-    </p>
-
-    <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem;">
-
-        <div class="pt-bullet">
-            <lord-icon src="https://cdn.lordicon.com/jqqjtvlf.json" trigger="loop" delay="500" stroke="bold"
-                colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
-                data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
-                data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
-                style="width:20px;height:20px;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:.625rem;margin-bottom:.5rem;">
+            <lord-icon src="https://cdn.lordicon.com/edcgvlnw.json" trigger="loop" delay="500" stroke="bold"
+                colors="primary:#4ade80,secondary:#86efac" data-pt-icon
+                data-pt-dark="primary:#4ade80,secondary:#86efac"
+                data-pt-light="primary:#16a34a,secondary:#22c55e"
+                style="width:32px;height:32px;flex-shrink:0">
             </lord-icon>
-            <span>Si aún no tiene el SG-SST implementado, indique <strong>"En proceso"</strong>
-                - es la respuesta más honesta y la más común en empresas medianas.</span>
+            <h1 class="rit-title" style="margin:0;font-size:1.05rem;">Seguridad y normas de convivencia</h1>
         </div>
 
-        <div class="pt-bullet">
-            <lord-icon src="https://cdn.lordicon.com/jqqjtvlf.json" trigger="loop" delay="800" stroke="bold"
-                colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
-                data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
-                data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
-                style="width:20px;height:20px;flex-shrink:0">
-            </lord-icon>
-            <span>La <strong>política de prevención de acoso sexual (Ley 2365/2024)</strong> se incluye
-                automáticamente en el texto generado.</span>
+        <p class="rit-sub" style="margin-bottom:.75rem;">
+            La ley exige que el RIT incluya las normas de seguridad y salud en el trabajo.
+            Además, las reglas de conducta <strong>previenen conflictos antes de que ocurran</strong>.
+        </p>
+
+        <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem;">
+
+            <div class="pt-bullet">
+                <lord-icon src="https://cdn.lordicon.com/jqqjtvlf.json" trigger="loop" delay="500" stroke="bold"
+                    colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
+                    data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
+                    data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
+                    style="width:20px;height:20px;flex-shrink:0">
+                </lord-icon>
+                <span>Si aún no tiene el SG-SST implementado, indique <strong>"En proceso"</strong>
+                    - es la respuesta más honesta y la más común en empresas medianas.</span>
+            </div>
+
+            <div class="pt-bullet">
+                <lord-icon src="https://cdn.lordicon.com/jqqjtvlf.json" trigger="loop" delay="800" stroke="bold"
+                    colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
+                    data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
+                    data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
+                    style="width:20px;height:20px;flex-shrink:0">
+                </lord-icon>
+                <span>La <strong>política de prevención de acoso sexual (Ley 2365/2024)</strong> se incluye
+                    automáticamente en el texto generado.</span>
+            </div>
+
         </div>
 
+        <p class="pt-footer">
+            Pequeñas reglas (celular, uniforme, confidencialidad) evitan grandes conflictos laborales.
+        </p>
+
     </div>
-
-    <p class="pt-footer">
-        Pequeñas reglas (celular, uniforme, confidencialidad) evitan grandes conflictos laborales.
-    </p>
-
 </div>

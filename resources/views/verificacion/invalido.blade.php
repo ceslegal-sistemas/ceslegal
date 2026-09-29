@@ -6,30 +6,7 @@
     <title>Documento no encontrado · LUPE Legal</title>
     <link rel="icon" href="/images/lupe-logo.png" type="image/png">
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            500: '#e11d48',
-                            600: '#e11d48',
-                            700: '#be123c',
-                        },
-                        danger: {
-                            50:  '#fef2f2',
-                            100: '#fee2e2',
-                            200: '#fecaca',
-                            500: '#ef4444',
-                            600: '#dc2626',
-                            700: '#b91c1c',
-                        },
-                    }
-                }
-            }
-        }
-    </script>
+    @vite(['resources/css/app.css'])
 
     <script src="https://cdn.lordicon.com/lordicon.js"></script>
 

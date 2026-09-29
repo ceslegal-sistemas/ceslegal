@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acceso Restringido - {{ config('app.name') }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css'])
     @if($esTemprano ?? false)
         {{-- Auto-refresh cada 60s mientras el trabajador espera la hora --}}
         <meta http-equiv="refresh" content="60">

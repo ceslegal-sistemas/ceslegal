@@ -26,37 +26,7 @@
     <title>Verificación de Autenticidad · LUPE Legal</title>
     <link rel="icon" href="/images/lupe-logo.png" type="image/png">
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50:  '#fecdd3',
-                            100: '#fecdd3',
-                            200: '#fecdd3',
-                            300: '#fb7185',
-                            400: '#fb7185',
-                            500: '#e11d48',
-                            600: '#e11d48',
-                            700: '#be123c',
-                            800: '#be123c',
-                            900: '#be123c',
-                        },
-                        warning: {
-                            50:  '#fffbeb',
-                            100: '#fef3c7',
-                            500: '#f59e0b',
-                            600: '#d97706',
-                            700: '#b45309',
-                            800: '#92400e',
-                        },
-                    }
-                }
-            }
-        }
-    </script>
+    @vite(['resources/css/app.css'])
 
     <script src="https://cdn.lordicon.com/lordicon.js"></script>
 

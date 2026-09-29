@@ -8,4 +8,51 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /*
+     * Paleta de marca LUPE Legal - portada aquí (2026-09-28) desde el
+     * `tailwind.config = {...}` inline que cada página pública (rit/
+     * socializacion, descargos/formulario, verificacion/*, descargos/
+     * acceso-*) cargaba vía <script src="https://cdn.tailwindcss.com">.
+     * Ese CDN de Tailwind explícitamente NO debe usarse en producción: si
+     * el script de ese dominio externo no carga en el navegador del
+     * visitante (adblocker, VPN/extensión de privacidad, red corporativa,
+     * o simple falla de red), la página entera se queda sin ningún estilo
+     * - el HTML se renderiza perfecto (eso lo hace Laravel/Livewire en el
+     * servidor) pero cero CSS llega, porque ese CDN genera TODO en tiempo
+     * de ejecución en el cliente. Bug real reportado por el usuario
+     * (2026-09-28) en /rit/socializar/{token}. Valores EXACTOS calcados de
+     * los inline configs (mismo hex, no se inventó ningún color nuevo).
+     */
+    --color-primary-50: #fecdd3;
+    --color-primary-100: #fecdd3;
+    --color-primary-200: #fecdd3;
+    --color-primary-300: #fb7185;
+    --color-primary-400: #fb7185;
+    --color-primary-500: #e11d48;
+    --color-primary-600: #e11d48;
+    --color-primary-700: #be123c;
+    --color-primary-800: #be123c;
+    --color-primary-900: #be123c;
+
+    --color-success-50: #f0fdf4;
+    --color-success-100: #dcfce7;
+    --color-success-500: #22c55e;
+    --color-success-600: #16a34a;
+    --color-success-700: #15803d;
+
+    --color-warning-50: #fffbeb;
+    --color-warning-100: #fef3c7;
+    --color-warning-200: #fde68a;
+    --color-warning-500: #f59e0b;
+    --color-warning-600: #d97706;
+    --color-warning-700: #b45309;
+    --color-warning-800: #92400e;
+
+    --color-danger-50: #fef2f2;
+    --color-danger-100: #fee2e2;
+    --color-danger-200: #fecaca;
+    --color-danger-500: #ef4444;
+    --color-danger-600: #dc2626;
+    --color-danger-700: #b91c1c;
 }

@@ -21,55 +21,16 @@
     <meta name="twitter:description" content="Conoce y acepta el Reglamento Interno de Trabajo de tu empresa.">
     <meta name="twitter:image" content="{{ asset('images/lupe-og-image.png') }}">
 
-    {{-- Tailwind con la misma paleta personalizada que usa descargos/formulario.blade.php -
-         sin este config, clases como bg-primary-600 no generan ningún estilo y el botón
-         "Buscar"/etc. queda invisible (texto blanco sobre fondo blanco). --}}
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#fecdd3',
-                            100: '#fecdd3',
-                            200: '#fecdd3',
-                            300: '#fb7185',
-                            400: '#fb7185',
-                            500: '#e11d48',
-                            600: '#e11d48',
-                            700: '#be123c',
-                            800: '#be123c',
-                            900: '#be123c',
-                        },
-                        success: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            700: '#15803d',
-                        },
-                        warning: {
-                            50: '#fffbeb',
-                            100: '#fef3c7',
-                            200: '#fde68a',
-                            500: '#f59e0b',
-                            600: '#d97706',
-                            700: '#b45309',
-                            800: '#92400e',
-                        },
-                        danger: {
-                            50: '#fef2f2',
-                            100: '#fee2e2',
-                            500: '#ef4444',
-                            600: '#dc2626',
-                            700: '#b91c1c',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    {{-- CSS compilado (2026-09-28): antes cargaba Tailwind vía
+         <script src="https://cdn.tailwindcss.com"> - ese CDN NO debe usarse
+         en producción (lo advierte el propio Tailwind): si el script de ese
+         dominio externo no carga en el navegador del visitante (adblocker,
+         VPN, red corporativa), la página entera pierde TODO el estilo - el
+         HTML se renderiza bien pero cero CSS llega. Bug real reportado por
+         el usuario (2026-09-28). Los colores personalizados (primary/
+         success/warning/danger) ahora viven en resources/css/app.css,
+         compilados con el resto del proyecto - mismos valores exactos. --}}
+    @vite(['resources/css/app.css'])
 
     <style>
         /* Evitar zoom en inputs en iOS */

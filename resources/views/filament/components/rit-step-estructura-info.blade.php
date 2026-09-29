@@ -1,50 +1,59 @@
+{{--
+    Rediseño (2026-09-28, pedido explícito del usuario: mismo estilo .rit-hero
+    de "Socializa el RIT", sin la línea de acento izquierda de .pt-card).
+    Contenido, iconos y textos exactamente los mismos de antes.
+--}}
 @include('filament.components.pinfo-styles')
+@include('filament.components.lupe-hero-styles')
 
-<div class="pt-card">
+<div class="rit-hero" style="padding:1.25rem 1.5rem;">
+    <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+    <div style="position:relative;z-index:2">
 
-    <div style="display:flex;align-items:center;gap:.625rem;margin-bottom:.625rem;">
-        <lord-icon src="https://cdn.lordicon.com/jdgfsfzr.json" trigger="loop" delay="500" stroke="bold"
-            colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
-            data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
-            data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
-            style="width:32px;height:32px;flex-shrink:0">
-        </lord-icon>
-        <p class="pt-title">¿Quién manda en su empresa?</p>
-    </div>
-
-    <p class="pt-body">
-        El RIT debe especificar qué cargos tienen autoridad para corregir o sancionar empleados.
-        Sin esto, cualquier sanción puede impugnarse legalmente.
-    </p>
-
-    <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem;">
-
-        <div class="pt-bullet">
-            <lord-icon src="https://cdn.lordicon.com/jqqjtvlf.json" trigger="loop" delay="500" stroke="bold"
+        <div style="display:flex;align-items:center;gap:.625rem;margin-bottom:.5rem;">
+            <lord-icon src="https://cdn.lordicon.com/jdgfsfzr.json" trigger="loop" delay="500" stroke="bold"
                 colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
                 data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
                 data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
-                style="width:20px;height:20px;flex-shrink:0">
+                style="width:32px;height:32px;flex-shrink:0">
             </lord-icon>
-            <span>Liste los cargos <strong>tal como los llaman internamente</strong> - no necesita usar nombres formales.</span>
+            <h1 class="rit-title" style="margin:0;font-size:1.05rem;">¿Quién manda en su empresa?</h1>
         </div>
 
-        <div class="pt-bullet">
-            <lord-icon src="https://cdn.lordicon.com/jqqjtvlf.json" trigger="loop" delay="800" stroke="bold"
-                colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
-                data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
-                data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
-                style="width:20px;height:20px;flex-shrink:0">
-            </lord-icon>
-            <span>Solo marque <strong>"puede sancionar"</strong> en los cargos que realmente toman esas
-                decisiones (gerentes, jefes de área).</span>
+        <p class="rit-sub" style="margin-bottom:.75rem;">
+            El RIT debe especificar qué cargos tienen autoridad para corregir o sancionar empleados.
+            Sin esto, cualquier sanción puede impugnarse legalmente.
+        </p>
+
+        <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem;">
+
+            <div class="pt-bullet">
+                <lord-icon src="https://cdn.lordicon.com/jqqjtvlf.json" trigger="loop" delay="500" stroke="bold"
+                    colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
+                    data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
+                    data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
+                    style="width:20px;height:20px;flex-shrink:0">
+                </lord-icon>
+                <span>Liste los cargos <strong>tal como los llaman internamente</strong> - no necesita usar nombres formales.</span>
+            </div>
+
+            <div class="pt-bullet">
+                <lord-icon src="https://cdn.lordicon.com/jqqjtvlf.json" trigger="loop" delay="800" stroke="bold"
+                    colors="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0" data-pt-icon
+                    data-pt-dark="primary:#fb7185,secondary:#fb7185,tertiary:#e2e8f0"
+                    data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
+                    style="width:20px;height:20px;flex-shrink:0">
+                </lord-icon>
+                <span>Solo marque <strong>"puede sancionar"</strong> en los cargos que realmente toman esas
+                    decisiones (gerentes, jefes de área).</span>
+            </div>
+
         </div>
+
+        <p class="pt-footer">
+            Tip: Si tiene pocos cargos (p. ej. Gerente y Operario), simplemente agréguelos.
+            No necesita un organigrama formal.
+        </p>
 
     </div>
-
-    <p class="pt-footer">
-        Tip: Si tiene pocos cargos (p. ej. Gerente y Operario), simplemente agréguelos.
-        No necesita un organigrama formal.
-    </p>
-
 </div>

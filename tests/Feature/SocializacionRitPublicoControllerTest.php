@@ -55,13 +55,19 @@ class SocializacionRitPublicoControllerTest extends TestCase
     }
 
     /**
-     * Bug real reportado por el usuario (2026-09-22): la interfaz del
-     * trabajador se veía sin estilo (botones invisibles) porque este host
-     * page no tenía el tailwind.config con la paleta 'primary' que sí tiene
-     * descargos/formulario.blade.php - sin ese config, clases como
-     * bg-primary-600 no generan ningún estilo con el build CDN de Tailwind.
+     * Bug real reportado por el usuario (2026-09-22), "resuelto" en ese
+     * momento con un <script src="https://cdn.tailwindcss.com"> + config
+     * inline con la paleta 'primary'. Ese "arreglo" resultó ser la causa
+     * raíz de un bug MÁS grave reportado después (2026-09-28): si ese script
+     * de un dominio externo no carga en el navegador del visitante
+     * (adblocker, VPN, red corporativa), la página entera pierde TODO el
+     * estilo - el Tailwind CDN genera el 100% del CSS en el cliente, nada
+     * queda si el script falla. La solución real: compilar la paleta con
+     * Vite (resources/css/app.css, @theme) y servirla como CSS estático del
+     * propio dominio - nunca depender de un script de terceros para el
+     * estilo de una página pública.
      */
-    public function test_incluye_el_tailwind_config_con_la_paleta_primary(): void
+    public function test_usa_el_css_compilado_de_vite_y_no_el_cdn_fragil_de_tailwind(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
         $token = $empresa->tokenSocializacionRit();
@@ -69,9 +75,9 @@ class SocializacionRitPublicoControllerTest extends TestCase
         $response = $this->get('/rit/socializar/' . $token);
 
         $response->assertOk();
-        $response->assertSee('tailwind.config', false);
-        $response->assertSee("primary:", false);
-        $response->assertSee('#e11d48', false);
+        $response->assertDontSee('cdn.tailwindcss.com', false);
+        $response->assertDontSee('tailwind.config', false);
+        $response->assertSee('/build/assets/app-', false);
     }
 
     /**
