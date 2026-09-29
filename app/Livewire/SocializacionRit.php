@@ -201,15 +201,21 @@ class SocializacionRit extends Component
 
     public function guardarDatos(): void
     {
+        // Correo y teléfono OPCIONALES (pedido explícito de Andrés Sarmiento
+        // en la reunión, 2026-09-28: "que sea opcional" - esta pantalla NO
+        // es para levantar datos de contacto, es para socializar el
+        // Reglamento; el dato oficial de notificación lo captura RRHH por
+        // fuera). Si el trabajador SÍ escribe un correo, la confirmación
+        // sigue siendo obligatoria (protege contra un typo en ese caso).
         $this->validate([
             'nombres' => 'required|string|max:255',
             'apellidos' => 'required|string|max:255',
             'genero' => 'required|string',
             'cargo' => 'required|string',
             'cargoPersonalizado' => $this->cargo === '__otro__' ? 'required|string|max:255' : 'nullable|string|max:255',
-            'email' => 'required|email',
-            'emailConfirmacion' => 'required|same:email',
-            'telefono' => 'required|string|max:50',
+            'email' => 'nullable|email',
+            'emailConfirmacion' => $this->email !== '' ? 'required|same:email' : 'nullable',
+            'telefono' => 'nullable|string|max:50',
             'direccion' => 'nullable|string',
         ], [
             'emailConfirmacion.same' => 'Los correos no coinciden. Verifica que sea igual arriba y abajo.',

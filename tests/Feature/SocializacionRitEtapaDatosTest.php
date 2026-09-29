@@ -67,10 +67,13 @@ class SocializacionRitEtapaDatosTest extends TestCase
     }
 
     /**
-     * Pedido explícito del usuario (2026-09-22): correo y teléfono son
-     * obligatorios (antes eran opcionales).
+     * Pedido explícito de Andrés Sarmiento en la reunión del equipo
+     * (2026-09-28): correo y teléfono vuelven a ser OPCIONALES - revierte
+     * la decisión del 2026-09-22 (usuario confirmó explícitamente seguir
+     * la reunión, más reciente, tras señalarle el conflicto). Esta pantalla
+     * es para socializar el Reglamento, no para levantar datos de contacto.
      */
-    public function test_correo_y_telefono_son_obligatorios(): void
+    public function test_correo_y_telefono_son_opcionales(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
         ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
@@ -85,7 +88,32 @@ class SocializacionRitEtapaDatosTest extends TestCase
             ->set('genero', 'masculino')
             ->set('cargo', 'Operario')
             ->call('guardarDatos')
-            ->assertHasErrors(['email', 'telefono']);
+            ->assertHasNoErrors(['email', 'telefono'])
+            ->assertSet('etapa', 'foto');
+    }
+
+    /**
+     * Si el trabajador SÍ escribe un correo, la confirmación sigue siendo
+     * obligatoria (protege contra un typo) - solo el campo en sí dejó de
+     * ser obligatorio, no la validación de que coincida si se usa.
+     */
+    public function test_si_escribe_correo_la_confirmacion_sigue_siendo_obligatoria(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('tipoDocumento', 'CC')
+            ->set('numeroDocumento', '767676767')
+            ->set('numeroDocumentoConfirmacion', '767676767')
+            ->call('buscarTrabajador')
+            ->set('nombres', 'Con')
+            ->set('apellidos', 'Correo')
+            ->set('genero', 'masculino')
+            ->set('cargo', 'Operario')
+            ->set('email', 'con.correo@example.com')
+            ->call('guardarDatos')
+            ->assertHasErrors(['emailConfirmacion']);
     }
 
     /**

@@ -138,20 +138,20 @@
                                 </div>
                             @endif
                             <div>
-                                <input type="email" wire:model="email" placeholder="Correo electrónico" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                                <input type="email" wire:model="email" placeholder="Correo electrónico (opcional)" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 @error('email') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 {{-- Pedido explícito del usuario (2026-09-22): confirmar el correo
                                      escribiéndolo de nuevo (sin pegar), a este correo llega el
                                      comprobante de aceptación del Reglamento. --}}
-                                <input type="email" wire:model="emailConfirmacion" placeholder="Confirma tu correo electrónico"
+                                <input type="email" wire:model="emailConfirmacion" placeholder="Confirma tu correo electrónico (opcional)"
                                     onpaste="return false"
                                     class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 @error('emailConfirmacion') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <input type="text" wire:model="telefono" placeholder="Teléfono" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                                <input type="text" wire:model="telefono" placeholder="Teléfono (opcional)" class="w-full text-base border border-gray-300 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none">
                                 @error('telefono') <p class="text-sm text-danger-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
