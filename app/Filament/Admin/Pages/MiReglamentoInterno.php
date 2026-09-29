@@ -476,6 +476,65 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             });
     }
 
+    /**
+     * Genera el video didáctico de "segunda socialización" con IA (pedido
+     * explícito del usuario/su equipo, 2026-09-28: reemplaza la idea de
+     * diapositivas por un video real con Gemini Omni Flash). Disparo
+     * SIEMPRE manual y solo super_admin por ahora - un video de IA cuesta
+     * ordenes de magnitud más que las llamadas de texto que ya agotaron la
+     * cuota mensual una vez esta misma sesión (ver RitVideoDidacticoService),
+     * y el costo real por video todavía no se ha confirmado en
+     * https://ai.studio/spend.
+     */
+    public function generarVideoDidacticoAction(): Action
+    {
+        return Action::make('generarVideoDidactico')
+            ->label(fn () => $this->reglamento?->video_didactico_path ? 'Regenerar video didáctico' : 'Generar video didáctico')
+            ->icon('heroicon-o-video-camera')
+            ->color('primary')
+            ->visible(fn () => $this->reglamento
+                && !empty($this->reglamento->texto_completo)
+                && !$this->reglamento->generandoVideoDidactico()
+                && (Auth::user()?->hasRole('super_admin') ?? false))
+            ->requiresConfirmation()
+            ->modalHeading('Generar video didáctico del Reglamento')
+            ->modalDescription('La IA genera un video corto explicando en lenguaje sencillo los puntos clave del Reglamento (incluye el logo de la empresa si ya lo cargó). Este proceso tarda varios minutos y tiene un costo real de IA - úselo con moderación mientras se confirma el costo por video.')
+            ->modalSubmitActionLabel('Generar')
+            ->action(function (): void {
+                if (!$this->reglamento) {
+                    Notification::make()->danger()->title('No hay Reglamento activo')->send();
+                    return;
+                }
+
+                // Si este RIT viene de una versión anterior (mejora adoptada),
+                // el video se enfoca en "qué cambió" en vez de temas genéricos -
+                // ver RitVideoDidacticoService::generar(). Un clip de ~10s no
+                // alcanza para explicar el reglamento completo (hasta 27
+                // temas), pero sí para resaltar 2-3 cambios puntuales.
+                $cambios = [];
+                if ($this->reglamento->reglamento_origen_id) {
+                    $origen = ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
+                        ->find($this->reglamento->reglamento_origen_id);
+                    if ($origen?->texto_completo && $this->reglamento->texto_completo) {
+                        $cambios = app(\App\Services\RitDiffService::class)->compararDocumentos(
+                            $origen->texto_completo,
+                            $this->reglamento->texto_completo
+                        );
+                    }
+                }
+
+                $this->reglamento->update(['video_didactico_estado' => 'generando']);
+                \App\Jobs\GenerarVideoDidacticoRITJob::dispatch($this->reglamento, (int) Auth::id(), $cambios);
+                $this->reglamento = $this->reglamento->fresh();
+
+                Notification::make()
+                    ->info()
+                    ->title('Generando video didáctico')
+                    ->body('Puede tardar varios minutos. Le notificaremos cuando esté listo.')
+                    ->send();
+            });
+    }
+
     /** Abre el modal para subir un RIT manualmente. */
     public function subirRITAction(): Action
     {

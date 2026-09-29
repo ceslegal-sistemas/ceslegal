@@ -98,6 +98,16 @@ return [
             'api_key' => env('GEMINI_API_KEY'),
             'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
             'max_tokens' => env('GEMINI_MAX_TOKENS', 2048),
+            // Modelo de video (2026-09-29) - probado y confirmado accesible con esta
+            // cuenta (curl directo a /v1beta/interactions, respuesta "completed").
+            // Consume ordenes de magnitud mas tokens que el modelo de texto - ver
+            // RitVideoDidacticoService, uso deliberadamente manual (nunca automatico).
+            'model_video' => env('GEMINI_MODEL_VIDEO', 'gemini-omni-1.1-flash'),
+            // 360p por defecto para mantener el costo bajo mientras se mide el gasto
+            // real en https://ai.studio/spend (pedido explicito del usuario,
+            // 2026-09-29) - subir a 720p/1080p es un simple cambio de env, sin tocar
+            // codigo, una vez se confirme que el costo es aceptable.
+            'video_resolution' => env('GEMINI_VIDEO_RESOLUTION', '360p'),
         ],
     ],
 

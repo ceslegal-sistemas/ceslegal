@@ -264,6 +264,11 @@ Route::get('/trabajador/{trabajador}/acta-rit/{aceptacion}', [\App\Http\Controll
     ->middleware(['auth'])
     ->name('trabajador.acta-rit.descargar');
 
+// Video didáctico del RIT generado con IA (2026-09-29)
+Route::get('/rit/{reglamento}/video-didactico', [\App\Http\Controllers\RitVideoDidacticoDescargaController::class, 'descargar'])
+    ->middleware(['auth'])
+    ->name('rit.video-didactico');
+
 // Rutas de Email Tracking
 Route::get('/email/track/{token}.gif', [EmailTrackingController::class, 'pixel'])
     ->name('email.tracking.pixel');

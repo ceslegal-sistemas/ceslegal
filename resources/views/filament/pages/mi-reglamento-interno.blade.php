@@ -238,6 +238,20 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
                   Generar organigrama
                 </button>
               @endif
+              {{-- "Segunda socialización" con video de IA (pedido del equipo,
+                   2026-09-28) - solo super_admin por ahora, mismo criterio de
+                   costo/cautela que las demás herramientas de este bloque. --}}
+              @if($reglamento?->generandoVideoDidactico())
+                <span class="rit-btn rit-btn-secondary" style="opacity:.7;cursor:default">
+                  <svg style="width:15px;height:15px;animation:rit-spin 1.2s linear infinite" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                  Generando video...
+                </span>
+              @else
+                <button wire:click="mountAction('generarVideoDidactico')" class="rit-btn rit-btn-secondary">
+                  <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z"/></svg>
+                  {{ $reglamento?->video_didactico_path ? 'Regenerar video didáctico' : 'Generar video didáctico' }}
+                </button>
+              @endif
             @endif
             {{-- Mismo botón que dispara la auditoría en rit-auditoria-panel.blade.php
                  (iniciarAuditoriaManual), aquí junto al resto de acciones del RIT.
@@ -445,6 +459,7 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
 
   @if($tiene)
     @include('filament.components.rit-temas-cubiertos', ['reglamento' => $reglamento])
+    @include('filament.components.rit-video-didactico', ['reglamento' => $reglamento])
   @endif
 
 </div>

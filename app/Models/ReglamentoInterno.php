@@ -32,6 +32,10 @@ class ReglamentoInterno extends Model
         'auditoria_origen_id',
         'reglamento_origen_id',
         'ruta_pdf',
+        'video_didactico_path',
+        'video_didactico_estado',
+        'video_didactico_error',
+        'video_didactico_generado_en',
         'progreso_generacion',
         'tipos_contrato',
         'temas_texto_hash',
@@ -48,6 +52,7 @@ class ReglamentoInterno extends Model
         'tipos_contrato'         => 'array',
         'dias_habiles'           => 'array',
         'temas_clasificados_en'  => 'datetime',
+        'video_didactico_generado_en' => 'datetime',
     ];
 
     public function empresa(): BelongsTo
@@ -89,6 +94,16 @@ class ReglamentoInterno extends Model
     public function tieneErrorGeneracion(): bool
     {
         return $this->estado_generacion === 'error';
+    }
+
+    public function generandoVideoDidactico(): bool
+    {
+        return $this->video_didactico_estado === 'generando';
+    }
+
+    public function tieneErrorVideoDidactico(): bool
+    {
+        return $this->video_didactico_estado === 'error';
     }
 
     /**
