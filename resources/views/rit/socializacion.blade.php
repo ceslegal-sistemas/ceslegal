@@ -43,7 +43,7 @@
     <script src="https://cdn.lordicon.com/lordicon.js"></script>
 </head>
 <body class="bg-gray-100 antialiased">
-    @livewire('socializacion-rit', ['empresa' => $empresa])
+    @livewire('socializacion-rit', ['empresa' => $empresa, 'token' => $token])
     <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
     @livewireScripts
 </body>

@@ -13,6 +13,9 @@ class SocializacionRit extends Component
 {
     public Empresa $empresa;
 
+    /** Token público de la empresa - se necesita aparte de $empresa para armar la URL firmada del video didáctico (rit.socializar.video). */
+    public string $token = '';
+
     public string $etapa = 'documento';
 
     public string $tipoDocumento = 'CC';
@@ -37,6 +40,7 @@ class SocializacionRit extends Component
     public array $cambiosRit = [];
     public string $ritActivoTextoCompleto = '';
     public array $temasRit = [];
+    public bool $tieneVideoDidactico = false;
 
     public array $quizPreguntas = [];
     public int $quizIndiceActual = 0;
@@ -68,9 +72,10 @@ class SocializacionRit extends Component
     public string $errorValidacionFotoAceptacion = '';
     public bool $validandoFotoAceptacion = false;
 
-    public function mount(Empresa $empresa): void
+    public function mount(Empresa $empresa, string $token = ''): void
     {
         $this->empresa = $empresa;
+        $this->token = $token;
 
         if (!$this->resolverRitActivo()) {
             $this->etapa = 'sin_rit';
@@ -303,6 +308,7 @@ class SocializacionRit extends Component
             ->first();
 
         $this->ritActivoTextoCompleto = (string) $ritActivo->texto_completo;
+        $this->tieneVideoDidactico = !empty($ritActivo->video_didactico_path);
         // Legal Design: nadie lee el reglamento completo en este paso - se
         // muestra, por cada tema clasificado, el resumen ESPECIFICO que la
         // IA ya genero sobre lo que ESTE RIT dice (ver

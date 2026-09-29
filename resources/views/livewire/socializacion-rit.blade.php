@@ -222,6 +222,21 @@
                             </details>
                         @endif
 
+                        {{-- Video didáctico "segunda socialización" (pedido del equipo,
+                             2026-09-28) - generado UNA sola vez por el admin desde "Mi
+                             Reglamento Interno" (App\Services\RitVideoDidacticoService),
+                             nunca por trabajador. Se sirve por una ruta pública propia
+                             (rit.socializar.video) autorizada por el mismo token de esta
+                             página, nunca por sesión. Opcional: si el admin no lo generó
+                             todavía, simplemente no aparece. --}}
+                        @if($tieneVideoDidactico)
+                            <div class="rounded-xl overflow-hidden border border-gray-200 bg-black">
+                                <video controls preload="metadata" style="width:100%;display:block">
+                                    <source src="{{ route('rit.socializar.video', ['token' => $token]) }}" type="video/mp4">
+                                </video>
+                            </div>
+                        @endif
+
                         <button type="button" wire:click="iniciarQuiz" wire:loading.attr="disabled" wire:target="iniciarQuiz"
                             class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl shadow-sm transition-colors">
                             Continuar

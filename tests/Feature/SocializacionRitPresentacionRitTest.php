@@ -130,4 +130,46 @@ class SocializacionRitPresentacionRitTest extends TestCase
             ->assertSet('esPrimeraAceptacion', false)
             ->assertSet('cambiosRit', fn ($cambios) => !empty($cambios));
     }
+
+    /**
+     * Video didáctico "segunda socialización" (2026-09-29) - solo debe
+     * mostrarse si el admin ya lo generó (video_didactico_path presente).
+     */
+    public function test_muestra_el_video_didactico_si_ya_fue_generado(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'video_didactico_path' => 'rit-videos/1/video.mp4',
+        ]);
+        $trabajador = Trabajador::create([
+            'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '131313131',
+            'genero' => 'masculino', 'nombres' => 'Con', 'apellidos' => 'Video', 'cargo' => 'X', 'active' => true,
+        ]);
+        $token = $empresa->tokenSocializacionRit();
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa, 'token' => $token])
+            ->set('trabajadorId', $trabajador->id)
+            ->call('guardarFotoSimple', $this->fotoBase64DePrueba())
+            ->assertSet('tieneVideoDidactico', true)
+            ->assertSee(route('rit.socializar.video', ['token' => $token]), false);
+    }
+
+    public function test_no_muestra_ningun_video_si_no_se_ha_generado(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        $trabajador = Trabajador::create([
+            'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '141414141',
+            'genero' => 'femenino', 'nombres' => 'Sin', 'apellidos' => 'Video', 'cargo' => 'X', 'active' => true,
+        ]);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('trabajadorId', $trabajador->id)
+            ->call('guardarFotoSimple', $this->fotoBase64DePrueba())
+            ->assertSet('tieneVideoDidactico', false)
+            ->assertDontSee('<video', false);
+    }
 }

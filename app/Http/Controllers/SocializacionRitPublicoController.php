@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Empresa;
+use App\Models\ReglamentoInterno;
+use Illuminate\Support\Facades\Storage;
+
 class SocializacionRitPublicoController extends Controller
 {
     /**
@@ -31,8 +35,39 @@ class SocializacionRitPublicoController extends Controller
         // con su propia sesion -> el submit del formulario falla siempre con
         // 419, y Livewire no muestra ningun aviso visible ante ese error.
         return response()
-            ->view('rit.socializacion', ['empresa' => $empresa])
+            ->view('rit.socializacion', ['empresa' => $empresa, 'token' => $token])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
             ->header('Pragma', 'no-cache');
+    }
+
+    /**
+     * Sirve el video didáctico del RIT ACTIVO de la empresa del token - misma
+     * autorización que mostrar() (poseer el token es la autorización real,
+     * no la sesión). Mismo withoutGlobalScope('bufeteOrEmpresa') que
+     * SocializacionRit::resolverRitActivo() - nunca usar
+     * $empresa->reglamentoInterno directamente aquí (Gotcha crítico #3).
+     */
+    public function video(string $token)
+    {
+        $empresa = Empresa::withoutGlobalScope('bufeteOrEmpresa')
+            ->where('token_socializacion_rit', $token)
+            ->first();
+
+        if (!$empresa) {
+            abort(404);
+        }
+
+        $rit = ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
+            ->where('empresa_id', $empresa->id)
+            ->where('activo', true)
+            ->latest('updated_at')
+            ->first();
+
+        abort_if(!$rit?->video_didactico_path, 404);
+
+        $ruta = Storage::disk('local')->path($rit->video_didactico_path);
+        abort_if(!file_exists($ruta), 404);
+
+        return response()->file($ruta, ['Content-Type' => 'video/mp4']);
     }
 }
