@@ -4,7 +4,6 @@
     $tieneError    = $reglamento && $reglamento->tieneErrorGeneracion();
     $tiene = $reglamento && !empty($reglamento->texto_completo) && !$estaGenerando && !$tieneError;
     $eIA   = in_array($reglamento?->fuente, ['construido_ia', 'mejora_ia']);
-    $fecha = $reglamento?->updated_at?->format('d/m/Y \a \l\a\s g:i A');
     $wizardUrl  = \App\Filament\Admin\Resources\ReglamentoInternoResource::getUrl('create');
     $esAdmin = auth()->user()?->hasRole('super_admin') || auth()->user()?->hasRole('abogado') || (auth()->user()?->esAbogadoDeBufete() ?? false);
     // Bufete sin empresa seleccionada: no puede subir/construir hasta elegir una.
@@ -135,6 +134,7 @@ html:not(.dark) .rit-dl-item{border-bottom-color:rgba(0,0,0,.06)}
 html:not(.dark) .rit-dl-label{color:#57534e}
 .rit-dl-value{font-size:.8125rem;font-weight:600;color:#e2e8f0;text-align:right}
 html:not(.dark) .rit-dl-value{color:#1c1917}
+.rit-viewer summary::-webkit-details-marker{display:none}
 </style>
 
 @if($necesitaSeleccion)
@@ -202,8 +202,13 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
         @elseif($tieneError)
           Ocurrió un error al generar el Reglamento Interno. Sus datos están guardados.
         @elseif($tiene)
+          {{-- La fecha que antes vivía aquí ("Actualizado el X") usaba
+               updated_at - mismo bug real que en la tarjeta de Detalles
+               (se movía con cualquier escritura al registro, no solo con
+               cambios de contenido). Se retiró en vez de solo corregirla:
+               "Generado" ya vive en la tarjeta "Detalles del Reglamento",
+               repetirlo aquí era información duplicada. --}}
           Reglamento Interno de Trabajo
-          @if($fecha) &nbsp;·&nbsp; Actualizado el {{ $fecha }} @endif
         @else
           No tiene un Reglamento Interno de Trabajo activo.
         @endif
@@ -428,17 +433,21 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
     @endif
     </div>
 
-    {{-- Encabezado "Texto del reglamento vigente" + contador de caracteres
-         RETIRADO (pedido del usuario, 2026-09-30) - el badge "Vigente" en
-         la tarjeta "Detalles del Reglamento" de arriba ya confirma que el
-         RIT está guardado (la razón original de ese encabezado, un cliente
-         que dudaba si se había guardado), y el conteo de caracteres se
-         movió a esa misma tarjeta para no repetir metadatos. --}}
-    <div class="rit-viewer">
+    {{-- Todo el bloque de texto del RIT (encabezado + el texto en sí) queda
+         COLAPSADO por defecto detrás de un <details> (pedido del usuario,
+         2026-09-30: "cuando dije 'Texto del reglamento vigente' me refería
+         a todo, incluyendo el texto del rit") - el badge "Vigente" y el
+         botón "Descargar Reglamento Interno" de arriba ya cubren "¿está
+         guardado?" y "quiero leerlo completo", así que mostrarlo siempre
+         desplegado era puro scroll sin aportar nada nuevo. --}}
+    <details class="rit-viewer">
+      <summary class="rit-viewer-header" style="cursor:pointer;list-style:none">
+        <span class="rit-viewer-label">Ver texto completo del Reglamento</span>
+      </summary>
       <div class="rit-viewer-body">
         <div class="rit-text">{!! preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '<strong>$1</strong>', nl2br(e($reglamento->texto_completo))) !!}</div>
       </div>
-    </div>
+    </details>
   @else
     <div class="rit-viewer">
       <div class="rit-empty">
