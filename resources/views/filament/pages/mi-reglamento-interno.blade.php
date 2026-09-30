@@ -428,18 +428,13 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
     @endif
     </div>
 
+    {{-- Encabezado "Texto del reglamento vigente" + contador de caracteres
+         RETIRADO (pedido del usuario, 2026-09-30) - el badge "Vigente" en
+         la tarjeta "Detalles del Reglamento" de arriba ya confirma que el
+         RIT está guardado (la razón original de ese encabezado, un cliente
+         que dudaba si se había guardado), y el conteo de caracteres se
+         movió a esa misma tarjeta para no repetir metadatos. --}}
     <div class="rit-viewer">
-      <div class="rit-viewer-header">
-        {{-- "vigente" deja claro que este texto YA está guardado, no es un
-             borrador pendiente - el jefe reportó que el cliente, tras subir
-             el RIT, dudaba si de verdad había quedado guardado porque lo
-             único que veía después era este visor sin ninguna palabra que
-             lo confirmara. --}}
-        <span class="rit-viewer-label">Texto del reglamento vigente</span>
-        <span style="font-size:.75rem;color:#64748b">
-          {{ number_format(strlen($reglamento->texto_completo)) }} caracteres
-        </span>
-      </div>
       <div class="rit-viewer-body">
         <div class="rit-text">{!! preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '<strong>$1</strong>', nl2br(e($reglamento->texto_completo))) !!}</div>
       </div>

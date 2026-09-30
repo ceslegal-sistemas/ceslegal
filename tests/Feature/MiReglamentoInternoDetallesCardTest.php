@@ -44,4 +44,43 @@ class MiReglamentoInternoDetallesCardTest extends TestCase
         $this->assertStringNotContainsString('fecha_publicacion_socializacion', $fuente);
         $this->assertStringNotContainsString('fechaLimiteObjecion', $fuente);
     }
+
+    public function test_muestra_el_conteo_de_caracteres(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia',
+            'texto_completo' => str_repeat('a', 1234),
+        ]);
+        $user = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresa->id, 'active' => true]);
+
+        Livewire::actingAs($user)->test(MiReglamentoInterno::class)
+            ->assertSee('Caracteres')
+            ->assertSee('1,234');
+    }
+
+    /**
+     * Bug real reportado por el usuario (2026-09-30): "Actualizado" usaba
+     * updated_at, que se mueve con CUALQUIER escritura al registro (generar
+     * video, declarar fecha de publicación, etc.), no solo cuando cambia el
+     * texto - mostraba una fecha reciente engañosa. Debe usar created_at,
+     * que nunca cambia después de crearse la versión.
+     */
+    public function test_usa_created_at_no_updated_at_para_la_fecha_de_generacion(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+        ]);
+        $rit->forceFill(['created_at' => '2026-01-15 09:00:00'])->save();
+
+        // Simula una escritura NO relacionada con el contenido (ej. generar
+        // el video didáctico) que mueve updated_at hacia el futuro.
+        $rit->forceFill(['updated_at' => now()])->save();
+
+        $user = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresa->id, 'active' => true]);
+
+        Livewire::actingAs($user)->test(MiReglamentoInterno::class)
+            ->assertSee('15/01/2026');
+    }
 }

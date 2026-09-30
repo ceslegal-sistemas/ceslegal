@@ -94,6 +94,17 @@ class RitVideoDidacticoService
      * de logo y de no mostrar texto en pantalla se repite en TODOS los
      * capítulos porque cada uno es una petición nueva a Gemini.
      */
+    /**
+     * Prompt reforzado (2026-09-30): en producción, algunos capítulos SÍ
+     * mostraron subtítulos con letras deformadas pese a la instrucción
+     * original, y el logo no siempre se mantuvo idéntico entre capítulos -
+     * el usuario exigió que esto no vuelva a pasar "por nada en el mundo".
+     * Gemini no garantiza obediencia perfecta a ninguna instrucción de
+     * prompt (esto sigue siendo un modelo generativo probabilístico, no
+     * hay forma de "forzar" el resultado al 100%), pero se repite la
+     * prohibición en varias formas explícitas para maximizar la
+     * probabilidad de cumplimiento.
+     */
     private function promptCapitulo(?Empresa $empresa, string $contenido, bool $esPrimero, bool $conLogo): string
     {
         $prompt = $esPrimero
@@ -101,12 +112,13 @@ class RitVideoDidacticoService
             : "Video didáctico y profesional en español, uno de varios capítulos cortos que explican el Reglamento Interno de Trabajo de la empresa \"{$empresa?->nombre_completo}\". ";
 
         $prompt .= "Un presentador habla directamente a cámara, con tono cercano y claro, sin lenguaje jurídico complicado. "
-            . "No muestres texto, viñetas ni subtítulos escritos en pantalla en ningún momento del video - solo narración hablada. "
+            . "PROHIBIDO POR COMPLETO: no muestres NINGÚN texto, palabra, letra, número, viñeta, subtítulo, caption ni rótulo escrito en pantalla en NINGÚN momento del video, bajo ninguna circunstancia - ni siquiera fragmentos, ni siquiera borrosos. "
+            . "El video debe ser 100% imagen del presentador hablando, SOLO narración hablada, cero texto en pantalla. "
             . "Explica en voz este punto:\n{$contenido}\n"
             . "Narración en español neutro colombiano. No incluya música con derechos de autor reconocibles.";
 
         if ($conLogo) {
-            $prompt = "El video muestra el logo de la empresa <IMAGE_REF_0> discretamente en una esquina durante todo el clip. " . $prompt;
+            $prompt = "El video muestra el logo de la empresa <IMAGE_REF_0> en una esquina fija durante todo el clip, EXACTAMENTE igual a la imagen de referencia - mismo tamaño, misma posición, mismos colores, sin ninguna variación, distorsión ni animación del logo. " . $prompt;
         }
 
         return $prompt;

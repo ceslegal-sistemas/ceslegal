@@ -51,7 +51,10 @@ class MiReglamentoInternoBotonCompartirTest extends TestCase
         $fuente = file_get_contents(resource_path('views/filament/pages/mi-reglamento-interno.blade.php'));
 
         $posicionBanner = strpos($fuente, "@include('filament.components.rit-compartir-banner'");
-        $posicionAncla = strpos($fuente, 'Texto del reglamento vigente');
+        // El encabezado "Texto del reglamento vigente" se retiró (2026-09-30)
+        // - class="rit-text" es el ancla estable del bloque que renderiza el
+        // texto del RIT, con o sin encabezado.
+        $posicionAncla = strpos($fuente, 'class="rit-text"');
 
         $this->assertNotFalse($posicionBanner, 'No se encontró el include del banner de compartir.');
         $this->assertNotFalse($posicionAncla, 'No se encontró el ancla esperada en el archivo.');

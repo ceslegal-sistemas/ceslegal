@@ -10,8 +10,9 @@
     Deliberadamente NO repite fecha de publicación/plazo de objeción (ya
     viven en rit-compartir-banner y en la barra de progreso) - esta
     tarjeta se enfoca en metadatos que hoy no se muestran en ningún otro
-    lado (fuente, versión, última actualización), para no triplicar la
-    misma información en una sola pantalla.
+    lado (fuente, versión, fecha de generación, caracteres - este último
+    movido aquí 2026-09-30 desde el encabezado del visor de texto, que se
+    retiró), para no triplicar la misma información en una sola pantalla.
 
     Recibe: $reglamento (App\Models\ReglamentoInterno).
 --}}
@@ -37,9 +38,22 @@
             <span class="rit-dl-label">Versión</span>
             <span class="rit-dl-value">{{ $reglamento?->version ?? 1 }}</span>
         </div>
+        {{-- created_at, NO updated_at (bug real reportado por el usuario,
+             2026-09-30): updated_at se actualiza con CUALQUIER escritura al
+             registro (generar el video, declarar la fecha de publicación,
+             extraer sanciones...), no solo cuando cambia el texto del
+             Reglamento - mostraba "Actualizado hace unos minutos" aunque el
+             cliente no hubiera tocado el RIT. created_at es estable: refleja
+             cuándo se generó ESTA versión y nunca cambia después. --}}
         <div class="rit-dl-item">
-            <span class="rit-dl-label">Actualizado</span>
-            <span class="rit-dl-value">{{ $reglamento?->updated_at?->format('d/m/Y g:i A') }}</span>
+            <span class="rit-dl-label">Generado</span>
+            <span class="rit-dl-value">{{ $reglamento?->created_at?->format('d/m/Y g:i A') }}</span>
         </div>
+        @if($reglamento?->texto_completo)
+            <div class="rit-dl-item">
+                <span class="rit-dl-label">Caracteres</span>
+                <span class="rit-dl-value">{{ number_format(strlen($reglamento->texto_completo)) }}</span>
+            </div>
+        @endif
     </div>
 </div>
