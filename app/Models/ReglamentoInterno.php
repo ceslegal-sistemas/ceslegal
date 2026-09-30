@@ -19,6 +19,7 @@ class ReglamentoInterno extends Model
         'texto_completo',
         'ruta_docx',
         'activo',
+        'fecha_publicacion_socializacion',
         'respuestas_cuestionario',
         'fuente',
         'dias_laborales',
@@ -45,6 +46,7 @@ class ReglamentoInterno extends Model
 
     protected $casts = [
         'activo'                 => 'boolean',
+        'fecha_publicacion_socializacion' => 'date',
         'respuestas_cuestionario' => 'array',
         'sanciones_extraidas'    => 'array',
         'conductas_sancionables' => 'array',
@@ -132,5 +134,29 @@ class ReglamentoInterno extends Model
         SugerenciaActualizacionRit::whereIn('reglamento_interno_id', $idsActivos)
             ->where('estado', 'pendiente')
             ->update(['estado' => 'rechazada', 'resuelto_por' => null, 'resuelto_en' => now()]);
+    }
+
+    /**
+     * Fecha límite (15 días hábiles desde la fecha de publicación declarada
+     * por el cliente) para que un trabajador objete el Reglamento - pedido
+     * del equipo en la reunión (2026-09-29): la empresa puede tardar días en
+     * publicar físicamente el Reglamento (carteleras), así que el conteo
+     * legal arranca desde ESA fecha, no desde que el sistema lo generó.
+     * Reusa TerminoLegalService::calcularFechaVencimiento() (mismo cálculo
+     * de días hábiles ya usado para el plazo de impugnación de sanciones),
+     * pero solo como cálculo en vivo - no crea un registro de TerminoLegal
+     * (ese sistema es para procesos disciplinarios/contratos, no aplica aquí).
+     */
+    public function fechaLimiteObjecion(): ?\Carbon\Carbon
+    {
+        if (! $this->fecha_publicacion_socializacion) {
+            return null;
+        }
+
+        return app(\App\Services\TerminoLegalService::class)->calcularFechaVencimiento(
+            \Carbon\Carbon::parse($this->fecha_publicacion_socializacion),
+            15,
+            $this->empresa ? $this->empresa->diasHabilesSet() : false,
+        );
     }
 }

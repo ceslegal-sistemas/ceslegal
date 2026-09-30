@@ -12,6 +12,7 @@ use App\Services\RitActualizacionAutomaticaService;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -541,6 +542,117 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                     ->body('Puede tardar varios minutos. Le notificaremos cuando esté listo.')
                     ->send();
             });
+    }
+
+    /**
+     * Declarar la "fecha de publicación" del Reglamento (pedido del equipo,
+     * 2026-09-29): la empresa puede tardar días en publicar físicamente el
+     * Reglamento (carteleras) después de generarlo en el sistema, así que
+     * los 15 días hábiles para objetar deben contarse desde ESA fecha, no
+     * desde la fecha de creación. Cita literal de la reunión: "hay que
+     * ponerle un disclaimer, un mensaje que diga recuerde que el sistema va
+     * a contar los 15 días..." - la responsabilidad de que la fecha sea
+     * correcta es del funcionario de la empresa que la declara.
+     */
+    public function declararFechaPublicacionAction(): Action
+    {
+        return Action::make('declararFechaPublicacion')
+            ->label(fn () => $this->reglamento?->fecha_publicacion_socializacion
+                ? 'Cambiar fecha de publicación'
+                : 'Declarar fecha de publicación')
+            ->icon('heroicon-o-calendar-days')
+            ->color('gray')
+            ->visible(fn () => $this->reglamento && !empty($this->reglamento->texto_completo))
+            ->modalHeading('Fecha de publicación del Reglamento Interno')
+            ->modalDescription('Es la fecha en que el Reglamento quedó realmente disponible para sus trabajadores (ej. el día que se publicaron las carteleras físicas), no necesariamente el día que lo generó en este sistema. A partir de esta fecha el sistema cuenta los 15 días hábiles que tienen sus trabajadores para objetarlo. La responsabilidad de que esta fecha sea correcta es suya.')
+            ->modalSubmitActionLabel('Guardar fecha')
+            ->form([
+                DatePicker::make('fecha_publicacion_socializacion')
+                    ->label('Fecha de publicación')
+                    ->native(false)
+                    ->minDate(now())
+                    ->default(fn () => $this->reglamento?->fecha_publicacion_socializacion)
+                    ->required(),
+            ])
+            ->action(function (array $data): void {
+                if (!$this->reglamento) {
+                    return;
+                }
+
+                $this->reglamento->update(['fecha_publicacion_socializacion' => $data['fecha_publicacion_socializacion']]);
+                $this->reglamento = $this->reglamento->fresh();
+
+                Notification::make()
+                    ->success()
+                    ->title('Fecha de publicación guardada')
+                    ->body('Los 15 días hábiles para objetar el Reglamento se cuentan desde esta fecha.')
+                    ->send();
+            });
+    }
+
+    /**
+     * Detalle por trabajador de quién aceptó el RIT VIGENTE y quién no
+     * (pedido de Andrés Sarmiento, 2026-09-29: la barra de progreso
+     * "X de Y trabajadores han aceptado" necesitaba un desglose, no solo el
+     * conteo). Compara por HASH del texto vigente, igual que
+     * Trabajador::aceptoRitVigente(), para que un trabajador que aceptó una
+     * versión ya reemplazada aparezca correctamente como "pendiente".
+     *
+     * @return array<int, array{nombre: string, cargo: ?string, acepto: bool, fecha_aceptacion: ?\Carbon\Carbon}>
+     */
+    public function detalleTrabajadoresSocializacion(): array
+    {
+        if (!$this->empresa || !$this->reglamento || empty($this->reglamento->texto_completo)) {
+            return [];
+        }
+
+        $hashVigente = hash('sha256', $this->reglamento->texto_completo);
+
+        return $this->empresa->trabajadores()
+            ->where('active', true)
+            ->get()
+            ->map(function (\App\Models\Trabajador $trabajador) use ($hashVigente) {
+                $aceptacion = $trabajador->aceptacionesReglamentoInterno()
+                    ->where('texto_rit_hash', $hashVigente)
+                    ->latest('aceptado_en')
+                    ->first();
+
+                return [
+                    'nombre' => $trabajador->nombre_completo,
+                    'cargo' => $trabajador->cargo,
+                    'acepto' => (bool) $aceptacion,
+                    'fecha_aceptacion' => $aceptacion?->aceptado_en,
+                ];
+            })
+            ->sortBy('acepto')
+            ->values()
+            ->all();
+    }
+
+    /** Modal con el reporte completo de socialización (mismo detalle que el desplegable inline, sin recortar). */
+    public function verReporteSocializacionAction(): Action
+    {
+        return Action::make('verReporteSocializacion')
+            ->label('Ver reporte completo')
+            ->icon('heroicon-o-clipboard-document-list')
+            ->color('gray')
+            ->visible(fn () => $this->estadoSocializacionRitParaVista()['total'] > 0)
+            ->modalHeading('Reporte de socialización del Reglamento Interno')
+            ->modalContent(fn () => view('filament.components.rit-reporte-socializacion-modal', [
+                'detalle' => $this->detalleTrabajadoresSocializacion(),
+            ]))
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Cerrar');
+    }
+
+    /** Mismo estado que usa la vista para la barra de progreso - evita duplicar la consulta al servicio de logros. */
+    public function estadoSocializacionRitParaVista(): array
+    {
+        if (!$this->empresa) {
+            return ['aceptados' => 0, 'total' => 0, 'porcentaje' => 0, 'completo' => false];
+        }
+
+        return app(\App\Services\LogroSocializacionRitService::class)->estadoDashboard($this->empresa);
     }
 
     /** Abre el modal para subir un RIT manualmente. */

@@ -212,6 +212,17 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
             <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
             Subir RIT
           </button>
+          {{-- Fecha de publicación (pedido del equipo, 2026-09-29): dispara el
+               conteo de los 15 días hábiles para objetar - disponible para
+               cualquier rol que administre el Reglamento, no solo super_admin,
+               porque quien la declara es "el funcionario de Recursos Humanos"
+               de la empresa cliente. --}}
+          @if($tiene && !empty($reglamento?->texto_completo))
+            <button wire:click="mountAction('declararFechaPublicacion')" class="rit-btn rit-btn-secondary">
+              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V11.25A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+              {{ $reglamento?->fecha_publicacion_socializacion ? 'Cambiar fecha de publicación' : 'Declarar fecha de publicación' }}
+            </button>
+          @endif
           @if($tiene)
             {{-- Ambos botones son herramientas internas de soporte, no pasos que el
                  cliente/bufete deba hacer: la extracción de sanciones ya corre sola
@@ -351,6 +362,44 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
           </p>
           <div style="margin-top:.5rem;height:8px;border-radius:999px;background:rgba(148,163,184,.2);overflow:hidden;position:relative;z-index:2">
             <div style="height:100%;border-radius:999px;background:linear-gradient(90deg,#22c55e,#86efac);width:{{ max(4, $estadoSocializacionRit['porcentaje']) }}%"></div>
+          </div>
+
+          {{-- Fecha de publicación: ancla legal de los 15 días hábiles para
+               objetar el Reglamento (pedido del equipo, 2026-09-29). --}}
+          @if($reglamento?->fecha_publicacion_socializacion)
+            <p style="margin:.5rem 0 0;font-size:.75rem;color:#57534e">
+              Publicado el {{ $reglamento->fecha_publicacion_socializacion->format('d/m/Y') }} ·
+              los trabajadores tienen hasta el {{ $reglamento->fechaLimiteObjecion()?->format('d/m/Y') }} para objetarlo (15 días hábiles)
+            </p>
+          @else
+            <p style="margin:.5rem 0 0;font-size:.75rem;color:#b45309">
+              Aún no ha declarado la fecha de publicación - sin ella no se puede contar el plazo legal de objeción.
+            </p>
+          @endif
+
+          {{-- Desplegable con el detalle por trabajador (pedido de Andrés
+               Sarmiento, 2026-09-29): la barra sola no bastaba, quería ver
+               quién específicamente falta por aceptar. --}}
+          <div x-data="{ abierto: false }" style="margin-top:.65rem">
+            <button type="button" x-on:click="abierto = !abierto" style="display:flex;align-items:center;gap:.35rem;font-size:.75rem;font-weight:600;color:#57534e;background:none;border:none;cursor:pointer;padding:0">
+              <span x-text="abierto ? 'Ocultar detalle' : 'Ver detalle'"></span>
+              <svg x-bind:style="{ transform: abierto ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .15s' }" style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+            </button>
+            <div x-show="abierto" x-cloak style="margin-top:.5rem;display:flex;flex-direction:column;gap:.4rem;max-height:220px;overflow-y:auto">
+              @foreach(array_slice($this->detalleTrabajadoresSocializacion(), 0, 5) as $fila)
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;font-size:.75rem">
+                  <span style="color:#44403c">{{ $fila['nombre'] }}</span>
+                  @if($fila['acepto'])
+                    <span style="font-weight:600;color:#166534">Aceptó</span>
+                  @else
+                    <span style="font-weight:600;color:#854d0e">Pendiente</span>
+                  @endif
+                </div>
+              @endforeach
+              <button type="button" wire:click="mountAction('verReporteSocializacion')" style="text-align:left;font-size:.75rem;font-weight:600;color:#be123c;background:none;border:none;cursor:pointer;padding:.25rem 0">
+                Ver reporte completo →
+              </button>
+            </div>
           </div>
         </div>
       </div>
