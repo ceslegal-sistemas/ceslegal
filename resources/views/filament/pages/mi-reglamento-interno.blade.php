@@ -79,7 +79,7 @@ html:not(.dark) .rit-viewer-header{background:rgba(0,0,0,.03);border-bottom-colo
 .rit-viewer-label{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
 .rit-viewer-body{max-height:65vh;overflow-y:auto;padding:1.5rem 1.75rem;background:rgba(0,0,0,.15)}
 html:not(.dark) .rit-viewer-body{background:#fafafa}
-.rit-text{white-space:normal;font-family:'Georgia','Times New Roman',serif;font-size:.875rem;line-height:1.9;color:#cbd5e1;word-break:break-word}
+.rit-text{white-space:normal;font-family:'Georgia','Times New Roman',serif;font-size:.875rem;line-height:1.9;color:#cbd5e1;word-break:break-word;max-width:760px}
 html:not(.dark) .rit-text{color:#292524}
 .rit-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3.5rem 2rem;text-align:center}
 .rit-empty-icon{width:56px;height:56px;border-radius:50%;background:rgba(251,113,133,.12);border:1.5px solid rgba(251,113,133,.25);display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
@@ -149,7 +149,7 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
   </div>
 @else
 
-<div style="display:flex;flex-direction:column;gap:1.25rem;max-width:900px;margin:0 auto">
+<div style="display:flex;flex-direction:column;gap:1.25rem;max-width:1200px;margin:0 auto">
 
   {{-- ── HERO + DETALLES (2 columnas cuando hay RIT, pedido del usuario
        2026-09-30: "a un lado de Generado con IA... viéndose como dos
