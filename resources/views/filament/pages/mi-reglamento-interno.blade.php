@@ -115,6 +115,17 @@ html:not(.dark) .rit-viewer-sugerencia .rit-sug-header{background:rgba(225,29,72
 .rit-viewer-sugerencia .rit-sug-header svg{width:20px !important;height:20px !important}
 .rit-viewer-sugerencia .rit-viewer-label{font-size:.875rem;font-weight:700;letter-spacing:.01em;text-transform:none;color:#fda4af}
 html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
+
+/* Filas etiqueta/valor estilo "Detalles de..." de hPanel (pedido del
+   usuario, 2026-09-30) - reusa el shell .rit-viewer de arriba, solo el
+   contenido interno es nuevo. */
+.rit-dl-item{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.85rem 1.125rem;border-bottom:1px solid rgba(255,255,255,.06)}
+html:not(.dark) .rit-dl-item{border-bottom-color:rgba(0,0,0,.06)}
+.rit-dl-item:last-child{border-bottom:none}
+.rit-dl-label{font-size:.8125rem;color:#94a3b8}
+html:not(.dark) .rit-dl-label{color:#57534e}
+.rit-dl-value{font-size:.8125rem;font-weight:600;color:#e2e8f0;text-align:right}
+html:not(.dark) .rit-dl-value{color:#1c1917}
 </style>
 
 @if($necesitaSeleccion)
@@ -393,6 +404,8 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
         </div>
       </div>
     @endif
+
+    @include('filament.components.rit-detalles-card', ['reglamento' => $reglamento])
 
     <div class="rit-viewer">
       <div class="rit-viewer-header">
