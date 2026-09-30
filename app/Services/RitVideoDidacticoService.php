@@ -28,13 +28,15 @@ class RitVideoDidacticoService
     /**
      * Un solo generateContent de Gemini Omni produce un clip de ~10s. La API
      * permite extenderlo con llamadas adicionales de "extend"
-     * (previous_interaction_id) hasta un total de ~40s (documentado por
-     * Google) - 1 clip inicial + 3 extensiones, cada una cubriendo UN punto
-     * (cambio o tema) del reglamento. Pedido explícito del usuario
-     * (2026-09-29, tras confirmar que el costo real es bajo): usar el video
-     * completo encadenado en vez de un solo clip con 2-3 viñetas.
+     * (previous_interaction_id), cada una cubriendo UN punto (cambio o tema)
+     * del reglamento. Subido de 4 a 8 (2026-09-29) tras ver el primer video
+     * real: con solo 4 temas el video se sentía incompleto frente a los hasta
+     * 27 temas normativos que puede tener un RIT (ver
+     * rit-taxonomia-temas-implementada). 8 duplica la cobertura (~80s de
+     * contenido + despedida) sin acercarse al costo de cubrir el reglamento
+     * completo.
      */
-    private const MAX_SEGMENTOS = 4;
+    private const MAX_SEGMENTOS = 8;
 
     /**
      * @param array $cambios Diff de RitDiffService::compararDocumentos() (opcional) -
@@ -67,6 +69,11 @@ class RitVideoDidacticoService
         foreach (array_slice($segmentos, 1) as $segmento) {
             [$interactionId, $videoBase64] = $this->extenderInteraccion($interactionId, $this->promptExtension($segmento));
         }
+
+        // Cierre pedido por el usuario tras ver el primer video real
+        // (2026-09-29): agradecimiento y despedida breve, siempre al final,
+        // sin importar el modo (cambios o temas).
+        [$interactionId, $videoBase64] = $this->extenderInteraccion($interactionId, $this->promptDespedida($empresa));
 
         $ruta = "rit-videos/{$rit->empresa_id}/video_{$rit->id}_" . Str::random(8) . '.mp4';
         Storage::disk('local')->put($ruta, base64_decode($videoBase64));
@@ -109,6 +116,13 @@ class RitVideoDidacticoService
             . "explicando en voz (sin mostrar texto, viñetas ni subtítulos escritos en pantalla) "
             . "este siguiente punto del reglamento:\n{$segmento}\n"
             . 'Transición suave, sin corte abrupto de escena.';
+    }
+
+    private function promptDespedida(?Empresa $empresa): string
+    {
+        return "Continúa el video: el mismo presentador cierra agradeciendo brevemente al trabajador de "
+            . "\"{$empresa?->nombre_completo}\" por conocer su Reglamento Interno, y se despide. "
+            . 'Sin texto en pantalla, solo voz. Transición suave.';
     }
 
     /** @return array<int, string> Hasta MAX_SEGMENTOS viñetas, una por tema. */

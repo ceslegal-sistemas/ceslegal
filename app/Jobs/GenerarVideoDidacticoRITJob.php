@@ -20,13 +20,19 @@ class GenerarVideoDidacticoRITJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * El video completo encadena hasta 4 llamadas a Gemini (1 clip inicial +
-     * hasta 3 "extend", ~40s totales) - cada una puede tardar hasta 300s
-     * (ver RitVideoDidacticoService::llamarGemini() - 180s no alcanzó en
+     * El video completo encadena hasta 9 llamadas a Gemini (1 clip inicial +
+     * hasta 7 "extend" de contenido + 1 despedida final, ~90s totales de
+     * video, subido de 4 a 8 segmentos el 2026-09-29 tras ver que 4 se
+     * sentía incompleto) - cada llamada puede tardar hasta 300s (ver
+     * RitVideoDidacticoService::llamarGemini() - 180s no alcanzó en
      * producción, confirmado 2026-09-29 con cURL error 28), así que el
-     * timeout debe cubrir el peor caso de las 4 en serie con margen.
+     * timeout debe cubrir el peor caso de las 9 en serie con margen.
+     * IMPORTANTE: el wrapper `timeout` del cron/queue worker en producción
+     * (Hostinger) debe cubrir este mismo valor con margen también - un
+     * timeout externo más corto mata el proceso antes de que Laravel llegue
+     * a marcarlo como fallido.
      */
-    public int $timeout = 1500;
+    public int $timeout = 3000;
 
     /** Sin reintentos automáticos: cada intento fallido consume tokens de video igual que uno exitoso. */
     public int $tries = 1;
