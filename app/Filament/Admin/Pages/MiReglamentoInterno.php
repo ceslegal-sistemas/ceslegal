@@ -490,7 +490,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
     public function generarVideoDidacticoAction(): Action
     {
         return Action::make('generarVideoDidactico')
-            ->label(fn () => $this->reglamento?->video_didactico_path ? 'Regenerar video didáctico' : 'Generar video didáctico')
+            ->label(fn () => $this->reglamento?->tieneVideoDidactico() ? 'Regenerar video didáctico' : 'Generar video didáctico')
             ->icon('heroicon-o-video-camera')
             ->color('primary')
             ->visible(fn () => $this->reglamento
@@ -499,7 +499,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                 && (Auth::user()?->hasRole('super_admin') ?? false))
             ->requiresConfirmation()
             ->modalHeading('Generar video didáctico del Reglamento')
-            ->modalDescription('La IA genera un video corto explicando en lenguaje sencillo los puntos clave del Reglamento (incluye el logo de la empresa si ya lo cargó). Este proceso tarda varios minutos y tiene un costo real de IA - úselo con moderación mientras se confirma el costo por video.')
+            ->modalDescription('La IA genera un capítulo de video corto por cada tema clasificado del Reglamento (incluye el logo de la empresa en cada uno, si ya lo cargó). El proceso puede tardar varios minutos y su costo escala con el número de temas - úselo con moderación mientras se confirma el costo real por video.')
             ->modalSubmitActionLabel('Generar')
             ->action(function (): void {
                 if (!$this->reglamento) {

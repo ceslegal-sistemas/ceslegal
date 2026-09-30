@@ -39,7 +39,7 @@ class SocializacionRitPresentacionRitTest extends TestCase
             'genero' => 'masculino', 'nombres' => 'Nuevo', 'apellidos' => 'Trabajador', 'cargo' => 'X', 'active' => true,
         ]);
 
-        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa, 'token' => $empresa->tokenSocializacionRit()])
             ->set('trabajadorId', $trabajador->id)
             ->call('guardarFotoSimple', $this->fotoBase64DePrueba())
             ->assertSet('etapa', 'presentacion_rit')
@@ -64,7 +64,7 @@ class SocializacionRitPresentacionRitTest extends TestCase
             'genero' => 'masculino', 'nombres' => 'Con', 'apellidos' => 'Temas', 'cargo' => 'X', 'active' => true,
         ]);
 
-        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa, 'token' => $empresa->tokenSocializacionRit()])
             ->set('trabajadorId', $trabajador->id)
             ->call('guardarFotoSimple', $this->fotoBase64DePrueba())
             ->assertSee('Jornada laboral')
@@ -85,7 +85,7 @@ class SocializacionRitPresentacionRitTest extends TestCase
             'trabajador_id' => $trabajador->id, 'reglamento_interno_id' => $ritViejo->id, 'aceptado_en' => now()->subMonth(),
         ]);
 
-        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa, 'token' => $empresa->tokenSocializacionRit()])
             ->set('trabajadorId', $trabajador->id)
             ->call('guardarFotoSimple', $this->fotoBase64DePrueba())
             ->assertSet('etapa', 'presentacion_rit')
@@ -123,7 +123,7 @@ class SocializacionRitPresentacionRitTest extends TestCase
         $this->actingAs($usuarioBufete);
         \App\Support\EmpresaActiva::set($otraEmpresa->id);
 
-        Livewire::test(SocializacionRit::class, ['empresa' => $empresaDelToken])
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresaDelToken, 'token' => $empresaDelToken->tokenSocializacionRit()])
             ->set('trabajadorId', $trabajador->id)
             ->call('guardarFotoSimple', $this->fotoBase64DePrueba())
             ->assertSet('etapa', 'presentacion_rit')
@@ -152,8 +152,12 @@ class SocializacionRitPresentacionRitTest extends TestCase
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa, 'token' => $token])
             ->set('trabajadorId', $trabajador->id)
             ->call('guardarFotoSimple', $this->fotoBase64DePrueba())
-            ->assertSet('tieneVideoDidactico', true)
-            ->assertSee(route('rit.socializar.video', ['token' => $token]), false);
+            // La URL del video vive dentro de un x-data de Alpine (Js::from()),
+            // que escapa las barras como "\/" - se verifica el token (sin
+            // barras, no se ve afectado por el escape) en vez de la URL
+            // completa sin escapar.
+            ->assertSet('capitulosVideoDidactico', ['Reglamento Interno'])
+            ->assertSee($token, false);
     }
 
     public function test_no_muestra_ningun_video_si_no_se_ha_generado(): void
@@ -166,10 +170,10 @@ class SocializacionRitPresentacionRitTest extends TestCase
             'genero' => 'femenino', 'nombres' => 'Sin', 'apellidos' => 'Video', 'cargo' => 'X', 'active' => true,
         ]);
 
-        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa, 'token' => $empresa->tokenSocializacionRit()])
             ->set('trabajadorId', $trabajador->id)
             ->call('guardarFotoSimple', $this->fotoBase64DePrueba())
-            ->assertSet('tieneVideoDidactico', false)
+            ->assertSet('capitulosVideoDidactico', [])
             ->assertDontSee('<video', false);
     }
 }

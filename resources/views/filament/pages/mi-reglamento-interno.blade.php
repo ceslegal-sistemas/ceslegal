@@ -32,6 +32,10 @@
 @endif
 
 <style>
+/* Hero + tarjeta de detalles en 2 columnas (pedido del usuario, 2026-09-30) -
+   se apilan en 1 columna en pantallas angostas. */
+.rit-top-grid{display:grid;grid-template-columns:1fr;gap:1.25rem;align-items:start}
+@media(min-width:768px){.rit-top-grid{grid-template-columns:1.7fr 1fr}}
 .rit-hero{position:relative;overflow:hidden;border-radius:1.25rem;padding:2rem 1.75rem;background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%)}
 html:not(.dark) .rit-hero{background:#fff;border:1px solid rgba(0,0,0,.07);box-shadow:0 4px 28px rgba(0,0,0,.08)}
 .rit-orb-b{position:absolute;width:280px;height:280px;top:-80px;right:-60px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.45),transparent 70%);filter:blur(28px);pointer-events:none;animation:rit-fb 14s ease-in-out infinite}
@@ -147,7 +151,12 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
 
 <div style="display:flex;flex-direction:column;gap:1.25rem;max-width:900px;margin:0 auto">
 
-  {{-- ── HERO ── --}}
+  {{-- ── HERO + DETALLES (2 columnas cuando hay RIT, pedido del usuario
+       2026-09-30: "a un lado de Generado con IA... viéndose como dos
+       columnas, no solo una" - inspirado en el layout de hPanel de
+       Hostinger, que pone la tarjeta principal junto a tarjetas de detalle
+       en vez de apilar todo verticalmente) ── --}}
+  <div class="{{ $tiene ? 'rit-top-grid' : '' }}">
   <div class="rit-hero">
     <div class="rit-orb-b"></div>
     <div class="rit-orb-g"></div>
@@ -260,7 +269,7 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
               @else
                 <button wire:click="mountAction('generarVideoDidactico')" class="rit-btn rit-btn-secondary">
                   <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z"/></svg>
-                  {{ $reglamento?->video_didactico_path ? 'Regenerar video didáctico' : 'Generar video didáctico' }}
+                  {{ $reglamento?->tieneVideoDidactico() ? 'Regenerar video didáctico' : 'Generar video didáctico' }}
                 </button>
               @endif
             @endif
@@ -283,6 +292,10 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
       </div>
 
     </div>
+  </div>
+  @if($tiene)
+    @include('filament.components.rit-detalles-card', ['reglamento' => $reglamento])
+  @endif
   </div>
 
   {{-- ── GENERANDO: shimmer ── --}}
@@ -404,8 +417,6 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
         </div>
       </div>
     @endif
-
-    @include('filament.components.rit-detalles-card', ['reglamento' => $reglamento])
 
     <div class="rit-viewer">
       <div class="rit-viewer-header">

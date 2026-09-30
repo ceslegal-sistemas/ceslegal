@@ -40,7 +40,15 @@ class SocializacionRit extends Component
     public array $cambiosRit = [];
     public string $ritActivoTextoCompleto = '';
     public array $temasRit = [];
-    public bool $tieneVideoDidactico = false;
+    /**
+     * Títulos de los capítulos del video didáctico, en orden (rediseño
+     * 2026-09-30: cada tema/cambio es un clip independiente, no un solo
+     * video) - vacío si el admin todavía no lo generó. Ver
+     * ReglamentoInterno::capitulosVideoDidactico().
+     *
+     * @var array<int, string>
+     */
+    public array $capitulosVideoDidactico = [];
 
     public array $quizPreguntas = [];
     public int $quizIndiceActual = 0;
@@ -314,7 +322,7 @@ class SocializacionRit extends Component
             ->first();
 
         $this->ritActivoTextoCompleto = (string) $ritActivo->texto_completo;
-        $this->tieneVideoDidactico = !empty($ritActivo->video_didactico_path);
+        $this->capitulosVideoDidactico = array_column($ritActivo->capitulosVideoDidactico(), 'titulo');
         // Legal Design: nadie lee el reglamento completo en este paso - se
         // muestra, por cada tema clasificado, el resumen ESPECIFICO que la
         // IA ya genero sobre lo que ESTE RIT dice (ver

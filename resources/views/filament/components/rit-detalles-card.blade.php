@@ -23,7 +23,7 @@
         default => '—',
     };
 @endphp
-<div class="rit-viewer" style="margin-top:1.25rem">
+<div class="rit-viewer" style="margin:0;height:100%">
     <div class="rit-viewer-header">
         <span class="rit-viewer-label">Detalles del Reglamento</span>
         <span class="rit-badge rit-badge-sub">Vigente</span>

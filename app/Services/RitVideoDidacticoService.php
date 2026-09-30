@@ -16,37 +16,29 @@ use Illuminate\Support\Str;
  * cuenta de este proyecto - ver config('services.ia.gemini.model_video')).
  *
  * Disparo SIEMPRE manual (nunca automático) y se genera UNA SOLA VEZ por
- * Reglamento (no por trabajador) - el video queda guardado en el propio
- * registro del RIT y todos los trabajadores que lo socialicen ven el mismo
- * archivo. Costo real confirmado 2026-09-29 por el usuario en
- * https://ai.studio/spend: ~1.170 COP por clip de ~10s a 360p - lo
- * suficientemente barato para encadenar varias llamadas de "extend" y
- * cubrir más contenido, en vez de limitarse a un solo clip corto.
+ * Reglamento (no por trabajador) - los capítulos quedan guardados en el
+ * propio registro del RIT y todos los trabajadores que lo socialicen ven
+ * los mismos archivos. Costo real confirmado 2026-09-29 por el usuario en
+ * https://ai.studio/spend: ~1.170 COP por clip de ~10s a 360p.
+ *
+ * REDISEÑO 2026-09-30 (capítulos independientes, no encadenados): la
+ * primera versión encadenaba clips con "extend" (previous_interaction_id)
+ * para simular un solo video largo, pero Gemini tiene un límite DURO de
+ * ~30-40s totales por video extendido - error real de producción, "Videos
+ * longer than 30s are not supported for extension." Eso topaba la
+ * cobertura a 3-4 temas de los hasta 27 que puede tener un RIT. La
+ * solución: en vez de UN video largo, se genera UN CLIP INDEPENDIENTE por
+ * cada tema (o cambio) - cada llamada es una interacción nueva de Gemini
+ * (sin previous_interaction_id), así que el límite de 30-40s no aplica
+ * nunca, sin importar cuántos capítulos tenga el RIT. El trabajador los ve
+ * como una serie con reproducción automática en secuencia (ver
+ * `socializacion-rit.blade.php`). Efecto secundario positivo: el logo de
+ * la empresa se adjunta de nuevo en CADA capítulo (no solo en el primero),
+ * así que se mantiene consistente sin depender de que el modelo "recuerde"
+ * un clip anterior.
  */
 class RitVideoDidacticoService
 {
-    /**
-     * Un solo generateContent de Gemini Omni produce un clip de ~10s. La API
-     * permite extenderlo con llamadas adicionales de "extend"
-     * (previous_interaction_id) - PERO Gemini tiene un límite DURO de 30-40s
-     * totales por video extendido antes de degradarse o fallar: error real
-     * de producción (2026-09-30) al subir a 8 segmentos + despedida (9
-     * llamadas), "Videos longer than 30s are not supported for extension."
-     *
-     * Historial de esta constante: 4 (sin ninguna llamada extra) es la
-     * ÚNICA configuración confirmada funcionando bien en producción - video
-     * real de ~40s, narración limpia, logo consistente. Subirla a 8 rompió
-     * la generación por completo (error de arriba). Agregar una 5ta llamada
-     * de despedida (con esta misma constante en 3) SÍ generó video, pero con
-     * peor calidad: se acortó a 30s, cortó una oración a la mitad para
-     * insertar la despedida, y el logo dejó de mantenerse consistente -
-     * confirmado por el usuario, revertido el mismo día. NO agregar más
-     * llamadas encadenadas (ni de contenido ni de despedida) sin antes
-     * probarlo contra la API real - cada intento cuesta dinero igual si
-     * falla o si sale mal.
-     */
-    private const MAX_SEGMENTOS = 4;
-
     /**
      * @param array $cambios Diff de RitDiffService::compararDocumentos() (opcional) -
      *   si se pasa, el video se enfoca en "qué cambió" en vez de temas genéricos.
@@ -57,33 +49,38 @@ class RitVideoDidacticoService
 
         $cambiosReales = array_values(array_filter($cambios, fn ($c) => $c['tipo'] !== 'igual'));
 
-        $segmentos = !empty($cambiosReales)
-            ? $this->segmentosDeCambios($cambiosReales)
-            : $this->segmentosDeTemas($rit);
+        $capitulos = !empty($cambiosReales)
+            ? $this->capitulosDeCambios($cambiosReales)
+            : $this->capitulosDeTemas($rit);
 
-        if (empty($segmentos)) {
+        if (empty($capitulos)) {
             throw new \RuntimeException('El Reglamento no tiene temas clasificados ni cambios para explicar en el video.');
         }
 
         $logoBase64 = $this->logoBase64($empresa);
+        $generados = [];
 
-        $inputInicial = [];
-        if ($logoBase64) {
-            $inputInicial[] = ['type' => 'image', 'data' => $logoBase64['data'], 'mime_type' => $logoBase64['mime']];
+        foreach (array_values($capitulos) as $indice => $capitulo) {
+            $input = [];
+            if ($logoBase64) {
+                $input[] = ['type' => 'image', 'data' => $logoBase64['data'], 'mime_type' => $logoBase64['mime']];
+            }
+            $input[] = [
+                'type' => 'text',
+                'text' => $this->promptCapitulo($empresa, $capitulo['texto'], $indice === 0, (bool) $logoBase64),
+            ];
+
+            [, $videoBase64] = $this->crearInteraccion($input);
+
+            $ruta = "rit-videos/{$rit->empresa_id}/video_{$rit->id}_cap" . ($indice + 1) . '_' . Str::random(8) . '.mp4';
+            Storage::disk('local')->put($ruta, base64_decode($videoBase64));
+
+            $generados[] = ['titulo' => $capitulo['titulo'], 'path' => $ruta];
         }
-        $inputInicial[] = ['type' => 'text', 'text' => $this->promptInicial($empresa, $segmentos[0], (bool) $logoBase64)];
-
-        [$interactionId, $videoBase64] = $this->crearInteraccion($inputInicial);
-
-        foreach (array_slice($segmentos, 1) as $segmento) {
-            [$interactionId, $videoBase64] = $this->extenderInteraccion($interactionId, $this->promptExtension($segmento, (bool) $logoBase64));
-        }
-
-        $ruta = "rit-videos/{$rit->empresa_id}/video_{$rit->id}_" . Str::random(8) . '.mp4';
-        Storage::disk('local')->put($ruta, base64_decode($videoBase64));
 
         $rit->update([
-            'video_didactico_path' => $ruta,
+            'video_didactico_path' => null,
+            'video_didactico_capitulos' => $generados,
             'video_didactico_estado' => 'completado',
             'video_didactico_error' => null,
             'video_didactico_generado_en' => now(),
@@ -91,85 +88,76 @@ class RitVideoDidacticoService
     }
 
     /**
-     * Narración hablada únicamente, SIN texto/viñetas en pantalla - reportado
-     * en producción (2026-09-29): el texto que Gemini renderiza sobre el
-     * video sale ilegible/deformado, mientras que la voz narrada sí se
-     * entiende bien.
+     * Cada capítulo es un clip INDEPENDIENTE (no una extensión) - por eso
+     * solo el primero se presenta como apertura de la serie; los siguientes
+     * van directo al contenido, sin repetir "bienvenidos". El recordatorio
+     * de logo y de no mostrar texto en pantalla se repite en TODOS los
+     * capítulos porque cada uno es una petición nueva a Gemini.
      */
-    private function promptInicial(?Empresa $empresa, string $primerSegmento, bool $conLogo): string
+    private function promptCapitulo(?Empresa $empresa, string $contenido, bool $esPrimero, bool $conLogo): string
     {
-        $prompt = "Video didáctico y profesional en español, para explicarle a un trabajador colombiano "
-            . "el Reglamento Interno de Trabajo de la empresa \"{$empresa?->nombre_completo}\". "
-            . "Un presentador habla directamente a cámara, con tono cercano y claro, sin lenguaje jurídico complicado. "
-            . "No muestres texto, viñetas ni subtítulos escritos en pantalla en ningún momento del video - "
-            . "solo narración hablada. "
-            . "Empieza explicando en voz este punto:\n{$primerSegmento}\n"
+        $prompt = $esPrimero
+            ? "Video didáctico y profesional en español, para explicarle a un trabajador colombiano el Reglamento Interno de Trabajo de la empresa \"{$empresa?->nombre_completo}\". "
+            : "Video didáctico y profesional en español, uno de varios capítulos cortos que explican el Reglamento Interno de Trabajo de la empresa \"{$empresa?->nombre_completo}\". ";
+
+        $prompt .= "Un presentador habla directamente a cámara, con tono cercano y claro, sin lenguaje jurídico complicado. "
+            . "No muestres texto, viñetas ni subtítulos escritos en pantalla en ningún momento del video - solo narración hablada. "
+            . "Explica en voz este punto:\n{$contenido}\n"
             . "Narración en español neutro colombiano. No incluya música con derechos de autor reconocibles.";
 
         if ($conLogo) {
-            $prompt = "El video abre mostrando el logo de la empresa <IMAGE_REF_0> como carta de presentación, "
-                . "y lo mantiene discretamente en una esquina durante el resto del video. " . $prompt;
+            $prompt = "El video muestra el logo de la empresa <IMAGE_REF_0> discretamente en una esquina durante todo el clip. " . $prompt;
         }
 
         return $prompt;
     }
 
     /**
-     * $conLogo repite el recordatorio de mantener el logo visible en cada
-     * extensión - sin esto, el logo dejaba de mantenerse consistente entre
-     * clips (reportado por el usuario, 2026-09-30): cada llamada de "extend"
-     * es una petición nueva a Gemini sin el logo adjunto de nuevo, así que
-     * la instrucción de mantenerlo solo en el prompt inicial no bastaba.
+     * Un capítulo por cada tema YA clasificado del RIT (la misma lista que
+     * se muestra en "Temas que cubre su Reglamento") - sin tope artificial,
+     * ver docblock de la clase.
+     *
+     * @return array<int, array{titulo: string, texto: string}>
      */
-    private function promptExtension(string $segmento, bool $conLogo = false): string
-    {
-        $prompt = "Continúa el video: el mismo presentador sigue hablando a cámara, con el mismo tono y estilo, "
-            . "explicando en voz (sin mostrar texto, viñetas ni subtítulos escritos en pantalla) "
-            . "este siguiente punto del reglamento:\n{$segmento}\n"
-            . 'Transición suave, sin corte abrupto de escena.';
-
-        if ($conLogo) {
-            $prompt .= ' Mantén el logo de la empresa visible en la misma esquina, sin que cambie de tamaño ni posición.';
-        }
-
-        return $prompt;
-    }
-
-    /** @return array<int, string> Hasta MAX_SEGMENTOS viñetas, una por tema. */
-    private function segmentosDeTemas(ReglamentoInterno $rit): array
+    private function capitulosDeTemas(ReglamentoInterno $rit): array
     {
         return $rit->temasNormativos()
             ->activos()
             ->get(['temas_normativos.id', 'temas_normativos.nombre', 'temas_normativos.descripcion'])
-            ->take(self::MAX_SEGMENTOS)
-            ->map(fn ($tema) => '- ' . $tema->nombre . ': ' . ($tema->pivot->resumen_simple ?: $tema->descripcion))
+            ->map(fn ($tema) => [
+                'titulo' => $tema->nombre,
+                'texto' => $tema->nombre . ': ' . ($tema->pivot->resumen_simple ?: $tema->descripcion),
+            ])
             ->all();
     }
 
     /**
-     * Reconstruye, en lenguaje humano, los cambios más relevantes de un diff
-     * de RitDiffService::compararDocumentos() - un bloque "modificado" trae
-     * un diff de PALABRAS (no un texto plano), así que se reconstruye el
-     * texto nuevo (palabras 'igual' + 'agregado', descartando las 'eliminado').
+     * Reconstruye, en lenguaje humano, cada cambio real de un diff de
+     * RitDiffService::compararDocumentos() - un bloque "modificado" trae un
+     * diff de PALABRAS (no un texto plano), así que se reconstruye el texto
+     * nuevo (palabras 'igual' + 'agregado', descartando las 'eliminado').
+     * Un capítulo por cada cambio real, sin tope artificial.
      *
-     * @return array<int, string> Hasta MAX_SEGMENTOS viñetas, una por cambio.
+     * @return array<int, array{titulo: string, texto: string}>
      */
-    private function segmentosDeCambios(array $cambios): array
+    private function capitulosDeCambios(array $cambios): array
     {
         return collect($cambios)
-            ->take(self::MAX_SEGMENTOS)
-            ->map(function (array $c) {
+            ->values()
+            ->map(function (array $c, int $i) {
+                $titulo = 'Actualización ' . ($i + 1);
+
                 if ($c['tipo'] === 'agregado') {
-                    return '- Se agregó: ' . Str::limit(trim($c['texto']), 200);
+                    return ['titulo' => $titulo, 'texto' => 'Se agregó: ' . Str::limit(trim($c['texto']), 200)];
                 }
                 if ($c['tipo'] === 'eliminado') {
-                    return '- Se eliminó: ' . Str::limit(trim($c['texto']), 200);
+                    return ['titulo' => $titulo, 'texto' => 'Se eliminó: ' . Str::limit(trim($c['texto']), 200)];
                 }
                 $textoNuevo = collect($c['palabras'] ?? [])
                     ->whereIn('tipo', ['igual', 'agregado'])
                     ->pluck('texto')
                     ->implode('');
-                return '- Se modificó: ahora dice "' . Str::limit(trim($textoNuevo), 200) . '"';
+                return ['titulo' => $titulo, 'texto' => 'Se modificó: ahora dice "' . Str::limit(trim($textoNuevo), 200) . '"'];
             })
             ->all();
     }
@@ -196,15 +184,6 @@ class RitVideoDidacticoService
     private function crearInteraccion(array $input): array
     {
         return $this->llamarGemini(['input' => $input]);
-    }
-
-    /** @return array{0: string, 1: string} [interaction_id, video_base64] */
-    private function extenderInteraccion(string $previousInteractionId, string $texto): array
-    {
-        return $this->llamarGemini([
-            'previous_interaction_id' => $previousInteractionId,
-            'input' => $texto,
-        ]);
     }
 
     /** @return array{0: string, 1: string} [interaction_id, video_base64] */
@@ -244,7 +223,7 @@ class RitVideoDidacticoService
 
         $interactionId = $data['id'] ?? null;
         if (! $interactionId) {
-            throw new \RuntimeException('Gemini respondió sin un id de interacción, no se puede extender: ' . $response->body());
+            throw new \RuntimeException('Gemini respondió sin un id de interacción: ' . $response->body());
         }
 
         return [$interactionId, $videoBase64];

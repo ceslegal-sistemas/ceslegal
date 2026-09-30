@@ -238,12 +238,45 @@
                              nunca por trabajador. Se sirve por una ruta pública propia
                              (rit.socializar.video) autorizada por el mismo token de esta
                              página, nunca por sesión. Opcional: si el admin no lo generó
-                             todavía, simplemente no aparece. --}}
-                        @if($tieneVideoDidactico)
-                            <div class="rounded-xl overflow-hidden border border-gray-200 bg-black">
-                                <video controls preload="metadata" style="width:100%;display:block">
-                                    <source src="{{ route('rit.socializar.video', ['token' => $token]) }}" type="video/mp4">
-                                </video>
+                             todavía, simplemente no aparece.
+
+                             REDISEÑO 2026-09-30: el video es una serie de capítulos
+                             independientes (uno por tema/cambio, sin tope artificial -
+                             ver RitVideoDidacticoService), no un solo archivo. Reproducción
+                             automática en secuencia (pedido explícito del usuario): al
+                             terminar un capítulo, pasa solo al siguiente. Lista de
+                             capítulos abajo para saltar a uno específico. --}}
+                        @if(count($capitulosVideoDidactico) > 0)
+                            <div class="rounded-xl overflow-hidden border border-gray-200 bg-black"
+                                x-data="{
+                                    capitulos: @js($capitulosVideoDidactico),
+                                    actual: 0,
+                                    baseUrl: {{ \Illuminate\Support\Js::from(route('rit.socializar.video', ['token' => $token])) }},
+                                    cargar(indice) {
+                                        this.actual = indice;
+                                        this.$refs.video.src = this.baseUrl + '?capitulo=' + indice;
+                                        this.$refs.video.load();
+                                        this.$refs.video.play().catch(() => {});
+                                    },
+                                    siguiente() {
+                                        if (this.actual < this.capitulos.length - 1) { this.cargar(this.actual + 1); }
+                                    }
+                                }"
+                                x-init="$refs.video.src = baseUrl + '?capitulo=0'">
+                                <video x-ref="video" controls preload="metadata" x-on:ended="siguiente()" style="width:100%;display:block"></video>
+                                @if(count($capitulosVideoDidactico) > 1)
+                                    <div style="padding:.75rem;background:#fff">
+                                        <p style="font-size:.7rem;font-weight:700;color:#78716c;text-transform:uppercase;letter-spacing:.05em;margin:0 0 .5rem">Capítulos</p>
+                                        <div style="display:flex;flex-direction:column;gap:.25rem;max-height:180px;overflow-y:auto">
+                                            <template x-for="(cap, i) in capitulos" :key="i">
+                                                <button type="button" x-on:click="cargar(i)"
+                                                    style="text-align:left;font-size:.8125rem;padding:.4rem .6rem;border-radius:.5rem;border:none;cursor:pointer;background:transparent"
+                                                    x-bind:style="actual === i ? 'background:#fecdd3;color:#be123c;font-weight:600' : 'color:#57534e'"
+                                                    x-text="(i + 1) + '. ' + cap"></button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         @endif
 

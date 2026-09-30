@@ -41,11 +41,18 @@ class SocializacionRitPublicoController extends Controller
     }
 
     /**
-     * Sirve el video didáctico del RIT ACTIVO de la empresa del token - misma
-     * autorización que mostrar() (poseer el token es la autorización real,
-     * no la sesión). Mismo withoutGlobalScope('bufeteOrEmpresa') que
-     * SocializacionRit::resolverRitActivo() - nunca usar
-     * $empresa->reglamentoInterno directamente aquí (Gotcha crítico #3).
+     * Sirve UN CAPÍTULO del video didáctico del RIT ACTIVO de la empresa del
+     * token (?capitulo=N, default 0) - misma autorización que mostrar()
+     * (poseer el token es la autorización real, no la sesión). Mismo
+     * withoutGlobalScope('bufeteOrEmpresa') que SocializacionRit::
+     * resolverRitActivo() - nunca usar $empresa->reglamentoInterno
+     * directamente aquí (Gotcha crítico #3).
+     *
+     * Rediseño 2026-09-30: el video es una serie de capítulos independientes
+     * (ver RitVideoDidacticoService), no un solo archivo -
+     * capitulosVideoDidactico() envuelve los videos generados ANTES de ese
+     * cambio como un capítulo único, así que ?capitulo=0 sigue funcionando
+     * para esos registros legado.
      */
     public function video(string $token)
     {
@@ -63,9 +70,14 @@ class SocializacionRitPublicoController extends Controller
             ->latest('updated_at')
             ->first();
 
-        abort_if(!$rit?->video_didactico_path, 404);
+        $capitulos = $rit?->capitulosVideoDidactico() ?? [];
+        abort_if(empty($capitulos), 404);
 
-        $ruta = Storage::disk('local')->path($rit->video_didactico_path);
+        $indice = (int) request()->query('capitulo', 0);
+        $capitulo = $capitulos[$indice] ?? null;
+        abort_if(!$capitulo, 404);
+
+        $ruta = Storage::disk('local')->path($capitulo['path']);
         abort_if(!file_exists($ruta), 404);
 
         return response()->file($ruta, ['Content-Type' => 'video/mp4']);

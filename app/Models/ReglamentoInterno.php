@@ -34,6 +34,7 @@ class ReglamentoInterno extends Model
         'reglamento_origen_id',
         'ruta_pdf',
         'video_didactico_path',
+        'video_didactico_capitulos',
         'video_didactico_estado',
         'video_didactico_error',
         'video_didactico_generado_en',
@@ -53,6 +54,7 @@ class ReglamentoInterno extends Model
         'organigrama'            => 'array',
         'tipos_contrato'         => 'array',
         'dias_habiles'           => 'array',
+        'video_didactico_capitulos' => 'array',
         'temas_clasificados_en'  => 'datetime',
         'video_didactico_generado_en' => 'datetime',
     ];
@@ -106,6 +108,34 @@ class ReglamentoInterno extends Model
     public function tieneErrorVideoDidactico(): bool
     {
         return $this->video_didactico_estado === 'error';
+    }
+
+    public function tieneVideoDidactico(): bool
+    {
+        return !empty($this->video_didactico_capitulos) || !empty($this->video_didactico_path);
+    }
+
+    /**
+     * Capítulos del video didáctico (un clip independiente por tema o
+     * cambio - rediseño 2026-09-30, ver RitVideoDidacticoService). Los
+     * videos generados ANTES de ese cambio solo tienen `video_didactico_path`
+     * (un solo archivo) - se envuelve como un capítulo único para que el
+     * resto del código (reproductor admin y público) no necesite distinguir
+     * entre el formato viejo y el nuevo.
+     *
+     * @return array<int, array{titulo: string, path: string}>
+     */
+    public function capitulosVideoDidactico(): array
+    {
+        if (!empty($this->video_didactico_capitulos)) {
+            return $this->video_didactico_capitulos;
+        }
+
+        if (!empty($this->video_didactico_path)) {
+            return [['titulo' => 'Reglamento Interno', 'path' => $this->video_didactico_path]];
+        }
+
+        return [];
     }
 
     /**

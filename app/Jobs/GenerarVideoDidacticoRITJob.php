@@ -20,17 +20,15 @@ class GenerarVideoDidacticoRITJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * El video completo encadena hasta 4 llamadas a Gemini (1 clip inicial +
-     * hasta 3 "extend" de contenido, SIN despedida - la despedida se probó
-     * el 2026-09-30 y empeoró la calidad del video real: lo acortó, cortó
-     * una oración a la mitad y perdió consistencia del logo; y subir a 8
-     * segmentos rompió la generación por completo con un límite duro de
-     * Gemini de 30-40s totales por video extendido. 4 llamadas totales es la
-     * ÚNICA configuración confirmada funcionando bien, ver
-     * RitVideoDidacticoService::MAX_SEGMENTOS) - cada llamada puede tardar
-     * hasta 300s (ver RitVideoDidacticoService::llamarGemini() - 180s no
-     * alcanzó en producción, confirmado 2026-09-29 con cURL error 28), así
-     * que el timeout debe cubrir el peor caso de las 4 en serie con margen.
+     * REDISEÑO 2026-09-30: el video ya no encadena "extend" (Gemini tiene un
+     * límite duro de ~30-40s totales por video extendido, error real de
+     * producción) - ahora genera UN CAPÍTULO INDEPENDIENTE por cada tema
+     * clasificado del RIT (hasta 27, la taxonomía completa, sin tope
+     * artificial - ver RitVideoDidacticoService). Eso significa que el
+     * número de llamadas a Gemini ya NO es fijo: un RIT con 27 temas hace
+     * hasta 27 llamadas secuenciales, cada una hasta 300s (ver
+     * RitVideoDidacticoService::llamarGemini()). Timeout dimensionado para
+     * el peor caso teórico (27 × 300s = 8100s) con margen.
      * IMPORTANTE: el wrapper `--timeout` del `queue:work` en producción
      * (Hostinger) debe cubrir este mismo valor con margen también - un
      * timeout externo más corto mata el proceso antes de que Laravel llegue
@@ -39,7 +37,7 @@ class GenerarVideoDidacticoRITJob implements ShouldQueue
      * veces mientras el primero sigue corriendo (mismo bug ya resuelto una
      * vez para la Auditoría de RIT, ver auditoria-rit-cola-retry-after).
      */
-    public int $timeout = 1500;
+    public int $timeout = 8400;
 
     /** Sin reintentos automáticos: cada intento fallido consume tokens de video igual que uno exitoso. */
     public int $tries = 1;
