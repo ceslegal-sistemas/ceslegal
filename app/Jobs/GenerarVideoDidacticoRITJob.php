@@ -21,10 +21,12 @@ class GenerarVideoDidacticoRITJob implements ShouldQueue
 
     /**
      * El video completo encadena hasta 4 llamadas a Gemini (1 clip inicial +
-     * hasta 2 "extend" de contenido + 1 despedida final - bajado de 8+1 a
-     * 3+1 segmentos el 2026-09-30 tras un error real de producción: Gemini
-     * tiene un límite DURO de 30s totales por video extendido, y con 8+1
-     * llamadas se sobrepasaba ese límite siempre, ver
+     * hasta 3 "extend" de contenido, SIN despedida - la despedida se probó
+     * el 2026-09-30 y empeoró la calidad del video real: lo acortó, cortó
+     * una oración a la mitad y perdió consistencia del logo; y subir a 8
+     * segmentos rompió la generación por completo con un límite duro de
+     * Gemini de 30-40s totales por video extendido. 4 llamadas totales es la
+     * ÚNICA configuración confirmada funcionando bien, ver
      * RitVideoDidacticoService::MAX_SEGMENTOS) - cada llamada puede tardar
      * hasta 300s (ver RitVideoDidacticoService::llamarGemini() - 180s no
      * alcanzó en producción, confirmado 2026-09-29 con cURL error 28), así

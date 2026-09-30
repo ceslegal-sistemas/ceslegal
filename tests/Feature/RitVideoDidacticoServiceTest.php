@@ -76,12 +76,7 @@ class RitVideoDidacticoServiceTest extends TestCase
         $this->assertSame('fake-video-bytes', Storage::disk('local')->get($rit->video_didactico_path));
     }
 
-    /**
-     * Con un solo tema, la llamada inicial no lleva previous_interaction_id -
-     * pero SIEMPRE hay una llamada adicional de despedida al final (pedido del
-     * usuario, 2026-09-29), así que el total son 2 llamadas, no 1.
-     */
-    public function test_con_un_solo_tema_hace_la_llamada_inicial_mas_la_despedida(): void
+    public function test_con_un_solo_tema_hace_una_sola_llamada_sin_extender(): void
     {
         Http::fake([
             'generativelanguage.googleapis.com/*' => Http::response($this->respuestaGeminiConVideo(), 200),
@@ -97,18 +92,14 @@ class RitVideoDidacticoServiceTest extends TestCase
         app(RitVideoDidacticoService::class)->generar($rit);
 
         $llamadas = $this->soloLlamadasDeVideo();
-        $this->assertCount(2, $llamadas);
+        $this->assertCount(1, $llamadas);
 
-        $primera = $llamadas->first()[0]->data();
-        $textoInput = collect($primera['input'] ?? [])->firstWhere('type', 'text')['text'] ?? '';
+        $body = $llamadas->first()[0]->data();
+        $textoInput = collect($body['input'] ?? [])->firstWhere('type', 'text')['text'] ?? '';
         $this->assertStringContainsString('RENBEL', $textoInput);
         $this->assertStringContainsString('Jornada laboral', $textoInput);
         $this->assertStringContainsString('Trabaja de 8am a 5pm.', $textoInput);
-        $this->assertArrayNotHasKey('previous_interaction_id', $primera);
-
-        $despedida = $llamadas->last()[0]->data();
-        $this->assertSame('v1_test', $despedida['previous_interaction_id']);
-        $this->assertStringContainsString('despide', $despedida['input']);
+        $this->assertArrayNotHasKey('previous_interaction_id', $body);
     }
 
     /**
@@ -135,7 +126,7 @@ class RitVideoDidacticoServiceTest extends TestCase
         app(RitVideoDidacticoService::class)->generar($rit);
 
         $llamadas = $this->soloLlamadasDeVideo();
-        $this->assertCount(4, $llamadas); // 3 temas + 1 despedida final
+        $this->assertCount(3, $llamadas);
 
         $primera = $llamadas->first()[0]->data();
         $this->assertArrayNotHasKey('previous_interaction_id', $primera);
@@ -254,7 +245,7 @@ class RitVideoDidacticoServiceTest extends TestCase
         app(RitVideoDidacticoService::class)->generar($rit, $cambios);
 
         $llamadas = $this->soloLlamadasDeVideo();
-        $this->assertCount(3, $llamadas); // 2 cambios reales (se descarta el 'igual') + 1 despedida final
+        $this->assertCount(2, $llamadas); // 2 cambios reales (se descarta el 'igual')
 
         $textoCompleto = $llamadas->map(function ($par) {
             $body = $par[0]->data();

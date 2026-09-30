@@ -28,22 +28,24 @@ class RitVideoDidacticoService
     /**
      * Un solo generateContent de Gemini Omni produce un clip de ~10s. La API
      * permite extenderlo con llamadas adicionales de "extend"
-     * (previous_interaction_id) - PERO Gemini tiene un límite DURO de 30
-     * segundos totales por video extendido: error real de producción
-     * (2026-09-30), "Videos longer than 30s are not supported for
-     * extension." No hay forma de conocer la duración real acumulada desde
-     * la respuesta de la API, así que el límite se controla solo por
-     * CANTIDAD de llamadas.
+     * (previous_interaction_id) - PERO Gemini tiene un límite DURO de 30-40s
+     * totales por video extendido antes de degradarse o fallar: error real
+     * de producción (2026-09-30) al subir a 8 segmentos + despedida (9
+     * llamadas), "Videos longer than 30s are not supported for extension."
      *
-     * Historial de esta constante: 4 (sin despedida) funcionó en producción
-     * - 4 llamadas totales, confirmado con un video real. Subirla a 8
-     * (+ despedida = 9 llamadas) rompió la generación con el error de
-     * arriba. Bajada aquí a 3 (+ despedida = 4 llamadas totales) para volver
-     * exactamente al conteo de llamadas que sí se confirmó funcionando -
-     * NO subir este valor sin antes probarlo contra la API real (cada
-     * intento fallido cuesta dinero igual que uno exitoso).
+     * Historial de esta constante: 4 (sin ninguna llamada extra) es la
+     * ÚNICA configuración confirmada funcionando bien en producción - video
+     * real de ~40s, narración limpia, logo consistente. Subirla a 8 rompió
+     * la generación por completo (error de arriba). Agregar una 5ta llamada
+     * de despedida (con esta misma constante en 3) SÍ generó video, pero con
+     * peor calidad: se acortó a 30s, cortó una oración a la mitad para
+     * insertar la despedida, y el logo dejó de mantenerse consistente -
+     * confirmado por el usuario, revertido el mismo día. NO agregar más
+     * llamadas encadenadas (ni de contenido ni de despedida) sin antes
+     * probarlo contra la API real - cada intento cuesta dinero igual si
+     * falla o si sale mal.
      */
-    private const MAX_SEGMENTOS = 3;
+    private const MAX_SEGMENTOS = 4;
 
     /**
      * @param array $cambios Diff de RitDiffService::compararDocumentos() (opcional) -
@@ -74,13 +76,8 @@ class RitVideoDidacticoService
         [$interactionId, $videoBase64] = $this->crearInteraccion($inputInicial);
 
         foreach (array_slice($segmentos, 1) as $segmento) {
-            [$interactionId, $videoBase64] = $this->extenderInteraccion($interactionId, $this->promptExtension($segmento));
+            [$interactionId, $videoBase64] = $this->extenderInteraccion($interactionId, $this->promptExtension($segmento, (bool) $logoBase64));
         }
-
-        // Cierre pedido por el usuario tras ver el primer video real
-        // (2026-09-29): agradecimiento y despedida breve, siempre al final,
-        // sin importar el modo (cambios o temas).
-        [$interactionId, $videoBase64] = $this->extenderInteraccion($interactionId, $this->promptDespedida($empresa));
 
         $ruta = "rit-videos/{$rit->empresa_id}/video_{$rit->id}_" . Str::random(8) . '.mp4';
         Storage::disk('local')->put($ruta, base64_decode($videoBase64));
@@ -117,19 +114,25 @@ class RitVideoDidacticoService
         return $prompt;
     }
 
-    private function promptExtension(string $segmento): string
+    /**
+     * $conLogo repite el recordatorio de mantener el logo visible en cada
+     * extensión - sin esto, el logo dejaba de mantenerse consistente entre
+     * clips (reportado por el usuario, 2026-09-30): cada llamada de "extend"
+     * es una petición nueva a Gemini sin el logo adjunto de nuevo, así que
+     * la instrucción de mantenerlo solo en el prompt inicial no bastaba.
+     */
+    private function promptExtension(string $segmento, bool $conLogo = false): string
     {
-        return "Continúa el video: el mismo presentador sigue hablando a cámara, con el mismo tono y estilo, "
+        $prompt = "Continúa el video: el mismo presentador sigue hablando a cámara, con el mismo tono y estilo, "
             . "explicando en voz (sin mostrar texto, viñetas ni subtítulos escritos en pantalla) "
             . "este siguiente punto del reglamento:\n{$segmento}\n"
             . 'Transición suave, sin corte abrupto de escena.';
-    }
 
-    private function promptDespedida(?Empresa $empresa): string
-    {
-        return "Continúa el video: el mismo presentador cierra agradeciendo brevemente al trabajador de "
-            . "\"{$empresa?->nombre_completo}\" por conocer su Reglamento Interno, y se despide. "
-            . 'Sin texto en pantalla, solo voz. Transición suave.';
+        if ($conLogo) {
+            $prompt .= ' Mantén el logo de la empresa visible en la misma esquina, sin que cambie de tamaño ni posición.';
+        }
+
+        return $prompt;
     }
 
     /** @return array<int, string> Hasta MAX_SEGMENTOS viñetas, una por tema. */
