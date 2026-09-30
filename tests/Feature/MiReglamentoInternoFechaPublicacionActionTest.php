@@ -65,6 +65,27 @@ class MiReglamentoInternoFechaPublicacionActionTest extends TestCase
         $this->assertSame($fecha, $rit->fresh()->fecha_publicacion_socializacion->toDateString());
     }
 
+    /**
+     * Bug real reportado por el usuario (2026-09-30): minDate(now()) comparaba
+     * contra la hora exacta de hoy, así que "hoy" (interpretado como
+     * medianoche) siempre quedaba "antes" y la validación lo rechazaba -
+     * incluso siendo el primer valor permitido según el enunciado del campo.
+     */
+    public function test_acepta_la_fecha_de_hoy(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $rit = ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        $this->actingAsCliente($empresa);
+
+        Livewire::test(MiReglamentoInterno::class)
+            ->callAction('declararFechaPublicacion', data: [
+                'fecha_publicacion_socializacion' => today()->toDateString(),
+            ])
+            ->assertHasNoActionErrors();
+
+        $this->assertSame(today()->toDateString(), $rit->fresh()->fecha_publicacion_socializacion->toDateString());
+    }
+
     public function test_rechaza_una_fecha_pasada(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);

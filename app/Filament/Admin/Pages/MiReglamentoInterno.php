@@ -571,7 +571,14 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                 DatePicker::make('fecha_publicacion_socializacion')
                     ->label('Fecha de publicación')
                     ->native(false)
-                    ->minDate(now())
+                    // now() a secas compara contra la hora EXACTA de hoy (ej.
+                    // 10:15:22) - como el DatePicker solo manda el día (sin
+                    // hora), "hoy" se interpretaba como medianoche y siempre
+                    // quedaba "antes" de la hora actual, bloqueando incluso
+                    // la fecha de hoy (bug real reportado por el usuario,
+                    // 2026-09-30). today() compara contra la medianoche de
+                    // hoy, así que hoy sí es un valor válido.
+                    ->minDate(today())
                     ->default(fn () => $this->reglamento?->fecha_publicacion_socializacion)
                     ->required(),
             ])
