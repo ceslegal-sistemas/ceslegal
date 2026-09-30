@@ -31,7 +31,10 @@
                     No se pudo generar el video: {{ $reglamento->video_didactico_error }}
                 </p>
             @elseif(count($capitulos) > 0)
-                <div style="max-width:520px"
+                {{-- 2 columnas (video + lista de capítulos) para aprovechar el
+                     ancho disponible en vez de dejar espacio vacío a la
+                     derecha de un video angosto (pedido del usuario, 2026-09-30). --}}
+                <div style="display:flex;flex-wrap:wrap;gap:1.5rem"
                     x-data="{
                         capitulos: @js(array_column($capitulos, 'titulo')),
                         actual: 0,
@@ -47,25 +50,29 @@
                         }
                     }"
                     x-init="$refs.video.src = baseUrl + '?capitulo=0'">
-                    <video x-ref="video" controls preload="metadata" x-on:ended="siguiente()" style="width:100%;border-radius:.75rem;display:block"></video>
+                    <div style="flex:1 1 420px;min-width:280px">
+                        <video x-ref="video" controls preload="metadata" x-on:ended="siguiente()" style="width:100%;border-radius:.75rem;display:block"></video>
+                        <div style="margin-top:.75rem">
+                            <a x-bind:href="baseUrl + '?capitulo=' + actual" download class="rit-btn rit-btn-secondary">
+                                <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                                <span x-text="'Descargar capítulo ' + (actual + 1)"></span>
+                            </a>
+                        </div>
+                    </div>
 
                     @if(count($capitulos) > 1)
-                        <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:.25rem;max-height:200px;overflow-y:auto">
-                            <template x-for="(cap, i) in capitulos" :key="i">
-                                <button type="button" x-on:click="cargar(i)"
-                                    style="text-align:left;font-size:.8125rem;padding:.4rem .6rem;border-radius:.5rem;border:none;cursor:pointer;background:transparent;color:#64748b"
-                                    x-bind:style="actual === i ? 'background:rgba(251,113,133,.13);color:#fb7185;font-weight:600' : ''"
-                                    x-text="(i + 1) + '. ' + cap"></button>
-                            </template>
+                        <div style="flex:1 1 220px;min-width:200px">
+                            <p class="rit-viewer-label" style="margin:0 0 .65rem">Capítulos</p>
+                            <div style="display:flex;flex-direction:column;gap:.25rem;max-height:360px;overflow-y:auto">
+                                <template x-for="(cap, i) in capitulos" :key="i">
+                                    <button type="button" x-on:click="cargar(i)"
+                                        style="text-align:left;font-size:.8125rem;padding:.4rem .6rem;border-radius:.5rem;border:none;cursor:pointer;background:transparent;color:#64748b"
+                                        x-bind:style="actual === i ? 'background:rgba(251,113,133,.13);color:#fb7185;font-weight:600' : ''"
+                                        x-text="(i + 1) + '. ' + cap"></button>
+                                </template>
+                            </div>
                         </div>
                     @endif
-
-                    <div style="margin-top:.75rem">
-                        <a x-bind:href="baseUrl + '?capitulo=' + actual" download class="rit-btn rit-btn-secondary">
-                            <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-                            <span x-text="'Descargar capítulo ' + (actual + 1)"></span>
-                        </a>
-                    </div>
                 </div>
             @endif
         </div>

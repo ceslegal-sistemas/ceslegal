@@ -36,6 +36,11 @@
    se apilan en 1 columna en pantallas angostas. */
 .rit-top-grid{display:grid;grid-template-columns:1fr;gap:1.25rem;align-items:start}
 @media(min-width:768px){.rit-top-grid{grid-template-columns:1.7fr 1fr}}
+/* Compartir + progreso lado a lado (pedido del usuario, 2026-09-30) - ambas
+   tarjetas tienen contenido de volumen similar, por eso van 1fr 1fr. */
+.rit-two-col{display:grid;grid-template-columns:1fr;gap:1.25rem}
+@media(min-width:768px){.rit-two-col{grid-template-columns:1fr 1fr}}
+.rit-two-col .rit-hero{height:100%}
 .rit-hero{position:relative;overflow:hidden;border-radius:1.25rem;padding:2rem 1.75rem;background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%)}
 html:not(.dark) .rit-hero{background:#fff;border:1px solid rgba(0,0,0,.07);box-shadow:0 4px 28px rgba(0,0,0,.08)}
 .rit-orb-b{position:absolute;width:280px;height:280px;top:-80px;right:-60px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.45),transparent 70%);filter:blur(28px);pointer-events:none;animation:rit-fb 14s ease-in-out infinite}
@@ -363,11 +368,15 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
   @elseif($tiene)
     {{-- Pedido explícito del usuario: este banner debe verse ANTES del texto
          del reglamento, no después - debe quedar visible al entrar a la
-         página sin necesidad de hacer scroll. --}}
+         página sin necesidad de hacer scroll. Va en 2 columnas junto a la
+         tarjeta de progreso (pedido del usuario, 2026-09-30: "no me gustan
+         los espacios sobrantes entre divs") - ambas tarjetas conviven en la
+         misma fila en vez de apilarse una debajo de la otra. --}}
+    <div class="{{ $estadoSocializacionRit && $estadoSocializacionRit['total'] > 0 ? 'rit-two-col' : '' }}">
     @include('filament.components.rit-compartir-banner', ['empresa' => $empresa, 'posterUrl' => $posterUrl, 'reglamento' => $reglamento])
 
     @if($estadoSocializacionRit && $estadoSocializacionRit['total'] > 0)
-      <div class="rit-hero" style="margin-top:.75rem;padding:1rem 1.5rem;">
+      <div class="rit-hero" style="padding:1rem 1.5rem;">
         <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
         <div style="position:relative;z-index:2">
           <p class="text-sm font-semibold text-gray-900 m-0">
@@ -417,6 +426,7 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
         </div>
       </div>
     @endif
+    </div>
 
     <div class="rit-viewer">
       <div class="rit-viewer-header">
