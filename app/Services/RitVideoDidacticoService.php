@@ -28,15 +28,22 @@ class RitVideoDidacticoService
     /**
      * Un solo generateContent de Gemini Omni produce un clip de ~10s. La API
      * permite extenderlo con llamadas adicionales de "extend"
-     * (previous_interaction_id), cada una cubriendo UN punto (cambio o tema)
-     * del reglamento. Subido de 4 a 8 (2026-09-29) tras ver el primer video
-     * real: con solo 4 temas el video se sentía incompleto frente a los hasta
-     * 27 temas normativos que puede tener un RIT (ver
-     * rit-taxonomia-temas-implementada). 8 duplica la cobertura (~80s de
-     * contenido + despedida) sin acercarse al costo de cubrir el reglamento
-     * completo.
+     * (previous_interaction_id) - PERO Gemini tiene un límite DURO de 30
+     * segundos totales por video extendido: error real de producción
+     * (2026-09-30), "Videos longer than 30s are not supported for
+     * extension." No hay forma de conocer la duración real acumulada desde
+     * la respuesta de la API, así que el límite se controla solo por
+     * CANTIDAD de llamadas.
+     *
+     * Historial de esta constante: 4 (sin despedida) funcionó en producción
+     * - 4 llamadas totales, confirmado con un video real. Subirla a 8
+     * (+ despedida = 9 llamadas) rompió la generación con el error de
+     * arriba. Bajada aquí a 3 (+ despedida = 4 llamadas totales) para volver
+     * exactamente al conteo de llamadas que sí se confirmó funcionando -
+     * NO subir este valor sin antes probarlo contra la API real (cada
+     * intento fallido cuesta dinero igual que uno exitoso).
      */
-    private const MAX_SEGMENTOS = 8;
+    private const MAX_SEGMENTOS = 3;
 
     /**
      * @param array $cambios Diff de RitDiffService::compararDocumentos() (opcional) -

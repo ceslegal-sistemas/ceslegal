@@ -20,19 +20,24 @@ class GenerarVideoDidacticoRITJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * El video completo encadena hasta 9 llamadas a Gemini (1 clip inicial +
-     * hasta 7 "extend" de contenido + 1 despedida final, ~90s totales de
-     * video, subido de 4 a 8 segmentos el 2026-09-29 tras ver que 4 se
-     * sentía incompleto) - cada llamada puede tardar hasta 300s (ver
-     * RitVideoDidacticoService::llamarGemini() - 180s no alcanzó en
-     * producción, confirmado 2026-09-29 con cURL error 28), así que el
-     * timeout debe cubrir el peor caso de las 9 en serie con margen.
-     * IMPORTANTE: el wrapper `timeout` del cron/queue worker en producción
+     * El video completo encadena hasta 4 llamadas a Gemini (1 clip inicial +
+     * hasta 2 "extend" de contenido + 1 despedida final - bajado de 8+1 a
+     * 3+1 segmentos el 2026-09-30 tras un error real de producción: Gemini
+     * tiene un límite DURO de 30s totales por video extendido, y con 8+1
+     * llamadas se sobrepasaba ese límite siempre, ver
+     * RitVideoDidacticoService::MAX_SEGMENTOS) - cada llamada puede tardar
+     * hasta 300s (ver RitVideoDidacticoService::llamarGemini() - 180s no
+     * alcanzó en producción, confirmado 2026-09-29 con cURL error 28), así
+     * que el timeout debe cubrir el peor caso de las 4 en serie con margen.
+     * IMPORTANTE: el wrapper `--timeout` del `queue:work` en producción
      * (Hostinger) debe cubrir este mismo valor con margen también - un
      * timeout externo más corto mata el proceso antes de que Laravel llegue
-     * a marcarlo como fallido.
+     * a marcarlo como fallido. También DB_QUEUE_RETRY_AFTER (.env) debe ser
+     * mayor a este valor - si no, la cola puede re-tomar el mismo job dos
+     * veces mientras el primero sigue corriendo (mismo bug ya resuelto una
+     * vez para la Auditoría de RIT, ver auditoria-rit-cola-retry-after).
      */
-    public int $timeout = 3000;
+    public int $timeout = 1500;
 
     /** Sin reintentos automáticos: cada intento fallido consume tokens de video igual que uno exitoso. */
     public int $tries = 1;
