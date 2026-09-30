@@ -212,17 +212,6 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
             <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
             Subir RIT
           </button>
-          {{-- Fecha de publicación (pedido del equipo, 2026-09-29): dispara el
-               conteo de los 15 días hábiles para objetar - disponible para
-               cualquier rol que administre el Reglamento, no solo super_admin,
-               porque quien la declara es "el funcionario de Recursos Humanos"
-               de la empresa cliente. --}}
-          @if($tiene && !empty($reglamento?->texto_completo))
-            <button wire:click="mountAction('declararFechaPublicacion')" class="rit-btn rit-btn-secondary">
-              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V11.25A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
-              {{ $reglamento?->fecha_publicacion_socializacion ? 'Cambiar fecha de publicación' : 'Declarar fecha de publicación' }}
-            </button>
-          @endif
           @if($tiene)
             {{-- Ambos botones son herramientas internas de soporte, no pasos que el
                  cliente/bufete deba hacer: la extracción de sanciones ya corre sola
@@ -351,7 +340,7 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
     {{-- Pedido explícito del usuario: este banner debe verse ANTES del texto
          del reglamento, no después - debe quedar visible al entrar a la
          página sin necesidad de hacer scroll. --}}
-    @include('filament.components.rit-compartir-banner', ['empresa' => $empresa, 'posterUrl' => $posterUrl])
+    @include('filament.components.rit-compartir-banner', ['empresa' => $empresa, 'posterUrl' => $posterUrl, 'reglamento' => $reglamento])
 
     @if($estadoSocializacionRit && $estadoSocializacionRit['total'] > 0)
       <div class="rit-hero" style="margin-top:.75rem;padding:1rem 1.5rem;">
@@ -365,15 +354,15 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
           </div>
 
           {{-- Fecha de publicación: ancla legal de los 15 días hábiles para
-               objetar el Reglamento (pedido del equipo, 2026-09-29). --}}
+               objetar el Reglamento (pedido del equipo, 2026-09-29). El
+               botón para declararla vive en el banner de compartir de
+               arriba (rit-compartir-banner) - aquí solo se informa el dato
+               una vez que ya existe, para no repetir el mismo llamado a la
+               acción en dos lugares distintos de la misma pantalla. --}}
           @if($reglamento?->fecha_publicacion_socializacion)
             <p style="margin:.5rem 0 0;font-size:.75rem;color:#57534e">
               Publicado el {{ $reglamento->fecha_publicacion_socializacion->format('d/m/Y') }} ·
-              los trabajadores tienen hasta el {{ $reglamento->fechaLimiteObjecion()?->format('d/m/Y') }} para objetarlo (15 días hábiles)
-            </p>
-          @else
-            <p style="margin:.5rem 0 0;font-size:.75rem;color:#b45309">
-              Aún no ha declarado la fecha de publicación - sin ella no se puede contar el plazo legal de objeción.
+              sus trabajadores pueden objetarlo hasta el {{ $reglamento->fechaLimiteObjecion()?->format('d/m/Y') }} (15 días hábiles)
             </p>
           @endif
 

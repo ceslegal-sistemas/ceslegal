@@ -549,10 +549,11 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
      * 2026-09-29): la empresa puede tardar días en publicar físicamente el
      * Reglamento (carteleras) después de generarlo en el sistema, así que
      * los 15 días hábiles para objetar deben contarse desde ESA fecha, no
-     * desde la fecha de creación. Cita literal de la reunión: "hay que
-     * ponerle un disclaimer, un mensaje que diga recuerde que el sistema va
-     * a contar los 15 días..." - la responsabilidad de que la fecha sea
-     * correcta es del funcionario de la empresa que la declara.
+     * desde la fecha de creación. El texto del modal se redactó en tono de
+     * servicio ("calculamos el plazo por usted"), no de advertencia/regaño -
+     * pedido explícito del usuario (2026-09-30) tras ver la primera
+     * redacción: "estamos brindando un servicio no regañando y culpando a
+     * los clientes".
      */
     public function declararFechaPublicacionAction(): Action
     {
@@ -564,7 +565,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             ->color('gray')
             ->visible(fn () => $this->reglamento && !empty($this->reglamento->texto_completo))
             ->modalHeading('Fecha de publicación del Reglamento Interno')
-            ->modalDescription('Es la fecha en que el Reglamento quedó realmente disponible para sus trabajadores (ej. el día que se publicaron las carteleras físicas), no necesariamente el día que lo generó en este sistema. A partir de esta fecha el sistema cuenta los 15 días hábiles que tienen sus trabajadores para objetarlo. La responsabilidad de que esta fecha sea correcta es suya.')
+            ->modalDescription('Cuéntenos desde cuándo quedó disponible el Reglamento para sus trabajadores - por ejemplo, el día que se pegaron las carteleras. No tiene que coincidir con el día que lo generó aquí en el sistema. Con esta fecha calculamos automáticamente el plazo de 15 días hábiles que la ley les da a sus trabajadores para objetarlo, así usted no tiene que llevar la cuenta.')
             ->modalSubmitActionLabel('Guardar fecha')
             ->form([
                 DatePicker::make('fecha_publicacion_socializacion')

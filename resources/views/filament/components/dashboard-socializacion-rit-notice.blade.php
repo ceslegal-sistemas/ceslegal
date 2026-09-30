@@ -26,7 +26,12 @@
     </div>
 @else
     <div style="margin-bottom:1.5rem">
-        @include('filament.components.rit-compartir-banner', ['empresa' => $empresaUsuario, 'posterUrl' => $posterUrlDashboard])
+        @include('filament.components.rit-compartir-banner', [
+            'empresa' => $empresaUsuario,
+            'posterUrl' => $posterUrlDashboard,
+            'reglamento' => $empresaUsuario->reglamentoInterno,
+            'declararFechaUrl' => \App\Filament\Admin\Pages\MiReglamentoInterno::getUrl(panel: 'empresa'),
+        ])
 
         <div class="rit-hero" style="margin-top:.75rem;padding:1rem 1.5rem;">
             <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
