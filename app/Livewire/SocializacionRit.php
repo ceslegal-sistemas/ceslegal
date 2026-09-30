@@ -490,7 +490,7 @@ class SocializacionRit extends Component
         if ($this->email) {
             try {
                 \Illuminate\Support\Facades\Mail::to($this->email)->send(
-                    new \App\Mail\RitAceptado(trim("{$this->nombres} {$this->apellidos}"), $this->empresa->razon_social)
+                    new \App\Mail\RitAceptado(trim("{$this->nombres} {$this->apellidos}"), $this->empresa->razon_social, $this->empresa)
                 );
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::warning('SocializacionRit: fallo al enviar correo de confirmacion', [

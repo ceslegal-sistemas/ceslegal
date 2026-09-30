@@ -18,9 +18,25 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h2>Reglamento Interno de Trabajo</h2>
-        </div>
+        {{-- Logo real de la empresa si lo tiene cargado (bug real reportado
+             por el usuario, 2026-09-30: el correo mostraba el rojo genérico
+             de LUPE en vez del logo de la empresa). Fondo blanco para el
+             logo (no todos los logos se ven bien sobre rojo) - el rojo de
+             marca queda solo como respaldo cuando no hay logo. URL firmada
+             PERMANENTE (sin expiración) - un correo puede leerse meses
+             después, una firma temporal lo habría dejado roto. Sin
+             ->middleware('auth') en esa ruta a propósito: quien abre el
+             correo no tiene sesión de panel. --}}
+        @if($empresa?->logo_path)
+            <div class="header" style="background:#fff;border-bottom:1px solid #eee">
+                <img src="{{ \Illuminate\Support\Facades\URL::signedRoute('logo-empresa.mostrar', ['empresa' => $empresa->id]) }}"
+                     alt="{{ $nombreEmpresa }}" style="max-height:48px;max-width:220px;display:inline-block">
+            </div>
+        @else
+            <div class="header">
+                <h2>Reglamento Interno de Trabajo</h2>
+            </div>
+        @endif
         <div class="body">
             <p class="greeting">Hola, <strong>{{ $nombreTrabajador }}</strong>.</p>
             <p style="font-size:14px;color:#555;">

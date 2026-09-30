@@ -83,10 +83,14 @@ class SocializacionRitAceptacionTest extends TestCase
             ->call('aceptarReglamento')
             ->assertSet('etapa', 'completado');
 
-        Mail::assertSent(RitAceptado::class, function (RitAceptado $mail) {
+        Mail::assertSent(RitAceptado::class, function (RitAceptado $mail) use ($empresa) {
             return $mail->hasTo('trabajador@example.com')
                 && $mail->nombreTrabajador === 'Con Correo'
-                && $mail->nombreEmpresa === 'RENBEL 3.0';
+                && $mail->nombreEmpresa === 'RENBEL 3.0'
+                // Bug real corregido 2026-09-30: el correo nunca recibía la
+                // empresa, así que siempre mostraba el rojo genérico de LUPE
+                // en vez del logo real de la empresa.
+                && $mail->empresa?->id === $empresa->id;
         });
     }
 
@@ -130,5 +134,34 @@ class SocializacionRitAceptacionTest extends TestCase
 
         $logro = \LevelUp\Experience\Models\Achievement::where('name', \App\Services\LogroSocializacionRitService::NOMBRE_LOGRO)->first();
         $this->assertNotNull($empresa->allAchievements()->find($logro->id));
+    }
+
+    /**
+     * Bug real reportado por el usuario (2026-09-30): el correo de
+     * confirmación mostraba el rojo genérico de LUPE en vez del logo real
+     * de la empresa - nunca se le pasaba la empresa al mailable. La ruta
+     * pública `logo-empresa.mostrar` ya existía pero nunca se conectó.
+     */
+    public function test_el_correo_muestra_el_logo_real_de_la_empresa_si_existe(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        \Illuminate\Support\Facades\Storage::disk('local')->put('logos/renbel.png', 'contenido-fake-del-logo');
+        $empresa = Empresa::factory()->create(['active' => true, 'logo_path' => 'logos/renbel.png']);
+
+        $html = (new RitAceptado('Con Logo', $empresa->razon_social, $empresa))->render();
+
+        $this->assertStringContainsString('<img', $html);
+        $this->assertStringContainsString(route('logo-empresa.mostrar', ['empresa' => $empresa->id]), $html);
+        $this->assertStringNotContainsString('<h2>Reglamento Interno de Trabajo</h2>', $html);
+    }
+
+    public function test_el_correo_usa_el_encabezado_generico_si_la_empresa_no_tiene_logo(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true, 'logo_path' => null]);
+
+        $html = (new RitAceptado('Sin Logo', $empresa->razon_social, $empresa))->render();
+
+        $this->assertStringContainsString('<h2>Reglamento Interno de Trabajo</h2>', $html);
+        $this->assertStringNotContainsString('<img', $html);
     }
 }

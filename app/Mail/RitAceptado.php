@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\Empresa;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -12,9 +13,17 @@ class RitAceptado extends Mailable
 {
     use Queueable, SerializesModels;
 
+    /**
+     * $empresa es opcional (nullable) para no romper si alguna vez se
+     * construye este correo sin el modelo a mano - pero SIEMPRE debería
+     * pasarse, es lo que permite mostrar el logo real de la empresa en vez
+     * del color rojo genérico de LUPE (bug real reportado por el usuario,
+     * 2026-09-30: "sale el color de por defecto de lupe").
+     */
     public function __construct(
         public readonly string $nombreTrabajador,
         public readonly string $nombreEmpresa,
+        public readonly ?Empresa $empresa = null,
     ) {}
 
     public function envelope(): Envelope
