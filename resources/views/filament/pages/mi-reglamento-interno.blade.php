@@ -361,7 +361,7 @@ html:not(.dark) .rit-viewer-sugerencia .rit-viewer-label{color:#be123c}
                acción en dos lugares distintos de la misma pantalla. --}}
           @if($reglamento?->fecha_publicacion_socializacion)
             <p style="margin:.5rem 0 0;font-size:.75rem;color:#57534e">
-              Publicado el {{ $reglamento->fecha_publicacion_socializacion->format('d/m/Y') }} ·
+              {{ $reglamento->fecha_publicacion_socializacion->isFuture() ? 'Se publicará el' : 'Publicado el' }} {{ $reglamento->fecha_publicacion_socializacion->format('d/m/Y') }} ·
               sus trabajadores pueden objetarlo hasta el {{ $reglamento->fechaLimiteObjecion()?->format('d/m/Y') }} (15 días hábiles)
             </p>
           @endif

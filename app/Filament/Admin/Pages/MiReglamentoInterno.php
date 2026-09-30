@@ -565,7 +565,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             ->color('gray')
             ->visible(fn () => $this->reglamento && !empty($this->reglamento->texto_completo))
             ->modalHeading('Fecha de publicación del Reglamento Interno')
-            ->modalDescription('Cuéntenos desde cuándo quedó disponible el Reglamento para sus trabajadores - por ejemplo, el día que se pegaron las carteleras. No tiene que coincidir con el día que lo generó aquí en el sistema. Con esta fecha calculamos automáticamente el plazo de 15 días hábiles que la ley les da a sus trabajadores para objetarlo, así usted no tiene que llevar la cuenta.')
+            ->modalDescription('Indique la fecha en que el Reglamento quedará disponible para sus trabajadores - por ejemplo, el día que va a compartir este link o a pegar las carteleras. No tiene que coincidir con el día que lo generó aquí en el sistema. Con esta fecha calculamos automáticamente el plazo de 15 días hábiles que la ley les da a sus trabajadores para objetarlo, así usted no tiene que llevar la cuenta.')
             ->modalSubmitActionLabel('Guardar fecha')
             ->form([
                 DatePicker::make('fecha_publicacion_socializacion')

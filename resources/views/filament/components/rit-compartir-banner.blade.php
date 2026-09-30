@@ -31,7 +31,7 @@
     @if($fechaPublicacion)
       <p class="rit-sub">Este link es fijo: siempre lleva a la versión vigente del Reglamento, sin importar cuántas veces lo actualices.</p>
       <p style="margin:.35rem 0 0;font-size:.75rem;color:#57534e">
-        Publicado el {{ $fechaPublicacion->format('d/m/Y') }}
+        {{ $fechaPublicacion->isFuture() ? 'Se publicará el' : 'Publicado el' }} {{ $fechaPublicacion->format('d/m/Y') }}
         @if($reglamento?->fechaLimiteObjecion())
           · sus trabajadores pueden objetarlo hasta el {{ $reglamento->fechaLimiteObjecion()->format('d/m/Y') }} (15 días hábiles)
         @endif
@@ -54,7 +54,7 @@
         @endif
       </div>
     @else
-      <p class="rit-sub">Antes de compartir el link, cuéntenos desde cuándo quedó disponible el Reglamento para sus trabajadores (por ejemplo, el día que pegaron las carteleras) - con eso calculamos automáticamente el plazo de 15 días hábiles que tienen para objetarlo, sin que usted tenga que llevar la cuenta.</p>
+      <p class="rit-sub">Antes de compartir el link, indíquenos desde cuándo quedará disponible el Reglamento para sus trabajadores (por ejemplo, el día que va a compartir este link o a pegar las carteleras) - con eso calculamos automáticamente el plazo de 15 días hábiles que tendrán para objetarlo, sin que usted tenga que llevar la cuenta.</p>
       <div style="margin-top:.75rem">
         @if($declararFechaUrl)
           <a href="{{ $declararFechaUrl }}" class="rit-btn rit-btn-primary">Declarar fecha de publicación</a>
