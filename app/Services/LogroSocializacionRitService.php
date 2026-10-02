@@ -69,6 +69,48 @@ class LogroSocializacionRitService
     }
 
     /**
+     * Detalle por trabajador de quién aceptó el RIT VIGENTE y quién no
+     * (pedido de Andrés Sarmiento, 2026-09-29). Compara por HASH del texto
+     * vigente, igual que Trabajador::aceptoRitVigente(), para que un
+     * trabajador que aceptó una versión ya reemplazada aparezca
+     * correctamente como "pendiente". Extraído de
+     * MiReglamentoInterno::detalleTrabajadoresSocializacion() (2026-09-30)
+     * para reusarlo también en la tarjeta del Dashboard.
+     *
+     * @return array<int, array{nombre: string, cargo: ?string, acepto: bool, fecha_aceptacion: ?\Carbon\Carbon}>
+     */
+    public function detallePorTrabajador(Empresa $empresa): array
+    {
+        $reglamento = $empresa->reglamentoInterno;
+
+        if (!$reglamento || empty($reglamento->texto_completo)) {
+            return [];
+        }
+
+        $hashVigente = hash('sha256', $reglamento->texto_completo);
+
+        return $empresa->trabajadores()
+            ->where('active', true)
+            ->get()
+            ->map(function (\App\Models\Trabajador $trabajador) use ($hashVigente) {
+                $aceptacion = $trabajador->aceptacionesReglamentoInterno()
+                    ->where('texto_rit_hash', $hashVigente)
+                    ->latest('aceptado_en')
+                    ->first();
+
+                return [
+                    'nombre' => $trabajador->nombre_completo,
+                    'cargo' => $trabajador->cargo,
+                    'acepto' => (bool) $aceptacion,
+                    'fecha_aceptacion' => $aceptacion?->aceptado_en,
+                ];
+            })
+            ->sortBy('acepto')
+            ->values()
+            ->all();
+    }
+
+    /**
      * @return array{0: int, 1: int} [aceptados, denominador]
      */
     private function calcular(Empresa $empresa): array

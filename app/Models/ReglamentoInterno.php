@@ -189,4 +189,17 @@ class ReglamentoInterno extends Model
             $this->empresa ? $this->empresa->diasHabilesSet() : false,
         );
     }
+
+    /**
+     * 'publicacion' mientras corre (o no se ha declarado) la ventana de 15
+     * días hábiles de objeción; 'socializacion' una vez pasa. Sin fecha
+     * declarada, se queda en 'publicacion' indefinidamente - no hay forma
+     * de calcular cuándo abre la Fase 2 sin ese dato.
+     */
+    public function faseSocializacionActual(): string
+    {
+        $limite = $this->fechaLimiteObjecion();
+
+        return (!$limite || now()->lt($limite)) ? 'publicacion' : 'socializacion';
+    }
 }

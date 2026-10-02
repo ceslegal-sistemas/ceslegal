@@ -1,5 +1,7 @@
 @php
-    $pasos = ['documento' => 1, 'datos' => 2, 'foto' => 3, 'presentacion_rit' => 4, 'quiz' => 5, 'foto_aceptacion' => 6, 'aceptacion' => 7];
+    $pasos = $fase === 'publicacion'
+        ? ['documento' => 1, 'datos' => 2, 'presentacion_rit' => 3, 'aceptacion' => 4]
+        : ['documento' => 1, 'datos' => 2, 'foto' => 3, 'presentacion_rit' => 4, 'quiz' => 5, 'foto_aceptacion' => 6, 'aceptacion' => 7];
     $pasoActual = $pasos[$etapa] ?? null;
 @endphp
 
@@ -44,6 +46,22 @@
                                 Ya registrado
                             </span>
                             <h1 class="rit-title">Ya aceptaste el Reglamento Interno vigente</h1>
+                        </div>
+                    </div>
+                @elseif ($etapa === 'ya_informado')
+                    <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+                        <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+                        <div style="position:relative;z-index:2">
+                            <span class="rit-badge rit-badge-sub">
+                                <lord-icon src="https://cdn.lordicon.com/wpsdctqb.json" trigger="loop" delay="800" stroke="bold" colors="primary:#86efac,secondary:#86efac" style="width:16px;height:16px;flex-shrink:0"></lord-icon>
+                                Ya confirmado
+                            </span>
+                            <h1 class="rit-title">Ya confirmaste la publicación del Reglamento</h1>
+                            <p class="rit-sub">
+                                Vuelve a este mismo link después del
+                                {{ $this->resolverRitActivo()?->fechaLimiteObjecion()?->format('d/m/Y') }}
+                                para completar la socialización.
+                            </p>
                         </div>
                     </div>
                 @elseif ($etapa === 'documento')
@@ -222,11 +240,13 @@
                             </details>
                         @endif
 
+                        @if($fase === 'socializacion')
                         {{-- Botón de descarga real del RIT (pedido de Andrés Sarmiento en la
                              reunión, 2026-09-29: el "Ver el Reglamento completo" expandible no
                              es suficiente, el trabajador debe poder bajarlo). Ruta pública
                              propia (rit.socializar.descargar) autorizada por el mismo token de
-                             esta página, nunca por sesión - mismo patrón que el video. --}}
+                             esta página, nunca por sesión - mismo patrón que el video. Exclusivo
+                             de Fase 2 (Socialización) - en Fase 1 (Publicación) no aplica. --}}
                         <a href="{{ route('rit.socializar.descargar', ['token' => $token]) }}" class="rit-btn rit-btn-secondary" style="width:100%;justify-content:center">
                             <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
                             Descargar Reglamento Interno
@@ -278,6 +298,7 @@
                                     </div>
                                 @endif
                             </div>
+                        @endif
                         @endif
 
                         <button type="button" wire:click="iniciarQuiz" wire:loading.attr="disabled" wire:target="iniciarQuiz"
@@ -339,27 +360,51 @@
                             <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
                             <div style="position:relative;z-index:2">
                                 <span class="rit-badge rit-badge-ia">Último paso</span>
-                                <h1 class="rit-title">Confirma que entendiste el Reglamento</h1>
-                                <p class="rit-sub">Con esto quedas registrado(a) como trabajador(a) de {{ $empresa->razon_social }} que conoce el Reglamento Interno.</p>
+                                @if($fase === 'publicacion')
+                                    <h1 class="rit-title">Confirma que viste la publicación</h1>
+                                    <p class="rit-sub">Con esto quedas registrado(a) como trabajador(a) de {{ $empresa->razon_social }} que fue informado(a) de la publicación del Reglamento Interno.</p>
+                                @else
+                                    <h1 class="rit-title">Confirma que entendiste el Reglamento</h1>
+                                    <p class="rit-sub">Con esto quedas registrado(a) como trabajador(a) de {{ $empresa->razon_social }} que conoce el Reglamento Interno.</p>
+                                @endif
                             </div>
                         </div>
 
                         <label class="flex items-start gap-3 p-4 rounded-xl border-2 border-gray-200 bg-gray-50 cursor-pointer">
                             <input type="checkbox" wire:model="declaracionAceptada" class="mt-0.5 w-5 h-5 rounded border border-gray-300 text-primary-600 focus:ring-2 focus:ring-primary-500 flex-shrink-0">
                             <span class="text-sm text-gray-700">
-                                <span class="font-semibold text-gray-900">Declaro que leí y entendí</span> el Reglamento Interno de Trabajo de <span class="font-semibold text-gray-900">{{ $empresa->razon_social }}</span>.
+                                @if($fase === 'publicacion')
+                                    <span class="font-semibold text-gray-900">Declaro que fui informado(a)</span> de la publicación del Reglamento Interno de Trabajo de <span class="font-semibold text-gray-900">{{ $empresa->razon_social }}</span>. Si tengo alguna objeción, la haré directamente ante la empresa.
+                                @else
+                                    <span class="font-semibold text-gray-900">Declaro que leí y entendí</span> el Reglamento Interno de Trabajo de <span class="font-semibold text-gray-900">{{ $empresa->razon_social }}</span>.
+                                @endif
                             </span>
                         </label>
                         @error('declaracionAceptada') <p class="text-sm text-danger-600">{{ $message }}</p> @enderror
 
-                        <button wire:click="aceptarReglamento" wire:loading.attr="disabled" wire:target="aceptarReglamento" type="button"
-                            class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm transition-colors">
-                            <svg wire:loading wire:target="aceptarReglamento" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                            </svg>
-                            <span wire:loading.remove wire:target="aceptarReglamento">Aceptar</span>
-                            <span wire:loading wire:target="aceptarReglamento">Guardando...</span>
-                        </button>
+                        {{-- Dos botones completos (no uno con wire:target interpolado) a
+                             propósito: SocializacionRitParidadVisualDescargosTest busca el
+                             string LITERAL wire:target="aceptarReglamento" en el archivo
+                             fuente. --}}
+                        @if($fase === 'publicacion')
+                            <button wire:click="confirmarPublicacion" wire:loading.attr="disabled" wire:target="confirmarPublicacion" type="button"
+                                class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                <svg wire:loading wire:target="confirmarPublicacion" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                </svg>
+                                <span wire:loading.remove wire:target="confirmarPublicacion">Aceptar</span>
+                                <span wire:loading wire:target="confirmarPublicacion">Guardando...</span>
+                            </button>
+                        @else
+                            <button wire:click="aceptarReglamento" wire:loading.attr="disabled" wire:target="aceptarReglamento" type="button"
+                                class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                <svg wire:loading wire:target="aceptarReglamento" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                </svg>
+                                <span wire:loading.remove wire:target="aceptarReglamento">Aceptar</span>
+                                <span wire:loading wire:target="aceptarReglamento">Guardando...</span>
+                            </button>
+                        @endif
                     </div>
                 @elseif ($etapa === 'completado')
                     <div class="rit-hero" style="padding:1.25rem 1.5rem;">

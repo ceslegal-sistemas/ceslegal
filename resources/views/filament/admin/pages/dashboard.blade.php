@@ -59,6 +59,12 @@
             ? app(\App\Services\LogroSocializacionRitService::class)->estadoDashboard($empresaUsuario)
             : null;
         $posterUrlDashboard = $estadoSocializacionRit ? route('rit.poster') : null;
+        // Detalle por trabajador (pedido del usuario, 2026-09-30: "faltó los
+        // detalles" en esta tarjeta) - mismo desglose que ya existía en "Mi
+        // Reglamento Interno", ver LogroSocializacionRitService::detallePorTrabajador().
+        $detalleSocializacionRit = ($estadoSocializacionRit && $estadoSocializacionRit['total'] > 0)
+            ? app(\App\Services\LogroSocializacionRitService::class)->detallePorTrabajador($empresaUsuario)
+            : [];
     @endphp
 
     @if($sinRit)
@@ -92,6 +98,7 @@
             'estadoSocializacionRit' => $estadoSocializacionRit,
             'empresaUsuario' => $empresaUsuario,
             'posterUrlDashboard' => $posterUrlDashboard,
+            'detalleSocializacionRit' => $detalleSocializacionRit,
         ])
     @endif
 

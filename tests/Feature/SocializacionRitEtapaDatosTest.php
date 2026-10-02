@@ -17,7 +17,7 @@ class SocializacionRitEtapaDatosTest extends TestCase
     public function test_trabajador_nuevo_crea_el_registro_con_todos_los_datos(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
-        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1', 'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString()]);
 
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')
@@ -45,7 +45,7 @@ class SocializacionRitEtapaDatosTest extends TestCase
     public function test_trabajador_existente_precarga_sus_datos_y_no_duplica(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
-        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1', 'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString()]);
         Trabajador::create([
             'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '444555666',
             'genero' => 'femenino', 'nombres' => 'Carla', 'apellidos' => 'Ríos', 'cargo' => 'Contadora', 'active' => true,
@@ -76,7 +76,7 @@ class SocializacionRitEtapaDatosTest extends TestCase
     public function test_correo_y_telefono_son_opcionales(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
-        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1', 'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString()]);
 
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')
@@ -100,7 +100,7 @@ class SocializacionRitEtapaDatosTest extends TestCase
     public function test_si_escribe_correo_la_confirmacion_sigue_siendo_obligatoria(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
-        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1', 'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString()]);
 
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')
@@ -128,7 +128,7 @@ class SocializacionRitEtapaDatosTest extends TestCase
         // - si se pusiera en el mismo create(), ReglamentoInternoObserver lo
         // borraria de inmediato (isDirty('texto_completo') dispara la
         // invalidacion de cache de organigrama/sanciones/conductas).
-        $rit = ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        $rit = ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1', 'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString()]);
         $rit->update([
             'organigrama' => [
                 ['nombre_cargo' => 'Jefe de Bodega', 'instancia_sancionatoria' => 'ninguna'],
@@ -147,7 +147,7 @@ class SocializacionRitEtapaDatosTest extends TestCase
     public function test_usa_catalogo_generico_si_el_rit_no_tiene_organigrama(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
-        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1', 'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString()]);
 
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')
@@ -164,7 +164,7 @@ class SocializacionRitEtapaDatosTest extends TestCase
     public function test_rechaza_si_la_confirmacion_de_correo_no_coincide(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
-        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1', 'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString()]);
 
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')
@@ -186,7 +186,7 @@ class SocializacionRitEtapaDatosTest extends TestCase
     public function test_permite_cargo_personalizado_con_otro(): void
     {
         $empresa = Empresa::factory()->create(['active' => true]);
-        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1', 'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString()]);
 
         Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
             ->set('tipoDocumento', 'CC')

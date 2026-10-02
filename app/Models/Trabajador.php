@@ -124,6 +124,35 @@ class Trabajador extends Model
             ->exists();
     }
 
+    public function publicacionesReglamentoInterno(): HasMany
+    {
+        return $this->hasMany(PublicacionReglamentoInterno::class);
+    }
+
+    /**
+     * Mismo criterio exacto que aceptoRitVigente() (comparación por HASH,
+     * no por reglamento_interno_id) pero para la evidencia LIGERA de la
+     * Fase 1 (Publicación) - ver PublicacionReglamentoInterno.
+     */
+    public function confirmoPublicacionVigente(): bool
+    {
+        $ritActivo = ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
+            ->where('empresa_id', $this->empresa_id)
+            ->where('activo', true)
+            ->latest('updated_at')
+            ->first();
+
+        if (!$ritActivo || blank($ritActivo->texto_completo)) {
+            return false;
+        }
+
+        $hashVigente = hash('sha256', $ritActivo->texto_completo);
+
+        return $this->publicacionesReglamentoInterno()
+            ->where('texto_rit_hash', $hashVigente)
+            ->exists();
+    }
+
     public function getNombreCompletoAttribute(): string
     {
         return "{$this->nombres} {$this->apellidos}";

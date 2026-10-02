@@ -614,27 +614,10 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             return [];
         }
 
-        $hashVigente = hash('sha256', $this->reglamento->texto_completo);
-
-        return $this->empresa->trabajadores()
-            ->where('active', true)
-            ->get()
-            ->map(function (\App\Models\Trabajador $trabajador) use ($hashVigente) {
-                $aceptacion = $trabajador->aceptacionesReglamentoInterno()
-                    ->where('texto_rit_hash', $hashVigente)
-                    ->latest('aceptado_en')
-                    ->first();
-
-                return [
-                    'nombre' => $trabajador->nombre_completo,
-                    'cargo' => $trabajador->cargo,
-                    'acepto' => (bool) $aceptacion,
-                    'fecha_aceptacion' => $aceptacion?->aceptado_en,
-                ];
-            })
-            ->sortBy('acepto')
-            ->values()
-            ->all();
+        // Delegado a LogroSocializacionRitService (2026-09-30) - la misma
+        // tarjeta de detalle se reusa en el Dashboard, ver
+        // dashboard-socializacion-rit-notice.blade.php.
+        return app(\App\Services\LogroSocializacionRitService::class)->detallePorTrabajador($this->empresa);
     }
 
     /** Modal con el reporte completo de socialización (mismo detalle que el desplegable inline, sin recortar). */

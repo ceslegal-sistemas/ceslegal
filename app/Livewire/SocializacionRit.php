@@ -18,6 +18,13 @@ class SocializacionRit extends Component
 
     public string $etapa = 'documento';
 
+    /**
+     * 'publicacion' (Fase 1, ligera) o 'socializacion' (Fase 2, flujo
+     * completo actual) - calculada en mount() a partir de
+     * ReglamentoInterno::faseSocializacionActual(). Ver spec 2026-09-30.
+     */
+    public string $fase = 'publicacion';
+
     public string $tipoDocumento = 'CC';
     public string $numeroDocumento = '';
     public string $numeroDocumentoConfirmacion = '';
@@ -85,9 +92,13 @@ class SocializacionRit extends Component
         $this->empresa = $empresa;
         $this->token = $token;
 
-        if (!$this->resolverRitActivo()) {
+        $ritActivo = $this->resolverRitActivo();
+        if (!$ritActivo) {
             $this->etapa = 'sin_rit';
+            return;
         }
+
+        $this->fase = $ritActivo->faseSocializacionActual();
     }
 
     /**
@@ -100,7 +111,7 @@ class SocializacionRit extends Component
      * RIT real. Nunca usar esa relación directamente en NINGÚN punto de
      * este componente - siempre pasar por este método.
      */
-    private function resolverRitActivo(): ?ReglamentoInterno
+    public function resolverRitActivo(): ?ReglamentoInterno
     {
         return ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
             ->where('empresa_id', $this->empresa->id)
@@ -202,6 +213,11 @@ class SocializacionRit extends Component
                 $this->etapa = 'ya_acepto';
                 return;
             }
+
+            if ($this->fase === 'publicacion' && $trabajador->confirmoPublicacionVigente()) {
+                $this->etapa = 'ya_informado';
+                return;
+            }
         }
 
         $this->etapa = 'datos';
@@ -250,6 +266,12 @@ class SocializacionRit extends Component
         );
 
         $this->trabajadorId = $trabajador->id;
+
+        if ($this->fase === 'publicacion') {
+            $this->prepararPresentacionRit();
+            return;
+        }
+
         $this->etapa = 'foto';
     }
 
@@ -315,6 +337,18 @@ class SocializacionRit extends Component
             $trabajador->update(['foto_referencia_path' => $ruta]);
         }
 
+        $this->prepararPresentacionRit();
+    }
+
+    /**
+     * Calcula todo lo que la pantalla 'presentacion_rit' necesita mostrar
+     * (texto del RIT, temas, diff de cambios, capítulos de video). Se
+     * extrajo de guardarFotoSimple() (2026-09-30) para que la Fase 1
+     * (Publicación, que NO pasa por la pantalla de foto) también pueda
+     * llegar a 'presentacion_rit' sin duplicar esta lógica.
+     */
+    private function prepararPresentacionRit(): void
+    {
         $trabajadorObj = Trabajador::withoutGlobalScope('bufeteOrEmpresa')->find($this->trabajadorId);
         $ritActivo = $this->resolverRitActivo(); // NUNCA $this->empresa->reglamentoInterno - ver Gotcha crítico #3
         $ultimaAceptacion = $trabajadorObj?->aceptacionesReglamentoInterno()
@@ -371,6 +405,11 @@ class SocializacionRit extends Component
      */
     public function iniciarQuiz(): void
     {
+        if ($this->fase === 'publicacion') {
+            $this->etapa = 'aceptacion';
+            return;
+        }
+
         $ritActivo = $this->resolverRitActivo(); // NUNCA $this->empresa->reglamentoInterno - ver Gotcha crítico #3
 
         $this->quizPreguntas = $ritActivo->temasNormativos()
@@ -494,6 +533,47 @@ class SocializacionRit extends Component
                 );
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::warning('SocializacionRit: fallo al enviar correo de confirmacion', [
+                    'trabajador_id' => $this->trabajadorId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $this->etapa = 'completado';
+    }
+
+    /**
+     * Paralelo de aceptarReglamento() para la Fase 1 (Publicación) - crea
+     * evidencia LIGERA (PublicacionReglamentoInterno), nunca
+     * AceptacionReglamentoInterno (esa es exclusiva de Fase 2).
+     */
+    public function confirmarPublicacion(): void
+    {
+        $this->validate([
+            'declaracionAceptada' => 'accepted',
+        ]);
+
+        $ritActivo = $this->resolverRitActivo(); // NUNCA $this->empresa->reglamentoInterno - ver Gotcha crítico #3
+        $trabajador = Trabajador::withoutGlobalScope('bufeteOrEmpresa')->findOrFail($this->trabajadorId);
+
+        \App\Models\PublicacionReglamentoInterno::create([
+            'trabajador_id' => $trabajador->id,
+            'reglamento_interno_id' => $ritActivo->id,
+            'texto_rit_hash' => hash('sha256', (string) $ritActivo->texto_completo),
+            'confirmado_en' => now(),
+            'ip' => request()->ip(),
+            'user_agent' => (string) request()->userAgent(),
+        ]);
+
+        // Fail-open: mismo criterio que aceptarReglamento() - un fallo de
+        // correo no debe bloquear el registro ya guardado en BD.
+        if ($this->email) {
+            try {
+                \Illuminate\Support\Facades\Mail::to($this->email)->send(
+                    new \App\Mail\RitPublicacionInformada(trim("{$this->nombres} {$this->apellidos}"), $this->empresa->razon_social, $this->empresa)
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('SocializacionRit: fallo al enviar correo de publicacion', [
                     'trabajador_id' => $this->trabajadorId,
                     'error' => $e->getMessage(),
                 ]);
