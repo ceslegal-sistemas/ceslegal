@@ -376,17 +376,28 @@ class SocializacionRit extends Component
         if ($ultimaAceptacion) {
             $this->esPrimeraAceptacion = false;
 
-            // $ultimaAceptacion->reglamentoInterno (belongsTo) dispararía
-            // OTRA consulta sin proteger contra ReglamentoInterno::
-            // ScopedToBufeteOrEmpresa - mismo riesgo del Gotcha crítico #3,
-            // esta vez en una relación belongsTo en vez de hasOne. Siempre
-            // resolver por id con withoutGlobalScope explícito, nunca vía
-            // la relación directa, en NINGÚN modelo que use ese scope.
-            $versionAnterior = ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
-                ->find($ultimaAceptacion->reglamento_interno_id);
+            // Bug real reportado por el usuario (2026-10-03, captura de
+            // RENBEL): el redline salía siempre en blanco ("No se
+            // detectaron diferencias") aunque sí hubo cambios. Causa raíz:
+            // el RIT puede mutar IN-PLACE (Plan B quirúrgico, mismo id) sin
+            // crear una fila nueva - re-consultar ReglamentoInterno por
+            // $ultimaAceptacion->reglamento_interno_id trae el texto YA
+            // actualizado (el mismo que $ritActivoTextoCompleto), así que
+            // se comparaba el texto nuevo contra sí mismo. El snapshot
+            // guardado en el momento exacto de esa aceptación
+            // (AceptacionReglamentoInterno.texto_rit_snapshot, ver
+            // AceptacionRitService::registrar()) es la única fuente
+            // confiable del texto "de antes". Respaldo al texto actual del
+            // RIT solo para filas viejas de antes de esa columna
+            // (migracion 2026_09_28_095031) que puedan tener el snapshot
+            // vacío.
+            $textoAnterior = $ultimaAceptacion->texto_rit_snapshot
+                ?: ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
+                    ->find($ultimaAceptacion->reglamento_interno_id)
+                    ?->texto_completo;
 
             $this->cambiosRit = app(\App\Services\RitDiffService::class)->compararDocumentos(
-                (string) $versionAnterior->texto_completo,
+                (string) $textoAnterior,
                 $this->ritActivoTextoCompleto
             );
         } else {
@@ -397,7 +408,7 @@ class SocializacionRit extends Component
     }
 
     /**
-     * Se llama al salir de 'presentacion_rit'. Elige 3 temas al azar entre
+     * Se llama al salir de 'presentacion_rit'. Elige 5 temas al azar entre
      * los que tienen pregunta_vf generada para el RIT activo - si hay
      * menos de 3 usa los que haya, si hay 0 salta la etapa entera
      * (fail-open: un fallo de IA generando el quiz nunca debe bloquear la
@@ -412,17 +423,33 @@ class SocializacionRit extends Component
 
         $ritActivo = $this->resolverRitActivo(); // NUNCA $this->empresa->reglamentoInterno - ver Gotcha crítico #3
 
-        $this->quizPreguntas = $ritActivo->temasNormativos()
+        $temasQuiz = $ritActivo->temasNormativos()
             ->activos()
             ->wherePivotNotNull('pregunta_vf')
-            ->get(['temas_normativos.id', 'temas_normativos.nombre', 'temas_normativos.descripcion'])
+            ->get(['temas_normativos.id', 'temas_normativos.nombre', 'temas_normativos.descripcion']);
+
+        if ($this->genero !== 'femenino') {
+            // Bug real reportado por el usuario (2026-10-03): a un
+            // trabajador hombre le salió la pregunta de quiz sobre permisos
+            // de lactancia ("...para amamantar a tu hijo..."), redactada
+            // siempre en segunda persona por la IA como si quien responde
+            // fuera la madre (ver TemaClasificadorService::generarPreguntasQuiz()).
+            // Ese tema no aplica a trabajadores que no son mujeres - se
+            // excluye del banco de preguntas en vez de intentar que la IA
+            // redacte neutro (no hay forma confiable de validar eso).
+            $temasQuiz = $temasQuiz->reject(
+                fn ($tema) => $tema->nombre === 'Protección a la mujer embarazada y lactancia'
+            );
+        }
+
+        $this->quizPreguntas = $temasQuiz
             ->map(fn ($tema) => [
                 'pregunta' => $tema->pivot->pregunta_vf,
                 'respuesta_correcta' => (bool) $tema->pivot->respuesta_correcta,
                 'explicacion' => $tema->pivot->resumen_simple ?: $tema->descripcion,
             ])
             ->shuffle()
-            ->take(3)
+            ->take(5)
             ->values()
             ->all();
 

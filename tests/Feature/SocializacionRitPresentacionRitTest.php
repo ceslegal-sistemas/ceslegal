@@ -142,6 +142,7 @@ class SocializacionRitPresentacionRitTest extends TestCase
         ReglamentoInterno::create([
             'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
             'video_didactico_path' => 'rit-videos/1/video.mp4',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
         ]);
         $trabajador = Trabajador::create([
             'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '131313131',
@@ -160,11 +161,56 @@ class SocializacionRitPresentacionRitTest extends TestCase
             ->assertSee($token, false);
     }
 
+    /**
+     * Bug real reportado por el usuario (2026-10-03, captura de RENBEL): el
+     * redline salía en blanco ("No se detectaron diferencias") aunque sí
+     * hubo cambios reales. Causa raíz: el RIT puede mutar IN-PLACE (Plan B
+     * quirúrgico, MISMO id) - re-consultar ReglamentoInterno por
+     * reglamento_interno_id traía el texto YA actualizado, idéntico al
+     * actual, en vez del texto de ANTES. Este test reproduce exactamente
+     * ese escenario: mismo id, texto mutado in-place, y verifica que el
+     * diff usa texto_rit_snapshot (el texto real de cuando aceptó) en vez
+     * de volver a consultar el RIT.
+     */
+    public function test_el_diff_usa_el_snapshot_aunque_el_rit_haya_mutado_in_place_con_el_mismo_id(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia',
+            'texto_completo' => "Articulo 1. Version vieja.",
+        ]);
+        $trabajador = Trabajador::create([
+            'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '555444333',
+            'genero' => 'masculino', 'nombres' => 'Mutacion', 'apellidos' => 'EnSitio', 'cargo' => 'X', 'active' => true,
+        ]);
+        AceptacionReglamentoInterno::create([
+            'trabajador_id' => $trabajador->id,
+            'reglamento_interno_id' => $rit->id,
+            'texto_rit_snapshot' => $rit->texto_completo,
+            'texto_rit_hash' => hash('sha256', $rit->texto_completo),
+            'aceptado_en' => now()->subMonth(),
+        ]);
+
+        // Plan B quirúrgico: el MISMO registro (mismo id) se actualiza con
+        // texto nuevo, en vez de crear una fila nueva.
+        $rit->update(['texto_completo' => "Articulo 1. Version nueva mejorada con un cambio real."]);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa, 'token' => $empresa->tokenSocializacionRit()])
+            ->set('trabajadorId', $trabajador->id)
+            ->call('guardarFotoSimple', $this->fotoBase64DePrueba())
+            ->assertSet('esPrimeraAceptacion', false)
+            ->assertSet('cambiosRit', fn ($cambios) => collect($cambios)->contains(fn ($c) => $c['tipo'] !== 'igual'));
+    }
+
     public function test_no_muestra_ningun_video_si_no_se_ha_generado(): void
     {
         \Illuminate\Support\Facades\Storage::fake('local');
         $empresa = Empresa::factory()->create(['active' => true]);
-        ReglamentoInterno::create(['empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1']);
+        ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
+        ]);
         $trabajador = Trabajador::create([
             'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '141414141',
             'genero' => 'femenino', 'nombres' => 'Sin', 'apellidos' => 'Video', 'cargo' => 'X', 'active' => true,

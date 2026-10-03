@@ -186,7 +186,53 @@
                 @elseif ($etapa === 'foto')
                     @include('livewire.partials.foto-simple-captura')
                 @elseif ($etapa === 'presentacion_rit')
-                    <div class="space-y-4">
+                    {{-- x-data vive en ESTE wrapper (no en el div del video mas abajo) a
+                         proposito: el boton "Continuar" necesita leer "todosVistos" para
+                         bloquearse, y esta fuera del div del video - Alpine no comparte
+                         estado entre x-data hermanos, solo entre padre/hijo. --}}
+                    @php
+                        // En Fase 1 (publicación) el bloque de video ni siquiera se
+                        // renderiza (ver @if($fase === 'socializacion') más abajo) - si
+                        // esto se calculara igual iria sin token (vacio en Fase 1,
+                        // ver $pasos/$token arriba) y route() revienta con "Missing
+                        // parameter". Tambien evita que "Continuar" se bloquee
+                        // esperando ver un video que el trabajador nunca llega a ver.
+                        $videoBaseUrl = $fase === 'socializacion' ? route('rit.socializar.video', ['token' => $token]) : '';
+                    @endphp
+                    <div class="space-y-4"
+                        x-data="{
+                            capitulos: @js($fase === 'socializacion' ? $capitulosVideoDidactico : []),
+                            actual: 0,
+                            vistos: @js($fase === 'socializacion' ? array_fill(0, count($capitulosVideoDidactico), false) : []),
+                            maxTiempo: {},
+                            baseUrl: {{ \Illuminate\Support\Js::from($videoBaseUrl) }},
+                            get todosVistos() { return this.capitulos.length === 0 || this.vistos.every(v => v); },
+                            cargar(indice) {
+                                this.actual = indice;
+                                this.$refs.video.src = this.baseUrl + '?capitulo=' + indice;
+                                this.$refs.video.load();
+                                this.$refs.video.play().catch(() => {});
+                            },
+                            siguiente() {
+                                this.vistos[this.actual] = true;
+                                if (this.actual < this.capitulos.length - 1) { this.cargar(this.actual + 1); }
+                            },
+                            actualizarProgreso() {
+                                const v = this.$refs.video;
+                                this.maxTiempo[this.actual] = Math.max(this.maxTiempo[this.actual] || 0, v.currentTime);
+                            },
+                            evitarAdelantar() {
+                                // Pedido explícito de Andrés Sarmiento (reunión 2026-10-03):
+                                // el trabajador NO puede adelantar el video arrastrando la
+                                // barra - si intenta saltar más allá de lo que ya vio, se
+                                // regresa al punto máximo alcanzado. Retroceder sí se permite
+                                // (puede repasar), solo se bloquea adelantar.
+                                const v = this.$refs.video;
+                                const max = this.maxTiempo[this.actual] || 0;
+                                if (v.currentTime > max + 0.5) { v.currentTime = max; }
+                            }
+                        }"
+                        x-init="if (capitulos.length > 0) { $refs.video.src = baseUrl + '?capitulo=0' }">
                         @if ($esPrimeraAceptacion)
                             <div class="rit-hero" style="padding:1.25rem 1.5rem;">
                                 <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
@@ -267,42 +313,35 @@
                              terminar un capítulo, pasa solo al siguiente. Lista de
                              capítulos abajo para saltar a uno específico. --}}
                         @if(count($capitulosVideoDidactico) > 0)
-                            <div class="rounded-xl overflow-hidden border border-gray-200 bg-black"
-                                x-data="{
-                                    capitulos: @js($capitulosVideoDidactico),
-                                    actual: 0,
-                                    baseUrl: {{ \Illuminate\Support\Js::from(route('rit.socializar.video', ['token' => $token])) }},
-                                    cargar(indice) {
-                                        this.actual = indice;
-                                        this.$refs.video.src = this.baseUrl + '?capitulo=' + indice;
-                                        this.$refs.video.load();
-                                        this.$refs.video.play().catch(() => {});
-                                    },
-                                    siguiente() {
-                                        if (this.actual < this.capitulos.length - 1) { this.cargar(this.actual + 1); }
-                                    }
-                                }"
-                                x-init="$refs.video.src = baseUrl + '?capitulo=0'">
-                                <video x-ref="video" controls preload="metadata" x-on:ended="siguiente()" style="width:100%;display:block"></video>
+                            <div class="rounded-xl overflow-hidden border border-gray-200 bg-black">
+                                <video x-ref="video" controls controlsList="nofullscreen noremoteplayback" preload="metadata"
+                                    x-on:ended="siguiente()" x-on:timeupdate="actualizarProgreso()" x-on:seeking="evitarAdelantar()"
+                                    style="width:100%;display:block"></video>
                                 @if(count($capitulosVideoDidactico) > 1)
                                     <div style="padding:.75rem;background:#fff">
                                         <p style="font-size:.7rem;font-weight:700;color:#78716c;text-transform:uppercase;letter-spacing:.05em;margin:0 0 .5rem">Capítulos</p>
                                         <div style="display:flex;flex-direction:column;gap:.25rem;max-height:180px;overflow-y:auto">
                                             <template x-for="(cap, i) in capitulos" :key="i">
                                                 <button type="button" x-on:click="cargar(i)"
-                                                    style="text-align:left;font-size:.8125rem;padding:.4rem .6rem;border-radius:.5rem;border:none;cursor:pointer;background:transparent"
-                                                    x-bind:style="actual === i ? 'background:#fecdd3;color:#be123c;font-weight:600' : 'color:#57534e'"
-                                                    x-text="(i + 1) + '. ' + cap"></button>
+                                                    style="text-align:left;font-size:.8125rem;padding:.4rem .6rem;border-radius:.5rem;border:none;cursor:pointer;background:transparent;display:flex;align-items:center;gap:.35rem"
+                                                    x-bind:style="actual === i ? 'background:#fecdd3;color:#be123c;font-weight:600' : 'color:#57534e'">
+                                                    <span x-text="vistos[i] ? '✓' : (i + 1) + '.'"></span>
+                                                    <span x-text="cap"></span>
+                                                </button>
                                             </template>
                                         </div>
                                     </div>
                                 @endif
                             </div>
+                            <p x-show="!todosVistos" x-cloak style="font-size:.75rem;color:#854d0e;background:#fffbeb;border:1px solid #fde68a;border-radius:.5rem;padding:.5rem .75rem;margin:0">
+                                Debes ver completo cada video antes de poder continuar.
+                            </p>
                         @endif
                         @endif
 
                         <button type="button" wire:click="iniciarQuiz" wire:loading.attr="disabled" wire:target="iniciarQuiz"
-                            class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-semibold rounded-xl shadow-sm transition-colors">
+                            x-bind:disabled="!todosVistos"
+                            class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm transition-colors">
                             Continuar
                         </button>
                     </div>
@@ -337,11 +376,11 @@
                             <div class="grid grid-cols-2 gap-3">
                                 <button type="button" wire:click="responderQuiz(true)" wire:loading.attr="disabled" wire:target="responderQuiz"
                                     class="flex items-center justify-center gap-2 px-5 py-3.5 bg-white border-2 border-gray-200 hover:border-primary-400 active:bg-gray-50 text-gray-900 font-semibold rounded-xl transition-colors">
-                                    Verdadero
+                                    Sí
                                 </button>
                                 <button type="button" wire:click="responderQuiz(false)" wire:loading.attr="disabled" wire:target="responderQuiz"
                                     class="flex items-center justify-center gap-2 px-5 py-3.5 bg-white border-2 border-gray-200 hover:border-primary-400 active:bg-gray-50 text-gray-900 font-semibold rounded-xl transition-colors">
-                                    Falso
+                                    No
                                 </button>
                             </div>
                         @endif

@@ -21,19 +21,38 @@
 @php
     $fechaPublicacion = $reglamento?->fecha_publicacion_socializacion ?? null;
     $declararFechaUrl = $declararFechaUrl ?? null;
+    // Pedido de Andrés Sarmiento (reunión 2026-10-03): después de los 15
+    // días hábiles de objeción, el panel admin debe dejar explícito que el
+    // MISMO link ya no es "publicación" sino "socialización" del RIT - el
+    // lado del trabajador ya distingue esto (ver $fase en SocializacionRit),
+    // esto es el aviso correspondiente del lado empresa.
+    $faseActual = $reglamento?->faseSocializacionActual();
 @endphp
 <div class="rit-hero" style="padding:1.25rem 1.5rem;">
   <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
   <div style="position:relative;z-index:2" x-data="{ copiado: false, url: {{ \Illuminate\Support\Js::from($empresa->urlSocializacionRit()) }} }">
-    <span class="rit-badge rit-badge-ia">Socializa el RIT</span>
+    @if($faseActual === 'socializacion')
+      <span class="rit-badge rit-badge-sub">Fase 2 · Socialización en curso</span>
+    @elseif($fechaPublicacion)
+      <span class="rit-badge rit-badge-ia">Fase 1 · Publicación en curso</span>
+    @else
+      <span class="rit-badge rit-badge-ia">Socializa el RIT</span>
+    @endif
     <h1 class="rit-title">Comparte el Reglamento con tus trabajadores</h1>
 
     @if($fechaPublicacion)
-      <p class="rit-sub">Este link es fijo: siempre lleva a la versión vigente del Reglamento, sin importar cuántas veces lo actualices.</p>
+      @if($faseActual === 'socializacion')
+        <p class="rit-sub" style="color:#166534;font-weight:600">
+          Ya pasaron los 15 días hábiles de objeción. Con este mismo link, tus trabajadores ahora deben completar la socialización
+          completa (video, quiz y confirmación) - ya no basta con el aviso inicial de publicación.
+        </p>
+      @else
+        <p class="rit-sub">Este link es fijo: siempre lleva a la versión vigente del Reglamento, sin importar cuántas veces lo actualices.</p>
+      @endif
       <p style="margin:.35rem 0 0;font-size:.75rem;color:#57534e">
         {{ $fechaPublicacion->isFuture() ? 'Se publicará el' : 'Publicado el' }} {{ $fechaPublicacion->format('d/m/Y') }}
         @if($reglamento?->fechaLimiteObjecion())
-          · sus trabajadores pueden objetarlo hasta el {{ $reglamento->fechaLimiteObjecion()->format('d/m/Y') }} (15 días hábiles)
+          · {{ $faseActual === 'socializacion' ? 'el plazo de objeción venció el' : 'sus trabajadores pueden objetarlo hasta el' }} {{ $reglamento->fechaLimiteObjecion()->format('d/m/Y') }} (15 días hábiles)
         @endif
         ·
         @if($declararFechaUrl)

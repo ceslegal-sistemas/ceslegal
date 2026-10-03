@@ -38,6 +38,7 @@ class SocializacionRitEtapaQuizTest extends TestCase
         $empresa = Empresa::factory()->create(['active' => true]);
         $rit = ReglamentoInterno::create([
             'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
         ]);
 
         $temas = [];
@@ -60,7 +61,7 @@ class SocializacionRitEtapaQuizTest extends TestCase
             'genero' => 'masculino', 'nombres' => 'Juan', 'apellidos' => 'Perez', 'cargo' => 'Operario', 'active' => true,
         ]);
 
-        return Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+        return Livewire::test(SocializacionRit::class, ['empresa' => $empresa, 'token' => $empresa->tokenSocializacionRit()])
             ->set('trabajadorId', $trabajador->id)
             ->call('guardarFotoSimple', $this->fotoBase64Valida());
     }
@@ -85,6 +86,7 @@ class SocializacionRitEtapaQuizTest extends TestCase
         $empresa = Empresa::factory()->create(['active' => true]);
         ReglamentoInterno::create([
             'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
         ]);
 
         $this->llevarATrabajadorAPresentacionRit($empresa)
@@ -146,5 +148,38 @@ class SocializacionRitEtapaQuizTest extends TestCase
         $this->assertFalse($respuestas[0]['intentos'][0]['correcta']);
         $this->assertTrue($respuestas[0]['intentos'][1]['correcta']);
         $this->assertNotEmpty($respuestas[0]['intentos'][0]['respondido_en']);
+    }
+
+    /**
+     * Bug real reportado por el usuario (2026-10-03): a un trabajador
+     * hombre le salió la pregunta de quiz sobre permisos de lactancia
+     * ("...para amamantar a tu hijo..."), redactada siempre en segunda
+     * persona como si quien responde fuera la madre. Ese tema no debe
+     * aparecer en el banco de preguntas de un trabajador que no es mujer.
+     */
+    public function test_pregunta_de_lactancia_no_sale_para_trabajador_no_femenino(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
+        ]);
+
+        $temaLactancia = TemaNormativo::create(['nombre' => 'Protección a la mujer embarazada y lactancia', 'descripcion' => 'Desc.', 'activo' => true]);
+        $rit->temasNormativos()->attach($temaLactancia->id, [
+            'pregunta_vf' => 'RENBEL S.A.S. te dará dos descansos de 30 minutos cada uno para amamantar a tu hijo durante los primeros 12 meses de edad del bebé.',
+            'respuesta_correcta' => true,
+        ]);
+        $otroTema = TemaNormativo::create(['nombre' => 'Jornada laboral y horas extras', 'descripcion' => 'Desc.', 'activo' => true]);
+        $rit->temasNormativos()->attach($otroTema->id, [
+            'pregunta_vf' => '¿La jornada maxima es de 8 horas diarias?',
+            'respuesta_correcta' => true,
+        ]);
+
+        // $trabajador por defecto en llevarATrabajadorAPresentacionRit() ya es 'masculino'.
+        $componente = $this->llevarATrabajadorAPresentacionRit($empresa)->call('iniciarQuiz');
+
+        $preguntas = collect($componente->get('quizPreguntas'))->pluck('pregunta');
+        $this->assertFalse($preguntas->contains(fn ($p) => str_contains($p, 'amamantar')));
     }
 }
