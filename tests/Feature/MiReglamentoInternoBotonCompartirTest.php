@@ -58,28 +58,6 @@ class MiReglamentoInternoBotonCompartirTest extends TestCase
     }
 
     /**
-     * Pedido explícito del usuario (2026-09-22): el banner debe verse ANTES
-     * del texto del reglamento, para quedar visible sin scroll al entrar a
-     * la página. Tras la extracción a un partial (2026-09-23), esto ahora
-     * se verifica sobre el `@include` en la página, no sobre el contenido
-     * del banner directamente.
-     */
-    public function test_el_banner_esta_antes_del_texto_del_reglamento_vigente(): void
-    {
-        $fuente = file_get_contents(resource_path('views/filament/pages/mi-reglamento-interno.blade.php'));
-
-        $posicionBanner = strpos($fuente, "@include('filament.components.rit-compartir-banner'");
-        // El encabezado "Texto del reglamento vigente" se retiró (2026-09-30)
-        // - class="rit-text" es el ancla estable del bloque que renderiza el
-        // texto del RIT, con o sin encabezado.
-        $posicionAncla = strpos($fuente, 'class="rit-text"');
-
-        $this->assertNotFalse($posicionBanner, 'No se encontró el include del banner de compartir.');
-        $this->assertNotFalse($posicionAncla, 'No se encontró el ancla esperada en el archivo.');
-        $this->assertLessThan($posicionAncla, $posicionBanner, 'El banner de compartir debe estar ANTES del texto del reglamento vigente.');
-    }
-
-    /**
      * Este estilo vive en el <style> de la propia página (no se movió al
      * partial), así que sigue verificándose sobre mi-reglamento-interno.blade.php.
      */

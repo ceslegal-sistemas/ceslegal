@@ -445,31 +445,12 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
     @endif
     </div>
 
-    {{-- Todo el bloque de texto del RIT (encabezado + el texto en sí) queda
-         COLAPSADO por defecto (pedido del usuario, 2026-09-30: "cuando dije
-         'Texto del reglamento vigente' me refería a todo, incluyendo el
-         texto del rit") - el badge "Vigente" y el botón "Descargar
-         Reglamento Interno" de arriba ya cubren "¿está guardado?" y "quiero
-         leerlo completo", así que mostrarlo siempre desplegado era puro
-         scroll sin aportar nada nuevo.
-
-         Controlado con Alpine (x-show), NO con <details> nativo (pedido
-         explícito del usuario, 2026-10-03: seguía viéndolo expandido en
-         producción) - un <details> nativo puede quedar "recordado" como
-         abierto por el navegador a través de un re-render de Livewire
-         (ej. tras mountAction/culminarSocializacion en esta misma página),
-         sin que el servidor vuelva a cerrarlo. x-data arranca SIEMPRE en
-         false en cada carga de página, sin ese riesgo - mismo patrón ya
-         usado arriba para "Ver detalle". --}}
-    <div class="rit-viewer" x-data="{ abierto: false }">
-      <button type="button" x-on:click="abierto = !abierto" class="rit-viewer-header" style="cursor:pointer;width:100%;border:none;background:none;text-align:left">
-        <span class="rit-viewer-label">Ver texto completo del Reglamento</span>
-        <svg x-bind:style="{ transform: abierto ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .15s' }" style="width:14px;height:14px;flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-      </button>
-      <div x-show="abierto" x-cloak class="rit-viewer-body">
-        <div class="rit-text">{!! preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '<strong>$1</strong>', nl2br(e($reglamento->texto_completo))) !!}</div>
-      </div>
-    </div>
+    {{-- Bloque "Ver texto completo del Reglamento" ELIMINADO por completo
+         (pedido explícito del usuario, 2026-10-03, repetido varias veces:
+         "QUITA EL TEXTO DEL RIT YA... ELIMINALO") - ya no queda ningún
+         viewer del texto completo en esta página. El badge "Vigente" y el
+         botón "Descargar Reglamento Interno" de arriba cubren "¿está
+         guardado?" y "quiero leerlo completo". --}}
   @else
     <div class="rit-viewer">
       <div class="rit-empty">
