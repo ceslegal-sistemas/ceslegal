@@ -173,7 +173,10 @@ class TemaClasificadorService
             if ($temas->contains('id', $temaId)) {
                 $rit->temasNormativos()->updateExistingPivot($temaId, [
                     'pregunta_vf' => $pregunta['pregunta'],
-                    'respuesta_correcta' => $pregunta['respuesta'],
+                    'tipo_pregunta' => $pregunta['tipo'],
+                    'respuesta_correcta' => $pregunta['tipo'] === 'vf' ? $pregunta['respuesta'] : null,
+                    'opciones' => $pregunta['tipo'] === 'multiple' ? $pregunta['opciones'] : null,
+                    'respuesta_correcta_indice' => $pregunta['tipo'] === 'multiple' ? $pregunta['respuesta_indice'] : null,
                 ]);
             }
         }
@@ -193,15 +196,24 @@ class TemaClasificadorService
         Eres un asistente que verifica si una persona SIN formación
         jurídica entendió un Reglamento Interno de Trabajo. Dado el texto
         real de un Reglamento Interno de Trabajo, escribe para CADA uno de
-        los siguientes temas UNA pregunta de verdadero o falso, en español
-        muy sencillo, sobre algo ESPECÍFICO que ESTE reglamento dice sobre
-        ese tema (un número, un plazo, una regla concreta) - NO una
-        pregunta de cultura general sobre el tema. La pregunta debe tener
-        una respuesta objetivamente verificable en el texto. Dirígete al
-        trabajador de forma directa ("tú").
+        los siguientes temas UNA pregunta en español muy sencillo, sobre
+        algo ESPECÍFICO que ESTE reglamento dice sobre ese tema (un número,
+        un plazo, una regla concreta) - NO una pregunta de cultura general
+        sobre el tema. La pregunta debe tener una respuesta objetivamente
+        verificable en el texto. Dirígete al trabajador de forma directa
+        ("tú").
 
-        Responde ÚNICAMENTE con un array JSON, sin markdown, con este
-        formato exacto: [{"id": 3, "pregunta": "...", "respuesta": true}, {"id": 7, "pregunta": "...", "respuesta": false}]
+        Para CADA pregunta, elige LIBREMENTE uno de estos 2 formatos (varía
+        entre temas, no uses siempre el mismo):
+
+        - Verdadero/Falso: {"id": 3, "tipo": "vf", "pregunta": "...", "respuesta": true}
+        - Selección múltiple con EXACTAMENTE 4 opciones, una sola correcta:
+          {"id": 7, "tipo": "multiple", "pregunta": "...", "opciones": ["...", "...", "...", "..."], "respuesta_indice": 2}
+          (respuesta_indice es la posición de la opción correcta, empezando en 0)
+
+        Responde ÚNICAMENTE con un array JSON, sin markdown, mezclando ambos
+        formatos según el tema, con este formato exacto:
+        [{"id": 3, "tipo": "vf", "pregunta": "...", "respuesta": true}, {"id": 7, "tipo": "multiple", "pregunta": "...", "opciones": ["...", "...", "...", "..."], "respuesta_indice": 2}]
 
         TEMAS:
         {$listaTemas}
@@ -222,9 +234,32 @@ class TemaClasificadorService
 
         $resultado = [];
         foreach ($decodificado as $item) {
-            if (isset($item['id'], $item['pregunta'], $item['respuesta']) && is_numeric($item['id'])) {
+            if (!isset($item['id'], $item['pregunta']) || !is_numeric($item['id'])) {
+                continue;
+            }
+
+            // Fail-open hacia V/F: si el modelo devuelve "multiple" pero sin
+            // las 4 opciones/índice válido, se trata como si fuera V/F en
+            // vez de descartar la pregunta entera.
+            $esMultipleValido = ($item['tipo'] ?? null) === 'multiple'
+                && is_array($item['opciones'] ?? null)
+                && count($item['opciones']) === 4
+                && isset($item['respuesta_indice'])
+                && is_numeric($item['respuesta_indice'])
+                && (int) $item['respuesta_indice'] >= 0
+                && (int) $item['respuesta_indice'] <= 3;
+
+            if ($esMultipleValido) {
                 $resultado[(int) $item['id']] = [
                     'pregunta' => (string) $item['pregunta'],
+                    'tipo' => 'multiple',
+                    'opciones' => array_map('strval', $item['opciones']),
+                    'respuesta_indice' => (int) $item['respuesta_indice'],
+                ];
+            } elseif (isset($item['respuesta'])) {
+                $resultado[(int) $item['id']] = [
+                    'pregunta' => (string) $item['pregunta'],
+                    'tipo' => 'vf',
                     'respuesta' => (bool) $item['respuesta'],
                 ];
             }

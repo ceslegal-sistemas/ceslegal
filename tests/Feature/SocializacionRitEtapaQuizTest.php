@@ -182,4 +182,43 @@ class SocializacionRitEtapaQuizTest extends TestCase
         $preguntas = collect($componente->get('quizPreguntas'))->pluck('pregunta');
         $this->assertFalse($preguntas->contains(fn ($p) => str_contains($p, 'amamantar')));
     }
+
+    /**
+     * Selección múltiple (pedido de Andrés Sarmiento, 2026-10-03): el quiz
+     * ahora puede mezclar preguntas V/F con preguntas de 4 opciones.
+     */
+    public function test_pregunta_de_seleccion_multiple_se_responde_con_el_indice(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
+        ]);
+        $tema = TemaNormativo::create(['nombre' => 'Vacaciones', 'descripcion' => 'Desc.', 'activo' => true]);
+        $rit->temasNormativos()->attach($tema->id, [
+            'pregunta_vf' => '¿Cuántos días de vacaciones da la empresa al año?',
+            'tipo_pregunta' => 'multiple',
+            'opciones' => ['10 días', '15 días', '20 días', '30 días'],
+            'respuesta_correcta_indice' => 2,
+        ]);
+
+        $componente = $this->llevarATrabajadorAPresentacionRit($empresa)->call('iniciarQuiz');
+
+        $componente->assertSet('quizPreguntas.0.tipo', 'multiple')
+            ->assertSet('quizPreguntas.0.opciones', ['10 días', '15 días', '20 días', '30 días']);
+
+        // Respuesta incorrecta: no avanza, marca el error.
+        $componente->call('responderQuizMultiple', 0)
+            ->assertSet('quizIndiceActual', 0)
+            ->assertSet('quizRespuestaIncorrecta', true);
+
+        // Respuesta correcta (índice 2): avanza y, al ser la única pregunta, pasa a foto_aceptacion.
+        $componente->call('responderQuizMultiple', 2)
+            ->assertSet('etapa', 'foto_aceptacion');
+
+        $respuestas = $componente->get('quizRespuestas');
+        $this->assertCount(2, $respuestas[0]['intentos']);
+        $this->assertFalse($respuestas[0]['intentos'][0]['correcta']);
+        $this->assertTrue($respuestas[0]['intentos'][1]['correcta']);
+    }
 }

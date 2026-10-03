@@ -373,16 +373,30 @@
                                 </div>
                             @endif
 
-                            <div class="grid grid-cols-2 gap-3">
-                                <button type="button" wire:click="responderQuiz(true)" wire:loading.attr="disabled" wire:target="responderQuiz"
-                                    class="flex items-center justify-center gap-2 px-5 py-3.5 bg-white border-2 border-gray-200 hover:border-primary-400 active:bg-gray-50 text-gray-900 font-semibold rounded-xl transition-colors">
-                                    Sí
-                                </button>
-                                <button type="button" wire:click="responderQuiz(false)" wire:loading.attr="disabled" wire:target="responderQuiz"
-                                    class="flex items-center justify-center gap-2 px-5 py-3.5 bg-white border-2 border-gray-200 hover:border-primary-400 active:bg-gray-50 text-gray-900 font-semibold rounded-xl transition-colors">
-                                    No
-                                </button>
-                            </div>
+                            @if(($preguntaActual['tipo'] ?? 'vf') === 'multiple')
+                                {{-- Selección múltiple (pedido de Andrés Sarmiento, 2026-10-03):
+                                     4 opciones en columna, una sola correcta. --}}
+                                <div class="space-y-2.5">
+                                    @foreach($preguntaActual['opciones'] as $indiceOpcion => $opcion)
+                                        <button type="button" wire:click="responderQuizMultiple({{ $indiceOpcion }})" wire:loading.attr="disabled" wire:target="responderQuizMultiple"
+                                            class="w-full flex items-center gap-3 px-4 py-3 bg-white border-2 border-gray-200 hover:border-primary-400 active:bg-gray-50 text-gray-900 text-sm font-medium rounded-xl transition-colors text-left">
+                                            <span class="flex-shrink-0 w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center text-xs font-bold text-gray-500">{{ chr(65 + $indiceOpcion) }}</span>
+                                            {{ $opcion }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button type="button" wire:click="responderQuiz(true)" wire:loading.attr="disabled" wire:target="responderQuiz"
+                                        class="flex items-center justify-center gap-2 px-5 py-3.5 bg-white border-2 border-gray-200 hover:border-primary-400 active:bg-gray-50 text-gray-900 font-semibold rounded-xl transition-colors">
+                                        Sí
+                                    </button>
+                                    <button type="button" wire:click="responderQuiz(false)" wire:loading.attr="disabled" wire:target="responderQuiz"
+                                        class="flex items-center justify-center gap-2 px-5 py-3.5 bg-white border-2 border-gray-200 hover:border-primary-400 active:bg-gray-50 text-gray-900 font-semibold rounded-xl transition-colors">
+                                        No
+                                    </button>
+                                </div>
+                            @endif
                         @endif
                     </div>
                 @elseif ($etapa === 'foto_aceptacion')
@@ -471,7 +485,7 @@
     </div>
 
     {{-- Loading: mismo patron que formulario-descargos.blade.php --}}
-    <div wire:loading.delay wire:target="buscarTrabajador, guardarDatos, iniciarQuiz, guardarFotoSimple, responderQuiz, validarFotoAceptacionConIA, aceptarReglamento"
+    <div wire:loading.delay wire:target="buscarTrabajador, guardarDatos, iniciarQuiz, guardarFotoSimple, responderQuiz, responderQuizMultiple, validarFotoAceptacionConIA, aceptarReglamento, confirmarPublicacion"
         class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl p-5 flex items-center gap-4 mx-4">
             <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24">

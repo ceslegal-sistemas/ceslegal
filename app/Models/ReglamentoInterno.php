@@ -82,7 +82,8 @@ class ReglamentoInterno extends Model
     public function temasNormativos(): BelongsToMany
     {
         return $this->belongsToMany(TemaNormativo::class, 'reglamento_interno_tema')
-            ->withPivot('resumen_simple', 'pregunta_vf', 'respuesta_correcta');
+            ->withPivot('resumen_simple', 'pregunta_vf', 'tipo_pregunta', 'respuesta_correcta', 'opciones', 'respuesta_correcta_indice')
+            ->using(\App\Models\Pivots\ReglamentoInternoTemaPivot::class);
     }
 
     public function esMejorado(): bool

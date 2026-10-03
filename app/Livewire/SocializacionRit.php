@@ -445,7 +445,10 @@ class SocializacionRit extends Component
         $this->quizPreguntas = $temasQuiz
             ->map(fn ($tema) => [
                 'pregunta' => $tema->pivot->pregunta_vf,
+                'tipo' => $tema->pivot->tipo_pregunta ?: 'vf',
                 'respuesta_correcta' => (bool) $tema->pivot->respuesta_correcta,
+                'opciones' => $tema->pivot->opciones,
+                'respuesta_correcta_indice' => $tema->pivot->respuesta_correcta_indice,
                 'explicacion' => $tema->pivot->resumen_simple ?: $tema->descripcion,
             ])
             ->shuffle()
@@ -457,9 +460,14 @@ class SocializacionRit extends Component
         $this->quizRespuestaIncorrecta = false;
 
         // Evidencia jurídica: arranca vacío el registro de intentos de cada
-        // pregunta - responderQuiz() lo va llenando.
+        // pregunta - responderQuiz()/responderQuizMultiple() lo va llenando.
         $this->quizRespuestas = array_map(
-            fn (array $p) => ['pregunta' => $p['pregunta'], 'respuesta_correcta' => $p['respuesta_correcta'], 'intentos' => []],
+            fn (array $p) => [
+                'pregunta' => $p['pregunta'],
+                'tipo' => $p['tipo'],
+                'respuesta_correcta' => $p['tipo'] === 'multiple' ? $p['respuesta_correcta_indice'] : $p['respuesta_correcta'],
+                'intentos' => [],
+            ],
             $this->quizPreguntas
         );
 
@@ -481,10 +489,38 @@ class SocializacionRit extends Component
             return;
         }
 
-        $correcta = $respuesta === $preguntaActual['respuesta_correcta'];
+        $this->registrarIntentoQuiz($respuesta, $respuesta === $preguntaActual['respuesta_correcta']);
+    }
 
+    /**
+     * Paralelo de responderQuiz() para preguntas tipo='multiple' (pedido de
+     * Andrés Sarmiento, 2026-10-03: "que no sean 3 preguntas sino 5, de
+     * selección múltiple o verdadero/falso"). $indiceElegido es la posición
+     * de la opción que el trabajador marcó (0-3).
+     */
+    public function responderQuizMultiple(int $indiceElegido): void
+    {
+        $preguntaActual = $this->quizPreguntas[$this->quizIndiceActual] ?? null;
+        if (!$preguntaActual) {
+            return;
+        }
+
+        $this->registrarIntentoQuiz($indiceElegido, $indiceElegido === $preguntaActual['respuesta_correcta_indice']);
+    }
+
+    /**
+     * Sin límite de intentos (decisión explícita del spec): si falla, queda
+     * en la MISMA pregunta con quizRespuestaIncorrecta=true (la vista
+     * muestra la explicación) hasta que marque la correcta. Cada intento
+     * (fallido o exitoso) queda registrado en $quizRespuestas con su
+     * timestamp - evidencia jurídica de que el trabajador realmente
+     * presentó el quiz, no solo que lo "saltó". Compartido entre
+     * responderQuiz() (V/F) y responderQuizMultiple() (selección múltiple).
+     */
+    private function registrarIntentoQuiz(bool|int $respuestaDada, bool $correcta): void
+    {
         $this->quizRespuestas[$this->quizIndiceActual]['intentos'][] = [
-            'respuesta_dada' => $respuesta,
+            'respuesta_dada' => $respuestaDada,
             'correcta' => $correcta,
             'respondido_en' => now()->toISOString(),
         ];

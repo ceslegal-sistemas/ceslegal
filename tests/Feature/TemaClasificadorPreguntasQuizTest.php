@@ -95,6 +95,67 @@ class TemaClasificadorPreguntasQuizTest extends TestCase
         $this->assertNull($rit->temasNormativos()->find($tema->id)->pivot->pregunta_vf);
     }
 
+    /**
+     * Selección múltiple (pedido de Andrés Sarmiento, 2026-10-03): la IA
+     * puede devolver tipo="multiple" con 4 opciones - se guarda en las
+     * columnas nuevas (tipo_pregunta/opciones/respuesta_correcta_indice).
+     */
+    public function test_genera_y_guarda_la_pregunta_de_seleccion_multiple(): void
+    {
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => \App\Models\Empresa::factory()->create()->id,
+            'activo' => true,
+            'fuente' => 'construido_ia',
+            'texto_completo' => 'Articulo 1. Las vacaciones son de 15 dias habiles al año.',
+        ]);
+        $tema = TemaNormativo::create(['nombre' => 'Vacaciones', 'descripcion' => 'Descripción genérica.', 'activo' => true]);
+        $rit->temasNormativos()->attach($tema->id);
+
+        $this->fakearGemini([
+            [
+                'id' => $tema->id,
+                'tipo' => 'multiple',
+                'pregunta' => '¿Cuántos días de vacaciones da esta empresa al año?',
+                'opciones' => ['10 días', '15 días', '20 días', '30 días'],
+                'respuesta_indice' => 1,
+            ],
+        ]);
+
+        app(TemaClasificadorService::class)->asegurarPreguntasQuiz($rit);
+
+        $pivot = $rit->temasNormativos()->find($tema->id)->pivot;
+        $this->assertSame('multiple', $pivot->tipo_pregunta);
+        $this->assertSame(['10 días', '15 días', '20 días', '30 días'], $pivot->opciones);
+        $this->assertSame(1, $pivot->respuesta_correcta_indice);
+        $this->assertNull($pivot->respuesta_correcta);
+    }
+
+    /**
+     * Fail-open: si la IA dice tipo="multiple" pero sin las 4 opciones
+     * válidas, se trata como V/F en vez de descartar la pregunta entera.
+     */
+    public function test_multiple_sin_opciones_validas_cae_a_vf(): void
+    {
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => \App\Models\Empresa::factory()->create()->id,
+            'activo' => true,
+            'fuente' => 'construido_ia',
+            'texto_completo' => 'Articulo 1. Texto de prueba.',
+        ]);
+        $tema = TemaNormativo::create(['nombre' => 'Tema Incompleto', 'descripcion' => 'Desc.', 'activo' => true]);
+        $rit->temasNormativos()->attach($tema->id);
+
+        $this->fakearGemini([
+            ['id' => $tema->id, 'tipo' => 'multiple', 'pregunta' => '¿Pregunta mal formada?', 'opciones' => ['Solo una opción'], 'respuesta' => true],
+        ]);
+
+        app(TemaClasificadorService::class)->asegurarPreguntasQuiz($rit);
+
+        $pivot = $rit->temasNormativos()->find($tema->id)->pivot;
+        $this->assertSame('vf', $pivot->tipo_pregunta);
+        $this->assertTrue((bool) $pivot->respuesta_correcta);
+    }
+
     public function test_guarda_el_hash_del_texto_al_generar_las_preguntas(): void
     {
         $rit = ReglamentoInterno::create([
