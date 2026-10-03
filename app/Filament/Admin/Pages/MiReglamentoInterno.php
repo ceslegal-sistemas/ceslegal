@@ -683,7 +683,15 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
             ->label('Culminar Socialización del RIT')
             ->icon('heroicon-o-check-badge')
             ->color('success')
-            ->visible(fn () => $this->reglamento && !empty($this->reglamento->texto_completo) && !$this->culminacionVigente())
+            // Pedido explícito del usuario (2026-10-03): solo tiene sentido
+            // CULMINAR la socialización una vez se entró en Fase 2 (pasados
+            // los 15 días hábiles de objeción) - durante la Fase 1
+            // (publicación) el botón debe quedar invisible, sin importar
+            // cuántos trabajadores haya registrados.
+            ->visible(fn () => $this->reglamento
+                && !empty($this->reglamento->texto_completo)
+                && $this->reglamento->faseSocializacionActual() === 'socializacion'
+                && !$this->culminacionVigente())
             ->modalHeading('Culminar Socialización del Reglamento Interno')
             ->modalDescription('Esta acción cierra el proceso de socialización bajo su responsabilidad. Antes de continuar, confirme que efectivamente notificó a todos sus trabajadores.')
             ->modalSubmitActionLabel('Confirmar y culminar')

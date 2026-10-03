@@ -494,7 +494,7 @@
                     <div class="rit-hero" style="padding:1.25rem 1.5rem;">
                         <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
                         <div style="position:relative;z-index:2">
-                            <span class="rit-badge" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#fca5a5">Proceso bloqueado</span>
+                            <span class="rit-badge rit-badge-danger">Proceso bloqueado</span>
                             <h1 class="rit-title">No podemos continuar por ahora</h1>
                             @php
                                 $textoBloqueo = str_replace(':empresa', $empresa->razon_social, \App\Models\ConfiguracionTexto::obtener('mensaje_no_comprendido_bloqueado', config('ces.mensaje_no_comprendido_bloqueado', '')));

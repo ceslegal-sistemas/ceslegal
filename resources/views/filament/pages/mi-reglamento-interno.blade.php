@@ -428,28 +428,37 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
               </button>
             </div>
           </div>
-
-          {{-- Botón manual "Culminar Socialización del RIT" (pedido de Andrés
-               Sarmiento, 2026-09-30): le permite al admin cerrar el proceso
-               bajo su propia responsabilidad, sin depender de que el 100% de
-               los trabajadores hayan aceptado en el sistema. Se oculta una
-               vez culminado (comparando por HASH del RIT vigente, ver
-               culminacionVigente()) y se reemplaza por la constancia. --}}
-          @php $culminacion = $this->culminacionVigente(); @endphp
-          @if($culminacion)
-            <p style="margin-top:.65rem;font-size:.75rem;font-weight:600;color:#166534;display:flex;align-items:center;gap:.35rem">
-              <lord-icon src="https://cdn.lordicon.com/wpsdctqb.json" trigger="loop" delay="2000" stroke="bold" colors="primary:#16a34a,secondary:#16a34a" style="width:14px;height:14px;flex-shrink:0"></lord-icon>
-              Socialización culminada el {{ $culminacion->declarado_en->format('d/m/Y') }} por {{ $culminacion->user?->name }}
-            </p>
-          @else
-            <button type="button" wire:click="mountAction('culminarSocializacion')" class="rit-btn rit-btn-success" style="margin-top:.65rem;width:100%;justify-content:center">
-              Culminar Socialización del RIT
-            </button>
-          @endif
         </div>
       </div>
     @endif
     </div>
+
+    {{-- Botón manual "Culminar Socialización del RIT" (pedido de Andrés
+         Sarmiento, 2026-09-30, ajustado 2026-10-03): le permite al admin
+         cerrar el proceso bajo su propia responsabilidad, sin depender de
+         que el 100% de los trabajadores hayan aceptado en el sistema - por
+         eso vive FUERA de la tarjeta de progreso (esa solo se muestra si
+         hay trabajadores registrados; este botón debe estar disponible
+         incluso si la empresa socializó 100% en persona/papel). Solo
+         visible en Fase 2 (Socialización) - durante la Fase 1
+         (publicación) no tiene sentido "culminar" todavía. Se oculta una
+         vez culminado (comparando por HASH del RIT vigente, ver
+         culminacionVigente()) y se reemplaza por la constancia. --}}
+    @if($reglamento?->faseSocializacionActual() === 'socializacion')
+      @php $culminacion = $this->culminacionVigente(); @endphp
+      <div style="margin-top:1.25rem">
+        @if($culminacion)
+          <p style="font-size:.8125rem;font-weight:600;color:#166534;display:flex;align-items:center;gap:.35rem;margin:0">
+            <lord-icon src="https://cdn.lordicon.com/wpsdctqb.json" trigger="loop" delay="2000" stroke="bold" colors="primary:#16a34a,secondary:#16a34a" style="width:14px;height:14px;flex-shrink:0"></lord-icon>
+            Socialización culminada el {{ $culminacion->declarado_en->format('d/m/Y') }} por {{ $culminacion->user?->name }}
+          </p>
+        @else
+          <button type="button" wire:click="mountAction('culminarSocializacion')" class="rit-btn rit-btn-success" style="width:100%;justify-content:center">
+            Culminar Socialización del RIT
+          </button>
+        @endif
+      </div>
+    @endif
 
     {{-- Todo el bloque de texto del RIT (encabezado + el texto en sí) queda
          COLAPSADO por defecto detrás de un <details> (pedido del usuario,

@@ -25,11 +25,17 @@ class CulminarSocializacionRitTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Por defecto en Fase 2 (Socialización) - el botón solo debe ser
+     * visible pasados los 15 días hábiles de objeción (pedido explícito del
+     * usuario, 2026-10-03), nunca durante la Fase 1 (Publicación).
+     */
     private function crearEmpresaConRitYUsuario(string $textoRit = 'v1'): array
     {
         $empresa = Empresa::factory()->create(['active' => true]);
         $rit = ReglamentoInterno::create([
             'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => $textoRit,
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
         ]);
         Trabajador::create([
             'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '555666777',
@@ -85,6 +91,44 @@ class CulminarSocializacionRitTest extends TestCase
         Livewire::actingAs($user)->test(MiReglamentoInterno::class)
             ->assertSee('Culminar Socialización del RIT')
             ->assertDontSee('Socialización culminada el');
+    }
+
+    /**
+     * Pedido explícito del usuario (2026-10-03): durante la Fase 1
+     * (Publicación, dentro de los 15 días hábiles) el botón debe quedar
+     * invisible - solo tiene sentido "culminar la socialización" una vez
+     * se entró en Fase 2.
+     */
+    public function test_no_muestra_el_boton_durante_la_fase_1_de_publicacion(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->toDateString(),
+        ]);
+        $user = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresa->id, 'active' => true]);
+
+        Livewire::actingAs($user)->test(MiReglamentoInterno::class)
+            ->assertDontSee('Culminar Socialización del RIT');
+    }
+
+    /**
+     * Pedido explícito del usuario (2026-10-03): el botón debe estar
+     * disponible aunque la empresa no tenga trabajadores registrados en el
+     * sistema (ej. socializó 100% en persona/papel) - vive FUERA de la
+     * tarjeta de progreso, que solo se muestra si hay trabajadores.
+     */
+    public function test_muestra_el_boton_aunque_no_haya_trabajadores_registrados(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true, 'numero_empleados' => null]);
+        ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
+        ]);
+        $user = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresa->id, 'active' => true]);
+
+        Livewire::actingAs($user)->test(MiReglamentoInterno::class)
+            ->assertSee('Culminar Socialización del RIT');
     }
 
     public function test_se_puede_crear_y_relacionar_con_empresa_rit_y_usuario(): void

@@ -45,7 +45,13 @@ class GenerarVideoDidacticoRITJobTest extends TestCase
 
         $rit->refresh();
         $this->assertSame('completado', $rit->video_didactico_estado);
-        $this->assertNotNull($rit->video_didactico_path);
+        // video_didactico_path quedó obsoleto con el rediseño de "capítulos
+        // independientes" (commit cf2c2c18) - RitVideoDidacticoService::generar()
+        // ahora SIEMPRE lo deja en null y guarda la ruta de cada capítulo en
+        // video_didactico_capitulos. Este test nunca se actualizó - lo
+        // corrijo aquí (encontrado en la pasada de repaso, 2026-10-03).
+        $this->assertNotEmpty($rit->video_didactico_capitulos);
+        $this->assertNotEmpty($rit->video_didactico_capitulos[0]['path'] ?? null);
     }
 
     public function test_failed_marca_el_rit_con_error_y_notifica(): void

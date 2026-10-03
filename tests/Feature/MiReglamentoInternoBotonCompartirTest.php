@@ -36,7 +36,9 @@ class MiReglamentoInternoBotonCompartirTest extends TestCase
         $fuente = file_get_contents(resource_path('views/filament/components/rit-compartir-banner.blade.php'));
 
         $this->assertStringContainsString('posterUrl', $fuente);
-        $this->assertStringContainsString('Poster QR', $fuente);
+        // "Poster QR" se renombró a "Imprimir cartel con QR" (pedido del
+        // usuario, 2026-10-03: el nombre técnico no explicaba para qué servía).
+        $this->assertStringContainsString('Imprimir cartel con QR', $fuente);
     }
 
     /**

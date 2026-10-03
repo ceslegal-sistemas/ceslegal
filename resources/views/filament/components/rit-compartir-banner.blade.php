@@ -30,7 +30,19 @@
 @endphp
 <div class="rit-hero" style="padding:1.25rem 1.5rem;">
   <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
-  <div style="position:relative;z-index:2" x-data="{ copiado: false, url: {{ \Illuminate\Support\Js::from($empresa->urlSocializacionRit()) }} }">
+  @php
+    // Mensaje de WhatsApp/Correo distinto según la fase (pedido del usuario,
+    // 2026-10-03): en Fase 2 ya no basta con "conocer" el Reglamento, hay
+    // que completar la socialización (video + quiz + confirmación).
+    $mensajeCompartir = $faseActual === 'socializacion'
+        ? 'Completa la socialización del Reglamento Interno de Trabajo'
+        : 'Conoce el Reglamento Interno de Trabajo';
+  @endphp
+  <div style="position:relative;z-index:2" x-data="{
+      copiado: false,
+      url: {{ \Illuminate\Support\Js::from($empresa->urlSocializacionRit()) }},
+      mensaje: {{ \Illuminate\Support\Js::from($mensajeCompartir) }}
+    }">
     @if($faseActual === 'socializacion')
       <span class="rit-badge rit-badge-sub">Fase 2 · Socialización en curso</span>
     @elseif($fechaPublicacion)
@@ -61,15 +73,27 @@
           <button type="button" wire:click="mountAction('declararFechaPublicacion')" style="background:none;border:none;padding:0;color:#be123c;font-weight:600;cursor:pointer;font-size:.75rem">Cambiar fecha</button>
         @endif
       </p>
-      <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;">
-        <input type="text" readonly x-bind:value="url" onclick="this.select()" class="rit-link-input">
+      {{-- Link en su propia fila a todo el ancho (pedido del usuario,
+           2026-10-03: "que el campo del link sea completo"), botones de
+           acción debajo en vez de apretados junto al input. --}}
+      <div style="margin-top:.75rem">
+        <input type="text" readonly x-bind:value="url" onclick="this.select()" class="rit-link-input" style="width:100%">
+      </div>
+      <div style="margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap;">
         <button type="button" class="rit-btn rit-btn-secondary" x-on:click="navigator.clipboard.writeText(url); copiado = true; setTimeout(() => copiado = false, 2000)">
           <span x-text="copiado ? 'Copiado' : 'Copiar'"></span>
         </button>
-        <a class="rit-btn rit-btn-secondary" x-bind:href="'https://wa.me/?text=' + encodeURIComponent('Conoce el Reglamento Interno de Trabajo: ' + url)" target="_blank" rel="noopener">WhatsApp</a>
-        <a class="rit-btn rit-btn-secondary" x-bind:href="'mailto:?subject=' + encodeURIComponent('Reglamento Interno de Trabajo') + '&body=' + encodeURIComponent('Conoce el Reglamento Interno de Trabajo aquí: ' + url)">Correo</a>
+        <a class="rit-btn rit-btn-secondary" x-bind:href="'https://wa.me/?text=' + encodeURIComponent(mensaje + ': ' + url)" target="_blank" rel="noopener">WhatsApp</a>
+        <a class="rit-btn rit-btn-secondary" x-bind:href="'mailto:?subject=' + encodeURIComponent('Reglamento Interno de Trabajo') + '&body=' + encodeURIComponent(mensaje + ' aquí: ' + url)">Correo</a>
         @if($posterUrl)
-          <a class="rit-btn rit-btn-secondary" href="{{ $posterUrl }}" target="_blank" rel="noopener">Poster QR</a>
+          {{-- Antes decía "Poster QR" (pedido del usuario, 2026-10-03: "puede
+               confundir, el cliente no puede ni saber para qué sirve") - el
+               nuevo texto explica la acción (imprimir) y el contenido (QR)
+               en vez de un nombre técnico sin contexto. --}}
+          <a class="rit-btn rit-btn-secondary" href="{{ $posterUrl }}" target="_blank" rel="noopener" title="Descarga un cartel listo para imprimir y pegar en cartelera, con un código QR que lleva directo a este link">
+            <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z"/></svg>
+            Imprimir cartel con QR
+          </a>
         @endif
       </div>
     @else
