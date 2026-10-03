@@ -73,6 +73,16 @@ class SocializacionRit extends Component
 
     public bool $declaracionAceptada = false;
 
+    /**
+     * Escalamiento a RRHH (pedido de Andrés Sarmiento, 2026-10-03): cuenta
+     * cuántas veces el trabajador manifestó no entender el RIT, ya sea con
+     * el botón manual o fallando muchas veces seguidas la misma pregunta
+     * del quiz. A la 2da vez se bloquea el proceso y se avisa a RRHH - ver
+     * marcarNoComprendio(). Solo aplica en Fase 2 (Socialización); Fase 1
+     * no tiene quiz ni declaración fuerte de comprensión.
+     */
+    public int $vecesNoComprendio = 0;
+
     public string $alertaAccesorios = '';
     public string $errorValidacionFoto = '';
     public bool $validandoFoto = false;
@@ -532,6 +542,13 @@ class SocializacionRit extends Component
      * presentó el quiz, no solo que lo "saltó". Compartido entre
      * responderQuiz() (V/F) y responderQuizMultiple() (selección múltiple).
      */
+    /**
+     * Fallar la MISMA pregunta esta cantidad de veces seguidas se interpreta
+     * como una señal de "no comprendió" (pedido de Andrés Sarmiento,
+     * 2026-10-03), igual que marcarlo manualmente - ver marcarNoComprendio().
+     */
+    private const UMBRAL_FALLOS_QUIZ_NO_COMPRENDIO = 3;
+
     private function registrarIntentoQuiz(bool|int $respuestaDada, bool $correcta): void
     {
         $this->quizRespuestas[$this->quizIndiceActual]['intentos'][] = [
@@ -542,6 +559,16 @@ class SocializacionRit extends Component
 
         if (!$correcta) {
             $this->quizRespuestaIncorrecta = true;
+
+            $fallosEnEstaPregunta = count(array_filter(
+                $this->quizRespuestas[$this->quizIndiceActual]['intentos'],
+                fn (array $i) => !$i['correcta']
+            ));
+
+            if ($fallosEnEstaPregunta === self::UMBRAL_FALLOS_QUIZ_NO_COMPRENDIO) {
+                $this->marcarNoComprendio('fallo_quiz_repetido');
+            }
+
             return;
         }
 
@@ -551,6 +578,57 @@ class SocializacionRit extends Component
         if ($this->quizIndiceActual >= count($this->quizPreguntas)) {
             $this->etapa = 'foto_aceptacion';
         }
+    }
+
+    /**
+     * Escalamiento a RRHH (pedido de Andrés Sarmiento, 2026-10-03): la
+     * PRIMERA vez solo refuerza que ya se le mostró el material didáctico
+     * (banner, no bloquea). La SEGUNDA vez bloquea el proceso y avisa a
+     * RRHH por correo - de ahí en adelante la decisión es de ellos, no del
+     * sistema. $origen es evidencia de qué lo disparó ('boton_manual' o
+     * 'fallo_quiz_repetido').
+     */
+    public function marcarNoComprendio(string $origen): void
+    {
+        $ritActivo = $this->resolverRitActivo(); // NUNCA $this->empresa->reglamentoInterno - ver Gotcha crítico #3
+        if (!$ritActivo || !$this->trabajadorId) {
+            return;
+        }
+
+        $this->vecesNoComprendio++;
+
+        \App\Models\RechazoComprensionRit::create([
+            'trabajador_id' => $this->trabajadorId,
+            'reglamento_interno_id' => $ritActivo->id,
+            'texto_rit_hash' => hash('sha256', (string) $ritActivo->texto_completo),
+            'origen' => $origen,
+        ]);
+
+        if ($this->vecesNoComprendio < 2) {
+            return;
+        }
+
+        // Fail-open: si el correo a RRHH falla, el bloqueo del trabajador
+        // igual debe quedar en pie - mismo criterio que el resto de correos
+        // de este flujo (RitAceptado, RitPublicacionInformada).
+        if ($this->empresa->email_contacto) {
+            try {
+                \Illuminate\Support\Facades\Mail::to($this->empresa->email_contacto)->send(
+                    new \App\Mail\RitNoComprendidoAlertaRrhh(
+                        trim("{$this->nombres} {$this->apellidos}"),
+                        $this->numeroDocumento,
+                        $this->empresa
+                    )
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('SocializacionRit: fallo al enviar alerta de no comprension a RRHH', [
+                    'trabajador_id' => $this->trabajadorId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $this->etapa = 'no_comprendido_bloqueado';
     }
 
     /**

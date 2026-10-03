@@ -423,6 +423,18 @@
                             </div>
                         </div>
 
+                        @if($fase === 'socializacion' && $vecesNoComprendio === 1)
+                            {{-- Escalamiento a RRHH, 1er aviso (pedido de Andrés Sarmiento,
+                                 2026-10-03): refuerza el material ya mostrado, todavía no
+                                 bloquea - solo a la 2da vez (ver marcarNoComprendio()). --}}
+                            <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
+                                @php
+                                    $textoAviso = str_replace(':empresa', $empresa->razon_social, \App\Models\ConfiguracionTexto::obtener('aviso_no_comprendio_primera_vez', config('ces.aviso_no_comprendio_primera_vez', '')));
+                                @endphp
+                                <p class="text-xs text-amber-800 m-0">{{ $textoAviso }}</p>
+                            </div>
+                        @endif
+
                         <label class="flex items-start gap-3 p-4 rounded-xl border-2 border-gray-200 bg-gray-50 cursor-pointer">
                             <input type="checkbox" wire:model="declaracionAceptada" class="mt-0.5 w-5 h-5 rounded border border-gray-300 text-primary-600 focus:ring-2 focus:ring-primary-500 flex-shrink-0">
                             @php
@@ -465,7 +477,30 @@
                                 <span wire:loading.remove wire:target="aceptarReglamento">Aceptar</span>
                                 <span wire:loading wire:target="aceptarReglamento">Guardando...</span>
                             </button>
+
+                            {{-- Punto de rechazo explícito (pedido de Andrés Sarmiento,
+                                 2026-10-03) - solo Fase 2, que es donde vive la declaración
+                                 fuerte de comprensión. --}}
+                            <button type="button" wire:click="marcarNoComprendio('boton_manual')" wire:loading.attr="disabled" wire:target="marcarNoComprendio"
+                                class="w-full text-center text-sm font-medium text-gray-500 hover:text-gray-700 underline bg-transparent border-none cursor-pointer py-1">
+                                No entendí el Reglamento
+                            </button>
                         @endif
+                    </div>
+                @elseif ($etapa === 'no_comprendido_bloqueado')
+                    {{-- Escalamiento a RRHH, 2do aviso (pedido de Andrés Sarmiento,
+                         2026-10-03): el proceso queda bloqueado, RRHH ya fue
+                         notificado por correo (ver marcarNoComprendio()). --}}
+                    <div class="rit-hero" style="padding:1.25rem 1.5rem;">
+                        <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+                        <div style="position:relative;z-index:2">
+                            <span class="rit-badge" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#fca5a5">Proceso bloqueado</span>
+                            <h1 class="rit-title">No podemos continuar por ahora</h1>
+                            @php
+                                $textoBloqueo = str_replace(':empresa', $empresa->razon_social, \App\Models\ConfiguracionTexto::obtener('mensaje_no_comprendido_bloqueado', config('ces.mensaje_no_comprendido_bloqueado', '')));
+                            @endphp
+                            <p class="rit-sub">{{ $textoBloqueo }}</p>
+                        </div>
                     </div>
                 @elseif ($etapa === 'completado')
                     <div class="rit-hero" style="padding:1.25rem 1.5rem;">
@@ -485,7 +520,7 @@
     </div>
 
     {{-- Loading: mismo patron que formulario-descargos.blade.php --}}
-    <div wire:loading.delay wire:target="buscarTrabajador, guardarDatos, iniciarQuiz, guardarFotoSimple, responderQuiz, responderQuizMultiple, validarFotoAceptacionConIA, aceptarReglamento, confirmarPublicacion"
+    <div wire:loading.delay wire:target="buscarTrabajador, guardarDatos, iniciarQuiz, guardarFotoSimple, responderQuiz, responderQuizMultiple, validarFotoAceptacionConIA, aceptarReglamento, confirmarPublicacion, marcarNoComprendio"
         class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl p-5 flex items-center gap-4 mx-4">
             <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24">

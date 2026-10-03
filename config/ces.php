@@ -79,6 +79,18 @@ Al marcar la casilla de aceptación manifiesto haber leído, entendido y aceptad
 
     /*
     |--------------------------------------------------------------------------
+    | Escalamiento a RRHH si el trabajador insiste en "no entendí" el RIT
+    |--------------------------------------------------------------------------
+    | Pedido de Andrés Sarmiento (reunión 2026-10-03). Plantilla con
+    | marcador: :empresa. Primer aviso = advertencia suave, sigue en el
+    | proceso. Segundo aviso = bloqueo definitivo + correo a RRHH.
+    */
+    'aviso_no_comprendio_primera_vez' => 'Ya te hemos explicado el Reglamento Interno de Trabajo de :empresa de forma didáctica: con un video, un resumen en lenguaje sencillo y el documento completo con los cambios resaltados. Te recomendamos repasar ese material antes de continuar.',
+
+    'mensaje_no_comprendio_bloqueado' => 'Te hemos entregado de manera didáctica, a través de un video, un resumen y el Reglamento Interno de Trabajo completo con todos los cambios realizados, la información necesaria para comprenderlo. Aun así, continúas indicando que no entiendes el Reglamento Interno de Trabajo de :empresa, por lo que no es posible continuar con tu proceso de socialización en este momento. Hemos informado de esta situación al área de Recursos Humanos de tu empresa para que tomen las decisiones que correspondan.',
+
+    /*
+    |--------------------------------------------------------------------------
     | URL de compra / suscripción del Reglamento Interno de Trabajo
     |--------------------------------------------------------------------------
     */
