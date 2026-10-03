@@ -411,12 +411,20 @@
 
                         <label class="flex items-start gap-3 p-4 rounded-xl border-2 border-gray-200 bg-gray-50 cursor-pointer">
                             <input type="checkbox" wire:model="declaracionAceptada" class="mt-0.5 w-5 h-5 rounded border border-gray-300 text-primary-600 focus:ring-2 focus:ring-primary-500 flex-shrink-0">
+                            @php
+                                // Centralizado 2026-10-03 (auditoría de disclaimers): antes
+                                // este texto vivía hardcodeado aquí - ahora es editable desde
+                                // ConfiguracionTextoResource igual que disclaimer_descargos.
+                                // Marcador **negrita** = mismo convenio del texto del RIT.
+                                $claveDisclaimerRit = $fase === 'publicacion' ? 'disclaimer_rit_publicacion' : 'disclaimer_rit_socializacion';
+                                $textoDeclaracion = str_replace(
+                                    ':empresa',
+                                    $empresa->razon_social,
+                                    \App\Models\ConfiguracionTexto::obtener($claveDisclaimerRit, config("ces.{$claveDisclaimerRit}", ''))
+                                );
+                            @endphp
                             <span class="text-sm text-gray-700">
-                                @if($fase === 'publicacion')
-                                    <span class="font-semibold text-gray-900">Declaro que fui informado(a)</span> de la publicación del Reglamento Interno de Trabajo de <span class="font-semibold text-gray-900">{{ $empresa->razon_social }}</span>. Si tengo alguna objeción, la haré directamente ante la empresa.
-                                @else
-                                    <span class="font-semibold text-gray-900">Declaro que leí y entendí</span> el Reglamento Interno de Trabajo de <span class="font-semibold text-gray-900">{{ $empresa->razon_social }}</span>.
-                                @endif
+                                {!! preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '<span class="font-semibold text-gray-900">$1</span>', e($textoDeclaracion)) !!}
                             </span>
                         </label>
                         @error('declaracionAceptada') <p class="text-sm text-danger-600">{{ $message }}</p> @enderror

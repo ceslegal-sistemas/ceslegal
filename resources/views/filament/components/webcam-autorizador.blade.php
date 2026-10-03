@@ -36,7 +36,21 @@
     // Emitir Sanción, CreateProcesoDisciplinario y la aceptación del RIT
     // mejorado - no pedía ninguno. Se bloquea la cámara hasta aceptar: así no se
     // solicita siquiera el permiso del navegador antes del consentimiento.
-    $disclaimerTexto = $disclaimerTexto ?? 'AUTORIZACIÓN DE TRATAMIENTO DE DATOS PERSONALES: Esta diligencia se realizará a través de medios digitales, electrónicos y/o virtuales, por lo cual autorizo que mi dirección IP, la fecha y hora exactas de cada acción, el canal de verificación utilizado, las fotografías tomadas en el desarrollo de la diligencia y en general el tratamiento de mis datos personales sean tratados conforme a la Ley 1581 de 2012 y demás normas que la adicionen, modifiquen y/o complementen.';
+    // Centralizado 2026-10-03 (auditoría de disclaimers pedida por Andrés
+    // Sarmiento): antes este texto vivía hardcodeado aquí, ahora es editable
+    // desde ConfiguracionTextoResource igual que disclaimer_descargos - con
+    // el mismo texto como fallback de config si la fila no existe en BD.
+    // Try/catch (no solo ?? de PHP): este componente se renderiza en
+    // contextos de test que no migran BD (ej. WebcamAutorizadorLordIconTest,
+    // que solo valida HTML estático) - sin esto, consultar una tabla
+    // inexistente revienta un render que antes no tocaba la BD en absoluto.
+    if (!isset($disclaimerTexto)) {
+        try {
+            $disclaimerTexto = \App\Models\ConfiguracionTexto::obtener('disclaimer_autorizador', config('ces.disclaimer_autorizador', ''));
+        } catch (\Throwable $e) {
+            $disclaimerTexto = config('ces.disclaimer_autorizador', '');
+        }
+    }
 
     // El x-init se construye aquí como un string plano (nunca con @if/@else/@endif
     // directamente dentro del atributo): Livewire 3 (SupportMorphAwareBladeCompilation)

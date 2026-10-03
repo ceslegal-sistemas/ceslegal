@@ -41,6 +41,34 @@ Al marcar la casilla de aceptación manifiesto haber leído, entendido y aceptad
 
     /*
     |--------------------------------------------------------------------------
+    | Disclaimer jurídico - Autorizador/citante de la empresa (Ley 1581/2012)
+    |--------------------------------------------------------------------------
+    | Mismo texto que antes vivía hardcodeado en webcam-autorizador.blade.php
+    | (reusado en Emitir Sanción, Crear Proceso Disciplinario y Aceptación de
+    | RIT Mejorado) - centralizado 2026-10-03 tras la auditoría de disclaimers.
+    | Sin marcadores: el autorizador no se identifica por nombre en este texto.
+    */
+    'disclaimer_autorizador' => 'AUTORIZACIÓN DE TRATAMIENTO DE DATOS PERSONALES: Esta diligencia se realizará a través de medios digitales, electrónicos y/o virtuales, por lo cual autorizo que mi dirección IP, la fecha y hora exactas de cada acción, el canal de verificación utilizado, las fotografías tomadas en el desarrollo de la diligencia y en general el tratamiento de mis datos personales sean tratados conforme a la Ley 1581 de 2012 y demás normas que la adicionen, modifiquen y/o complementen.',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Declaraciones del trabajador en la socialización del RIT (2 fases)
+    |--------------------------------------------------------------------------
+    | Plantillas con marcador: :empresa. Centralizadas 2026-10-03 (antes
+    | hardcodeadas en socializacion-rit.blade.php). Deliberadamente distintas:
+    | Fase 1 (Publicación) NUNCA dice "entendí" (Andrés Sarmiento, reunión
+    | 2026-09-29: "no me importa si lo entendió, solo que vea la publicación"),
+    | Fase 2 (Socialización) sí exige la declaración fuerte de comprensión.
+    */
+    // Marcadores **negrita** (mismo convenio ya usado para renderizar el
+    // texto del RIT, ver mi-reglamento-interno.blade.php/socializacion-rit.blade.php:
+    // preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '<strong>$1</strong>', ...)).
+    'disclaimer_rit_publicacion' => '**Declaro que fui informado(a)** de la publicación del Reglamento Interno de Trabajo de **:empresa**. Si tengo alguna objeción, la haré directamente ante la empresa.',
+
+    'disclaimer_rit_socializacion' => '**Declaro que leí y entendí** el Reglamento Interno de Trabajo de **:empresa**.',
+
+    /*
+    |--------------------------------------------------------------------------
     | URL de compra / suscripción del Reglamento Interno de Trabajo
     |--------------------------------------------------------------------------
     */
