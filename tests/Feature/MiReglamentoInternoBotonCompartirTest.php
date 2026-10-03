@@ -31,6 +31,22 @@ class MiReglamentoInternoBotonCompartirTest extends TestCase
         $this->assertStringContainsString('mailto:', $fuente);
     }
 
+    /**
+     * Compartir nativo (pedido del usuario, 2026-10-03): un botón "Compartir"
+     * usando la Web Share API (navigator.share) en vez de botones separados
+     * de WhatsApp/Correo - con esos dos como respaldo SOLO si el navegador
+     * no soporta navigator.share (ej. Firefox de escritorio).
+     */
+    public function test_incluye_compartir_nativo_con_respaldo_a_whatsapp_y_correo(): void
+    {
+        $fuente = file_get_contents(resource_path('views/filament/components/rit-compartir-banner.blade.php'));
+
+        $this->assertStringContainsString('navigator.share', $fuente);
+        $this->assertStringContainsString('soportaCompartir', $fuente);
+        $this->assertStringContainsString('x-show="soportaCompartir"', $fuente);
+        $this->assertStringContainsString('x-show="!soportaCompartir"', $fuente);
+    }
+
     public function test_incluye_el_boton_de_poster_qr(): void
     {
         $fuente = file_get_contents(resource_path('views/filament/components/rit-compartir-banner.blade.php'));

@@ -41,7 +41,17 @@
   <div style="position:relative;z-index:2" x-data="{
       copiado: false,
       url: {{ \Illuminate\Support\Js::from($empresa->urlSocializacionRit()) }},
-      mensaje: {{ \Illuminate\Support\Js::from($mensajeCompartir) }}
+      mensaje: {{ \Illuminate\Support\Js::from($mensajeCompartir) }},
+      tituloCompartir: {{ \Illuminate\Support\Js::from('Reglamento Interno de Trabajo - ' . $empresa->razon_social) }},
+      // Web Share API (pedido del usuario, 2026-10-03): en celular abre la
+      // hoja nativa de compartir (WhatsApp, Mensajes, Correo, lo que tenga
+      // instalado); en computador abre el panel nativo de Windows/macOS.
+      // Respaldo a los botones de WhatsApp/Correo de siempre SOLO si el
+      // navegador no lo soporta (ej. Firefox de escritorio).
+      soportaCompartir: typeof navigator.share === 'function',
+      compartir() {
+          navigator.share({ title: this.tituloCompartir, text: this.mensaje, url: this.url }).catch(() => {});
+      }
     }">
     @if($faseActual === 'socializacion')
       <span class="rit-badge rit-badge-sub">Fase 2 · Socialización en curso</span>
@@ -83,8 +93,18 @@
         <button type="button" class="rit-btn rit-btn-secondary" x-on:click="navigator.clipboard.writeText(url); copiado = true; setTimeout(() => copiado = false, 2000)">
           <span x-text="copiado ? 'Copiado' : 'Copiar'"></span>
         </button>
-        <a class="rit-btn rit-btn-secondary" x-bind:href="'https://wa.me/?text=' + encodeURIComponent(mensaje + ': ' + url)" target="_blank" rel="noopener">WhatsApp</a>
-        <a class="rit-btn rit-btn-secondary" x-bind:href="'mailto:?subject=' + encodeURIComponent('Reglamento Interno de Trabajo') + '&body=' + encodeURIComponent(mensaje + ' aquí: ' + url)">Correo</a>
+        {{-- Compartir nativo (pedido del usuario, 2026-10-03): un solo botón
+             en vez de WhatsApp/Correo separados - en celular abre la hoja
+             nativa del sistema (WhatsApp, Mensajes, Correo, lo que tenga
+             instalado); en Windows/Mac abre el panel nativo de compartir.
+             Respaldo a los botones de siempre SOLO si el navegador no
+             soporta navigator.share (ej. Firefox de escritorio). --}}
+        <button type="button" x-show="soportaCompartir" x-on:click="compartir()" class="rit-btn rit-btn-secondary">
+          <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"/></svg>
+          Compartir
+        </button>
+        <a class="rit-btn rit-btn-secondary" x-show="!soportaCompartir" x-bind:href="'https://wa.me/?text=' + encodeURIComponent(mensaje + ': ' + url)" target="_blank" rel="noopener">WhatsApp</a>
+        <a class="rit-btn rit-btn-secondary" x-show="!soportaCompartir" x-bind:href="'mailto:?subject=' + encodeURIComponent('Reglamento Interno de Trabajo') + '&body=' + encodeURIComponent(mensaje + ' aquí: ' + url)">Correo</a>
         @if($posterUrl)
           {{-- Antes decía "Poster QR" (pedido del usuario, 2026-10-03: "puede
                confundir, el cliente no puede ni saber para qué sirve") - el
