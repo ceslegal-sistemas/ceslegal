@@ -69,6 +69,16 @@ Al marcar la casilla de aceptación manifiesto haber leído, entendido y aceptad
 
     /*
     |--------------------------------------------------------------------------
+    | Declaración del admin al "Culminar Socialización del RIT" (manual)
+    |--------------------------------------------------------------------------
+    | Botón manual pedido por Andrés Sarmiento (reunión 2026-10-03): el admin
+    | cierra el proceso de socialización declarando bajo su responsabilidad
+    | que ya notificó a todos los trabajadores. Plantilla con marcador: :empresa.
+    */
+    'disclaimer_culminacion_socializacion' => 'Declaro, bajo mi responsabilidad, que **notifiqué a todos los trabajadores** de **:empresa** sobre el Reglamento Interno de Trabajo vigente, que la **socialización fue aceptada y realizada**, y que **conservaré las evidencias** correspondientes a disposición de las autoridades competentes.',
+
+    /*
+    |--------------------------------------------------------------------------
     | URL de compra / suscripción del Reglamento Interno de Trabajo
     |--------------------------------------------------------------------------
     */
