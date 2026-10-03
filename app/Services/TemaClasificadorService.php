@@ -269,6 +269,83 @@ class TemaClasificadorService
     }
 
     /**
+     * Identifica qué temas (de los que esta RIT tiene clasificados) se ven
+     * afectados por un cambio puntual, dado el diff ya calculado por
+     * RitDiffService (pedido de Andrés Sarmiento, 2026-10-03: si un
+     * trabajador ya aceptó una versión anterior, el quiz de la actualización
+     * solo debe preguntar sobre lo que cambió, no todo el RIT de nuevo).
+     *
+     * Cacheado por el par de hashes (texto anterior + texto nuevo) - ese par
+     * es el MISMO para cualquier trabajador que esté haciendo la transición
+     * entre esas dos versiones exactas, así que no vale la pena pagar una
+     * llamada a Gemini por cada trabajador que llega al quiz.
+     *
+     * Fail-open: si la IA falla o no identifica ningún tema, devuelve un
+     * array vacío - el llamador (SocializacionRit::iniciarQuiz()) debe
+     * interpretar eso como "no se pudo acotar, usar todos los temas",
+     * nunca como "el cambio no afectó nada".
+     *
+     * @param array<int, array{tipo: string, texto?: string, palabras?: array}> $cambios Salida de RitDiffService::compararDocumentos()
+     * @param \Illuminate\Support\Collection<int, TemaNormativo> $temas
+     * @return array<int, int> IDs de temas_normativos afectados
+     */
+    public function identificarTemasDelCambio(array $cambios, \Illuminate\Support\Collection $temas): array
+    {
+        // Los bloques 'agregado'/'eliminado' traen 'texto' directo, pero los
+        // 'modificado' NO - traen 'palabras' (diff palabra por palabra, ver
+        // rit-redline.blade.php). Sin este caso aparte, pluck('texto') sobre
+        // un 'modificado' devuelve null y el cambio queda completamente
+        // invisible para la IA (bug real encontrado 2026-10-03 escribiendo
+        // el test de este método - 'modificado' es el tipo MÁS común en una
+        // actualización real).
+        $bloquesCambiados = collect($cambios)
+            ->filter(fn (array $c) => $c['tipo'] !== 'igual')
+            ->map(function (array $c) {
+                if ($c['tipo'] === 'modificado') {
+                    return collect($c['palabras'] ?? [])->pluck('texto')->implode('');
+                }
+                return $c['texto'] ?? '';
+            })
+            ->implode("\n---\n");
+
+        if (trim($bloquesCambiados) === '' || $temas->isEmpty()) {
+            return [];
+        }
+
+        $claveCache = 'rit_temas_del_cambio_' . hash('sha256', $bloquesCambiados . '|' . $temas->pluck('id')->implode(','));
+
+        return \Illuminate\Support\Facades\Cache::remember($claveCache, now()->addDays(7), function () use ($bloquesCambiados, $temas) {
+            $listaTemas = $temas->map(fn (TemaNormativo $t) => "- ID {$t->id}: {$t->nombre}")->implode("\n");
+
+            $prompt = <<<PROMPT
+            Dado un listado de temas y los fragmentos de texto que CAMBIARON
+            en un Reglamento Interno de Trabajo (agregados, eliminados o
+            modificados), indica cuáles de esos temas se ven afectados por
+            estos cambios específicos.
+
+            Responde ÚNICAMENTE con un array JSON de los IDs afectados, sin
+            markdown, ejemplo: [3, 7, 12]. Si ningún tema de la lista se ve
+            afectado, responde [].
+
+            TEMAS:
+            {$listaTemas}
+
+            FRAGMENTOS QUE CAMBIARON:
+            {$this->truncar($bloquesCambiados)}
+            PROMPT;
+
+            try {
+                return $this->parsearIds($this->llamarGemini($prompt, 512));
+            } catch (\Throwable $e) {
+                Log::warning('TemaClasificadorService: fallo al identificar temas del cambio, se usarán todos', [
+                    'error' => $e->getMessage(),
+                ]);
+                return [];
+            }
+        });
+    }
+
+    /**
      * Un DocumentoLegal no se vuelve a editar tras procesado - sin
      * staleness por hash, se clasifica una sola vez.
      */

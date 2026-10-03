@@ -442,6 +442,21 @@ class SocializacionRit extends Component
             );
         }
 
+        // Pedido de Andrés Sarmiento (reunión 2026-10-03): si el trabajador
+        // ya había aceptado una versión anterior del RIT (es una
+        // actualización, no la primera vez), el quiz solo debe preguntar
+        // sobre lo que CAMBIÓ - no todo el reglamento de nuevo. $cambiosRit
+        // ya lo calculó prepararPresentacionRit() contra el snapshot real de
+        // la última aceptación. Fail-open: si la IA no identifica ningún
+        // tema afectado, se usan todos (mejor preguntar de más que saltarse
+        // la evidencia de comprensión).
+        if (!$this->esPrimeraAceptacion && !empty($this->cambiosRit) && $temasQuiz->isNotEmpty()) {
+            $idsAfectados = app(\App\Services\TemaClasificadorService::class)->identificarTemasDelCambio($this->cambiosRit, $temasQuiz);
+            if (!empty($idsAfectados)) {
+                $temasQuiz = $temasQuiz->whereIn('id', $idsAfectados);
+            }
+        }
+
         $this->quizPreguntas = $temasQuiz
             ->map(fn ($tema) => [
                 'pregunta' => $tema->pivot->pregunta_vf,

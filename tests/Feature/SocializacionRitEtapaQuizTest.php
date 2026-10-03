@@ -221,4 +221,57 @@ class SocializacionRitEtapaQuizTest extends TestCase
         $this->assertFalse($respuestas[0]['intentos'][0]['correcta']);
         $this->assertTrue($respuestas[0]['intentos'][1]['correcta']);
     }
+
+    /**
+     * Preguntas solo-de-lo-que-cambió en actualizaciones (pedido de Andrés
+     * Sarmiento, 2026-10-03): si el trabajador ya había aceptado una versión
+     * anterior (texto_rit_snapshot distinto del actual), el quiz solo debe
+     * salir de los temas que la IA identificó como afectados por el cambio -
+     * no de todos los temas del RIT.
+     */
+    public function test_en_una_actualizacion_el_quiz_solo_sale_de_los_temas_que_cambiaron(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'mejora_ia',
+            'texto_completo' => "Articulo 1. La jornada ahora es de 7 horas.\nArticulo 2. Sin cambios.",
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
+        ]);
+        $temaCambiado = TemaNormativo::create(['nombre' => 'Jornada laboral y horas extras', 'descripcion' => 'Desc.', 'activo' => true]);
+        $rit->temasNormativos()->attach($temaCambiado->id, ['pregunta_vf' => '¿La jornada es de 7 horas?', 'respuesta_correcta' => true]);
+        $temaSinCambios = TemaNormativo::create(['nombre' => 'Vacaciones', 'descripcion' => 'Desc.', 'activo' => true]);
+        $rit->temasNormativos()->attach($temaSinCambios->id, ['pregunta_vf' => '¿Las vacaciones son de 15 días?', 'respuesta_correcta' => true]);
+
+        \Illuminate\Support\Facades\Http::fake([
+            'generativelanguage.googleapis.com/*' => \Illuminate\Support\Facades\Http::response([
+                'candidates' => [[
+                    'content' => ['parts' => [[
+                        'text' => json_encode([$temaCambiado->id]),
+                    ]]],
+                ]],
+            ], 200),
+        ]);
+
+        $trabajador = Trabajador::create([
+            'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '222333444',
+            'genero' => 'masculino', 'nombres' => 'Ya', 'apellidos' => 'Acepto', 'cargo' => 'Op', 'active' => true,
+        ]);
+        AceptacionReglamentoInterno::create([
+            'trabajador_id' => $trabajador->id,
+            'reglamento_interno_id' => $rit->id,
+            'texto_rit_snapshot' => "Articulo 1. La jornada es de 8 horas.\nArticulo 2. Sin cambios.",
+            'texto_rit_hash' => hash('sha256', "Articulo 1. La jornada es de 8 horas.\nArticulo 2. Sin cambios."),
+            'aceptado_en' => now()->subMonth(),
+        ]);
+
+        $componente = Livewire::test(SocializacionRit::class, ['empresa' => $empresa, 'token' => $empresa->tokenSocializacionRit()])
+            ->set('trabajadorId', $trabajador->id)
+            ->call('guardarFotoSimple', $this->fotoBase64Valida())
+            ->assertSet('esPrimeraAceptacion', false)
+            ->call('iniciarQuiz');
+
+        $preguntas = collect($componente->get('quizPreguntas'))->pluck('pregunta');
+        $this->assertTrue($preguntas->contains('¿La jornada es de 7 horas?'));
+        $this->assertFalse($preguntas->contains('¿Las vacaciones son de 15 días?'));
+    }
 }

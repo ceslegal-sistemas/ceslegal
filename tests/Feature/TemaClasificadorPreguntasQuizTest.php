@@ -156,6 +156,66 @@ class TemaClasificadorPreguntasQuizTest extends TestCase
         $this->assertTrue((bool) $pivot->respuesta_correcta);
     }
 
+    /**
+     * Preguntas solo-de-lo-que-cambió en actualizaciones (pedido de Andrés
+     * Sarmiento, 2026-10-03): identificarTemasDelCambio() le pasa a la IA
+     * SOLO los bloques que cambiaron (no el RIT completo) y el listado de
+     * temas, y espera de vuelta los IDs afectados.
+     */
+    public function test_identifica_los_temas_afectados_por_el_cambio(): void
+    {
+        $temaJornada = TemaNormativo::create(['nombre' => 'Jornada laboral', 'descripcion' => 'Desc.', 'activo' => true]);
+        $temaVacaciones = TemaNormativo::create(['nombre' => 'Vacaciones', 'descripcion' => 'Desc.', 'activo' => true]);
+        $temas = collect([$temaJornada, $temaVacaciones]);
+
+        $this->fakearGemini([$temaJornada->id]);
+
+        // Forma REAL de RitDiffService::compararDocumentos(): un bloque
+        // 'modificado' trae 'palabras' (diff palabra por palabra), NUNCA un
+        // 'texto' de nivel superior - a diferencia de 'agregado'/'eliminado'.
+        $cambios = [
+            ['tipo' => 'igual', 'texto' => 'Articulo 1. Texto sin cambios.'],
+            ['tipo' => 'modificado', 'palabras' => [
+                ['tipo' => 'igual', 'texto' => 'Articulo 2. La jornada '],
+                ['tipo' => 'agregado', 'texto' => 'ahora '],
+                ['tipo' => 'igual', 'texto' => 'es de 7 horas.'],
+            ]],
+        ];
+
+        $ids = app(TemaClasificadorService::class)->identificarTemasDelCambio($cambios, $temas);
+
+        $this->assertSame([$temaJornada->id], $ids);
+    }
+
+    public function test_sin_bloques_cambiados_no_llama_a_la_ia(): void
+    {
+        $tema = TemaNormativo::create(['nombre' => 'Jornada laboral', 'descripcion' => 'Desc.', 'activo' => true]);
+
+        Http::fake();
+
+        $ids = app(TemaClasificadorService::class)->identificarTemasDelCambio(
+            [['tipo' => 'igual', 'texto' => 'Nada cambió.']],
+            collect([$tema])
+        );
+
+        $this->assertSame([], $ids);
+        Http::assertNothingSent();
+    }
+
+    public function test_fallo_de_ia_al_identificar_temas_del_cambio_devuelve_vacio(): void
+    {
+        $tema = TemaNormativo::create(['nombre' => 'Jornada laboral', 'descripcion' => 'Desc.', 'activo' => true]);
+
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response([], 500)]);
+
+        $ids = app(TemaClasificadorService::class)->identificarTemasDelCambio(
+            [['tipo' => 'modificado', 'texto' => 'Algo cambió.', 'palabras' => []]],
+            collect([$tema])
+        );
+
+        $this->assertSame([], $ids);
+    }
+
     public function test_guarda_el_hash_del_texto_al_generar_las_preguntas(): void
     {
         $rit = ReglamentoInterno::create([
