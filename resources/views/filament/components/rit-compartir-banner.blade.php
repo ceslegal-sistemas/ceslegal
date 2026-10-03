@@ -12,6 +12,14 @@
       un link normal a Mi Reglamento Interno en vez de abrir el modal en el
       sitio (necesario en el Dashboard, que es una página distinta y no
       tiene registrada la acción declararFechaPublicacion).
+    - $mostrarCulminar (opcional, default false) - pedido explícito del
+      usuario (2026-10-03: "el botón de culminar socialización debe estar
+      dentro de 'Comparte el Reglamento...'"). Solo pasar true desde una
+      página que SÍ tenga registrada la acción mountAction('culminarSocializacion')
+      (hoy solo Mi Reglamento Interno) - el Dashboard reusa este mismo
+      partial y NO debe pasar este parámetro.
+    - $culminacion (requerido si $mostrarCulminar=true) - resultado de
+      MiReglamentoInterno::culminacionVigente(), o null si no hay ninguna.
 
     Pedido del usuario (2026-09-29): los botones de compartir quedan
     OCULTOS hasta declarar la fecha de publicación - no tiene sentido
@@ -21,6 +29,8 @@
 @php
     $fechaPublicacion = $reglamento?->fecha_publicacion_socializacion ?? null;
     $declararFechaUrl = $declararFechaUrl ?? null;
+    $mostrarCulminar = $mostrarCulminar ?? false;
+    $culminacion = $culminacion ?? null;
     // Pedido de Andrés Sarmiento (reunión 2026-10-03): después de los 15
     // días hábiles de objeción, el panel admin debe dejar explícito que el
     // MISMO link ya no es "publicación" sino "socialización" del RIT - el
@@ -116,6 +126,32 @@
           </a>
         @endif
       </div>
+
+      {{-- Botón manual "Culminar Socialización del RIT" (pedido de Andrés
+           Sarmiento, 2026-09-30, reubicado 2026-10-03 dentro de esta misma
+           tarjeta por pedido explícito del usuario): le permite al admin
+           cerrar el proceso bajo su propia responsabilidad, sin depender de
+           que el 100% de los trabajadores hayan aceptado en el sistema -
+           por eso NO depende de la tarjeta de progreso (esa solo aparece si
+           hay trabajadores registrados; este botón debe estar disponible
+           incluso si la empresa socializó 100% en persona/papel). Solo
+           visible en Fase 2 (Socialización) - durante la Fase 1
+           (publicación) no tiene sentido "culminar" todavía. Se oculta una
+           vez culminado y se reemplaza por la constancia. --}}
+      @if($mostrarCulminar && $faseActual === 'socializacion')
+        <div style="margin-top:.75rem">
+          @if($culminacion)
+            <p style="font-size:.8125rem;font-weight:600;color:#166534;display:flex;align-items:center;gap:.35rem;margin:0">
+              <lord-icon src="https://cdn.lordicon.com/wpsdctqb.json" trigger="loop" delay="2000" stroke="bold" colors="primary:#16a34a,secondary:#16a34a" style="width:14px;height:14px;flex-shrink:0"></lord-icon>
+              Socialización culminada el {{ $culminacion->declarado_en->format('d/m/Y') }} por {{ $culminacion->user?->name }}
+            </p>
+          @else
+            <button type="button" wire:click="mountAction('culminarSocializacion')" class="rit-btn rit-btn-success" style="width:100%;justify-content:center">
+              Culminar Socialización del RIT
+            </button>
+          @endif
+        </div>
+      @endif
     @else
       <p class="rit-sub">Antes de compartir el link, indíquenos desde cuándo quedará disponible el Reglamento para sus trabajadores (por ejemplo, el día que va a compartir este link o a pegar las carteleras) - con eso calculamos automáticamente el plazo de 15 días hábiles que tendrán para objetarlo, sin que usted tenga que llevar la cuenta.</p>
       <div style="margin-top:.75rem">
