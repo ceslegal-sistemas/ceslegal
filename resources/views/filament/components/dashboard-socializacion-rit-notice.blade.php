@@ -43,6 +43,8 @@
             'posterUrl' => $posterUrlDashboard,
             'reglamento' => $empresaUsuario->reglamentoInterno,
             'declararFechaUrl' => \App\Filament\Admin\Pages\MiReglamentoInterno::getUrl(panel: 'empresa'),
+            'mostrarCulminar' => true,
+            'culminacion' => $culminacionDashboard ?? null,
         ])
 
         <div class="rit-hero" style="padding:1rem 1.5rem;">

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Admin\Pages\Dashboard;
 use App\Models\AceptacionReglamentoInterno;
+use App\Models\CulminacionSocializacionRit;
 use App\Models\Empresa;
 use App\Models\ReglamentoInterno;
 use App\Models\Trabajador;
@@ -73,5 +74,53 @@ class DashboardSocializacionRitNoticeTest extends TestCase
 
         Livewire::actingAs($user)->test(Dashboard::class)
             ->assertDontSee('han aceptado el Reglamento Interno vigente');
+    }
+
+    /**
+     * "Culminar Socialización del RIT" también debe funcionar desde el
+     * Dashboard (pedido explícito del usuario, 2026-10-03: "en el dashboard
+     * no sale el boton") - mismo trait InteractsConCulminacionSocializacionRit
+     * que usa Mi Reglamento Interno, resolviendo empresa/RIT por su cuenta.
+     */
+    public function test_muestra_el_boton_de_culminar_en_fase_2(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true, 'numero_empleados' => null]);
+        ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
+        ]);
+        $user = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresa->id, 'active' => true]);
+
+        Livewire::actingAs($user)->test(Dashboard::class)
+            ->assertSee('Culminar Socialización del RIT');
+    }
+
+    public function test_no_muestra_el_boton_de_culminar_en_fase_1(): void
+    {
+        [$empresa, $user] = $this->crearEmpresaConRitYUsuario();
+
+        Livewire::actingAs($user)->test(Dashboard::class)
+            ->assertDontSee('Culminar Socialización del RIT');
+    }
+
+    public function test_muestra_la_constancia_de_culminacion_en_el_dashboard(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true, 'numero_empleados' => null]);
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
+        ]);
+        $user = User::factory()->create(['role' => 'cliente', 'empresa_id' => $empresa->id, 'active' => true]);
+        CulminacionSocializacionRit::create([
+            'empresa_id' => $empresa->id,
+            'reglamento_interno_id' => $rit->id,
+            'user_id' => $user->id,
+            'texto_rit_hash' => hash('sha256', $rit->texto_completo),
+            'declarado_en' => now(),
+        ]);
+
+        Livewire::actingAs($user)->test(Dashboard::class)
+            ->assertSee('Socialización culminada el')
+            ->assertDontSee('Culminar Socialización del RIT');
     }
 }

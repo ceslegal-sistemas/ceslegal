@@ -10,13 +10,27 @@ use App\Filament\Admin\Widgets\RecentProcessesWidget;
 use App\Filament\Admin\Widgets\ProcessesByStatusChart;
 use App\Filament\Admin\Widgets\RecentActivityWidget;
 use App\Services\GoogleOAuthService;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 
-class Dashboard extends BaseDashboard
+class Dashboard extends BaseDashboard implements HasForms, HasActions
 {
+    use InteractsWithForms, InteractsWithActions;
+    // Culminar Socialización del RIT (pedido del usuario, 2026-10-03: "en el
+    // dashboard no sale el boton") - mismo trait que Mi Reglamento Interno,
+    // resuelve empresa/RIT por su cuenta (esta página no las expone como
+    // propiedades). HasVerificacionFotografica (selfie del admin) se incluye
+    // aparte porque ese trait lo requiere pero no lo trae consigo, para
+    // evitar colisión si en el futuro este Dashboard ya lo trajera por otro lado.
+    use \App\Filament\Concerns\HasVerificacionFotografica;
+    use \App\Filament\Concerns\InteractsConCulminacionSocializacionRit;
+
     protected static ?string $navigationIcon = 'heroicon-o-home';
 
     protected static string $view = 'filament.admin.pages.dashboard';

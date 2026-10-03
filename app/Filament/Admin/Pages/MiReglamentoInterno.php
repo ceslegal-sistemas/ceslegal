@@ -12,11 +12,8 @@ use App\Services\RitActualizacionAutomaticaService;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
-use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -28,6 +25,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
 {
     use InteractsWithForms, InteractsWithActions;
     use \App\Filament\Concerns\InteractsConAceptacionMejoraRIT;
+    use \App\Filament\Concerns\InteractsConCulminacionSocializacionRit;
 
     protected static ?string $navigationIcon  = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'Mi Reglamento Interno';
@@ -649,123 +647,12 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
         return app(\App\Services\LogroSocializacionRitService::class)->estadoDashboard($this->empresa);
     }
 
-    /**
-     * Última declaración de "Culminar Socialización" que sigue vigente para
-     * el RIT ACTUAL (comparando por HASH del texto, igual que
-     * Trabajador::aceptoRitVigente() - el RIT puede mutar in-place sin
-     * cambiar de id, ver gotcha del bug del diff en blanco resuelto
-     * 2026-10-03). Si el RIT cambia de contenido después de culminada, deja
-     * de contar como vigente y el botón vuelve a aparecer.
-     */
-    public function culminacionVigente(): ?\App\Models\CulminacionSocializacionRit
-    {
-        if (!$this->empresa || !$this->reglamento || empty($this->reglamento->texto_completo)) {
-            return null;
-        }
-
-        return \App\Models\CulminacionSocializacionRit::where('empresa_id', $this->empresa->id)
-            ->where('texto_rit_hash', hash('sha256', $this->reglamento->texto_completo))
-            ->latest('declarado_en')
-            ->first();
-    }
-
-    /**
-     * Botón manual "Culminar Socialización del RIT" (pedido de Andrés
-     * Sarmiento, reunión 2026-10-03): el admin declara bajo su
-     * responsabilidad que ya notificó a todos los trabajadores y que la
-     * socialización fue aceptada/realizada, con su propia selfie de
-     * verificación - mismo componente webcam-autorizador.blade.php ya usado
-     * para la aceptación del RIT mejorado (equivalencia funcional de firma).
-     */
-    public function culminarSocializacionAction(): Action
-    {
-        return Action::make('culminarSocializacion')
-            ->label('Culminar Socialización del RIT')
-            ->icon('heroicon-o-check-badge')
-            ->color('success')
-            // Pedido explícito del usuario (2026-10-03): solo tiene sentido
-            // CULMINAR la socialización una vez se entró en Fase 2 (pasados
-            // los 15 días hábiles de objeción) - durante la Fase 1
-            // (publicación) el botón debe quedar invisible, sin importar
-            // cuántos trabajadores haya registrados.
-            ->visible(fn () => $this->reglamento
-                && !empty($this->reglamento->texto_completo)
-                && $this->reglamento->faseSocializacionActual() === 'socializacion'
-                && !$this->culminacionVigente())
-            ->modalHeading('Culminar Socialización del Reglamento Interno')
-            ->modalDescription('Esta acción cierra el proceso de socialización bajo su responsabilidad. Antes de continuar, confirme que efectivamente notificó a todos sus trabajadores.')
-            ->modalSubmitActionLabel('Confirmar y culminar')
-            ->modalWidth('lg')
-            ->form([
-                Placeholder::make('disclaimer')
-                    ->hiddenLabel()
-                    ->content(function () {
-                        $texto = str_replace(
-                            ':empresa',
-                            $this->empresa?->razon_social ?? '',
-                            \App\Models\ConfiguracionTexto::obtener('disclaimer_culminacion_socializacion', config('ces.disclaimer_culminacion_socializacion', ''))
-                        );
-
-                        return new \Illuminate\Support\HtmlString(
-                            preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '<strong>$1</strong>', e($texto))
-                        );
-                    }),
-                Checkbox::make('declaracion_aceptada')
-                    ->label('Declaro que lo anterior es cierto.')
-                    ->accepted()
-                    ->required(),
-
-                Placeholder::make('foto_verificacion')
-                    ->label('Verificación fotográfica')
-                    ->helperText('Equivalencia funcional de su firma: confirma que usted, y no otra persona, culmina este proceso.')
-                    ->content(function ($livewire) {
-                        $indice = max(0, count($livewire->mountedActions ?? []) - 1);
-
-                        return view('filament.components.webcam-autorizador', [
-                            'wireTargetPath' => "mountedActionsData.{$indice}.foto_admin_base64",
-                        ]);
-                    }),
-                Hidden::make('foto_admin_base64'),
-            ])
-            ->action(function (array $data, Action $action): void {
-                if (!$this->empresa || !$this->reglamento) {
-                    return;
-                }
-
-                if (empty($data['foto_admin_base64'])) {
-                    Notification::make()
-                        ->danger()
-                        ->title('Falta la verificación fotográfica')
-                        ->body('Debe tomar la foto de verificación antes de continuar.')
-                        ->persistent()
-                        ->send();
-
-                    $action->halt();
-                }
-
-                $fotoPath = $this->guardarFotoVerificacion(
-                    $data['foto_admin_base64'] ?? null,
-                    "fotos-verificacion/culminacion-socializacion/{$this->empresa->id}",
-                );
-
-                \App\Models\CulminacionSocializacionRit::create([
-                    'empresa_id' => $this->empresa->id,
-                    'reglamento_interno_id' => $this->reglamento->id,
-                    'user_id' => Auth::id(),
-                    'texto_rit_hash' => hash('sha256', $this->reglamento->texto_completo),
-                    'foto_admin_path' => $fotoPath,
-                    'declarado_en' => now(),
-                    'ip' => request()->ip(),
-                    'user_agent' => (string) request()->userAgent(),
-                ]);
-
-                Notification::make()
-                    ->success()
-                    ->title('Socialización culminada')
-                    ->body('Quedó registrado que culminó la socialización del Reglamento Interno con sus trabajadores.')
-                    ->send();
-            });
-    }
+    // culminacionVigente() y culminarSocializacionAction() se movieron a
+    // App\Filament\Concerns\InteractsConCulminacionSocializacionRit
+    // (2026-10-03): el usuario pidió que el mismo botón funcione también en
+    // el Dashboard ("en el dashboard no sale el boton"), y esa página no
+    // expone $this->empresa/$this->reglamento como esta - el trait los
+    // resuelve por su cuenta en cada llamada.
 
     /** Abre el modal para subir un RIT manualmente. */
     public function subirRITAction(): Action

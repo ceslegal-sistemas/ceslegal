@@ -65,6 +65,11 @@
         $detalleSocializacionRit = ($estadoSocializacionRit && $estadoSocializacionRit['total'] > 0)
             ? app(\App\Services\LogroSocializacionRitService::class)->detallePorTrabajador($empresaUsuario)
             : [];
+        // Culminar Socialización del RIT (pedido del usuario, 2026-10-03: "en
+        // el dashboard no sale el boton") - calculado aquí, en el @php de
+        // nivel superior de la página, donde $this SÍ está garantizado ligado
+        // al componente Livewire (a diferencia de dentro de un @include anidado).
+        $culminacionDashboard = $estadoSocializacionRit ? $this->culminacionVigente() : null;
     @endphp
 
     @if($sinRit)
@@ -99,6 +104,7 @@
             'empresaUsuario' => $empresaUsuario,
             'posterUrlDashboard' => $posterUrlDashboard,
             'detalleSocializacionRit' => $detalleSocializacionRit,
+            'culminacionDashboard' => $culminacionDashboard,
         ])
     @endif
 
