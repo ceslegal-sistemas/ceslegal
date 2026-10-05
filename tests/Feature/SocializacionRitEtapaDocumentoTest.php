@@ -167,4 +167,45 @@ class SocializacionRitEtapaDocumentoTest extends TestCase
             ->assertHasNoErrors()
             ->assertSet('etapa', 'datos');
     }
+
+    /**
+     * Pedido de Andrés Sarmiento (reunión 2026-09-29): la etapa 'documento'
+     * debía tener "un letrero más grande, algo que te diga qué está
+     * pasando" en vez del genérico "Identifícate" - debe dejar claro que es
+     * un acuse de recibo formal del RIT, con copy distinto según la fase.
+     */
+    public function test_el_encabezado_deja_claro_que_es_un_acuse_de_recibo_del_rit(): void
+    {
+        // "RENBEL DEMO" (no "RENBEL S.A.S."): razon_social normaliza y QUITA
+        // cualquier sufijo societario al guardar (comportamiento intencional,
+        // ver Empresa::TIPO_SOCIETARIO_PATRON) - un nombre que termine en
+        // "S.A.S." nunca sobrevive intacto para un assertSee() literal.
+        $empresa = Empresa::factory()->create(['active' => true, 'razon_social' => 'RENBEL DEMO']);
+        ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
+        ]);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->assertSee('Acuse de recibo del Reglamento Interno de Trabajo')
+            ->assertSee('Este proceso certifica que conoces el Reglamento Interno de Trabajo de RENBEL DEMO')
+            ->assertDontSee('Identifícate');
+    }
+
+    public function test_el_encabezado_en_fase_publicacion_usa_copy_mas_liviano(): void
+    {
+        // "RENBEL DEMO" (no "RENBEL S.A.S."): razon_social normaliza y QUITA
+        // cualquier sufijo societario al guardar (comportamiento intencional,
+        // ver Empresa::TIPO_SOCIETARIO_PATRON) - un nombre que termine en
+        // "S.A.S." nunca sobrevive intacto para un assertSee() literal.
+        $empresa = Empresa::factory()->create(['active' => true, 'razon_social' => 'RENBEL DEMO']);
+        ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->toDateString(),
+        ]);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->assertSee('Acuse de recibo del Reglamento Interno de Trabajo')
+            ->assertSee('Vamos a informarte sobre el Reglamento Interno de Trabajo de RENBEL DEMO');
+    }
 }

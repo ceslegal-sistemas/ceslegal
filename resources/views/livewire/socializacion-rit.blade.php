@@ -67,8 +67,19 @@
                 @elseif ($etapa === 'documento')
                     <div class="space-y-5">
                         <div>
-                            <h2 class="text-base font-semibold text-gray-900 mb-1">Identifícate</h2>
-                            <p class="text-sm text-gray-500">Ingresa tu documento de identidad para comenzar.</p>
+                            {{-- Pedido de Andrés Sarmiento (reunión 2026-09-29): "deberías
+                                 tener un letrero más grande, algo que te diga qué está
+                                 pasando" - antes decía solo "Identifícate", sin dejar claro
+                                 que esto es un acuse de recibo formal del RIT, no un simple
+                                 formulario de contacto. --}}
+                            <h2 class="text-base font-semibold text-gray-900 mb-1">Acuse de recibo del Reglamento Interno de Trabajo</h2>
+                            <p class="text-sm text-gray-500">
+                                @if ($fase === 'publicacion')
+                                    Vamos a informarte sobre el Reglamento Interno de Trabajo de {{ $empresa->razon_social }}. Ingresa tu documento de identidad para comenzar.
+                                @else
+                                    Este proceso certifica que conoces el Reglamento Interno de Trabajo de {{ $empresa->razon_social }}. Ingresa tu documento de identidad para comenzar.
+                                @endif
+                            </p>
                         </div>
 
                         <div>
