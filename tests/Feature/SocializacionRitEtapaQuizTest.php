@@ -274,4 +274,83 @@ class SocializacionRitEtapaQuizTest extends TestCase
         $this->assertTrue($preguntas->contains('¿La jornada es de 7 horas?'));
         $this->assertFalse($preguntas->contains('¿Las vacaciones son de 15 días?'));
     }
+
+    private function crearRitConTemasMixtos(Empresa $empresa, ReglamentoInterno $rit): void
+    {
+        for ($i = 1; $i <= 5; $i++) {
+            $tema = TemaNormativo::create(['nombre' => "Multiple {$i}", 'descripcion' => 'Desc.', 'activo' => true]);
+            $rit->temasNormativos()->attach($tema->id, [
+                'pregunta_vf' => "¿Pregunta múltiple {$i}?",
+                'tipo_pregunta' => 'multiple',
+                'opciones' => ['a', 'b', 'c', 'd'],
+                'respuesta_correcta_indice' => 0,
+            ]);
+        }
+        for ($i = 1; $i <= 5; $i++) {
+            $tema = TemaNormativo::create(['nombre' => "VF {$i}", 'descripcion' => 'Desc.', 'activo' => true]);
+            $rit->temasNormativos()->attach($tema->id, [
+                'pregunta_vf' => "¿Pregunta vf {$i}?",
+                'respuesta_correcta' => true,
+            ]);
+        }
+    }
+
+    /**
+     * Pedido explícito del usuario (2026-10-05): el quiz ya no puede quedar
+     * a lo que la IA haya elegido libremente por tema - siempre debe traer
+     * exactamente 3 de selección múltiple y 2 de Sí/No, cuando el banco
+     * tiene suficiente variedad de ambos tipos.
+     */
+    public function test_el_quiz_siempre_trae_exactamente_3_multiples_y_2_vf(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
+        ]);
+        $this->crearRitConTemasMixtos($empresa, $rit);
+
+        $componente = $this->llevarATrabajadorAPresentacionRit($empresa)->call('iniciarQuiz');
+
+        $preguntas = collect($componente->get('quizPreguntas'));
+        $this->assertCount(5, $preguntas);
+        $this->assertCount(3, $preguntas->where('tipo', 'multiple'));
+        $this->assertCount(2, $preguntas->where('tipo', 'vf'));
+    }
+
+    /**
+     * Pedido explícito del usuario (2026-10-05): "no debe salir primero 3 de
+     * selección múltiple y 2 de sí/no" - el orden de las 5 preguntas debe
+     * ser aleatorio, no un bloque fijo. Se corre el quiz muchas veces y se
+     * verifica que la PRIMERA pregunta no siempre es del mismo tipo - con 25
+     * corridas independientes la probabilidad de que salga siempre el mismo
+     * tipo por puro azar es prácticamente cero.
+     */
+    public function test_el_orden_de_las_preguntas_es_aleatorio(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
+        ]);
+        $this->crearRitConTemasMixtos($empresa, $rit);
+
+        $tiposEnPrimeraPosicion = [];
+        for ($intento = 0; $intento < 25; $intento++) {
+            $trabajador = Trabajador::create([
+                'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => (string) (900000000 + $intento),
+                'genero' => 'masculino', 'nombres' => 'Juan', 'apellidos' => 'Perez', 'cargo' => 'Operario', 'active' => true,
+            ]);
+
+            $componente = Livewire::test(SocializacionRit::class, ['empresa' => $empresa, 'token' => $empresa->tokenSocializacionRit()])
+                ->set('trabajadorId', $trabajador->id)
+                ->call('guardarFotoSimple', $this->fotoBase64Valida())
+                ->call('iniciarQuiz');
+
+            $tiposEnPrimeraPosicion[] = $componente->get('quizPreguntas')[0]['tipo'];
+        }
+
+        $this->assertContains('multiple', $tiposEnPrimeraPosicion);
+        $this->assertContains('vf', $tiposEnPrimeraPosicion);
+    }
 }

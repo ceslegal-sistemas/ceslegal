@@ -126,4 +126,27 @@ class SocializacionRitNoComprendioTest extends TestCase
 
         $this->assertDatabaseHas('rechazos_comprension_rit', ['origen' => 'fallo_quiz_repetido']);
     }
+
+    /**
+     * Pedido explícito del usuario (2026-10-05): el aviso del 1er "no
+     * entendí" recomendaba repasar el material pero no existía ningún botón
+     * para volver a verlo - volverARevisar() debe mandar de vuelta a
+     * 'presentacion_rit' y reiniciar la casilla de aceptación (para que la
+     * reconfirme de forma consciente tras repasar).
+     */
+    public function test_volver_a_revisar_regresa_a_presentacion_rit_y_reinicia_la_declaracion(): void
+    {
+        [$empresa, $rit, $trabajador] = $this->crearEmpresaTrabajadorEnFaseSocializacion();
+
+        // La vista de 'presentacion_rit' necesita un $token real para armar
+        // la URL del video didáctico (rit.socializar.video) - sin esto,
+        // Livewire falla al re-renderizar tras el cambio de etapa.
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa, 'token' => $empresa->tokenSocializacionRit()])
+            ->set('trabajadorId', $trabajador->id)
+            ->set('etapa', 'aceptacion')
+            ->set('declaracionAceptada', true)
+            ->call('volverARevisar')
+            ->assertSet('etapa', 'presentacion_rit')
+            ->assertSet('declaracionAceptada', false);
+    }
 }

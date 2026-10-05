@@ -432,6 +432,12 @@
                                     $textoAviso = str_replace(':empresa', $empresa->razon_social, \App\Models\ConfiguracionTexto::obtener('aviso_no_comprendio_primera_vez', config('ces.aviso_no_comprendio_primera_vez', '')));
                                 @endphp
                                 <p class="text-xs text-amber-800 m-0">{{ $textoAviso }}</p>
+                                {{-- Pedido del usuario (2026-10-05): el aviso recomendaba
+                                     repasar el material pero no había forma de hacerlo. --}}
+                                <button type="button" wire:click="volverARevisar" wire:loading.attr="disabled" wire:target="volverARevisar"
+                                    class="mt-2.5 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-amber-100 active:bg-amber-200 border border-amber-300 disabled:opacity-60 disabled:cursor-not-allowed text-amber-800 text-xs font-semibold rounded-lg transition-colors">
+                                    Repasar el material
+                                </button>
                             </div>
                         @endif
 
@@ -469,22 +475,27 @@
                                 <span wire:loading wire:target="confirmarPublicacion">Guardando...</span>
                             </button>
                         @else
-                            <button wire:click="aceptarReglamento" wire:loading.attr="disabled" wire:target="aceptarReglamento" type="button"
-                                class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm transition-colors">
-                                <svg wire:loading wire:target="aceptarReglamento" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                                </svg>
-                                <span wire:loading.remove wire:target="aceptarReglamento">Aceptar</span>
-                                <span wire:loading wire:target="aceptarReglamento">Guardando...</span>
-                            </button>
+                            {{-- Lado a lado (pedido del usuario, 2026-10-05): Aceptar a la
+                                 izquierda, No entendí a la derecha en gris - antes era un
+                                 link subrayado debajo, poco visible como alternativa real. --}}
+                            <div class="grid grid-cols-2 gap-3">
+                                <button wire:click="aceptarReglamento" wire:loading.attr="disabled" wire:target="aceptarReglamento" type="button"
+                                    class="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm transition-colors">
+                                    <svg wire:loading wire:target="aceptarReglamento" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                    </svg>
+                                    <span wire:loading.remove wire:target="aceptarReglamento">Aceptar</span>
+                                    <span wire:loading wire:target="aceptarReglamento">Guardando...</span>
+                                </button>
 
-                            {{-- Punto de rechazo explícito (pedido de Andrés Sarmiento,
-                                 2026-10-03) - solo Fase 2, que es donde vive la declaración
-                                 fuerte de comprensión. --}}
-                            <button type="button" wire:click="marcarNoComprendio('boton_manual')" wire:loading.attr="disabled" wire:target="marcarNoComprendio"
-                                class="w-full text-center text-sm font-medium text-gray-500 hover:text-gray-700 underline bg-transparent border-none cursor-pointer py-1">
-                                No entendí el Reglamento
-                            </button>
+                                {{-- Punto de rechazo explícito (pedido de Andrés Sarmiento,
+                                     2026-10-03) - solo Fase 2, que es donde vive la declaración
+                                     fuerte de comprensión. --}}
+                                <button type="button" wire:click="marcarNoComprendio('boton_manual')" wire:loading.attr="disabled" wire:target="marcarNoComprendio"
+                                    class="w-full flex items-center justify-center px-5 py-3.5 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 disabled:opacity-60 disabled:cursor-not-allowed text-gray-600 text-sm font-semibold rounded-xl transition-colors">
+                                    No entendí el Reglamento
+                                </button>
+                            </div>
                         @endif
                     </div>
                 @elseif ($etapa === 'no_comprendido_bloqueado')

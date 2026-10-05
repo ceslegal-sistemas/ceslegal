@@ -109,6 +109,80 @@ class SocializacionRit extends Component
         }
 
         $this->fase = $ritActivo->faseSocializacionActual();
+
+        if ($this->token !== '') {
+            $this->restaurarProgresoDesdeSesion();
+        }
+    }
+
+    /**
+     * Pedido del usuario (2026-10-05): refrescar el navegador en cualquier
+     * punto del flujo mandaba al trabajador de vuelta a "ingrese su
+     * cédula", perdiendo toda la sensación de avance ("como si hubiera
+     * perdido todo lo que hizo") - Livewire reinstancia el componente desde
+     * cero en cada carga de página, así que ninguna propiedad pública
+     * sobrevive un F5 por sí sola. guardarDatos() guarda el trabajador_id en
+     * la sesión de Laravel (que sí sobrevive un refresh, a diferencia del
+     * estado en memoria de Livewire) y aquí se intenta restaurar - si ya
+     * aceptó/confirmó mientras tanto (otra pestaña, por ejemplo) se respeta
+     * ese estado final; si no, se reconstruye la pantalla 'presentacion_rit'
+     * (video/resumen/texto) en vez de forzarlo a reingresar su documento y
+     * sus datos personales desde cero. El quiz/declaración sí se rehacen -
+     * aceptable, no hay forma segura de recordar en qué pregunta iba.
+     */
+    private function restaurarProgresoDesdeSesion(): void
+    {
+        $trabajadorId = session("rit_progreso_{$this->token}.trabajador_id");
+        if (!$trabajadorId) {
+            return;
+        }
+
+        $trabajador = Trabajador::withoutGlobalScope('bufeteOrEmpresa')
+            ->where('id', $trabajadorId)
+            ->where('empresa_id', $this->empresa->id)
+            ->first();
+
+        if (!$trabajador) {
+            session()->forget("rit_progreso_{$this->token}");
+            return;
+        }
+
+        if ($trabajador->aceptoRitVigente()) {
+            $this->etapa = 'ya_acepto';
+            return;
+        }
+
+        if ($this->fase === 'publicacion' && $trabajador->confirmoPublicacionVigente()) {
+            $this->etapa = 'ya_informado';
+            return;
+        }
+
+        $this->trabajadorId = $trabajador->id;
+        $this->trabajadorExistente = true;
+        $this->tipoDocumento = $trabajador->tipo_documento;
+        $this->numeroDocumento = $trabajador->numero_documento;
+        $this->nombres = $trabajador->nombres;
+        $this->apellidos = $trabajador->apellidos;
+        $this->genero = $trabajador->genero;
+        $this->email = (string) $trabajador->email;
+        $this->telefono = (string) $trabajador->telefono;
+        $this->direccion = (string) $trabajador->direccion;
+
+        $this->prepararPresentacionRit();
+    }
+
+    /**
+     * Ver restaurarProgresoDesdeSesion(). Solo tiene sentido guardar una vez
+     * que existe un trabajador_id real (no hay nada que recordar antes de
+     * eso) y solo en el flujo público real (con token).
+     */
+    private function guardarProgresoEnSesion(): void
+    {
+        if ($this->token === '' || !$this->trabajadorId) {
+            return;
+        }
+
+        session()->put("rit_progreso_{$this->token}", ['trabajador_id' => $this->trabajadorId]);
     }
 
     /**
@@ -276,6 +350,7 @@ class SocializacionRit extends Component
         );
 
         $this->trabajadorId = $trabajador->id;
+        $this->guardarProgresoEnSesion();
 
         if ($this->fase === 'publicacion') {
             $this->prepararPresentacionRit();
@@ -467,7 +542,7 @@ class SocializacionRit extends Component
             }
         }
 
-        $this->quizPreguntas = $temasQuiz
+        $banco = $temasQuiz
             ->map(fn ($tema) => [
                 'pregunta' => $tema->pivot->pregunta_vf,
                 'tipo' => $tema->pivot->tipo_pregunta ?: 'vf',
@@ -475,11 +550,9 @@ class SocializacionRit extends Component
                 'opciones' => $tema->pivot->opciones,
                 'respuesta_correcta_indice' => $tema->pivot->respuesta_correcta_indice,
                 'explicacion' => $tema->pivot->resumen_simple ?: $tema->descripcion,
-            ])
-            ->shuffle()
-            ->take(5)
-            ->values()
-            ->all();
+            ]);
+
+        $this->quizPreguntas = $this->seleccionarPreguntasQuiz($banco);
 
         $this->quizIndiceActual = 0;
         $this->quizRespuestaIncorrecta = false;
@@ -497,6 +570,40 @@ class SocializacionRit extends Component
         );
 
         $this->etapa = empty($this->quizPreguntas) ? 'foto_aceptacion' : 'quiz';
+    }
+
+    /**
+     * Pedido explícito del usuario (2026-10-05): el quiz SIEMPRE debe traer
+     * exactamente 3 preguntas de selección múltiple y 2 de Sí/No - no debe
+     * quedar a lo que la IA haya elegido libremente por tema al generarlas
+     * (ver TemaClasificadorService::generarPreguntasQuiz()). Pero el ORDEN
+     * final sí debe ser aleatorio (no mostrar siempre "3 múltiple y luego 2
+     * sí/no" como bloque predecible).
+     *
+     * Fail-open: si el banco no tiene suficientes de un tipo (RIT con pocos
+     * temas, o la IA generó poca variedad), se completa con el tipo que
+     * sobre en vez de bloquear el quiz - mejor un quiz de 5 preguntas con
+     * una mezcla distinta a dejar al trabajador sin quiz.
+     */
+    private function seleccionarPreguntasQuiz(\Illuminate\Support\Collection $banco): array
+    {
+        $multiples = $banco->filter(fn (array $p) => $p['tipo'] === 'multiple')->shuffle()->values();
+        $vf = $banco->filter(fn (array $p) => $p['tipo'] !== 'multiple')->shuffle()->values();
+
+        $seleccionMultiple = $multiples->take(3);
+        $seleccionVf = $vf->take(2);
+
+        $faltanMultiple = 3 - $seleccionMultiple->count();
+        if ($faltanMultiple > 0) {
+            $seleccionVf = $seleccionVf->merge($vf->slice($seleccionVf->count())->take($faltanMultiple));
+        }
+
+        $faltanVf = 2 - $seleccionVf->count();
+        if ($faltanVf > 0) {
+            $seleccionMultiple = $seleccionMultiple->merge($multiples->slice($seleccionMultiple->count())->take($faltanVf));
+        }
+
+        return $seleccionMultiple->merge($seleccionVf)->shuffle()->values()->all();
     }
 
     /**
@@ -629,6 +736,22 @@ class SocializacionRit extends Component
         }
 
         $this->etapa = 'no_comprendido_bloqueado';
+    }
+
+    /**
+     * Pedido del usuario (2026-10-05): el aviso de 1er "no entendí" le decía
+     * al trabajador que repasara el video/resumen/texto resaltado pero no
+     * existía ningún botón para hacerlo - quedaba sin salida. Vuelve a
+     * 'presentacion_rit' sin recalcular nada (toda la data ya sigue en
+     * memoria del componente: $ritActivoTextoCompleto, $capitulosVideoDidactico,
+     * $temasRit, $cambiosRit, $esPrimeraAceptacion). Se reinicia la
+     * declaración de aceptación para que la vuelva a confirmar de forma
+     * consciente tras repasar, en vez de arrastrar un check ya marcado.
+     */
+    public function volverARevisar(): void
+    {
+        $this->declaracionAceptada = false;
+        $this->etapa = 'presentacion_rit';
     }
 
     /**
