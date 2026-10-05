@@ -53,6 +53,16 @@ class EmpresaPanelProvider extends PanelProvider
                 fn () => auth()->user()?->role === 'cliente'
                     ? view('filament.components.chatwoot-widget')->render()
                     : '',
+            )
+            // Popup bloqueante de RIT pendiente al hacer login (pedido
+            // explícito de Andrés Sarmiento, reunión 2026-09-28) - visible en
+            // todo el panel 'empresa', solo para 'cliente', mismo criterio
+            // que el widget de Chatwoot de arriba. Ver App\Livewire\RitPopupPendiente.
+            ->renderHook(
+                \Filament\View\PanelsRenderHook::BODY_END,
+                fn () => auth()->user()?->role === 'cliente'
+                    ? \Illuminate\Support\Facades\Blade::render("@livewire('rit-popup-pendiente')")
+                    : '',
             );
 
         $panel = $this->aplicarConfigComun($panel);

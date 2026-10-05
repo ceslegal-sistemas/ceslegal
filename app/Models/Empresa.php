@@ -284,6 +284,42 @@ class Empresa extends Model
         return route('rit.socializar', ['token' => $this->tokenSocializacionRit()]);
     }
 
+    /**
+     * Pedido explícito de Andrés Sarmiento (reunión 2026-09-28): "si hay
+     * un nuevo, si está sin socializar o si hay un nuevo reglamento de
+     * trabajo para ser actualizado... no puede decir que no lo vio" - señal
+     * usada por el popup bloqueante al hacer login (ver RitPopupPendiente).
+     *
+     * Deliberadamente NO reacciona a SugerenciaActualizacionRit pendiente
+     * (aclarado por el mismo Andrés en la reunión: el admin debe revisar
+     * primero si el documento de Biblioteca Legal realmente afecta al RIT
+     * antes de que cuente como "pendiente").
+     *
+     * Fase 1 (Publicación): pendiente si algún trabajador activo todavía no
+     * confirmó la publicación vigente. Fase 2 (Socialización): pendiente si
+     * no existe una CulminacionSocializacionRit vigente para el hash actual
+     * - el admin puede "culminar" aunque no sea el 100%, bajo su propia
+     * responsabilidad (ver InteractsConCulminacionSocializacionRit).
+     */
+    public function ritPendienteDeSocializar(): bool
+    {
+        $rit = $this->reglamentoInterno;
+        if (!$rit || blank($rit->texto_completo)) {
+            return false;
+        }
+
+        if ($rit->faseSocializacionActual() === 'publicacion') {
+            return $this->trabajadores()
+                ->where('active', true)
+                ->get()
+                ->contains(fn (Trabajador $trabajador) => !$trabajador->confirmoPublicacionVigente());
+        }
+
+        return !CulminacionSocializacionRit::where('empresa_id', $this->id)
+            ->where('texto_rit_hash', hash('sha256', $rit->texto_completo))
+            ->exists();
+    }
+
     public function suscripcion(): HasOne
     {
         return $this->hasOne(Suscripcion::class)->latest();
