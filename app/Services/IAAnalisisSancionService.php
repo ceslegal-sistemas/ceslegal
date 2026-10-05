@@ -137,6 +137,33 @@ class IAAnalisisSancionService
         try {
             $service = app(ReglamentoInternoService::class);
 
+            // Pedido legal confirmado por William (abogado, reunión
+            // 2026-09-29, ver backlog-rit-anterior-si-no-acepto-actualizacion.md):
+            // si el trabajador no aceptó el RIT activo pero SÍ aceptó una
+            // versión anterior, el análisis debe regirse por lo que esa
+            // versión decía - nunca por el RIT activo sin su consentimiento.
+            // Solo se tiene el texto completo de esa versión
+            // (texto_rit_snapshot), nunca su catálogo estructurado
+            // (respuestas_cuestionario/sanciones_extraidas, que viven en la
+            // fila del RIT y mutan con el tiempo) - se usa el mismo mecanismo
+            // que un RIT "subido" (capítulo disciplinario literal del texto,
+            // sin RAG/embeddings: el snapshot histórico no tiene fragmentos
+            // propios y no vale la pena generarlos para una versión que ya no
+            // está vigente). Si el trabajador nunca aceptó NINGUNA versión,
+            // se sigue usando el RIT activo como contexto informativo - la
+            // restricción real de qué tipo de sanción cabe en ese caso vive
+            // en ProcesoDisciplinarioResource, no aquí.
+            $aceptacion = $proceso->trabajador->aceptacionRitAplicable();
+            $hashVigente = hash('sha256', (string) $rit->texto_completo);
+            $usaVersionAnterior = $aceptacion
+                && $aceptacion->texto_rit_hash !== $hashVigente
+                && filled($aceptacion->texto_rit_snapshot);
+
+            if ($usaVersionAnterior) {
+                $capitulo = $service->obtenerCapituloDisciplinarioDeTexto($aceptacion->texto_rit_snapshot);
+                return [[], (string) $capitulo];
+            }
+
             // Wizard: datos ya estructurados desde el cuestionario
             if ($rit->fuente === 'construido_ia') {
                 return [$service->extraerSancionesParaEmail($rit), ''];

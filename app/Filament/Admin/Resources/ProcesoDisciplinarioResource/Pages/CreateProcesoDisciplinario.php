@@ -402,7 +402,10 @@ class CreateProcesoDisciplinario extends CreateRecord
                                 ->displayFormat('d/m/Y')
                                 ->maxDate(now())
                                 ->disabledDates(fn(Get $get) => self::fechasInhabilesHecho($get('empresa_id')))
-                                ->helperText(fn(Get $get) => self::textoDiasHabilesHecho($get('empresa_id'))),
+                                ->helperText(fn(Get $get) => self::textoDiasHabilesHecho($get('empresa_id')))
+                                ->rule(fn (Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                    self::validarFechaPosteriorAAceptacion($get('trabajador_id'), $value, $fail);
+                                }),
 
                             TimePickerField::make('hora_aproximada_hecho')
                                 ->label('Hora aproximada (opcional)')
@@ -418,7 +421,10 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         ->native(false)
                                         ->displayFormat('d/m/Y')
                                         ->maxDate(now())
-                                        ->disabledDates(fn(Get $get) => self::fechasInhabilesHecho($get('../../empresa_id'))),
+                                        ->disabledDates(fn(Get $get) => self::fechasInhabilesHecho($get('../../empresa_id')))
+                                        ->rule(fn (Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                            self::validarFechaPosteriorAAceptacion($get('../../trabajador_id'), $value, $fail);
+                                        }),
                                 ])
                                 ->addActionLabel('Agregar otra fecha')
                                 ->defaultItems(0)
@@ -2175,6 +2181,45 @@ class CreateProcesoDisciplinario extends CreateRecord
         $texto   = $empresa ? \App\Support\DiasHabiles::texto($empresa->diasHabilesSet()) : 'Lunes a Viernes';
 
         return "Solo días laborales de la empresa ({$texto}); el hecho debió ocurrir en un día laboral.";
+    }
+
+    /**
+     * Regla legal confirmada por William (abogado, reunión 2026-09-29, ver
+     * backlog-rit-anterior-si-no-acepto-actualizacion.md): la fecha del
+     * hecho debe ser ESTRICTAMENTE posterior a la fecha en que el
+     * trabajador aceptó el Reglamento Interno que rige su caso (el vigente,
+     * o el anterior que sí aceptó - ver Trabajador::aceptacionRitAplicable()).
+     * Cita literal: "Si fue el 10 [que aceptó], le puedo citarlo desde el
+     * 11... ni siquiera desde el día 10" - por eso se rechaza también la
+     * MISMA fecha, no solo las anteriores. Sin ninguna aceptación (nunca
+     * aceptó nada), no hay piso de fecha que exigir - no falla.
+     */
+    public static function validarFechaPosteriorAAceptacion($trabajadorId, $valorFecha, \Closure $fail): void
+    {
+        if (!$trabajadorId || !$valorFecha) {
+            return;
+        }
+
+        $trabajador = Trabajador::find($trabajadorId);
+        if (!$trabajador) {
+            return;
+        }
+
+        $aceptacion = $trabajador->aceptacionRitAplicable();
+        if (!$aceptacion) {
+            return;
+        }
+
+        $fechaAceptacion = Carbon::parse($aceptacion->aceptado_en)->startOfDay();
+        $fechaHecho      = Carbon::parse($valorFecha)->startOfDay();
+
+        if ($fechaHecho->lte($fechaAceptacion)) {
+            $fail(
+                'La fecha debe ser posterior al ' . $fechaAceptacion->format('d/m/Y') .
+                ', cuando el trabajador aceptó el Reglamento Interno aplicable a este caso. ' .
+                'No se puede citar por hechos del mismo día de la aceptación ni anteriores.'
+            );
+        }
     }
 
     protected function afterCreate(): void

@@ -1245,6 +1245,76 @@ class ProcesoDisciplinarioResource extends Resource
             ]);
     }
 
+    /**
+     * Resuelve qué tipos de sanción se le pueden ofrecer al admin para este
+     * proceso, según el estado del trabajador frente al RIT - 3 escenarios
+     * posibles, confirmados por William (abogado, reunión 2026-09-29, ver
+     * [[backlog-rit-anterior-si-no-acepto-actualizacion]]):
+     *
+     * 1. La EMPRESA no tiene ningún RIT activo ($sinRit): sin catálogo de
+     *    sanciones que invocar, solo cabe terminación con justa causa
+     *    (Art. 62 CST, no depende del RIT) o no sancionar.
+     * 2. El RIT SÍ existe pero el trabajador nunca aceptó NINGUNA versión
+     *    ($nuncaAceptoRit): no se le puede aplicar el catálogo del RIT sin
+     *    su consentimiento informado - cita literal: "lo único que podría
+     *    hacer es un memorando, un llamado de atención... pero no puedo
+     *    aumentarme otro tipo de sanción". Solo llamado de atención o no
+     *    sancionar.
+     * 3. El trabajador aceptó una versión (vigente o anterior)
+     *    ($usaVersionAnteriorRit marca cuál): opciones normales - el
+     *    catálogo real usado por la IA ya se resuelve aparte en
+     *    IAAnalisisSancionService::obtenerContextoRIT().
+     *
+     * Extraído como método independiente (no inline en el Group del
+     * ->content() de la tabla) para poder probarlo sin montar el modal
+     * completo - ver ProcesoDisciplinarioEstadoSancionRitTest.
+     *
+     * @return array{opciones: array<string,string>, sinRit: bool, nuncaAceptoRit: bool, usaVersionAnteriorRit: bool, aceptacionAplicable: ?\App\Models\AceptacionReglamentoInterno, tieneMulta: bool}
+     */
+    public static function resolverEstadoSancionPorAceptacionRit(\App\Models\ProcesoDisciplinario $record, array $analisis): array
+    {
+        $ritActivo = $record->empresa->reglamentoInterno;
+        $sinRit    = !$ritActivo;
+
+        $aceptacionAplicable   = $sinRit ? null : $record->trabajador->aceptacionRitAplicable();
+        $nuncaAceptoRit        = !$sinRit && !$aceptacionAplicable;
+        $usaVersionAnteriorRit = !$sinRit && $aceptacionAplicable
+            && $aceptacionAplicable->texto_rit_hash !== hash('sha256', (string) $ritActivo->texto_completo);
+
+        $tieneMulta = !$sinRit && !$nuncaAceptoRit && in_array('multa', $analisis['sanciones_disponibles'] ?? []);
+
+        if ($sinRit) {
+            $opciones = [
+                'terminacion' => 'Terminación de Contrato (Art. 62 CST)',
+                'no_sancion'  => 'No Aplicar Sanción',
+            ];
+        } elseif ($nuncaAceptoRit) {
+            $opciones = [
+                'llamado_atencion' => 'Llamado de Atención',
+                'no_sancion'       => 'No Aplicar Sanción',
+            ];
+        } else {
+            $opciones = [
+                'llamado_atencion' => 'Llamado de Atención',
+                'suspension'       => 'Suspensión Laboral',
+            ];
+            if ($tieneMulta) {
+                $opciones['multa'] = 'Multa';
+            }
+            $opciones['terminacion'] = 'Terminación de Contrato';
+            $opciones['no_sancion']  = 'No Aplicar Sanción';
+        }
+
+        return [
+            'opciones'              => $opciones,
+            'sinRit'                => $sinRit,
+            'nuncaAceptoRit'        => $nuncaAceptoRit,
+            'usaVersionAnteriorRit' => $usaVersionAnteriorRit,
+            'aceptacionAplicable'   => $aceptacionAplicable,
+            'tieneMulta'            => $tieneMulta,
+        ];
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -2109,28 +2179,12 @@ class ProcesoDisciplinarioResource extends Resource
                             $analisis = $record->analisis_recomendacion;
                         }
 
-                        // ¿Tiene RIT activo?
-                        $sinRit = !$record->empresa->reglamentoInterno()->where('activo', true)->exists();
-
-                        // ¿El RIT contempla multa? La IA lo indica en sanciones_disponibles.
-                        $tieneMulta = !$sinRit && in_array('multa', $analisis['sanciones_disponibles'] ?? []);
-
-                        if ($sinRit) {
-                            $opcionesSancion = [
-                                'terminacion' => 'Terminación de Contrato (Art. 62 CST)',
-                                'no_sancion'  => 'No Aplicar Sanción',
-                            ];
-                        } else {
-                            $opcionesSancion = [
-                                'llamado_atencion' => 'Llamado de Atención',
-                                'suspension'       => 'Suspensión Laboral',
-                            ];
-                            if ($tieneMulta) {
-                                $opcionesSancion['multa'] = 'Multa';
-                            }
-                            $opcionesSancion['terminacion'] = 'Terminación de Contrato';
-                            $opcionesSancion['no_sancion']  = 'No Aplicar Sanción';
-                        }
+                        $estadoSancionRit      = self::resolverEstadoSancionPorAceptacionRit($record, $analisis);
+                        $sinRit                = $estadoSancionRit['sinRit'];
+                        $nuncaAceptoRit        = $estadoSancionRit['nuncaAceptoRit'];
+                        $usaVersionAnteriorRit = $estadoSancionRit['usaVersionAnteriorRit'];
+                        $aceptacionAplicable   = $estadoSancionRit['aceptacionAplicable'];
+                        $opcionesSancion       = $estadoSancionRit['opciones'];
 
                         // Si la IA no estuvo disponible: no preseleccionar ni mostrar análisis engañoso
                         $recomendacionFinal         = $esFallback ? null : ($analisis['recomendacion_final'] ?? null);
@@ -2317,6 +2371,61 @@ class ProcesoDisciplinarioResource extends Resource
                                             '<p class="rit-sub" style="margin:0;">El descargo a este trabajador fue iniciado cuando la empresa no contaba con un RIT vigente. La única opción legalmente segura para este proceso es la <strong>terminación del contrato con justa causa</strong> (Art. 62 CST).</p>' .
                                             '</div>' .
                                             $boton .
+                                            '</div></div>'
+                                        )
+                                    );
+                                }),
+
+                            // ── Aviso: trabajador nunca aceptó ninguna versión del RIT ───────
+                            // Pedido legal confirmado por William (abogado, 2026-09-29) - ver
+                            // comentario arriba sobre $nuncaAceptoRit. Mismo lenguaje visual
+                            // .rit-hero que "aviso_sin_rit".
+                            Forms\Components\Placeholder::make('aviso_rit_nunca_aceptado')
+                                ->hiddenLabel()
+                                ->visible($nuncaAceptoRit)
+                                ->content(function () use ($nuncaAceptoRit) {
+                                    if (!$nuncaAceptoRit) return '';
+
+                                    return new \Illuminate\Support\HtmlString(
+                                        \Illuminate\Support\Facades\Blade::render(
+                                            '@include(\'filament.components.lupe-hero-styles\')' .
+                                            '<div class="rit-hero" style="padding:1.25rem 1.5rem;">' .
+                                            '<div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>' .
+                                            '<div style="position:relative;z-index:2">' .
+                                            '<span class="rit-badge rit-badge-warning">' .
+                                            '<lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#fbbf24,secondary:#fbbf24" style="width:16px;height:16px;flex-shrink:0"></lord-icon>' .
+                                            'Trabajador sin aceptación del RIT</span>' .
+                                            '<h1 class="rit-title">Este trabajador nunca aceptó el Reglamento Interno</h1>' .
+                                            '<p class="rit-sub">Los artículos 111 a 115 del Código Sustantivo del Trabajo exigen que el Reglamento Interno haya sido socializado y aceptado por el trabajador para poder aplicarle sus sanciones específicas.</p>' .
+                                            '<div style="margin-top:1rem;padding:.85rem 1rem;border-radius:.75rem;background:rgba(0,0,0,.15);border:1px solid rgba(251,191,36,.25);">' .
+                                            '<p style="font-size:.8125rem;font-weight:700;color:#fbbf24;margin:0 0 .35rem;">Por esta vez, no es posible aplicar suspensión, multa ni terminación por esta vía</p>' .
+                                            '<p class="rit-sub" style="margin:0;">Sí se puede citar a descargos y dejar constancia con un <strong>llamado de atención</strong> - ninguna otra sanción es legalmente segura sin el consentimiento informado del trabajador sobre el Reglamento.</p>' .
+                                            '</div>' .
+                                            '</div></div>'
+                                        )
+                                    );
+                                }),
+
+                            // ── Aviso: proceso regido por una versión ANTERIOR del RIT ───────
+                            // Informativo, no restrictivo (las opciones de sanción son las
+                            // normales) - pero el admin debe saber que el catálogo usado no es
+                            // el del RIT vigente, para que no le sorprenda una diferencia.
+                            Forms\Components\Placeholder::make('aviso_rit_version_anterior')
+                                ->hiddenLabel()
+                                ->visible($usaVersionAnteriorRit)
+                                ->content(function () use ($usaVersionAnteriorRit, $aceptacionAplicable) {
+                                    if (!$usaVersionAnteriorRit) return '';
+                                    $fecha = $aceptacionAplicable->aceptado_en?->format('d/m/Y') ?? 'una fecha anterior';
+
+                                    return new \Illuminate\Support\HtmlString(
+                                        \Illuminate\Support\Facades\Blade::render(
+                                            '@include(\'filament.components.lupe-hero-styles\')' .
+                                            '<div class="rit-hero" style="padding:1.25rem 1.5rem;">' .
+                                            '<div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>' .
+                                            '<div style="position:relative;z-index:2">' .
+                                            '<span class="rit-badge rit-badge-info">Versión anterior del RIT</span>' .
+                                            '<h1 class="rit-title">Este proceso se rige por una versión anterior del Reglamento</h1>' .
+                                            '<p class="rit-sub">El trabajador aceptó el Reglamento Interno vigente hasta el ' . e($fecha) . ', pero no ha aceptado la actualización posterior. El análisis y el catálogo de sanciones usados aquí corresponden a <strong>esa versión anterior</strong>, no a la vigente.</p>' .
                                             '</div></div>'
                                         )
                                     );

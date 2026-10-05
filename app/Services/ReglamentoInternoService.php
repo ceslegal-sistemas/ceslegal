@@ -1513,6 +1513,28 @@ PROMPT;
     }
 
     /**
+     * Misma extracción que obtenerCapituloDisciplinarioTexto(), pero sobre un
+     * texto arbitrario en vez del RIT activo guardado en BD - pensado para el
+     * snapshot histórico de una versión ANTERIOR del RIT
+     * (AceptacionReglamentoInterno.texto_rit_snapshot), que nunca tuvo su
+     * catálogo estructurado (respuestas_cuestionario/sanciones_extraidas)
+     * guardado aparte, solo el texto completo. Ver
+     * IAAnalisisSancionService::obtenerContextoRIT() y
+     * [[backlog-rit-anterior-si-no-acepto-actualizacion]]. Sin tope de 6000
+     * (ese límite es para la caja de UI con scroll, no para contexto de IA).
+     */
+    public function obtenerCapituloDisciplinarioDeTexto(string $texto): ?string
+    {
+        if (blank($texto)) {
+            return null;
+        }
+
+        $capitulo = trim($this->extraerCapituloDisciplinario($texto));
+
+        return $capitulo === '' ? null : $capitulo;
+    }
+
+    /**
      * Extrae texto plano de un .docx usando PhpWord.
      */
     private function extraerTextoDocx(string $rutaArchivo): string

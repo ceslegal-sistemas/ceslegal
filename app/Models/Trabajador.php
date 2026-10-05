@@ -124,6 +124,39 @@ class Trabajador extends Model
             ->exists();
     }
 
+    /**
+     * Resuelve qué aceptación del RIT rige a este trabajador para efectos de
+     * un proceso disciplinario: la vigente (RIT activo actual) si existe, o
+     * si no, la más reciente de cualquier versión ANTERIOR que sí aceptó.
+     * Null si nunca aceptó ninguna versión.
+     *
+     * Regla legal confirmada por William (abogado, reunión 2026-09-29): no
+     * se puede aplicar el RIT activo a un trabajador que no lo ha aceptado -
+     * el proceso debe regirse por la última versión que SÍ aceptó. Ver
+     * [[backlog-rit-anterior-si-no-acepto-actualizacion]].
+     */
+    public function aceptacionRitAplicable(): ?AceptacionReglamentoInterno
+    {
+        $ritActivo = ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
+            ->where('empresa_id', $this->empresa_id)
+            ->where('activo', true)
+            ->latest('updated_at')
+            ->first();
+
+        if ($ritActivo && filled($ritActivo->texto_completo)) {
+            $hashVigente = hash('sha256', $ritActivo->texto_completo);
+            $vigente = $this->aceptacionesReglamentoInterno()
+                ->where('texto_rit_hash', $hashVigente)
+                ->latest('aceptado_en')
+                ->first();
+            if ($vigente) {
+                return $vigente;
+            }
+        }
+
+        return $this->aceptacionesReglamentoInterno()->latest('aceptado_en')->first();
+    }
+
     public function publicacionesReglamentoInterno(): HasMany
     {
         return $this->hasMany(PublicacionReglamentoInterno::class);
