@@ -46,10 +46,19 @@ class SocializacionRitEtapaQuizTest extends TestCase
             $tema = TemaNormativo::create(['nombre' => "Tema {$i}", 'descripcion' => 'Desc.', 'activo' => true]);
             $rit->temasNormativos()->attach($tema->id, [
                 'pregunta_vf' => "¿Pregunta {$i}?",
+                'tipo_pregunta' => 'vf',
                 'respuesta_correcta' => true,
             ]);
             $temas[] = $tema;
         }
+
+        // Sin esto, la llamada perezosa a asegurarPreguntasQuiz() dentro de
+        // iniciarQuiz() (ver gotcha real documentado más abajo en este
+        // archivo) ve resumen_simple_texto_hash=NULL y SIEMPRE intenta
+        // regenerar con una llamada REAL a Gemini (este entorno de test
+        // tiene una clave real configurada) - sobrescribiendo estas
+        // preguntas de prueba con contenido genuino de la IA.
+        $rit->forceFill(['resumen_simple_texto_hash' => hash('sha256', $rit->texto_completo)])->save();
 
         return [$empresa, $rit, $temas];
     }
@@ -168,13 +177,16 @@ class SocializacionRitEtapaQuizTest extends TestCase
         $temaLactancia = TemaNormativo::create(['nombre' => 'Protección a la mujer embarazada y lactancia', 'descripcion' => 'Desc.', 'activo' => true]);
         $rit->temasNormativos()->attach($temaLactancia->id, [
             'pregunta_vf' => 'RENBEL S.A.S. te dará dos descansos de 30 minutos cada uno para amamantar a tu hijo durante los primeros 12 meses de edad del bebé.',
+            'tipo_pregunta' => 'vf',
             'respuesta_correcta' => true,
         ]);
         $otroTema = TemaNormativo::create(['nombre' => 'Jornada laboral y horas extras', 'descripcion' => 'Desc.', 'activo' => true]);
         $rit->temasNormativos()->attach($otroTema->id, [
             'pregunta_vf' => '¿La jornada maxima es de 8 horas diarias?',
+            'tipo_pregunta' => 'vf',
             'respuesta_correcta' => true,
         ]);
+        $rit->forceFill(['resumen_simple_texto_hash' => hash('sha256', $rit->texto_completo)])->save();
 
         // $trabajador por defecto en llevarATrabajadorAPresentacionRit() ya es 'masculino'.
         $componente = $this->llevarATrabajadorAPresentacionRit($empresa)->call('iniciarQuiz');
@@ -201,6 +213,7 @@ class SocializacionRitEtapaQuizTest extends TestCase
             'opciones' => ['10 días', '15 días', '20 días', '30 días'],
             'respuesta_correcta_indice' => 2,
         ]);
+        $rit->forceFill(['resumen_simple_texto_hash' => hash('sha256', $rit->texto_completo)])->save();
 
         $componente = $this->llevarATrabajadorAPresentacionRit($empresa)->call('iniciarQuiz');
 
@@ -238,9 +251,10 @@ class SocializacionRitEtapaQuizTest extends TestCase
             'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
         ]);
         $temaCambiado = TemaNormativo::create(['nombre' => 'Jornada laboral y horas extras', 'descripcion' => 'Desc.', 'activo' => true]);
-        $rit->temasNormativos()->attach($temaCambiado->id, ['pregunta_vf' => '¿La jornada es de 7 horas?', 'respuesta_correcta' => true]);
+        $rit->temasNormativos()->attach($temaCambiado->id, ['pregunta_vf' => '¿La jornada es de 7 horas?', 'tipo_pregunta' => 'vf', 'respuesta_correcta' => true]);
         $temaSinCambios = TemaNormativo::create(['nombre' => 'Vacaciones', 'descripcion' => 'Desc.', 'activo' => true]);
-        $rit->temasNormativos()->attach($temaSinCambios->id, ['pregunta_vf' => '¿Las vacaciones son de 15 días?', 'respuesta_correcta' => true]);
+        $rit->temasNormativos()->attach($temaSinCambios->id, ['pregunta_vf' => '¿Las vacaciones son de 15 días?', 'tipo_pregunta' => 'vf', 'respuesta_correcta' => true]);
+        $rit->forceFill(['resumen_simple_texto_hash' => hash('sha256', $rit->texto_completo)])->save();
 
         \Illuminate\Support\Facades\Http::fake([
             'generativelanguage.googleapis.com/*' => \Illuminate\Support\Facades\Http::response([
@@ -290,9 +304,11 @@ class SocializacionRitEtapaQuizTest extends TestCase
             $tema = TemaNormativo::create(['nombre' => "VF {$i}", 'descripcion' => 'Desc.', 'activo' => true]);
             $rit->temasNormativos()->attach($tema->id, [
                 'pregunta_vf' => "¿Pregunta vf {$i}?",
+                'tipo_pregunta' => 'vf',
                 'respuesta_correcta' => true,
             ]);
         }
+        $rit->forceFill(['resumen_simple_texto_hash' => hash('sha256', $rit->texto_completo)])->save();
     }
 
     /**

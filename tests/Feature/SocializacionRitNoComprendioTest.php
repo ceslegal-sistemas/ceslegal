@@ -111,7 +111,8 @@ class SocializacionRitNoComprendioTest extends TestCase
     {
         [$empresa, $rit, $trabajador] = $this->crearEmpresaTrabajadorEnFaseSocializacion();
         $tema = TemaNormativo::create(['nombre' => 'Jornada laboral', 'descripcion' => 'Desc.', 'activo' => true]);
-        $rit->temasNormativos()->attach($tema->id, ['pregunta_vf' => '¿Pregunta?', 'respuesta_correcta' => true]);
+        $rit->temasNormativos()->attach($tema->id, ['pregunta_vf' => '¿Pregunta?', 'tipo_pregunta' => 'vf', 'respuesta_correcta' => true]);
+        $rit->forceFill(['resumen_simple_texto_hash' => hash('sha256', $rit->texto_completo)])->save();
         Storage::fake('local');
 
         $componente = Livewire::test(SocializacionRit::class, ['empresa' => $empresa, 'token' => $empresa->tokenSocializacionRit()])

@@ -66,6 +66,7 @@ class TemaClasificadorPreguntasQuizTest extends TestCase
         $tema = TemaNormativo::create(['nombre' => 'Tema X', 'descripcion' => 'Desc.', 'activo' => true]);
         $rit->temasNormativos()->attach($tema->id, [
             'pregunta_vf' => 'Ya tenia pregunta.',
+            'tipo_pregunta' => 'vf',
             'respuesta_correcta' => true,
         ]);
         $rit->forceFill(['resumen_simple_texto_hash' => hash('sha256', $rit->texto_completo)])->save();

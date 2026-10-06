@@ -508,6 +508,18 @@ class SocializacionRit extends Component
 
         $ritActivo = $this->resolverRitActivo(); // NUNCA $this->empresa->reglamentoInterno - ver Gotcha crítico #3
 
+        // Auto-sanación (bug real reportado en vivo, demo 2026-10-05, RENBEL:
+        // el quiz nunca traía selección múltiple) - normalmente
+        // ReglamentoInternoObserver ya llama esto al guardar el RIT, pero
+        // solo si el TEXTO cambió; un RIT cuyas preguntas se generaron antes
+        // de que existiera tipo_pregunta nunca se regenera por su cuenta
+        // porque su texto ya no vuelve a cambiar. Llamarlo aquí (barato si
+        // ya está al día, ver el staleness check de tipo_pregunta dentro del
+        // propio método) asegura que cualquier RIT viejo se autocorrija la
+        // primera vez que un trabajador llegue al quiz, sin depender de que
+        // alguien recuerde correr `rit:clasificar-temas --todos`.
+        app(\App\Services\TemaClasificadorService::class)->asegurarPreguntasQuiz($ritActivo);
+
         $temasQuiz = $ritActivo->temasNormativos()
             ->activos()
             ->wherePivotNotNull('pregunta_vf')
