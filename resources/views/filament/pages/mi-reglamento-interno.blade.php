@@ -238,12 +238,18 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
               Descargar Reglamento Interno
             </a>
           @endif
-          @if($tiene)
-            <a href="{{ $wizardUrl }}" class="rit-btn rit-btn-primary">
-              <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
-              Actualizar RIT con IA
-            </a>
-          @endif
+          {{-- "Actualizar RIT con IA" (reconstruir desde cero con el wizard) se
+               QUITÓ de aquí a propósito (pedido explícito de Andrés Sarmiento,
+               reunión 2026-09-28): una vez que ya existe un RIT, las únicas
+               vías válidas para actualizarlo son automáticas (sugerencias de
+               Biblioteca Legal, más abajo en esta misma página) o explícitas
+               (botón "Subir RIT" de aquí al lado) - repetir el wizard de
+               construcción no tiene sentido y confunde. Cita literal: "ese
+               actualizar reglamento interno con IA sólo debería existir la
+               primera vez... los demás deberían venir de manera automática".
+               El wizard ($wizardUrl) sigue existiendo para la PRIMERA vez,
+               en el estado vacío "Aún no tiene un Reglamento Interno" más
+               abajo en esta misma vista. --}}
           <button wire:click="mountAction('subirRIT')" class="rit-btn rit-btn-secondary">
             <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
             Subir RIT
