@@ -287,6 +287,27 @@
                                 </div>
                             </div>
                             @include('filament.components.rit-redline', ['cambios' => $cambiosRit])
+
+                            {{-- "Resumen ejecutivo" (pedido de Andrés Sarmiento, reunión
+                                 2026-10-05): explica los cambios en lenguaje simple ("legal
+                                 design"), en vez de que el trabajador tenga que leer el
+                                 redline técnico de arriba. Bajo demanda - no se genera hasta
+                                 que el trabajador presiona el botón. --}}
+                            <div class="mt-3">
+                                @if($resumenEjecutivoCambiosRit === '')
+                                    <button type="button" wire:click="generarResumenEjecutivoCambiosRit" wire:loading.attr="disabled" wire:target="generarResumenEjecutivoCambiosRit"
+                                        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-50 hover:bg-primary-100 disabled:opacity-60 text-primary-700 text-sm font-semibold rounded-xl transition-colors">
+                                        <span wire:loading.remove wire:target="generarResumenEjecutivoCambiosRit">Ver Resumen ejecutivo</span>
+                                        <span wire:loading wire:target="generarResumenEjecutivoCambiosRit">Generando resumen...</span>
+                                    </button>
+                                @else
+                                    <div class="prose max-w-none text-sm border border-primary-100 bg-primary-50/40 rounded-xl p-4">
+                                        <p class="text-xs font-semibold text-primary-700 uppercase tracking-wide m-0 mb-2">Resumen ejecutivo</p>
+                                        {!! nl2br(e($resumenEjecutivoCambiosRit)) !!}
+                                    </div>
+                                @endif
+                            </div>
+
                             {{-- Pedido explicito del spec (seccion 6): opcion de ver el
                                  texto completo, no solo el diff, si el trabajador lo prefiere. --}}
                             <details class="text-sm">

@@ -46,6 +46,15 @@ class SocializacionRit extends Component
     public bool $esPrimeraAceptacion = true;
     public array $cambiosRit = [];
     public string $ritActivoTextoCompleto = '';
+
+    /**
+     * "Resumen ejecutivo" de los cambios (pedido de Andrés Sarmiento,
+     * reunión 2026-10-05) - se genera bajo demanda (botón), no al cargar
+     * la página, para no pagarle una llamada a Gemini a cada trabajador
+     * que ni siquiera abre esa sección. Ver RitResumenEjecutivoService.
+     */
+    public string $resumenEjecutivoCambiosRit = '';
+    public bool $resumenEjecutivoCambiosRitSolicitado = false;
     public array $temasRit = [];
     /**
      * Títulos de los capítulos del video didáctico, en orden (rediseño
@@ -497,6 +506,31 @@ class SocializacionRit extends Component
         }
 
         $this->etapa = 'presentacion_rit';
+    }
+
+    /**
+     * Botón "Resumen ejecutivo" (pedido de Andrés Sarmiento, reunión
+     * 2026-10-05): explica en lenguaje simple qué cambió, en vez de que
+     * el trabajador tenga que leer el redline técnico. Idempotente -
+     * $resumenEjecutivoCambiosRitSolicitado evita repetir la llamada si
+     * el trabajador hace doble clic mientras carga.
+     */
+    public function generarResumenEjecutivoCambiosRit(): void
+    {
+        if ($this->resumenEjecutivoCambiosRitSolicitado) {
+            return;
+        }
+
+        $this->resumenEjecutivoCambiosRitSolicitado = true;
+
+        $ritActivo = $this->resolverRitActivo(); // NUNCA $this->empresa->reglamentoInterno - ver Gotcha crítico #3
+        if (!$ritActivo || empty($this->cambiosRit)) {
+            $this->resumenEjecutivoCambiosRit = 'No se detectaron cambios para resumir.';
+            return;
+        }
+
+        $this->resumenEjecutivoCambiosRit = app(\App\Services\RitResumenEjecutivoService::class)
+            ->obtenerOGenerar($ritActivo, $this->cambiosRit);
     }
 
     /**
