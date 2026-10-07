@@ -150,4 +150,110 @@ class SocializacionRitNoComprendioTest extends TestCase
             ->assertSet('etapa', 'presentacion_rit')
             ->assertSet('declaracionAceptada', false);
     }
+
+    /**
+     * Pedido de Andrés Sarmiento (reunión 2026-10-05): el PRIMER clic en
+     * "No entendí" sigue yendo directo al aviso suave, sin fricción - la
+     * confirmación intermedia solo aplica a partir del 2do clic.
+     */
+    public function test_primer_clic_va_directo_sin_pedir_confirmacion(): void
+    {
+        [$empresa, $rit, $trabajador] = $this->crearEmpresaTrabajadorEnFaseSocializacion();
+        Mail::fake();
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('trabajadorId', $trabajador->id)
+            ->set('etapa', 'aceptacion')
+            ->call('clicNoEntendiElReglamento')
+            ->assertSet('vecesNoComprendio', 1)
+            ->assertSet('mostrarConfirmacionNoComprendio', false)
+            ->assertSet('etapa', 'aceptacion');
+
+        Mail::assertNothingSent();
+    }
+
+    /**
+     * El 2do clic NO debe escalar de inmediato - debe abrir el paso de
+     * confirmación ("mensaje de miedo") sin tocar vecesNoComprendio todavía.
+     */
+    public function test_segundo_clic_abre_confirmacion_sin_escalar_todavia(): void
+    {
+        [$empresa, $rit, $trabajador] = $this->crearEmpresaTrabajadorEnFaseSocializacion();
+        Mail::fake();
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('trabajadorId', $trabajador->id)
+            ->set('etapa', 'aceptacion')
+            ->call('clicNoEntendiElReglamento')
+            ->call('clicNoEntendiElReglamento')
+            ->assertSet('vecesNoComprendio', 1)
+            ->assertSet('mostrarConfirmacionNoComprendio', true)
+            ->assertSet('etapa', 'aceptacion');
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseCount('rechazos_comprension_rit', 1);
+    }
+
+    /**
+     * "Cancelar, sí entendí" debe retractar la señal - cierra el modal sin
+     * escalar, sin registrar un segundo rechazo, sin enviar el correo.
+     */
+    public function test_cancelar_confirmacion_no_escala(): void
+    {
+        [$empresa, $rit, $trabajador] = $this->crearEmpresaTrabajadorEnFaseSocializacion();
+        Mail::fake();
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('trabajadorId', $trabajador->id)
+            ->set('etapa', 'aceptacion')
+            ->call('clicNoEntendiElReglamento')
+            ->call('clicNoEntendiElReglamento')
+            ->call('cancelarConfirmacionNoComprendio')
+            ->assertSet('vecesNoComprendio', 1)
+            ->assertSet('mostrarConfirmacionNoComprendio', false)
+            ->assertSet('etapa', 'aceptacion');
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseCount('rechazos_comprension_rit', 1);
+    }
+
+    /**
+     * "Confirmar que no entendí" SÍ debe escalar - ahora sí dispara el
+     * correo a RRHH y bloquea, igual que marcarNoComprendio() directo.
+     */
+    public function test_confirmar_definitivo_si_escala_y_bloquea(): void
+    {
+        [$empresa, $rit, $trabajador] = $this->crearEmpresaTrabajadorEnFaseSocializacion();
+        Mail::fake();
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('trabajadorId', $trabajador->id)
+            ->set('nombres', 'Carlos')
+            ->set('apellidos', 'Duda')
+            ->set('numeroDocumento', '777888999')
+            ->set('etapa', 'aceptacion')
+            ->call('clicNoEntendiElReglamento')
+            ->call('clicNoEntendiElReglamento')
+            ->call('confirmarNoComprendioDefinitivo')
+            ->assertSet('vecesNoComprendio', 2)
+            ->assertSet('mostrarConfirmacionNoComprendio', false)
+            ->assertSet('etapa', 'no_comprendido_bloqueado');
+
+        Mail::assertSent(RitNoComprendidoAlertaRrhh::class);
+        $this->assertDatabaseCount('rechazos_comprension_rit', 2);
+    }
+
+    public function test_el_modal_de_confirmacion_muestra_el_texto_y_los_2_botones(): void
+    {
+        [$empresa, $rit, $trabajador] = $this->crearEmpresaTrabajadorEnFaseSocializacion();
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('trabajadorId', $trabajador->id)
+            ->set('etapa', 'aceptacion')
+            ->call('clicNoEntendiElReglamento')
+            ->call('clicNoEntendiElReglamento')
+            ->assertSee('¿De verdad no entendiste el Reglamento?')
+            ->assertSee('Cancelar, sí entendí')
+            ->assertSee('Confirmar que no entendí');
+    }
 }

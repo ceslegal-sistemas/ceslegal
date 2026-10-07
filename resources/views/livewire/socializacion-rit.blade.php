@@ -501,8 +501,10 @@
 
                                 {{-- Punto de rechazo explícito (pedido de Andrés Sarmiento,
                                      2026-10-03) - solo Fase 2, que es donde vive la declaración
-                                     fuerte de comprensión. --}}
-                                <button type="button" wire:click="marcarNoComprendio('boton_manual')" wire:loading.attr="disabled" wire:target="marcarNoComprendio"
+                                     fuerte de comprensión. Pasa por clicNoEntendiElReglamento()
+                                     (no marcarNoComprendio directo) porque a partir del 2do clic
+                                     se intercala un paso de confirmación - ver ese método. --}}
+                                <button type="button" wire:click="clicNoEntendiElReglamento" wire:loading.attr="disabled" wire:target="clicNoEntendiElReglamento,marcarNoComprendio"
                                     class="w-full flex items-center justify-center px-5 py-3.5 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 disabled:opacity-60 disabled:cursor-not-allowed text-gray-600 text-sm font-semibold rounded-xl transition-colors">
                                     No entendí el Reglamento
                                 </button>
@@ -541,8 +543,43 @@
         </div>
     </div>
 
+    {{-- Confirmación intermedia antes del 2do "no entendí" (pedido de Andrés
+         Sarmiento, 2026-10-05): "mensaje de miedo" con dos salidas, para que
+         escalar a RRHH sea una decisión consciente, no un clic accidental.
+         Mismas clases de overlay ya probadas en este archivo (ver el bloque
+         de "Procesando..." más abajo) - nunca clases Tailwind nuevas aquí. --}}
+    @if($mostrarConfirmacionNoComprendio)
+        <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <div class="rit-hero w-full max-w-md" style="padding:1.5rem;">
+                <div class="rit-orb-b"></div><div class="rit-orb-g"></div><div class="rit-overlay"></div>
+                <div style="position:relative;z-index:2">
+                    <span class="rit-badge rit-badge-danger">
+                        <lord-icon src="https://cdn.lordicon.com/hmpomorl.json" trigger="loop" delay="500" stroke="bold" colors="primary:#f87171,secondary:#f87171" style="width:16px;height:16px;flex-shrink:0"></lord-icon>
+                        Confirmación requerida
+                    </span>
+                    <h1 class="rit-title">¿De verdad no entendiste el Reglamento?</h1>
+                    @php
+                        $textoConfirmacion = str_replace(':empresa', $empresa->razon_social, \App\Models\ConfiguracionTexto::obtener('aviso_no_comprendio_confirmacion', config('ces.aviso_no_comprendio_confirmacion', '')));
+                    @endphp
+                    <p class="rit-sub">{{ $textoConfirmacion }}</p>
+
+                    <div class="grid grid-cols-2 gap-3" style="margin-top:1.25rem;">
+                        <button type="button" wire:click="cancelarConfirmacionNoComprendio" wire:loading.attr="disabled" wire:target="cancelarConfirmacionNoComprendio"
+                            class="rit-btn rit-btn-success" style="justify-content:center">
+                            Cancelar, sí entendí
+                        </button>
+                        <button type="button" wire:click="confirmarNoComprendioDefinitivo" wire:loading.attr="disabled" wire:target="confirmarNoComprendioDefinitivo"
+                            class="rit-btn rit-btn-danger" style="justify-content:center">
+                            Confirmar que no entendí
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Loading: mismo patron que formulario-descargos.blade.php --}}
-    <div wire:loading.delay wire:target="buscarTrabajador, guardarDatos, iniciarQuiz, guardarFotoSimple, responderQuiz, responderQuizMultiple, validarFotoAceptacionConIA, aceptarReglamento, confirmarPublicacion, marcarNoComprendio"
+    <div wire:loading.delay wire:target="buscarTrabajador, guardarDatos, iniciarQuiz, guardarFotoSimple, responderQuiz, responderQuizMultiple, validarFotoAceptacionConIA, aceptarReglamento, confirmarPublicacion, marcarNoComprendio, clicNoEntendiElReglamento, confirmarNoComprendioDefinitivo"
         class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl p-5 flex items-center gap-4 mx-4">
             <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24">

@@ -83,6 +83,13 @@ class SocializacionRit extends Component
      */
     public int $vecesNoComprendio = 0;
 
+    /**
+     * Confirmación intermedia antes del 2do "no entendí" (pedido de Andrés
+     * Sarmiento, reunión 2026-10-05): evita que un clic accidental dispare
+     * el correo a RRHH - ver abrirConfirmacionNoComprendio().
+     */
+    public bool $mostrarConfirmacionNoComprendio = false;
+
     public string $alertaAccesorios = '';
     public string $errorValidacionFoto = '';
     public bool $validandoFoto = false;
@@ -697,6 +704,39 @@ class SocializacionRit extends Component
         if ($this->quizIndiceActual >= count($this->quizPreguntas)) {
             $this->etapa = 'foto_aceptacion';
         }
+    }
+
+    /**
+     * Pedido de Andrés Sarmiento (reunión 2026-10-05): antes de disparar el
+     * correo a RRHH en el 2do "no entendí" manual, mostrar un mensaje de
+     * advertencia fuerte con dos salidas ("Continuar" / "Cancelar") en vez
+     * de escalar directo con el mismo clic - evita que un doble clic
+     * accidental mande el caso a RRHH. Cita literal: "la prueba
+     * evidentemente es haciendo el camino más largo". Solo aplica al botón
+     * manual (1er clic, $vecesNoComprendio === 0, sigue yendo directo al
+     * aviso suave sin fricción) - el escalamiento automático por fallar la
+     * misma pregunta del quiz 3 veces seguidas no pasa por aquí, porque ya
+     * es en sí mismo un patrón deliberado, no un clic accidental.
+     */
+    public function clicNoEntendiElReglamento(): void
+    {
+        if ($this->vecesNoComprendio >= 1) {
+            $this->mostrarConfirmacionNoComprendio = true;
+            return;
+        }
+
+        $this->marcarNoComprendio('boton_manual');
+    }
+
+    public function cancelarConfirmacionNoComprendio(): void
+    {
+        $this->mostrarConfirmacionNoComprendio = false;
+    }
+
+    public function confirmarNoComprendioDefinitivo(): void
+    {
+        $this->mostrarConfirmacionNoComprendio = false;
+        $this->marcarNoComprendio('boton_manual');
     }
 
     /**

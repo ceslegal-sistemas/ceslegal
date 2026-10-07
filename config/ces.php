@@ -91,6 +91,15 @@ Al marcar la casilla de aceptación manifiesto haber leído, entendido y aceptad
 
     /*
     |--------------------------------------------------------------------------
+    | Confirmación intermedia antes del 2do "no entendí" (pedido de Andrés
+    | Sarmiento, reunión 2026-10-05): evita que un clic accidental dispare
+    | el correo a RRHH - el trabajador debe confirmar de forma consciente.
+    |--------------------------------------------------------------------------
+    */
+    'aviso_no_comprendio_confirmacion' => 'Ya te entregamos, de manera didáctica, un video, un resumen en lenguaje sencillo y el Reglamento Interno de Trabajo completo de :empresa con los cambios resaltados. Al confirmar, estás indicando que, a pesar de ese material, definitivamente no comprendes el Reglamento. Esto es necesario para continuar tu relación laboral, por lo que tu caso será remitido al área de Recursos Humanos de tu empresa. Si en realidad sí entendiste, selecciona "Cancelar" y continúa con el proceso.',
+
+    /*
+    |--------------------------------------------------------------------------
     | URL de compra / suscripción del Reglamento Interno de Trabajo
     |--------------------------------------------------------------------------
     */
