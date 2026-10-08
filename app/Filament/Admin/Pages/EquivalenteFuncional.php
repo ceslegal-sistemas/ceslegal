@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Pages;
 
 use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
 use App\Models\AutorizacionReglamentoInterno;
+use App\Models\HistoricoVideoDidacticoRit;
 use App\Models\ProcesoDisciplinario;
 use Filament\Pages\Page;
 use Filament\Tables;
@@ -24,6 +25,8 @@ use Filament\Tables\Table;
  * - Autorización de RIT: AutorizacionReglamentoInterno (append-only, incluye
  *   todas las versiones/actualizaciones de cada RIT).
  * - Descargos: citante_* de ProcesoDisciplinario (citación inicial).
+ * - Videos del Reglamento: histórico append-only de videos didácticos
+ *   reemplazados (HistoricoVideoDidacticoRit, item 3 de la misma reunión).
  *
  * Requisito explícito: si un mismo funcionario aprobó 3 RIT (original + 2
  * actualizaciones), debe ser fácil encontrar las 3 en un solo lugar - de
@@ -46,7 +49,7 @@ class EquivalenteFuncional extends Page implements HasTable
 
     protected static string $view = 'filament.admin.pages.equivalente-funcional';
 
-    /** @var 'sanciones'|'rit'|'descargos' */
+    /** @var 'sanciones'|'rit'|'descargos'|'videos' */
     public string $seccion = 'sanciones';
 
     public static function shouldRegisterNavigation(): bool
@@ -75,6 +78,7 @@ class EquivalenteFuncional extends Page implements HasTable
         return match ($this->seccion) {
             'rit' => $this->tablaAutorizacionRit($table),
             'descargos' => $this->tablaDescargos($table),
+            'videos' => $this->tablaVideosHistoricos($table),
             default => $this->tablaSanciones($table),
         };
     }
@@ -289,5 +293,62 @@ class EquivalenteFuncional extends Page implements HasTable
             ->emptyStateHeading('Sin citaciones a descargos')
             ->emptyStateDescription('Aún no hay procesos con una citación registrada.')
             ->emptyStateIcon('heroicon-o-shield-check');
+    }
+
+    private function tablaVideosHistoricos(Table $table): Table
+    {
+        $query = HistoricoVideoDidacticoRit::query()->with('empresa');
+        $this->scopearPorEmpresaDelCliente($query);
+
+        return $table
+            ->query($query)
+            ->defaultSort('archivado_en', 'desc')
+            ->description('Videos didácticos que fueron reemplazados por una regeneración posterior. El video vigente se ve en "Mi Reglamento Interno".')
+            ->columns([
+                Tables\Columns\TextColumn::make('empresa.razon_social')
+                    ->label('Empresa')
+                    ->searchable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('reglamento_interno_id')
+                    ->label('RIT')
+                    ->formatStateUsing(fn($state) => "RIT #{$state}"),
+
+                Tables\Columns\TextColumn::make('capitulos')
+                    ->label('Capítulos')
+                    ->getStateUsing(fn(HistoricoVideoDidacticoRit $record) => count($record->capitulos ?? [])),
+
+                Tables\Columns\TextColumn::make('generado_en')
+                    ->label('Generado')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('archivado_en')
+                    ->label('Reemplazado')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('texto_rit_hash')
+                    ->label('Huella del texto del RIT')
+                    ->limit(12)
+                    ->tooltip(fn(HistoricoVideoDidacticoRit $record) => $record->texto_rit_hash)
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->actions([
+                Tables\Actions\Action::make('ver_video')
+                    ->label('Ver video')
+                    ->icon('heroicon-o-play-circle')
+                    ->color('gray')
+                    ->modalHeading('Video didáctico reemplazado')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->modalContent(fn(HistoricoVideoDidacticoRit $record) => view(
+                        'filament.admin.pages.partials.videos-rit-historico',
+                        ['historico' => $record]
+                    )),
+            ])
+            ->emptyStateHeading('Sin videos históricos')
+            ->emptyStateDescription('Aún no se ha reemplazado ningún video didáctico del Reglamento.')
+            ->emptyStateIcon('heroicon-o-play-circle');
     }
 }

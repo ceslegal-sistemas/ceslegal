@@ -14,6 +14,10 @@
             class="rit-btn {{ $seccion === 'descargos' ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
             Descargos
         </button>
+        <button type="button" wire:click="cambiarSeccion('videos')"
+            class="rit-btn {{ $seccion === 'videos' ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
+            Videos del Reglamento
+        </button>
     </div>
 
     <div style="margin-top:1.25rem;">
