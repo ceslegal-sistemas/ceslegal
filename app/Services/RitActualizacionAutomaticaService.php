@@ -266,7 +266,11 @@ class RitActualizacionAutomaticaService
         // FragmentoDocumento (mismo campo que ya usa TemaClasificadorService),
         // justo el requisito que motivó esta receta: el documento debe ir
         // palabra por palabra, no resumido.
-        $textoAnexo = $documento->fragmentos()->orderBy('orden')->pluck('contenido')->implode("\n\n");
+        // Los fragmentos tienen solapamiento y ruido de la página web de origen:
+        // se reconstruye el texto sin duplicados ni menús (ver TextoAnexoLegal).
+        $textoAnexo = \App\Support\TextoAnexoLegal::reconstruir(
+            $documento->fragmentos()->orderBy('orden')->pluck('contenido')->all()
+        );
         if (trim($textoAnexo) === '') {
             Log::warning('RitActualizacionAutomaticaService: documento sin fragmentos, no se puede anexar completo', [
                 'documento_id' => $documento->id,
