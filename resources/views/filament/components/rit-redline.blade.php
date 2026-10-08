@@ -14,8 +14,11 @@
      * legales extensos llega a cientos de párrafos).
      */
     $cambios = $cambios ?? [];
-    $agregados = collect($cambios)->where('tipo', 'agregado')->values();
-    $eliminados = collect($cambios)->where('tipo', 'eliminado')->values();
+    // Se descartan los párrafos vacíos (el texto fuente trae saltos de línea
+    // sueltos): una tarjeta en blanco no informa nada.
+    $conTexto = fn ($c) => trim((string) ($c['texto'] ?? '')) !== '';
+    $agregados = collect($cambios)->where('tipo', 'agregado')->filter($conTexto)->values();
+    $eliminados = collect($cambios)->where('tipo', 'eliminado')->filter($conTexto)->values();
     $modificados = collect($cambios)->where('tipo', 'modificado')->values();
     $tramo = 10;
 @endphp

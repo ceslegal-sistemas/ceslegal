@@ -7,6 +7,7 @@
 
 <div class="min-h-screen bg-gray-50 sm:bg-gray-100 sm:py-8 sm:px-4">
     @include('filament.components.lupe-hero-styles')
+    @include('filament.components.documento-viewer-styles')
     <div class="sm:max-w-xl lg:max-w-3xl sm:mx-auto">
         <div class="bg-white sm:rounded-2xl sm:shadow-lg sm:border sm:border-gray-200 min-h-screen sm:min-h-0 sm:overflow-hidden">
             <header class="bg-white border-b border-gray-200 sticky top-0 z-10 sm:static sm:rounded-t-2xl">
@@ -286,27 +287,58 @@
                                     <h1 class="rit-title">Esto cambió en el Reglamento Interno</h1>
                                 </div>
                             </div>
-                            @include('filament.components.rit-redline', ['cambios' => $cambiosRit])
+                            @php
+                                $totalCambiosRit = collect($cambiosRit)->whereIn('tipo', ['agregado', 'eliminado', 'modificado'])->count();
+                            @endphp
 
                             {{-- "Resumen ejecutivo" (pedido de Andrés Sarmiento, reunión
                                  2026-10-05): explica los cambios en lenguaje simple ("legal
                                  design"), en vez de que el trabajador tenga que leer el
-                                 redline técnico de arriba. Bajo demanda - no se genera hasta
-                                 que el trabajador presiona el botón. --}}
-                            <div class="mt-3">
-                                @if($resumenEjecutivoCambiosRit === '')
-                                    <button type="button" wire:click="generarResumenEjecutivoCambiosRit" wire:loading.attr="disabled" wire:target="generarResumenEjecutivoCambiosRit"
-                                        class="rit-btn rit-btn-cta" style="width:100%;justify-content:center">
-                                        <span wire:loading.remove wire:target="generarResumenEjecutivoCambiosRit">Ver resumen ejecutivo de los cambios</span>
-                                        <span wire:loading wire:target="generarResumenEjecutivoCambiosRit" style="display:inline-flex;align-items:center;gap:.5rem">
-                                            <svg style="width:16px;height:16px;animation:rs-spin 1s linear infinite" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-opacity=".3" stroke-width="3"/><path d="M21 12a9 9 0 00-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
-                                            Preparando tu resumen
-                                        </span>
-                                    </button>
-                                    <style>@keyframes rs-spin{to{transform:rotate(360deg)}}</style>
-                                @else
-                                    @include('filament.components.rit-resumen-ejecutivo', ['resumen' => $resumenEjecutivoCambiosRit])
-                                @endif
+                                 redline técnico. Va PRIMERO: es lo que el trabajador de verdad
+                                 necesita. Bajo demanda - no se genera hasta que presiona el
+                                 botón. Mismo lenguaje visual que "Mi Reglamento Interno"
+                                 (.rit-viewer: franja de encabezado + contador). --}}
+                            @if($resumenEjecutivoCambiosRit === '')
+                                <div class="rit-viewer" style="margin-top:0">
+                                    <div class="rit-viewer-header">
+                                        <span class="rit-viewer-label">Resumen ejecutivo</span>
+                                    </div>
+                                    <div class="rit-viewer-body" style="max-height:none;text-align:center">
+                                        <p style="margin:0 0 1rem;font-size:.875rem;line-height:1.6;color:#57534e">
+                                            Te explicamos en lenguaje sencillo qué cambió en tu Reglamento Interno.
+                                        </p>
+                                        <button type="button" wire:click="generarResumenEjecutivoCambiosRit" wire:loading.attr="disabled" wire:target="generarResumenEjecutivoCambiosRit"
+                                            class="rit-btn rit-btn-cta" style="justify-content:center">
+                                            <span wire:loading.remove wire:target="generarResumenEjecutivoCambiosRit">Ver resumen ejecutivo</span>
+                                            <span wire:loading wire:target="generarResumenEjecutivoCambiosRit">
+                                                <span style="display:inline-flex;align-items:center;gap:.5rem">
+                                                    <svg style="width:16px;height:16px;animation:rs-spin 1s linear infinite" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-opacity=".3" stroke-width="3"/><path d="M21 12a9 9 0 00-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+                                                    Preparando tu resumen
+                                                </span>
+                                            </span>
+                                        </button>
+                                        <style>@keyframes rs-spin{to{transform:rotate(360deg)}}</style>
+                                    </div>
+                                </div>
+                            @else
+                                @include('filament.components.rit-resumen-ejecutivo', ['resumen' => $resumenEjecutivoCambiosRit])
+                            @endif
+
+                            {{-- Detalle técnico de los cambios (Agregado / Eliminado /
+                                 Modificado). Con muchos cambios (p. ej. un Anexo legal
+                                 completo) arranca cerrado para no abrumar al trabajador. --}}
+                            <div class="rit-viewer" style="margin-top:0" x-data="{ abierto: {{ $totalCambiosRit <= 30 ? 'true' : 'false' }} }">
+                                <button type="button" class="rit-viewer-header" @click="abierto = !abierto"
+                                    style="width:100%;cursor:pointer;text-align:left;border-top:0;border-left:0;border-right:0">
+                                    <span class="rit-viewer-label">Detalle de los cambios</span>
+                                    <span style="display:flex;align-items:center;gap:.5rem">
+                                        <span class="rit-badge rit-badge-ia">{{ $totalCambiosRit }}</span>
+                                        <svg style="width:14px;height:14px;color:#64748b;transition:transform .18s" :style="abierto ? 'transform:rotate(180deg)' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                    </span>
+                                </button>
+                                <div class="rit-viewer-body" style="max-height:none" x-show="abierto">
+                                    @include('filament.components.rit-redline', ['cambios' => $cambiosRit])
+                                </div>
                             </div>
 
                             {{-- Pedido explicito del spec (seccion 6): opcion de ver el
