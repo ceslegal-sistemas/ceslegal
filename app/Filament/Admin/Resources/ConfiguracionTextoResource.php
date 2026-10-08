@@ -6,6 +6,8 @@ use App\Filament\Admin\Resources\ConfiguracionTextoResource\Pages;
 use App\Models\ConfiguracionTexto;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Illuminate\Support\HtmlString;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -50,25 +52,35 @@ class ConfiguracionTextoResource extends Resource
                     ->columns(2)
                     ->collapsible(),
 
+                Forms\Components\Section::make('Variables que puede usar')
+                    ->description('Escriba el marcador dentro del texto y el sistema lo reemplaza con el dato real al mostrarlo. Pulse un botón para insertarlo donde está el cursor.')
+                    ->schema([
+                        Forms\Components\Placeholder::make('variables')
+                            ->hiddenLabel()
+                            ->content(fn ($record) => view('filament.components.variables-texto', [
+                                'variables' => ConfiguracionTexto::variablesDe($record?->clave),
+                            ])),
+                    ])
+                    ->visible(fn ($record) => ConfiguracionTexto::variablesDe($record?->clave) !== []),
+
                 Forms\Components\Section::make('Contenido')
-                    ->description(function ($record) {
-                        if ($record?->clave === 'disclaimer_descargos') {
-                            return 'Use los marcadores :nombre, :cedula, :empresa y :cargo - se reemplazan automáticamente con los datos del trabajador y la empresa al mostrar el formulario.';
-                        }
-                        return null;
-                    })
                     ->schema([
                         Forms\Components\Textarea::make('valor')
                             ->label('Texto')
                             ->rows(20)
                             ->required()
+                            ->live(onBlur: true)
+                            ->columnSpanFull(),
+
+                        Forms\Components\Placeholder::make('vista_previa')
+                            ->label('Vista previa con datos de ejemplo')
                             ->columnSpanFull()
-                            ->helperText(function ($record) {
-                                if ($record?->clave === 'disclaimer_descargos') {
-                                    return 'Marcadores disponibles: :nombre (nombre completo del trabajador), :cedula (número de documento), :empresa (razón social de la empresa), :cargo (cargo del trabajador).';
-                                }
-                                return null;
-                            }),
+                            ->visible(fn ($record) => ConfiguracionTexto::variablesDe($record?->clave) !== [])
+                            ->content(fn (Get $get) => new HtmlString(
+                                '<div style="white-space:pre-line;line-height:1.7;padding:.9rem 1rem;border-radius:.75rem;border:1px solid rgba(0,0,0,.1)">'
+                                . e(strtr((string) $get('valor'), ConfiguracionTexto::EJEMPLOS))
+                                . '</div>'
+                            )),
                     ]),
             ]);
     }
