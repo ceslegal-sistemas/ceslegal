@@ -296,15 +296,16 @@
                             <div class="mt-3">
                                 @if($resumenEjecutivoCambiosRit === '')
                                     <button type="button" wire:click="generarResumenEjecutivoCambiosRit" wire:loading.attr="disabled" wire:target="generarResumenEjecutivoCambiosRit"
-                                        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-50 hover:bg-primary-100 disabled:opacity-60 text-primary-700 text-sm font-semibold rounded-xl transition-colors">
-                                        <span wire:loading.remove wire:target="generarResumenEjecutivoCambiosRit">Ver Resumen ejecutivo</span>
-                                        <span wire:loading wire:target="generarResumenEjecutivoCambiosRit">Generando resumen...</span>
+                                        class="rit-btn rit-btn-cta" style="width:100%;justify-content:center">
+                                        <span wire:loading.remove wire:target="generarResumenEjecutivoCambiosRit">Ver resumen ejecutivo de los cambios</span>
+                                        <span wire:loading wire:target="generarResumenEjecutivoCambiosRit" style="display:inline-flex;align-items:center;gap:.5rem">
+                                            <svg style="width:16px;height:16px;animation:rs-spin 1s linear infinite" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-opacity=".3" stroke-width="3"/><path d="M21 12a9 9 0 00-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+                                            Preparando tu resumen
+                                        </span>
                                     </button>
+                                    <style>@keyframes rs-spin{to{transform:rotate(360deg)}}</style>
                                 @else
-                                    <div class="prose max-w-none text-sm border border-primary-100 bg-primary-50/40 rounded-xl p-4">
-                                        <p class="text-xs font-semibold text-primary-700 uppercase tracking-wide m-0 mb-2">Resumen ejecutivo</p>
-                                        {!! nl2br(e($resumenEjecutivoCambiosRit)) !!}
-                                    </div>
+                                    @include('filament.components.rit-resumen-ejecutivo', ['resumen' => $resumenEjecutivoCambiosRit])
                                 @endif
                             </div>
 
