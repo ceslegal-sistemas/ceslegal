@@ -277,6 +277,12 @@ Route::get('/rit/{reglamento}/video-didactico', [\App\Http\Controllers\RitVideoD
     ->middleware(['auth'])
     ->name('rit.video-didactico');
 
+// Video didáctico HISTÓRICO - versión ya reemplazada, conservada como
+// evidencia (pedido de Andrés Sarmiento, reunión 2026-10-05, item 3).
+Route::get('/rit/{reglamento}/video-didactico-historico/{historico}', [\App\Http\Controllers\RitVideoDidacticoDescargaController::class, 'descargarHistorico'])
+    ->middleware(['auth'])
+    ->name('rit.video-didactico.historico');
+
 // Rutas de Email Tracking
 Route::get('/email/track/{token}.gif', [EmailTrackingController::class, 'pixel'])
     ->name('email.tracking.pixel');

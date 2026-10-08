@@ -38,6 +38,7 @@ class ReglamentoInterno extends Model
         'video_didactico_estado',
         'video_didactico_error',
         'video_didactico_generado_en',
+        'video_didactico_texto_hash',
         'progreso_generacion',
         'tipos_contrato',
         'temas_texto_hash',
@@ -108,6 +109,16 @@ class ReglamentoInterno extends Model
         $ultima = $this->autorizacionVigente();
 
         return $ultima === null || $ultima->texto_rit_hash !== hash('sha256', $this->texto_completo);
+    }
+
+    /**
+     * Videos didácticos REEMPLAZADOS (ver HistoricoVideoDidacticoRit) - el
+     * video vigente sigue en video_didactico_capitulos, esto es solo el
+     * historial de los que ya fueron sustituidos por una regeneración.
+     */
+    public function historicoVideosDidacticos(): HasMany
+    {
+        return $this->hasMany(HistoricoVideoDidacticoRit::class)->latest('archivado_en');
     }
 
     public function temasNormativos(): BelongsToMany

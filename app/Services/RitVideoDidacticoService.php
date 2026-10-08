@@ -57,6 +57,14 @@ class RitVideoDidacticoService
             throw new \RuntimeException('El Reglamento no tiene temas clasificados ni cambios para explicar en el video.');
         }
 
+        // Pedido de Andrés Sarmiento (reunión 2026-10-05, item 3): el video
+        // debe poder "invocarse/traerse" después como evidencia, no solo
+        // mientras sea el vigente. Los archivos .mp4 nunca se sobreescriben
+        // (cada uno tiene un nombre único, ver Str::random() abajo), pero el
+        // puntero en video_didactico_capitulos sí - antes de reemplazarlo,
+        // se archiva el que había (si existía) en un historial append-only.
+        $this->archivarVideoVigenteSiExiste($rit);
+
         $logoBase64 = $this->logoBase64($empresa);
         $generados = [];
 
@@ -84,7 +92,38 @@ class RitVideoDidacticoService
             'video_didactico_estado' => 'completado',
             'video_didactico_error' => null,
             'video_didactico_generado_en' => now(),
+            'video_didactico_texto_hash' => hash('sha256', (string) $rit->texto_completo),
         ]);
+    }
+
+    /**
+     * Archiva el video vigente (si existe) antes de que se reemplace -
+     * ver HistoricoVideoDidacticoRit. No falla el job si algo sale mal aquí
+     * (fail-open): perder el archivado no debe bloquear la generación del
+     * video nuevo.
+     */
+    private function archivarVideoVigenteSiExiste(ReglamentoInterno $rit): void
+    {
+        $capitulosVigentes = $rit->capitulosVideoDidactico();
+        if (empty($capitulosVigentes)) {
+            return;
+        }
+
+        try {
+            \App\Models\HistoricoVideoDidacticoRit::create([
+                'reglamento_interno_id' => $rit->id,
+                'empresa_id' => $rit->empresa_id,
+                'capitulos' => $capitulosVigentes,
+                'texto_rit_hash' => $rit->video_didactico_texto_hash,
+                'generado_en' => $rit->video_didactico_generado_en,
+                'archivado_en' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('RitVideoDidacticoService: no se pudo archivar el video anterior', [
+                'rit_id' => $rit->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

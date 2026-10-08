@@ -329,6 +329,38 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
   @if($tiene)
     @include('filament.components.rit-detalles-card', ['reglamento' => $reglamento])
   @endif
+  {{-- Historial de videos didácticos reemplazados (pedido de Andrés Sarmiento,
+       reunión 2026-10-05, item 3): "guardar el vídeo, que uno lo pueda ir a
+       invocar cuando quiera" - el video vigente se muestra con el botón
+       Generar/Regenerar de arriba, esto es lo que YA fue sustituido pero
+       sigue disponible como evidencia. --}}
+  @if($tiene && $reglamento->historicoVideosDidacticos->isNotEmpty())
+    <details class="text-sm" style="margin-top:1rem">
+      <summary class="cursor-pointer text-primary-600 font-medium">
+        Historial de videos didácticos reemplazados ({{ $reglamento->historicoVideosDidacticos->count() }})
+      </summary>
+      <div class="border border-gray-200 rounded-xl p-4 mt-2 space-y-3">
+        @foreach($reglamento->historicoVideosDidacticos as $historico)
+          <div class="flex items-start justify-between gap-3 text-xs">
+            <div>
+              <p class="font-semibold text-gray-700 m-0">
+                Generado el {{ $historico->generado_en?->format('d/m/Y H:i') ?? '-' }}
+              </p>
+              <p class="text-gray-500 m-0">Reemplazado el {{ $historico->archivado_en->format('d/m/Y H:i') }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2 justify-end">
+              @foreach($historico->capitulos as $i => $capitulo)
+                <a href="{{ route('rit.video-didactico.historico', ['reglamento' => $reglamento, 'historico' => $historico, 'capitulo' => $i]) }}"
+                   target="_blank" class="rit-btn rit-btn-secondary" style="padding:.35rem .75rem;font-size:.7rem">
+                  {{ $capitulo['titulo'] ?? ('Capítulo ' . ($i + 1)) }}
+                </a>
+              @endforeach
+            </div>
+          </div>
+        @endforeach
+      </div>
+    </details>
+  @endif
   </div>
 
   {{-- ── GENERANDO: shimmer ── --}}
