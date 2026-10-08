@@ -79,6 +79,37 @@ class ReglamentoInterno extends Model
         return $this->belongsTo(self::class, 'reglamento_origen_id');
     }
 
+    public function autorizaciones(): HasMany
+    {
+        return $this->hasMany(AutorizacionReglamentoInterno::class)->latest('id');
+    }
+
+    /**
+     * Última vez que un funcionario autorizó este RIT, sin importar si fue
+     * sobre el texto actual o uno anterior (ver requiereAutorizacion()).
+     */
+    public function autorizacionVigente(): ?AutorizacionReglamentoInterno
+    {
+        return $this->autorizaciones->first();
+    }
+
+    /**
+     * true si el texto_completo actual nunca fue autorizado por nadie, o si
+     * cambió desde la última autorización (adopción de mejora, subida
+     * manual, nueva generación con IA) - equivalente funcional de "esta
+     * firma ya no corresponde al documento vigente".
+     */
+    public function requiereAutorizacion(): bool
+    {
+        if (empty($this->texto_completo)) {
+            return false;
+        }
+
+        $ultima = $this->autorizacionVigente();
+
+        return $ultima === null || $ultima->texto_rit_hash !== hash('sha256', $this->texto_completo);
+    }
+
     public function temasNormativos(): BelongsToMany
     {
         return $this->belongsToMany(TemaNormativo::class, 'reglamento_interno_tema')

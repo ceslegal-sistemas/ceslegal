@@ -250,6 +250,17 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
                El wizard ($wizardUrl) sigue existiendo para la PRIMERA vez,
                en el estado vacío "Aún no tiene un Reglamento Interno" más
                abajo en esta misma vista. --}}
+          {{-- "Equivalente funcional" de firma (pedido de Andrés Sarmiento,
+               reunión 2026-10-05): a diferencia de Sanciones/Descargos, el
+               RIT nunca registraba QUIÉN lo autorizó - ver
+               MiReglamentoInterno::autorizarReglamentoAction() y el reporte
+               "Equivalente Funcional" (Reportes). Se resalta en primary
+               mientras esté pendiente (texto nuevo/cambiado sin autorizar). --}}
+          <button wire:click="mountAction('autorizarReglamento')"
+              class="rit-btn {{ $reglamento?->requiereAutorizacion() ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
+            <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"/></svg>
+            {{ $reglamento?->requiereAutorizacion() ? 'Autorizar este Reglamento' : 'Reglamento autorizado' }}
+          </button>
           <button wire:click="mountAction('subirRIT')" class="rit-btn rit-btn-secondary">
             <svg style="width:15px;height:15px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
             Subir RIT

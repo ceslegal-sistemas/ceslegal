@@ -88,6 +88,8 @@ class RolePermissionSeeder extends Seeder
             'page_MiReglamentoInterno',
             // Página "Sanciones Emitidas"
             'page_SancionesEmitidas',
+            // Página "Equivalente Funcional"
+            'page_EquivalenteFuncional',
 
             // Role permissions (only for super_admin)
             'view_role',
@@ -245,6 +247,9 @@ class RolePermissionSeeder extends Seeder
 
             // Reporte "Sanciones Emitidas" (ver App\Filament\Admin\Pages\SancionesEmitidas)
             'page_SancionesEmitidas',
+
+            // Reporte "Equivalente Funcional" (ver App\Filament\Admin\Pages\EquivalenteFuncional)
+            'page_EquivalenteFuncional',
 
             // Access to widgets
             'widget_StatsOverviewWidget',

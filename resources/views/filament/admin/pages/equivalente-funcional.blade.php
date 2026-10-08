@@ -1,0 +1,22 @@
+<x-filament-panels::page>
+    @include('filament.components.lupe-hero-styles')
+
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;">
+        <button type="button" wire:click="cambiarSeccion('sanciones')"
+            class="rit-btn {{ $seccion === 'sanciones' ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
+            Sanciones / Incidentes
+        </button>
+        <button type="button" wire:click="cambiarSeccion('rit')"
+            class="rit-btn {{ $seccion === 'rit' ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
+            Autorización de Reglamento de Trabajo
+        </button>
+        <button type="button" wire:click="cambiarSeccion('descargos')"
+            class="rit-btn {{ $seccion === 'descargos' ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
+            Descargos
+        </button>
+    </div>
+
+    <div style="margin-top:1.25rem;">
+        {{ $this->table }}
+    </div>
+</x-filament-panels::page>

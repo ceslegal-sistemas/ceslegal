@@ -14,6 +14,10 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -26,6 +30,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
     use InteractsWithForms, InteractsWithActions;
     use \App\Filament\Concerns\InteractsConAceptacionMejoraRIT;
     use \App\Filament\Concerns\InteractsConCulminacionSocializacionRit;
+    use \App\Filament\Concerns\HasVerificacionFotografica;
 
     protected static ?string $navigationIcon  = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'Mi Reglamento Interno';
@@ -595,6 +600,95 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                     ->success()
                     ->title('Fecha de publicación guardada')
                     ->body('Los 15 días hábiles para objetar el Reglamento se cuentan desde esta fecha.')
+                    ->send();
+            });
+    }
+
+    /**
+     * "Equivalente funcional" de firma para el RIT (pedido de Andrés
+     * Sarmiento, reunión 2026-10-05): a diferencia de Sanciones/Descargos
+     * (que ya capturan autorizador_nombre/citante_nombre en
+     * ProcesoDisciplinario), el RIT nunca registraba QUIÉN lo autorizó. Mismo rigor que "Emitir
+     * Sanción": nombre, cargo, foto con prueba de vida y disclaimer Ley
+     * 1581 - ver HasVerificacionFotografica. Queda append-only en
+     * AutorizacionReglamentoInterno (nunca se sobreescribe), para poder
+     * encontrar TODAS las autorizaciones de un mismo funcionario a través
+     * de múltiples versiones/actualizaciones (ver EquivalenteFuncional).
+     */
+    public function autorizarReglamentoAction(): Action
+    {
+        return Action::make('autorizarReglamento')
+            ->label(fn () => $this->reglamento?->requiereAutorizacion() ? 'Autorizar este Reglamento' : 'Reglamento autorizado')
+            ->icon('heroicon-o-shield-check')
+            ->color(fn () => $this->reglamento?->requiereAutorizacion() ? 'primary' : 'gray')
+            ->disabled(fn () => ! ($this->reglamento?->requiereAutorizacion() ?? false))
+            ->visible(fn () => $this->reglamento && !empty($this->reglamento->texto_completo))
+            ->modalHeading('Autorización del Reglamento Interno')
+            ->modalDescription('Registre los datos de quien autoriza esta versión del Reglamento y tome una foto de verificación - esto queda como evidencia de trazabilidad (equivalente funcional de firma).')
+            ->modalSubmitActionLabel('Autorizar')
+            ->form(fn () => [
+                Grid::make(2)->schema([
+                    TextInput::make('autorizador_nombre')
+                        ->label('Nombre completo')
+                        ->required()
+                        ->maxLength(255),
+                    TextInput::make('autorizador_cargo')
+                        ->label('Cargo')
+                        ->required()
+                        ->maxLength(255),
+                ]),
+
+                Placeholder::make('webcam_autorizador')
+                    ->hiddenLabel()
+                    ->content(fn () => new \Illuminate\Support\HtmlString(
+                        view('filament.components.webcam-autorizador', [
+                            'wireTargetPath' => 'mountedActionsData.0.foto_autorizador_base64',
+                        ])->render()
+                    )),
+
+                Hidden::make('foto_autorizador_base64'),
+            ])
+            ->action(function (array $data): void {
+                if (!$this->reglamento) {
+                    return;
+                }
+
+                if (empty($data['foto_autorizador_base64'])) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Falta la verificación fotográfica')
+                        ->body('Debe tomar la foto de verificación del autorizador antes de continuar.')
+                        ->persistent()
+                        ->send();
+
+                    return;
+                }
+
+                $fotoPath = $this->guardarFotoVerificacion(
+                    $data['foto_autorizador_base64'],
+                    "fotos-autorizacion-rit/{$this->reglamento->id}"
+                );
+
+                \App\Models\AutorizacionReglamentoInterno::create([
+                    'reglamento_interno_id' => $this->reglamento->id,
+                    'empresa_id' => $this->reglamento->empresa_id,
+                    'user_id' => Auth::id(),
+                    'autorizador_nombre' => $data['autorizador_nombre'],
+                    'autorizador_cargo' => $data['autorizador_cargo'],
+                    'foto_autorizador_path' => $fotoPath,
+                    'foto_autorizador_en' => $fotoPath ? now() : null,
+                    'disclaimer_datos_autorizador_en' => $this->disclaimerDatosAceptadoEn,
+                    'disclaimer_datos_autorizador_ip' => $this->disclaimerDatosIp,
+                    'texto_rit_hash' => hash('sha256', $this->reglamento->texto_completo),
+                    'texto_rit_snapshot' => $this->reglamento->texto_completo,
+                ]);
+
+                $this->reglamento = $this->reglamento->fresh();
+
+                Notification::make()
+                    ->success()
+                    ->title('Reglamento autorizado')
+                    ->body('Quedó registrada la autorización de esta versión del Reglamento.')
                     ->send();
             });
     }
