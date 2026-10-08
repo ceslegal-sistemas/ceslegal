@@ -272,6 +272,11 @@ Route::get('/trabajador/{trabajador}/acta-rit/{aceptacion}', [\App\Http\Controll
     ->middleware(['auth'])
     ->name('trabajador.acta-rit.descargar');
 
+// Selfie de verificación de la aceptación del RIT (evidencia, 2026-10-08)
+Route::get('/trabajador/{trabajador}/foto-aceptacion-rit/{aceptacion}', [\App\Http\Controllers\AceptacionRitDescargaController::class, 'foto'])
+    ->middleware(['auth'])
+    ->name('trabajador.foto-aceptacion-rit');
+
 // Video didáctico del RIT generado con IA (2026-09-29)
 Route::get('/rit/{reglamento}/video-didactico', [\App\Http\Controllers\RitVideoDidacticoDescargaController::class, 'descargar'])
     ->middleware(['auth'])

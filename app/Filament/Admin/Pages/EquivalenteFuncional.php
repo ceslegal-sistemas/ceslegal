@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Pages;
 
 use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
+use App\Models\AceptacionReglamentoInterno;
 use App\Models\AutorizacionReglamentoInterno;
 use App\Models\HistoricoVideoDidacticoRit;
 use App\Models\ProcesoDisciplinario;
@@ -25,6 +26,9 @@ use Filament\Tables\Table;
  * - Autorización de RIT: AutorizacionReglamentoInterno (append-only, incluye
  *   todas las versiones/actualizaciones de cada RIT).
  * - Descargos: citante_* de ProcesoDisciplinario (citación inicial).
+ * - Aceptación de trabajadores: la evidencia de cada trabajador que aceptó el
+ *   RIT en la socialización (IP, dispositivo, selfie de verificación, resultado
+ *   del quiz, huella del texto y acta PDF) - AceptacionReglamentoInterno.
  * - Videos del Reglamento: histórico append-only de videos didácticos
  *   reemplazados (HistoricoVideoDidacticoRit, item 3 de la misma reunión).
  *
@@ -49,7 +53,7 @@ class EquivalenteFuncional extends Page implements HasTable
 
     protected static string $view = 'filament.admin.pages.equivalente-funcional';
 
-    /** @var 'sanciones'|'rit'|'descargos'|'videos' */
+    /** @var 'sanciones'|'rit'|'descargos'|'trabajadores'|'videos' */
     public string $seccion = 'sanciones';
 
     public static function shouldRegisterNavigation(): bool
@@ -78,6 +82,7 @@ class EquivalenteFuncional extends Page implements HasTable
         return match ($this->seccion) {
             'rit' => $this->tablaAutorizacionRit($table),
             'descargos' => $this->tablaDescargos($table),
+            'trabajadores' => $this->tablaAceptacionTrabajadores($table),
             'videos' => $this->tablaVideosHistoricos($table),
             default => $this->tablaSanciones($table),
         };
@@ -350,5 +355,127 @@ class EquivalenteFuncional extends Page implements HasTable
             ->emptyStateHeading('Sin videos históricos')
             ->emptyStateDescription('Aún no se ha reemplazado ningún video didáctico del Reglamento.')
             ->emptyStateIcon('heroicon-o-play-circle');
+    }
+
+    private function tablaAceptacionTrabajadores(Table $table): Table
+    {
+        // whereHas('trabajador') aplica el scope de bufete/empresa de Trabajador
+        // (AceptacionReglamentoInterno no tiene scope propio): cada usuario ve
+        // solo las aceptaciones de los trabajadores a los que tiene acceso.
+        $query = AceptacionReglamentoInterno::query()
+            ->whereHas('trabajador')
+            ->with(['trabajador.empresa', 'reglamentoInterno']);
+
+        return $table
+            ->query($query)
+            ->defaultSort('aceptado_en', 'desc')
+            ->groups([
+                Tables\Grouping\Group::make('trabajador_id')
+                    ->label('Trabajador')
+                    ->getTitleFromRecordUsing(fn(AceptacionReglamentoInterno $record) => $record->trabajador?->nombre_completo ?? 'Trabajador'),
+                Tables\Grouping\Group::make('reglamento_interno_id')
+                    ->label('Versión del Reglamento')
+                    ->getTitleFromRecordUsing(fn(AceptacionReglamentoInterno $record) => 'RIT #' . $record->reglamento_interno_id . ($record->reglamentoInterno?->version ? ' (versión ' . $record->reglamentoInterno->version . ')' : '')),
+            ])
+            ->defaultGroup('trabajador_id')
+            ->columns([
+                Tables\Columns\TextColumn::make('trabajador.nombre_completo')
+                    ->label('Trabajador')
+                    ->weight('bold')
+                    ->searchable(query: function (\Illuminate\Database\Eloquent\Builder $query, string $search) {
+                        $query->whereHas('trabajador', fn($q) => $q
+                            ->where('nombres', 'like', "%{$search}%")
+                            ->orWhere('apellidos', 'like', "%{$search}%")
+                            ->orWhere('numero_documento', 'like', "%{$search}%"));
+                    }),
+
+                Tables\Columns\TextColumn::make('trabajador.numero_documento')
+                    ->label('Documento')
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('trabajador.empresa.razon_social')
+                    ->label('Empresa')
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('reglamento_interno_id')
+                    ->label('RIT')
+                    ->formatStateUsing(fn($state, AceptacionReglamentoInterno $record) => 'RIT #' . $state . ($record->reglamentoInterno?->version ? ' (v' . $record->reglamentoInterno->version . ')' : '')),
+
+                Tables\Columns\TextColumn::make('aceptado_en')
+                    ->label('Fecha de aceptación')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('ip_aceptacion')
+                    ->label('Dirección IP')
+                    ->searchable()
+                    ->placeholder('Sin registro')
+                    ->copyable(),
+
+                Tables\Columns\TextColumn::make('user_agent')
+                    ->label('Dispositivo y navegador')
+                    ->limit(40)
+                    ->tooltip(fn(AceptacionReglamentoInterno $record) => $record->user_agent)
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\IconColumn::make('foto_aceptacion_path')
+                    ->label('Selfie')
+                    ->boolean()
+                    ->getStateUsing(fn(AceptacionReglamentoInterno $record) => !empty($record->foto_aceptacion_path)),
+
+                Tables\Columns\TextColumn::make('quiz_resultado')
+                    ->label('Quiz de comprensión')
+                    ->getStateUsing(function (AceptacionReglamentoInterno $record) {
+                        $preguntas = $record->quiz_resultado ?? [];
+                        if (empty($preguntas)) {
+                            return 'Sin quiz';
+                        }
+                        $aciertos = 0;
+                        $intentos = 0;
+                        foreach ($preguntas as $pregunta) {
+                            $lista = $pregunta['intentos'] ?? [];
+                            $intentos += count($lista);
+                            if (!empty($lista) && !empty(end($lista)['correcta'])) {
+                                $aciertos++;
+                            }
+                        }
+
+                        return $aciertos . '/' . count($preguntas) . ' correctas, ' . $intentos . ' intentos';
+                    }),
+
+                Tables\Columns\TextColumn::make('texto_rit_hash')
+                    ->label('Huella del texto aceptado')
+                    ->limit(12)
+                    ->tooltip(fn(AceptacionReglamentoInterno $record) => $record->texto_rit_hash)
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->actions([
+                Tables\Actions\Action::make('ver_selfie')
+                    ->label('Ver selfie')
+                    ->icon('heroicon-o-camera')
+                    ->color('gray')
+                    ->visible(fn(AceptacionReglamentoInterno $record) => !empty($record->foto_aceptacion_path))
+                    ->modalHeading(fn(AceptacionReglamentoInterno $record) => 'Selfie de verificación - ' . ($record->trabajador?->nombre_completo ?? ''))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->modalContent(fn(AceptacionReglamentoInterno $record) => view(
+                        'filament.admin.pages.partials.selfie-aceptacion-rit',
+                        ['aceptacion' => $record]
+                    )),
+
+                Tables\Actions\Action::make('acta')
+                    ->label('Acta PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('gray')
+                    ->visible(fn(AceptacionReglamentoInterno $record) => !empty($record->ruta_acta))
+                    ->url(fn(AceptacionReglamentoInterno $record) => route('trabajador.acta-rit.descargar', [
+                        'trabajador' => $record->trabajador_id,
+                        'aceptacion' => $record->id,
+                    ]))
+                    ->openUrlInNewTab(),
+            ])
+            ->emptyStateHeading('Sin aceptaciones de trabajadores')
+            ->emptyStateDescription('Aún ningún trabajador ha aceptado el Reglamento Interno en la socialización.')
+            ->emptyStateIcon('heroicon-o-user-group');
     }
 }
