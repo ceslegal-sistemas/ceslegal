@@ -575,9 +575,20 @@
                             <span class="rit-badge rit-badge-danger">Proceso bloqueado</span>
                             <h1 class="rit-title">No podemos continuar por ahora</h1>
                             @php
-                                $textoBloqueo = str_replace(':empresa', $empresa->razon_social, \App\Models\ConfiguracionTexto::obtener('mensaje_no_comprendido_bloqueado', config('ces.mensaje_no_comprendido_bloqueado', '')));
+                                $trabajadorBloqueo = $trabajadorId ? \App\Models\Trabajador::find($trabajadorId) : null;
+                                // Marcadores: :empresa, :trabajador y :fecha (día en que se le entregó el
+                                // video y el documento, es decir hoy). La clave es mensaje_no_comprendio_bloqueado
+                                // (sin "d"), la misma de config/ces.php, de la migración semilla y del admin.
+                                $textoBloqueo = strtr(
+                                    \App\Models\ConfiguracionTexto::obtener('mensaje_no_comprendio_bloqueado', config('ces.mensaje_no_comprendio_bloqueado', '')),
+                                    [
+                                        ':empresa' => $empresa->razon_social,
+                                        ':trabajador' => $trabajadorBloqueo?->nombre_completo ?? 'trabajador(a)',
+                                        ':fecha' => now()->locale('es')->translatedFormat('j \d\e F \d\e Y'),
+                                    ]
+                                );
                             @endphp
-                            <p class="rit-sub">{{ $textoBloqueo }}</p>
+                            <p class="rit-sub" style="white-space:pre-line">{{ $textoBloqueo }}</p>
                         </div>
                     </div>
                 @elseif ($etapa === 'completado')
