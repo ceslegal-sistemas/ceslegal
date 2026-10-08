@@ -48,4 +48,23 @@ class TextoAnexoLegalTest extends TestCase
         $this->assertStringContainsString('7 de julio de 2026)', $r);
         $this->assertStringContainsString("LEY 2466 DE 2025\n\n(junio 25)", $r);
     }
+
+    public function test_parrafos_de_lineas_prepara_un_diff_para_leerse(): void
+    {
+        $r = TextoAnexoLegal::parrafosDeLineas([
+            'Las disposiciones de la Ley.',
+            'Última actualización: 15 de julio - (Diario Oficial No. 53.546 - 7 de',
+            'julio de 2026)',
+            'Derechos de autor reservados - Prohibida su reproducción',
+            'Inicio',
+            '',
+            'LEY 2466 DE 2025',
+        ]);
+
+        $this->assertSame([
+            'Las disposiciones de la Ley.',
+            'Última actualización: 15 de julio - (Diario Oficial No. 53.546 - 7 de julio de 2026)',
+            'LEY 2466 DE 2025',
+        ], $r);
+    }
 }

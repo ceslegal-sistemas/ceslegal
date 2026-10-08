@@ -59,6 +59,20 @@ class TextoAnexoLegal
         return ltrim(substr($fragmento, $pos + 2));
     }
 
+    /**
+     * Para mostrar líneas de un diff (RitDiffService, una línea por cambio) como
+     * párrafos legibles: une frases cortadas y omite menús web y vacíos.
+     *
+     * @param  array<int, string> $lineas
+     * @return array<int, string>
+     */
+    public static function parrafosDeLineas(array $lineas): array
+    {
+        $limpio = self::limpiarRuidoWeb(implode("\n", array_map('strval', $lineas)));
+
+        return array_values(array_filter(array_map('trim', explode("\n", $limpio)), fn ($l) => $l !== ''));
+    }
+
     public static function limpiarRuidoWeb(string $texto): string
     {
         $texto = str_replace(["\r\n", "\r"], "\n", $texto);

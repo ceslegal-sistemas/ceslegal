@@ -288,7 +288,10 @@
                                 </div>
                             </div>
                             @php
-                                $totalCambiosRit = collect($cambiosRit)->whereIn('tipo', ['agregado', 'eliminado', 'modificado'])->count();
+                                // Mismo conteo que muestra rit-redline en sus pestañas (párrafos legibles, no líneas crudas del diff).
+                                $totalCambiosRit = count(\App\Support\TextoAnexoLegal::parrafosDeLineas(collect($cambiosRit)->where('tipo', 'agregado')->pluck('texto')->all()))
+                                    + count(\App\Support\TextoAnexoLegal::parrafosDeLineas(collect($cambiosRit)->where('tipo', 'eliminado')->pluck('texto')->all()))
+                                    + collect($cambiosRit)->where('tipo', 'modificado')->count();
                             @endphp
 
                             {{-- "Resumen ejecutivo" (pedido de Andrés Sarmiento, reunión
@@ -337,7 +340,7 @@
                                     </span>
                                 </button>
                                 <div class="rit-viewer-body" style="max-height:none" x-show="abierto">
-                                    @include('filament.components.rit-redline', ['cambios' => $cambiosRit])
+                                    @include('filament.components.rit-redline', ['cambios' => $cambiosRit, 'pista' => 'Son muchos cambios. Si prefieres entenderlos rápido, usa el resumen ejecutivo de arriba.'])
                                 </div>
                             </div>
 

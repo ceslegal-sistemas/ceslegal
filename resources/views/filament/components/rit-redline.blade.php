@@ -6,26 +6,34 @@
      * ve SOLO lo agregado, SOLO lo eliminado, o SOLO lo modificado, nunca
      * el documento completo con resaltado).
      * Espera $cambios = App\Services\RitDiffService::compararDocumentos(...).
+     * Opcional: $pista = frase que se muestra cuando hay muchos cambios.
      *
-     * Rediseño 2026-10-08: cada cambio es una tarjeta con barra de color a la
-     * izquierda (en vez de todo el texto subrayado), el texto conserva el
-     * color normal para poder leerse, las pestañas usan la marca de Lupe y las
-     * listas largas se muestran de a 10 con "Ver más" (un RIT con anexos
-     * legales extensos llega a cientos de párrafos).
+     * Rediseño 2026-10-08 (corregido): el texto se lee CORRIDO, como en el
+     * visor de documento de "Mi Reglamento Interno" (serif, interlineado
+     * amplio, sin tarjetas ni barras de color) - la pestaña activa ya dice si
+     * es agregado/eliminado, no hace falta marcar cada párrafo. Las listas
+     * largas se muestran de a 10 con "Ver más".
+     *
+     * Solo presentación: el diff sigue siendo línea a línea; aquí se unen las
+     * frases que la página de origen partió en dos líneas y se omiten los
+     * menús web y los párrafos vacíos (el texto completo sigue disponible en
+     * "Ver el Reglamento completo").
      */
     $cambios = $cambios ?? [];
-    // Se descartan los párrafos vacíos (el texto fuente trae saltos de línea
-    // sueltos): una tarjeta en blanco no informa nada.
-    $conTexto = fn ($c) => trim((string) ($c['texto'] ?? '')) !== '';
-    $agregados = collect($cambios)->where('tipo', 'agregado')->filter($conTexto)->values();
-    $eliminados = collect($cambios)->where('tipo', 'eliminado')->filter($conTexto)->values();
+
+    $parrafos = fn (string $tipo): array => \App\Support\TextoAnexoLegal::parrafosDeLineas(
+        collect($cambios)->where('tipo', $tipo)->pluck('texto')->all()
+    );
+
+    $agregados = $parrafos('agregado');
+    $eliminados = $parrafos('eliminado');
     $modificados = collect($cambios)->where('tipo', 'modificado')->values();
     $tramo = 10;
 @endphp
 
 @verbatim
 <style>
-.rl-tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 1rem}
+.rl-tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 1.1rem}
 .rl-tab{display:flex;align-items:center;gap:.45rem;font-size:.8rem;font-weight:600;color:#57534e;
     background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.1);border-radius:999px;padding:.5rem 1rem;
     cursor:pointer;transition:background-color .15s,color .15s,border-color .15s}
@@ -39,31 +47,29 @@ html.dark .rl-tab-count{background:rgba(255,255,255,.1);color:#d6d3d1}
 .rl-tab-activo .rl-tab-count{background:rgba(225,29,72,.14);color:#be123c}
 html.dark .rl-tab-activo .rl-tab-count{background:rgba(251,113,133,.25);color:#fecdd3}
 .rl-hint{font-size:.8rem;line-height:1.55;color:#78716c;margin:0 0 1rem}
-html.dark .rl-hint{color:#a8a29e}
-.rl-list{display:flex;flex-direction:column;gap:.6rem}
-.rl-card{border-radius:.8rem;padding:.8rem 1rem;border:1px solid rgba(0,0,0,.07);border-left-width:4px;
-    background:rgba(0,0,0,.02);font-size:.86rem;line-height:1.7;color:#292524;margin:0}
-html.dark .rl-card{border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#e7e5e4}
-.rl-card-add{border-left-color:#16a34a}
-.rl-card-del{border-left-color:#dc2626;color:#78716c;text-decoration:line-through;text-decoration-color:rgba(220,38,38,.55)}
-html.dark .rl-card-del{color:#a8a29e}
-.rl-card-mod{border-left-color:#d97706}
-.rl-add{background:rgba(22,163,74,.14);border-radius:.25rem;padding:0 .15rem}
-.rl-del{background:rgba(220,38,38,.12);color:#b91c1c;text-decoration:line-through;border-radius:.25rem;padding:0 .15rem}
+html.dark .rl-hint{color:#94a3b8}
+/* Mismo tratamiento tipográfico que el visor de documento (.rit-text) */
+.rl-p{font-family:'Georgia','Times New Roman',serif;font-size:.875rem;line-height:1.9;color:#292524;
+    margin:0 0 .85rem;word-break:break-word}
+html.dark .rl-p{color:#cbd5e1}
+.rl-p-del{color:#78716c;text-decoration:line-through;text-decoration-color:rgba(220,38,38,.55)}
+html.dark .rl-p-del{color:#94a3b8}
+.rl-add{background:rgba(22,163,74,.14);border-radius:.2rem;padding:0 .1rem}
+.rl-del{background:rgba(220,38,38,.12);color:#b91c1c;text-decoration:line-through;border-radius:.2rem;padding:0 .1rem}
 html.dark .rl-del{color:#fca5a5}
-.rl-mas{display:flex;justify-content:center;margin-top:.9rem}
+.rl-mas{display:flex;justify-content:center;margin-top:1rem}
 .rl-empty{text-align:center;padding:2rem 1rem;color:#78716c;font-size:.85rem}
-html.dark .rl-empty{color:#a8a29e}
+html.dark .rl-empty{color:#94a3b8}
 </style>
 @endverbatim
 
 <div x-data="{ filtro: 'agregado', visibles: { agregado: {{ $tramo }}, eliminado: {{ $tramo }}, modificado: {{ $tramo }} } }">
     <div class="rl-tabs">
         <button type="button" @click="filtro = 'agregado'" class="rl-tab" :class="filtro === 'agregado' ? 'rl-tab-activo' : ''">
-            Agregado <span class="rl-tab-count">{{ $agregados->count() }}</span>
+            Agregado <span class="rl-tab-count">{{ count($agregados) }}</span>
         </button>
         <button type="button" @click="filtro = 'eliminado'" class="rl-tab" :class="filtro === 'eliminado' ? 'rl-tab-activo' : ''">
-            Eliminado <span class="rl-tab-count">{{ $eliminados->count() }}</span>
+            Eliminado <span class="rl-tab-count">{{ count($eliminados) }}</span>
         </button>
         <button type="button" @click="filtro = 'modificado'" class="rl-tab" :class="filtro === 'modificado' ? 'rl-tab-activo' : ''">
             Modificado <span class="rl-tab-count">{{ $modificados->count() }}</span>
@@ -71,37 +77,33 @@ html.dark .rl-empty{color:#a8a29e}
     </div>
 
     <div x-show="filtro === 'agregado'">
-        @if($agregados->isEmpty())
+        @if(empty($agregados))
             <p class="rl-empty">No se agregó nada nuevo.</p>
         @else
-            @if($agregados->count() > 30)
-                <p class="rl-hint">Son muchos cambios. Si prefieres entenderlos rápido, usa el resumen ejecutivo que aparece más abajo.</p>
+            @if(($pista ?? '') !== '' && count($agregados) > 30)
+                <p class="rl-hint">{{ $pista }}</p>
             @endif
-            <div class="rl-list">
-                @foreach($agregados as $c)
-                    <p class="rl-card rl-card-add" @if($loop->index >= $tramo) x-show="{{ $loop->index }} < visibles.agregado" style="display:none" @endif>{{ $c['texto'] }}</p>
-                @endforeach
-            </div>
-            @if($agregados->count() > $tramo)
-                <div class="rl-mas" x-show="visibles.agregado < {{ $agregados->count() }}">
-                    <button type="button" class="rit-btn rit-btn-secondary" @click="visibles.agregado += {{ $tramo }}">Ver más cambios</button>
+            @foreach($agregados as $texto)
+                <p class="rl-p" @if($loop->index >= $tramo) x-show="{{ $loop->index }} < visibles.agregado" style="display:none" @endif>{{ $texto }}</p>
+            @endforeach
+            @if(count($agregados) > $tramo)
+                <div class="rl-mas" x-show="visibles.agregado < {{ count($agregados) }}">
+                    <button type="button" class="rit-btn rit-btn-secondary" @click="visibles.agregado += {{ $tramo }}">Ver más</button>
                 </div>
             @endif
         @endif
     </div>
 
     <div x-show="filtro === 'eliminado'" style="display:none">
-        @if($eliminados->isEmpty())
+        @if(empty($eliminados))
             <p class="rl-empty">No se eliminó nada.</p>
         @else
-            <div class="rl-list">
-                @foreach($eliminados as $c)
-                    <p class="rl-card rl-card-del" @if($loop->index >= $tramo) x-show="{{ $loop->index }} < visibles.eliminado" style="display:none" @endif>{{ $c['texto'] }}</p>
-                @endforeach
-            </div>
-            @if($eliminados->count() > $tramo)
-                <div class="rl-mas" x-show="visibles.eliminado < {{ $eliminados->count() }}">
-                    <button type="button" class="rit-btn rit-btn-secondary" @click="visibles.eliminado += {{ $tramo }}">Ver más cambios</button>
+            @foreach($eliminados as $texto)
+                <p class="rl-p rl-p-del" @if($loop->index >= $tramo) x-show="{{ $loop->index }} < visibles.eliminado" style="display:none" @endif>{{ $texto }}</p>
+            @endforeach
+            @if(count($eliminados) > $tramo)
+                <div class="rl-mas" x-show="visibles.eliminado < {{ count($eliminados) }}">
+                    <button type="button" class="rit-btn rit-btn-secondary" @click="visibles.eliminado += {{ $tramo }}">Ver más</button>
                 </div>
             @endif
         @endif
@@ -111,18 +113,16 @@ html.dark .rl-empty{color:#a8a29e}
         @if($modificados->isEmpty())
             <p class="rl-empty">No se modificó nada.</p>
         @else
-            <div class="rl-list">
-                @foreach($modificados as $c)
-                    <p class="rl-card rl-card-mod" @if($loop->index >= $tramo) x-show="{{ $loop->index }} < visibles.modificado" style="display:none" @endif>
-                        @foreach($c['palabras'] as $p)
-                            @if($p['tipo'] === 'agregado')<span class="rl-add">{{ $p['texto'] }}</span>@elseif($p['tipo'] === 'eliminado')<span class="rl-del">{{ $p['texto'] }}</span>@else{{ $p['texto'] }}@endif
-                        @endforeach
-                    </p>
-                @endforeach
-            </div>
+            @foreach($modificados as $c)
+                <p class="rl-p" @if($loop->index >= $tramo) x-show="{{ $loop->index }} < visibles.modificado" style="display:none" @endif>
+                    @foreach($c['palabras'] as $p)
+                        @if($p['tipo'] === 'agregado')<span class="rl-add">{{ $p['texto'] }}</span>@elseif($p['tipo'] === 'eliminado')<span class="rl-del">{{ $p['texto'] }}</span>@else{{ $p['texto'] }}@endif
+                    @endforeach
+                </p>
+            @endforeach
             @if($modificados->count() > $tramo)
                 <div class="rl-mas" x-show="visibles.modificado < {{ $modificados->count() }}">
-                    <button type="button" class="rit-btn rit-btn-secondary" @click="visibles.modificado += {{ $tramo }}">Ver más cambios</button>
+                    <button type="button" class="rit-btn rit-btn-secondary" @click="visibles.modificado += {{ $tramo }}">Ver más</button>
                 </div>
             @endif
         @endif
