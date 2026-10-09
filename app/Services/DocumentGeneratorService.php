@@ -1887,11 +1887,9 @@ PROMPT;
      * Filas de la tabla de sanciones con RESPALDO: intenta primero SOLO la(s)
      * conducta(s) del incidente concreto (filasTablaSancionesDelIncidente); si
      * viene vacío - el proceso no tiene sanciones_laborales_ids en el formato
-     * esperado, o no coincide con conductasSancionablesDeEmpresa() - cae al
-     * catálogo completo del RIT (ReglamentoInternoService::filasTablaSanciones).
-     * Un caso real (empresa con RIT subido) mostró la tabla completamente
-     * vacía tras filtrar solo por incidente - mejor mostrar el catálogo
-     * completo que no mostrar nada en un documento legal.
+     * esperado, o no coincide con el catálogo del Reglamento aplicable al
+     * trabajador - usa la clasificación de la IA; y si tampoco hay, devuelve
+     * vacío (NUNCA vuelca el catálogo completo de faltas: ver comentario abajo).
      */
     private function filasTablaSancionesConFallback(ProcesoDisciplinario $proceso, $empresa): array
     {
@@ -1912,16 +1910,11 @@ PROMPT;
             return $filasIA;
         }
 
-        $rit = $empresa->reglamentoInterno;
-        if (!$rit) {
-            return [];
-        }
-
-        try {
-            return app(\App\Services\ReglamentoInternoService::class)->filasTablaSanciones($rit);
-        } catch (\Throwable $e) {
-            return [];
-        }
+        // Ya NO se cae al catálogo completo del RIT (reclamo real: el documento de
+        // sanción listaba todas las faltas leves/graves/muy graves en vez de la conducta
+        // incumplida). Si no se pudo determinar la conducta, la tabla queda sin filas y
+        // el documento lo dice, sin volcar faltas que no tienen relación con el caso.
+        return [];
     }
 
     /**
@@ -1988,7 +1981,7 @@ HTML;
 
         if ($filasTabla === '') {
             $filasTabla = $tieneRIT
-                ? '<tr><td colspan="3" style="border: 1px solid #000; padding: 6px; text-align: center;">No se encontró el cuadro de faltas en el Reglamento Interno de Trabajo de esta empresa.</td></tr>'
+                ? '<tr><td colspan="3" style="border: 1px solid #000; padding: 6px; text-align: center;">La conducta específica del Reglamento Interno de Trabajo aplicable se describe en el numeral 2 de este documento.</td></tr>'
                 : '<tr><td colspan="3" style="border: 1px solid #000; padding: 6px; text-align: center;">Esta empresa no tiene un Reglamento Interno de Trabajo registrado en el sistema.</td></tr>';
         }
 

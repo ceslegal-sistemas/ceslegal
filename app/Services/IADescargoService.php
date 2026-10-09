@@ -134,7 +134,7 @@ class IADescargoService
         // corrido y tenía que inferir la escala él mismo; con el catálogo ya
         // resumido y clasificado, el match es mucho más directo y confiable.
         $catalogoConductas = $empresaId
-            ? app(ReglamentoInternoService::class)->conductasSancionablesDeEmpresa((int) $empresaId)
+            ? app(ReglamentoInternoService::class)->conductasSancionablesDeEmpresa((int) $empresaId, $trabajadorId ? (int) $trabajadorId : null)
             : [];
 
         $historial = [];

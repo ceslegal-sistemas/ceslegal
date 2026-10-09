@@ -792,8 +792,21 @@ PROMPT;
      * Conductas sancionables EFECTIVAS de una empresa: del RIT activo si existen; si no,
      * el respaldo base del CST. Fuente única para el flujo de descargos y análisis.
      */
-    public function conductasSancionablesDeEmpresa(int $empresaId): array
+    public function conductasSancionablesDeEmpresa(int $empresaId, ?int $trabajadorId = null): array
     {
+        // Si se conoce al trabajador, se usa el catálogo del Reglamento que ÉL aceptó y
+        // que le aplica (la versión anterior si no ha aceptado la actualización), no el
+        // vigente de la empresa: sancionar con conductas de una versión que nunca
+        // aceptó no es oponible. Si esa versión no trae catálogo, se sigue con el vigente.
+        if ($trabajadorId) {
+            $ritAceptado = $this->ritAceptadoPorTrabajador($trabajadorId, $empresaId);
+            $conductasAceptado = $ritAceptado?->conductas_sancionables;
+            if (is_array($conductasAceptado)
+                && (!empty($conductasAceptado['leve']) || !empty($conductasAceptado['grave']) || !empty($conductasAceptado['gravisima']))) {
+                return $conductasAceptado;
+            }
+        }
+
         // Incluye fuente=mejora_ia a propósito: si el cliente ya adoptó un RIT
         // mejorado por la IA, ES su reglamento vigente - excluirlo aquí hacía
         // que este método volviera silenciosamente a las conductas del RIT
@@ -811,6 +824,24 @@ PROMPT;
         }
 
         return $this->conductasCstBase();
+    }
+
+    /**
+     * Reglamento (versión) que rige para el trabajador según lo que aceptó:
+     * Trabajador::aceptacionRitAplicable() (la del texto vigente si la aceptó; si no,
+     * la última que sí aceptó). null si nunca aceptó ninguno.
+     */
+    public function ritAceptadoPorTrabajador(int $trabajadorId, int $empresaId): ?ReglamentoInterno
+    {
+        $trabajador = \App\Models\Trabajador::withoutGlobalScope('bufeteOrEmpresa')->find($trabajadorId);
+        $aceptacion = $trabajador?->aceptacionRitAplicable();
+        if (!$aceptacion) {
+            return null;
+        }
+
+        return ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
+            ->where('empresa_id', $empresaId)
+            ->find($aceptacion->reglamento_interno_id);
     }
 
     /**

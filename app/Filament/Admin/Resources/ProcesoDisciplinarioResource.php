@@ -662,7 +662,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 }
 
                                 $conductas = app(\App\Services\ReglamentoInternoService::class)
-                                    ->conductasSancionablesDeEmpresa((int) $empresaId);
+                                    ->conductasSancionablesDeEmpresa((int) $empresaId, $get('trabajador_id') ? (int) $get('trabajador_id') : null);
 
                                 $etq = ['leve' => 'Leve', 'grave' => 'Grave', 'gravisima' => 'Muy grave'];
                                 foreach (['leve', 'grave', 'gravisima'] as $g) {
@@ -1026,7 +1026,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     $motivosSeleccionados = $get('sanciones_laborales_ids') ?? [];
                                     $motivosRit = [];
                                     $conductas = app(\App\Services\ReglamentoInternoService::class)
-                                        ->conductasSancionablesDeEmpresa((int) $empresaId);
+                                        ->conductasSancionablesDeEmpresa((int) $empresaId, $trabajadorId ? (int) $trabajadorId : null);
                                     foreach (['leve', 'grave', 'gravisima'] as $g) {
                                         foreach ($conductas[$g] ?? [] as $c) {
                                             if (!empty($c['conducta']) && in_array($c['conducta'], $motivosSeleccionados, true)) {

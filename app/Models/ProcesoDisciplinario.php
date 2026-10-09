@@ -484,7 +484,7 @@ class ProcesoDisciplinario extends Model
         $textos = array_values(array_filter($ids, fn($v) => $v !== 'otro' && !is_numeric($v)));
         if (!empty($textos)) {
             $conductas = app(\App\Services\ReglamentoInternoService::class)
-                ->conductasSancionablesDeEmpresa((int) $this->empresa_id);
+                ->conductasSancionablesDeEmpresa((int) $this->empresa_id, (int) $this->trabajador_id);
 
             $mapa = [];
             foreach (['leve' => 'leve', 'grave' => 'grave', 'gravisima' => 'muy_grave'] as $g => $gv) {
@@ -538,7 +538,7 @@ class ProcesoDisciplinario extends Model
         }
 
         $conductas = app(\App\Services\ReglamentoInternoService::class)
-            ->conductasSancionablesDeEmpresa((int) $this->empresa_id);
+            ->conductasSancionablesDeEmpresa((int) $this->empresa_id, (int) $this->trabajador_id);
 
         // Comparación tolerante a espacios/mayúsculas (2026-09-25, mismo fix
         // que IADescargoService::clasificarIncidente()) - defensa adicional

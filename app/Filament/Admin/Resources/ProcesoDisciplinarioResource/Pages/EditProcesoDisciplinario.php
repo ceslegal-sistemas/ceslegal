@@ -69,7 +69,7 @@ class EditProcesoDisciplinario extends EditRecord
         $motivosSeleccionados = $this->data['sanciones_laborales_ids'] ?? [];
         $motivosRit = [];
         $conductas = app(\App\Services\ReglamentoInternoService::class)
-            ->conductasSancionablesDeEmpresa((int) $empresaId);
+            ->conductasSancionablesDeEmpresa((int) $empresaId, (int) $trabajadorId);
         foreach (['leve', 'grave', 'gravisima'] as $g) {
             foreach ($conductas[$g] ?? [] as $c) {
                 if (!empty($c['conducta']) && in_array($c['conducta'], $motivosSeleccionados, true)) {
