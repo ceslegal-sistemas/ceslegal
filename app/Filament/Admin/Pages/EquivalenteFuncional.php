@@ -586,6 +586,7 @@ class EquivalenteFuncional extends Page implements HasTable
 
                 Tables\Filters\SelectFilter::make('empresa_nombre')
                     ->label('Empresa')
+                    ->visible(fn () => auth()->user()?->role !== 'cliente')
                     ->options(fn () => \App\Models\Empresa::query()->orderBy('razon_social')->pluck('razon_social', 'razon_social')->all()),
 
                 Tables\Filters\TernaryFilter::make('tiene_selfie')
