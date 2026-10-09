@@ -1,7 +1,12 @@
 <x-filament-panels::page>
     @include('filament.components.lupe-hero-styles')
+    @include('filament.components.documento-viewer-styles')
 
     <div style="display:flex;flex-wrap:wrap;gap:.5rem;">
+        <button type="button" wire:click="cambiarSeccion('todos')"
+            class="rit-btn {{ $seccion === 'todos' ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
+            Trazabilidad completa
+        </button>
         <button type="button" wire:click="cambiarSeccion('sanciones')"
             class="rit-btn {{ $seccion === 'sanciones' ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
             Sanciones / Incidentes
@@ -25,6 +30,10 @@
     </div>
 
     <div style="margin-top:1.25rem;">
-        {{ $this->table }}
+        @if($seccion === 'todos')
+            @include('filament.admin.pages.partials.equivalente-funcional-trazabilidad', ['datos' => $this->eventos()])
+        @else
+            {{ $this->table }}
+        @endif
     </div>
 </x-filament-panels::page>

@@ -53,8 +53,18 @@ class EquivalenteFuncional extends Page implements HasTable
 
     protected static string $view = 'filament.admin.pages.equivalente-funcional';
 
-    /** @var 'sanciones'|'rit'|'descargos'|'trabajadores'|'videos' */
-    public string $seccion = 'sanciones';
+    /** @var 'todos'|'sanciones'|'rit'|'descargos'|'trabajadores'|'videos' */
+    public string $seccion = 'todos';
+
+    // Filtros de la trazabilidad completa (sección 'todos').
+    public string $tipoEvento = 'todos';
+    public string $buscar = '';
+    public ?string $desde = null;
+    public ?string $hasta = null;
+    public bool $soloSelfie = false;
+    public int $pagina = 1;
+
+    private const POR_PAGINA = 15;
 
     public static function shouldRegisterNavigation(): bool
     {
@@ -75,6 +85,53 @@ class EquivalenteFuncional extends Page implements HasTable
     {
         $this->seccion = $seccion;
         $this->resetTable();
+    }
+
+    /** Un solo filtro cambia: se vuelve a la primera página. */
+    public function updatedTipoEvento(): void { $this->pagina = 1; }
+    public function updatedBuscar(): void { $this->pagina = 1; }
+    public function updatedDesde(): void { $this->pagina = 1; }
+    public function updatedHasta(): void { $this->pagina = 1; }
+    public function updatedSoloSelfie(): void { $this->pagina = 1; }
+
+    public function irAPagina(int $pagina): void
+    {
+        $this->pagina = max(1, $pagina);
+    }
+
+    public function limpiarFiltros(): void
+    {
+        $this->reset(['tipoEvento', 'buscar', 'desde', 'hasta', 'soloSelfie', 'pagina']);
+    }
+
+    /** Ver todos los eventos de un mismo proceso (p. ej. "Proceso DES-001" o "RIT #3"). */
+    public function filtrarPorProceso(string $clave): void
+    {
+        $this->reset(['tipoEvento', 'desde', 'hasta', 'soloSelfie']);
+        $this->buscar = $clave;
+        $this->pagina = 1;
+    }
+
+    /** @return array{items: \Illuminate\Support\Collection, total: int, pagina: int, paginas: int, tipos: array<string, string>} */
+    public function eventos(): array
+    {
+        $servicio = app(\App\Services\EquivalenteFuncionalService::class);
+
+        $resultado = $servicio->consultar([
+            'tipo' => $this->tipoEvento,
+            'buscar' => $this->buscar,
+            'desde' => $this->desde,
+            'hasta' => $this->hasta,
+            'solo_selfie' => $this->soloSelfie,
+        ], $this->pagina, self::POR_PAGINA);
+
+        $paginas = max(1, (int) ceil($resultado['total'] / self::POR_PAGINA));
+
+        return $resultado + [
+            'pagina' => min($this->pagina, $paginas),
+            'paginas' => $paginas,
+            'tipos' => $servicio->tipos(),
+        ];
     }
 
     public function table(Table $table): Table

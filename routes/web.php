@@ -272,6 +272,12 @@ Route::get('/trabajador/{trabajador}/acta-rit/{aceptacion}', [\App\Http\Controll
     ->middleware(['auth'])
     ->name('trabajador.acta-rit.descargar');
 
+// Selfie de un evento del reporte Equivalente Funcional (trazabilidad unificada, 2026-10-09)
+Route::get('/equivalente-funcional/selfie/{tipo}/{id}', [\App\Http\Controllers\EvidenciaSelfieController::class, 'mostrar'])
+    ->middleware(['auth'])
+    ->whereNumber('id')
+    ->name('equivalente-funcional.selfie');
+
 // Selfie de verificación de la aceptación del RIT (evidencia, 2026-10-08)
 Route::get('/trabajador/{trabajador}/foto-aceptacion-rit/{aceptacion}', [\App\Http\Controllers\AceptacionRitDescargaController::class, 'foto'])
     ->middleware(['auth'])
