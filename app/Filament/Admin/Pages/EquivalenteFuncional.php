@@ -491,9 +491,9 @@ class EquivalenteFuncional extends Page implements HasTable
     private function tablaTrazabilidad(Table $table): Table
     {
         $servicio = app(EquivalenteFuncionalService::class);
-        $color = fn (?string $tipo) => match (true) {
-            str_starts_with((string) $tipo, 'sancion_') => 'danger',
-            str_starts_with((string) $tipo, 'descargos_') => 'warning',
+        $color = fn ($state) => match (true) {
+            str_starts_with((string) $state, 'sancion_') => 'danger',
+            str_starts_with((string) $state, 'descargos_') => 'warning',
             default => 'primary',
         };
 
