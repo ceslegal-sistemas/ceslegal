@@ -54,7 +54,12 @@ class Impugnacion extends Model
     /** El análisis se está generando en segundo plano. */
     public function analisisIaEnCurso(): bool
     {
-        return in_array($this->analisis_ia_estado, ['pendiente', 'procesando'], true);
+        // Con tope: si el job murió (worker caído/reiniciado) la pantalla no debe quedar
+        // girando para siempre - pasados 6 min sin cambios se trata como fallido y se
+        // ofrece reintentarlo a mano.
+        return in_array($this->analisis_ia_estado, ['pendiente', 'procesando'], true)
+            && $this->updated_at
+            && $this->updated_at->gt(now()->subMinutes(6));
     }
 
     /** Pone el análisis en cola (también sirve para reintentar si falló). */

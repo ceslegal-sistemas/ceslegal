@@ -40,8 +40,8 @@
 @elseif (! $listo)
     <div class="imv-warn">
         <b>Análisis no disponible</b>
-        {{ $impugnacion->analisis_ia_estado === 'error' ? 'No pudimos generar el análisis automático esta vez.' : 'Todavía no se ha generado el análisis.' }}
-        Puede pedirlo con <strong>Generar análisis con IA</strong> (abajo), o resolver directamente con su criterio.
+        {{ in_array($impugnacion->analisis_ia_estado, ['error', 'pendiente', 'procesando'], true) ? 'No pudimos generar el análisis automático esta vez.' : 'Todavía no se ha generado el análisis.' }}
+        Puede reintentarlo con <strong>Generar análisis con IA</strong> en «Ver impugnación», o resolver directamente con su criterio.
     </div>
 @else
     {{-- Sugerencia principal --}}

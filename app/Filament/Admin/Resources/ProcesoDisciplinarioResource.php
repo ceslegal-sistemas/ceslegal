@@ -3262,10 +3262,20 @@ class ProcesoDisciplinarioResource extends Resource
                             $record->impugnacion !== null
                     )
                     ->modalHeading('Revisión de Impugnación')
-                    ->modalContent(fn(ProcesoDisciplinario $record) => view('filament.modals.revisar-impugnacion', [
-                        'proceso' => $record,
-                        'impugnacion' => $record->impugnacion,
-                    ]))
+                    ->modalContent(function (ProcesoDisciplinario $record) {
+                        // El análisis con IA se pide UNA sola vez y queda guardado: abrir esta
+                        // pantalla solo lo LEE (cero tokens). Solo si nunca se pidió (impugnaciones
+                        // anteriores a esta función) se encola aquí, una vez.
+                        $impugnacion = $record->impugnacion;
+                        if ($impugnacion && $impugnacion->analisis_ia_estado === null && $impugnacion->decision_final === null) {
+                            $impugnacion->solicitarAnalisisIa();
+                        }
+
+                        return view('filament.modals.revisar-impugnacion', [
+                            'proceso' => $record,
+                            'impugnacion' => $impugnacion,
+                        ]);
+                    })
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar')
                     ->extraModalFooterActions(fn(ProcesoDisciplinario $record) => array_values(array_filter([
@@ -3376,64 +3386,6 @@ class ProcesoDisciplinarioResource extends Resource
                             // Fundamento con botón de IA
                             Forms\Components\Section::make('Fundamento de la Decisión')
                                 ->schema([
-                                    Forms\Components\Actions::make([
-                                        Forms\Components\Actions\Action::make('sugerir_fundamento_ia')
-                                            ->label('Volver a generar el análisis con IA')
-                                            ->icon('heroicon-o-sparkles')
-                                            ->color('info')
-                                            ->size('sm')
-                                            ->action(function (Forms\Set $set, Forms\Get $get) {
-                                                $procesoId = $get('proceso_id');
-                                                $record = ProcesoDisciplinario::findOrFail($procesoId);
-
-                                                $iaService = new \App\Services\IAResolucionImpugnacionService();
-                                                $resultado = $iaService->analizarImpugnacion($record);
-                                                $analisis = $resultado['analisis'];
-
-                                                // Se guarda también en la impugnación: "Ver impugnación" muestra el último análisis.
-                                                $record->impugnacion?->forceFill([
-                                                    'analisis_ia' => $analisis,
-                                                    'analisis_ia_estado' => $resultado['success'] ? 'completado' : 'error',
-                                                    'analisis_ia_en' => now(),
-                                                ])->saveQuietly();
-
-                                                // Llenar cache de análisis (actualiza la sección de análisis)
-                                                $set('analisis_cache', json_encode($analisis));
-
-                                                // Llenar fundamento sugerido
-                                                $set('fundamento_decision', $analisis['fundamento_juridico'] ?? '');
-
-                                                // Establecer decisión recomendada
-                                                if (isset($analisis['decision_recomendada'])) {
-                                                    $set('decision_final', $analisis['decision_recomendada']);
-                                                }
-
-                                                // Si sugiere modificación con suspensión
-                                                if (
-                                                    ($analisis['modificacion_sugerida']['aplica'] ?? false) &&
-                                                    ($analisis['modificacion_sugerida']['nueva_sancion'] ?? null) === 'suspension'
-                                                ) {
-                                                    $set('nueva_sancion_tipo', 'suspension');
-                                                }
-
-                                                if ($resultado['success']) {
-                                                    \Filament\Notifications\Notification::make()
-                                                        ->success()
-                                                        ->title('Análisis generado')
-                                                        ->body('El análisis y fundamento se generaron correctamente. Revise y edite según corresponda.')
-                                                        ->duration(5000)
-                                                        ->send();
-                                                } else {
-                                                    \Filament\Notifications\Notification::make()
-                                                        ->warning()
-                                                        ->title('Análisis parcial')
-                                                        ->body('No se pudo generar el análisis completo. Se recomienda escribir el fundamento manualmente.')
-                                                        ->duration(5000)
-                                                        ->send();
-                                                }
-                                            }),
-                                    ])->fullWidth(),
-
                                     Forms\Components\Textarea::make('fundamento_decision')
                                         ->label('Fundamento')
                                         ->default(fn() => $impugnacion->analisis_ia_estado === 'completado'
@@ -3441,7 +3393,7 @@ class ProcesoDisciplinarioResource extends Resource
                                             : '')
                                         ->required()
                                         ->rows(8)
-                                        ->placeholder('Escriba el fundamento jurídico o haga clic en "Sugerir fundamento con IA" para generar uno automáticamente...')
+                                        ->placeholder('Escriba el fundamento jurídico de su decisión. Si el análisis con IA ya está listo, aquí aparece precargado.')
                                         ->helperText('Este texto se incluirá en el documento de resolución. Viene precargado con la sugerencia de la IA: revíselo y ajústelo; la decisión es de su empresa.'),
                                 ]),
                         ];
