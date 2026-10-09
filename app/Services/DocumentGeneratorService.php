@@ -1477,6 +1477,8 @@ HTML;
         };
 
         $diasImpugnacion = 3; // Días hábiles para impugnar según ley colombiana
+        // Enlace personal del portal donde el trabajador presenta su impugnación en línea.
+        $urlImpugnacionDoc = $proceso->urlImpugnacion();
 
         // Preparar texto específico para suspensiones. Fechas calculadas por el
         // servidor, NUNCA pedidas al cliente ni dejadas a que la IA las invente:
@@ -1619,6 +1621,7 @@ Genera HTML con exactamente esta estructura:
 
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">7. Sus derechos de impugnación</h3>
   <p style="margin: 4px 0;">Si no está de acuerdo con esta decisión, usted tiene derecho a presentar una impugnación. Esto significa que puede solicitar una nueva revisión de su caso. Cuenta con {$diasImpugnacion} días hábiles a partir de la fecha de esta notificación para ejercer este derecho.</p>
+  <p style="margin: 4px 0;">Puede presentarla usted mismo(a), en línea y de forma segura, en el enlace personal que recibió en el correo de esta notificación: {$urlImpugnacionDoc}</p>
 
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 12px 0 4px 0; color: #000000;">Artículo 20. Tabla de sanciones</h3>
   {$tablaSanciones}
@@ -2225,12 +2228,30 @@ HTML;
         };
         $nombreArchivo = 'Sancion_' . $nombreSancion . '_' . $proceso->codigo . '.' . $extension;
 
+        // Enlace personal para que el trabajador presente su impugnación en el portal
+        // (solo si todavía no existe una: este método también se usa al re-enviar una
+        // sanción modificada). La fecha límite se calcula igual que lo hará el observer
+        // al pasar el proceso a 'sancion_emitida' (3 días hábiles de la empresa).
+        $urlImpugnacion = null;
+        $limiteImpugnacion = null;
+        if (! $proceso->impugnacion()->exists()) {
+            $urlImpugnacion = $proceso->urlImpugnacion();
+            $limiteImpugnacion = $proceso->fecha_limite_impugnacion
+                ?? app(\App\Services\TerminoLegalService::class)->calcularFechaVencimiento(
+                    now(),
+                    3,
+                    $empresa?->diasHabilesSet() ?? \App\Support\DiasHabiles::DEFECTO
+                );
+        }
+
         Mail::send('emails.sancion-notificacion', [
             'proceso' => $proceso,
             'trabajador' => $trabajador,
             'empresa' => $empresa,
             'tipoSancion' => $nombreSancion,
             'trackingToken' => $tracking->token,
+            'urlImpugnacion' => $urlImpugnacion,
+            'limiteImpugnacion' => $limiteImpugnacion,
         ], function ($message) use ($trabajador, $proceso, $documentoPath, $nombreArchivo, $mimeType, $nombreSancion) {
             $message->to($trabajador->email, $trabajador->nombre_completo)
                 ->subject('Notificación de ' . $nombreSancion . ' - Proceso ' . $proceso->codigo)

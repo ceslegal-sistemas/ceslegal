@@ -3015,33 +3015,61 @@ class ProcesoDisciplinarioResource extends Resource
                             ->send();
                     }),
 
-                // Acción: Registrar Impugnación (solo dentro de 3 días hábiles)
+                // Acción: Enlace de impugnación. El TRABAJADOR presenta su impugnación en el
+                // portal público (/impugnar/{token}); aquí la empresa solo ve/copia el enlace
+                // y puede reenviárselo. Reemplaza a "Registrar Impugnación" como camino principal.
+                Tables\Actions\Action::make('enlace_impugnacion')
+                    ->label('Enlace de impugnación')
+                    ->icon('heroicon-o-link')
+                    ->color('warning')
+                    ->visible(fn(ProcesoDisciplinario $record) => $record->puedeImpugnarse())
+                    ->modalHeading('Enlace de impugnación del trabajador')
+                    ->modalContent(fn(ProcesoDisciplinario $record) => view('filament.modals.enlace-impugnacion', [
+                        'trabajador' => $record->trabajador?->nombre_completo,
+                        'correo' => $record->trabajador?->email,
+                        'url' => $record->urlImpugnacion(),
+                        'limite' => $record->limiteImpugnacion(),
+                    ]))
+                    ->modalWidth('2xl')
+                    ->modalSubmitActionLabel('Reenviar al trabajador')
+                    ->modalCancelActionLabel('Cerrar')
+                    ->action(function (ProcesoDisciplinario $record) {
+                        $email = $record->trabajador?->email;
+                        if (!$email) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('El trabajador no tiene correo registrado')
+                                ->body('Copie el enlace y entréguelo por otro medio, o actualice el correo del trabajador.')
+                                ->send();
+
+                            return;
+                        }
+
+                        try {
+                            \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\ImpugnacionEnlace($record));
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Enlace reenviado')
+                                ->body("Se envió el enlace de impugnación a {$email}.")
+                                ->send();
+                        } catch (\Throwable $e) {
+                            report($e);
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('No se pudo enviar el correo')
+                                ->body('Copie el enlace y compártalo por otro medio.')
+                                ->send();
+                        }
+                    }),
+
+                // Acción: Registrar Impugnación a nombre del trabajador - SOLO para cuando la
+                // presentó por otro medio (carta física, verbal, correo). Lo normal es que la
+                // presente él mismo en el portal (acción de arriba) y se registre sola.
                 Tables\Actions\Action::make('registrar_impugnacion')
-                    ->label('Registrar Impugnación')
+                    ->label('Registrar impugnación (otro medio)')
                     ->icon('heroicon-o-exclamation-triangle')
-                    ->color('danger')
-                    ->visible(function (ProcesoDisciplinario $record) {
-                        if ($record->estado !== 'sancion_emitida' || $record->impugnacion !== null) {
-                            return false;
-                        }
-
-                        // Verificar plazo de 3 días hábiles desde la notificación
-                        $fechaNotificacion = $record->fecha_notificacion;
-                        if (!$fechaNotificacion) {
-                            return true;
-                        }
-
-                        $fechaLimite = \Carbon\Carbon::parse($fechaNotificacion)->copy();
-                        $diasContados = 0;
-                        while ($diasContados < 3) {
-                            $fechaLimite->addDay();
-                            if ($fechaLimite->isWeekday()) {
-                                $diasContados++;
-                            }
-                        }
-
-                        return now()->startOfDay()->lte($fechaLimite);
-                    })
+                    ->color('gray')
+                    ->visible(fn(ProcesoDisciplinario $record) => $record->puedeImpugnarse())
                     ->form([
                         Forms\Components\DatePicker::make('fecha_impugnacion')
                             ->label('Fecha de Impugnación')
@@ -3134,7 +3162,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->modalHeading('Registrar Impugnación del Trabajador')
                     ->modalDescription(
                         fn(ProcesoDisciplinario $record) =>
-                        "Registre la impugnación presentada por {$record->trabajador->nombre_completo} contra la sanción emitida."
+                        "Use esta opción solo si {$record->trabajador->nombre_completo} impugnó por carta física, de forma verbal o por correo. Si usa el enlace de impugnación, se registra sola."
                     )
                     ->modalSubmitActionLabel('Registrar Impugnación')
                     ->modalWidth('lg')
@@ -3189,6 +3217,7 @@ class ProcesoDisciplinarioResource extends Resource
                                     'sancion_id' => $record->sancion?->id,
                                     'fecha_impugnacion' => $data['fecha_impugnacion'],
                                     'medio_recepcion' => $data['medio_recepcion'],
+                                    'registrada_por' => 'empresa',
                                     'motivos_impugnacion' => $motivosTexto,
                                     'pruebas_adicionales' => $data['pruebas_adicionales'] ?? null,
                                 ]);

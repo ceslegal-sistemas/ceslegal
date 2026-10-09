@@ -504,6 +504,7 @@ class EquivalenteFuncional extends Page implements HasTable
         $color = fn ($state) => match (true) {
             str_starts_with((string) $state, 'sancion_') => 'danger',
             str_starts_with((string) $state, 'descargos_') => 'warning',
+            str_starts_with((string) $state, 'impugnacion_') => 'info',
             default => 'primary',
         };
 
@@ -668,7 +669,7 @@ class EquivalenteFuncional extends Page implements HasTable
     private function urlProceso(EventoEquivalenteFuncional $r): ?string
     {
         return match (true) {
-            str_starts_with($r->tipo, 'sancion_'), str_starts_with($r->tipo, 'descargos_') => $r->ref_proceso
+            str_starts_with($r->tipo, 'sancion_'), str_starts_with($r->tipo, 'descargos_'), str_starts_with($r->tipo, 'impugnacion_') => $r->ref_proceso
                 ? ProcesoDisciplinarioResource::getUrl('view', ['record' => $r->ref_proceso])
                 : null,
             $r->tipo === 'rit_auditoria' => \App\Filament\Admin\Pages\AuditarRIT::getUrl(),

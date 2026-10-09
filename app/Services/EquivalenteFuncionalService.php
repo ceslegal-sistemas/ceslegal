@@ -8,6 +8,7 @@ use App\Models\AutorizacionReglamentoInterno;
 use App\Models\CulminacionSocializacionRit;
 use App\Models\DiligenciaDescargo;
 use App\Models\Empresa;
+use App\Models\Impugnacion;
 use App\Models\EventoEquivalenteFuncional;
 use App\Models\ProcesoDisciplinario;
 use App\Models\Trabajador;
@@ -53,6 +54,7 @@ class EquivalenteFuncionalService
         'rit_aceptacion' => 'Aceptación del Reglamento por el trabajador',
         'rit_culminacion' => 'Culminación de la socialización del Reglamento',
         'rit_auditoria' => 'Declaración de autoridad en la auditoría del Reglamento',
+        'impugnacion_trabajador' => 'Impugnación presentada por el trabajador',
     ];
 
     /** Qué significa cada columna d1/d2/d3 según el tipo de evento (null = no se usa). */
@@ -66,6 +68,7 @@ class EquivalenteFuncionalService
         'rit_aceptacion' => ['Quiz de comprensión', 'Huella del texto aceptado', null],
         'rit_culminacion' => ['Huella del texto', null, null],
         'rit_auditoria' => ['Documento del responsable', 'Declaró tener autoridad para aceptar', null],
+        'impugnacion_trabajador' => ['Radicado', 'Identidad verificada por código (OTP)', null],
     ];
 
     public function tipos(): array
@@ -371,6 +374,34 @@ class EquivalenteFuncionalService
                     'dispositivo' => $this->texto('culminaciones_socializacion_rit.user_agent'),
                     'tiene_selfie' => $conSelfie('culminaciones_socializacion_rit.foto_admin_path'),
                     'd1' => 'culminaciones_socializacion_rit.texto_rit_hash',
+                ],
+            ),
+
+            'impugnacion_trabajador' => $this->seleccion(
+                Impugnacion::query()
+                    ->join('procesos_disciplinarios as p', 'p.id', '=', 'impugnaciones.proceso_id')
+                    ->leftJoin('trabajadores as t', 't.id', '=', 'p.trabajador_id')
+                    ->leftJoin('empresas as e', 'e.id', '=', 'p.empresa_id')
+                    ->where('impugnaciones.registrada_por', 'trabajador')
+                    ->whereIn('impugnaciones.proceso_id', $procesos()),
+                [
+                    'uid' => $this->concat(["'impugnacion_trabajador-'", 'impugnaciones.id']),
+                    'tipo' => "'impugnacion_trabajador'",
+                    'id_origen' => 'impugnaciones.id',
+                    'fecha' => 'impugnaciones.fecha_impugnacion',
+                    'proceso_clave' => $this->concat(["'Proceso '", 'p.codigo']),
+                    'ref_proceso' => 'p.id',
+                    'ref_trabajador' => 'p.trabajador_id',
+                    'actor_nombre' => $this->concat(['t.nombres', "' '", 't.apellidos']),
+                    'actor_cargo' => 't.cargo',
+                    'sujeto_nombre' => $this->concat(['t.nombres', "' '", 't.apellidos']),
+                    'sujeto_documento' => 't.numero_documento',
+                    'empresa_nombre' => 'e.razon_social',
+                    'ip' => 'impugnaciones.ip_registro',
+                    'dispositivo' => $this->texto('impugnaciones.user_agent'),
+                    'tiene_selfie' => '0',
+                    'd1' => $this->concat(["'IMP-'", 'impugnaciones.id']),
+                    'd2' => $this->texto('impugnaciones.otp_verificado_en'),
                 ],
             ),
 

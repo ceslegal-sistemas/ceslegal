@@ -57,6 +57,23 @@
         </div>
     </div>
 
+    {{-- Origen de la impugnación: portal del trabajador (con evidencia) o registrada por la empresa --}}
+    @if($impugnacion->presentadaPorElTrabajador())
+        <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-700">
+            <h3 class="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
+                Presentada por el trabajador en el portal ({{ $impugnacion->radicado() }})
+            </h3>
+            <p class="text-sm text-gray-700 dark:text-gray-300">
+                El trabajador verificó su identidad con un código enviado a su correo
+                @if($impugnacion->otp_verificado_en)
+                    ({{ $impugnacion->otp_verificado_en->timezone('America/Bogota')->locale('es')->isoFormat('D [de] MMMM YYYY, h:mm a') }})
+                @endif
+                y presentó la impugnación él mismo.
+                @if($impugnacion->ip_registro) Dirección IP: <strong>{{ $impugnacion->ip_registro }}</strong>. @endif
+            </p>
+        </div>
+    @endif
+
     {{-- Motivos de Impugnación --}}
     <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-700">
         <h3 class="text-lg font-semibold text-yellow-900 dark:text-yellow-100 mb-3">

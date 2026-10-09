@@ -46,6 +46,12 @@ class ProcesoDisciplinario extends Model
         'dias_suspension',
         'fecha_notificacion',
         'fecha_limite_impugnacion',
+        'impugnacion_token',
+        'impugnacion_otp_hash',
+        'impugnacion_otp_enviado_en',
+        'impugnacion_otp_expira_en',
+        'impugnacion_otp_intentos',
+        'impugnacion_otp_verificado_en',
         'impugnado',
         'fecha_impugnacion',
         'fecha_cierre',
@@ -92,6 +98,9 @@ class ProcesoDisciplinario extends Model
         'decision_sancion' => 'boolean',
         'fecha_notificacion' => 'datetime',
         'fecha_limite_impugnacion' => 'datetime',
+        'impugnacion_otp_enviado_en' => 'datetime',
+        'impugnacion_otp_expira_en' => 'datetime',
+        'impugnacion_otp_verificado_en' => 'datetime',
         'impugnado' => 'boolean',
         'fecha_impugnacion' => 'datetime',
         'fecha_cierre' => 'datetime',
@@ -234,6 +243,67 @@ class ProcesoDisciplinario extends Model
     public function impugnacion(): HasOne
     {
         return $this->hasOne(Impugnacion::class, 'proceso_id');
+    }
+
+    // ─── Impugnación (portal del trabajador) ─────────────────────────────────
+
+    /**
+     * Último instante en que el trabajador puede impugnar. La fuente de verdad es
+     * fecha_limite_impugnacion (la fija el observer al emitir la sanción: 3 días
+     * hábiles según la jornada de la empresa y sus festivos). Solo si falta (procesos
+     * viejos) se recalcula con lunes a viernes desde la notificación.
+     */
+    public function limiteImpugnacion(): ?\Carbon\Carbon
+    {
+        if ($this->fecha_limite_impugnacion) {
+            return $this->fecha_limite_impugnacion->copy()->endOfDay();
+        }
+
+        if (! $this->fecha_notificacion) {
+            return null;
+        }
+
+        $limite = $this->fecha_notificacion->copy();
+        for ($dias = 0; $dias < 3;) {
+            $limite->addDay();
+            if ($limite->isWeekday()) {
+                $dias++;
+            }
+        }
+
+        return $limite->endOfDay();
+    }
+
+    /** ¿Se puede (todavía) presentar una impugnación? Sanción emitida, sin una previa y dentro del plazo. */
+    public function puedeImpugnarse(): bool
+    {
+        if ($this->estado !== 'sancion_emitida' || $this->impugnacion()->exists()) {
+            return false;
+        }
+
+        $limite = $this->limiteImpugnacion();
+
+        return $limite === null || now()->lte($limite);
+    }
+
+    /** Token personal del enlace de impugnación (se crea una sola vez y se reutiliza). */
+    public function asegurarTokenImpugnacion(): string
+    {
+        if (! $this->impugnacion_token) {
+            // UPDATE directo (no ->save()): este método se llama en medio de flujos que
+            // tienen otros atributos del proceso sin guardar; no deben persistirse aquí.
+            $token = bin2hex(random_bytes(32));
+            $this->newQueryWithoutScopes()->whereKey($this->getKey())->update(['impugnacion_token' => $token]);
+            $this->setAttribute('impugnacion_token', $token);
+            $this->syncOriginalAttribute('impugnacion_token');
+        }
+
+        return $this->impugnacion_token;
+    }
+
+    public function urlImpugnacion(): string
+    {
+        return route('impugnacion.acceso', ['token' => $this->asegurarTokenImpugnacion()]);
     }
 
     public function documentos(): MorphMany

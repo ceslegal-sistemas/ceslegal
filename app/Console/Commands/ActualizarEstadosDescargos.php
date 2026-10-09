@@ -369,17 +369,12 @@ class ActualizarEstadosDescargos extends Command
             ->get();
 
         foreach ($procesos as $proceso) {
-            // Calcular fecha límite de impugnación (3 días hábiles desde la notificación)
+            // Fecha límite de impugnación: la misma que ve el trabajador en el portal
+            // (fecha_limite_impugnacion, 3 días hábiles según jornada y festivos de la
+            // empresa; si falta, lunes a viernes desde la notificación). Antes aquí se
+            // recalculaba aparte y podía cerrar el proceso mientras el portal seguía abierto.
             $fechaNotificacion = Carbon::parse($proceso->fecha_notificacion);
-            $fechaLimite = $fechaNotificacion->copy();
-            $diasContados = 0;
-
-            while ($diasContados < 3) {
-                $fechaLimite->addDay();
-                if ($fechaLimite->isWeekday()) {
-                    $diasContados++;
-                }
-            }
+            $fechaLimite = $proceso->limiteImpugnacion()->startOfDay();
 
             // Si ya pasó la fecha límite, cerrar el proceso
             if (now()->startOfDay()->gt($fechaLimite)) {

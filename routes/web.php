@@ -62,6 +62,12 @@ Route::post('/transcribir', \App\Http\Controllers\TranscribeController::class)
 Route::get('/descargos/{token}', [DescargoPublicoController::class, 'mostrarAcceso'])
     ->name('descargos.acceso');
 
+// Portal del trabajador para presentar su impugnación (enlace personal que llega en el
+// correo de la sanción). Sin auth: el token + el código OTP al correo son la autorización.
+Route::get('/impugnar/{token}', [\App\Http\Controllers\ImpugnacionPublicaController::class, 'mostrar'])
+    ->middleware('throttle:60,1')
+    ->name('impugnacion.acceso');
+
 Route::get('/rit/socializar/{token}', [\App\Http\Controllers\SocializacionRitPublicoController::class, 'mostrar'])
     ->name('rit.socializar')
     ->where('token', '[a-f0-9]+');
