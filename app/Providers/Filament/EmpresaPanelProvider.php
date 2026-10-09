@@ -12,11 +12,9 @@ use Filament\PanelProvider;
  * /empresa en vez de /admin (pedido explícito: el cliente nunca debe ver
  * "/admin" en la barra de direcciones).
  *
- * No tiene ->registration() propio: el registro de cuentas nuevas sigue
- * viviendo solo en el panel admin (un solo formulario de registro/login,
- * ver AdminPanelProvider) - este panel solo necesita ->login() como red de
- * seguridad para que una sesión vencida en /empresa no truene, nunca se
- * enlaza a /empresa/login desde ningún lado del sistema.
+ * Comparte con 'admin' el mismo formulario de login y de registro de cuentas
+ * (Auth\Login / Auth\Register): el cliente puede abrir su cuenta desde
+ * /empresa/login y, al terminar, Register lo deja en su propio panel (/empresa).
  *
  * Sin FilamentShieldPlugin a propósito: Shield administra roles/permisos y
  * registra su propio Resource - vive solo en 'admin' (ver
@@ -32,6 +30,7 @@ class EmpresaPanelProvider extends PanelProvider
             ->id('empresa')
             ->path('empresa')
             ->login(\App\Filament\Admin\Pages\Auth\Login::class)
+            ->registration(\App\Filament\Admin\Pages\Auth\Register::class)
             ->passwordReset()
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
