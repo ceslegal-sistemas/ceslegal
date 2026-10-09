@@ -35,6 +35,50 @@
         disclaimerAceptado: false,
         disclaimerMarcado: false,
         stream: null,
+        // Móvil: se usa para bajar la carga de detección y pedir un video más liviano.
+        esMovil: /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches),
+        // Alto del visor en % del ancho (75 = 4:3 horizontal; hasta 125 en vertical),
+        // ajustado al video real: en el celular la cámara entrega fotogramas verticales
+        // y un visor fijo 4:3 los recortaba / dejaba franjas negras.
+        ratioPct: 75,
+        ajustarRatio() {
+            const v = this.$refs.video;
+            if (v && v.videoWidth && v.videoHeight) {
+                this.ratioPct = Math.round(Math.min(125, Math.max(75, (v.videoHeight / v.videoWidth) * 100)) * 10) / 10;
+            }
+        },
+        // Evita que las detecciones (asíncronas y pesadas) se apilen: setInterval
+        // lanzaba una nueva cada 250 ms aunque la anterior no hubiera terminado, y en
+        // el celular eso saturaba el hilo principal (el scroll se congelaba unos
+        // segundos). Con esto solo corre una a la vez y ninguna con la pestaña oculta.
+        conGuardia(fn) {
+            let enCurso = false;
+            return async () => {
+                if (enCurso || document.hidden) return;
+                enCurso = true;
+                try { await fn(); } finally { enCurso = false; }
+            };
+        },
+        async adjuntarVideo() {
+            const video = this.$refs.video;
+            video.muted = true;
+            video.setAttribute('playsinline', '');
+            video.setAttribute('webkit-playsinline', '');
+            video.onloadedmetadata = () => this.ajustarRatio();
+            video.onresize = () => this.ajustarRatio();
+            video.srcObject = this.stream;
+            await this.$nextTick();
+            // iOS no siempre arranca el autoplay si el video estaba en un contenedor oculto.
+            try { await video.play(); } catch (e) { /* se reintenta con el siguiente fotograma */ }
+            this.ajustarRatio();
+        },
+        pedirCamara() {
+            return navigator.mediaDevices.getUserMedia({
+                video: this.esMovil
+                    ? { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+                    : { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+            });
+        },
         fotoCapturada: null,
         errorCamara: false,
         modelsCargados: false,
@@ -71,10 +115,8 @@
             // permiso de cámara al navegador.
             if (!this.disclaimerAceptado) return;
             try {
-                this.stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
-                });
-                this.$refs.video.srcObject = this.stream;
+                this.stream = await this.pedirCamara();
+                await this.adjuntarVideo();
                 this.errorCamara = false;
                 await this.cargarModelos();
             } catch (e) {
@@ -224,12 +266,12 @@
             if (this.intervaloDeteccion) clearInterval(this.intervaloDeteccion);
             // 250ms: un parpadeo dura ~100-400ms; a 500ms se perdía la fase de
             // ojos cerrados y la prueba de vida casi nunca se disparaba.
-            this.intervaloDeteccion = setInterval(async () => {
+            this.intervaloDeteccion = setInterval(this.conGuardia(async () => {
                 const video = this.$refs.video;
                 if (!video || video.readyState < 2 || !video.videoWidth || this.fotoCapturada) return;
                 try {
                     const detection = await faceapi
-                        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.65 }))
+                        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: this.esMovil ? 160 : 224, scoreThreshold: 0.65 }))
                         .withFaceLandmarks(true);
 
                     if (!detection) { this.estadoRostro = 'sin_rostro'; return; }
@@ -275,7 +317,7 @@
 
                     this.estadoRostro = 'ok';
                 } catch (e) { /* ignorar errores de detección */ }
-            }, 250);
+            }), 250);
         },
 
         iniciarDeteccionAccesorios() {
@@ -289,7 +331,7 @@
             // petición web en vez de en una cola, a diferencia del análisis
             // inicial de gravedad que sí usa GenerarRecomendacionYRevisarV6Job -
             // ese patrón (cola + polling de progreso) es el que falta extender ahí.
-            this.intervaloAccesorios = setInterval(async () => {
+            this.intervaloAccesorios = setInterval(this.conGuardia(async () => {
                 if (this.fotoCapturada || this.revisandoAccesorios || this.verificandoAccesoriosVivo) return;
                 if (this.estadoRostro !== 'ok' && this.estadoRostro !== 'falta_parpadeo') return;
                 const video = this.$refs.video;
@@ -309,7 +351,7 @@
                     this.alertaAccesorios = $wire.alertaAccesorios;
                 } catch (e) {}
                 this.verificandoAccesoriosVivo = false;
-            }, 5000);
+            }), 5000);
         },
 
         async tomarFoto() {
@@ -482,23 +524,24 @@
                  confirmada de que el video se viera diminuto en una esquina
                  en socializacion-rit). Funciona en cualquier navegador desde
                  CSS2. --}}
-            <div class="relative rounded-xl overflow-hidden bg-black" style="width: 100%; height: 0; padding-bottom: 75%;">
-                <video x-ref="video" autoplay playsinline muted
+            <div class="relative rounded-xl overflow-hidden bg-black" style="width: 100%; height: 0; padding-bottom: 75%; isolation: isolate; transform: translateZ(0);"
+                 :style="'padding-bottom: ' + ratioPct + '%'">
+                <video x-ref="video" autoplay playsinline webkit-playsinline muted disablepictureinpicture
                     class="absolute inset-0 w-full h-full object-cover"
-                    style="transform: scaleX(-1);"></video>
+                    style="transform: scaleX(-1); -webkit-transform: scaleX(-1);"></video>
 
                 <svg class="absolute inset-0 w-full h-full pointer-events-none"
-                    viewBox="0 0 100 75" preserveAspectRatio="none">
+                    :viewBox="'0 0 100 ' + ratioPct" preserveAspectRatio="none">
                     <defs>
                         <mask id="encuadre-{{ $fase }}">
-                            <rect width="100" height="75" fill="white"/>
-                            <ellipse cx="50" cy="36" rx="23" ry="29" fill="black"/>
+                            <rect width="100" :height="ratioPct" fill="white"/>
+                            <ellipse cx="50" :cy="ratioPct * 0.48" rx="23" :ry="Math.min(ratioPct * 0.387, 31)" fill="black"/>
                         </mask>
                     </defs>
-                    <rect width="100" height="75" fill="rgba(0,0,0,0.48)" mask="url(#encuadre-{{ $fase }})"/>
-                    <ellipse cx="50" cy="36" rx="23" ry="29" fill="none"
+                    <rect width="100" :height="ratioPct" fill="rgba(0,0,0,0.48)" mask="url(#encuadre-{{ $fase }})"/>
+                    <ellipse cx="50" :cy="ratioPct * 0.48" rx="23" :ry="Math.min(ratioPct * 0.387, 31)" fill="none"
                         :stroke="colorEncuadre" stroke-width="0.9" stroke-dasharray="3,1.5"/>
-                    <text x="50" y="71" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="3.8"
+                    <text x="50" :y="ratioPct - 4" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="3.8"
                         x-show="modelsCargados && estadoRostro !== 'ok' && estadoRostro !== 'muy_lejos' && estadoRostro !== 'falta_parpadeo'">
                         Centre su rostro aquí
                     </text>
