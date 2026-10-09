@@ -2839,12 +2839,14 @@ class ProcesoDisciplinarioResource extends Resource
                         $opcionesDias = session('opciones_dias_' . $record->id, []);
 
                         if (empty($opcionesDias)) {
-                            // Si no hay opciones, cargar desde el análisis en cache
-                            $iaService = new \App\Services\IAAnalisisSancionService();
-                            $resultado = $iaService->analizarYSugerirSanciones($record);
-                            $analisis = $resultado['analisis'];
-
-                            $opcionesDias = self::opcionesDiasSuspension($analisis);
+                            // Sin opciones en sesión (sesión nueva, o un valor vacío guardado antes
+                            // de existir el rango por defecto): se usa el rango legal por defecto.
+                            // Antes se volvía a llamar a la IA completa (análisis de sanción) solo
+                            // para rearmar esta lista - de ahí que el modal tardara decenas de
+                            // segundos en abrir cada vez.
+                            $opcionesDias = self::opcionesDiasSuspension(
+                                (array) ($record->analisis_recomendacion['analisis'] ?? [])
+                            );
                         }
 
                         return [
