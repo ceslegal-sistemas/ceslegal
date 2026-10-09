@@ -784,10 +784,10 @@ button.wca-btn-secondary:hover {
                      puede ser mucho más ancho que un recuadro 4:3 cómodo); en móvil, más angosto
                      que el tope, simplemente ocupa el 100% de su contenedor como antes. --}}
                 <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3;max-width:480px;margin:0 auto;isolation:isolate;transform:translateZ(0);"
-                     :style="'aspect-ratio:100/' + ratioPct">
+                     :style="{ aspectRatio: '100 / ' + ratioPct }">
                     <video x-ref="video" autoplay playsinline webkit-playsinline muted disablepictureinpicture
                            style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);-webkit-transform:scaleX(-1);display:block;transition:opacity .25s;"
-                           :style="videoListo ? 'opacity:1' : 'opacity:0'"></video>
+                           :style="{ opacity: videoListo ? 1 : 0 }"></video>
 
                     {{-- Overlay oval --}}
                     {{-- Óvalo guía en HTML/CSS (antes SVG con viewBox dinámico, que se desalineaba con el
@@ -795,7 +795,7 @@ button.wca-btn-secondary:hover {
                  a la altura del rostro. El oscurecido de afuera es el box-shadow gigante; el
                  contenedor tiene overflow:hidden. --}}
                 <div style="position:absolute;pointer-events:none;border-radius:50%;border:3px dashed transparent;box-sizing:border-box;left:26%;width:48%;box-shadow:0 0 0 100vmax rgba(0,0,0,0.48);top:10%;height:80%;"
-                     :style="'height:' + (6000 / ratioPct) + '%;top:' + ((ratioPct <= 80 ? 48 : 42) - 3000 / ratioPct) + '%;border-color:' + colorEncuadre"></div>
+                     :style="{ height: (6000 / ratioPct) + '%', top: ((ratioPct <= 80 ? 48 : 42) - 3000 / ratioPct) + '%', borderColor: colorEncuadre }"></div>
                 <div x-show="modelsCargados && estadoRostro !== 'ok'" style="display:none;position:absolute;top:8px;left:0;right:0;text-align:center;pointer-events:none;">
                     <span style="background:rgba(0,0,0,0.55);color:rgba(255,255,255,0.92);font-size:12px;padding:3px 10px;border-radius:999px;">Centre su rostro aquí</span>
                 </div>

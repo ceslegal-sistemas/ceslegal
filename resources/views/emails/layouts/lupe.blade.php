@@ -99,9 +99,17 @@
                 <table role="presentation" class="lupe-wrap" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;">
 
                     {{-- ═══ HERO (mismo look claro que "Mi Reglamento Interno") ═══ --}}
+                    {{-- Franja de marca (degradado rojo→naranja→dorado, SIN texto encima) --}}
+                    <tr>
+                        <td height="8" bgcolor="#e11d48" style="height:8px;line-height:8px;font-size:0;background-color:#e11d48;background-image:linear-gradient(90deg,#e11d48 0%,#f97316 60%,#c9a84c 100%);border-radius:22px 22px 0 0;">&nbsp;</td>
+                    </tr>
+                    {{-- Hero de color SÓLIDO: nada de background-image bajo el texto. Gmail (app) en modo
+                         oscuro invierte colores de texto y fondos sólidos pero deja intactas las imágenes
+                         de fondo - con un degradado claro detrás, el título se volvía blanco sobre claro
+                         e ilegible. Así, fondo y texto se invierten juntos y siempre se leen. --}}
                     <tr>
                         <td bgcolor="#fff1f2" class="lupe-hero lupe-hero-pad"
-                            style="background-color:#fff1f2;background-image:radial-gradient(circle at 100% 0%, rgba(225,29,72,0.20) 0%, rgba(225,29,72,0) 55%),radial-gradient(circle at 0% 100%, rgba(201,168,76,0.22) 0%, rgba(201,168,76,0) 48%),linear-gradient(150deg,#fff1f2 0%,#fff7ed 55%,#ffffff 100%);border:1px solid #f9c9d3;border-radius:22px;padding:30px 32px 32px;">
+                            style="background-color:#fff1f2;border-left:1px solid #f9c9d3;border-right:1px solid #f9c9d3;border-bottom:1px solid #f9c9d3;border-radius:0 0 22px 22px;padding:26px 32px 32px;">
 
                             {{-- Fila superior: marca + mascota (siempre visible, también en celular) --}}
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
