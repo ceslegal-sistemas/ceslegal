@@ -92,6 +92,38 @@ class EquivalenteFuncionalService
         return $modelo->newQuery()->fromSub($union, $modelo->getTable());
     }
 
+    /** Total de registros por sección del reporte (null si esa consulta falla). */
+    public function conteos(): array
+    {
+        $cliente = function (Builder $q) {
+            $user = auth()->user();
+            if ($user?->role === 'cliente' && $user->empresa_id) {
+                $q->where('empresa_id', $user->empresa_id);
+            }
+
+            return $q;
+        };
+        $cuenta = function (\Closure $consulta): ?int {
+            try {
+                return $consulta()->count();
+            } catch (\Throwable $e) {
+                report($e);
+
+                return null;
+            }
+        };
+
+        return [
+            'todos' => $cuenta(fn () => $this->consulta()),
+            'con_selfie' => $cuenta(fn () => $this->consulta()->where('tiene_selfie', 1)),
+            'sanciones' => $cuenta(fn () => $cliente(ProcesoDisciplinario::query()->whereNotNull('autorizador_nombre'))),
+            'rit' => $cuenta(fn () => $cliente(AutorizacionReglamentoInterno::query())),
+            'descargos' => $cuenta(fn () => $cliente(ProcesoDisciplinario::query()->whereNotNull('citante_nombre'))),
+            'trabajadores' => $cuenta(fn () => AceptacionReglamentoInterno::query()->whereHas('trabajador')),
+            'videos' => $cuenta(fn () => $cliente(\App\Models\HistoricoVideoDidacticoRit::query())),
+        ];
+    }
+
     /** @return array<string, string> etiqueta => valor, solo con lo que el evento realmente guardó. */
     public function detalleDe(EventoEquivalenteFuncional $evento): array
     {

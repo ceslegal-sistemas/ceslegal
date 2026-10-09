@@ -2,17 +2,17 @@
     // Mismas pestañas nativas que usa "Feedback" (icono + contador por color).
     $conteos = $this->getConteos();
     $secciones = [
-        'todos' => ['Trazabilidad completa', 'heroicon-o-squares-2x2', 'primary'],
-        'sanciones' => ['Sanciones / Incidentes', 'heroicon-o-exclamation-triangle', 'danger'],
-        'rit' => ['Autorización del Reglamento', 'heroicon-o-document-check', 'info'],
+        'todos' => ['Todos', 'heroicon-o-squares-2x2', 'primary'],
+        'sanciones' => ['Sanciones', 'heroicon-o-exclamation-triangle', 'danger'],
+        'rit' => ['Autorización RIT', 'heroicon-o-document-check', 'info'],
         'descargos' => ['Descargos', 'heroicon-o-chat-bubble-left-right', 'warning'],
-        'trabajadores' => ['Aceptación de trabajadores', 'heroicon-o-user-group', 'success'],
-        'videos' => ['Videos del Reglamento', 'heroicon-o-play-circle', 'gray'],
+        'trabajadores' => ['Aceptación RIT', 'heroicon-o-user-group', 'success'],
+        'videos' => ['Videos', 'heroicon-o-play-circle', 'gray'],
     ];
 @endphp
 
 <x-filament-panels::page>
-    <x-filament::tabs label="Secciones del reporte" class="fi-resource-tabs">
+    <x-filament::tabs label="Secciones del reporte" style="margin-inline:auto;width:fit-content;max-width:100%">
         @foreach ($secciones as $clave => [$titulo, $icono, $color])
             <x-filament::tabs.item
                 :active="$seccion === $clave"

@@ -79,33 +79,14 @@ class EquivalenteFuncional extends Page implements HasTable
         $this->resetTable();
     }
 
-    /** Total de registros por sección, para las tarjetas de navegación. */
     public function getConteos(): array
     {
-        $cuenta = function (\Closure $consulta): ?int {
-            try {
-                return $consulta()->count();
-            } catch (\Throwable $e) {
-                report($e);
+        return app(EquivalenteFuncionalService::class)->conteos();
+    }
 
-                return null;
-            }
-        };
-
-        $cliente = function (\Illuminate\Database\Eloquent\Builder $q) {
-            $this->scopearPorEmpresaDelCliente($q);
-
-            return $q;
-        };
-
-        return [
-            'todos' => $cuenta(fn () => app(EquivalenteFuncionalService::class)->consulta()),
-            'sanciones' => $cuenta(fn () => $cliente(ProcesoDisciplinario::query()->whereNotNull('autorizador_nombre'))),
-            'rit' => $cuenta(fn () => $cliente(AutorizacionReglamentoInterno::query())),
-            'descargos' => $cuenta(fn () => $cliente(ProcesoDisciplinario::query()->whereNotNull('citante_nombre'))),
-            'trabajadores' => $cuenta(fn () => AceptacionReglamentoInterno::query()->whereHas('trabajador')),
-            'videos' => $cuenta(fn () => $cliente(HistoricoVideoDidacticoRit::query())),
-        ];
+    protected function getHeaderWidgets(): array
+    {
+        return [\App\Filament\Admin\Widgets\EquivalenteFuncionalStats::class];
     }
 
     public function table(Table $table): Table
