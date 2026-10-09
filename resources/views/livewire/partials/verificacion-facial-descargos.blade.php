@@ -543,23 +543,15 @@
                     style="transform: scaleX(-1); -webkit-transform: scaleX(-1); transition: opacity .25s;"
                     :style="videoListo ? 'opacity: 1' : 'opacity: 0'"></video>
 
-                <svg class="absolute inset-0 w-full h-full pointer-events-none"
-                    viewBox="0 0 100 75" preserveAspectRatio="none"
-                    x-effect="$el.setAttribute('viewBox', '0 0 100 ' + ratioPct)">
-                    <defs>
-                        <mask id="encuadre-{{ $fase }}">
-                            <rect width="100" :height="ratioPct" fill="white"/>
-                            <ellipse cx="50" :cy="ratioPct * 0.48" rx="23" :ry="Math.min(ratioPct * 0.387, 31)" fill="black"/>
-                        </mask>
-                    </defs>
-                    <rect width="100" :height="ratioPct" fill="rgba(0,0,0,0.48)" mask="url(#encuadre-{{ $fase }})"/>
-                    <ellipse cx="50" :cy="ratioPct * 0.48" rx="23" :ry="Math.min(ratioPct * 0.387, 31)" fill="none"
-                        :stroke="colorEncuadre" stroke-width="0.9" stroke-dasharray="3,1.5"/>
-                    <text x="50" :y="ratioPct - 4" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="3.8"
-                        x-show="modelsCargados && estadoRostro !== 'ok' && estadoRostro !== 'muy_lejos' && estadoRostro !== 'falta_parpadeo'">
-                        Centre su rostro aquí
-                    </text>
-                </svg>
+                {{-- Óvalo guía en HTML/CSS (antes SVG con viewBox dinámico, que se desalineaba con el
+                 video vertical del celular): ancho fijo 48% del visor, alto 1.25x su ancho, centrado
+                 a la altura del rostro. El oscurecido de afuera es el box-shadow gigante; el
+                 contenedor tiene overflow:hidden. --}}
+                <div style="position:absolute;pointer-events:none;border-radius:50%;border:3px dashed transparent;box-sizing:border-box;left:26%;width:48%;box-shadow:0 0 0 100vmax rgba(0,0,0,0.48);top:10%;height:80%;"
+                     :style="'height:' + (6000 / ratioPct) + '%;top:' + ((ratioPct <= 80 ? 48 : 42) - 3000 / ratioPct) + '%;border-color:' + colorEncuadre"></div>
+                <div x-show="modelsCargados && estadoRostro !== 'ok' && estadoRostro !== 'muy_lejos' && estadoRostro !== 'falta_parpadeo'" style="display:none;position:absolute;top:8px;left:0;right:0;text-align:center;pointer-events:none;">
+                    <span style="background:rgba(0,0,0,0.55);color:rgba(255,255,255,0.92);font-size:12px;padding:3px 10px;border-radius:999px;">Centre su rostro aquí</span>
+                </div>
 
                 {{-- Mensaje de estado superpuesto --}}
                 <div class="absolute bottom-2 left-0 right-0 flex justify-center px-2">
