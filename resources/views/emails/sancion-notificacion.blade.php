@@ -38,15 +38,17 @@
 
     {{-- ═══ Derecho de impugnación: tarjeta destacada con botón propio ═══ --}}
     @if ($cta)
+        {{-- Tarjeta "Su derecho": mismo look CLARO del hero (antes era oscura y desentonaba), fondo sólido
+             (Gmail oscuro lo invierte junto con el texto) y botón en degradado de marca. --}}
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 8px;">
             <tr>
-                <td bgcolor="#1f1114" style="background-color:#1f1114;background-image:radial-gradient(circle at 100% 0%, rgba(225,29,72,0.5) 0%, rgba(225,29,72,0) 55%),linear-gradient(150deg,#1a0f0c 0%,#241319 100%);border-radius:18px;padding:24px 24px 26px;font-family:Arial,Helvetica,sans-serif;">
-                    <span style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#fecdd3;background-color:#3a1620;border:1px solid #6b2236;border-radius:30px;padding:5px 12px;">Su derecho</span>
-                    <p style="margin:12px 0 0;font-size:20px;font-weight:800;line-height:1.25;color:#ffffff;">¿No está de acuerdo? Puede impugnar esta decisión</p>
-                    <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#cbd5e1;">
+                <td bgcolor="#fff1f2" class="lupe-datos" style="background-color:#fff1f2;border:1px solid #f9c9d3;border-radius:18px;padding:24px 24px 26px;font-family:Arial,Helvetica,sans-serif;">
+                    <span class="lupe-badge" style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#be123c;background-color:#ffe4e8;border:1px solid #f7b8c4;border-radius:30px;padding:5px 12px;">Su derecho</span>
+                    <p class="lupe-datos-valor" style="margin:12px 0 0;font-size:20px;font-weight:800;line-height:1.25;color:#1c1917;">¿No está de acuerdo? Puede impugnar esta decisión</p>
+                    <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#475569;">
                         Presente su impugnación usted mismo(a), en línea y sin trámites: verifique su identidad con un código,
                         cuéntenos sus motivos y adjunte pruebas.
-                        @if ($limiteTxt) Tiene plazo hasta el <strong style="color:#ffffff;">{{ $limiteTxt }}</strong>. @endif
+                        @if ($limiteTxt) Tiene plazo hasta el <strong>{{ $limiteTxt }}</strong>. @endif
                     </p>
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:18px;">
                         <tr>
@@ -55,9 +57,9 @@
                             </td>
                         </tr>
                     </table>
-                    <p style="margin:16px 0 0;font-size:12px;line-height:1.6;color:#94a3b8;">
+                    <p style="margin:16px 0 0;font-size:12px;line-height:1.6;color:#6b7280;">
                         ¿El botón no funciona? Copie este enlace en su navegador:<br>
-                        <a href="{{ $cta['url'] }}" target="_blank" style="color:#fda4af;word-break:break-all;">{{ $cta['url'] }}</a>
+                        <a class="lupe-link" href="{{ $cta['url'] }}" target="_blank" style="color:#be123c;word-break:break-all;">{{ $cta['url'] }}</a>
                     </p>
                 </td>
             </tr>
