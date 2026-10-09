@@ -2748,19 +2748,14 @@ class ProcesoDisciplinarioResource extends Resource
                             session(['tipo_sancion_pendiente_' . $record->id => 'suspension']);
                             session(['opciones_dias_' . $record->id => $opcionesDiasSuspension]);
 
-                            // Antes se usaba un setTimeout(300) fijo - condición de
-                            // carrera real reportada por el usuario (2026-09-03): si
-                            // el cierre del modal actual tardaba más de 300ms (red o
-                            // servidor lentos), $wire.mountTableAction() se disparaba
-                            // mientras el modal anterior aún no terminaba de cerrar y
-                            // Livewire lo perdía o lo dejaba en cola. Filament dispara
-                            // un evento real 'modal-closed' en window cuando el cierre
-                            // realmente termina (ver vendor/filament/support/.../modal/index.blade.php)
-                            // - se espera ESE evento en vez de adivinar un tiempo.
-                            $recordKey = $record->getKey();
-                            $action->getLivewire()->js(
-                                "window.addEventListener('modal-closed', () => { \$wire.mountTableAction('confirmar_dias_suspension', '{$recordKey}') }, { once: true })"
-                            );
+                            // Se abre directamente el modal de días EN EL SERVIDOR, en la misma
+                            // petición: Filament no cierra la acción si fue reemplazada mientras
+                            // se ejecutaba (ver HasActions::callMountedTableAction). Antes se
+                            // esperaba el evento de navegador 'modal-closed' con
+                            // $wire.js(...): si el evento no llegaba (o llegaba antes de
+                            // registrar el listener) el modal de días nunca se abría y el
+                            // cliente creía que la sanción ya se había emitido.
+                            $livewire->replaceMountedTableAction('confirmar_dias_suspension', (string) $record->getKey());
 
                             return;
                         }
@@ -2864,7 +2859,7 @@ class ProcesoDisciplinarioResource extends Resource
                         ];
                     })
                     ->modalHeading('Confirmar Días de Suspensión')
-                    ->modalDescription('Seleccione la cantidad de días para completar la emisión de la sanción')
+                    ->modalDescription('La sanción todavía NO se ha emitido. Seleccione los días y presione «Generar y Enviar Sanción» para completar la emisión; si cierra esta ventana, quedará pendiente en el botón «Confirmar Días de Suspensión» de la fila.')
                     ->modalSubmitActionLabel('Generar y Enviar Sanción')
                     ->modalCancelActionLabel('Cancelar')
                     ->modalWidth('md')
@@ -3477,13 +3472,9 @@ class ProcesoDisciplinarioResource extends Resource
                                 ],
                             ]);
 
-                            // Mismo fix que en 'confirmar_dias_suspension' arriba -
-                            // esperar el evento real 'modal-closed' en vez de un
-                            // setTimeout(300) fijo (condición de carrera).
-                            $recordKey = $record->getKey();
-                            $action->getLivewire()->js(
-                                "window.addEventListener('modal-closed', () => { \$wire.mountTableAction('confirmar_dias_resolucion', '{$recordKey}') }, { once: true })"
-                            );
+                            // Mismo criterio que en 'emitir_sancion': abrir el modal de días en
+                            // el servidor, sin depender de un evento del navegador.
+                            $action->getLivewire()->replaceMountedTableAction('confirmar_dias_resolucion', (string) $record->getKey());
 
                             return;
                         }
