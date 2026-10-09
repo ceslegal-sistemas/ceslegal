@@ -96,8 +96,17 @@ class IAResolucionImpugnacionService
             'llamado_atencion' => 'Llamado de Atención',
             'suspension' => 'Suspensión Laboral' . ($proceso->dias_suspension ? " de {$proceso->dias_suspension} día(s)" : ''),
             'terminacion' => 'Terminación de Contrato',
+            'multa' => 'Multa',
             default => ucfirst(str_replace('_', ' ', $proceso->tipo_sancion ?? 'N/A')),
         };
+
+        // Pruebas que el trabajador adjuntó a la impugnación (solo nombres: el análisis es del texto).
+        $pruebasTexto = collect($impugnacion->pruebas_adicionales ?? [])
+            ->map(fn ($p) => is_array($p) ? ($p['name'] ?? basename($p['path'] ?? '')) : basename((string) $p))
+            ->filter()->values();
+        $pruebasTexto = $pruebasTexto->isEmpty()
+            ? 'El trabajador no adjuntó pruebas nuevas.'
+            : 'El trabajador adjuntó ' . $pruebasTexto->count() . ' archivo(s): ' . $pruebasTexto->implode(', ') . '. (No puedes ver el contenido de esos archivos: no los valores como si los conocieras; si pueden ser relevantes, sugiere al cliente revisarlos.)';
 
         // Contexto de descargos
         $contextoDescargos = 'No se realizaron descargos.';
@@ -175,6 +184,7 @@ IMPUGNACIÓN DEL TRABAJADOR:
 Fecha: {$impugnacion->fecha_impugnacion?->format('d/m/Y')}
 Motivos expuestos:
 "{$impugnacion->motivos_impugnacion}"
+Pruebas aportadas: {$pruebasTexto}
 {$seccionJurisprudencia}
 INSTRUCCIONES DE ANÁLISIS:
 
@@ -184,21 +194,28 @@ INSTRUCCIONES DE ANÁLISIS:
 
 3. RECOMENDACIÓN DE DECISIÓN: Sugiere la decisión más sólida jurídicamente (Confirmar, Revocar o Modificar), justificando por qué esa opción minimiza riesgos de nulidad.
 
-4. FUNDAMENTO JURÍDICO: Genera un fundamento detallado que sustente la decisión recomendada, citando el Código Sustantivo del Trabajo, principios del derecho disciplinario y, si aparece en el bloque JURISPRUDENCIA APLICABLE, la sentencia pertinente con su referencia exacta.
+4. VALORACIÓN DE CADA MOTIVO: Para cada motivo o argumento del trabajador indica si es fundado, parcialmente fundado o infundado, con una frase de por qué.
+
+5. FUNDAMENTO JURÍDICO: Genera un fundamento detallado que sustente la decisión recomendada, citando el Código Sustantivo del Trabajo, principios del derecho disciplinario y, si aparece en el bloque JURISPRUDENCIA APLICABLE, la sentencia pertinente con su referencia exacta.
 
 Responde EXACTAMENTE en este formato JSON (sin bloques de código markdown):
 {
   "auditoria_proceso": "Resumen de la auditoría cronológica del expediente, verificando debido proceso y derecho de defensa.",
+  "resumen_para_cliente": "2 o 3 frases en lenguaje claro, dirigidas al empleador (no a un abogado): qué alega el trabajador, si tiene fuerza y qué se sugiere hacer.",
   "puntos_clave_impugnacion": ["Punto 1 del trabajador", "Punto 2"],
+  "evaluacion_motivos": [
+    {"motivo": "Motivo o argumento del trabajador", "valoracion": "fundado|parcialmente_fundado|infundado", "comentario": "Por qué."}
+  ],
   "contraste_argumentos": "Análisis contrastando los argumentos del trabajador contra las pruebas y normas.",
   "decision_recomendada": "confirma_sancion|revoca_sancion|modifica_sancion",
   "confianza": "alta|media|baja",
   "justificacion_decision": "Explicación de por qué esta decisión es la más sólida jurídicamente y minimiza riesgos de nulidad.",
   "riesgos_nulidad": "Riesgos identificados si se toma una decisión diferente a la recomendada.",
+  "pasos_sugeridos": ["Acción concreta 1 que debería hacer el cliente antes o después de decidir", "Acción 2"],
   "fundamento_juridico": "Fundamento jurídico detallado para sustentar la decisión, citando CST y principios de derecho disciplinario. Este texto se incluirá directamente en el documento de resolución.",
   "modificacion_sugerida": {
     "aplica": true/false,
-    "nueva_sancion": "llamado_atencion|suspension|terminacion|null",
+    "nueva_sancion": "llamado_atencion|suspension|multa|terminacion|no_sancion|null",
     "dias_suspension": null,
     "justificacion": "Solo si recomienda modificar, explicar qué sanción alternativa y por qué."
   }
@@ -206,7 +223,8 @@ Responde EXACTAMENTE en este formato JSON (sin bloques de código markdown):
 
 REGLAS DE FORMATO:
 - Genera SOLO el JSON, sin texto adicional.
-- Sé conciso: máximo 150 palabras por campo de texto.
+- Sé conciso: máximo 150 palabras por campo de texto; "pasos_sugeridos" máximo 4 elementos cortos.
+- Eres un asistente: tu salida es una SUGERENCIA para el empleador, que toma la decisión final. No lo escribas como si la decisión ya estuviera tomada.
 - No uses saltos de línea dentro de los valores string del JSON.
 - El campo "fundamento_juridico" debe ser un texto formal, listo para incluir en un documento legal.
 PROMPT;
@@ -326,7 +344,10 @@ PROMPT;
     {
         return [
             'auditoria_proceso' => 'Análisis manual requerido - el sistema no pudo realizar la auditoría automáticamente.',
+            'resumen_para_cliente' => 'No pudimos generar el análisis automático. Revise los motivos del trabajador y tome la decisión con base en el expediente.',
             'puntos_clave_impugnacion' => [],
+            'evaluacion_motivos' => [],
+            'pasos_sugeridos' => [],
             'contraste_argumentos' => 'Se requiere revisión manual de los argumentos.',
             'decision_recomendada' => 'confirma_sancion',
             'confianza' => 'baja',

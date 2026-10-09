@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\ImpugnacionPortalService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 /**
@@ -121,6 +122,7 @@ class ImpugnacionPortalTrabajadorTest extends TestCase
     public function test_presentar_registra_la_impugnacion_cambia_el_estado_y_envia_la_constancia(): void
     {
         Mail::fake();
+        Queue::fake();
         $proceso = $this->procesoSancionado();
         $proceso->forceFill(['impugnacion_otp_verificado_en' => now()])->saveQuietly();
 
@@ -139,6 +141,8 @@ class ImpugnacionPortalTrabajadorTest extends TestCase
         $this->assertStringContainsString('No se me dio la oportunidad', $impugnacion->motivos_impugnacion);
         $this->assertStringStartsWith('IMP-', $impugnacion->radicado());
 
+        $this->assertSame('pendiente', $impugnacion->fresh()->analisis_ia_estado, 'El análisis con IA queda en cola.');
+        Queue::assertPushed(\App\Jobs\AnalizarImpugnacionJob::class);
         $this->assertSame('impugnacion_realizada', $proceso->fresh()->estado);
         $this->assertTrue((bool) $proceso->fresh()->impugnado);
 
@@ -148,6 +152,7 @@ class ImpugnacionPortalTrabajadorTest extends TestCase
     public function test_no_se_puede_impugnar_dos_veces(): void
     {
         Mail::fake();
+        Queue::fake();
         $proceso = $this->procesoSancionado();
         $proceso->forceFill(['impugnacion_otp_verificado_en' => now()])->saveQuietly();
 

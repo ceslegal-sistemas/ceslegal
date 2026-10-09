@@ -322,7 +322,7 @@ class NotificacionService
                 userId: $cliente->id,
                 tipo: 'impugnacion_realizada',
                 titulo: 'Trabajador Impugnó la Sanción',
-                mensaje: "El trabajador {$proceso->trabajador->nombre_completo} ha impugnado la sanción del proceso {$proceso->codigo}. LUPE Legal está revisando la impugnación.",
+                mensaje: "El trabajador {$proceso->trabajador->nombre_completo} ha impugnado la sanción del proceso {$proceso->codigo}. Ingrese a revisar los motivos y las pruebas: LUPE Legal le entrega un análisis con IA y una sugerencia de decisión, pero la decisión final es de su empresa.",
                 relacionadoTipo: ProcesoDisciplinario::class,
                 relacionadoId: $proceso->id,
                 prioridad: 'alta'

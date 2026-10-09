@@ -79,7 +79,7 @@
                             <p class="rit-sub">
                                 Radicado <strong>{{ $impugnacion?->radicado() }}</strong>
                                 @if ($impugnacion?->fecha_impugnacion) · {{ $impugnacion->fecha_impugnacion->timezone('America/Bogota')->locale('es')->isoFormat('D [de] MMMM [de] YYYY, h:mm a') }} @endif.
-                                Le responderemos por correo electrónico con la decisión final.
+                                Su empresa la analizará y recibirá la decisión final por correo electrónico.
                             </p>
                         </div>
                     </div>
@@ -115,7 +115,7 @@
                     <div class="imp-card">
                         <p class="imp-dato">Qué sigue</p>
                         <p class="imp-valor" style="font-weight:500;font-size:.9rem;line-height:1.55;">
-                            Su impugnación será analizada y recibirá la decisión final por correo electrónico. No necesita hacer nada más; puede cerrar esta página.
+                            Su empresa analizará su impugnación y recibirá la decisión final por correo electrónico. No necesita hacer nada más; puede cerrar esta página.
                         </p>
                     </div>
 

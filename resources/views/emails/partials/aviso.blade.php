@@ -12,9 +12,9 @@
 @endphp
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:18px 0;">
     <tr>
-        <td bgcolor="{{ $paleta[0] }}" style="background-color:{{ $paleta[0] }};border:1px solid {{ $paleta[1] }};border-radius:16px;padding:18px 20px;font-family:Arial,Helvetica,sans-serif;">
-            <span style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:{{ $paleta[2] }};">{{ $titulo }}</span>
-            <div style="margin-top:6px;font-size:14px;line-height:1.6;color:{{ $paleta[3] }};">{!! $texto !!}</div>
+        <td bgcolor="{{ $paleta[0] }}" class="lupe-aviso-{{ $tono ?? 'ambar' }}" style="background-color:{{ $paleta[0] }};border:1px solid {{ $paleta[1] }};border-radius:16px;padding:18px 20px;font-family:Arial,Helvetica,sans-serif;">
+            <span class="lupe-aviso-t" style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:{{ $paleta[2] }};">{{ $titulo }}</span>
+            <div class="lupe-aviso-x" style="margin-top:6px;font-size:14px;line-height:1.6;color:{{ $paleta[3] }};">{!! $texto !!}</div>
         </td>
     </tr>
 </table>

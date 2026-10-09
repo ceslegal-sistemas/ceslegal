@@ -204,6 +204,8 @@ class ImpugnacionPortalService
         });
 
         $impugnacion->load(['proceso.trabajador', 'proceso.empresa']);
+        // El análisis con IA arranca solo: cuando el cliente abra "Ver impugnación" ya está (o casi).
+        $impugnacion->solicitarAnalisisIa();
         $this->enviarCorreos($impugnacion);
 
         return $impugnacion;
@@ -254,7 +256,7 @@ class ImpugnacionPortalService
         foreach ($destinatarios as $usuario) {
             try {
                 $panel = $usuario->role === 'cliente' ? 'empresa' : 'admin';
-                $url = \App\Filament\Admin\Resources\ProcesoDisciplinarioResource::getUrl('index', panel: $panel);
+                $url = \App\Filament\Admin\Resources\ProcesoDisciplinarioResource::getUrl('index', ['tableSearch' => $proceso->codigo], panel: $panel);
                 Mail::to($usuario->email)->send(new ImpugnacionRecibidaEmpresa($impugnacion, $url));
             } catch (\Throwable $e) {
                 Log::warning('No se pudo avisar de la impugnación', ['user_id' => $usuario->id, 'error' => $e->getMessage()]);

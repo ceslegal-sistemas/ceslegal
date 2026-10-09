@@ -48,7 +48,7 @@
         <p style="margin:18px 0 6px;font-weight:700;color:#1f2937;">Fundamento de la decisión</p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
             <tr>
-                <td bgcolor="#f9fafb" style="background-color:#f9fafb;border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.65;color:#374151;white-space:pre-wrap;">{{ $fundamento }}</td>
+                <td bgcolor="#f9fafb" class="lupe-caja" style="background-color:#f9fafb;border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.65;color:#374151;white-space:pre-wrap;">{{ $fundamento }}</td>
             </tr>
         </table>
     @endif

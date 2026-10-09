@@ -23,6 +23,9 @@ class Impugnacion extends Model
         'fecha_analisis_impugnacion',
         'abogado_analisis_id',
         'analisis_impugnacion',
+        'analisis_ia',
+        'analisis_ia_estado',
+        'analisis_ia_en',
         'decision_final',
         'nueva_sancion_tipo',
         'fundamento_decision',
@@ -38,12 +41,27 @@ class Impugnacion extends Model
         'otp_verificado_en' => 'datetime',
         'documento_generado' => 'boolean',
         'pruebas_adicionales' => 'array',
+        'analisis_ia' => 'array',
+        'analisis_ia_en' => 'datetime',
     ];
 
     /** Número de radicado que ve el trabajador en su constancia (IMP-00012). */
     public function radicado(): string
     {
         return 'IMP-' . str_pad((string) $this->id, 5, '0', STR_PAD_LEFT);
+    }
+
+    /** El análisis se está generando en segundo plano. */
+    public function analisisIaEnCurso(): bool
+    {
+        return in_array($this->analisis_ia_estado, ['pendiente', 'procesando'], true);
+    }
+
+    /** Pone el análisis en cola (también sirve para reintentar si falló). */
+    public function solicitarAnalisisIa(): void
+    {
+        $this->forceFill(['analisis_ia_estado' => 'pendiente'])->saveQuietly();
+        \App\Jobs\AnalizarImpugnacionJob::dispatch($this);
     }
 
     public function presentadaPorElTrabajador(): bool

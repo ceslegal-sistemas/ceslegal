@@ -13,7 +13,7 @@
     'preheader' => "Su impugnación quedó radicada con el número {$impugnacion->radicado()}",
     'badge' => 'Impugnación recibida',
     'titulo' => 'Recibimos su impugnación',
-    'subtitulo' => "Quedó radicada con el número {$impugnacion->radicado()}. Será revisada y le responderemos por este mismo medio.",
+    'subtitulo' => "Quedó radicada con el número {$impugnacion->radicado()}. Su empresa la analizará y recibirá la decisión final por este mismo medio.",
     'empresa' => $empresa,
 ])
 
@@ -35,13 +35,13 @@
     <p style="margin:18px 0 6px;font-weight:700;color:#1f2937;">Sus motivos</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
-            <td bgcolor="#f9fafb" style="background-color:#f9fafb;border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.65;color:#374151;white-space:pre-wrap;">{{ $impugnacion->motivos_impugnacion }}</td>
+            <td bgcolor="#f9fafb" class="lupe-caja" style="background-color:#f9fafb;border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.65;color:#374151;white-space:pre-wrap;">{{ $impugnacion->motivos_impugnacion }}</td>
         </tr>
     </table>
 
     @include('emails.partials.aviso', [
         'titulo' => 'Qué sigue',
         'tono' => 'azul',
-        'texto' => 'Su impugnación será analizada y recibirá una respuesta con la decisión final por correo electrónico. No necesita hacer nada más.',
+        'texto' => 'Su empresa analizará su impugnación y le comunicará la decisión final por correo electrónico. No necesita hacer nada más.',
     ])
 @endsection

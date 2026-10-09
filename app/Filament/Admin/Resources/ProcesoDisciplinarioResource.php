@@ -3229,6 +3229,9 @@ class ProcesoDisciplinarioResource extends Resource
                                 $record->save();
                             });
 
+                            // Análisis con IA en segundo plano (ver AnalizarImpugnacionJob).
+                            $record->fresh()->impugnacion?->solicitarAnalisisIa();
+
                             \Filament\Notifications\Notification::make()
                                 ->success()
                                 ->title('Impugnación Registrada')
@@ -3265,7 +3268,31 @@ class ProcesoDisciplinarioResource extends Resource
                     ]))
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar')
-                    ->modalWidth('2xl'),
+                    ->extraModalFooterActions(fn(ProcesoDisciplinario $record) => array_values(array_filter([
+                        // Pasa directo a resolver (precargado con la sugerencia de la IA).
+                        $record->impugnacion?->decision_final === null
+                            ? Tables\Actions\Action::make('resolver_desde_revision')
+                                ->label('Resolver impugnación')
+                                ->icon('heroicon-o-check-badge')
+                                ->color('primary')
+                                ->action(function (ProcesoDisciplinario $record, $livewire) {
+                                    $livewire->replaceMountedTableAction('resolver_impugnacion', (string) $record->getKey());
+                                })
+                            : null,
+                        // (Re)genera el análisis con IA en segundo plano y reabre esta revisión.
+                        $record->impugnacion && ! $record->impugnacion->analisisIaEnCurso() && $record->impugnacion->decision_final === null
+                            ? Tables\Actions\Action::make('generar_analisis_ia')
+                                ->label($record->impugnacion->analisis_ia_estado === 'completado' ? 'Volver a analizar con IA' : 'Generar análisis con IA')
+                                ->icon('heroicon-o-sparkles')
+                                ->color('gray')
+                                ->action(function (ProcesoDisciplinario $record, $livewire) {
+                                    $record->impugnacion->solicitarAnalisisIa();
+                                    $livewire->replaceMountedTableAction('revisar_impugnacion', (string) $record->getKey());
+                                })
+                            : null,
+                    ])))
+                    ->modalFooterActionsAlignment(\Filament\Support\Enums\Alignment::End)
+                    ->modalWidth('3xl'),
 
                 // Acción: Resolver Impugnación
                 Tables\Actions\Action::make('resolver_impugnacion')
@@ -3295,110 +3322,27 @@ class ProcesoDisciplinarioResource extends Resource
                             Forms\Components\Hidden::make('proceso_id')
                                 ->default($record->id),
 
-                            // Resumen de la impugnación
-                            Forms\Components\Section::make('Impugnación del Trabajador')
-                                ->schema([
-                                    Forms\Components\Placeholder::make('sancion_original_info')
-                                        ->label('Sanción Impugnada')
-                                        ->content(fn() => new \Illuminate\Support\HtmlString(
-                                            "<span class='font-semibold text-red-600'>{$sancionOriginal}</span>"
-                                        )),
-                                    Forms\Components\Placeholder::make('motivos_impugnacion')
-                                        ->label('Motivos expuestos por el trabajador')
-                                        ->content(fn() => new \Illuminate\Support\HtmlString(
-                                            "<div class='p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border-l-4 border-yellow-500 italic'>" .
-                                                nl2br(e($impugnacion->motivos_impugnacion)) .
-                                                "</div>"
-                                        )),
+                            // Resumen de la impugnación + análisis de IA (mismo diseño que "Ver impugnación").
+                            Forms\Components\View::make('filament.modals.resolver-impugnacion-resumen')
+                                ->viewData([
+                                    'impugnacion' => $impugnacion,
+                                    'sancionOriginal' => $sancionOriginal,
                                 ])
-                                ->collapsible()
-                                ->collapsed(false),
+                                ->columnSpanFull(),
 
-                            // Cache del análisis de IA (se llena al hacer clic en el botón)
+                            // El botón "Sugerir fundamento con IA" (abajo) rellena esto al regenerar.
                             Forms\Components\Hidden::make('analisis_cache')
                                 ->default('')
                                 ->live(),
-
-                            // Sección de análisis de IA (se muestra al generar)
-                            Forms\Components\Section::make('Análisis de IA')
-                                ->schema([
-                                    Forms\Components\Placeholder::make('ia_contenido')
-                                        ->label('')
-                                        ->content(function (Forms\Get $get) {
-                                            $cache = $get('analisis_cache');
-                                            if (empty($cache)) {
-                                                return new \Illuminate\Support\HtmlString(
-                                                    "<div class='p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center text-blue-700 dark:text-blue-300'>" .
-                                                        "<p class='text-sm'>Haga clic en <strong>\"Sugerir fundamento con IA\"</strong> en la sección de abajo para generar el análisis automático del expediente.</p>" .
-                                                        "</div>"
-                                                );
-                                            }
-                                            $analisis = json_decode($cache, true);
-                                            if (!$analisis) return 'Error al cargar análisis.';
-
-                                            $html = '';
-
-                                            // Auditoría del Proceso
-                                            $html .= "<div class='mb-4'>";
-                                            $html .= "<h4 class='font-semibold text-sm mb-1'>Auditoría del Proceso</h4>";
-                                            $html .= "<p class='text-sm text-gray-700 dark:text-gray-300'>" . e($analisis['auditoria_proceso'] ?? 'N/A') . "</p>";
-                                            $html .= "</div>";
-
-                                            // Puntos clave
-                                            $puntos = $analisis['puntos_clave_impugnacion'] ?? [];
-                                            if (!empty($puntos)) {
-                                                $html .= "<div class='mb-4'>";
-                                                $html .= "<h4 class='font-semibold text-sm mb-1'>Puntos Clave de la Impugnación</h4>";
-                                                $html .= "<ul class='list-disc pl-5 space-y-1 text-sm'>";
-                                                foreach ($puntos as $punto) {
-                                                    $html .= "<li>" . e($punto) . "</li>";
-                                                }
-                                                $html .= "</ul></div>";
-                                            }
-
-                                            // Contraste de argumentos
-                                            $html .= "<div class='mb-4'>";
-                                            $html .= "<h4 class='font-semibold text-sm mb-1'>Contraste de Argumentos</h4>";
-                                            $html .= "<p class='text-sm text-gray-700 dark:text-gray-300'>" . e($analisis['contraste_argumentos'] ?? 'N/A') . "</p>";
-                                            $html .= "</div>";
-
-                                            // Recomendación
-                                            $decision = $analisis['decision_recomendada'] ?? 'confirma_sancion';
-                                            $texto = match ($decision) {
-                                                'confirma_sancion' => 'Confirmar Sanción',
-                                                'revoca_sancion' => 'Revocar Sanción',
-                                                'modifica_sancion' => 'Modificar Sanción',
-                                                default => $decision,
-                                            };
-                                            $confianza = $analisis['confianza'] ?? 'media';
-                                            $badgeColor = match ($confianza) {
-                                                'alta' => 'bg-green-100 text-green-800',
-                                                'media' => 'bg-yellow-100 text-yellow-800',
-                                                'baja' => 'bg-red-100 text-red-800',
-                                                default => 'bg-gray-100 text-gray-800',
-                                            };
-                                            $html .= "<div class='mb-4'>";
-                                            $html .= "<h4 class='font-semibold text-sm mb-1'>Recomendación</h4>";
-                                            $html .= "<p><span class='font-bold'>{$texto}</span> ";
-                                            $html .= "<span class='ml-2 px-2 py-1 rounded text-xs {$badgeColor}'>Confianza: " . ucfirst($confianza) . "</span></p>";
-                                            $html .= "<p class='text-sm mt-1'>" . e($analisis['justificacion_decision'] ?? '') . "</p>";
-                                            $html .= "</div>";
-
-                                            // Riesgos de nulidad
-                                            $html .= "<div class='p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 text-sm'>";
-                                            $html .= "<strong>Riesgos de nulidad:</strong> " . e($analisis['riesgos_nulidad'] ?? 'Sin información.');
-                                            $html .= "</div>";
-
-                                            return new \Illuminate\Support\HtmlString($html);
-                                        }),
-                                ])
-                                ->collapsible(),
 
                             // Decisión del usuario
                             Forms\Components\Section::make('Decisión sobre la Impugnación')
                                 ->schema([
                                     Forms\Components\Radio::make('decision_final')
                                         ->label('Decisión')
+                                        ->default(fn() => $impugnacion->analisis_ia_estado === 'completado'
+                                            ? ($impugnacion->analisis_ia['decision_recomendada'] ?? null)
+                                            : null)
                                         ->options([
                                             'confirma_sancion' => 'Confirmar Sanción - Mantener la sanción original',
                                             'revoca_sancion' => 'Revocar Sanción - Dejar sin efecto la sanción',
@@ -3414,6 +3358,9 @@ class ProcesoDisciplinarioResource extends Resource
 
                                     Forms\Components\Select::make('nueva_sancion_tipo')
                                         ->label('Nueva Sanción')
+                                        ->default(fn() => ($impugnacion->analisis_ia['modificacion_sugerida']['aplica'] ?? false)
+                                            ? ($impugnacion->analisis_ia['modificacion_sugerida']['nueva_sancion'] ?? null)
+                                            : null)
                                         ->options([
                                             'llamado_atencion' => 'Llamado de Atención',
                                             'suspension' => 'Suspensión Laboral',
@@ -3431,7 +3378,7 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->schema([
                                     Forms\Components\Actions::make([
                                         Forms\Components\Actions\Action::make('sugerir_fundamento_ia')
-                                            ->label('Sugerir fundamento con IA')
+                                            ->label('Volver a generar el análisis con IA')
                                             ->icon('heroicon-o-sparkles')
                                             ->color('info')
                                             ->size('sm')
@@ -3442,6 +3389,13 @@ class ProcesoDisciplinarioResource extends Resource
                                                 $iaService = new \App\Services\IAResolucionImpugnacionService();
                                                 $resultado = $iaService->analizarImpugnacion($record);
                                                 $analisis = $resultado['analisis'];
+
+                                                // Se guarda también en la impugnación: "Ver impugnación" muestra el último análisis.
+                                                $record->impugnacion?->forceFill([
+                                                    'analisis_ia' => $analisis,
+                                                    'analisis_ia_estado' => $resultado['success'] ? 'completado' : 'error',
+                                                    'analisis_ia_en' => now(),
+                                                ])->saveQuietly();
 
                                                 // Llenar cache de análisis (actualiza la sección de análisis)
                                                 $set('analisis_cache', json_encode($analisis));
@@ -3482,10 +3436,13 @@ class ProcesoDisciplinarioResource extends Resource
 
                                     Forms\Components\Textarea::make('fundamento_decision')
                                         ->label('Fundamento')
+                                        ->default(fn() => $impugnacion->analisis_ia_estado === 'completado'
+                                            ? ($impugnacion->analisis_ia['fundamento_juridico'] ?? '')
+                                            : '')
                                         ->required()
                                         ->rows(8)
                                         ->placeholder('Escriba el fundamento jurídico o haga clic en "Sugerir fundamento con IA" para generar uno automáticamente...')
-                                        ->helperText('Este texto se incluirá en el documento de resolución.'),
+                                        ->helperText('Este texto se incluirá en el documento de resolución. Viene precargado con la sugerencia de la IA: revíselo y ajústelo; la decisión es de su empresa.'),
                                 ]),
                         ];
                     })
