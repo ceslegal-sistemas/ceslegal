@@ -38,6 +38,25 @@ class AceptacionRitDescargaController extends Controller
         ]);
     }
 
+    /**
+     * Selfie de verificación capturada al aceptar el RIT (parte de la
+     * evidencia del "equivalente funcional"). Vive en el disco privado, por
+     * eso se sirve por esta ruta autenticada y con la misma verificación
+     * anti-IDOR que el acta: el trabajador ya pasó por el scope de
+     * bufete/empresa y la aceptación debe ser SUYA.
+     */
+    public function foto(Trabajador $trabajador, AceptacionReglamentoInterno $aceptacion)
+    {
+        abort_if($aceptacion->trabajador_id !== $trabajador->id, 404);
+        abort_if(!$aceptacion->foto_aceptacion_path, 404, 'Esta aceptación no tiene selfie de verificación.');
+
+        $ruta = Storage::disk('local')->path($aceptacion->foto_aceptacion_path);
+
+        abort_if(!file_exists($ruta), 404, 'Archivo no encontrado.');
+
+        return response()->file($ruta, ['Content-Type' => 'image/jpeg']);
+    }
+
     private static function sanitizarNombreArchivo(string $texto): string
     {
         return preg_replace('/[^A-Za-z0-9\-_]/', '_', Str::ascii($texto));

@@ -87,7 +87,7 @@ Al marcar la casilla de aceptación manifiesto haber leído, entendido y aceptad
     */
     'aviso_no_comprendio_primera_vez' => 'Ya te hemos explicado el Reglamento Interno de Trabajo de :empresa de forma didáctica: con un video, un resumen en lenguaje sencillo y el documento completo con los cambios resaltados. Te recomendamos repasar ese material antes de continuar.',
 
-    'mensaje_no_comprendio_bloqueado' => 'Te hemos entregado de manera didáctica, a través de un video, un resumen y el Reglamento Interno de Trabajo completo con todos los cambios realizados, la información necesaria para comprenderlo. Aun así, continúas indicando que no entiendes el Reglamento Interno de Trabajo de :empresa, por lo que no es posible continuar con tu proceso de socialización en este momento. Hemos informado de esta situación al área de Recursos Humanos de tu empresa para que tomen las decisiones que correspondan.',
+    'mensaje_no_comprendio_bloqueado' => "Estimado(a) :trabajador,\n\nLe informamos que el día :fecha se le hizo entrega del video y del documento digital con la actualización del Reglamento Interno de Trabajo de la empresa :empresa, en cumplimiento de la normativa vigente.\n\nCon el fin de garantizar su comprensión y resolver cualquier duda específica, lo(a) invitamos a radicar por escrito sus inquietudes o los puntos específicos que no comprende ante el área de Talento Humano de su empresa, o a solicitar una breve sesión aclaratoria con dicha área.\n\nAgradecemos su colaboración para dar por cerrado este proceso de divulgación obligatoria.",
 
     /*
     |--------------------------------------------------------------------------
