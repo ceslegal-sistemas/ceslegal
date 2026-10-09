@@ -791,7 +791,8 @@ button.wca-btn-secondary:hover {
 
                     {{-- Overlay oval --}}
                     <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"
-                         :viewBox="'0 0 100 ' + ratioPct" preserveAspectRatio="none">
+                         viewBox="0 0 100 75" preserveAspectRatio="none"
+                    x-effect="$el.setAttribute('viewBox', '0 0 100 ' + ratioPct)">
                         <defs>
                             <mask id="oval-aut">
                                 <rect width="100" :height="ratioPct" fill="white"/>

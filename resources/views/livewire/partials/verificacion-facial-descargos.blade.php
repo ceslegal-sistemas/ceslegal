@@ -544,7 +544,8 @@
                     :style="videoListo ? 'opacity: 1' : 'opacity: 0'"></video>
 
                 <svg class="absolute inset-0 w-full h-full pointer-events-none"
-                    :viewBox="'0 0 100 ' + ratioPct" preserveAspectRatio="none">
+                    viewBox="0 0 100 75" preserveAspectRatio="none"
+                    x-effect="$el.setAttribute('viewBox', '0 0 100 ' + ratioPct)">
                     <defs>
                         <mask id="encuadre-{{ $fase }}">
                             <rect width="100" :height="ratioPct" fill="white"/>
