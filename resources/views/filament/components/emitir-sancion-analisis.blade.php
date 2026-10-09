@@ -283,7 +283,8 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
 }
 </style>
 
-<div class="space-y-3" wire:ignore x-data="{ sancionSel: null }">
+{{-- sancionSel arranca con la decisión ya elegida ($decision, del wizard): al volver del Paso 3 la tarjeta debe verse marcada. El resaltado es de Alpine dentro de wire:ignore, así que no se actualiza solo desde el servidor. --}}
+<div class="space-y-3" wire:ignore x-data="{ sancionSel: @js($decision ?? null) }">
 
     {{-- ── Tarjeta 1: Gravedad de la falta ────────────────────────────── --}}
     <div class="rit-hero" style="padding:1.25rem 1.5rem;">
