@@ -32,6 +32,7 @@ class EmpresaPanelProvider extends PanelProvider
             ->id('empresa')
             ->path('empresa')
             ->login(\App\Filament\Admin\Pages\Auth\Login::class)
+            ->registration(\App\Filament\Admin\Pages\Auth\Register::class)
             ->passwordReset()
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
@@ -50,7 +51,7 @@ class EmpresaPanelProvider extends PanelProvider
             // cualquier no-cliente antes de llegar a renderizar esta página.
             ->renderHook(
                 \Filament\View\PanelsRenderHook::BODY_END,
-                fn () => auth()->user()?->role === 'cliente'
+                fn() => auth()->user()?->role === 'cliente'
                     ? view('filament.components.chatwoot-widget')->render()
                     : '',
             )
@@ -60,7 +61,7 @@ class EmpresaPanelProvider extends PanelProvider
             // que el widget de Chatwoot de arriba. Ver App\Livewire\RitPopupPendiente.
             ->renderHook(
                 \Filament\View\PanelsRenderHook::BODY_END,
-                fn () => auth()->user()?->role === 'cliente'
+                fn() => auth()->user()?->role === 'cliente'
                     ? \Illuminate\Support\Facades\Blade::render("@livewire('rit-popup-pendiente')")
                     : '',
             );
