@@ -60,7 +60,7 @@
         <p class="imv-sec">Cada motivo del trabajador</p>
         <div>
             @foreach ($ia['evaluacion_motivos'] as $m)
-                @php [$txt, $cls] = $valoraciones[$m['valoracion'] ?? 'infundado'] ?? ['—', 'imv-p-no']; @endphp
+                @php [$txt, $cls] = $valoraciones[$m['valoracion'] ?? 'infundado'] ?? ['-', 'imv-p-no']; @endphp
                 <div class="imv-row">
                     <span class="imv-pill {{ $cls }}">{{ $txt }}</span>
                     <p><strong>{{ $m['motivo'] ?? '' }}</strong><br>{{ $m['comentario'] ?? '' }}</p>

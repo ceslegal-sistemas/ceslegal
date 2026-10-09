@@ -21,7 +21,7 @@
         'construido_ia' => 'Construido con IA',
         'mejora_ia' => 'Mejorado con IA',
         'subido' => 'Subido manualmente',
-        default => '—',
+        default => '-',
     };
 @endphp
 <div class="rit-viewer" style="margin:0;height:100%">

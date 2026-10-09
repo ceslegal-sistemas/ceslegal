@@ -138,7 +138,7 @@
 
                     <div class="grid grid-cols-2 gap-3">
                         <div class="imp-card"><p class="imp-dato">Decisión</p><p class="imp-valor">{{ $tipoSancion }}</p></div>
-                        <div class="imp-card"><p class="imp-dato">Notificada</p><p class="imp-valor">{{ $proceso?->fecha_notificacion?->timezone('America/Bogota')->locale('es')->isoFormat('D MMM YYYY') ?? '—' }}</p></div>
+                        <div class="imp-card"><p class="imp-dato">Notificada</p><p class="imp-valor">{{ $proceso?->fecha_notificacion?->timezone('America/Bogota')->locale('es')->isoFormat('D MMM YYYY') ?? '-' }}</p></div>
                     </div>
 
                     {{-- ───── Paso 1: código al correo ───── --}}

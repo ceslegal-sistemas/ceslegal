@@ -37,7 +37,7 @@
         </div>
         <div class="imv-stat">
             <p class="imv-k">Medio</p>
-            <p class="imv-v">{{ $medios[$impugnacion->medio_recepcion] ?? '—' }}</p>
+            <p class="imv-v">{{ $medios[$impugnacion->medio_recepcion] ?? '-' }}</p>
         </div>
         @if ($porElTrabajador)
             <div class="imv-stat">
