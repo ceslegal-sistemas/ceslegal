@@ -14,7 +14,10 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Http\Responses\Auth\Contracts\RegistrationResponse;
 use Filament\Pages\Auth\Register as BaseRegister;
+use Illuminate\Http\RedirectResponse;
+use Livewire\Features\SupportRedirects\Redirector;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -730,13 +733,47 @@ class Register extends BaseRegister
         $this->redirectUrl = $payu->getCheckoutUrl($suscripcion, $buyerEmail, $descripcion);
     }
 
+    /**
+     * Filament (3.3) IGNORA getRedirectUrl() de esta página: su register() devuelve
+     * siempre RegistrationResponse = redirect()->intended(Filament::getUrl()), o sea
+     * el inicio del panel desde donde se envió el formulario. Desde /admin/login el
+     * cliente recién creado caía en /admin ("no tiene permisos") y debía recargar.
+     * Aquí se reemplaza la respuesta por una que va a la URL calculada (PayU, Mi
+     * Reglamento Interno o el panel que corresponda al rol).
+     */
+    public function register(): ?RegistrationResponse
+    {
+        $respuesta = parent::register();
+
+        if ($respuesta === null) {
+            return null;
+        }
+
+        $url = $this->getRedirectUrl();
+
+        return new class($url) implements RegistrationResponse {
+            public function __construct(private string $url)
+            {
+            }
+
+            public function toResponse($request): RedirectResponse | Redirector
+            {
+                return redirect()->to($this->url);
+            }
+        };
+    }
+
     public function getRedirectUrl(): string
     {
         if (!empty($this->redirectUrl)) {
             return $this->redirectUrl;
         }
 
-        return parent::getRedirectUrl();
+        // Sin redirect específico: el panel que corresponde al rol de la cuenta creada
+        // (cliente -> /empresa, bufete -> /admin), no el desde donde se registró.
+        $panel = auth()->user()?->role === 'cliente' ? 'empresa' : 'admin';
+
+        return \App\Filament\Admin\Pages\Dashboard::getUrl(panel: $panel);
     }
 
 }
