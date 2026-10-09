@@ -40,6 +40,8 @@ class EmitirSancionPasos extends Component
         ?array $validacionesV6PuntosClave = null,
         ?\Illuminate\Support\Carbon $validacionesV6En = null,
         ?string $decision = null,
+        string $razonDivergencia = '',
+        bool $exoneracionAceptada = false,
     ): void {
         $this->procesoId = $procesoId;
         $this->analisis = $analisis;
@@ -63,6 +65,8 @@ class EmitirSancionPasos extends Component
         // otra vez al Paso 1 como si nada se hubiera elegido.
         if ($decision) {
             $this->decision = $decision;
+            $this->razonDivergencia = $razonDivergencia;
+            $this->exoneracionAceptada = $exoneracionAceptada;
             $this->paso = 2;
         }
     }

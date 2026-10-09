@@ -2254,7 +2254,7 @@ class ProcesoDisciplinarioResource extends Resource
                           Forms\Components\Group::make([
                             Forms\Components\View::make('livewire.emitir-sancion-pasos-wrapper')
                                 ->key('emitir_sancion_pasos_wrapper')
-                                ->viewData(fn(Get $get) => [
+                                ->viewData(fn($livewire) => [
                                     'procesoId' => $record->id,
                                     'analisis' => $analisis,
                                     'esFallback' => $esFallback,
@@ -2272,7 +2272,14 @@ class ProcesoDisciplinarioResource extends Resource
                                     // (ver ->visible() de abajo) - se le pasa la decisión que el padre
                                     // ya tenía guardada para que EmitirSancionPasos::mount() la
                                     // restaure y abra directo en el Paso 2.
-                                    'decision' => $get('tipo_sancion'),
+                                    //
+                                    // Se lee de $livewire->mountedTableActionsData (no de Get $get):
+                                    // el árbol de campos cacheado no se refresca al volver desde el
+                                    // Paso 3, así que $get('tipo_sancion') llegaba vacío y la
+                                    // sanción elegida no aparecía marcada.
+                                    'decision' => $livewire->mountedTableActionsData[0]['tipo_sancion'] ?? null,
+                                    'razonDivergencia' => (string) ($livewire->mountedTableActionsData[0]['razon_divergencia'] ?? ''),
+                                    'exoneracionAceptada' => (bool) ($livewire->mountedTableActionsData[0]['exoneracion_aceptada'] ?? false),
                                 ])
                                 ->columnSpanFull()
                                 // Al llegar al Paso 3 (Verificación del Autorizador, ->visible()
