@@ -2546,6 +2546,14 @@ class ProcesoDisciplinarioResource extends Resource
                                     // notificación visible: al ser un campo oculto (base64),
                                     // el error de "requerido" no se mostraría al usuario.
                                     Forms\Components\Hidden::make('foto_autorizador_base64'),
+
+                                    // Botones del Paso 3 (Cancelar / Volver a Decisión / Continuar):
+                                    // viven DENTRO de este bloque, no en el footer nativo del modal,
+                                    // para que siempre se muestren y se oculten junto con él - el
+                                    // footer nativo se evaluaba aparte y al volver a la Decisión
+                                    // quedaba con los botones del Paso 3 sobre los del Paso 2.
+                                    Forms\Components\View::make('filament.components.emitir-sancion-pie-autorizacion')
+                                        ->columnSpanFull(),
                                 ])
                                 // Mismo motivo que la ->visible() del wizard interno de arriba
                                 // (línea ~2199): lee $livewire->mountedTableActionsData en vez de
@@ -2583,89 +2591,11 @@ class ProcesoDisciplinarioResource extends Resource
                             return $mensaje;
                         }
                     )
-                    ->modalSubmitActionLabel('Continuar')
-                    // Mientras se genera la recomendación (ver generando_recomendacion más
-                    // arriba) el modal solo muestra el loading - deshabilitar "Continuar"
-                    // evita que se vea clicable sin hacer nada; la validación real ya existe
-                    // aparte al inicio de ->action() como red de seguridad. Además, el botón
-                    // nativo del modal solo debe existir cuando el wizard llegó al Paso 3
-                    // (Verificación del Autorizador): se usa $livewire en vez de Get $get
-                    // porque Get $get lanza "Typed property ...Component::$container must
-                    // not be accessed before initialization" dentro de este closure.
-                    ->modalSubmitAction(fn($action, ProcesoDisciplinario $record, $livewire) => $action
-                        ->disabled(
-                            in_array($record->validaciones_v6_estado, ['pendiente', 'procesando'], true)
-                            // Sin esto, el usuario podía darle "Continuar" sin haber
-                            // tomado la foto de verificación y recién ahí enterarse
-                            // por una notificación de error (el ->action() real ya
-                            // lo bloqueaba del lado del servidor, NO se toca esa
-                            // validación) - generaba confusión (pedido explícito
-                            // del usuario, con captura de pantalla). Get $get no
-                            // funciona en este closure ("Typed property ...
-                            // Component::$container must not be accessed before
-                            // initialization"), por eso se lee directo de
-                            // $livewire->mountedTableActionsData, igual que
-                            // paso_actual.
-                            || empty($livewire->mountedTableActionsData[0]['foto_autorizador_base64'] ?? null)
-                        )
-                        ->hidden(($livewire->mountedTableActionsData[0]['paso_actual'] ?? 1) < 3)
-                        // La Action raíz usa ->color('danger') (para el botón que
-                        // ABRE el modal) - sin esto el submit final heredaba ese
-                        // mismo rojo "danger" en vez del rojo de marca "primary"
-                        // (#E11D48, ver ConfiguraPanelCompartido.php), inconsistente
-                        // con "Continuar a Decisión"/"Continuar a Autorizar" del
-                        // wizard interno, que sí usan primary.
-                        ->color('primary')
-                    )
-                    ->modalCancelActionLabel('Cancelar')
-                    // Mismo criterio que ->modalSubmitAction() de arriba: mientras el
-                    // wizard interno (Livewire hijo) tiene el control de la navegación
-                    // (Pasos 1-2, paso_actual < 3), el Cancelar nativo de Filament se
-                    // oculta - el hijo gana su propio botón "Cancelar" (Task 2) para no
-                    // dejar 2 filas de navegación compitiendo (bug real reportado por
-                    // el usuario con capturas de pantalla).
-                    ->modalCancelAction(fn($action, $livewire) => $action
-                        ->hidden(($livewire->mountedTableActionsData[0]['paso_actual'] ?? 1) < 3)
-                    )
-                    // Reemplaza el Placeholder 'volver_a_decision' (retirado) - vive
-                    // ahora en el footer nativo, junto a Cancelar/Continuar, en vez de
-                    // suelto arriba del formulario (bug de UI reportado por el
-                    // usuario con capturas de pantalla: "aquí igual" comparando el
-                    // Paso 2 y el Paso 3). Es una Action real con su propio ->action()
-                    // del lado del servidor (no un botón puramente Alpine/cliente),
-                    // así que SÍ se puede probar con Livewire::test() - más robusto
-                    // que el $wire.$set(...) que usaba el partial original, con el
-                    // mismo resultado visible para el usuario.
-                    ->extraModalFooterActions(fn($livewire) => ($livewire->mountedTableActionsData[0]['paso_actual'] ?? 1) >= 3
-                        ? [
-                            // NOTA: usar \Filament\Tables\Actions\Action (no el generico
-                            // \Filament\Actions\Action) es obligatorio aqui - confirmado con
-                            // Livewire::test() (incluido un contraejemplo real: con la clase
-                            // generica el boton queda muerto en silencio). Causa raiz exacta,
-                            // leyendo vendor/filament/tables/src/Table/Concerns/HasActions.php:
-                            // getMountableModalActionFromAction() tiene un gate explicito
-                            // `if (! $action instanceof Action) return null;` contra la clase
-                            // de Tables\Actions - con la clase generica retorna null antes de
-                            // montar nada, mountTableAction() desmonta de inmediato SIN
-                            // ejecutar ->action() (paso_actual nunca vuelve a 1).
-                            \Filament\Tables\Actions\Action::make('volver_a_decision')
-                                ->label('Volver a Decisión')
-                                ->color('gray')
-                                ->icon('heroicon-o-arrow-left')
-                                ->action(function ($livewire) {
-                                    $livewire->mountedTableActionsData[0]['paso_actual'] = 1;
-                                }),
-                        ]
-                        : []
-                    )
-                    // Filament arma el arreglo de acciones del footer como
-                    // [submit, ...extra, cancel] (confirmado en
-                    // vendor/filament/actions/src/Concerns/CanOpenModal.php). Sin
-                    // alineación explícita el orden visual queda indeterminado
-                    // (hallazgo real de la revisión del spec de este plan) - End
-                    // aplica flex-row-reverse, produciendo el orden deseado
-                    // izquierda-a-derecha: Cancelar → Volver a Decisión → Continuar.
-                    ->modalFooterActionsAlignment(\Filament\Support\Enums\Alignment::End)
+                    // Sin footer nativo: los Pasos 1-2 usan los botones del wizard interno
+                    // (Livewire hijo) y el Paso 3 los suyos, dentro de su propio bloque
+                    // (emitir-sancion-pie-autorizacion). Así nunca hay dos filas de botones.
+                    ->modalSubmitAction(false)
+                    ->modalCancelAction(false)
                     ->modalWidth('6xl')
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>

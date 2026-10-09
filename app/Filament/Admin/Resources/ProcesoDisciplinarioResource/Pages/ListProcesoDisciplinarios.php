@@ -70,6 +70,24 @@ class ListProcesoDisciplinarios extends ListRecords
         $this->mountedTableActionsData[0]['paso_actual'] = 3;
     }
 
+    /**
+     * "Volver a Decisión" desde la Verificación del Autorizador (Paso 3). Vive
+     * aquí, como método real de Livewire llamado desde el propio bloque del Paso 3
+     * (wire:click), por la misma razón que recibirDecisionSancion(): solo así
+     * Filament reconstruye el formulario cacheado y el Paso 3 se oculta a la vez
+     * que reaparece el wizard. Antes era una Action del footer nativo, que se
+     * evaluaba aparte y podía quedar con los botones del Paso 3 junto a los del
+     * Paso 2.
+     */
+    public function volverADecisionSancion(): void
+    {
+        if (!isset($this->mountedTableActionsData[0])) {
+            return;
+        }
+
+        $this->mountedTableActionsData[0]['paso_actual'] = 1;
+    }
+
     public function mount(): void
     {
         parent::mount();
