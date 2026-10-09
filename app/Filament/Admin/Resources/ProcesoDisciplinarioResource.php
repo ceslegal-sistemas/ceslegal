@@ -4272,8 +4272,20 @@ class ProcesoDisciplinarioResource extends Resource
      */
     protected static function opcionesDiasSuspension(array $analisis): array
     {
+        $dias = $analisis['dias_suspension_sugeridos'] ?? [];
+
+        // Si el RIT no fija un máximo de días (o la IA no lo pudo leer) la lista llegaba
+        // vacía y el selector quedaba sin opciones: el cliente no podía continuar. Se usa
+        // el tope legal general (art. 112 CST: hasta 8 días la primera vez y hasta 2
+        // meses en caso de reincidencia).
+        if (empty($dias)) {
+            $dias = !empty($analisis['es_reincidencia'])
+                ? array_merge(range(1, 8), [15, 30, 60])
+                : range(1, 8);
+        }
+
         $opciones = [];
-        foreach ($analisis['dias_suspension_sugeridos'] ?? [] as $d) {
+        foreach ($dias as $d) {
             $opciones[$d] = "{$d} día" . ($d > 1 ? 's' : '');
         }
 

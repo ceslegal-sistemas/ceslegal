@@ -281,6 +281,9 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
        tocar con precisión con el dedo. */
     .esa-badge-btn { padding: 12px 16px; font-size: 13.5px; }
 }
+/* "Aplicar: No Aplicar Sanción" sin seleccionar: verde oscuro en modo claro (el verde claro de modo oscuro no se leía) */
+.esa-ns-off { color: #15803d; }
+html.dark .esa-ns-off { color: #86efac; }
 </style>
 
 {{-- sancionSel arranca con la decisión ya elegida ($decision, del wizard): al volver del Paso 3 la tarjeta debe verse marcada. El resaltado es de Alpine dentro de wire:ignore, así que no se actualiza solo desde el servidor. --}}
@@ -568,10 +571,11 @@ html.dark .esa-badge-btn:hover { filter: brightness(1.13); }
                     <button type="button"
                         x-on:click="sancionSel = 'no_sancion'; $wire.selectDecision('no_sancion')"
                         class="esa-badge-btn"
-                        style="margin-top:.75rem;background:#16a34a14;border-color:#16a34a59;color:#86efac;"
+                        :class="sancionSel === 'no_sancion' ? '' : 'esa-ns-off'"
+                        style="margin-top:.75rem;background:#16a34a14;border-color:#16a34a59;"
                         :style="sancionSel === 'no_sancion'
                             ? 'margin-top:.75rem;background:#16a34a;border-color:#16a34a;color:#fff;'
-                            : 'margin-top:.75rem;background:#16a34a14;border-color:#16a34a59;color:#86efac;'">
+                            : 'margin-top:.75rem;background:#16a34a14;border-color:#16a34a59;'">
                         {{-- Mismo icono que 'no_sancion' en $sancionMeta, pero este boton
                              vive en un bloque de codigo separado (no pasa por $m/$sancionMeta). --}}
                         <lord-icon src="https://cdn.lordicon.com/lvrxlmju.json" trigger="hover" colors="primary:#16a34a,secondary:#16a34a" style="width:18px;height:18px;flex-shrink:0;"></lord-icon>
