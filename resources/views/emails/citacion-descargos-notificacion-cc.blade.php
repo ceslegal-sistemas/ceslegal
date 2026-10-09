@@ -1,112 +1,29 @@
-<!DOCTYPE html>
-<html lang="es">
+@extends('emails.layouts.lupe', [
+    'preheader' => "Se citó a {$trabajador->nombre_completo} a descargos",
+    'badge' => 'Copia informativa',
+    'titulo' => 'Citación a descargos',
+    'subtitulo' => "{$empresa->razon_social} · Proceso {$proceso->codigo}",
+    'empresa' => $empresa,
+])
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Citación a descargos - {{ $trabajador->nombre_completo }}</title>
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.5;
-            color: #374151;
-            background-color: #f3f4f6;
-            margin: 0;
-            padding: 20px;
-        }
-        .wrapper {
-            max-width: 600px;
-            margin: 0 auto;
-            background: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #e5e7eb;
-        }
-        .header {
-            color: white;
-            padding: 24px 30px 18px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0 0 4px 0;
-            font-size: 19px;
-            font-weight: bold;
-        }
-        .header p {
-            margin: 0;
-            font-size: 13px;
-            opacity: 0.85;
-        }
-        .content {
-            padding: 26px 30px;
-        }
-        .info-box {
-            background-color: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            padding: 14px 16px;
-            margin: 0 0 20px 0;
-            font-size: 14px;
-        }
-        .info-box p { margin: 4px 0; }
-        .footer {
-            background-color: #f9fafb;
-            border-top: 1px solid #e5e7eb;
-            padding: 16px 30px;
-            text-align: center;
-            font-size: 12px;
-            color: #9ca3af;
-        }
-    </style>
-</head>
+@section('contenido')
+    <p style="margin:0;color:#4b5563;">
+        Le informamos que se citó formalmente a <strong>{{ $trabajador->nombre_completo }}</strong> ({{ $trabajador->cargo }})
+        a una audiencia de descargos. Este correo es solo informativo: el trabajador ya recibió la citación formal con el
+        enlace y las instrucciones para participar.
+    </p>
 
-<body>
-    <div class="wrapper">
+    @include('emails.partials.datos', ['filas' => [
+        'Trabajador' => $trabajador->nombre_completo,
+        'Cargo' => $trabajador->cargo,
+        'Código del proceso' => $proceso->codigo,
+        'Fecha de la audiencia' => $proceso->fecha_descargos_programada
+            ? \Carbon\Carbon::parse($proceso->fecha_descargos_programada)->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY')
+            : null,
+    ]])
 
-        @include('emails.components.logo-empresa-header', ['empresa' => $empresa])
+    <p style="margin:0;color:#4b5563;font-size:14px;">Adjuntamos el documento de citación enviado al trabajador para su conocimiento.</p>
 
-        {{-- Color de marca REAL de la empresa (extraído de su logo por
-             LogoColorService al subirlo), no un azul genérico - inline
-             porque muchos clientes de correo no aplican bien clases CSS. --}}
-        <div class="header" style="background-color: {{ $empresa->logo_color_acento ?? '#3A3A3A' }};">
-            <h1>Citación a descargos - Copia informativa</h1>
-            <p>{{ $empresa->razon_social }} - Proceso {{ $proceso->codigo }}</p>
-        </div>
-
-        <div class="content">
-            <p style="margin:0 0 20px 0;">
-                Le informamos que se citó formalmente a <strong>{{ $trabajador->nombre_completo }}</strong>
-                ({{ $trabajador->cargo }}) a una audiencia de descargos. Este correo es solo informativo;
-                el trabajador ya recibió la citación formal con el enlace y las instrucciones para participar.
-            </p>
-
-            <div class="info-box">
-                <p><strong>Trabajador:</strong> {{ $trabajador->nombre_completo }}</p>
-                <p><strong>Cargo:</strong> {{ $trabajador->cargo }}</p>
-                <p><strong>Código del proceso:</strong> {{ $proceso->codigo }}</p>
-                @if($proceso->fecha_descargos_programada)
-                <p><strong>Fecha de la audiencia:</strong> {{ \Carbon\Carbon::parse($proceso->fecha_descargos_programada)->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY') }}</p>
-                @endif
-            </div>
-
-            <p style="font-size:14px; margin:0;">
-                Adjuntamos el documento de citación enviado al trabajador para su conocimiento.
-            </p>
-
-            <p style="font-size:14px; margin:16px 0 0 0;">
-                Atentamente,<br>
-                <strong>{{ $empresa->razon_social }}</strong><br>
-                <span style="color:#6b7280;">Área de Recursos Humanos</span>
-            </p>
-        </div>
-
-        <div class="footer">
-            <p style="margin:0 0 4px 0;">Este correo fue generado automáticamente por el sistema de gestión de procesos disciplinarios.</p>
-            <p style="margin:0;">Por favor no responda a este correo. Use los canales oficiales de la empresa.</p>
-        </div>
-
-    </div>
-</body>
-
-</html>
+    <p style="margin:18px 0 0;font-size:14px;color:#4b5563;">Atentamente,<br><strong>{{ $empresa->razon_social }}</strong><br><span style="color:#6b7280;">Área de Recursos Humanos</span></p>
+    <p style="margin:18px 0 0;font-size:11px;line-height:1.6;color:#9ca3af;">Correo automático del sistema de gestión de procesos disciplinarios. Por favor no responda; use los canales oficiales de la empresa.</p>
+@endsection

@@ -31,6 +31,12 @@
     $preheader = $preheader ?? ($titulo ?? '');
     $empresaNombre = isset($empresa) ? ($empresa->razon_social ?? null) : null;
     $mascota = asset('images/lupe-logo.png');
+    // Correos que salen DESDE LA CUENTA DEL CLIENTE (ej. mail.correo-oficial): la identidad
+    // es la de la empresa, nunca "LUPE Legal" - mismo hero, pero con su nombre y su logo.
+    $sinLupe = $sinMarcaLupe ?? false;
+    $logoEmpresaUrl = (isset($empresa) && !empty($empresa->logo_path))
+        ? \Illuminate\Support\Facades\URL::signedRoute('logo-empresa.mostrar', ['empresa' => $empresa->id])
+        : null;
 @endphp
 <!DOCTYPE html>
 <html lang="es" xmlns="http://www.w3.org/1999/xhtml">
@@ -115,10 +121,14 @@
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td valign="middle" style="font-family:Arial,Helvetica,sans-serif;">
-                                        <p class="lupe-marca" style="margin:0;font-size:12px;font-weight:700;letter-spacing:3px;color:#be123c;text-transform:uppercase;">LUPE <span style="color:#a16207;">Legal</span></p>
+                                        <p class="lupe-marca" style="margin:0;font-size:12px;font-weight:700;letter-spacing:3px;color:#be123c;text-transform:uppercase;">@if ($sinLupe){{ $empresaNombre }}@else LUPE <span style="color:#a16207;">Legal</span>@endif</p>
                                     </td>
                                     <td valign="middle" align="right" width="96">
-                                        <img src="{{ $mascota }}" class="lupe-mascota" width="84" alt="LUPE Legal" style="display:block;width:84px;height:auto;border:0;margin-left:auto;">
+                                        @if (! $sinLupe)
+                                            <img src="{{ $mascota }}" class="lupe-mascota" width="84" alt="LUPE Legal" style="display:block;width:84px;height:auto;border:0;margin-left:auto;">
+                                        @elseif ($logoEmpresaUrl)
+                                            <img src="{{ $logoEmpresaUrl }}" width="84" alt="{{ $empresaNombre }}" style="display:block;max-width:84px;max-height:60px;height:auto;border:0;margin-left:auto;">
+                                        @endif
                                     </td>
                                 </tr>
                             </table>
@@ -169,10 +179,19 @@
                     {{-- ═══ PIE ═══ --}}
                     <tr>
                         <td align="center" class="lupe-pie" style="padding:22px 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#9ca3af;text-align:center;">
-                            @if ($empresaNombre)
-                                <span style="color:#6b7280;">Enviado en nombre de <strong>{{ $empresaNombre }}</strong></span><br>
+                            @if (! $sinLupe && $logoEmpresaUrl)
+                                {{-- Logo real de la empresa (URL firmada permanente: el correo puede leerse meses después) --}}
+                                <img src="{{ $logoEmpresaUrl }}"
+                                     alt="{{ $empresaNombre }}" style="max-height:38px;max-width:180px;display:inline-block;margin-bottom:8px;border:0;"><br>
                             @endif
-                            LUPE Legal &mdash; Plataforma de gestión disciplinaria laboral
+                            @if ($sinLupe)
+                                {{ $pie ?? '' }}
+                            @else
+                                @if ($empresaNombre)
+                                    <span style="color:#6b7280;">Enviado en nombre de <strong>{{ $empresaNombre }}</strong></span><br>
+                                @endif
+                                LUPE Legal &mdash; Plataforma de gestión disciplinaria laboral
+                            @endif
                         </td>
                     </tr>
                 </table>

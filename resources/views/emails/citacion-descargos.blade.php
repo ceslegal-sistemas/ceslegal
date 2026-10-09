@@ -1,328 +1,84 @@
-<!DOCTYPE html>
-<html lang="es">
+@php
+    $fecha = $proceso->fecha_descargos_programada
+        ? \Carbon\Carbon::parse($proceso->fecha_descargos_programada)->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY')
+        : null;
+    $fechaCorta = $proceso->fecha_descargos_programada
+        ? \Carbon\Carbon::parse($proceso->fecha_descargos_programada)->locale('es')->isoFormat('D [de] MMMM')
+        : 'fecha indicada';
+    $hora = $proceso->hora_descargos_programada ? \Carbon\Carbon::parse($proceso->hora_descargos_programada)->format('H:i') . ' hrs' : null;
+    $evidenciasEmpleador = $evidenciasEmpleador ?? [];
+    $cta = !empty($linkDescargos) ? ['label' => 'Acceder al formulario de descargos', 'url' => $linkDescargos] : null;
+@endphp
+@extends('emails.layouts.lupe', [
+    'preheader' => 'Fue citado(a) a una audiencia de descargos' . ($fecha ? ": {$fecha}" : ''),
+    'badge' => 'Acción requerida de su parte',
+    'titulo' => 'Citación a audiencia de descargos',
+    'subtitulo' => "{$empresa->razon_social} · Proceso {$proceso->codigo}",
+    'cta' => $cta,
+    'empresa' => $empresa,
+])
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Citación a Audiencia de Descargos</title>
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.5;
-            color: #374151;
-            background-color: #f3f4f6;
-            margin: 0;
-            padding: 20px;
-        }
-        .wrapper {
-            max-width: 600px;
-            margin: 0 auto;
-            background: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #e5e7eb;
-        }
-        /* HEADER */
-        .header {
-            background-color: #1e40af;
-            color: white;
-            padding: 28px 30px 22px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0 0 4px 0;
-            font-size: 22px;
-            font-weight: bold;
-            letter-spacing: 0.3px;
-        }
-        .header p {
-            margin: 0;
-            font-size: 14px;
-            opacity: 0.85;
-        }
-        /* ALERTA URGENTE */
-        .urgente-band {
-            background-color: #dc2626;
-            color: white;
-            text-align: center;
-            padding: 10px 20px;
-            font-size: 13px;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-        /* CONTENIDO */
-        .content {
-            padding: 28px 30px;
-        }
-        /* BLOQUE FECHA */
-        .fecha-block {
-            background-color: #fef9c3;
-            border: 2px solid #eab308;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            margin: 0 0 24px 0;
-        }
-        .fecha-block .label {
-            font-size: 11px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #92400e;
-            margin-bottom: 6px;
-        }
-        .fecha-block .fecha {
-            font-size: 20px;
-            font-weight: bold;
-            color: #1c1917;
-            margin-bottom: 4px;
-            text-transform: capitalize;
-        }
-        .fecha-block .hora {
-            font-size: 28px;
-            font-weight: bold;
-            color: #b45309;
-        }
-        .fecha-block .modalidad {
-            margin-top: 8px;
-            font-size: 13px;
-            color: #78350f;
-        }
-        /* BLOQUE CTA - EL MAS IMPORTANTE */
-        .cta-block {
-            background-color: #f0fdf4;
-            border: 2px solid #16a34a;
-            border-radius: 8px;
-            padding: 24px 20px;
-            text-align: center;
-            margin: 0 0 24px 0;
-        }
-        .cta-block .cta-label {
-            font-size: 13px;
-            font-weight: bold;
-            color: #15803d;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-        }
-        .cta-block .cta-desc {
-            font-size: 14px;
-            color: #374151;
-            margin: 0 0 18px 0;
-        }
-        .btn-primary {
-            display: inline-block;
-            background-color: #16a34a;
-            color: #ffffff !important;
-            text-decoration: none;
-            font-size: 17px;
-            font-weight: bold;
-            padding: 16px 36px;
-            border-radius: 6px;
-            letter-spacing: 0.2px;
-        }
-        .cta-url {
-            margin-top: 14px;
-            font-size: 11px;
-            color: #6b7280;
-            word-break: break-all;
-        }
-        .cta-url a {
-            color: #2563eb;
-        }
-        /* PASOS */
-        .steps {
-            background-color: #f8fafc;
-            border-radius: 6px;
-            padding: 18px 20px;
-            margin: 0 0 22px 0;
-        }
-        .steps .step {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 12px;
-        }
-        .steps .step:last-child { margin-bottom: 0; }
-        .step-num {
-            background-color: #1e40af;
-            color: white;
-            width: 24px;
-            height: 24px;
-            min-width: 24px;
-            border-radius: 50%;
-            font-size: 13px;
-            font-weight: bold;
-            text-align: center;
-            line-height: 24px;
-            margin-right: 12px;
-            margin-top: 1px;
-        }
-        .step-text {
-            font-size: 14px;
-            color: #374151;
-        }
-        /* INFO PROCESO */
-        .info-box {
-            background-color: #f9fafb;
-            border-left: 4px solid #2563eb;
-            border-radius: 4px;
-            padding: 14px 16px;
-            margin: 0 0 20px 0;
-            font-size: 14px;
-        }
-        .info-box p { margin: 4px 0; }
-        /* AVISO LEGAL */
-        .aviso {
-            background-color: #fff7ed;
-            border-left: 4px solid #ea580c;
-            border-radius: 4px;
-            padding: 14px 16px;
-            font-size: 13px;
-            color: #431407;
-            margin: 0 0 20px 0;
-        }
-        .aviso ul { margin: 6px 0 0 0; padding-left: 18px; }
-        .aviso li { margin-bottom: 4px; }
-        /* FOOTER */
-        .footer {
-            background-color: #f9fafb;
-            border-top: 1px solid #e5e7eb;
-            padding: 18px 30px;
-            text-align: center;
-            font-size: 12px;
-            color: #9ca3af;
-        }
-    </style>
-</head>
+@section('contenido')
+    <p style="margin:0 0 4px;">Estimado(a) <strong>{{ $trabajador->nombre_completo }}</strong>,</p>
+    <p style="margin:0;color:#4b5563;">Usted fue citado(a) formalmente a una audiencia de descargos. Aquí están la fecha, la hora y el enlace para participar.</p>
 
-<body>
-    <div class="wrapper">
-
-        {{-- HEADER --}}
-        <div class="header">
-            <h1>Citación a Audiencia de Descargos</h1>
-            <p>{{ $empresa->razon_social }} - Proceso {{ $proceso->codigo }}</p>
-        </div>
-
-        <div class="urgente-band">Acción requerida de su parte</div>
-
-        <div class="content">
-
-            <p style="margin:0 0 20px 0;">
-                Estimado(a) <strong>{{ $trabajador->nombre_completo }}</strong>,<br>
-                usted ha sido citado(a) formalmente a una audiencia de descargos. A continuación encontrará la fecha, la hora y el enlace para participar.
-            </p>
-
-            {{-- FECHA Y HORA --}}
-            @if($proceso->fecha_descargos_programada)
-            <div class="fecha-block">
-                <div class="label">Fecha y hora de su audiencia</div>
-                <div class="fecha">{{ \Carbon\Carbon::parse($proceso->fecha_descargos_programada)->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY') }}</div>
-                <div class="hora">{{ \Carbon\Carbon::parse($proceso->hora_descargos_programada)->format('H:i') }} hrs</div>
-                <div class="modalidad">Modalidad: <strong>{{ ucfirst($proceso->modalidad_descargos ?? 'Presencial') }}</strong></div>
-            </div>
-            @endif
-
-            {{-- BOTON CTA - PROTAGONISTA --}}
-            @if($linkDescargos)
-            <div class="cta-block">
-                <div class="cta-label">Enlace para sus descargos en línea</div>
-                <p class="cta-desc">
-                    El <strong>día de la audiencia</strong> ingrese aquí para presentar sus descargos.<br>
-                    Guárdelo ahora - solo funciona ese día.
-                </p>
-                <a href="{{ $linkDescargos }}" class="btn-primary">
-                    Acceder al formulario de descargos
-                </a>
-                <div class="cta-url">
-                    Si el botón no abre, copie este enlace en su navegador:<br>
-                    <a href="{{ $linkDescargos }}">{{ $linkDescargos }}</a>
-                </div>
-            </div>
-            @endif
-
-            {{-- PASOS --}}
-            <div class="steps">
-                <div class="step">
-                    <div class="step-num">1</div>
-                    <div class="step-text">Lea el <strong>documento adjunto</strong> a este correo para conocer los cargos y sus derechos.</div>
-                </div>
-                <div class="step">
-                    <div class="step-num">2</div>
-                    <div class="step-text">El día de la audiencia (<strong>{{ $proceso->fecha_descargos_programada ? \Carbon\Carbon::parse($proceso->fecha_descargos_programada)->locale('es')->isoFormat('D [de] MMMM') : 'fecha indicada' }}</strong>), haga clic en el botón verde de arriba.</div>
-                </div>
-                <div class="step">
-                    <div class="step-num">3</div>
-                    <div class="step-text">Complete el formulario en línea y envíe sus descargos.</div>
-                </div>
-            </div>
-
-            {{-- PRUEBAS DE LA EMPRESA --}}
-            {{-- Derecho de contradicción: el trabajador debe saber qué pruebas
-                 existen en su contra antes de la diligencia. No se adjuntan al
-                 correo (hasta 5 archivos de 10 MB harían rebotar el envío, y
-                 dejarían pruebas de un proceso disciplinario en un correo
-                 reenviable): se enumeran aquí y se abren desde el enlace
-                 seguro, que exige código de verificación. --}}
-            @php $evidenciasEmpleador = $evidenciasEmpleador ?? []; @endphp
-            @if (!empty($evidenciasEmpleador))
-            <div class="info-box">
-                <p><strong>Pruebas aportadas por la empresa ({{ count($evidenciasEmpleador) }}):</strong></p>
-                <ul style="margin:8px 0 0;padding-left:18px;">
-                    @foreach ($evidenciasEmpleador as $nombreEvidencia)
-                        <li style="margin-bottom:4px;">{{ $nombreEvidencia }}</li>
-                    @endforeach
-                </ul>
-                <p style="margin-top:10px;">
-                    Puede consultarlas desde el enlace de esta citación, junto con los
-                    hechos del proceso, antes de presentar sus descargos.
-                </p>
-            </div>
-            @endif
-
-            {{-- INFO PROCESO --}}
-            <div class="info-box">
-                <p><strong>Empresa:</strong> {{ $empresa->razon_social }}</p>
-                <p><strong>Código del proceso:</strong> {{ $proceso->codigo }}</p>
-                <p><strong>Su cargo:</strong> {{ $trabajador->cargo }}</p>
-            </div>
-
-            {{-- AVISO LEGAL --}}
-            <div class="aviso">
-                <strong>Importante:</strong>
-                <ul>
-                    <li>Su asistencia a esta audiencia es <strong>obligatoria</strong>.</li>
-                    <li>Si no se presenta ni responde el formulario, el proceso continuará sin su participación.</li>
-                    <li>Tiene derecho a presentar pruebas y argumentos en su defensa.</li>
-                </ul>
-            </div>
-
-            <p style="font-size:14px; margin:0 0 6px 0;">Si tiene preguntas, comuníquese con el área de Recursos Humanos de <strong>{{ $empresa->razon_social }}</strong> antes de la fecha programada.</p>
-
-            <p style="font-size:14px; margin:16px 0 0 0;">
-                Atentamente,<br>
-                <strong>{{ $empresa->razon_social }}</strong><br>
-                <span style="color:#6b7280;">Área de Recursos Humanos</span>
-            </p>
-
-        </div>{{-- /content --}}
-
-        <div class="footer">
-            <p style="margin:0 0 4px 0;">Este correo fue generado automáticamente por el sistema de gestión de procesos disciplinarios.</p>
-            <p style="margin:0;">Por favor no responda a este correo. Use los canales oficiales de la empresa.</p>
-        </div>
-
-    </div>
-
-    {{-- Pixel de seguimiento --}}
-    @if(isset($trackingToken))
-    <img src="{{ route('email.tracking.pixel', ['token' => $trackingToken]) }}"
-         width="1" height="1"
-         style="display:block !important; width:1px !important; height:1px !important; border:0 !important; margin:0 !important; padding:0 !important;"
-         alt="" />
+    @if ($fecha)
+        {{-- Fecha y hora: tarjeta protagonista --}}
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">
+            <tr>
+                <td align="center" bgcolor="#fff1f2" class="lupe-code" style="background-color:#fff1f2;border-radius:18px;padding:24px 14px;font-family:Arial,Helvetica,sans-serif;">
+                    <span style="display:block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#be123c;">Fecha y hora de su audiencia</span>
+                    <span style="display:block;margin-top:8px;font-size:22px;font-weight:800;color:#1f2937;text-transform:capitalize;">{{ $fecha }}</span>
+                    @if ($hora)<span style="display:block;margin-top:4px;font-size:30px;font-weight:800;color:#be123c;">{{ $hora }}</span>@endif
+                    <span style="display:block;margin-top:8px;font-size:13px;color:#6b7280;">Modalidad: <strong>{{ ucfirst($proceso->modalidad_descargos ?? 'Presencial') }}</strong></span>
+                </td>
+            </tr>
+        </table>
     @endif
-</body>
 
-</html>
+    @if ($cta)
+        @include('emails.partials.aviso', [
+            'titulo' => 'Su enlace de descargos',
+            'tono' => 'ambar',
+            'texto' => 'El <strong>día de la audiencia</strong> ingrese con el botón de arriba para presentar sus descargos en línea. Guárdelo ahora: solo funciona ese día.',
+        ])
+    @endif
+
+    <p style="margin:18px 0 0;font-weight:700;color:#1f2937;">Cómo participar</p>
+    @include('emails.partials.pasos', ['pasos' => [
+        'Lea el <strong>documento adjunto</strong> a este correo para conocer los cargos y sus derechos.',
+        'El día de la audiencia (<strong>' . e($fechaCorta) . '</strong>) haga clic en el botón «Acceder al formulario de descargos».',
+        'Complete el formulario en línea y envíe sus descargos.',
+    ]])
+
+    @if (!empty($evidenciasEmpleador))
+        {{-- Derecho de contradicción: el trabajador debe saber qué pruebas existen en su contra antes de la
+             diligencia. No se adjuntan (peso/reenvío): se enumeran y se abren desde el enlace seguro (con código). --}}
+        @include('emails.partials.aviso', [
+            'titulo' => 'Pruebas aportadas por la empresa (' . count($evidenciasEmpleador) . ')',
+            'tono' => 'azul',
+            'texto' => '<ul style="margin:6px 0 0;padding-left:18px;">' . collect($evidenciasEmpleador)->map(fn ($n) => '<li style="margin-bottom:3px;">' . e($n) . '</li>')->implode('') . '</ul><p style="margin:8px 0 0;">Puede consultarlas desde el enlace de esta citación, junto con los hechos del proceso, antes de presentar sus descargos.</p>',
+        ])
+    @endif
+
+    @include('emails.partials.datos', ['filas' => [
+        'Empresa' => $empresa->razon_social,
+        'Código del proceso' => $proceso->codigo,
+        'Su cargo' => $trabajador->cargo,
+    ]])
+
+    @include('emails.partials.aviso', [
+        'titulo' => 'Importante',
+        'tono' => 'rosa',
+        'texto' => '<ul style="margin:4px 0 0;padding-left:18px;"><li>Su asistencia a esta audiencia es <strong>obligatoria</strong>.</li><li>Si no se presenta ni responde el formulario, el proceso continuará sin su participación.</li><li>Tiene derecho a presentar pruebas y argumentos en su defensa.</li></ul>',
+    ])
+
+    <p style="margin:0;font-size:14px;color:#4b5563;">Si tiene preguntas, comuníquese con el área de Recursos Humanos de <strong>{{ $empresa->razon_social }}</strong> antes de la fecha programada.</p>
+    <p style="margin:16px 0 0;font-size:14px;color:#4b5563;">Atentamente,<br><strong>{{ $empresa->razon_social }}</strong><br><span style="color:#6b7280;">Área de Recursos Humanos</span></p>
+    <p style="margin:18px 0 0;font-size:11px;line-height:1.6;color:#9ca3af;">Correo automático del sistema de gestión de procesos disciplinarios. Por favor no responda; use los canales oficiales de la empresa.</p>
+
+    @if (isset($trackingToken))
+        <img src="{{ route('email.tracking.pixel', ['token' => $trackingToken]) }}" width="1" height="1"
+             style="display:block !important; width:1px !important; height:1px !important; border:0 !important; margin:0 !important; padding:0 !important;" alt="" />
+    @endif
+@endsection
