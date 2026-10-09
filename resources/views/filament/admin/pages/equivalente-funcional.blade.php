@@ -1,34 +1,26 @@
+@php
+    $secciones = [
+        'todos' => ['Trazabilidad completa', 'heroicon-m-shield-check'],
+        'sanciones' => ['Sanciones / Incidentes', 'heroicon-m-exclamation-triangle'],
+        'rit' => ['Autorización del Reglamento', 'heroicon-m-document-check'],
+        'descargos' => ['Descargos', 'heroicon-m-chat-bubble-left-right'],
+        'trabajadores' => ['Aceptación de trabajadores', 'heroicon-m-user-group'],
+        'videos' => ['Videos del Reglamento', 'heroicon-m-play-circle'],
+    ];
+@endphp
+
 <x-filament-panels::page>
-    @include('filament.components.lupe-hero-styles')
+    <x-filament::tabs label="Secciones del reporte">
+        @foreach ($secciones as $clave => [$etiqueta, $icono])
+            <x-filament::tabs.item
+                :active="$seccion === $clave"
+                :icon="$icono"
+                wire:click="cambiarSeccion('{{ $clave }}')"
+            >
+                {{ $etiqueta }}
+            </x-filament::tabs.item>
+        @endforeach
+    </x-filament::tabs>
 
-    <div style="display:flex;flex-wrap:wrap;gap:.5rem;">
-        <button type="button" wire:click="cambiarSeccion('todos')"
-            class="rit-btn {{ $seccion === 'todos' ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
-            Trazabilidad completa
-        </button>
-        <button type="button" wire:click="cambiarSeccion('sanciones')"
-            class="rit-btn {{ $seccion === 'sanciones' ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
-            Sanciones / Incidentes
-        </button>
-        <button type="button" wire:click="cambiarSeccion('rit')"
-            class="rit-btn {{ $seccion === 'rit' ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
-            Autorización de Reglamento de Trabajo
-        </button>
-        <button type="button" wire:click="cambiarSeccion('descargos')"
-            class="rit-btn {{ $seccion === 'descargos' ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
-            Descargos
-        </button>
-        <button type="button" wire:click="cambiarSeccion('trabajadores')"
-            class="rit-btn {{ $seccion === 'trabajadores' ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
-            Aceptación de trabajadores
-        </button>
-        <button type="button" wire:click="cambiarSeccion('videos')"
-            class="rit-btn {{ $seccion === 'videos' ? 'rit-btn-primary' : 'rit-btn-secondary' }}">
-            Videos del Reglamento
-        </button>
-    </div>
-
-    <div style="margin-top:1.25rem;">
-        {{ $this->table }}
-    </div>
+    {{ $this->table }}
 </x-filament-panels::page>
