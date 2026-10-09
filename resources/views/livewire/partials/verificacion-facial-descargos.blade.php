@@ -41,6 +41,14 @@
         // ajustado al video real: en el celular la cámara entrega fotogramas verticales
         // y un visor fijo 4:3 los recortaba / dejaba franjas negras.
         ratioPct: 75,
+        // El video se muestra solo cuando su tamaño dejó de cambiar: iOS entrega primero
+        // fotogramas a otra resolución y los pinta a medias (franja negra) unos segundos.
+        videoListo: false,
+        timerVideo: null,
+        programarVideoListo() {
+            if (this.timerVideo) clearTimeout(this.timerVideo);
+            this.timerVideo = setTimeout(() => { this.ajustarRatio(); this.videoListo = true; }, 700);
+        },
         ajustarRatio() {
             const v = this.$refs.video;
             if (v && v.videoWidth && v.videoHeight) {
@@ -64,13 +72,17 @@
             video.muted = true;
             video.setAttribute('playsinline', '');
             video.setAttribute('webkit-playsinline', '');
-            video.onloadedmetadata = () => this.ajustarRatio();
-            video.onresize = () => this.ajustarRatio();
+            video.onloadedmetadata = () => { this.ajustarRatio(); this.programarVideoListo(); };
+            video.onresize = () => { this.ajustarRatio(); this.programarVideoListo(); };
+            this.videoListo = false;
             video.srcObject = this.stream;
             await this.$nextTick();
             // iOS no siempre arranca el autoplay si el video estaba en un contenedor oculto.
             try { await video.play(); } catch (e) { /* se reintenta con el siguiente fotograma */ }
             this.ajustarRatio();
+            this.programarVideoListo();
+            // Tope: si el navegador nunca avisa un cambio de tamaño, se muestra igual.
+            setTimeout(() => { this.videoListo = true; }, 4000);
         },
         pedirCamara() {
             return navigator.mediaDevices.getUserMedia({
@@ -528,7 +540,8 @@
                  :style="'padding-bottom: ' + ratioPct + '%'">
                 <video x-ref="video" autoplay playsinline webkit-playsinline muted disablepictureinpicture
                     class="absolute inset-0 w-full h-full object-cover"
-                    style="transform: scaleX(-1); -webkit-transform: scaleX(-1);"></video>
+                    style="transform: scaleX(-1); -webkit-transform: scaleX(-1); transition: opacity .25s;"
+                    :style="videoListo ? 'opacity: 1' : 'opacity: 0'"></video>
 
                 <svg class="absolute inset-0 w-full h-full pointer-events-none"
                     :viewBox="'0 0 100 ' + ratioPct" preserveAspectRatio="none">
@@ -549,7 +562,7 @@
 
                 {{-- Mensaje de estado superpuesto --}}
                 <div class="absolute bottom-2 left-0 right-0 flex justify-center px-2">
-                    <template x-if="!modelsCargados">
+                    <template x-if="!modelsCargados || !videoListo">
                         <span class="bg-black/70 text-white text-xs px-3 py-1 rounded-full">
                             Cargando sistema de verificación...
                         </span>
