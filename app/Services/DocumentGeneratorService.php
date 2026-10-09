@@ -2694,6 +2694,8 @@ HTML;
                 'llamado_atencion' => 'Llamado de Atención',
                 'suspension' => 'Suspensión Laboral' . ($nuevosDiasSuspension ? " de {$nuevosDiasSuspension} día(s)" : ''),
                 'terminacion' => 'Terminación de Contrato',
+                'multa' => 'Multa',
+                'no_sancion' => 'Sin Sanción',
                 default => ucfirst(str_replace('_', ' ', $impugnacion->nueva_sancion_tipo)),
             };
         }
@@ -2703,128 +2705,23 @@ HTML;
             'llamado_atencion' => 'Llamado de Atención',
             'suspension' => 'Suspensión Laboral' . ($proceso->dias_suspension ? " de {$proceso->dias_suspension} día(s)" : ''),
             'terminacion' => 'Terminación de Contrato',
+            'multa' => 'Multa',
             'no_sancion' => 'Sin Sanción',
             default => ucfirst(str_replace('_', ' ', $proceso->tipo_sancion ?? 'N/A')),
         };
 
-        // Generar HTML del documento
-        $html = <<<HTML
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resolución de Impugnación</title>
-    <style>
-        @page {
-            margin: 2cm 2cm 2cm 2cm;
-        }
-        body {
-            font-family: 'Calibri', 'Arial', sans-serif;
-            font-size: 11pt;
-            line-height: 1.2;
-            color: #000000;
-            text-align: justify;
-        }
-        h1 {
-            font-family: 'Calibri', 'Arial', sans-serif;
-            font-size: 14pt;
-            font-weight: bold;
-            text-align: center;
-            margin: 5px 0;
-            color: #000000;
-        }
-        h2 {
-            font-family: 'Calibri', 'Arial', sans-serif;
-            font-size: 12pt;
-            font-weight: bold;
-            text-align: center;
-            margin: 5px 0;
-            color: #000000;
-        }
-        h3 {
-            font-family: 'Calibri', 'Arial', sans-serif;
-            font-size: 11pt;
-            font-weight: bold;
-            margin: 10px 0 4px 0;
-            color: #000000;
-        }
-        p {
-            font-family: 'Calibri', 'Arial', sans-serif;
-            font-size: 11pt;
-            margin: 4px 0;
-            text-align: justify;
-            line-height: 1.2;
-        }
-    </style>
-</head>
-<body>
-    <div style="text-align: center; margin-bottom: 15px;">
-        <h1>{$empresa->nombre_completo}</h1>
-        <p style="margin: 2px 0;">NIT: {$empresa->nit}</p>
-        <h2>RESOLUCIÓN DE IMPUGNACIÓN</h2>
-        <p style="margin: 2px 0;">{$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}</p>
-        <p style="margin: 2px 0;">Proceso: {$proceso->codigo}</p>
-    </div>
-
-    <div style="margin: 8px 0;">
-        <p style="margin: 2px 0;"><strong>Señor(a):</strong> {$trabajador->nombre_completo}</p>
-        <p style="margin: 2px 0;"><strong>{$trabajador->tipo_documento}:</strong> {$trabajador->numero_documento}</p>
-        <p style="margin: 2px 0;"><strong>Cargo:</strong> {$trabajador->cargo}</p>
-    </div>
-
-    <p style="margin: 8px 0;"><strong>Asunto:</strong> Resolución de impugnación presentada contra sanción disciplinaria</p>
-
-    <h3>1. ANTECEDENTES</h3>
-    <p>Mediante comunicación de fecha {$proceso->fecha_notificacion?->locale('es')->isoFormat('D [de] MMMM [de] YYYY')}, se le notificó la sanción disciplinaria consistente en <strong>{$sancionOriginalTexto}</strong>, como resultado del proceso disciplinario {$proceso->codigo}.</p>
-    <p>En fecha {$impugnacion->fecha_impugnacion?->locale('es')->isoFormat('D [de] MMMM [de] YYYY')}, usted presentó impugnación contra dicha sanción, exponiendo los siguientes motivos:</p>
-    <p style="margin-left: 20px; font-style: italic;">{$impugnacion->motivos_impugnacion}</p>
-
-    <h3>2. ANÁLISIS</h3>
-    <p>Después de revisar cuidadosamente los argumentos presentados en su impugnación, las pruebas aportadas y el expediente completo del proceso disciplinario, se procede a emitir la siguiente decisión:</p>
-
-    <h3>3. DECISIÓN</h3>
-    <p style="text-align: center; margin: 8px 0;"><strong>{$decisionTexto}</strong></p>
-HTML;
-
-        if ($impugnacion->decision_final === 'confirma_sancion') {
-            $html .= '<p>Se CONFIRMA en todas sus partes la sanción disciplinaria de <strong>' . $sancionOriginalTexto . '</strong> impuesta mediante el proceso ' . $proceso->codigo . '.</p>';
-        } elseif ($impugnacion->decision_final === 'revoca_sancion') {
-            $html .= '<p>Se REVOCA la sanción disciplinaria de <strong>' . $sancionOriginalTexto . '</strong> impuesta mediante el proceso ' . $proceso->codigo . ', dejándola sin efecto alguno.</p>';
-        } elseif ($impugnacion->decision_final === 'modifica_sancion') {
-            $html .= '<p>Se MODIFICA la sanción disciplinaria, cambiando de <strong>' . $sancionOriginalTexto . '</strong> a <strong>' . $nuevaSancionTexto . '</strong>.</p>';
-        }
-
-        $html .= <<<HTML
-
-    <h3>4. FUNDAMENTO DE LA DECISIÓN</h3>
-    <p>{$impugnacion->fundamento_decision}</p>
-
-    <h3>5. EFECTOS</h3>
-HTML;
-
-        if ($impugnacion->decision_final === 'confirma_sancion') {
-            $html .= '<p>La sanción originalmente impuesta mantiene plena vigencia y debe cumplirse en los términos inicialmente establecidos.</p>';
-        } elseif ($impugnacion->decision_final === 'revoca_sancion') {
-            $html .= '<p>Al revocar la sanción, el proceso disciplinario queda cerrado sin efectos negativos en su expediente laboral respecto a este caso particular.</p>';
-        } elseif ($impugnacion->decision_final === 'modifica_sancion') {
-            $html .= '<p>La nueva sanción de <strong>' . $nuevaSancionTexto . '</strong> será aplicable a partir de la fecha de esta notificación, en los términos establecidos por el reglamento interno de trabajo.</p>';
-        }
-
-        $html .= <<<HTML
-
-    <p>Esta decisión es definitiva y pone fin al proceso disciplinario {$proceso->codigo}.</p>
-
-    <div style="margin-top: 30px;">
-        <p style="margin: 2px 0;">Cordialmente,</p>
-        <p style="margin-top: 25px; margin-bottom: 2px;"><strong>{$empresa->representante_legal}</strong></p>
-        <p style="margin: 2px 0;">Representante Legal</p>
-        <p style="margin: 2px 0;">{$empresa->nombre_completo}</p>
-        <p style="margin: 2px 0;">NIT: {$empresa->nit}</p>
-    </div>
-</body>
-</html>
-HTML;
+        // Documento en Legal Design con el membrete de la empresa (logo, marca de agua y
+        // pie de página) - ver resources/views/pdfs/resoluciones/impugnacion.blade.php.
+        $html = view('pdfs.resoluciones.impugnacion', [
+            'proceso' => $proceso,
+            'impugnacion' => $impugnacion,
+            'trabajador' => $trabajador,
+            'empresa' => $empresa,
+            'fecha' => $fechaActual,
+            'decisionTexto' => $decisionTexto,
+            'sancionOriginalTexto' => $sancionOriginalTexto,
+            'nuevaSancionTexto' => $nuevaSancionTexto !== '' ? $nuevaSancionTexto : null,
+        ])->render();
 
         // Guardar y convertir a PDF
         $htmlPath = $this->guardarDocumentoSancionHTML($html, $proceso->codigo, 'resolucion_impugnacion');

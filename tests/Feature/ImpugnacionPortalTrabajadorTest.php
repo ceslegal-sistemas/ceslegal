@@ -187,4 +187,30 @@ class ImpugnacionPortalTrabajadorTest extends TestCase
         $this->get($url)->assertOk()->assertSee('Impugnar la decisión');
         $this->get('/impugnar/' . str_repeat('b', 64))->assertOk();
     }
+
+    public function test_la_resolucion_se_renderiza_con_legal_design_y_membrete(): void
+    {
+        Mail::fake();
+        Queue::fake();
+        $proceso = $this->procesoSancionado();
+        $proceso->forceFill(['impugnacion_otp_verificado_en' => now()])->saveQuietly();
+        $impugnacion = $this->servicio()->presentar($proceso->fresh(), ['motivos' => ['debido_proceso'], 'detalle' => 'Motivo de prueba.'], [], '127.0.0.1', 'PHPUnit');
+        $impugnacion->update(['decision_final' => 'confirma_sancion', 'fundamento_decision' => "Primer párrafo.\nSegundo párrafo."]);
+
+        $html = view('pdfs.resoluciones.impugnacion', [
+            'proceso' => $proceso->fresh(),
+            'impugnacion' => $impugnacion->fresh(),
+            'trabajador' => $proceso->trabajador,
+            'empresa' => $proceso->empresa,
+            'fecha' => now()->locale('es'),
+            'decisionTexto' => 'CONFIRMA LA SANCIÓN',
+            'sancionOriginalTexto' => 'Llamado de Atención',
+            'nuevaSancionTexto' => null,
+        ])->render();
+
+        $this->assertStringContainsString('Resolución de impugnación', $html);
+        $this->assertStringContainsString('En pocas palabras', $html);
+        $this->assertStringContainsString($impugnacion->radicado(), $html);
+        $this->assertStringContainsString('Primer párrafo.', $html);
+    }
 }
