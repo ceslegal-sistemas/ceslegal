@@ -5,6 +5,8 @@ namespace App\Filament\Admin\Pages;
 use App\Filament\Admin\Resources\ProcesoDisciplinarioResource;
 use App\Models\AceptacionReglamentoInterno;
 use App\Models\AutorizacionReglamentoInterno;
+use App\Models\EventoEquivalenteFuncional;
+use App\Services\EquivalenteFuncionalService;
 use App\Models\HistoricoVideoDidacticoRit;
 use App\Models\ProcesoDisciplinario;
 use Filament\Pages\Page;
@@ -56,16 +58,6 @@ class EquivalenteFuncional extends Page implements HasTable
     /** @var 'todos'|'sanciones'|'rit'|'descargos'|'trabajadores'|'videos' */
     public string $seccion = 'todos';
 
-    // Filtros de la trazabilidad completa (sección 'todos').
-    public string $tipoEvento = 'todos';
-    public string $buscar = '';
-    public ?string $desde = null;
-    public ?string $hasta = null;
-    public bool $soloSelfie = false;
-    public int $pagina = 1;
-
-    private const POR_PAGINA = 15;
-
     public static function shouldRegisterNavigation(): bool
     {
         // Mismo criterio que SancionesEmitidas.
@@ -87,61 +79,16 @@ class EquivalenteFuncional extends Page implements HasTable
         $this->resetTable();
     }
 
-    /** Un solo filtro cambia: se vuelve a la primera página. */
-    public function updatedTipoEvento(): void { $this->pagina = 1; }
-    public function updatedBuscar(): void { $this->pagina = 1; }
-    public function updatedDesde(): void { $this->pagina = 1; }
-    public function updatedHasta(): void { $this->pagina = 1; }
-    public function updatedSoloSelfie(): void { $this->pagina = 1; }
-
-    public function irAPagina(int $pagina): void
-    {
-        $this->pagina = max(1, $pagina);
-    }
-
-    public function limpiarFiltros(): void
-    {
-        $this->reset(['tipoEvento', 'buscar', 'desde', 'hasta', 'soloSelfie', 'pagina']);
-    }
-
-    /** Ver todos los eventos de un mismo proceso (p. ej. "Proceso DES-001" o "RIT #3"). */
-    public function filtrarPorProceso(string $clave): void
-    {
-        $this->reset(['tipoEvento', 'desde', 'hasta', 'soloSelfie']);
-        $this->buscar = $clave;
-        $this->pagina = 1;
-    }
-
-    /** @return array{items: \Illuminate\Support\Collection, total: int, pagina: int, paginas: int, tipos: array<string, string>} */
-    public function eventos(): array
-    {
-        $servicio = app(\App\Services\EquivalenteFuncionalService::class);
-
-        $resultado = $servicio->consultar([
-            'tipo' => $this->tipoEvento,
-            'buscar' => $this->buscar,
-            'desde' => $this->desde,
-            'hasta' => $this->hasta,
-            'solo_selfie' => $this->soloSelfie,
-        ], $this->pagina, self::POR_PAGINA);
-
-        $paginas = max(1, (int) ceil($resultado['total'] / self::POR_PAGINA));
-
-        return $resultado + [
-            'pagina' => min($this->pagina, $paginas),
-            'paginas' => $paginas,
-            'tipos' => $servicio->tipos(),
-        ];
-    }
-
     public function table(Table $table): Table
     {
         return match ($this->seccion) {
             'rit' => $this->tablaAutorizacionRit($table),
             'descargos' => $this->tablaDescargos($table),
             'trabajadores' => $this->tablaAceptacionTrabajadores($table),
+            'sanciones' => $this->tablaSanciones($table),
+            'todos' => $this->tablaTrazabilidad($table),
             'videos' => $this->tablaVideosHistoricos($table),
-            default => $this->tablaSanciones($table),
+            default => $this->tablaTrazabilidad($table),
         };
     }
 
@@ -534,5 +481,188 @@ class EquivalenteFuncional extends Page implements HasTable
             ->emptyStateHeading('Sin aceptaciones de trabajadores')
             ->emptyStateDescription('Aún ningún trabajador ha aceptado el Reglamento Interno en la socialización.')
             ->emptyStateIcon('heroicon-o-user-group');
+    }
+
+    /**
+     * Trazabilidad completa: cada aceptación o autorización, de cualquier proceso,
+     * con su evidencia. Tabla nativa de Filament sobre la consulta unificada de
+     * EquivalenteFuncionalService (buscar, filtrar, agrupar y paginar van en SQL).
+     */
+    private function tablaTrazabilidad(Table $table): Table
+    {
+        $servicio = app(EquivalenteFuncionalService::class);
+        $color = fn (?string $tipo) => match (true) {
+            str_starts_with((string) $tipo, 'sancion_') => 'danger',
+            str_starts_with((string) $tipo, 'descargos_') => 'warning',
+            default => 'primary',
+        };
+
+        return $table
+            ->query(fn () => $servicio->consulta())
+            ->defaultSort('fecha', 'desc')
+            ->groups([
+                Tables\Grouping\Group::make('proceso_clave')->label('Proceso')->collapsible(),
+                Tables\Grouping\Group::make('actor_nombre')->label('Persona')->collapsible(),
+                Tables\Grouping\Group::make('tipo')->label('Tipo de evento')->collapsible()
+                    ->getTitleFromRecordUsing(fn (EventoEquivalenteFuncional $r) => EquivalenteFuncionalService::etiquetaTipo($r->tipo)),
+            ])
+            ->columns([
+                Tables\Columns\TextColumn::make('fecha')
+                    ->label('Fecha')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('tipo')
+                    ->label('Evento')
+                    ->badge()
+                    ->color($color)
+                    ->formatStateUsing(fn ($state) => EquivalenteFuncionalService::etiquetaTipo($state))
+                    ->wrap()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('proceso_clave')
+                    ->label('Proceso')
+                    ->description(fn (EventoEquivalenteFuncional $r) => $r->proceso_extra)
+                    ->weight('bold')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('actor_nombre')
+                    ->label('Quién')
+                    ->description(fn (EventoEquivalenteFuncional $r) => $r->actor_cargo)
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('sujeto_nombre')
+                    ->label('Trabajador')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('sujeto_documento')
+                    ->label('Documento')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('empresa_nombre')
+                    ->label('Empresa')
+                    ->searchable()
+                    ->toggleable(),
+
+                Tables\Columns\ImageColumn::make('selfie')
+                    ->label('Selfie')
+                    ->getStateUsing(fn (EventoEquivalenteFuncional $r) => $r->tiene_selfie
+                        ? route('equivalente-funcional.selfie', ['tipo' => $r->tipo, 'id' => $r->id_origen])
+                        : null)
+                    ->square()
+                    ->size(44)
+                    ->extraImgAttributes(['loading' => 'lazy'])
+                    ->url(fn (EventoEquivalenteFuncional $r) => $r->tiene_selfie
+                        ? route('equivalente-funcional.selfie', ['tipo' => $r->tipo, 'id' => $r->id_origen])
+                        : null)
+                    ->openUrlInNewTab(),
+
+                Tables\Columns\TextColumn::make('ip')
+                    ->label('Dirección IP')
+                    ->fontFamily('mono')
+                    ->placeholder('Sin registro')
+                    ->searchable()
+                    ->copyable(),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('tipo')
+                    ->label('Tipo de evento')
+                    ->options($servicio->tipos())
+                    ->multiple(),
+
+                Tables\Filters\SelectFilter::make('empresa_nombre')
+                    ->label('Empresa')
+                    ->options(fn () => \App\Models\Empresa::query()->orderBy('razon_social')->pluck('razon_social', 'razon_social')->all()),
+
+                Tables\Filters\TernaryFilter::make('tiene_selfie')
+                    ->label('Selfie de verificación')
+                    ->placeholder('Todos')
+                    ->trueLabel('Con selfie')
+                    ->falseLabel('Sin selfie')
+                    ->queries(
+                        true: fn (\Illuminate\Database\Eloquent\Builder $q) => $q->where('tiene_selfie', 1),
+                        false: fn (\Illuminate\Database\Eloquent\Builder $q) => $q->where('tiene_selfie', 0),
+                        blank: fn (\Illuminate\Database\Eloquent\Builder $q) => $q,
+                    ),
+
+                Tables\Filters\Filter::make('fecha')
+                    ->label('Fecha')
+                    ->form([
+                        \Filament\Forms\Components\DatePicker::make('desde')->label('Desde'),
+                        \Filament\Forms\Components\DatePicker::make('hasta')->label('Hasta'),
+                    ])
+                    ->columns(2)
+                    ->query(fn (\Illuminate\Database\Eloquent\Builder $q, array $data) => $q
+                        ->when($data['desde'] ?? null, fn ($q, $d) => $q->where('fecha', '>=', \Illuminate\Support\Carbon::parse($d)->startOfDay()->toDateTimeString()))
+                        ->when($data['hasta'] ?? null, fn ($q, $d) => $q->where('fecha', '<=', \Illuminate\Support\Carbon::parse($d)->endOfDay()->toDateTimeString())))
+                    ->indicateUsing(function (array $data): array {
+                        $indicadores = [];
+                        if ($data['desde'] ?? null) {
+                            $indicadores[] = 'Desde ' . \Illuminate\Support\Carbon::parse($data['desde'])->format('d/m/Y');
+                        }
+                        if ($data['hasta'] ?? null) {
+                            $indicadores[] = 'Hasta ' . \Illuminate\Support\Carbon::parse($data['hasta'])->format('d/m/Y');
+                        }
+
+                        return $indicadores;
+                    }),
+            ])
+            ->actions([
+                Tables\Actions\Action::make('detalle')
+                    ->label('Ver detalle')
+                    ->icon('heroicon-o-eye')
+                    ->color('gray')
+                    ->modalHeading(fn (EventoEquivalenteFuncional $r) => EquivalenteFuncionalService::etiquetaTipo($r->tipo))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->modalContent(fn (EventoEquivalenteFuncional $r) => view(
+                        'filament.admin.pages.partials.equivalente-funcional-detalle',
+                        [
+                            'evento' => $r,
+                            'detalle' => app(EquivalenteFuncionalService::class)->detalleDe($r),
+                            'selfie' => $r->tiene_selfie
+                                ? route('equivalente-funcional.selfie', ['tipo' => $r->tipo, 'id' => $r->id_origen])
+                                : null,
+                        ]
+                    )),
+
+                Tables\Actions\Action::make('ver_proceso')
+                    ->label('Ver proceso')
+                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->color('gray')
+                    ->visible(fn (EventoEquivalenteFuncional $r) => $this->urlProceso($r) !== null)
+                    ->url(fn (EventoEquivalenteFuncional $r) => $this->urlProceso($r))
+                    ->openUrlInNewTab(),
+
+                Tables\Actions\Action::make('acta')
+                    ->label('Acta PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('gray')
+                    ->visible(fn (EventoEquivalenteFuncional $r) => $r->tipo === 'rit_aceptacion' && filled($r->d3))
+                    ->url(fn (EventoEquivalenteFuncional $r) => route('trabajador.acta-rit.descargar', [
+                        'trabajador' => $r->ref_trabajador,
+                        'aceptacion' => $r->id_origen,
+                    ]))
+                    ->openUrlInNewTab(),
+            ])
+            ->emptyStateHeading('Sin aceptaciones ni autorizaciones')
+            ->emptyStateDescription('Aún no hay evidencia registrada con estos filtros.')
+            ->emptyStateIcon('heroicon-o-shield-check');
+    }
+
+    private function urlProceso(EventoEquivalenteFuncional $r): ?string
+    {
+        return match (true) {
+            str_starts_with($r->tipo, 'sancion_'), str_starts_with($r->tipo, 'descargos_') => $r->ref_proceso
+                ? ProcesoDisciplinarioResource::getUrl('view', ['record' => $r->ref_proceso])
+                : null,
+            $r->tipo === 'rit_auditoria' => \App\Filament\Admin\Pages\AuditarRIT::getUrl(),
+            str_starts_with($r->tipo, 'rit_') => MiReglamentoInterno::getUrl(),
+            default => null,
+        };
     }
 }

@@ -1,6 +1,5 @@
 <x-filament-panels::page>
     @include('filament.components.lupe-hero-styles')
-    @include('filament.components.documento-viewer-styles')
 
     <div style="display:flex;flex-wrap:wrap;gap:.5rem;">
         <button type="button" wire:click="cambiarSeccion('todos')"
@@ -30,10 +29,6 @@
     </div>
 
     <div style="margin-top:1.25rem;">
-        @if($seccion === 'todos')
-            @include('filament.admin.pages.partials.equivalente-funcional-trazabilidad', ['datos' => $this->eventos()])
-        @else
-            {{ $this->table }}
-        @endif
+        {{ $this->table }}
     </div>
 </x-filament-panels::page>
