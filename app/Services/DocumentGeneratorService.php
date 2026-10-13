@@ -1275,6 +1275,13 @@ HTML;
             // debe salir un corchete sin resolver en un documento legal real.
             $documentoSancion = $this->limpiarPlaceholdersSinResolver($documentoSancion, $proceso);
 
+            // Insertar CARGOS IMPUTADOS y CALIFICACIÓN DE LAS CONDUCTAS de forma
+            // determinística (artículo/numeral exacto del RIT o del CST, citado
+            // textual). La IA nunca inventa estos números.
+            if ($tipoSancion !== 'no_sancion') {
+                $documentoSancion = $this->inyectarCargosImputadosYCalificacion($documentoSancion, $proceso, $empresa);
+            }
+
             // Insertar la TABLA DE SANCIONES de forma determinística (verbatim del
             // RIT y, para "otro motivo", del CST citado textual). La IA nunca la toca.
             if ($tipoSancion !== 'no_sancion') {
@@ -1505,7 +1512,9 @@ HTML;
         }
 
         return <<<PROMPT
-Genera un documento oficial de {$nombreSancion} para un trabajador en Colombia usando formato profesional estilo Word.
+Genera una RESOLUCIÓN formal de {$nombreSancion} para un trabajador en Colombia -
+documento jurídico tradicional (no una carta en lenguaje sencillo), al estilo de
+una resolución disciplinaria real de una Dirección de Gestión Humana.
 
 INFORMACIÓN DEL CASO:
 - Empresa: {$empresa->nombre_completo} (NIT: {$empresa->nit})
@@ -1518,26 +1527,30 @@ INFORMACIÓN DEL CASO:
 HECHOS:
 {$hechosTexto}
 
-SANCIONES DEL REGLAMENTO INTERNO INCUMPLIDAS:
+SANCIONES DEL REGLAMENTO INTERNO INCUMPLIDAS (referencia de contexto - la cita
+EXACTA de artículo/numeral la inserta el sistema de forma determinística en los
+marcadores <!--CARGOS_IMPUTADOS--> y <!--CALIFICACION_CONDUCTAS-->, descritos
+más abajo; usa este listado solo para entender QUÉ se incumplió, no para citarlo
+tú mismo):
 {$sancionesLaborales}
 
 DESCARGOS DEL TRABAJADOR:
 {$contextoDescargos}{$textoNoRespondio}
 {$bloqueDivergencia}
-INSTRUCCIONES DE REDACCIÓN (LENGUAJE CLARO):
-- Oraciones cortas (máximo 25 palabras)
-- Voz activa ("decidimos" no "fue decidido")
-- Palabras simples (evita jerga legal)
-- Habla directo al trabajador ("usted")
-- Sin frases como "por medio de la presente"
+ESTILO DE REDACCIÓN:
+- Redacción jurídica formal colombiana (tercera persona: "el trabajador", "la
+  empresa"), NO una carta dirigida a "usted".
+- Encabezados en mayúsculas sostenidas (ANTECEDENTES, HECHOS, etc.), como en una
+  resolución administrativa real.
+- Oraciones claras pero con el rigor técnico propio de un acto administrativo
+  disciplinario - no es lenguaje coloquial.
 
-CÓMO MOTIVAR LA DECISIÓN (OBLIGATORIO):
-El documento debe estar motivado con el mismo rigor con que un juez sustenta
-un fallo, pero escrito para que lo entienda alguien que no sabe de derecho.
-Eso significa recorrer, de forma explícita y en este orden:
+CÓMO MOTIVAR LA DECISIÓN (sección CONSIDERANDOS, OBLIGATORIO):
+El documento debe estar motivado con el mismo rigor con que un juez sustenta un
+fallo. Eso significa recorrer, de forma explícita y en este orden:
  a) QUÉ REGLA DEBÍA CUMPLIR: enuncia la conducta del reglamento que aplica al
-    caso, tomada de "SANCIONES DEL REGLAMENTO INTERNO INCUMPLIDAS". Explica con
-    tus palabras qué exige esa regla en la práctica.
+    caso, tomada de "SANCIONES DEL REGLAMENTO INTERNO INCUMPLIDAS". Explica qué
+    exige esa regla en la práctica.
  b) QUÉ HIZO EXACTAMENTE: describe la conducta concreta del trabajador con los
     datos verificables del caso (qué pasó, cuándo, con qué consecuencia).
  c) POR QUÉ LO QUE HIZO INCUMPLE ESA REGLA: conecta de forma expresa el hecho
@@ -1551,14 +1564,16 @@ Eso significa recorrer, de forma explícita y en este orden:
     perjuicio causado). Si arriba aparece "DECISIÓN DISTINTA A LA RECOMENDADA
     POR EL ANÁLISIS - RAZÓN DE LA EMPRESA", esa razón es el fundamento REAL de
     la medida: úsala como eje de este punto. Está PROHIBIDO afirmar lo
-    contrario de lo que dice esa razón (por ejemplo, sostener que no hay
-    antecedentes cuando la empresa afirma que sí los hubo) e igualmente
-    prohibido inventar atenuantes o agravantes de relleno para justificar la
-    medida.
+    contrario de lo que dice esa razón e igualmente prohibido inventar
+    atenuantes o agravantes de relleno.
 
-PROHIBICIÓN ABSOLUTA: no cites números de artículo, leyes ni cláusulas que no
-aparezcan textualmente en los datos entregados arriba. Si no tienes el número
-exacto, describe la obligación incumplida con palabras, sin inventar la cita.
+PROHIBICIÓN ABSOLUTA: NUNCA cites tú mismo un número de artículo, numeral, ley
+ni cláusula - ni del Reglamento Interno ni del Código Sustantivo del Trabajo.
+Esa cita EXACTA la inserta el sistema de forma determinística en los marcadores
+<!--CARGOS_IMPUTADOS--> y <!--CALIFICACION_CONDUCTAS-->. Si en tu redacción de
+ANTECEDENTES, HECHOS, DEL DERECHO A LA DEFENSA o CONSIDERANDOS necesitas referirte
+a la norma incumplida, hazlo en términos generales ("el Reglamento Interno de
+Trabajo", "la norma disciplinaria aplicable"), nunca con un número inventado.
 No afirmes hechos que no estén en HECHOS o en DESCARGOS.
 
 FORMATO REQUERIDO:
@@ -1575,61 +1590,48 @@ Genera HTML con exactamente esta estructura:
 <div style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.2; text-align: justify; color: #000000;">
 
   <div style="text-align: center; margin-bottom: 15px;">
-    <h1 style="font-family: Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; margin: 5px 0; color: #000000;">{$empresa->nombre_completo}</h1>
-    <p style="font-size: 11pt; margin: 2px 0;">NIT: {$empresa->nit}</p>
-    <h2 style="font-family: Calibri, Arial, sans-serif; font-size: 12pt; font-weight: bold; margin: 8px 0; color: #000000; text-transform: uppercase;">{$nombreSancion}</h2>
+    <h1 style="font-family: Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; margin: 5px 0; color: #000000; text-transform: uppercase;">Resolución de {$nombreSancion}</h1>
     <p style="font-size: 11pt; margin: 2px 0;">{$fechaActual->isoFormat('D [de] MMMM [de] YYYY')}</p>
-    <p style="font-size: 11pt; margin: 2px 0;">Proceso: {$proceso->codigo}</p>
+    <p style="font-size: 10pt; margin: 2px 0; font-style: italic;">&laquo;Por la cual se decide el fondo del trámite disciplinario&raquo;</p>
   </div>
 
-  <div style="margin: 10px 0;">
-    <p style="margin: 2px 0;"><strong>Señor(a):</strong> {$trabajador->nombre_completo}</p>
-    <p style="margin: 2px 0;"><strong>Cargo:</strong> {$trabajador->cargo}</p>
-    <p style="margin: 2px 0;"><strong>Presente</strong></p>
-  </div>
+  <p style="margin: 6px 0;">{$empresa->nombre_completo} (NIT: {$empresa->nit}), en uso de las facultades señaladas en el Reglamento Interno de Trabajo, procede a resolver el presente trámite disciplinario adelantado contra el(la) señor(a) {$trabajador->nombre_completo}, identificado(a) con {$trabajador->tipo_documento} {$trabajador->numero_documento}, quien desempeña el cargo de {$trabajador->cargo}, así:</p>
 
-  <p style="margin: 8px 0;"><strong>Asunto:</strong> Notificación de {$nombreSancion}</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 12px 0 4px 0; color: #000000;">ANTECEDENTES</h3>
+  <p style="margin: 4px 0;">[Narra brevemente el origen del trámite: que se puso en conocimiento de la empresa la presunta conducta irregular, que se citó al trabajador a presentar descargos a través del formulario del sistema, y - según corresponda - que el trabajador presentó sus descargos o no respondió dentro del plazo. No inventes fechas ni medios que no estén en los datos entregados.]</p>
 
-  <p style="margin: 6px 0;">Estimado(a) {$trabajador->nombre_completo}:</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 12px 0 4px 0; color: #000000;">HECHOS</h3>
+  <p style="margin: 4px 0;">[Narra los hechos tomados literalmente de HECHOS arriba, en prosa formal, sin inventar ni omitir información. Un párrafo por cada hecho relevante.]</p>
 
-  <p style="margin: 6px 0;">Le escribimos para informarle sobre una decisión importante relacionada con su trabajo en {$empresa->nombre_completo}.</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 12px 0 4px 0; color: #000000;">CARGOS IMPUTADOS</h3>
+  <p style="margin: 4px 0;">Con fundamento en la documentación que obra en el expediente, se formulan los siguientes cargos contra el(la) señor(a) {$trabajador->nombre_completo}:</p>
+  <!--CARGOS_IMPUTADOS-->
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">1. Hechos que motivaron esta decisión</h3>
-  <p style="margin: 4px 0;">[Describe los hechos claramente mencionando fechas específicas y acciones concretas. Usa 2-3 oraciones.]</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 12px 0 4px 0; color: #000000;">CALIFICACIÓN DE LAS CONDUCTAS</h3>
+  <!--CALIFICACION_CONDUCTAS-->
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">2. Qué regla debía cumplir y por qué lo que ocurrió la incumple</h3>
-  <p style="margin: 4px 0;">[Punto (a) de la motivación: enuncia la regla del reglamento que aplica, tomada de las sanciones listadas, y explica con palabras sencillas qué exige en la práctica.]</p>
-  <p style="margin: 4px 0;">[Punto (c) de la motivación - EL MÁS IMPORTANTE: conecta de forma expresa el hecho concreto con esa regla. Di literalmente qué parte de la conducta del trabajador incumple qué parte de la obligación, y por qué. No basta afirmar que "incumplió el reglamento": hay que demostrarlo paso a paso, como lo haría un juez, pero en lenguaje llano.]</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 12px 0 4px 0; color: #000000;">DEL DERECHO A LA DEFENSA Y LA CONTRADICCIÓN</h3>
+  <p style="margin: 4px 0;">[Punto (d) de la motivación: si el trabajador respondió, resume sus argumentos concretos y responde uno por uno, diciendo cuáles se aceptan y cuáles no, y por qué. Si NO respondió, indica expresamente que se le dio la oportunidad de presentar descargos dentro del plazo legal, que no ejerció ese derecho, y que no obstante se garantizó plenamente el debido proceso.]</p>
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">3. Sus descargos y cómo los valoramos</h3>
-  <p style="margin: 4px 0;">[Si el trabajador respondió: resume sus argumentos concretos. Si NO respondió: indica claramente que se le envió la citación a descargos y se le brindó la oportunidad de presentar su versión dentro del plazo legal, pero no ejerció su derecho de defensa. Aclara que, no obstante, se garantizó plenamente su derecho al debido proceso.]</p>
-  <p style="margin: 4px 0;">[Punto (d) de la motivación: responde uno por uno a los argumentos que dio. Di cuáles se aceptan y cuáles no, y POR QUÉ. Si sus explicaciones no desvirtúan los hechos, explica la razón; si atenúan la falta, dilo expresamente y refléjalo en la medida. Si no respondió, indica que la decisión se toma con la prueba disponible.]</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 12px 0 4px 0; color: #000000;">CONSIDERANDOS</h3>
+  <p style="margin: 4px 0;">[Puntos (a), (b) y (c) de la motivación: enuncia la regla incumplida (en términos generales, SIN citar número - eso ya quedó citado arriba en CARGOS IMPUTADOS), describe la conducta concreta del trabajador, y conecta de forma expresa y explícita el hecho con la regla. Esta conexión es el corazón del documento: no basta decir "incumplió el reglamento", hay que demostrarlo paso a paso.]</p>
+  <p style="margin: 4px 0;">[Punto (e) de la motivación: explica por qué se eligió ESTA medida y no una más fuerte ni más suave - proporcionalidad, reincidencia, antecedentes, perjuicio causado.{$textoSuspension}
+  Si arriba aparecen fechas de inicio y fin de la suspensión, ÚSALAS EXACTAMENTE como están escritas - son las fechas reales. NUNCA escribas "[Día]", "[Mes]" ni ningún otro corchete: si no tienes un dato exacto, redacta en términos generales sin inventarlo.]</p>
+  <p style="margin: 4px 0;">En consecuencia, la conducta desplegada por el trabajador configura plenamente la causal disciplinaria descrita en los cargos imputados y la calificación de las conductas antes señalada.</p>
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">4. Nuestra decisión y por qué esta medida</h3>
-  <p style="margin: 4px 0;">Después de analizar cuidadosamente toda la información, hemos decidido aplicar un {$nombreSancion}.</p>
-  <p style="margin: 4px 0;">[Punto (e) de la motivación: explica por qué se eligió ESTA medida y no una más fuerte ni más suave. Menciona lo que se tuvo en cuenta: gravedad de la falta, si hubo reincidencia, antecedentes del trabajador y el perjuicio causado. El trabajador debe entender que la medida es proporcional y no arbitraria.]</p>
+  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 12px 0 4px 0; color: #000000;">RESUELVE</h3>
+  <p style="margin: 4px 0;"><strong>PRIMERO.</strong> [Resolutivo principal según el tipo de sanción - para terminación: "Dar por terminado el contrato de trabajo con justa causa del(de la) señor(a) {$trabajador->nombre_completo} por las faltas comprobadas"; para suspensión: "Imponer al(a la) señor(a) {$trabajador->nombre_completo} una suspensión laboral sin derecho a remuneración"; para llamado de atención: "Imponer al(a la) señor(a) {$trabajador->nombre_completo} un llamado de atención escrito, con anotación en su hoja de vida laboral". Sé específico con la medida de {$nombreSancion}.]</p>
+  <p style="margin: 4px 0;"><strong>SEGUNDO.</strong> [Fecha o momento en que la medida se hace efectiva.{$textoSuspension}]</p>
+  <p style="margin: 4px 0;"><strong>TERCERO.</strong> Hágase entrega de una copia íntegra de la presente Resolución al(a la) señor(a) {$trabajador->nombre_completo}, previa notificación y constancia de recibo. Remítase copia igualmente a su carpeta laboral.</p>
+  <p style="margin: 4px 0;"><strong>CUARTO.</strong> Contra la presente decisión procede recurso de impugnación, el cual podrá presentarse en línea, de forma personal y segura, en el enlace: {$urlImpugnacionDoc}. El trabajador cuenta con {$diasImpugnacion} días hábiles siguientes a su notificación para interponerlo.</p>
 
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">5. Qué significa esto para usted</h3>
-  <p style="margin: 4px 0;">[Explica las consecuencias prácticas de forma clara y específica.{$textoSuspension}
-  Si arriba aparecen fechas de inicio y fin de la suspensión, ÚSALAS EXACTAMENTE como están escritas - son las fechas reales, no un ejemplo. NUNCA escribas "[Día]", "[Mes]" ni ningún otro corchete: si no tienes una fecha exacta para algo, redacta esa frase en términos generales sin inventar el dato.]</p>
-
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">6. Base legal</h3>
-  <p style="margin: 4px 0;">Esta decisión se fundamenta en el Código Sustantivo del Trabajo de Colombia, el reglamento interno de trabajo de la empresa y las normas establecidas en su contrato laboral.</p>
-
-  <p style="margin: 4px 0;"><strong>Sanciones del reglamento incumplidas:</strong></p>
-  <p style="margin: 4px 0;">[Separar cada sanción por su propio párrafo, explicando en lenguaje claro qué significan.{$sancionesLaborales}]</p>
-
-  <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 10px 0 4px 0; color: #000000;">7. Sus derechos de impugnación</h3>
-  <p style="margin: 4px 0;">Si no está de acuerdo con esta decisión, usted tiene derecho a presentar una impugnación. Esto significa que puede solicitar una nueva revisión de su caso. Cuenta con {$diasImpugnacion} días hábiles a partir de la fecha de esta notificación para ejercer este derecho.</p>
-  <p style="margin: 4px 0;">Puede presentarla usted mismo(a), en línea y de forma segura, en el enlace personal que recibió en el correo de esta notificación: {$urlImpugnacionDoc}</p>
+  <p style="margin: 10px 0; text-align: center; font-weight: bold;">NOTIFÍQUESE, COMUNÍQUESE Y CÚMPLASE</p>
 
   <h3 style="font-family: Calibri, Arial, sans-serif; font-size: 11pt; font-weight: bold; margin: 12px 0 4px 0; color: #000000;">Artículo 20. Tabla de sanciones</h3>
   {$tablaSanciones}
 
-  <p style="margin: 8px 0;">Si tiene preguntas sobre esta comunicación, puede contactarnos.</p>
-
   <div style="margin-top: 30px;">
-    <p style="margin: 2px 0;">Cordialmente,</p>
+    <p style="margin: 2px 0;">Atentamente,</p>
     <p style="margin-top: 25px; margin-bottom: 2px;"><strong>{$empresa->representante_legal}</strong></p>
     <p style="margin: 2px 0;">Representante Legal</p>
     <p style="margin: 2px 0;">{$empresa->nombre_completo}</p>
@@ -1640,15 +1642,18 @@ Genera HTML con exactamente esta estructura:
 
 IMPORTANTE:
 - Completa TODAS las secciones [entre corchetes] con contenido específico basado en HECHOS y DESCARGOS
-- La sección 2 debe dejar explícito QUÉ incumplió y POR QUÉ ese hecho incumple esa
-  regla concreta. Un documento que solo diga "incumplió el reglamento", sin
-  demostrar la conexión, está mal redactado y no sirve como motivación.
+- NUNCA elimines, muevas ni modifiques los marcadores <!--CARGOS_IMPUTADOS--> y
+  <!--CALIFICACION_CONDUCTAS-->: déjalos EXACTAMENTE donde están, en su propia
+  línea, sin generar tú mismo ningún listado de cargos ni calificación.
+- La sección CONSIDERANDOS debe dejar explícito QUÉ incumplió y POR QUÉ ese
+  hecho incumple esa regla concreta. Un documento que solo diga "incumplió el
+  reglamento", sin demostrar la conexión, está mal redactado y no sirve como
+  motivación.
 - Nunca uses corchetes ni marcadores de relleno en el texto final: el documento se
   entrega tal cual al trabajador.
 - Mantén el formato exacto (Calibri 11pt, texto justificado, negro, interlineado compacto)
 - NO incluyas bloques de código markdown (```html)
 - Genera SOLO el HTML mostrado, sin texto adicional
-- Sé profesional pero claro y accesible
 - NUNCA USES EMOJIS en ninguna parte del documento
 - TABLA DE SANCIONES (Artículo 20):
   * En el lugar de la tabla verás el comentario <!--TABLA_SANCIONES-->.
@@ -1786,6 +1791,108 @@ IMPORTANTE:
 - Sé profesional, claro y respetuoso
 - NUNCA USES EMOJIS en ninguna parte del documento
 PROMPT;
+    }
+
+    /**
+     * CARGOS IMPUTADOS y CALIFICACIÓN DE LAS CONDUCTAS (pedido del usuario
+     * 2026-10-13, plantilla de referencia real "CDA AUTOMAS"): el documento
+     * de sanción debe ser "muy pero muy específico" sobre qué artículo,
+     * numeral y sanción del Reglamento Interno de Trabajo de ESA empresa
+     * cometió el trabajador, y si la falta es leve o grave. Igual que ya
+     * hace generarHTMLCitacionDescargos() para la citación inicial
+     * (reutiliza formatearCitaArticulo()/textosVerbatimCst(), mismo
+     * anclaje determinístico - ver ReglamentoInternoService::
+     * articuloQuePrecedeEnTexto()), esto se construye en PHP, NUNCA por la
+     * IA: un documento que termina un contrato de trabajo no puede citar un
+     * artículo o numeral que el modelo de lenguaje haya inventado.
+     *
+     * @return array{cargos: string, calificacion: string}
+     */
+    private function construirCargosImputadosYCalificacion(ProcesoDisciplinario $proceso, $empresa): array
+    {
+        $motivos = $proceso->motivosDescargosNormalizados();
+        if (empty($motivos)) {
+            $motivos = $proceso->motivosDescargosDesdeClasificacionIA();
+        }
+
+        if (empty($motivos)) {
+            $vacio = '<p><em>No se identificó una conducta específica del Reglamento Interno de Trabajo para citar en este proceso.</em></p>';
+            return ['cargos' => $vacio, 'calificacion' => $vacio];
+        }
+
+        $tieneRIT = $empresa->reglamentoInterno !== null;
+        $etiquetasGravedad = ['leve' => 'LEVE', 'grave' => 'GRAVE', 'muy_grave' => 'MUY GRAVE'];
+
+        $cargosHTML = '<ol style="margin:4px 0;padding-left:20px;">';
+        $calificacionHTML = '';
+
+        foreach ($motivos as $motivo) {
+            $nombreConducta = trim((string) ($motivo['nombre'] ?? ''));
+            if ($nombreConducta === '') {
+                continue;
+            }
+
+            $gravedad = $motivo['gravedad'] ?? 'grave';
+            $etiqueta = $etiquetasGravedad[$gravedad] ?? 'GRAVE';
+            $baseLegal = trim((string) ($motivo['base_legal'] ?? ''));
+
+            // Aunque la empresa tenga RIT, ESTA conducta puntual pudo haber
+            // caído al catálogo genérico de respaldo del CST si su RIT real
+            // no la cubre (base_legal termina siempre en "CST" en ese caso) -
+            // mismo criterio que generarHTMLCitacionDescargos(), para nunca
+            // citar un Reglamento que no existe.
+            $esConductaDeCatalogoGenericoCst = (bool) preg_match('/CST\s*$/iu', $baseLegal);
+
+            if ($tieneRIT && !$esConductaDeCatalogoGenericoCst) {
+                $articulo = $this->formatearCitaArticulo($baseLegal, 'RIT');
+                $cita = $articulo
+                    ? '<strong>' . e($articulo) . '</strong> del Reglamento Interno de Trabajo de <strong>' . e($empresa->nombre_completo) . '</strong>'
+                    : 'el Reglamento Interno de Trabajo de <strong>' . e($empresa->nombre_completo) . '</strong>';
+            } else {
+                $articulo = $this->formatearCitaArticulo($baseLegal, 'CST');
+                $cita = $articulo
+                    ? '<strong>' . e($articulo) . '</strong> del Código Sustantivo del Trabajo'
+                    : 'el Código Sustantivo del Trabajo';
+            }
+
+            $cargosHTML .= '<li style="margin-bottom:6px;">' . $cita . ': &laquo;' . e($nombreConducta) . '&raquo;.</li>';
+
+            if (!$tieneRIT || $esConductaDeCatalogoGenericoCst) {
+                foreach ($this->textosVerbatimCst($baseLegal) as $verbatim) {
+                    $cargosHTML .= '<blockquote style="margin:4px 0 8px 0;padding:4px 10px;border-left:2px solid #666;font-size:10pt;font-style:italic;color:#333;">' . e($verbatim['texto']) . '</blockquote>';
+                }
+            }
+
+            $calificacionHTML .= '<p style="margin:4px 0;">La conducta descrita en ' . $cita . ' se encuentra calificada como falta <strong>' . $etiqueta . '</strong>' . ($tieneRIT && !$esConductaDeCatalogoGenericoCst ? ', conforme a lo establecido en el Reglamento Interno de Trabajo.' : ', conforme al Código Sustantivo del Trabajo.') . '</p>';
+        }
+
+        $cargosHTML .= '</ol>';
+
+        if ($calificacionHTML === '') {
+            $calificacionHTML = '<p><em>No se identificó una conducta específica del Reglamento Interno de Trabajo para calificar en este proceso.</em></p>';
+        }
+
+        return ['cargos' => $cargosHTML, 'calificacion' => $calificacionHTML];
+    }
+
+    /**
+     * Inserta los bloques determinísticos de CARGOS IMPUTADOS y CALIFICACIÓN
+     * DE LAS CONDUCTAS donde quedaron los marcadores - ver
+     * construirCargosImputadosYCalificacion().
+     */
+    private function inyectarCargosImputadosYCalificacion(string $html, ProcesoDisciplinario $proceso, $empresa): string
+    {
+        $bloques = $this->construirCargosImputadosYCalificacion($proceso, $empresa);
+
+        $html = str_contains($html, '<!--CARGOS_IMPUTADOS-->')
+            ? str_replace('<!--CARGOS_IMPUTADOS-->', $bloques['cargos'], $html)
+            : $html . $bloques['cargos'];
+
+        $html = str_contains($html, '<!--CALIFICACION_CONDUCTAS-->')
+            ? str_replace('<!--CALIFICACION_CONDUCTAS-->', $bloques['calificacion'], $html)
+            : $html . $bloques['calificacion'];
+
+        return $html;
     }
 
     /**
