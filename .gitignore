@@ -37,3 +37,7 @@ tmp_*.py
 diagrama_*.xml
 docs/superpowers/
 .worktrees/
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json
