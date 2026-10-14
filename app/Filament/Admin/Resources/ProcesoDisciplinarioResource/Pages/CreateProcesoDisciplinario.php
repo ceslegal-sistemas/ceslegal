@@ -2044,31 +2044,6 @@ class CreateProcesoDisciplinario extends CreateRecord
             $this->halt();
         }
 
-        if (!self::hechosYaGenerados($this->data, $this->datosExtraidos)) {
-            // Generación automática pedida por el usuario (2026-09-25): antes
-            // se disparaba sola al llegar al paso "Revisión y envío" (x-init
-            // de auto-generar-hechos.blade.php), en una llamada Livewire
-            // aparte y visible (sección "Descripción jurídica" con textarea
-            // editable) - si el cliente cambiaba la fecha/hora de la
-            // audiencia MIENTRAS esa llamada (lenta, real a la IA) seguía en
-            // vuelo, el re-render de la respuesta pisaba esos campos con un
-            // snapshot más viejo, borrándolos. Ahora se genera aquí mismo, de
-            // forma síncrona, dentro de la MISMA petición del botón "Crear
-            // proceso y enviar citación" - sin carrera posible, y sin que el
-            // cliente tenga que ver ni tocar nada de esto.
-            $this->generarHechos();
-        }
-
-        if (!self::hechosYaGenerados($this->data, $this->datosExtraidos)) {
-            Notification::make()
-                ->danger()
-                ->title('No se pudo generar la descripción jurídica')
-                ->body('Intente crear el proceso nuevamente. Si el problema persiste, contacte a soporte.')
-                ->persistent()
-                ->send();
-
-            $this->halt();
-        }
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
@@ -2093,8 +2068,39 @@ class CreateProcesoDisciplinario extends CreateRecord
             $data['empresa_id'] = auth()->user()?->empresa_id;
         }
 
+        // Generación automática de "hechos" si el usuario nunca presionó el
+        // botón manual "Generar redacción con IA" (bug real reportado por el
+        // usuario, 2026-10-14: creó un proceso escribiendo el hecho crudo en
+        // el Paso 2 y dando "Continuar" directo, sin pasar por ese botón).
+        //
+        // ESTO DEBE VIVIR AQUÍ, no en beforeCreate(): Filament\CreateRecord::create()
+        // llama a mutateFormDataBeforeCreate($data) y SOLO DESPUÉS dispara el hook
+        // beforeCreate() - el $data que termina insertándose en la BD ya quedó
+        // congelado en esta variable local antes de que beforeCreate() pudiera
+        // generar nada. Antes este bloque vivía en beforeCreate(): la
+        // generación sí ocurría (por eso hechosYaGenerados() pasaba, sin
+        // ningún aviso de error) pero mutaba $this->data/$this->datosExtraidos
+        // DEMASIADO TARDE para afectar el $data ya capturado aquí - el
+        // proceso se creaba con 'hechos' vacío, en silencio, y el PDF de
+        // citación salía con el texto de respaldo "No se registraron hechos
+        // para este proceso." (caso real: PD-2026-0004).
+        if (!self::hechosYaGenerados($data, $this->datosExtraidos)) {
+            $this->generarHechos();
+        }
+
+        if (!self::hechosYaGenerados($data, $this->datosExtraidos)) {
+            Notification::make()
+                ->danger()
+                ->title('No se pudo generar la descripción jurídica')
+                ->body('Intente crear el proceso nuevamente. Si el problema persiste, contacte a soporte.')
+                ->persistent()
+                ->send();
+
+            throw new Halt();
+        }
+
         $data['modalidad_descargos'] = 'virtual';
-        $data['hechos'] = $data['hechos_ia'] ?? $this->datosExtraidos['hechos'] ?? '';
+        $data['hechos'] = $this->data['hechos_ia'] ?? $this->datosExtraidos['hechos'] ?? '';
 
         // sanciones_laborales_ids: este wizard nunca tuvo el selector manual
         // "Motivo de los descargos" que sí existe al editar (ver
