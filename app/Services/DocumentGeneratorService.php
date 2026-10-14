@@ -1964,6 +1964,12 @@ PROMPT;
     /**
      * Agrupa un arreglo de motivos (forma de motivosDescargosNormalizados()/
      * motivosDescargosDesdeClasificacionIA()) en filas de tabla por gravedad.
+     * Cada conducta conserva su `base_legal` (ej. "Artículo 69 RIT", "Art. 58
+     * CST") - pedido del usuario (2026-10-13): la columna "Descripción de la
+     * conducta" de la tabla debe mostrar el artículo, no solo el texto de la
+     * falta. El formateo de la cita (RIT vs CST, con/sin RIT real) se hace en
+     * construirTablaSancionesDeterministica(), que sí tiene el contexto de
+     * $empresa/$tieneRIT.
      */
     private function agruparMotivosPorGravedad(array $motivos): array
     {
@@ -1973,16 +1979,25 @@ PROMPT;
         foreach ($motivos as $motivo) {
             $g = $motivo['gravedad'] ?? 'grave';
             if (!isset($grupos[$g])) continue;
-            if (!empty($motivo['nombre'])) $grupos[$g]['c'][] = $motivo['nombre'];
+            $nombre = trim((string) ($motivo['nombre'] ?? ''));
+            // Dedupe por nombre (igual que antes con array_unique), conservando
+            // el base_legal del primer motivo que trajo ese nombre.
+            if ($nombre !== '' && !isset($grupos[$g]['c'][$nombre])) {
+                $grupos[$g]['c'][$nombre] = trim((string) ($motivo['base_legal'] ?? ''));
+            }
             if (!empty($motivo['medida'])) $grupos[$g]['s'][] = $motivo['medida'];
         }
 
         $filas = [];
         foreach (['leve', 'grave', 'muy_grave'] as $g) {
             if (empty($grupos[$g]['c'])) continue;
+            $conductas = [];
+            foreach ($grupos[$g]['c'] as $nombre => $baseLegal) {
+                $conductas[] = ['nombre' => $nombre, 'base_legal' => $baseLegal];
+            }
             $filas[] = [
                 'gravedad'  => $etiquetaGravedad[$g],
-                'conductas' => array_values(array_unique($grupos[$g]['c'])),
+                'conductas' => $conductas,
                 'sancion'   => implode(' / ', array_values(array_unique(array_filter($grupos[$g]['s'])))),
             ];
         }
@@ -2051,7 +2066,21 @@ PROMPT;
         }
         foreach ($filas as $fila) {
             $grav    = e($fila['gravedad']);
-            $items   = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $fila['conductas']));
+            $items   = implode('', array_map(function (array $c) use ($tieneRIT) {
+                $nombre = $c['nombre'];
+                $baseLegal = $c['base_legal'] ?? '';
+                // Mismo criterio que construirCargosImputadosYCalificacion(): si
+                // ESTA conducta puntual cayó al catálogo genérico del CST
+                // (base_legal termina en "CST"), se cita el artículo del CST, no
+                // del RIT, aunque la empresa sí tenga un RIT real.
+                $esConductaDeCatalogoGenericoCst = (bool) preg_match('/CST\s*$/iu', $baseLegal);
+                $articulo = ($tieneRIT && !$esConductaDeCatalogoGenericoCst)
+                    ? $this->formatearCitaArticulo($baseLegal, 'RIT')
+                    : $this->formatearCitaArticulo($baseLegal, 'CST');
+                $prefijo = $articulo ? '<strong>' . e($articulo) . ':</strong> ' : '';
+
+                return '<li>' . $prefijo . e($nombre) . '</li>';
+            }, $fila['conductas']));
             $sancion = e($fila['sancion']);
             $filasTabla .= <<<HTML
     <tr style="page-break-inside: avoid;">

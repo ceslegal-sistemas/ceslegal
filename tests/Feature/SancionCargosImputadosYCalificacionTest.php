@@ -204,4 +204,51 @@ class SancionCargosImputadosYCalificacionTest extends TestCase
         $this->assertStringContainsString('<strong>Artículo 55</strong> del Reglamento Interno de Trabajo de', $resultado);
         $this->assertStringContainsString('LEVE', $resultado);
     }
+
+    /**
+     * Pedido explícito del usuario tras revisar el PDF de ejemplo
+     * (2026-10-13): la columna "Descripción de la conducta" de la TABLA DE
+     * SANCIONES (Artículo 20, al final del documento) también debe mostrar
+     * el artículo, no solo el texto de la falta - antes solo se citaba el
+     * artículo en la sección CARGOS IMPUTADOS, no en esta tabla.
+     */
+    public function test_la_tabla_de_sanciones_tambien_cita_el_articulo_del_rit(): void
+    {
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $trabajador = $this->crearTrabajador($empresa);
+
+        $conductaReal = 'Omisión en el reporte de novedades técnicas detectadas durante la inspección.';
+
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id,
+            'nombre' => 'RIT de prueba',
+            'texto_completo' => 'ARTÍCULO 69. Texto completo de prueba del reglamento interno.',
+            'activo' => true,
+        ]);
+        $rit->conductas_sancionables = [
+            'leve' => [],
+            'grave' => [
+                ['conducta' => $conductaReal, 'medida' => 'Terminación del contrato con justa causa', 'tipo' => 'terminacion', 'dias_suspension' => null, 'base_legal' => 'Artículo 69 RIT'],
+            ],
+            'gravisima' => [],
+        ];
+        $rit->saveQuietly();
+
+        $proceso = ProcesoDisciplinario::create([
+            'codigo' => 'PD-TEST-SANCION-0005',
+            'empresa_id' => $empresa->id,
+            'trabajador_id' => $trabajador->id,
+            'hechos' => 'Hechos de prueba relacionados con una omisión en el reporte.',
+            'sanciones_laborales_ids' => [$conductaReal],
+        ]);
+
+        $service = new DocumentGeneratorService();
+        $metodo = new \ReflectionMethod(DocumentGeneratorService::class, 'construirTablaSancionesDeterministica');
+        $metodo->setAccessible(true);
+
+        $html = $metodo->invoke($service, $proceso, $empresa);
+
+        $this->assertStringContainsString('<strong>Artículo 69:</strong>', $html);
+        $this->assertStringContainsString($conductaReal, $html);
+    }
 }
