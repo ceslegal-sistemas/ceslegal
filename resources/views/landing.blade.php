@@ -1180,6 +1180,9 @@
                                 <li>
                                     <a class="ion-email" href="mailto:admin@ceslegal.co"><span>Correo</span></a>
                                 </li>
+                                <li>
+                                    <a class="ion-locked" href="/politica-tratamiento-datos"><span>Política de datos</span></a>
+                                </li>
                             </ul>
                         </div>
                         <!-- social icons end -->

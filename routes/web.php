@@ -14,6 +14,10 @@ Route::get('/', function () {
     return view('landing');
 });
 
+Route::get('/politica-tratamiento-datos', function () {
+    return view('politica-tratamiento-datos');
+});
+
 // ── Ruta de PRUEBA DE CARGA (oculta) ─────────────────────────────────────────
 // Simula la ocupación de proceso de un envío de descargos (usleep ~3.2s) SIN
 // llamar a Gemini, para medir el tope real de peticiones pesadas concurrentes.
