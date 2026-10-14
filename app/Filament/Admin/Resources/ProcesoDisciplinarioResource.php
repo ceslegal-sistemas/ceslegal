@@ -1271,6 +1271,33 @@ class ProcesoDisciplinarioResource extends Resource
      *
      * @return array{opciones: array<string,string>, sinRit: bool, nuncaAceptoRit: bool, usaVersionAnteriorRit: bool, aceptacionAplicable: ?\App\Models\AceptacionReglamentoInterno, tieneMulta: bool}
      */
+    /**
+     * Columna "Generación de Sanción" del listado - devuelve label/color/icon
+     * para el badge de esa celda. Pedido del usuario (2026-10-14): mientras
+     * el proceso está en estado "apertura" (emision_sancion_estado aún es
+     * null, ni siquiera ha llegado a la fase de sanción), la citación todavía
+     * se está generando y enviando al trabajador en segundo plano
+     * (GenerarYEnviarCitacionJob, ver CreateProcesoDisciplinario::afterCreate()).
+     * Antes esa celda quedaba vacía durante ese tiempo, sin ninguna señal de
+     * que algo seguía en curso - se reutiliza el mismo badge "Generando..."
+     * (warning + arrow-path) que ya existía para emision_sancion_estado='procesando'.
+     *
+     * @return array{label: ?string, color: string, icon: ?string}
+     */
+    public static function badgeGeneracionSancion(?string $emisionSancionEstado, ?string $estadoProceso): array
+    {
+        if ($emisionSancionEstado === null && $estadoProceso === 'apertura') {
+            return ['label' => 'Generando...', 'color' => 'warning', 'icon' => 'heroicon-o-arrow-path'];
+        }
+
+        return match ($emisionSancionEstado) {
+            'procesando' => ['label' => 'Generando...', 'color' => 'warning', 'icon' => 'heroicon-o-arrow-path'],
+            'completado' => ['label' => 'Completado', 'color' => 'success', 'icon' => 'heroicon-o-check-circle'],
+            'error' => ['label' => 'Error - reintentar', 'color' => 'danger', 'icon' => 'heroicon-o-exclamation-triangle'],
+            default => ['label' => null, 'color' => 'gray', 'icon' => null],
+        };
+    }
+
     public static function resolverEstadoSancionPorAceptacionRit(\App\Models\ProcesoDisciplinario $record, array $analisis): array
     {
         $ritActivo = $record->empresa->reglamentoInterno;
@@ -1616,18 +1643,17 @@ class ProcesoDisciplinarioResource extends Resource
                 Tables\Columns\TextColumn::make('emision_sancion_estado')
                     ->label('Generación de Sanción')
                     ->badge()
-                    ->color(fn(?string $state): string => match ($state) {
-                        'procesando' => 'warning',
-                        'completado' => 'success',
-                        'error' => 'danger',
-                        default => 'gray',
-                    })
-                    ->icon(fn(?string $state): ?string => match ($state) {
-                        'procesando' => 'heroicon-o-arrow-path',
-                        'completado' => 'heroicon-o-check-circle',
-                        'error' => 'heroicon-o-exclamation-triangle',
-                        default => null,
-                    })
+                    // $record con operador null-safe en los 3 closures de abajo
+                    // (color/icon/formatStateUsing): mismo cuidado que el resto de
+                    // esta columna (ver el comentario grande que sigue) - $record
+                    // SÍ llega con un valor real al pintar cada fila, pero nunca se
+                    // asume no-nulo por si Filament llega a evaluar estos closures
+                    // en algún contexto sin fila (igual que ya pasaba con ->visible()).
+                    // Lógica extraída a badgeGeneracionSancion() (testeable sin
+                    // Livewire - esta tabla usa ->deferLoading(), así que un GET
+                    // HTTP normal no renderiza las filas, solo el esqueleto).
+                    ->color(fn(?string $state, $record): string => self::badgeGeneracionSancion($state, $record?->estado)['color'])
+                    ->icon(fn(?string $state, $record): ?string => self::badgeGeneracionSancion($state, $record?->estado)['icon'])
                     // No usar ->visible(fn ($state) => ...) aquí: en una
                     // COLUMNA (no en una celda), Filament también evalúa
                     // ->visible() al construir el menú de "columnas
@@ -1637,16 +1663,14 @@ class ProcesoDisciplinarioResource extends Resource
                     // (bug real en producción, 2026-09-18). formatStateUsing
                     // devuelve null para que Filament simplemente no
                     // renderice el badge cuando no hay estado.
-                    ->formatStateUsing(fn(?string $state): ?string => match ($state) {
-                        'procesando' => 'Generando...',
-                        'completado' => 'Completado',
-                        'error' => 'Error - reintentar',
-                        default => null,
-                    }),
+                    ->formatStateUsing(fn(?string $state, $record): ?string => self::badgeGeneracionSancion($state, $record?->estado)['label']),
             ])
             ->defaultPaginationPageOption(5)
             ->deferLoading()
-            ->poll(fn () => ProcesoDisciplinario::query()->where('emision_sancion_estado', 'procesando')->exists() ? '5s' : null)
+            ->poll(fn () => ProcesoDisciplinario::query()
+                ->where('emision_sancion_estado', 'procesando')
+                ->orWhere('estado', 'apertura')
+                ->exists() ? '5s' : null)
             ->filters([
                 Tables\Filters\SelectFilter::make('estado')
                     ->label('Estado')
