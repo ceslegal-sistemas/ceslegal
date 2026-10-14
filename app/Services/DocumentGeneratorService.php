@@ -422,7 +422,6 @@ class DocumentGeneratorService
         .cita-verbatim {
             margin: 4px 0 8px 0;
             padding: 4px 10px;
-            border-left: 2px solid #666;
             font-size: 9pt;
             font-style: italic;
             color: #333;
@@ -1859,7 +1858,7 @@ PROMPT;
 
             if (!$tieneRIT || $esConductaDeCatalogoGenericoCst) {
                 foreach ($this->textosVerbatimCst($baseLegal) as $verbatim) {
-                    $cargosHTML .= '<blockquote style="margin:4px 0 8px 0;padding:4px 10px;border-left:2px solid #666;font-size:10pt;font-style:italic;color:#333;">' . e($verbatim['texto']) . '</blockquote>';
+                    $cargosHTML .= '<blockquote style="margin:4px 0 8px 0;padding:4px 10px;font-size:10pt;font-style:italic;color:#333;">' . e($verbatim['texto']) . '</blockquote>';
                 }
             }
 
