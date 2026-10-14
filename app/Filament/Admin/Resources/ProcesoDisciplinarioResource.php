@@ -3714,24 +3714,9 @@ class ProcesoDisciplinarioResource extends Resource
                             $recomendacionFinal = $analisis['recomendacion_final'] ?? null;
 
                             return [
-                                Forms\Components\Section::make('🤖 Análisis del Caso')
-                                    ->schema([
-                                        Forms\Components\Placeholder::make('gravedad_info')
-                                            ->label('Gravedad de la Falta')
-                                            ->content(function () use ($analisis) {
-                                                $gravedad = match ($analisis['gravedad'] ?? '') {
-                                                    'leve'  => '🟢 Leve',
-                                                    'grave' => '🔴 Grave',
-                                                    default => ucfirst($analisis['gravedad'] ?? 'desconocida'),
-                                                };
-                                                $reincidencia = ($analisis['es_reincidencia'] ?? false) ? ' ⚠️ REINCIDENCIA' : '';
-                                                return $gravedad . $reincidencia;
-                                            }),
-                                        Forms\Components\Placeholder::make('justificacion_ia')
-                                            ->label('Justificación')
-                                            ->content(fn() => $analisis['justificacion'] ?? 'Sin justificación disponible.'),
-                                    ])
-                                    ->collapsible(),
+                                Forms\Components\View::make('filament.components.regenerar-sancion-analisis')
+                                    ->viewData(['analisis' => $analisis])
+                                    ->columnSpanFull(),
 
                                 Forms\Components\Hidden::make('analisis_cache')
                                     ->default(json_encode($analisis)),
