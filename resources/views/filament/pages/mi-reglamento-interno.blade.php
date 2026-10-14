@@ -39,7 +39,7 @@
    tarjetas tienen contenido de volumen similar, por eso van 1fr 1fr. */
 .rit-two-col{display:grid;grid-template-columns:1fr;gap:1.25rem}
 @media(min-width:768px){.rit-two-col{grid-template-columns:1fr 1fr}}
-.rit-two-col .rit-hero{height:100%}
+.rit-two-col .rit-hero{height:100%;display:flex;flex-direction:column;justify-content:center}
 .rit-hero{position:relative;overflow:hidden;border-radius:1.25rem;padding:2rem 1.75rem;background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%)}
 {{-- Modo claro corregido 2026-10-03: esta página tenía su PROPIA copia
      duplicada de este CSS, nunca actualizada tras el fix de visibilidad en
