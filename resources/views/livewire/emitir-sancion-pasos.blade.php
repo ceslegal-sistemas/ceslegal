@@ -44,17 +44,49 @@
                     'opcionesSancion' => $opcionesSancion,
                     'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
                     'modoDecision' => false,
+                    // "Puntos a revisar" se omite aquí (se renderiza aparte, abajo,
+                    // junto a "Revisión de calidad" en 2 columnas) - pedido del
+                    // usuario 2026-10-14, mismo patrón .rit-two-col ya usado en
+                    // mi-reglamento-interno.blade.php. Ver emitir-sancion-analisis.blade.php.
+                    'mostrarGarantias' => false,
                 ])
             @endif
 
-            @include('filament.components.validaciones-v6-resumen', [
-                'estado' => $validacionesV6Estado,
-                'resultados' => $validacionesV6Resultados,
-                'en' => $validacionesV6En,
-                'puntosClave' => $validacionesV6PuntosClave,
-                'onRiskOpen' => true,
-                'riskAcknowledged' => $riskAcknowledged,
-            ])
+            {{-- "Puntos a revisar" + "Revisión de calidad de la recomendación" en
+                 una sola fila de 2 columnas cuando AMBAS existen - si no hay
+                 garantías que mostrar (verificacion_garantias vacío), la revisión
+                 de calidad se queda sola a ancho completo, como antes.
+                 @include de lupe-hero-styles aquí también (no solo dentro de
+                 emitir-sancion-analisis): si $esFallback es true, esa plantilla
+                 nunca corre y .rit-two-col no quedaría definido - duplicar el
+                 <style> es inofensivo (mismo criterio ya usado en el resto del
+                 proyecto para este partial). --}}
+            @include('filament.components.lupe-hero-styles')
+            @php
+                $garantiasParaGrid = is_array($analisis['verificacion_garantias'] ?? null) ? $analisis['verificacion_garantias'] : [];
+            @endphp
+            @if(!empty($garantiasParaGrid))
+                <div class="rit-two-col">
+                    @include('filament.components.emitir-sancion-garantias', ['garantias' => $garantiasParaGrid])
+                    @include('filament.components.validaciones-v6-resumen', [
+                        'estado' => $validacionesV6Estado,
+                        'resultados' => $validacionesV6Resultados,
+                        'en' => $validacionesV6En,
+                        'puntosClave' => $validacionesV6PuntosClave,
+                        'onRiskOpen' => true,
+                        'riskAcknowledged' => $riskAcknowledged,
+                    ])
+                </div>
+            @else
+                @include('filament.components.validaciones-v6-resumen', [
+                    'estado' => $validacionesV6Estado,
+                    'resultados' => $validacionesV6Resultados,
+                    'en' => $validacionesV6En,
+                    'puntosClave' => $validacionesV6PuntosClave,
+                    'onRiskOpen' => true,
+                    'riskAcknowledged' => $riskAcknowledged,
+                ])
+            @endif
 
             <div>
                 {{--

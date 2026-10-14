@@ -72,4 +72,12 @@ html:not(.dark) .rit-btn-cta{box-shadow:0 8px 22px rgba(225,29,72,.22)}
 @keyframes rit-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .rit-link-input{flex:1;min-width:200px;padding:.5rem .75rem;border-radius:.5rem;border:1px solid rgba(255,255,255,.15);font-size:.8125rem;background:rgba(255,255,255,.06);color:#e2e8f0}
 html:not(.dark) .rit-link-input{border-color:rgba(0,0,0,.12);background:#fff;color:#1c1917}
+{{--
+    Grid responsivo de 2 columnas (originalmente solo en
+    mi-reglamento-interno.blade.php - movido aquí para reutilizarlo en
+    cualquier vista que necesite emparejar 2 tarjetas .rit-hero/.esa-card
+    en una misma fila sin duplicar la regla, ej. emitir-sancion-pasos.blade.php).
+--}}
+.rit-two-col{display:grid;grid-template-columns:1fr;gap:1.25rem}
+@media(min-width:768px){.rit-two-col{grid-template-columns:1fr 1fr}}
 </style>
