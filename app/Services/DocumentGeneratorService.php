@@ -1464,7 +1464,11 @@ HTML;
         * { box-sizing: border-box; }
         html, body { font-family: 'Calibri', 'Tahoma', 'DejaVu Sans', Arial, sans-serif; font-size: 10pt; color: #2A2A2A; }
         body { margin: 0; padding: 0; line-height: 1.45; text-align: justify; }
-        p { margin: 0 0 7pt 0; }
+        /* word-wrap:break-word (no break-all - mismo patron ya probado con
+           Dompdf en informe-juridico-pdf.blade.php): el enlace de impugnacion
+           (CUARTO, un token largo sin espacios) se salia del margen de la
+           pagina - bug real reportado con captura, 2026-10-15. */
+        p { margin: 0 0 7pt 0; word-wrap: break-word; overflow-wrap: break-word; }
         strong, b { font-weight: bold; }
 
         /* ===== Encabezados (franja teal con icono) - mismo diseño que impugnacion.blade.php ===== */
