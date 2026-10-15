@@ -331,7 +331,7 @@ class DocumentGeneratorService
                 $filasHTML = '';
                 foreach ($filas as $fila) {
                     $color = $colorGrav[$fila['gravedad']] ?? '#374151';
-                    $items = implode('', array_map(fn($f) => '<li>' . e($f) . '</li>', $fila['conductas']));
+                    $items = implode('', array_map(fn($c) => '<li>' . e($c['nombre']) . '</li>', $fila['conductas']));
                     $filasHTML .= '<tr>
                         <td class="tabla-rit-tipo" style="color:' . $color . ';">' . e(mb_strtoupper($fila['gravedad'])) . '</td>
                         <td class="tabla-rit-conductas"><ul>' . $items . '</ul></td>
