@@ -36,6 +36,20 @@ return new class extends Migration
 
         if (DB::getDriverName() === 'mysql') {
             DB::statement("ALTER TABLE impugnaciones MODIFY COLUMN medio_recepcion ENUM('correo_electronico','carta_fisica','verbal','otro','portal_web') NULL");
+        } else {
+            // SQLite (tests: phpunit.xml usa DB_CONNECTION=sqlite en memoria) no
+            // soporta ALTER ... MODIFY COLUMN - Laravel reconstruye la tabla por
+            // debajo con doctrine/dbal al usar ->change(). Sin esta rama, el CHECK
+            // constraint original (solo 4 valores, sin 'portal_web') se quedaba
+            // vigente en cualquier base de datos sqlite, y cualquier impugnación
+            // real del portal (ImpugnacionPortalService::class, que sí guarda
+            // 'portal_web') rompía con "CHECK constraint failed: medio_recepcion"
+            // - bug real detectado en ImpugnacionPortalTrabajadorTest, 2026-10-14.
+            Schema::table('impugnaciones', function (Blueprint $table) {
+                $table->enum('medio_recepcion', ['correo_electronico', 'carta_fisica', 'verbal', 'otro', 'portal_web'])
+                    ->nullable()
+                    ->change();
+            });
         }
     }
 
@@ -44,6 +58,13 @@ return new class extends Migration
         if (DB::getDriverName() === 'mysql') {
             DB::statement("UPDATE impugnaciones SET medio_recepcion = 'otro' WHERE medio_recepcion = 'portal_web'");
             DB::statement("ALTER TABLE impugnaciones MODIFY COLUMN medio_recepcion ENUM('correo_electronico','carta_fisica','verbal','otro') NULL");
+        } else {
+            DB::table('impugnaciones')->where('medio_recepcion', 'portal_web')->update(['medio_recepcion' => 'otro']);
+            Schema::table('impugnaciones', function (Blueprint $table) {
+                $table->enum('medio_recepcion', ['correo_electronico', 'carta_fisica', 'verbal', 'otro'])
+                    ->nullable()
+                    ->change();
+            });
         }
 
         Schema::table('impugnaciones', function (Blueprint $table) {
