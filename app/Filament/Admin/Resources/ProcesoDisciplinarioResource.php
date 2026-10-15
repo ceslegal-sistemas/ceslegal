@@ -1298,6 +1298,38 @@ class ProcesoDisciplinarioResource extends Resource
         };
     }
 
+    /**
+     * Garantiza que la sanción YA EMITIDA (la que se está re-generando en el
+     * modal "Re-generar Sanción") siga siendo una opción seleccionable del
+     * Select, aunque el análisis fresco de la IA ya no la recomiende (ej.
+     * antes era 'multa' y ahora la IA sugiere otra cosa). Sin esto, el valor
+     * por defecto del campo ($record->tipo_sancion) no calzaría con ninguna
+     * opción - Filament mostraba el dropdown vacío y, al escribir para
+     * buscarlo, una opción fantasma sin traducir (bug real reportado por el
+     * usuario, 2026-10-15, con capturas).
+     *
+     * @param array<string,string> $opciones
+     */
+    public static function asegurarTipoSancionActualEsOpcion(array $opciones, ?string $tipoSancionActual): array
+    {
+        if (!$tipoSancionActual || array_key_exists($tipoSancionActual, $opciones)) {
+            return $opciones;
+        }
+
+        $etiquetasSancion = [
+            'llamado_atencion' => 'Llamado de Atención',
+            'suspension' => 'Suspensión Laboral',
+            'multa' => 'Multa',
+            'terminacion' => 'Terminación de Contrato',
+            'no_sancion' => 'No Aplicar Sanción',
+        ];
+
+        $opciones[$tipoSancionActual] = $etiquetasSancion[$tipoSancionActual]
+            ?? ucfirst(str_replace('_', ' ', $tipoSancionActual));
+
+        return $opciones;
+    }
+
     public static function resolverEstadoSancionPorAceptacionRit(\App\Models\ProcesoDisciplinario $record, array $analisis): array
     {
         $ritActivo = $record->empresa->reglamentoInterno;
@@ -3735,12 +3767,22 @@ class ProcesoDisciplinarioResource extends Resource
                             $resultado = $iaService->analizarYSugerirSanciones($record);
                             $analisis = $resultado['analisis'];
 
-                            $opcionesSancion = [
-                                'llamado_atencion' => 'Llamado de Atención',
-                                'suspension' => 'Suspensión Laboral',
-                                'terminacion' => 'Terminación de Contrato',
-                                'no_sancion' => 'No Aplicar Sanción',
-                            ];
+                            // Bug real reportado por el usuario (2026-10-15, con capturas): este
+                            // formulario tenía su PROPIO arreglo de opciones hardcodeado, sin
+                            // 'multa' - cuando la sanción original/recomendada era 'multa' (un
+                            // tipo real y válido, ver resolverEstadoSancionPorAceptacionRit() más
+                            // abajo), el Select de Filament no encontraba esa clave entre sus
+                            // opciones: el dropdown salía vacío (el valor por defecto no calzaba
+                            // con ningún option) y, al escribir "multa" para buscarlo, aparecía
+                            // como una opción fantasma en minúscula sin traducir. Se reemplaza por
+                            // el mismo método ya usado por el modal real de "Emitir Sanción"
+                            // (incluye 'multa' solo cuando el RIT que el trabajador aceptó
+                            // realmente la contempla), en vez de mantener un segundo arreglo
+                            // desincronizado.
+                            $opcionesSancion = self::asegurarTipoSancionActualEsOpcion(
+                                self::resolverEstadoSancionPorAceptacionRit($record, $analisis)['opciones'],
+                                $record->tipo_sancion,
+                            );
 
                             $recomendacionFinal = $analisis['recomendacion_final'] ?? null;
 
