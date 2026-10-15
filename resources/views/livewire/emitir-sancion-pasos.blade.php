@@ -174,9 +174,32 @@
                 'opcionesSancion' => $opcionesSancion,
                 'iaSancionesRecomendadas' => $iaSancionesRecomendadas,
                 'modoDecision' => true,
+                // "Puntos a revisar" se omite aquí (se renderiza aparte, abajo,
+                // junto a "Potestad disciplinaria" en 2 columnas) - pedido del
+                // usuario 2026-10-14, mismo patrón .rit-two-col ya usado en el
+                // Paso 1. Ver emitir-sancion-analisis.blade.php.
+                'mostrarGarantias' => false,
             ])
 
-            @if (!empty($autoridadRit))
+            {{-- "Puntos a revisar" + "Potestad disciplinaria" en una sola fila de
+                 2 columnas cuando AMBAS existen - si falta alguna, la otra se
+                 queda sola a ancho completo, como antes. .rit-two-col ya quedó
+                 definido arriba por emitir-sancion-analisis (incluye
+                 lupe-hero-styles), que siempre corre antes de este bloque. --}}
+            @php
+                $garantiasParaGridPaso2 = is_array($analisis['verificacion_garantias'] ?? null) ? $analisis['verificacion_garantias'] : [];
+            @endphp
+            @if (!empty($garantiasParaGridPaso2) && !empty($autoridadRit))
+                <div class="rit-two-col">
+                    @include('filament.components.emitir-sancion-garantias', ['garantias' => $garantiasParaGridPaso2])
+                    @include('filament.components.emitir-sancion-potestad', [
+                        'autoridadRit' => $autoridadRit,
+                        'opcionesSancion' => $opcionesSancion,
+                    ])
+                </div>
+            @elseif (!empty($garantiasParaGridPaso2))
+                @include('filament.components.emitir-sancion-garantias', ['garantias' => $garantiasParaGridPaso2])
+            @elseif (!empty($autoridadRit))
                 @include('filament.components.emitir-sancion-potestad', [
                     'autoridadRit' => $autoridadRit,
                     'opcionesSancion' => $opcionesSancion,

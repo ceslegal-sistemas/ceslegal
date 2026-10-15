@@ -2526,21 +2526,27 @@ class ProcesoDisciplinarioResource extends Resource
                                 ->hidden(true),
 
                             // ── Verificación del Autorizador ──────────────────────────────────
-                            Forms\Components\Section::make('Verificación del Autorizador')
-                                ->icon('heroicon-o-user-circle')
-                                ->iconColor('primary')
-                                ->description('Registre los datos de quien autoriza esta sanción y tome una foto de verificación.')
-                                ->schema([
-                                    Forms\Components\Grid::make(2)->schema([
-                                        Forms\Components\TextInput::make('autorizador_nombre')
-                                            ->label('Nombre completo')
-                                            ->required()
-                                            ->maxLength(255),
-                                        Forms\Components\TextInput::make('autorizador_cargo')
-                                            ->label('Cargo')
-                                            ->required()
-                                            ->maxLength(255),
-                                    ]),
+                            // "Verificación del Autorizador" (datos de quien autoriza) y
+                            // "Declaración del Autorizador" (tarjeta .rit-hero) emparejadas en 2
+                            // columnas - pedido del usuario (2026-10-14), mismo patrón ya aplicado
+                            // en el Paso 1 del wizard ("Puntos a revisar" + "Revisión de calidad").
+                            // El resto (checkbox, webcam, botones) sigue a ancho completo debajo.
+                            Forms\Components\Group::make([
+                                Forms\Components\Grid::make(2)->schema([
+                                    Forms\Components\Section::make('Verificación del Autorizador')
+                                        ->icon('heroicon-o-user-circle')
+                                        ->iconColor('primary')
+                                        ->description('Registre los datos de quien autoriza esta sanción.')
+                                        ->schema([
+                                            Forms\Components\TextInput::make('autorizador_nombre')
+                                                ->label('Nombre completo')
+                                                ->required()
+                                                ->maxLength(255),
+                                            Forms\Components\TextInput::make('autorizador_cargo')
+                                                ->label('Cargo')
+                                                ->required()
+                                                ->maxLength(255),
+                                        ]),
 
                                     Forms\Components\Placeholder::make('declaracion_texto')
                                         ->hiddenLabel()
@@ -2558,34 +2564,35 @@ class ProcesoDisciplinarioResource extends Resource
                                                 '</div></div>'
                                             )
                                         )),
+                                ]),
 
-                                    Forms\Components\Checkbox::make('declaracion_aceptada')
-                                        ->label('Acepto y confirmo la declaración anterior como persona autorizada para emitir esta sanción')
-                                        ->required()
-                                        ->accepted()
-                                        ->afterStateUpdated(function ($state, ProcesoDisciplinario $record) {
-                                            if ($state) {
-                                                \App\Models\SancionProcessEvent::registrar($record->id, 'authorized');
-                                            }
-                                        }),
+                                Forms\Components\Checkbox::make('declaracion_aceptada')
+                                    ->label('Acepto y confirmo la declaración anterior como persona autorizada para emitir esta sanción')
+                                    ->required()
+                                    ->accepted()
+                                    ->afterStateUpdated(function ($state, ProcesoDisciplinario $record) {
+                                        if ($state) {
+                                            \App\Models\SancionProcessEvent::registrar($record->id, 'authorized');
+                                        }
+                                    }),
 
-                                    Forms\Components\Placeholder::make('webcam_autorizador')
-                                        ->label('Foto de verificación del autorizador')
-                                        ->content(fn() => view('filament.components.webcam-autorizador')),
+                                Forms\Components\Placeholder::make('webcam_autorizador')
+                                    ->label('Foto de verificación del autorizador')
+                                    ->content(fn() => view('filament.components.webcam-autorizador')),
 
-                                    // La obligatoriedad se valida en ->action() con una
-                                    // notificación visible: al ser un campo oculto (base64),
-                                    // el error de "requerido" no se mostraría al usuario.
-                                    Forms\Components\Hidden::make('foto_autorizador_base64'),
+                                // La obligatoriedad se valida en ->action() con una
+                                // notificación visible: al ser un campo oculto (base64),
+                                // el error de "requerido" no se mostraría al usuario.
+                                Forms\Components\Hidden::make('foto_autorizador_base64'),
 
-                                    // Botones del Paso 3 (Cancelar / Volver a Decisión / Continuar):
-                                    // viven DENTRO de este bloque, no en el footer nativo del modal,
-                                    // para que siempre se muestren y se oculten junto con él - el
-                                    // footer nativo se evaluaba aparte y al volver a la Decisión
-                                    // quedaba con los botones del Paso 3 sobre los del Paso 2.
-                                    Forms\Components\View::make('filament.components.emitir-sancion-pie-autorizacion')
-                                        ->columnSpanFull(),
-                                ])
+                                // Botones del Paso 3 (Cancelar / Volver a Decisión / Continuar):
+                                // viven DENTRO de este bloque, no en el footer nativo del modal,
+                                // para que siempre se muestren y se oculten junto con él - el
+                                // footer nativo se evaluaba aparte y al volver a la Decisión
+                                // quedaba con los botones del Paso 3 sobre los del Paso 2.
+                                Forms\Components\View::make('filament.components.emitir-sancion-pie-autorizacion')
+                                    ->columnSpanFull(),
+                            ])
                                 // Mismo motivo que la ->visible() del wizard interno de arriba
                                 // (línea ~2199): lee $livewire->mountedTableActionsData en vez de
                                 // Get $get, para no quedar desincronizada de "Volver a Decisión".
