@@ -513,24 +513,47 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                     return;
                 }
 
-                // El video habla de "qué cambió" SOLO si la versión anterior
-                // (el origen) ya tuvo su propio video generado - eso significa
-                // que a los trabajadores ya se les explicó esa versión antes,
-                // así que tiene sentido narrarles la diferencia. Si el origen
-                // nunca tuvo video (aunque el RIT técnicamente venga de una
-                // mejora IA - fuente=mejora_ia), nadie vio nunca un video de
-                // "la versión vieja", así que no hay nada que "actualizar"
-                // desde la perspectiva del trabajador: el video debe explicar
-                // el reglamento completo en temas generales, como si fuera la
-                // primera vez (hallazgo real en producción, 2026-09-29: Renbel
-                // tenía reglamento_origen_id pero nunca se le había generado
-                // video antes, y aun así salió narrando cambios puntuales en
-                // vez de una explicación general).
+                // El video habla de "qué cambió" SOLO si YA HUBO trabajadores
+                // reales que aceptaron la versión anterior (el origen) del
+                // RIT - eso significa que alguien de verdad conoció "el
+                // antes", así que tiene sentido narrarles la diferencia. Si
+                // nadie aceptó nunca esa versión, no hay ningún "antes" real
+                // desde la perspectiva de los trabajadores: el video debe
+                // explicar el reglamento completo en temas generales, como si
+                // fuera la primera vez.
+                //
+                // Corregido 2026-10-16 (bug real reportado por el usuario,
+                // captura de RENBEL): el criterio anterior exigía que el
+                // ORIGEN hubiera tenido su PROPIO VIDEO generado - un video
+                // es una forma de socialización entre varias (también está la
+                // vitrina de texto/temas), así que ese requisito era
+                // demasiado estricto y dejaba en "explicación completa" RITs
+                // que sí habían sido socializados (por texto) y genuinamente
+                // sí tenían cambios reales que narrar. Además era
+                // INCONSISTENTE con la página de socialización
+                // (SocializacionRit::prepararPresentacionRit(),
+                // $esPrimeraAceptacion), que SÍ decide esto correctamente por
+                // trabajador: si el trabajador tiene alguna aceptación previa,
+                // le muestra "qué cambió"; si no, le muestra todo. El video es
+                // UN solo archivo compartido por TODA la empresa (no puede
+                // personalizarse por trabajador), así que usa el mismo
+                // criterio pero a nivel de empresa: "¿algún trabajador aceptó
+                // ya la versión anterior?" - mismo chequeo que ya prueba
+                // correctamente ser preciso (ver
+                // tests/Feature/SocializacionRitPresentacionRitTest.php),
+                // ahora reutilizado aquí en vez de inventar un criterio aparte.
+                // (Hallazgo original 2026-09-29 que motivó blindar esto: Renbel
+                // tenía reglamento_origen_id pero NADIE había aceptado nunca
+                // esa versión anterior - con el criterio de hoy, ese caso
+                // sigue cayendo correctamente en "explicación completa".)
                 $cambios = [];
                 if ($this->reglamento->reglamento_origen_id) {
                     $origen = ReglamentoInterno::withoutGlobalScope('bufeteOrEmpresa')
                         ->find($this->reglamento->reglamento_origen_id);
-                    if ($origen?->video_didactico_generado_en && $origen->texto_completo && $this->reglamento->texto_completo) {
+                    $algunTrabajadorAceptoElOrigen = $origen && \App\Models\AceptacionReglamentoInterno::query()
+                        ->where('reglamento_interno_id', $origen->id)
+                        ->exists();
+                    if ($algunTrabajadorAceptoElOrigen && $origen->texto_completo && $this->reglamento->texto_completo) {
                         $cambios = app(\App\Services\RitDiffService::class)->compararDocumentos(
                             $origen->texto_completo,
                             $this->reglamento->texto_completo
