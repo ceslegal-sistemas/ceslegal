@@ -33,27 +33,18 @@ class ConfiguracionTextoResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Información')
-                    ->schema([
-                        Forms\Components\TextInput::make('clave')
-                            ->label('Clave')
-                            ->disabled()
-                            ->helperText('Identificador interno - no se puede modificar.'),
-
-                        Forms\Components\TextInput::make('grupo')
-                            ->label('Grupo')
-                            ->disabled(),
-
-                        Forms\Components\TextInput::make('descripcion')
-                            ->label('Descripción')
-                            ->disabled()
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(2)
-                    ->collapsible(),
+                Forms\Components\Placeholder::make('encabezado')
+                    ->hiddenLabel()
+                    ->columnSpanFull()
+                    ->content(fn ($record) => view('filament.components.configuracion-texto-header', [
+                        'clave' => $record?->clave,
+                        'grupo' => $record?->grupo,
+                        'descripcion' => $record?->descripcion,
+                    ])),
 
                 Forms\Components\Section::make('Variables que puede usar')
-                    ->description('Escriba el marcador dentro del texto y el sistema lo reemplaza con el dato real al mostrarlo. Pulse un botón para insertarlo donde está el cursor.')
+                    ->description('Escriba el marcador dentro del texto y el sistema lo reemplaza con el dato real al mostrarlo. Pulse un botón para insertarlo donde está el cursor. No escriba datos reales a mano (ej. "[NOMBRE DEL EMPLEADOR]" o una fecha fija) - use siempre el marcador correspondiente, así nunca queda desactualizado.')
+                    ->icon('heroicon-o-variable')
                     ->schema([
                         Forms\Components\Placeholder::make('variables')
                             ->hiddenLabel()
@@ -64,6 +55,7 @@ class ConfiguracionTextoResource extends Resource
                     ->visible(fn ($record) => ConfiguracionTexto::variablesDe($record?->clave) !== []),
 
                 Forms\Components\Section::make('Contenido')
+                    ->icon('heroicon-o-document-text')
                     ->schema([
                         Forms\Components\Textarea::make('valor')
                             ->label('Texto')
@@ -77,7 +69,8 @@ class ConfiguracionTextoResource extends Resource
                             ->columnSpanFull()
                             ->visible(fn ($record) => ConfiguracionTexto::variablesDe($record?->clave) !== [])
                             ->content(fn (Get $get) => new HtmlString(
-                                '<div style="white-space:pre-line;line-height:1.7;padding:.9rem 1rem;border-radius:.75rem;border:1px solid rgba(0,0,0,.1)">'
+                                '<div style="white-space:pre-line;line-height:1.7;font-size:.8125rem;padding:1rem 1.125rem;border-radius:.75rem;'
+                                . 'background:rgba(225,29,72,.05);border:1px solid rgba(225,29,72,.18);max-height:320px;overflow-y:auto;">'
                                 . e(strtr((string) $get('valor'), ConfiguracionTexto::EJEMPLOS))
                                 . '</div>'
                             )),

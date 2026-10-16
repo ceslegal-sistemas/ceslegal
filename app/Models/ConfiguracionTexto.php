@@ -33,6 +33,7 @@ class ConfiguracionTexto extends Model
             ':cedula' => 'Número de documento del trabajador',
             ':empresa' => 'Razón social de la empresa',
             ':cargo' => 'Cargo del trabajador',
+            ':url_politica' => 'Enlace a la Política de Tratamiento de Datos Personales (automático, no lo escriba a mano - no use "[URL]" ni "[NOMBRE DEL EMPLEADOR]", use este marcador y :empresa).',
         ],
         'aviso_no_comprendio_primera_vez' => [
             ':empresa' => 'Razón social de la empresa',
@@ -48,6 +49,15 @@ class ConfiguracionTexto extends Model
         'disclaimer_autorizador' => [
             ':fecha_actualizacion' => 'Fecha en que se guardó por última vez este texto - automática, se actualiza sola cada vez que usted guarda cambios aquí. No la escriba a mano.',
         ],
+        'disclaimer_rit_publicacion' => [
+            ':empresa' => 'Razón social de la empresa',
+        ],
+        'disclaimer_rit_socializacion' => [
+            ':empresa' => 'Razón social de la empresa',
+        ],
+        'disclaimer_culminacion_socializacion' => [
+            ':empresa' => 'Razón social de la empresa',
+        ],
     ];
 
     /** Datos de ejemplo para la vista previa del formulario de edición. */
@@ -59,6 +69,7 @@ class ConfiguracionTexto extends Model
         ':cargo' => 'Auxiliar administrativo',
         ':fecha' => '8 de octubre de 2026',
         ':fecha_actualizacion' => '16 de octubre de 2026',
+        ':url_politica' => 'https://admin.ceslegal.co/politica-tratamiento-datos',
     ];
 
     /** @return array<string, string> marcador => descripción (vacío si el texto no admite variables) */
