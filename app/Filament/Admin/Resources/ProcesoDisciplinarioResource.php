@@ -3818,8 +3818,12 @@ class ProcesoDisciplinarioResource extends Resource
                             fn(ProcesoDisciplinario $record) =>
                             // Ya hay sanción emitida: la diligencia ocurrió, se puede
                             // re-generar sin condicionar a la fecha de descargos.
+                            // Oculta al cliente (pedido del usuario, 2026-10-16): re-generar
+                            // reemplaza el documento ya notificado al trabajador - solo el
+                            // bufete/abogado/super_admin debe poder hacerlo.
                             $record->estado === 'sancion_emitida' &&
-                                !empty($record->trabajador?->email)
+                                !empty($record->trabajador?->email) &&
+                                !(auth()->user()?->hasRole('cliente') ?? false)
                         )
                         ->action(function (ProcesoDisciplinario $record, array $data) {
                             if ($data['tipo_sancion'] === 'suspension') {

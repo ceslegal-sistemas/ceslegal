@@ -141,6 +141,9 @@ html:not(.dark) .rit-dl-label{color:#57534e}
 .rit-dl-value{font-size:.8125rem;font-weight:600;color:#e2e8f0;text-align:right}
 html:not(.dark) .rit-dl-value{color:#1c1917}
 .rit-viewer summary::-webkit-details-marker{display:none}
+.rit-historico-video-row{padding:1rem 1.125rem;border-bottom:1px solid rgba(255,255,255,.06)}
+.rit-historico-video-row:last-child{border-bottom:none}
+html:not(.dark) .rit-historico-video-row{border-bottom-color:rgba(0,0,0,.06)}
 </style>
 
 @if($necesitaSeleccion)
@@ -335,20 +338,19 @@ html:not(.dark) .rit-dl-value{color:#1c1917}
        Generar/Regenerar de arriba, esto es lo que YA fue sustituido pero
        sigue disponible como evidencia. --}}
   @if($tiene && $reglamento->historicoVideosDidacticos->isNotEmpty())
-    <details class="text-sm" style="margin-top:1rem">
-      <summary class="cursor-pointer text-primary-600 font-medium">
-        Historial de videos didácticos reemplazados ({{ $reglamento->historicoVideosDidacticos->count() }})
+    <details class="rit-viewer" style="margin-top:1.25rem">
+      <summary class="rit-viewer-header" style="cursor:pointer;list-style:none">
+        <span class="rit-viewer-label">Historial de videos didácticos reemplazados</span>
+        <span class="rit-badge rit-badge-ia">{{ $reglamento->historicoVideosDidacticos->count() }}</span>
       </summary>
-      <div class="border border-gray-200 rounded-xl p-4 mt-2 space-y-3">
+      <div class="rit-viewer-body" style="max-height:none;padding:0">
         @foreach($reglamento->historicoVideosDidacticos as $historico)
-          <div class="flex items-start justify-between gap-3 text-xs">
-            <div>
-              <p class="font-semibold text-gray-700 m-0">
-                Generado el {{ $historico->generado_en?->format('d/m/Y H:i') ?? '-' }}
-              </p>
-              <p class="text-gray-500 m-0">Reemplazado el {{ $historico->archivado_en->format('d/m/Y H:i') }}</p>
+          <div class="rit-historico-video-row">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.65rem">
+              <p class="rit-dl-value" style="margin:0">Generado el {{ $historico->generado_en?->format('d/m/Y H:i') ?? '-' }}</p>
+              <p class="rit-dl-label" style="margin:0">Reemplazado el {{ $historico->archivado_en->format('d/m/Y H:i') }}</p>
             </div>
-            <div class="flex flex-wrap gap-2 justify-end">
+            <div style="display:flex;flex-wrap:wrap;gap:.5rem">
               @foreach($historico->capitulos as $i => $capitulo)
                 <a href="{{ route('rit.video-didactico.historico', ['reglamento' => $reglamento, 'historico' => $historico, 'capitulo' => $i]) }}"
                    target="_blank" class="rit-btn rit-btn-secondary" style="padding:.35rem .75rem;font-size:.7rem">
