@@ -45,6 +45,9 @@ class ConfiguracionTexto extends Model
             ':empresa' => 'Razón social de la empresa',
             ':fecha' => 'Fecha de hoy, cuando se le entregó el video y el documento (ej. 8 de octubre de 2026)',
         ],
+        'disclaimer_autorizador' => [
+            ':fecha_actualizacion' => 'Fecha en que se guardó por última vez este texto - automática, se actualiza sola cada vez que usted guarda cambios aquí. No la escriba a mano.',
+        ],
     ];
 
     /** Datos de ejemplo para la vista previa del formulario de edición. */
@@ -55,6 +58,7 @@ class ConfiguracionTexto extends Model
         ':empresa' => 'RENBEL S.A.S.',
         ':cargo' => 'Auxiliar administrativo',
         ':fecha' => '8 de octubre de 2026',
+        ':fecha_actualizacion' => '16 de octubre de 2026',
     ];
 
     /** @return array<string, string> marcador => descripción (vacío si el texto no admite variables) */

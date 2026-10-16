@@ -44,9 +44,24 @@
     // contextos de test que no migran BD (ej. WebcamAutorizadorLordIconTest,
     // que solo valida HTML estático) - sin esto, consultar una tabla
     // inexistente revienta un render que antes no tocaba la BD en absoluto.
+    //
+    // :fecha_actualizacion (2026-10-16, pedido del usuario): el texto real
+    // que Carlos redactó en producción escribió a mano "Última
+    // actualización: [actualizada]" - un placeholder sin terminar que
+    // además quedaría desactualizado en cada edición futura. Se resuelve
+    // con la fecha real de la última edición del propio registro
+    // (updated_at), igual que ya se muestra en la columna "Última edición"
+    // del listado de ConfiguracionTextoResource - así nunca hay que
+    // tocarlo a mano de nuevo.
     if (!isset($disclaimerTexto)) {
         try {
-            $disclaimerTexto = \App\Models\ConfiguracionTexto::obtener('disclaimer_autorizador', config('ces.disclaimer_autorizador', ''));
+            $disclaimerRegistro = \App\Models\ConfiguracionTexto::find('disclaimer_autorizador');
+            $disclaimerTexto = $disclaimerRegistro?->valor ?? config('ces.disclaimer_autorizador', '');
+            $disclaimerTexto = str_replace(
+                ':fecha_actualizacion',
+                $disclaimerRegistro?->updated_at?->locale('es')->translatedFormat('j \d\e F \d\e Y') ?? '',
+                $disclaimerTexto
+            );
         } catch (\Throwable $e) {
             $disclaimerTexto = config('ces.disclaimer_autorizador', '');
         }
@@ -152,6 +167,26 @@ button.wca-btn-secondary:hover {
     display: flex; align-items: center; gap: .4rem;
     font-size: 10px; font-weight: 700; letter-spacing: .1em;
     text-transform: uppercase; color: var(--wca-brand-fg); margin: 0 0 6px;
+}
+/* Política completa de tratamiento de datos (2026-10-16): reusa .wca-card,
+   que había quedado huérfana tras el rediseño del 2026-09-16 (ver nota más
+   abajo) - antes el texto completo se volcaba crudo en un <p>, que con una
+   política de 25 secciones se veía como un muro de texto sin ningún
+   párrafo (white-space normal colapsa los saltos de línea que el jefe sí
+   escribió al redactarla). Ahora vive colapsado por defecto dentro de un
+   <details>, con los saltos de línea originales preservados
+   (white-space:pre-line) y scroll propio para no desbordar el modal. */
+.wca-card-politica summary {
+    cursor: pointer; list-style: none;
+}
+.wca-card-politica summary::-webkit-details-marker { display: none; }
+.wca-card-politica summary::marker { content: ''; }
+.wca-card-politica[open] .wca-politica-chevron { transform: rotate(90deg); }
+.wca-politica-chevron { transition: transform .15s; flex-shrink: 0; }
+.wca-politica-texto {
+    white-space: pre-line; line-height: 1.7; font-size: 11.5px;
+    color: var(--wca-text-muted); margin-top: 10px; padding-right: 4px;
+    max-height: 260px; overflow-y: auto;
 }
 .wca-consent {
     display: flex; align-items: flex-start; gap: 10px;
@@ -739,7 +774,16 @@ button.wca-btn-secondary:hover {
                     style="width:14px;height:14px;flex-shrink:0"></lord-icon>
                 Autorización de tratamiento de datos personales
             </span>
-            <p class="rit-sub" style="margin-top:.5rem;">{{ $disclaimerTexto }}</p>
+
+            <details class="wca-card wca-card-politica" style="margin-top:.5rem;">
+                <summary class="wca-card-label" style="margin:0;">
+                    <svg class="wca-politica-chevron" style="width:12px;height:12px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                    Ver política completa de tratamiento de datos
+                </summary>
+                <div class="wca-politica-texto">{{ $disclaimerTexto }}</div>
+            </details>
 
             <label class="wca-consent">
                 <input type="checkbox" x-model="disclaimerMarcado" style="margin-top:2px;flex-shrink:0;accent-color:var(--wca-brand-solid);">
