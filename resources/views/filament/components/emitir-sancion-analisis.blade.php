@@ -429,14 +429,22 @@ html.dark .esa-ns-off { color: #86efac; }
                     $baseJuridica = $basesJuridicas[$s] ?? null;
                 @endphp
 
-                {{-- Contenedor de cada sanción: encabezado + desplegable base jurídica --}}
-                <div style="border-top:{{ $loop->first ? 'none' : '1px solid var(--esa-divider)' }};
-                            background:{{ $esPrincipal ? $sc['glow'] : 'transparent' }};
-                            border-left:3px solid {{ $esPrincipal ? $sc['accent'] : 'transparent' }};">
+                {{-- Contenedor de cada sanción: encabezado + desplegable base jurídica.
+                     La "Principal" era antes una fila plana con una barra vertical de
+                     color a la izquierda (border-left) - pedido del usuario (2026-10-16,
+                     captura del modal "Emitir Sanción"): quitar esas líneas verticales y
+                     darle a la recomendación principal un diseño mejor. Ahora es su
+                     propia tarjeta redondeada con borde completo (mismo lenguaje que
+                     .esa-card/.rit-hero: borde + fondo tenue, no una barra), separada con
+                     margen de las "también válidas" en vez de fundirse con ellas en una
+                     sola lista con divisores. --}}
+                <div style="{{ $esPrincipal
+                        ? 'border:1px solid ' . $sc['border'] . ';background:' . $sc['glow'] . ';border-radius:12px;margin:10px 18px;'
+                        : 'border-top:' . ($loop->first ? 'none' : '1px solid var(--esa-divider)') }}">
 
                     {{-- Fila principal --}}
                     <div class="esa-rec-row" style="display:flex;align-items:center;gap:12px;
-                                padding:{{ $esPrincipal ? '12px' : '9px' }} 18px;">
+                                padding:{{ $esPrincipal ? '14px 16px' : '9px 18px' }};">
 
                         <lord-icon
                             src="https://cdn.lordicon.com/{{ $sc['lord'] }}"
@@ -492,7 +500,7 @@ html.dark .esa-ns-off { color: #86efac; }
                     {{-- Desplegable: base jurídica argumentada --}}
                     @if($baseJuridica)
                         <details class="esa-base-juridica"
-                                 style="margin:0 18px 10px; padding:0;">
+                                 style="margin:0 {{ $esPrincipal ? '16px 14px' : '18px 10px' }}; padding:0;">
                             <summary class="esa-accent-text"
                                      style="--a-light:{{ $sc['accentLight'] }};--a-dark:{{ $sc['accent'] }};
                                            font-size:11px;font-weight:700;
