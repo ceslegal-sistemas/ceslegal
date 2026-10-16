@@ -22,13 +22,17 @@ class GenerarVideoDidacticoRITJob implements ShouldQueue
     /**
      * REDISEÑO 2026-09-30: el video ya no encadena "extend" (Gemini tiene un
      * límite duro de ~30-40s totales por video extendido, error real de
-     * producción) - ahora genera UN CAPÍTULO INDEPENDIENTE por cada tema
-     * clasificado del RIT (hasta 27, la taxonomía completa, sin tope
-     * artificial - ver RitVideoDidacticoService). Eso significa que el
-     * número de llamadas a Gemini ya NO es fijo: un RIT con 27 temas hace
-     * hasta 27 llamadas secuenciales, cada una hasta 300s (ver
-     * RitVideoDidacticoService::llamarGemini()). Timeout dimensionado para
-     * el peor caso teórico (27 × 300s = 8100s) con margen.
+     * producción) - genera UN CAPÍTULO INDEPENDIENTE por llamada. Eso
+     * significa que el número de llamadas a Gemini no es fijo.
+     *
+     * REDISEÑO 2026-10-14 (guion previo + profundidad, RitVideoDidacticoService):
+     * ya no es 1 capítulo por tema (tope implícito de 27, la taxonomía
+     * completa) - ahora un tema de importancia alta puede recibir varios
+     * clips, con un tope explícito de hasta
+     * config('services.ia.gemini.video_max_clips') (60 por defecto) para TODO
+     * el RIT. Peor caso teórico: 1 llamada de guion (hasta 2 intentos × 240s)
+     * + 60 clips de video × 300s = 480 + 18000 = 18480s. Timeout
+     * dimensionado para ese peor caso con margen.
      * IMPORTANTE: el wrapper `--timeout` del `queue:work` en producción
      * (Hostinger) debe cubrir este mismo valor con margen también - un
      * timeout externo más corto mata el proceso antes de que Laravel llegue
@@ -36,10 +40,21 @@ class GenerarVideoDidacticoRITJob implements ShouldQueue
      * mayor a este valor - si no, la cola puede re-tomar el mismo job dos
      * veces mientras el primero sigue corriendo (mismo bug ya resuelto una
      * vez para la Auditoría de RIT, ver auditoria-rit-cola-retry-after).
+     * Si baja services.ia.gemini.video_max_clips en .env, este timeout puede
+     * bajarse proporcionalmente.
      */
-    public int $timeout = 8400;
+    public int $timeout = 19000;
 
-    /** Sin reintentos automáticos: cada intento fallido consume tokens de video igual que uno exitoso. */
+    /**
+     * Sin reintentos AUTOMÁTICOS de Laravel (cada intento fallido consumía
+     * tokens de video igual que uno exitoso con el diseño anterior). Desde
+     * el rediseño 2026-10-14, RitVideoDidacticoService::generar() es
+     * REANUDABLE (cada clip ya generado queda guardado en disco y no se
+     * vuelve a pagar) - un reintento MANUAL del usuario desde "Mi Reglamento
+     * Interno" (que despacha un job nuevo) retoma donde quedó, no desde
+     * cero. tries sigue en 1 para no reintentar automáticamente sin que el
+     * usuario lo sepa.
+     */
     public int $tries = 1;
 
     /** @param array $cambios Diff de RitDiffService (opcional) - ver RitVideoDidacticoService::generar(). */

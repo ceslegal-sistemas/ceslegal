@@ -108,6 +108,31 @@ return [
             // 2026-09-29) - subir a 720p/1080p es un simple cambio de env, sin tocar
             // codigo, una vez se confirme que el costo es aceptable.
             'video_resolution' => env('GEMINI_VIDEO_RESOLUTION', '360p'),
+
+            // Rediseño 2026-10-14 (guion previo + profundidad): el guion se
+            // escribe con un modelo de TEXTO antes de gastar en video - por
+            // defecto el mismo modelo de texto de arriba (GEMINI_MODEL), pero
+            // puede fijarse aparte si conviene uno distinto para el guion.
+            'model_guion' => env('GEMINI_MODEL_GUION'),
+            // Palanca de costo MAS directa de este flujo: cada clip extra es
+            // una llamada de video pagada aparte (ver RitVideoDidacticoService).
+            // Un RIT con varios temas de importancia 3 puede acercarse a este
+            // tope - bajarlo reduce el gasto maximo por RIT a costa de menos
+            // profundidad en los temas criticos.
+            'video_max_clips' => env('GEMINI_VIDEO_MAX_CLIPS', 60),
+            // Palabras objetivo por clip de ~10s de narracion hablada.
+            'video_palabras_clip' => env('GEMINI_VIDEO_PALABRAS_CLIP', 24),
+            // video_presentador/video_escenario (ficha fija del presentador y el
+            // escenario, repetida en todos los clips de una serie) NO se listan
+            // aqui a proposito: RitVideoDidacticoService las resuelve con
+            // config('services.ia.gemini.video_presentador', self::FICHA_...) -
+            // ese fallback solo se activa si la CLAVE no existe en este arreglo.
+            // Si se agregan aqui con env() sin valor, env() devuelve null, la
+            // clave SI existe (con valor null) y el fallback del codigo deja de
+            // aplicarse - el prompt terminaria con "null" en vez de la ficha
+            // real. Para personalizarlas, usar las env GEMINI_VIDEO_PRESENTADOR/
+            // GEMINI_VIDEO_ESCENARIO solo si TAMBIEN se les pone aqui un valor
+            // por defecto no nulo.
         ],
     ],
 
