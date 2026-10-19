@@ -139,90 +139,104 @@ class ConfiguracionWhatsapp extends Page implements HasForms
     {
         return $form
             ->schema([
-                // ── Estado ────────────────────────────────────────────────────
-                Forms\Components\Section::make('Estado del servicio')
+                // ── Fila 1: Credenciales (2 columnas) + Estado (1 columna) ──────
+                // Pedido del usuario (2026-10-19): organizar en 2 columnas donde
+                // tenga sentido, no todo en una sola columna angosta como antes.
+                Forms\Components\Grid::make(3)
                     ->schema([
-                        Forms\Components\Toggle::make('whatsapp_habilitado')
-                            ->label('Activar notificaciones por WhatsApp')
-                            ->helperText('Al desactivar, ninguna notificación se enviará por WhatsApp aunque las credenciales sean correctas.')
-                            ->onIcon('heroicon-m-check')
-                            ->offIcon('heroicon-m-x-mark')
-                            ->onColor('success'),
+                        Forms\Components\Section::make('Credenciales - Meta Cloud API')
+                            ->description('Obtenga estos datos en Meta for Developers → su app → WhatsApp → API Setup.')
+                            ->columnSpan(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('whatsapp_numero_telefono')
+                                    ->label('Número de teléfono')
+                                    ->helperText('El número visible para el usuario final (ej: +57 300 123 4567) - distinto del Phone Number ID de abajo.')
+                                    ->placeholder('+57 300 123 4567')
+                                    ->maxLength(30)
+                                    ->columnSpanFull(),
+
+                                Forms\Components\TextInput::make('whatsapp_phone_number_id')
+                                    ->label('Phone Number ID')
+                                    ->helperText('ID numérico del número de teléfono registrado en Meta (ej: 123456789012345).')
+                                    ->placeholder('123456789012345')
+                                    ->maxLength(30)
+                                    ->columnSpanFull(),
+
+                                Forms\Components\TextInput::make('whatsapp_business_account_id')
+                                    ->label('WhatsApp Business Account ID (WABA ID)')
+                                    ->helperText('ID de la cuenta de WhatsApp Business en Meta Business Suite.')
+                                    ->placeholder('987654321098765')
+                                    ->maxLength(30)
+                                    ->columnSpanFull(),
+
+                                Forms\Components\TextInput::make('whatsapp_access_token')
+                                    ->label('Access Token')
+                                    ->helperText('Token de usuario del sistema (System User Token). Use un token permanente para producción.')
+                                    ->placeholder('EAAxxxxxxxxxxxxxxxx...')
+                                    ->password()
+                                    ->revealable()
+                                    ->maxLength(512)
+                                    ->columnSpanFull(),
+                            ]),
+
+                        Forms\Components\Section::make('Estado del servicio')
+                            ->columnSpan(1)
+                            ->schema([
+                                Forms\Components\Toggle::make('whatsapp_habilitado')
+                                    ->label('Activar notificaciones por WhatsApp')
+                                    ->helperText('Al desactivar, ninguna notificación se enviará por WhatsApp aunque las credenciales sean correctas.')
+                                    ->onIcon('heroicon-m-check')
+                                    ->offIcon('heroicon-m-x-mark')
+                                    ->onColor('success'),
+                            ]),
                     ]),
 
-                // ── Credenciales Meta Cloud API ────────────────────────────────
-                Forms\Components\Section::make('Credenciales - Meta Cloud API')
-                    ->description('Obtenga estos datos en Meta for Developers → su app → WhatsApp → API Setup.')
+                // ── Fila 2: OTP + Avisos a RRHH (2 columnas, estilo "hero") ──────
+                // Pedido del usuario: algunas tarjetas con el mismo estilo de
+                // "card hero" (degradado + orbes) que ya usa Mi Reglamento
+                // Interno para destacar las 2 FUNCIONES reales de esta página
+                // (enviar OTP, avisar a RRHH), distinto de las secciones de
+                // configuración plana de arriba/abajo.
+                Forms\Components\Grid::make(2)
                     ->schema([
-                        Forms\Components\TextInput::make('whatsapp_numero_telefono')
-                            ->label('Número de teléfono')
-                            ->helperText('El número visible para el usuario final (ej: +57 300 123 4567) - distinto del Phone Number ID de abajo.')
-                            ->placeholder('+57 300 123 4567')
-                            ->maxLength(30)
-                            ->columnSpanFull(),
+                        Forms\Components\Section::make('Código de verificación (OTP)')
+                            ->description('El código de un solo uso SIEMPRE se envía por una plantilla "Authentication" aprobada por Meta - nunca por texto libre. Pulse "Sincronizar plantillas" para elegir de una lista real en vez de escribir el nombre a mano.')
+                            ->extraAttributes(['class' => 'rit-hero-section'])
+                            ->schema([
+                                Forms\Components\Select::make('whatsapp_plantilla_otp_nombre')
+                                    ->label('Plantilla del OTP')
+                                    ->options(fn () => $this->getOpcionesPlantillas())
+                                    ->searchable()
+                                    ->native(false)
+                                    ->helperText(fn () => $this->getOpcionesPlantillas() === []
+                                        ? 'Aún no ha sincronizado plantillas - pulse el botón abajo.'
+                                        : 'Solo se muestran las que Meta ya sincronizó con esta cuenta.')
+                                    ->columnSpanFull(),
 
-                        Forms\Components\TextInput::make('whatsapp_phone_number_id')
-                            ->label('Phone Number ID')
-                            ->helperText('ID numérico del número de teléfono registrado en Meta (ej: 123456789012345).')
-                            ->placeholder('123456789012345')
-                            ->maxLength(30)
-                            ->columnSpanFull(),
+                                Forms\Components\Actions::make([
+                                    Forms\Components\Actions\Action::make('sincronizarPlantillas')
+                                        ->label('Sincronizar plantillas')
+                                        ->icon('heroicon-m-arrow-path')
+                                        ->color('gray')
+                                        ->action('sincronizarPlantillas'),
+                                ]),
+                            ]),
 
-                        Forms\Components\TextInput::make('whatsapp_business_account_id')
-                            ->label('WhatsApp Business Account ID (WABA ID)')
-                            ->helperText('ID de la cuenta de WhatsApp Business en Meta Business Suite.')
-                            ->placeholder('987654321098765')
-                            ->maxLength(30)
-                            ->columnSpanFull(),
-
-                        Forms\Components\TextInput::make('whatsapp_access_token')
-                            ->label('Access Token')
-                            ->helperText('Token de usuario del sistema (System User Token). Use un token permanente para producción.')
-                            ->placeholder('EAAxxxxxxxxxxxxxxxx...')
-                            ->password()
-                            ->revealable()
-                            ->maxLength(512)
-                            ->columnSpanFull(),
+                        Forms\Components\Section::make('Avisos a RRHH')
+                            ->description('Plantilla "Utility" para avisos del sistema (ej. "trabajador no entendió el RIT dos veces") a la empresa que dio opt-in en Mi Empresa → Información de Contacto. El correo de contacto sigue siendo el canal garantizado - esto es un extra.')
+                            ->extraAttributes(['class' => 'rit-hero-section'])
+                            ->schema([
+                                Forms\Components\Select::make('whatsapp_plantilla_alerta_rrhh_nombre')
+                                    ->label('Plantilla de alerta a RRHH')
+                                    ->options(fn () => $this->getOpcionesPlantillas())
+                                    ->searchable()
+                                    ->native(false)
+                                    ->helperText('Debe recibir el nombre del trabajador y su cédula como parámetros {{1}} y {{2}}, en ese orden.')
+                                    ->columnSpanFull(),
+                            ]),
                     ]),
 
-                // ── OTP ───────────────────────────────────────────────────────
-                Forms\Components\Section::make('Código de verificación (OTP)')
-                    ->description('El código de un solo uso SIEMPRE se envía por una plantilla "Authentication" aprobada por Meta - nunca por texto libre. Pulse "Sincronizar plantillas" para elegir de una lista real en vez de escribir el nombre a mano.')
-                    ->schema([
-                        Forms\Components\Select::make('whatsapp_plantilla_otp_nombre')
-                            ->label('Plantilla del OTP')
-                            ->options(fn () => $this->getOpcionesPlantillas())
-                            ->searchable()
-                            ->native(false)
-                            ->helperText(fn () => $this->getOpcionesPlantillas() === []
-                                ? 'Aún no ha sincronizado plantillas - pulse el botón abajo.'
-                                : 'Solo se muestran las que Meta ya sincronizó con esta cuenta.')
-                            ->columnSpanFull(),
-
-                        Forms\Components\Actions::make([
-                            Forms\Components\Actions\Action::make('sincronizarPlantillas')
-                                ->label('Sincronizar plantillas')
-                                ->icon('heroicon-m-arrow-path')
-                                ->color('gray')
-                                ->action('sincronizarPlantillas'),
-                        ]),
-                    ]),
-
-                // ── Avisos a RRHH (Fase 2) ──────────────────────────────────────
-                Forms\Components\Section::make('Avisos a RRHH')
-                    ->description('Plantilla "Utility" para avisos del sistema (ej. "trabajador no entendió el RIT dos veces") a la empresa que dio opt-in en Mi Empresa → Información de Contacto. El correo de contacto sigue siendo el canal garantizado - esto es un extra.')
-                    ->collapsed()
-                    ->schema([
-                        Forms\Components\Select::make('whatsapp_plantilla_alerta_rrhh_nombre')
-                            ->label('Plantilla de alerta a RRHH')
-                            ->options(fn () => $this->getOpcionesPlantillas())
-                            ->searchable()
-                            ->native(false)
-                            ->helperText('Debe recibir el nombre del trabajador y su cédula como parámetros {{1}} y {{2}}, en ese orden.')
-                            ->columnSpanFull(),
-                    ]),
-
-                // ── Webhook ────────────────────────────────────────────────────
+                // ── Fila 3: Webhook (1 columna completa) ─────────────────────────
                 Forms\Components\Section::make('Webhook')
                     ->description('Configure el webhook en Meta para recibir mensajes y actualizaciones de estado.')
                     ->collapsed()
