@@ -74,6 +74,7 @@ trait InteractsConAceptacionMejoraRIT
 
                         return view('filament.components.webcam-autorizador', [
                             'wireTargetPath' => "mountedActionsData.{$indice}.foto_responsable_base64",
+                            'empresaNombre'  => $this->auditoria?->empresa?->razon_social,
                         ]);
                     }),
                 Hidden::make('foto_responsable_base64'),

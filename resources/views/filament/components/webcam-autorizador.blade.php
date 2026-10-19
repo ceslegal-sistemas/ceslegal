@@ -27,6 +27,9 @@
 @php
     $wireTargetPath = $wireTargetPath ?? 'mountedTableActionsData.0.foto_autorizador_base64';
     $wizardStepId   = $wizardStepId ?? null;
+    // Nombre de la empresa (opcional) para el marcador :empresa - quien
+    // incluye este componente puede pasarlo, ej. ['empresaNombre' => $empresa->razon_social].
+    $empresaNombre  = $empresaNombre ?? null;
 
     // Autorización de tratamiento de datos personales (Ley 1581 de 2012) -
     // OBLIGATORIA antes de cualquier captura fotográfica, por requisito legal
@@ -57,11 +60,10 @@
         try {
             $disclaimerRegistro = \App\Models\ConfiguracionTexto::find('disclaimer_autorizador');
             $disclaimerTexto = $disclaimerRegistro?->valor ?? config('ces.disclaimer_autorizador', '');
-            $disclaimerTexto = str_replace(
-                ':fecha_actualizacion',
-                $disclaimerRegistro?->updated_at?->locale('es')->translatedFormat('j \d\e F \d\e Y') ?? '',
-                $disclaimerTexto
-            );
+            $disclaimerTexto = strtr($disclaimerTexto, [
+                ':fecha_actualizacion' => $disclaimerRegistro?->updated_at?->locale('es')->translatedFormat('j \d\e F \d\e Y') ?? '',
+                ':empresa' => $empresaNombre ?? '',
+            ]);
         } catch (\Throwable $e) {
             $disclaimerTexto = config('ces.disclaimer_autorizador', '');
         }

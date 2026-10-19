@@ -2610,7 +2610,9 @@ class ProcesoDisciplinarioResource extends Resource
 
                                 Forms\Components\Placeholder::make('webcam_autorizador')
                                     ->label('Foto de verificación del autorizador')
-                                    ->content(fn() => view('filament.components.webcam-autorizador')),
+                                    ->content(fn(ProcesoDisciplinario $record) => view('filament.components.webcam-autorizador', [
+                                        'empresaNombre' => $record->empresa?->razon_social,
+                                    ])),
 
                                 // La obligatoriedad se valida en ->action() con una
                                 // notificación visible: al ser un campo oculto (base64),

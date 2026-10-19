@@ -43,7 +43,7 @@ class ConfiguracionTextoResource extends Resource
                     ])),
 
                 Forms\Components\Section::make('Variables que puede usar')
-                    ->description('Escriba el marcador dentro del texto y el sistema lo reemplaza con el dato real al mostrarlo. Pulse un botón para insertarlo donde está el cursor. No escriba datos reales a mano (ej. "[NOMBRE DEL EMPLEADOR]" o una fecha fija) - use siempre el marcador correspondiente, así nunca queda desactualizado.')
+                    ->description('Toque un botón para pegarlo en el texto. Ese dato se completa solo.')
                     ->icon('heroicon-o-variable')
                     ->schema([
                         Forms\Components\Placeholder::make('variables')

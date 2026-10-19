@@ -1100,13 +1100,14 @@ class CreateProcesoDisciplinario extends CreateRecord
 
                             Forms\Components\Placeholder::make('webcam_citante')
                                 ->label('Foto de verificación')
-                                ->content(fn() => view('filament.components.webcam-autorizador', [
+                                ->content(fn(Get $get) => view('filament.components.webcam-autorizador', [
                                     'wireTargetPath' => 'data.foto_citante_base64',
                                     // El paso ahora se llama 'revision' (fusionado con
                                     // verificación) - el componente de la cámara necesita
                                     // este slug para arrancar sola al llegar aquí (ver
                                     // memoria filament-wizard-x-init-eager).
                                     'wizardStepId'   => 'revision',
+                                    'empresaNombre'  => \App\Models\Empresa::find($get('empresa_id'))?->razon_social,
                                 ])),
 
                             // La obligatoriedad se valida en mutateFormDataBeforeCreate() con

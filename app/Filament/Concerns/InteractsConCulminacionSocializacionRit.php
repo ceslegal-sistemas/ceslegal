@@ -122,6 +122,7 @@ trait InteractsConCulminacionSocializacionRit
 
                         return view('filament.components.webcam-autorizador', [
                             'wireTargetPath' => "mountedActionsData.{$indice}.foto_admin_base64",
+                            'empresaNombre'  => $this->empresaParaCulminacion()?->razon_social,
                         ]);
                     }),
                 Hidden::make('foto_admin_base64'),

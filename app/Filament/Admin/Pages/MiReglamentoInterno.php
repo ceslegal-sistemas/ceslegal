@@ -666,6 +666,7 @@ class MiReglamentoInterno extends Page implements HasForms, HasActions
                     ->content(fn () => new \Illuminate\Support\HtmlString(
                         view('filament.components.webcam-autorizador', [
                             'wireTargetPath' => 'mountedActionsData.0.foto_autorizador_base64',
+                            'empresaNombre' => $this->empresa?->razon_social,
                         ])->render()
                     )),
 

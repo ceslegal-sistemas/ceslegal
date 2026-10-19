@@ -29,39 +29,40 @@ class ConfiguracionTexto extends Model
      */
     public const VARIABLES = [
         'disclaimer_descargos' => [
-            ':nombre' => 'Nombre completo del trabajador',
-            ':cedula' => 'Número de documento del trabajador',
-            ':empresa' => 'Razón social de la empresa',
+            ':nombre' => 'Nombre del trabajador',
+            ':cedula' => 'Cédula del trabajador',
+            ':empresa' => 'Nombre de la empresa',
             ':cargo' => 'Cargo del trabajador',
-            ':url_politica' => 'Enlace a la Política de Tratamiento de Datos Personales (automático, no lo escriba a mano - no use "[URL]" ni "[NOMBRE DEL EMPLEADOR]", use este marcador y :empresa).',
-            ':fecha' => 'Fecha de hoy (automática)',
+            ':url_politica' => 'Enlace a la Política de Datos',
+            ':fecha' => 'Fecha de hoy',
         ],
         'aviso_no_comprendio_primera_vez' => [
-            ':empresa' => 'Razón social de la empresa',
-            ':trabajador' => 'Nombre completo del trabajador',
+            ':empresa' => 'Nombre de la empresa',
+            ':trabajador' => 'Nombre del trabajador',
         ],
         'aviso_no_comprendio_confirmacion' => [
-            ':empresa' => 'Razón social de la empresa',
-            ':trabajador' => 'Nombre completo del trabajador',
+            ':empresa' => 'Nombre de la empresa',
+            ':trabajador' => 'Nombre del trabajador',
         ],
         'mensaje_no_comprendio_bloqueado' => [
-            ':trabajador' => 'Nombre completo del trabajador',
-            ':empresa' => 'Razón social de la empresa',
-            ':fecha' => 'Fecha de hoy, cuando se le entregó el video y el documento (ej. 8 de octubre de 2026)',
+            ':trabajador' => 'Nombre del trabajador',
+            ':empresa' => 'Nombre de la empresa',
+            ':fecha' => 'Fecha de hoy',
         ],
         'disclaimer_autorizador' => [
-            ':fecha_actualizacion' => 'Fecha en que se guardó por última vez este texto - automática, se actualiza sola cada vez que usted guarda cambios aquí. No la escriba a mano.',
+            ':empresa' => 'Nombre de la empresa',
+            ':fecha_actualizacion' => 'Fecha en que se guardó este texto',
         ],
         'disclaimer_rit_publicacion' => [
-            ':empresa' => 'Razón social de la empresa',
-            ':trabajador' => 'Nombre completo del trabajador',
+            ':empresa' => 'Nombre de la empresa',
+            ':trabajador' => 'Nombre del trabajador',
         ],
         'disclaimer_rit_socializacion' => [
-            ':empresa' => 'Razón social de la empresa',
-            ':trabajador' => 'Nombre completo del trabajador',
+            ':empresa' => 'Nombre de la empresa',
+            ':trabajador' => 'Nombre del trabajador',
         ],
         'disclaimer_culminacion_socializacion' => [
-            ':empresa' => 'Razón social de la empresa',
+            ':empresa' => 'Nombre de la empresa',
         ],
     ];
 
