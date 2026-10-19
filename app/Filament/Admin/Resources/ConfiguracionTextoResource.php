@@ -146,19 +146,28 @@ class ConfiguracionTextoResource extends Resource
         ];
     }
 
-    /** Solo super_admin puede gestionar textos configurables. */
+    /**
+     * Solo super_admin gestiona los textos legales configurables - por rol
+     * directo, no por permiso (evita depender de policies): son disclaimers
+     * de autorización de datos y declaraciones juradas que rigen para TODAS
+     * las empresas del sistema, no algo que deba quedar expuesto a bufete/
+     * abogado/cliente aunque alguien les asigne el permiso de Shield por
+     * error. Mismo patrón que BufeteResource::canAccess().
+     */
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
+    /** Nadie crea claves nuevas desde el panel - solo se editan las que ya sembró el código. */
     public static function canCreate(): bool
     {
         return false;
     }
 
+    /** Nadie borra textos legales desde el panel - son parte del expediente de cumplimiento. */
     public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
     {
         return false;
-    }
-
-    public static function canViewAny(): bool
-    {
-        return auth()->user()?->can('view_any_configuracion::texto') ?? false;
     }
 }

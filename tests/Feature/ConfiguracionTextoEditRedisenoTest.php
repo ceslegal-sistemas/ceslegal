@@ -79,4 +79,35 @@ class ConfiguracionTextoEditRedisenoTest extends TestCase
         $this->assertSame('disclaimer_descargos', $registro->clave);
         $this->assertSame($grupoOriginal, $registro->grupo);
     }
+
+    /**
+     * Pedido del usuario (2026-10-16): "que pueda ser segmentado por
+     * nosotros como rol super_admin" - el gate es por ROL (hasRole), no
+     * solo por el permiso de Shield, justamente para que ASIGNAR el
+     * permiso a bufete/abogado por error en Roles no abra este panel. Por
+     * eso esta prueba le da el permiso completo a un bufete y aun así
+     * debe quedar bloqueado.
+     */
+    public function test_bufete_con_el_permiso_de_shield_no_puede_acceder_aunque_lo_tenga(): void
+    {
+        Permission::findOrCreate('view_any_configuracion::texto', 'web');
+        Permission::findOrCreate('update_configuracion::texto', 'web');
+        $bufete = User::factory()->create(['role' => 'bufete', 'active' => true]);
+        $bufete->givePermissionTo(['view_any_configuracion::texto', 'update_configuracion::texto']);
+        $this->actingAs($bufete);
+
+        $registro = ConfiguracionTexto::where('clave', 'disclaimer_descargos')->first();
+
+        Livewire::test(EditConfiguracionTexto::class, ['record' => $registro->getKey()])
+            ->assertForbidden();
+    }
+
+    public function test_super_admin_si_puede_acceder(): void
+    {
+        $this->actuarComoSuperAdmin();
+        $registro = ConfiguracionTexto::where('clave', 'disclaimer_descargos')->first();
+
+        Livewire::test(EditConfiguracionTexto::class, ['record' => $registro->getKey()])
+            ->assertSuccessful();
+    }
 }
