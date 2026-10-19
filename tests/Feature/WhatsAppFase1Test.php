@@ -322,4 +322,73 @@ class WhatsAppFase1Test extends TestCase
 
         Livewire::test(ConfiguracionWhatsapp::class)->assertSuccessful();
     }
+
+    // ─── Account Health (2026-10-19, "como un chatwoot") ──────────────────
+
+    public function test_el_token_del_webhook_se_autogenera_al_entrar_si_no_existia(): void
+    {
+        Configuracion::where('clave', 'whatsapp_webhook_verify_token')->delete();
+        $admin = User::factory()->create(['role' => 'super_admin', 'active' => true]);
+        $this->actingAs($admin);
+
+        Livewire::test(ConfiguracionWhatsapp::class)->assertSuccessful();
+
+        $token = Configuracion::obtener('whatsapp_webhook_verify_token');
+        $this->assertNotEmpty($token);
+        $this->assertSame(32, strlen($token));
+    }
+
+    public function test_regenerar_token_cambia_el_valor_guardado(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin', 'active' => true]);
+        $this->actingAs($admin);
+
+        $tokenOriginal = Configuracion::obtener('whatsapp_webhook_verify_token');
+
+        Livewire::test(ConfiguracionWhatsapp::class)->call('regenerarWebhookToken');
+
+        $this->assertNotSame($tokenOriginal, Configuracion::obtener('whatsapp_webhook_verify_token'));
+    }
+
+    public function test_sincronizar_plantillas_guarda_el_cache_y_queda_disponible_como_opcion(): void
+    {
+        Configuracion::updateOrCreate(['clave' => 'whatsapp_business_account_id'], ['valor' => '999', 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => true]);
+
+        Http::fake(['graph.facebook.com/*/message_templates*' => Http::response([
+            'data' => [
+                ['name' => 'otp_verificacion', 'status' => 'APPROVED', 'category' => 'AUTHENTICATION', 'language' => 'es_CO'],
+            ],
+        ], 200)]);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'active' => true]);
+        $this->actingAs($admin);
+
+        Livewire::test(ConfiguracionWhatsapp::class)->call('sincronizarPlantillas');
+
+        $cache = json_decode(Configuracion::obtener('whatsapp_plantillas_cache'), true);
+        $this->assertCount(1, $cache);
+        $this->assertSame('otp_verificacion', $cache[0]['nombre']);
+    }
+
+    public function test_obtener_salud_cuenta_pide_los_campos_ampliados(): void
+    {
+        Http::fake([
+            'graph.facebook.com/*/999*' => Http::response(['name' => 'Mi WABA'], 200),
+            'graph.facebook.com/*' => Http::response([
+                'display_phone_number' => '+57 300 123 4567',
+                'verified_name' => 'LUPE Legal',
+                'quality_rating' => 'GREEN',
+                'messaging_limit_tier' => '1K',
+                'code_verification_status' => 'VERIFIED',
+            ], 200),
+        ]);
+        Configuracion::updateOrCreate(['clave' => 'whatsapp_business_account_id'], ['valor' => '999', 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => true]);
+
+        $resultado = app(WhatsAppService::class)->obtenerSaludCuenta();
+
+        $this->assertTrue($resultado['ok']);
+        $this->assertSame('GREEN', $resultado['calidad']);
+        $this->assertSame('1K', $resultado['limite_mensajeria']);
+        Http::assertSent(fn ($request) => str_contains((string) $request->url(), 'fields=') && str_contains((string) $request->url(), 'quality_rating'));
+    }
 }

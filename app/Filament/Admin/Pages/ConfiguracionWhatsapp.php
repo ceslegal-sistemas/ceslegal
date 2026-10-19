@@ -9,6 +9,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Support\Str;
 
 class ConfiguracionWhatsapp extends Page implements HasForms
 {
@@ -41,12 +42,24 @@ class ConfiguracionWhatsapp extends Page implements HasForms
 
     public function mount(): void
     {
+        // Token del webhook auto-generado (pedido del usuario, 2026-10-19:
+        // "como un chatwoot") - ya no lo escribe el admin a mano, se genera
+        // una sola vez y se muestra de solo lectura con botón de copiar
+        // (ver getWebhookToken()/regenerarWebhookToken()). Aleatorio es
+        // más seguro que cualquier cadena que alguien escriba.
+        if (!Configuracion::obtener('whatsapp_webhook_verify_token')) {
+            Configuracion::updateOrCreate(
+                ['clave' => 'whatsapp_webhook_verify_token'],
+                ['valor' => Str::random(32), 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => false]
+            );
+        }
+
         $this->form->fill([
             'whatsapp_habilitado'            => (bool) Configuracion::obtener('whatsapp_habilitado', false),
+            'whatsapp_numero_telefono'       => Configuracion::obtener('whatsapp_numero_telefono', ''),
             'whatsapp_phone_number_id'       => Configuracion::obtener('whatsapp_phone_number_id', ''),
             'whatsapp_business_account_id'   => Configuracion::obtener('whatsapp_business_account_id', ''),
             'whatsapp_access_token'          => Configuracion::obtener('whatsapp_access_token', ''),
-            'whatsapp_webhook_verify_token'  => Configuracion::obtener('whatsapp_webhook_verify_token', 'ces_legal_whatsapp'),
             'whatsapp_plantilla_otp_nombre'  => Configuracion::obtener('whatsapp_plantilla_otp_nombre', config('services.whatsapp.plantilla_otp', 'otp_verificacion')),
         ]);
     }
@@ -54,6 +67,71 @@ class ConfiguracionWhatsapp extends Page implements HasForms
     public function getCalidadActual(): ?string
     {
         return Configuracion::obtener('whatsapp_calidad_actual');
+    }
+
+    public function getLimiteMensajeria(): ?string
+    {
+        return Configuracion::obtener('whatsapp_messaging_limit_tier');
+    }
+
+    public function getWebhookToken(): string
+    {
+        return (string) Configuracion::obtener('whatsapp_webhook_verify_token', '');
+    }
+
+    public function regenerarWebhookToken(): void
+    {
+        Configuracion::updateOrCreate(
+            ['clave' => 'whatsapp_webhook_verify_token'],
+            ['valor' => Str::random(32), 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => false]
+        );
+
+        Notification::make()
+            ->title('Token regenerado')
+            ->body('Actualice el token en la consola de Meta con el nuevo valor.')
+            ->warning()
+            ->send();
+    }
+
+    /** Plantillas sincronizadas desde Meta (nombre => "nombre (categoría, idioma)"). */
+    public function getOpcionesPlantillas(): array
+    {
+        $cache = json_decode((string) Configuracion::obtener('whatsapp_plantillas_cache', '[]'), true) ?: [];
+
+        return collect($cache)
+            ->mapWithKeys(fn (array $p) => [
+                $p['nombre'] => "{$p['nombre']} · {$p['categoria']} · {$p['idioma']} · {$p['estado']}",
+            ])
+            ->all();
+    }
+
+    public function sincronizarPlantillas(): void
+    {
+        $plantillas = app(WhatsAppService::class)->listarPlantillas();
+
+        // tipo 'text' a propósito, no 'json': Configuracion::obtener() devuelve
+        // valor_parsed, que para tipo 'json' ya decodifica a array - aquí se
+        // quiere la cadena cruda para decodificarla a mano en getOpcionesPlantillas().
+        Configuracion::updateOrCreate(
+            ['clave' => 'whatsapp_plantillas_cache'],
+            ['valor' => json_encode($plantillas), 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => false]
+        );
+
+        if ($plantillas === []) {
+            Notification::make()
+                ->title('No se encontraron plantillas')
+                ->body('Verifique que las credenciales sean correctas y que existan plantillas creadas en Meta.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->title('Plantillas sincronizadas')
+            ->body(count($plantillas) . ' plantilla(s) encontradas en Meta.')
+            ->success()
+            ->send();
     }
 
     public function form(Forms\Form $form): Forms\Form
@@ -77,6 +155,13 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                     ->icon('heroicon-o-key')
                     ->description('Obtenga estos datos en Meta for Developers → su app → WhatsApp → API Setup.')
                     ->schema([
+                        Forms\Components\TextInput::make('whatsapp_numero_telefono')
+                            ->label('Número de teléfono')
+                            ->helperText('El número visible para el usuario final (ej: +57 300 123 4567) - distinto del Phone Number ID de abajo.')
+                            ->placeholder('+57 300 123 4567')
+                            ->maxLength(30)
+                            ->columnSpanFull(),
+
                         Forms\Components\TextInput::make('whatsapp_phone_number_id')
                             ->label('Phone Number ID')
                             ->helperText('ID numérico del número de teléfono registrado en Meta (ej: 123456789012345).')
@@ -104,14 +189,25 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                 // ── OTP ───────────────────────────────────────────────────────
                 Forms\Components\Section::make('Código de verificación (OTP)')
                     ->icon('heroicon-o-shield-check')
-                    ->description('El código de un solo uso SIEMPRE se envía por una plantilla "Authentication" aprobada por Meta - nunca por texto libre.')
+                    ->description('El código de un solo uso SIEMPRE se envía por una plantilla "Authentication" aprobada por Meta - nunca por texto libre. Pulse "Sincronizar plantillas" para elegir de una lista real en vez de escribir el nombre a mano.')
                     ->schema([
-                        Forms\Components\TextInput::make('whatsapp_plantilla_otp_nombre')
-                            ->label('Nombre de la plantilla en Meta')
-                            ->helperText('El nombre exacto con el que aprobó la plantilla en Meta for Developers → WhatsApp → Plantillas de mensajes.')
-                            ->placeholder('otp_verificacion')
-                            ->maxLength(128)
+                        Forms\Components\Select::make('whatsapp_plantilla_otp_nombre')
+                            ->label('Plantilla del OTP')
+                            ->options(fn () => $this->getOpcionesPlantillas())
+                            ->searchable()
+                            ->native(false)
+                            ->helperText(fn () => $this->getOpcionesPlantillas() === []
+                                ? 'Aún no ha sincronizado plantillas - pulse el botón abajo.'
+                                : 'Solo se muestran las que Meta ya sincronizó con esta cuenta.')
                             ->columnSpanFull(),
+
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('sincronizarPlantillas')
+                                ->label('Sincronizar plantillas')
+                                ->icon('heroicon-m-arrow-path')
+                                ->color('gray')
+                                ->action('sincronizarPlantillas'),
+                        ]),
                     ]),
 
                 // ── Webhook ────────────────────────────────────────────────────
@@ -120,11 +216,23 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                     ->description('Configure el webhook en Meta para recibir mensajes y actualizaciones de estado.')
                     ->collapsed()
                     ->schema([
-                        Forms\Components\TextInput::make('whatsapp_webhook_verify_token')
+                        Forms\Components\Placeholder::make('webhook_token')
                             ->label('Token de verificación del webhook')
-                            ->helperText('Cadena personalizada que Meta usará para verificar su webhook. Cópiela exactamente en la consola de Meta.')
-                            ->maxLength(128)
+                            ->content(fn () => new \Illuminate\Support\HtmlString(
+                                view('filament.components.copiar-texto', ['texto' => $this->getWebhookToken()])->render()
+                            ))
+                            ->helperText('Generado automáticamente - cópielo exactamente en la consola de Meta. Si sospecha que se filtró, use "Regenerar" abajo (debe actualizarlo también en Meta).')
                             ->columnSpanFull(),
+
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('regenerarWebhookToken')
+                                ->label('Regenerar token')
+                                ->icon('heroicon-m-arrow-path')
+                                ->color('danger')
+                                ->requiresConfirmation()
+                                ->modalDescription('El token actual dejará de funcionar. Debe actualizarlo también en la consola de Meta.')
+                                ->action('regenerarWebhookToken'),
+                        ]),
 
                         Forms\Components\Placeholder::make('webhook_url')
                             ->label('URL del webhook')
@@ -146,10 +254,10 @@ class ConfiguracionWhatsapp extends Page implements HasForms
 
         $mapa = [
             'whatsapp_habilitado'            => ['tipo' => 'boolean'],
+            'whatsapp_numero_telefono'       => ['tipo' => 'text'],
             'whatsapp_phone_number_id'       => ['tipo' => 'text'],
             'whatsapp_business_account_id'   => ['tipo' => 'text'],
             'whatsapp_access_token'          => ['tipo' => 'text'],
-            'whatsapp_webhook_verify_token'  => ['tipo' => 'text'],
             'whatsapp_plantilla_otp_nombre'  => ['tipo' => 'text'],
         ];
 
@@ -190,12 +298,28 @@ class ConfiguracionWhatsapp extends Page implements HasForms
 
         try {
             $service = new WhatsAppService();
-            $this->estadoConexion = $service->verificarConexion();
+            $this->estadoConexion = $service->obtenerSaludCuenta();
         } finally {
             $this->verificando = false;
         }
 
         if ($this->estadoConexion['ok']) {
+            // Mismas claves que escribe ProcesarWebhookWhatsAppJob al
+            // recibir account_update - una sola fuente de verdad, se
+            // actualice por webhook o por esta verificación manual.
+            if (!empty($this->estadoConexion['calidad'])) {
+                Configuracion::updateOrCreate(
+                    ['clave' => 'whatsapp_calidad_actual'],
+                    ['valor' => $this->estadoConexion['calidad'], 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => false]
+                );
+            }
+            if (!empty($this->estadoConexion['limite_mensajeria'])) {
+                Configuracion::updateOrCreate(
+                    ['clave' => 'whatsapp_messaging_limit_tier'],
+                    ['valor' => $this->estadoConexion['limite_mensajeria'], 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => false]
+                );
+            }
+
             Notification::make()
                 ->title('Conexión exitosa')
                 ->body('Las credenciales son válidas y el número está activo.')

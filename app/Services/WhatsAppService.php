@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 class WhatsAppService
 {
     protected string $phoneNumberId;
+    protected string $businessAccountId;
     protected string $accessToken;
     protected string $apiVersion;
     protected bool $habilitado;
@@ -16,12 +17,14 @@ class WhatsAppService
     public function __construct()
     {
         // Preferencia: BD (configurable por UI) > .env
-        $this->habilitado     = (bool) Configuracion::obtener('whatsapp_habilitado', false);
-        $this->phoneNumberId  = Configuracion::obtener('whatsapp_phone_number_id')
+        $this->habilitado        = (bool) Configuracion::obtener('whatsapp_habilitado', false);
+        $this->phoneNumberId     = Configuracion::obtener('whatsapp_phone_number_id')
             ?: config('services.whatsapp.phone_number_id', '');
-        $this->accessToken    = Configuracion::obtener('whatsapp_access_token')
+        $this->businessAccountId = (string) (Configuracion::obtener('whatsapp_business_account_id')
+            ?: config('services.whatsapp.business_account_id'));
+        $this->accessToken       = Configuracion::obtener('whatsapp_access_token')
             ?: config('services.whatsapp.access_token', '');
-        $this->apiVersion     = config('services.whatsapp.api_version', 'v20.0');
+        $this->apiVersion        = config('services.whatsapp.api_version', 'v20.0');
     }
 
     // ─── API pública ────────────────────────────────────────────────────────────
@@ -146,6 +149,101 @@ class WhatsAppService
     public function estaHabilitado(): bool
     {
         return $this->habilitado && $this->credencialesCompletas();
+    }
+
+    /**
+     * "Account Health": no solo si conecta, sino el estado real del número
+     * ante Meta - calidad, límite de mensajería, estado del nombre visible
+     * y del código de verificación. Mismos datos que expone el panel de
+     * Chatwoot (pedido explícito del usuario, 2026-10-19: "como un
+     * chatwoot") - vía el parámetro `fields` de la Graph API, que
+     * verificarConexion() no pedía.
+     */
+    public function obtenerSaludCuenta(): array
+    {
+        if (!$this->credencialesCompletas()) {
+            return [
+                'ok'      => false,
+                'mensaje' => 'Credenciales incompletas. Ingrese el Phone Number ID y el Access Token.',
+            ];
+        }
+
+        $campos = 'display_phone_number,verified_name,quality_rating,messaging_limit_tier,code_verification_status,platform_type,throughput';
+        $url = "https://graph.facebook.com/{$this->apiVersion}/{$this->phoneNumberId}?fields={$campos}";
+
+        try {
+            $response = Http::withToken($this->accessToken)->timeout(10)->get($url);
+
+            if (!$response->successful()) {
+                $error = $response->json('error.message', 'Error desconocido');
+                return ['ok' => false, 'mensaje' => "Error de Meta API: {$error}"];
+            }
+
+            $data = $response->json();
+
+            $nombreWaba = null;
+            if (!empty($this->businessAccountId)) {
+                $resWaba = Http::withToken($this->accessToken)->timeout(10)
+                    ->get("https://graph.facebook.com/{$this->apiVersion}/{$this->businessAccountId}?fields=name");
+                $nombreWaba = $resWaba->successful() ? $resWaba->json('name') : null;
+            }
+
+            return [
+                'ok' => true,
+                'numero' => $data['display_phone_number'] ?? null,
+                'nombre_verificado' => $data['verified_name'] ?? null,
+                'calidad' => $data['quality_rating'] ?? null,
+                'limite_mensajeria' => $data['messaging_limit_tier'] ?? null,
+                'verificacion_codigo' => $data['code_verification_status'] ?? null,
+                'tipo_plataforma' => $data['platform_type'] ?? null,
+                'nombre_waba' => $nombreWaba,
+            ];
+        } catch (\Exception $e) {
+            Log::error('WhatsAppService::obtenerSaludCuenta error', ['error' => $e->getMessage()]);
+            return ['ok' => false, 'mensaje' => 'Error de conexión: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Trae las plantillas realmente aprobadas (o en revisión/rechazadas)
+     * en la cuenta de WhatsApp Business - para elegir la del OTP de una
+     * lista real en vez de escribir el nombre a ciegas (mismo "Sincronizar
+     * plantillas" que ya tiene Chatwoot).
+     *
+     * @return array<int, array{nombre: string, estado: string, categoria: string, idioma: string}>
+     */
+    public function listarPlantillas(): array
+    {
+        if (empty($this->businessAccountId) || empty($this->accessToken)) {
+            return [];
+        }
+
+        $url = "https://graph.facebook.com/{$this->apiVersion}/{$this->businessAccountId}/message_templates"
+            . '?fields=name,status,category,language&limit=100';
+
+        try {
+            $response = Http::withToken($this->accessToken)->timeout(15)->get($url);
+
+            if (!$response->successful()) {
+                Log::warning('WhatsApp: no se pudieron sincronizar las plantillas', [
+                    'error' => $response->json('error.message', $response->body()),
+                ]);
+                return [];
+            }
+
+            return collect($response->json('data', []))
+                ->map(fn (array $p) => [
+                    'nombre' => $p['name'] ?? '',
+                    'estado' => $p['status'] ?? '',
+                    'categoria' => $p['category'] ?? '',
+                    'idioma' => $p['language'] ?? '',
+                ])
+                ->values()
+                ->all();
+        } catch (\Exception $e) {
+            Log::error('WhatsAppService::listarPlantillas error', ['error' => $e->getMessage()]);
+            return [];
+        }
     }
 
     // ─── Internos ────────────────────────────────────────────────────────────────

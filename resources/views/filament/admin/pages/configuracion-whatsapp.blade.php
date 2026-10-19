@@ -24,10 +24,13 @@
                 Credenciales de Meta, webhook y la plantilla del código de verificación (OTP).
             </p>
 
-            @php $calidad = $this->getCalidadActual(); @endphp
+            @php
+                $calidad = $estadoConexion['calidad'] ?? $this->getCalidadActual();
+                $badgeCalidad = fn ($c) => strtoupper((string) $c) === 'RED' ? 'rit-badge-danger' : (strtoupper((string) $c) === 'YELLOW' ? 'rit-badge-warning' : 'rit-badge-sub');
+            @endphp
             @if ($calidad)
                 <div style="margin-top:.75rem;">
-                    <span class="rit-badge {{ strtoupper($calidad) === 'RED' ? 'rit-badge-danger' : (strtoupper($calidad) === 'YELLOW' ? 'rit-badge-warning' : 'rit-badge-sub') }}">
+                    <span class="rit-badge {{ $badgeCalidad($calidad) }}">
                         Calidad del número: {{ $calidad }}
                     </span>
                 </div>
@@ -35,37 +38,41 @@
         </div>
     </div>
 
-    {{-- Estado de conexión --}}
+    {{-- Account Health (pedido del usuario, 2026-10-19: "como un chatwoot")
+         - no solo "conecta sí/no", el estado real que Meta reporta sobre
+         el número: calidad, límite de mensajería, nombre verificado y
+         estado del código. Se actualiza al pulsar "Verificar conexión" o
+         cuando llega un account_update por el webhook. --}}
     @if ($estadoConexion !== null)
-        <div @class([
-            'rounded-xl border p-4 flex items-start gap-3 mb-2',
-            'bg-success-50 border-success-200 dark:bg-success-950 dark:border-success-800' => $estadoConexion['ok'],
-            'bg-danger-50 border-danger-200 dark:bg-danger-950 dark:border-danger-800'     => !$estadoConexion['ok'],
-        ])>
-            <x-filament::icon
-                :icon="$estadoConexion['ok'] ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle'"
-                @class([
-                    'w-5 h-5 mt-0.5 flex-shrink-0',
-                    'text-success-600 dark:text-success-400' => $estadoConexion['ok'],
-                    'text-danger-600 dark:text-danger-400'   => !$estadoConexion['ok'],
-                ])
-            />
-            <div class="text-sm">
-                <p @class([
-                    'font-semibold',
-                    'text-success-700 dark:text-success-300' => $estadoConexion['ok'],
-                    'text-danger-700 dark:text-danger-300'   => !$estadoConexion['ok'],
-                ])>
+        <div class="rit-hero" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem;">
+            <div class="rit-orb-b"></div>
+            <div class="rit-orb-g"></div>
+            <div class="rit-overlay"></div>
+            <div style="position:relative;z-index:2">
+                <span class="rit-badge {{ $estadoConexion['ok'] ? 'rit-badge-sub' : 'rit-badge-danger' }}">
                     {{ $estadoConexion['ok'] ? 'Conexión verificada' : 'Error de conexión' }}
-                </p>
-                <p class="text-gray-600 dark:text-gray-400 mt-0.5">{{ $estadoConexion['mensaje'] }}</p>
-                @if (!empty($estadoConexion['numero']))
-                    <p class="text-gray-500 dark:text-gray-500 mt-1 text-xs">
-                        Número: <strong>{{ $estadoConexion['numero'] }}</strong>
-                        @if (!empty($estadoConexion['nombre']))
-                            · Nombre verificado: <strong>{{ $estadoConexion['nombre'] }}</strong>
-                        @endif
-                    </p>
+                </span>
+
+                @if (!$estadoConexion['ok'])
+                    <p class="rit-sub" style="margin-top:.6rem;">{{ $estadoConexion['mensaje'] }}</p>
+                @else
+                    <div style="margin-top:.9rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.75rem;">
+                        @foreach ([
+                            'Número' => $estadoConexion['numero'] ?? null,
+                            'Nombre verificado' => $estadoConexion['nombre_verificado'] ?? null,
+                            'Cuenta de WhatsApp Business' => $estadoConexion['nombre_waba'] ?? null,
+                            'Límite de mensajería' => $estadoConexion['limite_mensajeria'] ?? null,
+                            'Verificación del código' => $estadoConexion['verificacion_codigo'] ?? null,
+                            'Tipo de plataforma' => $estadoConexion['tipo_plataforma'] ?? null,
+                        ] as $etiqueta => $valor)
+                            @if ($valor)
+                                <div>
+                                    <p style="font-size:.625rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin:0 0 .15rem;">{{ $etiqueta }}</p>
+                                    <p style="font-size:.875rem;font-weight:600;margin:0;">{{ $valor }}</p>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
                 @endif
             </div>
         </div>
