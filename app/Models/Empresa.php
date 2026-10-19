@@ -24,6 +24,9 @@ class Empresa extends Model
         'nit',
         'direccion',
         'telefono',
+        'notificar_por_whatsapp',
+        'whatsapp_consentimiento_en',
+        'whatsapp_consentimiento_ip',
         'email_contacto',
         'logo_path',
         'logo_color_acento',
@@ -118,6 +121,8 @@ class Empresa extends Model
         'google_oauth_tokens' => 'encrypted',
         'dias_habiles' => 'array',
         'numero_empleados' => 'integer',
+        'notificar_por_whatsapp' => 'boolean',
+        'whatsapp_consentimiento_en' => 'datetime',
     ];
 
     /**

@@ -821,6 +821,27 @@ class SocializacionRit extends Component
             }
         }
 
+        // Fase 2 de WhatsApp (ver docs/superpowers/specs/2026-10-19-whatsapp-fase1-otp-descargos-design.md):
+        // aviso EXTRA por WhatsApp si la empresa dio opt-in - el correo de
+        // arriba sigue siendo el canal garantizado, esto nunca lo reemplaza.
+        if ($this->empresa->notificar_por_whatsapp && $this->empresa->telefono) {
+            try {
+                $plantilla = \App\Models\Configuracion::obtener('whatsapp_plantilla_alerta_rrhh_nombre');
+                if ($plantilla) {
+                    app(\App\Services\WhatsAppService::class)->enviarPlantillaUtility(
+                        $this->empresa->telefono,
+                        $plantilla,
+                        [trim("{$this->nombres} {$this->apellidos}"), $this->numeroDocumento]
+                    );
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('SocializacionRit: fallo al enviar alerta de no comprension por WhatsApp', [
+                    'trabajador_id' => $this->trabajadorId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         $this->etapa = 'no_comprendido_bloqueado';
     }
 

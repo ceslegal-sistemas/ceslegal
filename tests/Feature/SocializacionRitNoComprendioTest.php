@@ -4,12 +4,14 @@ namespace Tests\Feature;
 
 use App\Livewire\SocializacionRit;
 use App\Mail\RitNoComprendidoAlertaRrhh;
+use App\Models\Configuracion;
 use App\Models\Empresa;
 use App\Models\RechazoComprensionRit;
 use App\Models\ReglamentoInterno;
 use App\Models\TemaNormativo;
 use App\Models\Trabajador;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -241,6 +243,109 @@ class SocializacionRitNoComprendioTest extends TestCase
 
         Mail::assertSent(RitNoComprendidoAlertaRrhh::class);
         $this->assertDatabaseCount('rechazos_comprension_rit', 2);
+    }
+
+    /**
+     * Fase 2 de WhatsApp (ver docs/superpowers/specs/2026-10-19-whatsapp-fase1-otp-descargos-design.md):
+     * sin opt-in de la empresa, nunca se intenta WhatsApp - comportamiento
+     * idéntico al de antes de la Fase 2.
+     */
+    public function test_sin_opt_in_de_whatsapp_no_se_intenta_enviar(): void
+    {
+        [$empresa, $rit, $trabajador] = $this->crearEmpresaTrabajadorEnFaseSocializacion();
+        Mail::fake();
+        Http::fake();
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('trabajadorId', $trabajador->id)
+            ->set('nombres', 'Carlos')
+            ->set('apellidos', 'Duda')
+            ->set('numeroDocumento', '777888999')
+            ->set('etapa', 'aceptacion')
+            ->call('marcarNoComprendio', 'boton_manual')
+            ->call('marcarNoComprendio', 'boton_manual');
+
+        Http::assertNothingSent();
+    }
+
+    /**
+     * Con opt-in + plantilla configurada, el aviso EXTRA por WhatsApp se
+     * envía además del correo (que sigue siendo el canal garantizado).
+     */
+    public function test_con_opt_in_y_plantilla_configurada_tambien_envia_por_whatsapp(): void
+    {
+        $empresa = Empresa::factory()->create([
+            'active' => true, 'email_contacto' => 'rrhh@empresa-test.com',
+            'telefono' => '3001234567', 'notificar_por_whatsapp' => true,
+        ]);
+        $rit = ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
+        ]);
+        $trabajador = Trabajador::create([
+            'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '777888999',
+            'genero' => 'masculino', 'nombres' => 'Carlos', 'apellidos' => 'Duda', 'cargo' => 'Op', 'active' => true,
+        ]);
+        Configuracion::updateOrCreate(['clave' => 'whatsapp_plantilla_alerta_rrhh_nombre'], ['valor' => 'alerta_rrhh', 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => true]);
+        Configuracion::updateOrCreate(['clave' => 'whatsapp_habilitado'], ['valor' => '1', 'tipo' => 'boolean', 'categoria' => 'whatsapp', 'editable' => true]);
+        Configuracion::updateOrCreate(['clave' => 'whatsapp_phone_number_id'], ['valor' => '123', 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => true]);
+        Configuracion::updateOrCreate(['clave' => 'whatsapp_access_token'], ['valor' => 'token', 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => true]);
+        Mail::fake();
+        Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.1']]], 200)]);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('trabajadorId', $trabajador->id)
+            ->set('nombres', 'Carlos')
+            ->set('apellidos', 'Duda')
+            ->set('numeroDocumento', '777888999')
+            ->set('etapa', 'aceptacion')
+            ->call('marcarNoComprendio', 'boton_manual')
+            ->call('marcarNoComprendio', 'boton_manual')
+            ->assertSet('etapa', 'no_comprendido_bloqueado');
+
+        Mail::assertSent(RitNoComprendidoAlertaRrhh::class);
+        Http::assertSent(function ($request) {
+            $data = $request->data();
+            return $data['to'] === '573001234567' && $data['template']['name'] === 'alerta_rrhh';
+        });
+    }
+
+    /**
+     * Si WhatsApp falla, el bloqueo del trabajador y el correo a RRHH NO se
+     * ven afectados - fail-open, mismo criterio que el resto del flujo.
+     */
+    public function test_si_whatsapp_falla_el_bloqueo_y_el_correo_igual_funcionan(): void
+    {
+        $empresa = Empresa::factory()->create([
+            'active' => true, 'email_contacto' => 'rrhh@empresa-test.com',
+            'telefono' => '3001234567', 'notificar_por_whatsapp' => true,
+        ]);
+        ReglamentoInterno::create([
+            'empresa_id' => $empresa->id, 'activo' => true, 'fuente' => 'construido_ia', 'texto_completo' => 'v1',
+            'fecha_publicacion_socializacion' => now()->subDays(40)->toDateString(),
+        ]);
+        $trabajador = Trabajador::create([
+            'empresa_id' => $empresa->id, 'tipo_documento' => 'CC', 'numero_documento' => '777888999',
+            'genero' => 'masculino', 'nombres' => 'Carlos', 'apellidos' => 'Duda', 'cargo' => 'Op', 'active' => true,
+        ]);
+        Configuracion::updateOrCreate(['clave' => 'whatsapp_plantilla_alerta_rrhh_nombre'], ['valor' => 'alerta_rrhh', 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => true]);
+        Configuracion::updateOrCreate(['clave' => 'whatsapp_habilitado'], ['valor' => '1', 'tipo' => 'boolean', 'categoria' => 'whatsapp', 'editable' => true]);
+        Configuracion::updateOrCreate(['clave' => 'whatsapp_phone_number_id'], ['valor' => '123', 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => true]);
+        Configuracion::updateOrCreate(['clave' => 'whatsapp_access_token'], ['valor' => 'token', 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => true]);
+        Mail::fake();
+        Http::fake(['graph.facebook.com/*' => Http::response(['error' => ['message' => 'plantilla rechazada']], 400)]);
+
+        Livewire::test(SocializacionRit::class, ['empresa' => $empresa])
+            ->set('trabajadorId', $trabajador->id)
+            ->set('nombres', 'Carlos')
+            ->set('apellidos', 'Duda')
+            ->set('numeroDocumento', '777888999')
+            ->set('etapa', 'aceptacion')
+            ->call('marcarNoComprendio', 'boton_manual')
+            ->call('marcarNoComprendio', 'boton_manual')
+            ->assertSet('etapa', 'no_comprendido_bloqueado');
+
+        Mail::assertSent(RitNoComprendidoAlertaRrhh::class);
     }
 
     public function test_el_modal_de_confirmacion_muestra_el_texto_y_los_2_botones(): void

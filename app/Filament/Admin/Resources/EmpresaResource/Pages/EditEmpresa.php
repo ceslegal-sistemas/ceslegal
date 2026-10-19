@@ -71,6 +71,26 @@ class EditEmpresa extends EditRecord
     }
 
     /**
+     * Fase 2 de WhatsApp (ver docs/superpowers/specs/2026-10-19-whatsapp-fase1-otp-descargos-design.md):
+     * si el usuario ACTIVA el toggle de WhatsApp (false -> true), queda
+     * constancia de fecha/IP - mismo patrón de evidencia que el opt-in del
+     * trabajador en Descargos. Si lo desactiva o no lo toca, no se escribe
+     * nada nuevo.
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $yaEstabaActivo = (bool) $this->record->notificar_por_whatsapp;
+        $ahoraActivo = (bool) ($data['notificar_por_whatsapp'] ?? false);
+
+        if ($ahoraActivo && !$yaEstabaActivo) {
+            $data['whatsapp_consentimiento_en'] = now();
+            $data['whatsapp_consentimiento_ip'] = request()->ip();
+        }
+
+        return $data;
+    }
+
+    /**
      * Pedido explícito del usuario (2026-09-07): al guardar, volver siempre
      * al Paso 1 (no quedarse en el paso donde estaba) - el Wizard persiste
      * el paso actual en la query string (?paso=N, ver ->persistStepInQueryString
@@ -295,6 +315,12 @@ class EditEmpresa extends EditRecord
                                     ->placeholder('3001234567')
                                     ->helperText('10 dígitos, solo números. Se usa para las notificaciones por WhatsApp.')
                                     ->suffixIcon('heroicon-o-phone'),
+
+                                Forms\Components\Toggle::make('notificar_por_whatsapp')
+                                    ->label('Recibir avisos del sistema por WhatsApp a este número')
+                                    ->helperText('Ej. cuando un trabajador no entiende el Reglamento Interno después de dos intentos. El correo de contacto sigue recibiendo todos los avisos de todas formas.')
+                                    ->visible(fn (Get $get) => filled($get('telefono')))
+                                    ->columnSpanFull(),
 
                                 Forms\Components\TextInput::make('email_contacto')
                                     ->label('Email de Contacto')

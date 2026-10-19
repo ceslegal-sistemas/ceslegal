@@ -109,6 +109,30 @@ class WhatsAppService
     }
 
     /**
+     * Envía una plantilla "Utility" genérica con N parámetros de texto en
+     * el cuerpo - reusable para cualquier aviso de negocio (Fase 2, ver
+     * docs/superpowers/specs/2026-10-19-whatsapp-fase1-otp-descargos-design.md).
+     * A diferencia de enviarPlantillaOtp(), no asume botón de código - cada
+     * evento define su propia plantilla en Meta y su propio nombre
+     * configurable; este método solo arma el componente body.
+     *
+     * @param  array<int, string> $parametrosBody  En el mismo orden en que la plantilla los espera ({{1}}, {{2}}, ...)
+     */
+    public function enviarPlantillaUtility(string $numero, string $plantilla, array $parametrosBody = []): array
+    {
+        $componentes = [];
+
+        if ($parametrosBody !== []) {
+            $componentes[] = [
+                'type' => 'body',
+                'parameters' => array_map(fn (string $texto) => ['type' => 'text', 'text' => $texto], $parametrosBody),
+            ];
+        }
+
+        return $this->enviarPlantilla($numero, $plantilla, 'es_CO', $componentes);
+    }
+
+    /**
      * Verifica que las credenciales sean válidas consultando la info del número.
      */
     public function verificarConexion(): array

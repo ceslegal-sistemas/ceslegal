@@ -61,6 +61,7 @@ class ConfiguracionWhatsapp extends Page implements HasForms
             'whatsapp_business_account_id'   => Configuracion::obtener('whatsapp_business_account_id', ''),
             'whatsapp_access_token'          => Configuracion::obtener('whatsapp_access_token', ''),
             'whatsapp_plantilla_otp_nombre'  => Configuracion::obtener('whatsapp_plantilla_otp_nombre', config('services.whatsapp.plantilla_otp', 'otp_verificacion')),
+            'whatsapp_plantilla_alerta_rrhh_nombre' => Configuracion::obtener('whatsapp_plantilla_alerta_rrhh_nombre', ''),
         ]);
     }
 
@@ -210,6 +211,21 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                         ]),
                     ]),
 
+                // ── Avisos a RRHH (Fase 2) ──────────────────────────────────────
+                Forms\Components\Section::make('Avisos a RRHH')
+                    ->icon('heroicon-o-bell-alert')
+                    ->description('Plantilla "Utility" para avisos del sistema (ej. "trabajador no entendió el RIT dos veces") a la empresa que dio opt-in en Mi Empresa → Información de Contacto. El correo de contacto sigue siendo el canal garantizado - esto es un extra.')
+                    ->collapsed()
+                    ->schema([
+                        Forms\Components\Select::make('whatsapp_plantilla_alerta_rrhh_nombre')
+                            ->label('Plantilla de alerta a RRHH')
+                            ->options(fn () => $this->getOpcionesPlantillas())
+                            ->searchable()
+                            ->native(false)
+                            ->helperText('Debe recibir el nombre del trabajador y su cédula como parámetros {{1}} y {{2}}, en ese orden.')
+                            ->columnSpanFull(),
+                    ]),
+
                 // ── Webhook ────────────────────────────────────────────────────
                 Forms\Components\Section::make('Webhook')
                     ->icon('heroicon-o-arrow-path')
@@ -259,6 +275,7 @@ class ConfiguracionWhatsapp extends Page implements HasForms
             'whatsapp_business_account_id'   => ['tipo' => 'text'],
             'whatsapp_access_token'          => ['tipo' => 'text'],
             'whatsapp_plantilla_otp_nombre'  => ['tipo' => 'text'],
+            'whatsapp_plantilla_alerta_rrhh_nombre' => ['tipo' => 'text'],
         ];
 
         foreach ($mapa as $clave => $meta) {
