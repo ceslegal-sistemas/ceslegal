@@ -2,27 +2,40 @@
 
     @include('filament.components.lupe-hero-styles')
 
-    {{-- Pedido del usuario (2026-10-19): la página se veía "completamente
-         diferente" a Mi Reglamento Interno - ahí era el hero de marca
-         arriba y después cajas grises genéricas de Filament. Aquí se
-         retema esa caja nativa (.fi-section) para que luzca como el mismo
-         tipo de tarjeta oscura/rosa del resto del panel, y la Guía Rápida
-         pasa de <x-filament::section> a .rit-viewer (mismas clases que
-         Mi Reglamento Interno, copiadas de su <style> local porque viven
-         ahí y no en el kit compartido lupe-hero-styles). --}}
+    {{-- Pedido del usuario (2026-10-19, con capturas de admin.ceslegal.co
+         comparando contra Mi Reglamento Interno): el primer intento de
+         retemar .fi-section solo tocó fondo/sombra y dejó el borde visible
+         + el encabezado nativo de Filament (icono + título normal) - ahí
+         seguía viéndose "una caja de Filament", no una tarjeta .rit-viewer.
+         Mi Reglamento Interno NO usa borde en sus tarjetas, solo sombra
+         suave, y el encabezado es una franja gris clara con una etiqueta
+         pequeña en mayúsculas (igual que .rit-viewer-label) - sin icono.
+         Esta vez se apunta directo a las clases reales que renderiza
+         Filament (.fi-section, .fi-section-header, .fi-section-header-heading,
+         .fi-section-content-ctn - confirmadas leyendo el componente en
+         vendor/filament/support), no solo a .fi-section por fuera. Los
+         iconos de cada Section ya se quitaron en el PHP (ConfiguracionWhatsapp::form()). --}}
     <style>
-        .rit-form-wrap .fi-section{background:rgba(255,255,255,.03) !important;border-color:rgba(255,255,255,.08) !important;box-shadow:none !important}
-        html:not(.dark) .rit-form-wrap .fi-section{background:#fff !important;border-color:rgba(0,0,0,.07) !important;box-shadow:0 2px 10px rgba(0,0,0,.04) !important}
-        .rit-form-wrap .fi-section-header-icon{color:#fb7185 !important}
-        html:not(.dark) .rit-form-wrap .fi-section-header-icon{color:#be123c !important}
+        .rit-form-wrap .fi-section{border:none !important;border-radius:1rem !important;box-shadow:none !important;--tw-ring-shadow:0 0 0 0 transparent !important;overflow:hidden}
+        html:not(.dark) .rit-form-wrap .fi-section{box-shadow:0 2px 12px rgba(0,0,0,.06) !important}
+        .rit-form-wrap .fi-section + .fi-section{margin-top:1.5rem}
 
-        .rit-viewer{border-radius:1rem;border:1px solid rgba(255,255,255,.09);overflow:hidden;margin-top:1.5rem}
-        html:not(.dark) .rit-viewer{border-color:rgba(0,0,0,.08);box-shadow:0 2px 12px rgba(0,0,0,.06)}
-        .rit-viewer-header{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.125rem;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04)}
-        html:not(.dark) .rit-viewer-header{background:rgba(0,0,0,.03);border-bottom-color:rgba(0,0,0,.07)}
+        .rit-form-wrap .fi-section-header{background:rgba(0,0,0,.03) !important;border-bottom:1px solid rgba(0,0,0,.07) !important;padding:.75rem 1.125rem !important}
+        html.dark .rit-form-wrap .fi-section-header{background:rgba(255,255,255,.04) !important;border-bottom-color:rgba(255,255,255,.08) !important}
+
+        .rit-form-wrap .fi-section-header-heading{font-size:.65rem !important;font-weight:700 !important;letter-spacing:.12em !important;text-transform:uppercase !important;color:#64748b !important;line-height:1.4 !important}
+        .rit-form-wrap .fi-section-header-description{margin-top:.35rem !important}
+        .rit-form-wrap .fi-section-header-icon{display:none !important}
+
+        .rit-form-wrap .fi-section-content-ctn{border-top:none !important}
+        .rit-form-wrap .fi-section-content{padding:1.25rem 1.5rem !important}
+
+        .rit-viewer{border-radius:1rem;overflow:hidden;margin-top:1.5rem;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+        html.dark .rit-viewer{box-shadow:none;border:1px solid rgba(255,255,255,.09)}
+        .rit-viewer-header{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.125rem;border-bottom:1px solid rgba(0,0,0,.07);background:rgba(0,0,0,.03)}
+        html.dark .rit-viewer-header{background:rgba(255,255,255,.04);border-bottom-color:rgba(255,255,255,.08)}
         .rit-viewer-label{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
-        .rit-viewer-body{padding:1.25rem 1.5rem;background:rgba(0,0,0,.15)}
-        html:not(.dark) .rit-viewer-body{background:#fafafa}
+        .rit-viewer-body{padding:1.25rem 1.5rem}
     </style>
 
     {{-- Encabezado de marca (2026-10-19, Fase 1 de WhatsApp) - mismo

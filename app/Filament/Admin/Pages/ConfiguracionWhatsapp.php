@@ -141,7 +141,6 @@ class ConfiguracionWhatsapp extends Page implements HasForms
             ->schema([
                 // ── Estado ────────────────────────────────────────────────────
                 Forms\Components\Section::make('Estado del servicio')
-                    ->icon('heroicon-o-signal')
                     ->schema([
                         Forms\Components\Toggle::make('whatsapp_habilitado')
                             ->label('Activar notificaciones por WhatsApp')
@@ -153,7 +152,6 @@ class ConfiguracionWhatsapp extends Page implements HasForms
 
                 // ── Credenciales Meta Cloud API ────────────────────────────────
                 Forms\Components\Section::make('Credenciales - Meta Cloud API')
-                    ->icon('heroicon-o-key')
                     ->description('Obtenga estos datos en Meta for Developers → su app → WhatsApp → API Setup.')
                     ->schema([
                         Forms\Components\TextInput::make('whatsapp_numero_telefono')
@@ -189,7 +187,6 @@ class ConfiguracionWhatsapp extends Page implements HasForms
 
                 // ── OTP ───────────────────────────────────────────────────────
                 Forms\Components\Section::make('Código de verificación (OTP)')
-                    ->icon('heroicon-o-shield-check')
                     ->description('El código de un solo uso SIEMPRE se envía por una plantilla "Authentication" aprobada por Meta - nunca por texto libre. Pulse "Sincronizar plantillas" para elegir de una lista real en vez de escribir el nombre a mano.')
                     ->schema([
                         Forms\Components\Select::make('whatsapp_plantilla_otp_nombre')
@@ -213,7 +210,6 @@ class ConfiguracionWhatsapp extends Page implements HasForms
 
                 // ── Avisos a RRHH (Fase 2) ──────────────────────────────────────
                 Forms\Components\Section::make('Avisos a RRHH')
-                    ->icon('heroicon-o-bell-alert')
                     ->description('Plantilla "Utility" para avisos del sistema (ej. "trabajador no entendió el RIT dos veces") a la empresa que dio opt-in en Mi Empresa → Información de Contacto. El correo de contacto sigue siendo el canal garantizado - esto es un extra.')
                     ->collapsed()
                     ->schema([
@@ -228,7 +224,6 @@ class ConfiguracionWhatsapp extends Page implements HasForms
 
                 // ── Webhook ────────────────────────────────────────────────────
                 Forms\Components\Section::make('Webhook')
-                    ->icon('heroicon-o-arrow-path')
                     ->description('Configure el webhook en Meta para recibir mensajes y actualizaciones de estado.')
                     ->collapsed()
                     ->schema([
