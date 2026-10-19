@@ -37,6 +37,9 @@ class FormularioDescargos extends Component
     public bool   $otpEnviado = false;
     public bool   $disclaimerAceptado = false;
 
+    // Opt-in de WhatsApp (Fase 1, ver docs/superpowers/specs/2026-10-19-whatsapp-fase1-otp-descargos-design.md)
+    public bool   $whatsappOptIn = false;
+
     protected $listeners = ['respuestaGuardada' => 'refrescarPreguntas'];
 
     public bool $tiempoExpiradoMostrarEvidencias = false;
@@ -240,6 +243,19 @@ class FormularioDescargos extends Component
             'disclaimer_aceptado_en' => now(),
             'disclaimer_ip'          => request()->ip(),
         ]);
+
+        // Opt-in de WhatsApp (Fase 1): solo puede ACTIVARSE aquí, nunca
+        // desactivarse desde este checkbox - si el trabajador no lo marca
+        // simplemente no cambia nada (sigue en false, el default).
+        $trabajador = $this->diligencia->proceso->trabajador;
+        if ($this->whatsappOptIn && $trabajador && !empty($trabajador->telefono)) {
+            $trabajador->update([
+                'notificar_por_whatsapp'      => true,
+                'whatsapp_consentimiento_en'  => now(),
+                'whatsapp_consentimiento_ip'  => request()->ip(),
+            ]);
+        }
+
         $this->etapa = 'foto_inicio';
     }
 

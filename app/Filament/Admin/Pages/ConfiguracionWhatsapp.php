@@ -28,20 +28,32 @@ class ConfiguracionWhatsapp extends Page implements HasForms
     public ?array $estadoConexion = null;
     public bool $verificando = false;
 
+    /**
+     * Solo super_admin - credenciales de API y configuración crítica de
+     * cumplimiento con Meta, no algo que deba quedar expuesto por un
+     * permiso de Shield mal asignado. Mismo criterio ya aplicado a
+     * ConfiguracionTextoResource::canAccess().
+     */
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('page_ConfiguracionWhatsapp') ?? false;
+        return auth()->user()?->hasRole('super_admin') ?? false;
     }
 
     public function mount(): void
     {
         $this->form->fill([
-            'whatsapp_habilitado'           => (bool) Configuracion::obtener('whatsapp_habilitado', false),
-            'whatsapp_phone_number_id'      => Configuracion::obtener('whatsapp_phone_number_id', ''),
-            'whatsapp_business_account_id'  => Configuracion::obtener('whatsapp_business_account_id', ''),
-            'whatsapp_access_token'         => Configuracion::obtener('whatsapp_access_token', ''),
-            'whatsapp_webhook_verify_token' => Configuracion::obtener('whatsapp_webhook_verify_token', 'ces_legal_whatsapp'),
+            'whatsapp_habilitado'            => (bool) Configuracion::obtener('whatsapp_habilitado', false),
+            'whatsapp_phone_number_id'       => Configuracion::obtener('whatsapp_phone_number_id', ''),
+            'whatsapp_business_account_id'   => Configuracion::obtener('whatsapp_business_account_id', ''),
+            'whatsapp_access_token'          => Configuracion::obtener('whatsapp_access_token', ''),
+            'whatsapp_webhook_verify_token'  => Configuracion::obtener('whatsapp_webhook_verify_token', 'ces_legal_whatsapp'),
+            'whatsapp_plantilla_otp_nombre'  => Configuracion::obtener('whatsapp_plantilla_otp_nombre', config('services.whatsapp.plantilla_otp', 'otp_verificacion')),
         ]);
+    }
+
+    public function getCalidadActual(): ?string
+    {
+        return Configuracion::obtener('whatsapp_calidad_actual');
     }
 
     public function form(Forms\Form $form): Forms\Form
@@ -89,6 +101,19 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                             ->columnSpanFull(),
                     ]),
 
+                // ── OTP ───────────────────────────────────────────────────────
+                Forms\Components\Section::make('Código de verificación (OTP)')
+                    ->icon('heroicon-o-shield-check')
+                    ->description('El código de un solo uso SIEMPRE se envía por una plantilla "Authentication" aprobada por Meta - nunca por texto libre.')
+                    ->schema([
+                        Forms\Components\TextInput::make('whatsapp_plantilla_otp_nombre')
+                            ->label('Nombre de la plantilla en Meta')
+                            ->helperText('El nombre exacto con el que aprobó la plantilla en Meta for Developers → WhatsApp → Plantillas de mensajes.')
+                            ->placeholder('otp_verificacion')
+                            ->maxLength(128)
+                            ->columnSpanFull(),
+                    ]),
+
                 // ── Webhook ────────────────────────────────────────────────────
                 Forms\Components\Section::make('Webhook')
                     ->icon('heroicon-o-arrow-path')
@@ -103,8 +128,12 @@ class ConfiguracionWhatsapp extends Page implements HasForms
 
                         Forms\Components\Placeholder::make('webhook_url')
                             ->label('URL del webhook')
-                            ->content(fn() => rtrim(config('app.url'), '/') . '/whatsapp/webhook')
-                            ->helperText('Configure esta URL en Meta for Developers → Webhooks.')
+                            ->content(fn() => new \Illuminate\Support\HtmlString(
+                                view('filament.components.copiar-texto', [
+                                    'texto' => rtrim(config('app.url'), '/') . '/whatsapp/webhook',
+                                ])->render()
+                            ))
+                            ->helperText('Configure esta URL en Meta for Developers → Webhooks, suscrita a los eventos messages y account_update.')
                             ->columnSpanFull(),
                     ]),
             ])
@@ -116,11 +145,12 @@ class ConfiguracionWhatsapp extends Page implements HasForms
         $datos = $this->form->getState();
 
         $mapa = [
-            'whatsapp_habilitado'           => ['tipo' => 'boolean'],
-            'whatsapp_phone_number_id'      => ['tipo' => 'text'],
-            'whatsapp_business_account_id'  => ['tipo' => 'text'],
-            'whatsapp_access_token'         => ['tipo' => 'text'],
-            'whatsapp_webhook_verify_token' => ['tipo' => 'text'],
+            'whatsapp_habilitado'            => ['tipo' => 'boolean'],
+            'whatsapp_phone_number_id'       => ['tipo' => 'text'],
+            'whatsapp_business_account_id'   => ['tipo' => 'text'],
+            'whatsapp_access_token'          => ['tipo' => 'text'],
+            'whatsapp_webhook_verify_token'  => ['tipo' => 'text'],
+            'whatsapp_plantilla_otp_nombre'  => ['tipo' => 'text'],
         ];
 
         foreach ($mapa as $clave => $meta) {

@@ -120,7 +120,12 @@
                                 {{-- Formulario de verificación del código --}}
                                 <div class="space-y-4">
                                     <div class="bg-success-50 border border-success-200 rounded-xl p-3 text-sm text-success-800">
-                                        Código enviado a <strong>{{ $diligencia->otp_enviado_a }}</strong>. Revise su bandeja de entrada.
+                                        @php
+                                            $canalesOtp = explode(',', $diligencia->otp_canal ?? 'email');
+                                            $soloWhatsapp = $canalesOtp === ['whatsapp'];
+                                        @endphp
+                                        Código enviado a <strong>{{ $diligencia->otp_enviado_a }}</strong>.
+                                        {{ $soloWhatsapp ? 'Revise sus mensajes de WhatsApp.' : 'Revise su bandeja de entrada.' }}
                                     </div>
 
                                     <div
@@ -229,6 +234,16 @@
                                 y que estoy participando libre y voluntariamente en esta diligencia.
                             </span>
                         </label>
+
+                        @if ($trabajador->telefono)
+                            <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                                <input type="checkbox" wire:model="whatsappOptIn"
+                                    class="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 flex-shrink-0" />
+                                <span class="text-sm text-gray-700">
+                                    También quiero recibir mi código y la citación por WhatsApp al {{ $trabajador->telefono }}.
+                                </span>
+                            </label>
+                        @endif
 
                         <button type="button"
                             x-bind:disabled="!aceptado"

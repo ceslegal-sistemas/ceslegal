@@ -44,12 +44,19 @@ class Trabajador extends Model
         'direccion',
         'active',
         'foto_referencia_path',
+        'notificar_por_email',
+        'notificar_por_whatsapp',
+        'whatsapp_consentimiento_en',
+        'whatsapp_consentimiento_ip',
     ];
 
     protected $casts = [
         'fecha_ingreso' => 'date',
         'active' => 'boolean',
         'tipos_fuero' => 'array',
+        'notificar_por_email' => 'boolean',
+        'notificar_por_whatsapp' => 'boolean',
+        'whatsapp_consentimiento_en' => 'datetime',
     ];
 
     /** ¿El trabajador tiene algún fuero/estabilidad reforzada registrado? */

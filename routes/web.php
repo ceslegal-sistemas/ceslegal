@@ -5,6 +5,7 @@ use App\Http\Controllers\VerificacionDocumentoController;
 use App\Http\Controllers\EmailTrackingController;
 use App\Http\Controllers\PayUConfirmationController;
 use App\Http\Controllers\SuscripcionController;
+use App\Http\Controllers\WhatsappWebhookController;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Response;
@@ -36,6 +37,14 @@ Route::get('/__cap-test', function (\Illuminate\Http\Request $request) {
 // PayU - URL de confirmación server-to-server (sin CSRF, sin auth)
 Route::post('/payu/confirmacion', [PayUConfirmationController::class, 'handle'])
     ->name('payu.confirmacion')
+    ->withoutMiddleware([VerifyCsrfToken::class]);
+
+// Webhook de WhatsApp Business (Meta Cloud API) - server-to-server, sin
+// CSRF ni auth, igual que PayU. Ver docs/superpowers/specs/2026-10-19-whatsapp-fase1-otp-descargos-design.md.
+Route::get('/whatsapp/webhook', [WhatsappWebhookController::class, 'verificar'])
+    ->name('whatsapp.webhook.verificar');
+Route::post('/whatsapp/webhook', [WhatsappWebhookController::class, 'recibir'])
+    ->name('whatsapp.webhook.recibir')
     ->withoutMiddleware([VerifyCsrfToken::class]);
 
 // Retorno del cliente después del checkout PayU

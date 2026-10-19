@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Mail\OtpDescargos;
+use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class DiligenciaDescargo extends Model
@@ -227,31 +229,78 @@ class DiligenciaDescargo extends Model
     }
 
     /**
-     * Genera y envía el OTP al correo del trabajador.
-     * Lanza \RuntimeException si el envío falla (el caller decide cómo manejarlo).
+     * Genera y envía el OTP al trabajador, por correo y/o WhatsApp según su
+     * preferencia (Fase 1 de WhatsApp, ver
+     * docs/superpowers/specs/2026-10-19-whatsapp-fase1-otp-descargos-design.md,
+     * sección 3). Ramas explícitas y excluyentes a propósito - nunca "si A
+     * y B" - para que no exista ningún camino donde el trabajador se quede
+     * sin código por ningún canal:
+     *
+     *   A) Sin opt-in a WhatsApp (o sin teléfono): comportamiento actual,
+     *      sin cambios - solo correo.
+     *   B) Con opt-in y teléfono: intenta WhatsApp primero.
+     *      - Si falla -> correo de respaldo igual, sin que el trabajador
+     *        note que hubo un fallo intermedio.
+     *      - Si tiene éxito y además quiere correo -> se envían los dos.
+     *      - Si tiene éxito y no quiere correo -> solo WhatsApp.
+     *
+     * Lanza \RuntimeException si NINGÚN canal tiene cómo enviarse (sin
+     * correo y sin WhatsApp disponible) - el caller decide cómo manejarlo.
      */
     public function enviarOtp(): void
     {
+        $trabajador = $this->proceso->trabajador;
         $email = $this->emailTrabajador();
-        if (!$email) {
-            throw new \RuntimeException('sin_email');
+
+        $intentarWhatsapp = $trabajador
+            && $trabajador->notificar_por_whatsapp
+            && !empty($trabajador->telefono);
+
+        if (!$email && !$intentarWhatsapp) {
+            throw new \RuntimeException('sin_canal_disponible');
         }
 
         $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $canales = [];
+
+        if ($intentarWhatsapp) {
+            $resultado = app(WhatsAppService::class)->enviarPlantillaOtp($trabajador->telefono, $codigo);
+
+            if ($resultado['ok'] ?? false) {
+                $canales[] = 'whatsapp';
+            } else {
+                Log::warning('OTP Descargos: WhatsApp falló, se envía por correo como respaldo', [
+                    'diligencia_id' => $this->id,
+                    'mensaje' => $resultado['mensaje'] ?? null,
+                ]);
+            }
+        }
+
+        // Correo: siempre que el envío de WhatsApp no haya tenido éxito
+        // (respaldo obligatorio), o que el trabajador también lo quiera.
+        $enviarCorreo = $email && (!in_array('whatsapp', $canales, true) || $trabajador?->notificar_por_email);
+
+        if ($enviarCorreo) {
+            Mail::to($email)->send(new OtpDescargos(
+                $codigo,
+                $this->proceso->trabajador->nombre_completo,
+                $this->proceso->codigo,
+            ));
+            $canales[] = 'email';
+        }
+
+        if ($canales === []) {
+            throw new \RuntimeException('sin_canal_disponible');
+        }
 
         $this->update([
             'otp_codigo'    => $codigo,
             'otp_expira_en' => now()->addMinutes(10),
             'otp_intentos'  => 0,
-            'otp_canal'     => 'email',
-            'otp_enviado_a' => $this->enmascararEmail($email),
+            'otp_canal'     => implode(',', $canales),
+            'otp_enviado_a' => $email ? $this->enmascararEmail($email) : $this->enmascararTelefono($trabajador->telefono),
         ]);
-
-        Mail::to($email)->send(new OtpDescargos(
-            $codigo,
-            $this->proceso->trabajador->nombre_completo,
-            $this->proceso->codigo,
-        ));
     }
 
     public function verificarOtp(string $codigo): bool
@@ -305,5 +354,12 @@ class DiligenciaDescargo extends Model
         [$usuario, $dominio] = explode('@', $email, 2);
         $visible = substr($usuario, 0, min(3, strlen($usuario)));
         return $visible . '***@' . $dominio;
+    }
+
+    private function enmascararTelefono(string $telefono): string
+    {
+        $digitos = preg_replace('/\D/', '', $telefono);
+
+        return 'WhatsApp ***' . substr($digitos, -4);
     }
 }

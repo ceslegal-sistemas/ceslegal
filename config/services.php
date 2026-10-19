@@ -58,6 +58,15 @@ return [
         'access_token'         => env('WHATSAPP_ACCESS_TOKEN'),
         'webhook_verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN', 'ces_legal_whatsapp'),
         'api_version'          => env('WHATSAPP_API_VERSION', 'v20.0'),
+        // App Secret de la app de Meta (Configuración básica de la app en
+        // developers.facebook.com) - NO es el access token. Se usa solo
+        // para verificar la firma X-Hub-Signature-256 del webhook y
+        // confirmar que un evento realmente vino de Meta.
+        'app_secret'           => env('WHATSAPP_APP_SECRET'),
+        // Nombre de la plantilla Authentication aprobada por Meta para el
+        // OTP - configurable porque si Meta exige resometerla con otro
+        // nombre, se cambia sin tocar código.
+        'plantilla_otp'        => env('WHATSAPP_PLANTILLA_OTP', 'otp_verificacion'),
     ],
 
     // Ruta de prueba de carga /__cap-test (oculta). Apagada salvo en el entorno de

@@ -70,6 +70,42 @@ class WhatsAppService
     }
 
     /**
+     * Envía el código OTP por la plantilla "Authentication" aprobada por
+     * Meta. OTP SIEMPRE va por plantilla, nunca por enviarTexto(): es un
+     * mensaje iniciado por el negocio, fuera de cualquier sesión de 24h, y
+     * Meta exige esa categoría específica para este caso - contenido casi
+     * fijo (el código y poco más), sin marca ni marketing.
+     *
+     * El nombre de la plantilla es configurable (BD > .env) en vez de
+     * quedar fijo en código, por si Meta exige resometerla con otro nombre.
+     */
+    public function enviarPlantillaOtp(string $numero, string $codigo): array
+    {
+        $plantilla = Configuracion::obtener('whatsapp_plantilla_otp_nombre')
+            ?: config('services.whatsapp.plantilla_otp', 'otp_verificacion');
+
+        return $this->enviarPlantilla($numero, $plantilla, 'es_CO', [
+            [
+                'type' => 'body',
+                'parameters' => [
+                    ['type' => 'text', 'text' => $codigo],
+                ],
+            ],
+            // Botón de "copiar código" de la plantilla Authentication -
+            // Meta lo exige configurado así en la propia plantilla; el
+            // parámetro aquí es el mismo código.
+            [
+                'type' => 'button',
+                'sub_type' => 'url',
+                'index' => '0',
+                'parameters' => [
+                    ['type' => 'text', 'text' => $codigo],
+                ],
+            ],
+        ]);
+    }
+
+    /**
      * Verifica que las credenciales sean válidas consultando la info del número.
      */
     public function verificarConexion(): array
