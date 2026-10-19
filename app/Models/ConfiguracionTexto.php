@@ -34,12 +34,15 @@ class ConfiguracionTexto extends Model
             ':empresa' => 'Razón social de la empresa',
             ':cargo' => 'Cargo del trabajador',
             ':url_politica' => 'Enlace a la Política de Tratamiento de Datos Personales (automático, no lo escriba a mano - no use "[URL]" ni "[NOMBRE DEL EMPLEADOR]", use este marcador y :empresa).',
+            ':fecha' => 'Fecha de hoy (automática)',
         ],
         'aviso_no_comprendio_primera_vez' => [
             ':empresa' => 'Razón social de la empresa',
+            ':trabajador' => 'Nombre completo del trabajador',
         ],
         'aviso_no_comprendio_confirmacion' => [
             ':empresa' => 'Razón social de la empresa',
+            ':trabajador' => 'Nombre completo del trabajador',
         ],
         'mensaje_no_comprendio_bloqueado' => [
             ':trabajador' => 'Nombre completo del trabajador',
@@ -51,9 +54,11 @@ class ConfiguracionTexto extends Model
         ],
         'disclaimer_rit_publicacion' => [
             ':empresa' => 'Razón social de la empresa',
+            ':trabajador' => 'Nombre completo del trabajador',
         ],
         'disclaimer_rit_socializacion' => [
             ':empresa' => 'Razón social de la empresa',
+            ':trabajador' => 'Nombre completo del trabajador',
         ],
         'disclaimer_culminacion_socializacion' => [
             ':empresa' => 'Razón social de la empresa',

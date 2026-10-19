@@ -497,7 +497,14 @@
                                  bloquea - solo a la 2da vez (ver marcarNoComprendio()). --}}
                             <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
                                 @php
-                                    $textoAviso = str_replace(':empresa', $empresa->razon_social, \App\Models\ConfiguracionTexto::obtener('aviso_no_comprendio_primera_vez', config('ces.aviso_no_comprendio_primera_vez', '')));
+                                    $trabajadorAviso = $trabajadorId ? \App\Models\Trabajador::find($trabajadorId) : null;
+                                    $textoAviso = strtr(
+                                        \App\Models\ConfiguracionTexto::obtener('aviso_no_comprendio_primera_vez', config('ces.aviso_no_comprendio_primera_vez', '')),
+                                        [
+                                            ':empresa' => $empresa->razon_social,
+                                            ':trabajador' => $trabajadorAviso?->nombre_completo ?? 'trabajador(a)',
+                                        ]
+                                    );
                                 @endphp
                                 <p class="text-xs text-amber-800 m-0">{{ $textoAviso }}</p>
                                 {{-- Pedido del usuario (2026-10-05): el aviso recomendaba
@@ -517,10 +524,13 @@
                                 // ConfiguracionTextoResource igual que disclaimer_descargos.
                                 // Marcador **negrita** = mismo convenio del texto del RIT.
                                 $claveDisclaimerRit = $fase === 'publicacion' ? 'disclaimer_rit_publicacion' : 'disclaimer_rit_socializacion';
-                                $textoDeclaracion = str_replace(
-                                    ':empresa',
-                                    $empresa->razon_social,
-                                    \App\Models\ConfiguracionTexto::obtener($claveDisclaimerRit, config("ces.{$claveDisclaimerRit}", ''))
+                                $trabajadorDeclaracion = $trabajadorId ? \App\Models\Trabajador::find($trabajadorId) : null;
+                                $textoDeclaracion = strtr(
+                                    \App\Models\ConfiguracionTexto::obtener($claveDisclaimerRit, config("ces.{$claveDisclaimerRit}", '')),
+                                    [
+                                        ':empresa' => $empresa->razon_social,
+                                        ':trabajador' => $trabajadorDeclaracion?->nombre_completo ?? 'trabajador(a)',
+                                    ]
                                 );
                             @endphp
                             <span class="text-sm text-gray-700">
@@ -627,7 +637,14 @@
                     </span>
                     <h1 class="rit-title">¿De verdad no entendiste el Reglamento?</h1>
                     @php
-                        $textoConfirmacion = str_replace(':empresa', $empresa->razon_social, \App\Models\ConfiguracionTexto::obtener('aviso_no_comprendio_confirmacion', config('ces.aviso_no_comprendio_confirmacion', '')));
+                        $trabajadorConfirmacion = $trabajadorId ? \App\Models\Trabajador::find($trabajadorId) : null;
+                        $textoConfirmacion = strtr(
+                            \App\Models\ConfiguracionTexto::obtener('aviso_no_comprendio_confirmacion', config('ces.aviso_no_comprendio_confirmacion', '')),
+                            [
+                                ':empresa' => $empresa->razon_social,
+                                ':trabajador' => $trabajadorConfirmacion?->nombre_completo ?? 'trabajador(a)',
+                            ]
+                        );
                     @endphp
                     <p class="rit-sub">{{ $textoConfirmacion }}</p>
 

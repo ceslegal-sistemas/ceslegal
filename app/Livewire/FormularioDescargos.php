@@ -991,13 +991,14 @@ class FormularioDescargos extends Component
             config('ces.disclaimer_descargos', '')
         );
         $textoDisclaimer = str_replace(
-            [':nombre', ':cedula', ':empresa', ':cargo', ':url_politica'],
+            [':nombre', ':cedula', ':empresa', ':cargo', ':url_politica', ':fecha'],
             [
                 $trabajador->nombre_completo ?? '',
                 $trabajador->numero_documento ?? '',
                 $empresa->razon_social ?? '',
                 $trabajador->cargo ?? '',
                 url('/politica-tratamiento-datos'),
+                now()->locale('es')->translatedFormat('j \d\e F \d\e Y'),
             ],
             $plantillaDisclaimer
         );
