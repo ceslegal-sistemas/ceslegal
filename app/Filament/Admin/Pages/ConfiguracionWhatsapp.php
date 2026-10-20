@@ -139,63 +139,56 @@ class ConfiguracionWhatsapp extends Page implements HasForms
     {
         return $form
             ->schema([
-                // ── Fila 1: Credenciales (2 columnas) + Estado (1 columna) ──────
-                // Pedido del usuario (2026-10-19): organizar en 2 columnas donde
-                // tenga sentido, no todo en una sola columna angosta como antes.
-                // extraAttributes('rit-grid-top'): CSS Grid estira por defecto
-                // todas las columnas a la MISMA altura (align-items:stretch) -
-                // "Estado del servicio" (1 solo toggle) quedaba con un hueco
-                // vacío enorme para igualar la altura de "Credenciales" (4
-                // campos) - pedido explícito del usuario de no dejar tamaños
-                // desproporcionados entre tarjetas.
-                Forms\Components\Grid::make(3)
-                    ->extraAttributes(['class' => 'rit-grid-top'])
+                // ── Fila 1: Estado del servicio (1 columna completa) ─────────────
+                // Pedido del usuario (2026-10-20): emparejar "Estado del
+                // servicio" (1 solo toggle) junto a "Credenciales" (4 campos)
+                // se seguía viendo desproporcionado aunque ya no se estiraran
+                // a la misma altura - el ancho 1/3 vs 2/3 ya se notaba
+                // desigual de por sí. Cada una ahora ocupa su propia fila
+                // completa en vez de competir por espacio una junto a otra.
+                Forms\Components\Section::make('Estado del servicio')
                     ->schema([
-                        Forms\Components\Section::make('Credenciales - Meta Cloud API')
-                            ->description('Obtenga estos datos en Meta for Developers → su app → WhatsApp → API Setup.')
-                            ->columnSpan(2)
-                            ->schema([
-                                Forms\Components\TextInput::make('whatsapp_numero_telefono')
-                                    ->label('Número de teléfono')
-                                    ->helperText('El número visible para el usuario final (ej: +57 300 123 4567) - distinto del Phone Number ID de abajo.')
-                                    ->placeholder('+57 300 123 4567')
-                                    ->maxLength(30)
-                                    ->columnSpanFull(),
+                        Forms\Components\Toggle::make('whatsapp_habilitado')
+                            ->label('Activar notificaciones por WhatsApp')
+                            ->helperText('Al desactivar, ninguna notificación se enviará por WhatsApp aunque las credenciales sean correctas.')
+                            ->onIcon('heroicon-m-check')
+                            ->offIcon('heroicon-m-x-mark')
+                            ->onColor('success'),
+                    ]),
 
-                                Forms\Components\TextInput::make('whatsapp_phone_number_id')
-                                    ->label('Phone Number ID')
-                                    ->helperText('ID numérico del número de teléfono registrado en Meta (ej: 123456789012345).')
-                                    ->placeholder('123456789012345')
-                                    ->maxLength(30)
-                                    ->columnSpanFull(),
+                // ── Fila 2: Credenciales (1 columna completa) ────────────────────
+                Forms\Components\Section::make('Credenciales - Meta Cloud API')
+                    ->description('Obtenga estos datos en Meta for Developers → su app → WhatsApp → API Setup.')
+                    ->schema([
+                        Forms\Components\TextInput::make('whatsapp_numero_telefono')
+                            ->label('Número de teléfono')
+                            ->helperText('El número visible para el usuario final (ej: +57 300 123 4567) - distinto del Phone Number ID de abajo.')
+                            ->placeholder('+57 300 123 4567')
+                            ->maxLength(30)
+                            ->columnSpanFull(),
 
-                                Forms\Components\TextInput::make('whatsapp_business_account_id')
-                                    ->label('WhatsApp Business Account ID (WABA ID)')
-                                    ->helperText('ID de la cuenta de WhatsApp Business en Meta Business Suite.')
-                                    ->placeholder('987654321098765')
-                                    ->maxLength(30)
-                                    ->columnSpanFull(),
+                        Forms\Components\TextInput::make('whatsapp_phone_number_id')
+                            ->label('Phone Number ID')
+                            ->helperText('ID numérico del número de teléfono registrado en Meta (ej: 123456789012345).')
+                            ->placeholder('123456789012345')
+                            ->maxLength(30)
+                            ->columnSpanFull(),
 
-                                Forms\Components\TextInput::make('whatsapp_access_token')
-                                    ->label('Access Token')
-                                    ->helperText('Token de usuario del sistema (System User Token). Use un token permanente para producción.')
-                                    ->placeholder('EAAxxxxxxxxxxxxxxxx...')
-                                    ->password()
-                                    ->revealable()
-                                    ->maxLength(512)
-                                    ->columnSpanFull(),
-                            ]),
+                        Forms\Components\TextInput::make('whatsapp_business_account_id')
+                            ->label('WhatsApp Business Account ID (WABA ID)')
+                            ->helperText('ID de la cuenta de WhatsApp Business en Meta Business Suite.')
+                            ->placeholder('987654321098765')
+                            ->maxLength(30)
+                            ->columnSpanFull(),
 
-                        Forms\Components\Section::make('Estado del servicio')
-                            ->columnSpan(1)
-                            ->schema([
-                                Forms\Components\Toggle::make('whatsapp_habilitado')
-                                    ->label('Activar notificaciones por WhatsApp')
-                                    ->helperText('Al desactivar, ninguna notificación se enviará por WhatsApp aunque las credenciales sean correctas.')
-                                    ->onIcon('heroicon-m-check')
-                                    ->offIcon('heroicon-m-x-mark')
-                                    ->onColor('success'),
-                            ]),
+                        Forms\Components\TextInput::make('whatsapp_access_token')
+                            ->label('Access Token')
+                            ->helperText('Token de usuario del sistema (System User Token). Use un token permanente para producción.')
+                            ->placeholder('EAAxxxxxxxxxxxxxxxx...')
+                            ->password()
+                            ->revealable()
+                            ->maxLength(512)
+                            ->columnSpanFull(),
                     ]),
 
                 // ── Fila 2: OTP + Avisos a RRHH (2 columnas, estilo "hero") ──────
