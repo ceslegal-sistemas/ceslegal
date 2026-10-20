@@ -30,6 +30,14 @@
         .rit-form-wrap .fi-section-content-ctn{border-top:none !important}
         .rit-form-wrap .fi-section-content{padding:1.25rem 1.5rem !important}
 
+        {{-- Pedido del usuario (2026-10-20): tamaños desproporcionados entre
+             tarjetas de una misma fila - CSS Grid estira todas las columnas
+             a la MISMA altura por defecto (align-items:stretch), así que
+             "Estado del servicio" (1 solo toggle) quedaba con un hueco vacío
+             enorme para igualar la altura de "Credenciales" (4 campos). Cada
+             tarjeta toma ahora su alto natural. --}}
+        .rit-form-wrap .rit-grid-top{align-items:start !important}
+
         .rit-viewer{border-radius:1rem;overflow:hidden;margin-top:1.5rem;box-shadow:0 2px 12px rgba(0,0,0,.06)}
         html.dark .rit-viewer{box-shadow:none;border:1px solid rgba(255,255,255,.09)}
         .rit-viewer-header{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.125rem;border-bottom:1px solid rgba(0,0,0,.07);background:rgba(0,0,0,.03)}

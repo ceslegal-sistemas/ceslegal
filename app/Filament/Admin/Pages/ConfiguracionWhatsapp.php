@@ -142,7 +142,14 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                 // ── Fila 1: Credenciales (2 columnas) + Estado (1 columna) ──────
                 // Pedido del usuario (2026-10-19): organizar en 2 columnas donde
                 // tenga sentido, no todo en una sola columna angosta como antes.
+                // extraAttributes('rit-grid-top'): CSS Grid estira por defecto
+                // todas las columnas a la MISMA altura (align-items:stretch) -
+                // "Estado del servicio" (1 solo toggle) quedaba con un hueco
+                // vacío enorme para igualar la altura de "Credenciales" (4
+                // campos) - pedido explícito del usuario de no dejar tamaños
+                // desproporcionados entre tarjetas.
                 Forms\Components\Grid::make(3)
+                    ->extraAttributes(['class' => 'rit-grid-top'])
                     ->schema([
                         Forms\Components\Section::make('Credenciales - Meta Cloud API')
                             ->description('Obtenga estos datos en Meta for Developers → su app → WhatsApp → API Setup.')
@@ -198,6 +205,7 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                 // (enviar OTP, avisar a RRHH), distinto de las secciones de
                 // configuración plana de arriba/abajo.
                 Forms\Components\Grid::make(2)
+                    ->extraAttributes(['class' => 'rit-grid-top'])
                     ->schema([
                         Forms\Components\Section::make('Código de verificación (OTP)')
                             ->description('El código de un solo uso SIEMPRE se envía por una plantilla "Authentication" aprobada por Meta - nunca por texto libre. Pulse "Sincronizar plantillas" para elegir de una lista real en vez de escribir el nombre a mano.')
