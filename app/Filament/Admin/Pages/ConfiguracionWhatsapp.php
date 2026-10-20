@@ -197,7 +197,13 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                 // Interno para destacar las 2 FUNCIONES reales de esta página
                 // (enviar OTP, avisar a RRHH), distinto de las secciones de
                 // configuración plana de arriba/abajo.
-                Forms\Components\Grid::make(2)
+                // Grid::make(2) por sí solo NO siempre da 2 columnas: Filament
+                // interpreta un entero suelto como "columnas en 'lg' en
+                // adelante" (HasColumns::columns(), vendor/filament/forms),
+                // dejando 1 columna por debajo de esa resolución - de ahí que
+                // se viera en una sola columna. Se fuerza 'default' => 2
+                // explícitamente para que sean 2 columnas siempre.
+                Forms\Components\Grid::make(['default' => 2])
                     ->extraAttributes(['class' => 'rit-grid-top'])
                     ->schema([
                         Forms\Components\Section::make('Código de verificación (OTP)')
