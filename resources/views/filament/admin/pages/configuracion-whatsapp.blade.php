@@ -36,6 +36,38 @@
         html.dark .rit-viewer-header{background:rgba(255,255,255,.04);border-bottom-color:rgba(255,255,255,.08)}
         .rit-viewer-label{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
         .rit-viewer-body{padding:1.25rem 1.5rem}
+
+        {{-- Pedido del usuario (2026-10-19): algunas tarjetas con el mismo
+             estilo "card hero" (degradado + orbes) de Mi Reglamento Interno,
+             aplicado a las 2 secciones que son las FUNCIONES reales de esta
+             página (OTP, Avisos a RRHH) - no se pueden meter los <div> reales
+             de .rit-orb-b/.rit-orb-g dentro de un <section> de Filament (solo
+             renderiza los campos del formulario), así que los orbes se logran
+             con pseudo-elementos ::before/::after en vez de divs reales -
+             mismo degradado/colores que .rit-hero, solo el mecanismo cambia. --}}
+        .rit-form-wrap .rit-hero-section.fi-section{
+            position:relative;overflow:hidden;
+            background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%) !important;
+        }
+        html:not(.dark) .rit-form-wrap .rit-hero-section.fi-section{
+            background:linear-gradient(150deg,#fff1f2 0%,#fff7ed 55%,#ffffff 100%) !important;
+            border:1px solid rgba(225,29,72,.16) !important;
+            box-shadow:0 6px 26px rgba(225,29,72,.1) !important;
+        }
+        .rit-form-wrap .rit-hero-section::before{
+            content:'';position:absolute;width:220px;height:220px;top:-70px;right:-50px;border-radius:50%;
+            background:radial-gradient(circle,rgba(225,29,72,.45),transparent 70%);filter:blur(26px);pointer-events:none;z-index:0;
+        }
+        html:not(.dark) .rit-form-wrap .rit-hero-section::before{background:radial-gradient(circle,rgba(225,29,72,.35),transparent 70%) !important}
+        .rit-form-wrap .rit-hero-section::after{
+            content:'';position:absolute;width:160px;height:160px;bottom:-50px;left:-35px;border-radius:50%;
+            background:radial-gradient(circle,rgba(201,168,76,.2),transparent 70%);filter:blur(22px);pointer-events:none;z-index:0;
+        }
+        html:not(.dark) .rit-form-wrap .rit-hero-section::after{background:radial-gradient(circle,rgba(201,168,76,.35),transparent 70%) !important}
+        .rit-form-wrap .rit-hero-section .fi-section-header,
+        .rit-form-wrap .rit-hero-section .fi-section-content-ctn{position:relative;z-index:1;background:transparent !important}
+        .rit-form-wrap .rit-hero-section .fi-section-header{border-bottom-color:rgba(255,255,255,.1) !important}
+        html:not(.dark) .rit-form-wrap .rit-hero-section .fi-section-header{border-bottom-color:rgba(225,29,72,.14) !important}
     </style>
 
     {{-- Encabezado de marca (2026-10-19, Fase 1 de WhatsApp) - mismo
