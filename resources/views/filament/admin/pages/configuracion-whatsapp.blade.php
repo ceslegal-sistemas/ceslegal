@@ -16,11 +16,30 @@
          vendor/filament/support), no solo a .fi-section por fuera. Los
          iconos de cada Section ya se quitaron en el PHP (ConfiguracionWhatsapp::form()). --}}
     <style>
-        .rit-form-wrap .fi-section{border:none !important;border-radius:1rem !important;box-shadow:none !important;--tw-ring-shadow:0 0 0 0 transparent !important;overflow:hidden}
+        {{-- Pedido del usuario (2026-10-20, con 2 capturas: el bug seguía
+             igual de un día a otro): el selector de plantilla ("Plantilla
+             del OTP"/"Plantilla de alerta a RRHH") abría su lista de
+             opciones, pero quedaba cortada en seco justo en el borde
+             inferior de la tarjeta - casi no se veían las opciones. Causa
+             raíz real: Filament usa Choices.js para el Select buscable, que
+             NO saca su panel de opciones del flujo normal (no usa
+             x-teleport a <body>) - lo renderiza como descendiente del
+             propio campo. El overflow:hidden que se le puso a .fi-section
+             (para recortar las esquinas cuadradas de la franja de
+             encabezado y, en las tarjetas "hero", para contener los orbes)
+             recortaba TAMBIÉN ese panel de opciones, por más z-index que
+             tuviera - overflow:hidden corta en el borde de la caja sin
+             importar el z-index. Se quita overflow:hidden de .fi-section
+             por completo y, en su lugar, se redondean directamente las
+             esquinas superiores de la franja de encabezado (mismo radio
+             que la tarjeta) para que no se vea un rectángulo cuadrado
+             asomando por fuera de la esquina redondeada - sin necesitar
+             overflow:hidden para lograrlo. --}}
+        .rit-form-wrap .fi-section{border:none !important;border-radius:1rem !important;box-shadow:none !important;--tw-ring-shadow:0 0 0 0 transparent !important}
         html:not(.dark) .rit-form-wrap .fi-section{box-shadow:0 2px 12px rgba(0,0,0,.06) !important}
         .rit-form-wrap .fi-section + .fi-section{margin-top:1.5rem}
 
-        .rit-form-wrap .fi-section-header{background:rgba(0,0,0,.03) !important;border-bottom:1px solid rgba(0,0,0,.07) !important;padding:.75rem 1.125rem !important}
+        .rit-form-wrap .fi-section-header{background:rgba(0,0,0,.03) !important;border-bottom:1px solid rgba(0,0,0,.07) !important;padding:.75rem 1.125rem !important;border-top-left-radius:1rem !important;border-top-right-radius:1rem !important}
         html.dark .rit-form-wrap .fi-section-header{background:rgba(255,255,255,.04) !important;border-bottom-color:rgba(255,255,255,.08) !important}
 
         .rit-form-wrap .fi-section-header-heading{font-size:.65rem !important;font-weight:700 !important;letter-spacing:.12em !important;text-transform:uppercase !important;color:#64748b !important;line-height:1.4 !important}
@@ -53,8 +72,13 @@
              renderiza los campos del formulario), así que los orbes se logran
              con pseudo-elementos ::before/::after en vez de divs reales -
              mismo degradado/colores que .rit-hero, solo el mecanismo cambia. --}}
+        {{-- overflow:visible a propósito (no "hidden"): esta sección también
+             tiene el Select de plantilla adentro, así que no puede recortar
+             sus descendientes. Los orbes se acercan al borde (ya no
+             sobresalen con offsets negativos grandes) para que el desenfoque
+             se note como un brillo suave en la esquina sin necesitar recorte. --}}
         .rit-form-wrap .rit-hero-section.fi-section{
-            position:relative;overflow:hidden;
+            position:relative;overflow:visible;
             background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%) !important;
         }
         html:not(.dark) .rit-form-wrap .rit-hero-section.fi-section{
@@ -63,13 +87,13 @@
             box-shadow:0 6px 26px rgba(225,29,72,.1) !important;
         }
         .rit-form-wrap .rit-hero-section::before{
-            content:'';position:absolute;width:220px;height:220px;top:-70px;right:-50px;border-radius:50%;
-            background:radial-gradient(circle,rgba(225,29,72,.45),transparent 70%);filter:blur(26px);pointer-events:none;z-index:0;
+            content:'';position:absolute;width:160px;height:160px;top:6px;right:6px;border-radius:50%;
+            background:radial-gradient(circle,rgba(225,29,72,.45),transparent 70%);filter:blur(20px);pointer-events:none;z-index:0;
         }
         html:not(.dark) .rit-form-wrap .rit-hero-section::before{background:radial-gradient(circle,rgba(225,29,72,.35),transparent 70%) !important}
         .rit-form-wrap .rit-hero-section::after{
-            content:'';position:absolute;width:160px;height:160px;bottom:-50px;left:-35px;border-radius:50%;
-            background:radial-gradient(circle,rgba(201,168,76,.2),transparent 70%);filter:blur(22px);pointer-events:none;z-index:0;
+            content:'';position:absolute;width:120px;height:120px;bottom:6px;left:6px;border-radius:50%;
+            background:radial-gradient(circle,rgba(201,168,76,.2),transparent 70%);filter:blur(18px);pointer-events:none;z-index:0;
         }
         html:not(.dark) .rit-form-wrap .rit-hero-section::after{background:radial-gradient(circle,rgba(201,168,76,.35),transparent 70%) !important}
         .rit-form-wrap .rit-hero-section .fi-section-header,
