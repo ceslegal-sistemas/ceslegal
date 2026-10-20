@@ -67,38 +67,44 @@
         {{-- Pedido del usuario (2026-10-19): algunas tarjetas con el mismo
              estilo "card hero" (degradado + orbes) de Mi Reglamento Interno,
              aplicado a las 2 secciones que son las FUNCIONES reales de esta
-             página (OTP, Avisos a RRHH) - no se pueden meter los <div> reales
-             de .rit-orb-b/.rit-orb-g dentro de un <section> de Filament (solo
-             renderiza los campos del formulario), así que los orbes se logran
-             con pseudo-elementos ::before/::after en vez de divs reales -
-             mismo degradado/colores que .rit-hero, solo el mecanismo cambia. --}}
-        {{-- overflow:visible a propósito (no "hidden"): esta sección también
-             tiene el Select de plantilla adentro, así que no puede recortar
-             sus descendientes. Los orbes se acercan al borde (ya no
-             sobresalen con offsets negativos grandes) para que el desenfoque
-             se note como un brillo suave en la esquina sin necesitar recorte. --}}
+             página (OTP, Avisos a RRHH).
+
+             2026-10-20, 2do bug real reportado con captura: la versión
+             anterior lograba los orbes con pseudo-elementos ::before/::after
+             posicionados (position:absolute) y le daba position:relative +
+             z-index:1 al encabezado y al contenido para que el texto
+             quedara ENCIMA de los orbes. Eso creó sin querer un nuevo
+             "contexto de apilamiento" (stacking context) alrededor de TODO
+             el contenido - incluido el Select de la plantilla - y atrapó su
+             lista desplegable DENTRO de esa tarjeta en vez de dejarla
+             flotar libre por encima de toda la página (se veía metida
+             debajo de la tarjeta "Avisos a RRHH" de al lado). Un z-index
+             alto no sirve de nada si el elemento vive adentro de un
+             contexto de apilamiento ajeno - no puede escapar de él.
+
+             Arreglo real: en vez de orbes posicionados + z-index, el brillo
+             se logra con degradados radiales puestos directamente en la
+             propiedad `background` de la tarjeta (junto al degradado base),
+             igual que cualquier fondo normal - sin position:relative, sin
+             z-index, sin pseudo-elementos. Así no se crea NINGÚN contexto
+             de apilamiento nuevo, y el desplegable del Select se comporta
+             exactamente igual que en cualquier otra página de Filament
+             (flota por encima de todo, como corresponde). --}}
         .rit-form-wrap .rit-hero-section.fi-section{
-            position:relative;overflow:visible;
-            background:linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%) !important;
+            background:
+                radial-gradient(circle at top right, rgba(225,29,72,.4), transparent 40%),
+                radial-gradient(circle at bottom left, rgba(201,168,76,.22), transparent 35%),
+                linear-gradient(150deg,#1a0f0c 0%,#241319 55%,#170d0a 100%) !important;
         }
         html:not(.dark) .rit-form-wrap .rit-hero-section.fi-section{
-            background:linear-gradient(150deg,#fff1f2 0%,#fff7ed 55%,#ffffff 100%) !important;
+            background:
+                radial-gradient(circle at top right, rgba(225,29,72,.3), transparent 40%),
+                radial-gradient(circle at bottom left, rgba(201,168,76,.28), transparent 35%),
+                linear-gradient(150deg,#fff1f2 0%,#fff7ed 55%,#ffffff 100%) !important;
             border:1px solid rgba(225,29,72,.16) !important;
             box-shadow:0 6px 26px rgba(225,29,72,.1) !important;
         }
-        .rit-form-wrap .rit-hero-section::before{
-            content:'';position:absolute;width:160px;height:160px;top:6px;right:6px;border-radius:50%;
-            background:radial-gradient(circle,rgba(225,29,72,.45),transparent 70%);filter:blur(20px);pointer-events:none;z-index:0;
-        }
-        html:not(.dark) .rit-form-wrap .rit-hero-section::before{background:radial-gradient(circle,rgba(225,29,72,.35),transparent 70%) !important}
-        .rit-form-wrap .rit-hero-section::after{
-            content:'';position:absolute;width:120px;height:120px;bottom:6px;left:6px;border-radius:50%;
-            background:radial-gradient(circle,rgba(201,168,76,.2),transparent 70%);filter:blur(18px);pointer-events:none;z-index:0;
-        }
-        html:not(.dark) .rit-form-wrap .rit-hero-section::after{background:radial-gradient(circle,rgba(201,168,76,.35),transparent 70%) !important}
-        .rit-form-wrap .rit-hero-section .fi-section-header,
-        .rit-form-wrap .rit-hero-section .fi-section-content-ctn{position:relative;z-index:1;background:transparent !important}
-        .rit-form-wrap .rit-hero-section .fi-section-header{border-bottom-color:rgba(255,255,255,.1) !important}
+        .rit-form-wrap .rit-hero-section .fi-section-header{background:transparent !important;border-bottom-color:rgba(255,255,255,.1) !important}
         html:not(.dark) .rit-form-wrap .rit-hero-section .fi-section-header{border-bottom-color:rgba(225,29,72,.14) !important}
     </style>
 
