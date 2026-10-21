@@ -149,7 +149,7 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                 'clave' => 'whatsapp_plantilla_estado_descargos_nombre',
                 'nombre_defecto' => 'estado_descargos',
                 'label' => 'Estado de descargos (al trabajador)',
-                'texto' => 'Hola {{1}}, su proceso {{2}} tuvo la siguiente actualización: {{3}}.',
+                'texto' => 'Hola {{1}}, su proceso {{2}} tuvo la siguiente actualización: {{3}}. Revise su correo para más detalles.',
                 'ejemplo' => ['Juan Pérez', 'PD-2026-0001', 'Descargos Completados'],
                 'boton' => null,
             ],
