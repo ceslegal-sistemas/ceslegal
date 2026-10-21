@@ -58,6 +58,81 @@ class DocumentGeneratorService
         return 'C:\\Program Files\\LibreOffice\\program\\soffice.exe';
     }
 
+    /**
+     * Aviso EXTRA por WhatsApp al trabajador para los eventos del proceso
+     * disciplinario (Fase 3 de WhatsApp, 2026-10-21: citación, sanción,
+     * no sanción, resolución de impugnación, recordatorio, estado de
+     * descargos) - el correo que cada método ya envió antes de llamar
+     * aquí sigue siendo el canal garantizado (lleva el documento adjunto),
+     * esto NUNCA lo reemplaza. Fail-open a propósito: cualquier fallo solo
+     * se registra en el log, nunca interrumpe el flujo que ya completó su
+     * envío por correo.
+     *
+     * @param  array<int, string> $parametros
+     */
+    private function enviarAvisoWhatsappTrabajador(
+        \App\Models\Trabajador $trabajador,
+        string $claveConfiguracion,
+        array $parametros,
+        ?string $botonUrlSufijo = null,
+    ): void {
+        if (!$trabajador->notificar_por_whatsapp || empty($trabajador->telefono)) {
+            return;
+        }
+
+        $plantilla = \App\Models\Configuracion::obtener($claveConfiguracion);
+
+        if (empty($plantilla)) {
+            return;
+        }
+
+        try {
+            app(\App\Services\WhatsAppService::class)->enviarPlantillaUtility(
+                $trabajador->telefono,
+                $plantilla,
+                $parametros,
+                $botonUrlSufijo,
+            );
+        } catch (\Throwable $e) {
+            Log::warning('DocumentGeneratorService: fallo al enviar aviso de WhatsApp al trabajador', [
+                'trabajador_id' => $trabajador->id,
+                'plantilla' => $claveConfiguracion,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Misma idea que enviarAvisoWhatsappTrabajador() pero para la EMPRESA
+     * (estado de descargos al cliente, descargos no realizados) - reusa
+     * una sola plantilla compartida (whatsapp_plantilla_aviso_empresa_nombre,
+     * pedido explícito del usuario) para ambos eventos, cambiando solo el
+     * texto del parámetro de estado.
+     *
+     * @param  array<int, string> $parametros
+     */
+    private function enviarAvisoWhatsappEmpresa(\App\Models\Empresa $empresa, array $parametros): void
+    {
+        if (!$empresa->notificar_por_whatsapp || empty($empresa->telefono)) {
+            return;
+        }
+
+        $plantilla = \App\Models\Configuracion::obtener('whatsapp_plantilla_aviso_empresa_nombre');
+
+        if (empty($plantilla)) {
+            return;
+        }
+
+        try {
+            app(\App\Services\WhatsAppService::class)->enviarPlantillaUtility($empresa->telefono, $plantilla, $parametros);
+        } catch (\Throwable $e) {
+            Log::warning('DocumentGeneratorService: fallo al enviar aviso de WhatsApp a la empresa', [
+                'empresa_id' => $empresa->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     public function generarCitacionDescargos(ProcesoDisciplinario $proceso): string
     {
         // Generar el HTML del documento
@@ -908,6 +983,15 @@ HTML;
                     'mime' => $mimeType,
                 ]);
         });
+
+        if ($linkDescargos) {
+            $this->enviarAvisoWhatsappTrabajador(
+                $trabajador,
+                'whatsapp_plantilla_citacion_nombre',
+                [$trabajador->nombre_completo, $proceso->codigo],
+                basename($linkDescargos),
+            );
+        }
 
         Log::info('Citación enviada con tracking', [
             'proceso_id' => $proceso->id,
@@ -2477,6 +2561,15 @@ HTML;
                 ]);
         });
 
+        if ($urlImpugnacion) {
+            $this->enviarAvisoWhatsappTrabajador(
+                $trabajador,
+                'whatsapp_plantilla_sancion_nombre',
+                [$trabajador->nombre_completo, $nombreSancion, $proceso->codigo],
+                basename($urlImpugnacion),
+            );
+        }
+
         Log::info('Sanción enviada con tracking', [
             'proceso_id' => $proceso->id,
             'tipo_sancion' => $tipoSancion,
@@ -2525,6 +2618,12 @@ HTML;
                     'mime' => $mimeType,
                 ]);
         });
+
+        $this->enviarAvisoWhatsappTrabajador(
+            $trabajador,
+            'whatsapp_plantilla_no_sancion_nombre',
+            [$trabajador->nombre_completo, $proceso->codigo],
+        );
 
         Log::info('Constancia de no sanción enviada con tracking', [
             'proceso_id' => $proceso->id,
@@ -2813,6 +2912,12 @@ HTML;
             }
         });
 
+        $this->enviarAvisoWhatsappTrabajador(
+            $trabajador,
+            'whatsapp_plantilla_estado_descargos_nombre',
+            [$trabajador->nombre_completo, $proceso->codigo, $estadoTexto],
+        );
+
         Log::info('Notificación de estado de descargos enviada', [
             'proceso_id' => $proceso->id,
             'estado' => $estado,
@@ -2891,6 +2996,22 @@ HTML;
                 ]);
             }
         }
+
+        // Aviso EXTRA por WhatsApp a la EMPRESA (no por cada usuario cliente -
+        // el teléfono y el opt-in viven en Empresa, no en User) - un solo
+        // envío para el evento, el correo de arriba ya se envió a cada
+        // usuario cliente y sigue siendo el canal garantizado.
+        $estadoTextoCorto = match ($estado) {
+            'descargos_realizados' => 'Descargos Completados',
+            'descargos_no_realizados' => 'Descargos No Realizados',
+            default => ucfirst(str_replace('_', ' ', $estado)),
+        };
+
+        $this->enviarAvisoWhatsappEmpresa($empresa, [
+            $trabajador->nombre_completo,
+            $trabajador->numero_documento,
+            $estadoTextoCorto,
+        ]);
     }
 
     /**
@@ -3018,6 +3139,12 @@ HTML;
                 ]);
         });
 
+        $this->enviarAvisoWhatsappTrabajador(
+            $trabajador,
+            'whatsapp_plantilla_resolucion_impugnacion_nombre',
+            [$trabajador->nombre_completo, $proceso->codigo, $decisionTexto],
+        );
+
         Log::info('Resolución de impugnación enviada', [
             'proceso_id' => $proceso->id,
             'decision' => $decision,
@@ -3050,7 +3177,16 @@ HTML;
             $linkDescargos = null;
 
             if ($diligencia && $diligencia->token_acceso) {
-                $linkDescargos = route('descargos.formulario', ['token' => $diligencia->token_acceso]);
+                // Bug real preexistente (hallado 2026-10-21 al conectar el
+                // aviso de WhatsApp): esta ruta se llamaba 'descargos.formulario',
+                // que nunca existió como ruta con name() - solo existe la VISTA
+                // 'descargos.formulario' (ver DescargoPublicoController::mostrarAcceso()).
+                // route() lanzaba RouteNotFoundException en CADA ejecución,
+                // atrapada por el catch de abajo, así que este método nunca
+                // había logrado enviar el recordatorio en producción. La ruta
+                // real con ese nombre es 'descargos.acceso' (la misma que usa
+                // generarYEnviarCitacion() más arriba en este archivo).
+                $linkDescargos = route('descargos.acceso', ['token' => $diligencia->token_acceso]);
             }
 
             // Crear tracking para el correo
@@ -3072,6 +3208,15 @@ HTML;
                 $message->to($trabajador->email, $trabajador->nombre_completo)
                     ->subject('RECORDATORIO: Su diligencia de descargos es mañana - Proceso ' . $proceso->codigo);
             });
+
+            if ($linkDescargos) {
+                $this->enviarAvisoWhatsappTrabajador(
+                    $trabajador,
+                    'whatsapp_plantilla_recordatorio_nombre',
+                    [$trabajador->nombre_completo, $proceso->codigo],
+                    basename($linkDescargos),
+                );
+            }
 
             Log::info('Recordatorio de descargos enviado al trabajador', [
                 'proceso_id' => $proceso->id,
@@ -3169,6 +3314,15 @@ HTML;
                 $errores[] = $cliente->email . ': ' . $e->getMessage();
             }
         }
+
+        // Aviso EXTRA por WhatsApp a la EMPRESA, un solo envío (no por cada
+        // usuario cliente) - mismo motivo y misma plantilla compartida que
+        // en enviarNotificacionDescargosAlCliente().
+        $this->enviarAvisoWhatsappEmpresa($empresa, [
+            $trabajador->nombre_completo,
+            $trabajador->numero_documento,
+            'Descargos No Realizados',
+        ]);
 
         if ($enviados > 0) {
             return [

@@ -54,7 +54,7 @@ class ConfiguracionWhatsapp extends Page implements HasForms
             );
         }
 
-        $this->form->fill([
+        $estado = [
             'whatsapp_habilitado'            => (bool) Configuracion::obtener('whatsapp_habilitado', false),
             'whatsapp_numero_telefono'       => Configuracion::obtener('whatsapp_numero_telefono', ''),
             'whatsapp_phone_number_id'       => Configuracion::obtener('whatsapp_phone_number_id', ''),
@@ -62,7 +62,106 @@ class ConfiguracionWhatsapp extends Page implements HasForms
             'whatsapp_access_token'          => Configuracion::obtener('whatsapp_access_token', ''),
             'whatsapp_plantilla_otp_nombre'  => Configuracion::obtener('whatsapp_plantilla_otp_nombre', config('services.whatsapp.plantilla_otp', 'otp_verificacion')),
             'whatsapp_plantilla_alerta_rrhh_nombre' => Configuracion::obtener('whatsapp_plantilla_alerta_rrhh_nombre', ''),
-        ]);
+        ];
+
+        // Fase 3 (2026-10-21): una plantilla configurable por evento del
+        // proceso disciplinario, mismo patrón del OTP/RRHH de arriba -
+        // precarga el nombre guardado o, si nunca se ha guardado, el
+        // nombre por defecto de cada definición.
+        foreach ($this->getDefinicionesPlantillasDescargos() as $definicion) {
+            $estado[$definicion['clave']] = Configuracion::obtener($definicion['clave'], $definicion['nombre_defecto']);
+        }
+
+        $this->form->fill($estado);
+    }
+
+    /**
+     * Las 7 plantillas de notificación del proceso disciplinario (Fase 3 de
+     * WhatsApp, 2026-10-21) - citación, sanción, constancia de no sanción,
+     * resolución de impugnación, recordatorio y estado de descargos al
+     * TRABAJADOR, más un aviso compartido para la EMPRESA/RRHH (estado al
+     * cliente y descargos no realizados reusan la misma plantilla, pedido
+     * explícito del usuario). Solo citación, sanción y recordatorio tienen
+     * botón con enlace real al portal (las otras 4 no tienen ningún visor
+     * público al que enlazar hoy - el documento solo va adjunto por
+     * correo - así que su aviso de WhatsApp es un FYI de texto sin botón).
+     *
+     * @return array<string, array{clave: string, nombre_defecto: string, label: string, texto: string, ejemplo: array<int,string>, boton: array{texto: string, url: string, ejemplo_url: string}|null}>
+     */
+    protected function getDefinicionesPlantillasDescargos(): array
+    {
+        $dominio = rtrim(config('app.url'), '/');
+
+        return [
+            'citacion' => [
+                'clave' => 'whatsapp_plantilla_citacion_nombre',
+                'nombre_defecto' => 'citacion_descargos',
+                'label' => 'Citación a descargos',
+                'texto' => 'Hola {{1}}, ha sido citado a audiencia de descargos en el proceso {{2}}. Consulte el documento completo en el enlace.',
+                'ejemplo' => ['Juan Pérez', 'PD-2026-0001'],
+                'boton' => [
+                    'texto' => 'Ver citación',
+                    'url' => $dominio . '/descargos/{{1}}',
+                    'ejemplo_url' => $dominio . '/descargos/abc123tokenejemplo',
+                ],
+            ],
+            'sancion' => [
+                'clave' => 'whatsapp_plantilla_sancion_nombre',
+                'nombre_defecto' => 'notificacion_sancion',
+                'label' => 'Notificación de sanción',
+                'texto' => 'Hola {{1}}, se ha emitido una notificación de {{2}} en su proceso {{3}}. Consulte el documento completo en el enlace.',
+                'ejemplo' => ['Juan Pérez', 'Suspensión', 'PD-2026-0001'],
+                'boton' => [
+                    'texto' => 'Ver resolución',
+                    'url' => $dominio . '/impugnar/{{1}}',
+                    'ejemplo_url' => $dominio . '/impugnar/abc123tokenejemplo',
+                ],
+            ],
+            'no_sancion' => [
+                'clave' => 'whatsapp_plantilla_no_sancion_nombre',
+                'nombre_defecto' => 'constancia_no_sancion',
+                'label' => 'Constancia de no sanción',
+                'texto' => 'Hola {{1}}, el proceso disciplinario {{2}} en su contra ha finalizado sin sanción. Revise su correo para ver la constancia completa.',
+                'ejemplo' => ['Juan Pérez', 'PD-2026-0001'],
+                'boton' => null,
+            ],
+            'resolucion_impugnacion' => [
+                'clave' => 'whatsapp_plantilla_resolucion_impugnacion_nombre',
+                'nombre_defecto' => 'resolucion_impugnacion',
+                'label' => 'Resolución de impugnación',
+                'texto' => 'Hola {{1}}, se ha emitido la resolución de su impugnación en el proceso {{2}}: {{3}}. Revise su correo para ver el documento completo.',
+                'ejemplo' => ['Juan Pérez', 'PD-2026-0001', 'Sanción Confirmada'],
+                'boton' => null,
+            ],
+            'recordatorio' => [
+                'clave' => 'whatsapp_plantilla_recordatorio_nombre',
+                'nombre_defecto' => 'recordatorio_descargos',
+                'label' => 'Recordatorio de descargos',
+                'texto' => 'Hola {{1}}, tiene pendiente presentar sus descargos en el proceso {{2}}. Hágalo antes de la fecha límite en el enlace.',
+                'ejemplo' => ['Juan Pérez', 'PD-2026-0001'],
+                'boton' => [
+                    'texto' => 'Presentar descargos',
+                    'url' => $dominio . '/descargos/{{1}}',
+                    'ejemplo_url' => $dominio . '/descargos/abc123tokenejemplo',
+                ],
+            ],
+            'estado_descargos' => [
+                'clave' => 'whatsapp_plantilla_estado_descargos_nombre',
+                'nombre_defecto' => 'estado_descargos',
+                'label' => 'Estado de descargos (al trabajador)',
+                'texto' => 'Hola {{1}}, su proceso {{2}} tuvo la siguiente actualización: {{3}}.',
+                'ejemplo' => ['Juan Pérez', 'PD-2026-0001', 'Descargos Completados'],
+                'boton' => null,
+            ],
+            'aviso_empresa' => [
+                'clave' => 'whatsapp_plantilla_aviso_empresa_nombre',
+                'nombre_defecto' => 'aviso_empresa_proceso',
+                'label' => 'Aviso a la empresa / RRHH',
+                'texto' => 'Alerta LUPE Legal: el proceso disciplinario de {{1}} (cédula {{2}}) tuvo la siguiente actualización: {{3}}. Ingrese al panel para más detalles.',
+                'ejemplo' => ['Juan Pérez', '1020304050', 'Descargos no realizados'],
+                'boton' => null,
+            ],
+        ];
     }
 
     public function getCalidadActual(): ?string
@@ -131,6 +230,138 @@ class ConfiguracionWhatsapp extends Page implements HasForms
         Notification::make()
             ->title('Plantillas sincronizadas')
             ->body(count($plantillas) . ' plantilla(s) encontradas en Meta.')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Crea en Meta la plantilla "Authentication" para el OTP con la
+     * configuración acordada (2026-10-21): es_CO, código expira en 10
+     * minutos, con recomendación de seguridad y botón "Copiar código".
+     * Meta la deja en PENDING hasta revisarla - no se puede acelerar esa
+     * parte desde aquí, solo someterla.
+     */
+    public function crearPlantillaOtp(): void
+    {
+        $nombre = $this->form->getState()['whatsapp_plantilla_otp_nombre']
+            ?: Configuracion::obtener('whatsapp_plantilla_otp_nombre', 'otp_verificacion');
+
+        $resultado = app(WhatsAppService::class)->crearPlantillaAuthentication($nombre, 'es_CO', 10, true);
+
+        $this->notificarResultadoCreacionPlantilla($resultado, $nombre);
+    }
+
+    /**
+     * Crea en Meta la plantilla "Utility" de aviso a RRHH, con el texto
+     * acordado (2026-10-21): {{1}} = nombre del trabajador, {{2}} = cédula,
+     * en ese orden.
+     */
+    public function crearPlantillaRrhh(): void
+    {
+        $nombre = 'aviso_rrhh_no_comprendio_rit';
+        $texto = 'Alerta LUPE Legal: el trabajador {{1}}, identificado con cédula {{2}}, no comprendió el Reglamento Interno de Trabajo tras dos intentos. Por favor contacte a RRHH para dar seguimiento.';
+
+        $resultado = app(WhatsAppService::class)->crearPlantillaUtility(
+            $nombre,
+            'es_CO',
+            $texto,
+            ['Juan Pérez', '1020304050'],
+        );
+
+        $this->notificarResultadoCreacionPlantilla($resultado, $nombre);
+    }
+
+    /**
+     * Crea en Meta las 7 plantillas de notificación del proceso
+     * disciplinario (Fase 3, 2026-10-21) que todavía no existan - omite
+     * silenciosamente las que ya están sincronizadas (por nombre) para no
+     * reenviar duplicados a Meta, que las rechaza de todas formas.
+     */
+    public function crearPlantillasDescargosPendientes(): void
+    {
+        $service = app(WhatsAppService::class);
+        $nombresSincronizados = collect($this->getOpcionesPlantillas())->keys();
+        $estadoForm = $this->form->getState();
+
+        $creadas = [];
+        $omitidas = [];
+        $fallidas = [];
+
+        foreach ($this->getDefinicionesPlantillasDescargos() as $definicion) {
+            $nombre = $estadoForm[$definicion['clave']] ?? null;
+            $nombre = $nombre !== null && $nombre !== '' ? $nombre : $definicion['nombre_defecto'];
+
+            if ($nombresSincronizados->contains($nombre)) {
+                $omitidas[] = $nombre;
+                continue;
+            }
+
+            $resultado = $service->crearPlantillaUtility(
+                $nombre,
+                'es_CO',
+                $definicion['texto'],
+                $definicion['ejemplo'],
+                $definicion['boton'],
+            );
+
+            if ($resultado['ok']) {
+                $creadas[] = $nombre;
+            } else {
+                $fallidas[] = "{$nombre}: " . ($resultado['mensaje'] ?? 'error desconocido');
+            }
+        }
+
+        if ($creadas !== []) {
+            $this->sincronizarPlantillas();
+        }
+
+        if ($fallidas !== []) {
+            Notification::make()
+                ->title('Algunas plantillas no se pudieron crear')
+                ->body(implode(' | ', $fallidas))
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        if ($creadas === []) {
+            Notification::make()
+                ->title('Nada por crear')
+                ->body('Las 7 plantillas ya existían en Meta (omitidas: ' . implode(', ', $omitidas) . ').')
+                ->success()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->title('Plantillas enviadas a revisión de Meta')
+            ->body(count($creadas) . ' plantilla(s) nueva(s): ' . implode(', ', $creadas) . '.')
+            ->success()
+            ->send();
+    }
+
+    protected function notificarResultadoCreacionPlantilla(array $resultado, string $nombre): void
+    {
+        if (!$resultado['ok']) {
+            Notification::make()
+                ->title('No se pudo crear la plantilla')
+                ->body($resultado['mensaje'] ?? 'Error desconocido.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        // Se refresca el cache de plantillas para que la nueva aparezca de
+        // inmediato en el Select, aunque Meta todavía no la haya aprobado
+        // (queda visible como "pending" gracias al campo estado).
+        $this->sincronizarPlantillas();
+
+        Notification::make()
+            ->title('Plantilla enviada a revisión de Meta')
+            ->body("\"{$nombre}\" quedó en estado \"{$resultado['estado']}\" - Meta puede tardar minutos u horas en aprobarla.")
             ->success()
             ->send();
     }
@@ -236,6 +467,17 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                                 ->icon('heroicon-m-arrow-path')
                                 ->color('gray')
                                 ->action('sincronizarPlantillas'),
+
+                            // Crea la plantilla "Authentication" del OTP en Meta
+                            // (pedido del usuario, 2026-10-21) - queda PENDING
+                            // hasta que Meta la revise, no es instantáneo.
+                            Forms\Components\Actions\Action::make('crearPlantillaOtp')
+                                ->label('Crear plantilla en Meta')
+                                ->icon('heroicon-m-plus-circle')
+                                ->color('primary')
+                                ->requiresConfirmation()
+                                ->modalDescription('Se enviará a revisión de Meta la plantilla "otp_verificacion" (es_CO, código expira en 10 minutos, con botón "Copiar código"). Si ya existe una con ese nombre, Meta la rechazará por duplicada.')
+                                ->action('crearPlantillaOtp'),
                         ]),
                     ]),
 
@@ -251,7 +493,55 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                             ->native(false)
                             ->helperText('Debe recibir el nombre del trabajador y su cédula como parámetros {{1}} y {{2}}, en ese orden.')
                             ->columnSpanFull(),
+
+                        // Crea la plantilla "Utility" de aviso a RRHH en Meta
+                        // (pedido del usuario, 2026-10-21), con el texto
+                        // acordado: {{1}} = nombre del trabajador, {{2}} = cédula.
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('crearPlantillaRrhh')
+                                ->label('Crear plantilla en Meta')
+                                ->icon('heroicon-m-plus-circle')
+                                ->color('primary')
+                                ->requiresConfirmation()
+                                ->modalDescription('Se enviará a revisión de Meta la plantilla "aviso_rrhh_no_comprendio_rit" (es_CO, categoría Utility) con el texto: "Alerta LUPE Legal: el trabajador {{1}}, identificado con cédula {{2}}, no comprendió el Reglamento Interno de Trabajo tras dos intentos. Por favor contacte a RRHH para dar seguimiento." Si ya existe una con ese nombre, Meta la rechazará por duplicada.')
+                                ->action('crearPlantillaRrhh'),
+                        ]),
                     ]),
+
+                // ── Fila 2.5: Notificaciones del proceso disciplinario ────────────
+                // Pedido del usuario (2026-10-21): "necesito plantillas para la
+                // notificación de citación a descargos, emisión de la sanción,
+                // impugnación, etc. - todas las partes donde se notifica al
+                // cliente [y a] los trabajadores del cliente por correo también
+                // que sea por WhatsApp". Un Select por evento (mismo patrón de
+                // OTP/RRHH arriba) + un solo botón que crea en Meta las que
+                // todavía no existan (ver getDefinicionesPlantillasDescargos()
+                // y crearPlantillasDescargosPendientes()).
+                Forms\Components\Section::make('Notificaciones del proceso disciplinario')
+                    ->description('El correo sigue siendo el canal garantizado para estos eventos (lleva el documento adjunto) - WhatsApp es un aviso adicional, solo si el trabajador o la empresa dieron su opt-in.')
+                    ->columnSpanFull()
+                    ->schema([
+                        ...collect($this->getDefinicionesPlantillasDescargos())
+                            ->map(fn (array $definicion) => Forms\Components\Select::make($definicion['clave'])
+                                ->label($definicion['label'])
+                                ->options(fn () => $this->getOpcionesPlantillas())
+                                ->searchable()
+                                ->native(false)
+                                ->columnSpan(1))
+                            ->values()
+                            ->all(),
+
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('crearPlantillasDescargosPendientes')
+                                ->label('Crear plantillas pendientes en Meta')
+                                ->icon('heroicon-m-plus-circle')
+                                ->color('primary')
+                                ->requiresConfirmation()
+                                ->modalDescription('Se enviarán a revisión de Meta las plantillas de esta sección que todavía no existan en la cuenta (las que ya existen se omiten, no se duplican).')
+                                ->action('crearPlantillasDescargosPendientes'),
+                        ])->columnSpanFull(),
+                    ])
+                    ->columns(['default' => 2]),
 
                 // ── Fila 3: Webhook (1 columna completa) ─────────────────────────
                 Forms\Components\Section::make('Webhook')
@@ -305,6 +595,10 @@ class ConfiguracionWhatsapp extends Page implements HasForms
             'whatsapp_plantilla_otp_nombre'  => ['tipo' => 'text'],
             'whatsapp_plantilla_alerta_rrhh_nombre' => ['tipo' => 'text'],
         ];
+
+        foreach ($this->getDefinicionesPlantillasDescargos() as $definicion) {
+            $mapa[$definicion['clave']] = ['tipo' => 'text'];
+        }
 
         foreach ($mapa as $clave => $meta) {
             $valor = $datos[$clave] ?? null;

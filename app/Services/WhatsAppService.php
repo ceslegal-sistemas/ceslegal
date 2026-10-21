@@ -116,16 +116,38 @@ class WhatsAppService
      * evento define su propia plantilla en Meta y su propio nombre
      * configurable; este método solo arma el componente body.
      *
+     * $botonUrlSufijo (Fase 3, notificaciones del proceso disciplinario,
+     * 2026-10-21): si la plantilla tiene un botón de tipo URL con variable
+     * (ej. ".../descargos/{{1}}"), aquí se manda SOLO el valor que
+     * reemplaza esa variable (el token), nunca la URL completa - Meta la
+     * reconstruye del lado del botón usando la URL ya registrada en la
+     * plantilla. Si la plantilla no tiene botón, se deja null.
+     *
      * @param  array<int, string> $parametrosBody  En el mismo orden en que la plantilla los espera ({{1}}, {{2}}, ...)
      */
-    public function enviarPlantillaUtility(string $numero, string $plantilla, array $parametrosBody = []): array
-    {
+    public function enviarPlantillaUtility(
+        string $numero,
+        string $plantilla,
+        array $parametrosBody = [],
+        ?string $botonUrlSufijo = null,
+    ): array {
         $componentes = [];
 
         if ($parametrosBody !== []) {
             $componentes[] = [
                 'type' => 'body',
                 'parameters' => array_map(fn (string $texto) => ['type' => 'text', 'text' => $texto], $parametrosBody),
+            ];
+        }
+
+        if ($botonUrlSufijo !== null) {
+            $componentes[] = [
+                'type' => 'button',
+                'sub_type' => 'url',
+                'index' => '0',
+                'parameters' => [
+                    ['type' => 'text', 'text' => $botonUrlSufijo],
+                ],
             ];
         }
 
@@ -267,6 +289,150 @@ class WhatsAppService
         } catch (\Exception $e) {
             Log::error('WhatsAppService::listarPlantillas error', ['error' => $e->getMessage()]);
             return [];
+        }
+    }
+
+    /**
+     * Crea en Meta una plantilla "Authentication" para el envío de OTP.
+     * A diferencia de una plantilla Utility/Marketing, Meta genera el texto
+     * del cuerpo automáticamente según el idioma - aquí solo se configuran
+     * las banderas que la propia API de Meta expone para esta categoría
+     * (recomendación de seguridad, minutos de expiración, botón de copiar
+     * código). Queda en estado "PENDING" hasta que Meta la revise - eso
+     * puede tomar desde minutos hasta horas y no se puede acelerar.
+     *
+     * @return array{ok: bool, mensaje?: string, id?: string, estado?: string}
+     */
+    public function crearPlantillaAuthentication(
+        string $nombre,
+        string $idioma = 'es_CO',
+        int $minutosExpiracion = 10,
+        bool $recomendacionSeguridad = true,
+    ): array {
+        if (empty($this->businessAccountId) || empty($this->accessToken)) {
+            return ['ok' => false, 'mensaje' => 'Credenciales incompletas. Ingrese el WABA ID y el Access Token.'];
+        }
+
+        $payload = [
+            'name' => $nombre,
+            'language' => $idioma,
+            'category' => 'AUTHENTICATION',
+            'components' => [
+                [
+                    'type' => 'BODY',
+                    'add_security_recommendation' => $recomendacionSeguridad,
+                ],
+                [
+                    'type' => 'FOOTER',
+                    'code_expiration_minutes' => $minutosExpiracion,
+                ],
+                [
+                    'type' => 'BUTTONS',
+                    'buttons' => [
+                        [
+                            'type' => 'OTP',
+                            'otp_type' => 'COPY_CODE',
+                            'text' => 'Copiar código',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        return $this->crearPlantilla($payload);
+    }
+
+    /**
+     * Crea en Meta una plantilla "Utility" genérica con texto de cuerpo
+     * libre y parámetros posicionales ({{1}}, {{2}}, ...) - reusable para
+     * cualquier aviso de negocio, no solo el de RRHH. Meta exige un valor
+     * de ejemplo por cada parámetro para poder revisar la plantilla.
+     *
+     * @param  array<int, string> $ejemploParametros  Un valor de ejemplo por cada {{n}} del cuerpo, en orden.
+     * @return array{ok: bool, mensaje?: string, id?: string, estado?: string}
+     */
+    /**
+     * $boton (Fase 3, notificaciones del proceso disciplinario, 2026-10-21):
+     * opcional, agrega un botón de tipo URL con variable al final de la
+     * plantilla - ej. ['texto' => 'Ver citación', 'url' => 'https://dominio/descargos/{{1}}',
+     * 'ejemplo_url' => 'https://dominio/descargos/abc123']. Meta exige la
+     * URL completa (con el placeholder {{1}}) y un ejemplo completo
+     * (con un valor real de muestra) para poder revisar la plantilla.
+     */
+    public function crearPlantillaUtility(
+        string $nombre,
+        string $idioma,
+        string $textoBody,
+        array $ejemploParametros = [],
+        ?array $boton = null,
+    ): array {
+        if (empty($this->businessAccountId) || empty($this->accessToken)) {
+            return ['ok' => false, 'mensaje' => 'Credenciales incompletas. Ingrese el WABA ID y el Access Token.'];
+        }
+
+        $bodyComponent = [
+            'type' => 'BODY',
+            'text' => $textoBody,
+        ];
+
+        if ($ejemploParametros !== []) {
+            $bodyComponent['example'] = ['body_text' => [$ejemploParametros]];
+        }
+
+        $components = [$bodyComponent];
+
+        if ($boton !== null) {
+            $components[] = [
+                'type' => 'BUTTONS',
+                'buttons' => [
+                    [
+                        'type' => 'URL',
+                        'text' => $boton['texto'],
+                        'url' => $boton['url'],
+                        'example' => [$boton['ejemplo_url']],
+                    ],
+                ],
+            ];
+        }
+
+        $payload = [
+            'name' => $nombre,
+            'language' => $idioma,
+            'category' => 'UTILITY',
+            'components' => $components,
+        ];
+
+        return $this->crearPlantilla($payload);
+    }
+
+    /**
+     * POST crudo a message_templates - usado por los dos métodos públicos
+     * de arriba, cada uno arma el payload específico de su categoría.
+     */
+    protected function crearPlantilla(array $payload): array
+    {
+        $url = "https://graph.facebook.com/{$this->apiVersion}/{$this->businessAccountId}/message_templates";
+
+        try {
+            $response = Http::withToken($this->accessToken)->timeout(15)->post($url, $payload);
+
+            if (!$response->successful()) {
+                $error = $response->json('error.message', $response->body());
+                Log::error('WhatsApp error al crear plantilla', ['payload' => $payload, 'error' => $error]);
+                return ['ok' => false, 'mensaje' => $error];
+            }
+
+            $data = $response->json();
+            Log::info('WhatsApp plantilla creada', ['nombre' => $payload['name'], 'id' => $data['id'] ?? null]);
+
+            return [
+                'ok' => true,
+                'id' => $data['id'] ?? null,
+                'estado' => $data['status'] ?? 'PENDING',
+            ];
+        } catch (\Exception $e) {
+            Log::error('WhatsApp excepción al crear plantilla', ['payload' => $payload, 'error' => $e->getMessage()]);
+            return ['ok' => false, 'mensaje' => $e->getMessage()];
         }
     }
 
