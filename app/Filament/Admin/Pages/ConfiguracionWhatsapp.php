@@ -522,12 +522,18 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                     ->columnSpanFull()
                     ->schema([
                         ...collect($this->getDefinicionesPlantillasDescargos())
-                            ->map(fn (array $definicion) => Forms\Components\Select::make($definicion['clave'])
+                            ->map(fn (array $definicion, string $clave) => Forms\Components\Select::make($definicion['clave'])
                                 ->label($definicion['label'])
                                 ->options(fn () => $this->getOpcionesPlantillas())
                                 ->searchable()
                                 ->native(false)
-                                ->columnSpan(1))
+                                // Las 6 primeras van al trabajador (2 por fila);
+                                // "aviso_empresa" es la única para la empresa/RRHH
+                                // - a ancho completo para no dejarla con un hueco
+                                // vacío al lado (7 campos = número impar en una
+                                // grilla de 2 columnas) y para que se note que es
+                                // conceptualmente distinta de las demás.
+                                ->columnSpan($clave === 'aviso_empresa' ? 'full' : 1))
                             ->values()
                             ->all(),
 
