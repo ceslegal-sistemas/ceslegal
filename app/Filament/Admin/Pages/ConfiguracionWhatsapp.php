@@ -147,6 +147,7 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                 // desigual de por sí. Cada una ahora ocupa su propia fila
                 // completa en vez de competir por espacio una junto a otra.
                 Forms\Components\Section::make('Estado del servicio')
+                    ->columnSpanFull()
                     ->schema([
                         Forms\Components\Toggle::make('whatsapp_habilitado')
                             ->label('Activar notificaciones por WhatsApp')
@@ -159,6 +160,7 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                 // ── Fila 2: Credenciales (1 columna completa) ────────────────────
                 Forms\Components\Section::make('Credenciales - Meta Cloud API')
                     ->description('Obtenga estos datos en Meta for Developers → su app → WhatsApp → API Setup.')
+                    ->columnSpanFull()
                     ->schema([
                         Forms\Components\TextInput::make('whatsapp_numero_telefono')
                             ->label('Número de teléfono')
@@ -197,56 +199,65 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                 // Interno para destacar las 2 FUNCIONES reales de esta página
                 // (enviar OTP, avisar a RRHH), distinto de las secciones de
                 // configuración plana de arriba/abajo.
-                // Grid::make(2) por sí solo NO siempre da 2 columnas: Filament
-                // interpreta un entero suelto como "columnas en 'lg' en
-                // adelante" (HasColumns::columns(), vendor/filament/forms),
-                // dejando 1 columna por debajo de esa resolución - de ahí que
-                // se viera en una sola columna. Se fuerza 'default' => 2
-                // explícitamente para que sean 2 columnas siempre.
-                Forms\Components\Grid::make(['default' => 2])
-                    ->extraAttributes(['class' => 'rit-grid-top'])
+                //
+                // CAUSA RAÍZ REAL del bug de "1 sola columna" (confirmada
+                // con un dump real del HTML, tras 5 intentos fallidos
+                // peleando con Forms\Components\Grid y extraAttributes):
+                // Filament\Forms\Components\Section::setUp() llama
+                // $this->columnSpan('full') en SU PROPIO constructor
+                // (vendor/filament/forms/src/Components/Section.php:61).
+                // Toda Section es "columnSpanFull" por defecto, sin que el
+                // desarrollador lo pida. Por eso, aunque el contenedor
+                // (Grid o, como aquí, el formulario raíz) tuviera
+                // correctamente 2 columnas, cada Section seguía ocupando
+                // "grid-column: 1 / -1" (las DOS columnas) por su propia
+                // cuenta - de ahí que se vieran apiladas una sobre otra
+                // como si solo hubiera 1 columna, sin importar cuánto se
+                // ajustara el contenedor. Hace falta pedir expresamente
+                // ->columnSpan(1) en cada Section para anular ese default.
+                Forms\Components\Section::make('Código de verificación (OTP)')
+                    ->description('El código de un solo uso SIEMPRE se envía por una plantilla "Authentication" aprobada por Meta - nunca por texto libre. Pulse "Sincronizar plantillas" para elegir de una lista real en vez de escribir el nombre a mano.')
+                    ->columnSpan(1)
+                    ->extraAttributes(['class' => 'rit-hero-section'])
                     ->schema([
-                        Forms\Components\Section::make('Código de verificación (OTP)')
-                            ->description('El código de un solo uso SIEMPRE se envía por una plantilla "Authentication" aprobada por Meta - nunca por texto libre. Pulse "Sincronizar plantillas" para elegir de una lista real en vez de escribir el nombre a mano.')
-                            ->extraAttributes(['class' => 'rit-hero-section'])
-                            ->schema([
-                                Forms\Components\Select::make('whatsapp_plantilla_otp_nombre')
-                                    ->label('Plantilla del OTP')
-                                    ->options(fn () => $this->getOpcionesPlantillas())
-                                    ->searchable()
-                                    ->native(false)
-                                    ->helperText(fn () => $this->getOpcionesPlantillas() === []
-                                        ? 'Aún no ha sincronizado plantillas - pulse el botón abajo.'
-                                        : 'Solo se muestran las que Meta ya sincronizó con esta cuenta.')
-                                    ->columnSpanFull(),
+                        Forms\Components\Select::make('whatsapp_plantilla_otp_nombre')
+                            ->label('Plantilla del OTP')
+                            ->options(fn () => $this->getOpcionesPlantillas())
+                            ->searchable()
+                            ->native(false)
+                            ->helperText(fn () => $this->getOpcionesPlantillas() === []
+                                ? 'Aún no ha sincronizado plantillas - pulse el botón abajo.'
+                                : 'Solo se muestran las que Meta ya sincronizó con esta cuenta.')
+                            ->columnSpanFull(),
 
-                                Forms\Components\Actions::make([
-                                    Forms\Components\Actions\Action::make('sincronizarPlantillas')
-                                        ->label('Sincronizar plantillas')
-                                        ->icon('heroicon-m-arrow-path')
-                                        ->color('gray')
-                                        ->action('sincronizarPlantillas'),
-                                ]),
-                            ]),
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('sincronizarPlantillas')
+                                ->label('Sincronizar plantillas')
+                                ->icon('heroicon-m-arrow-path')
+                                ->color('gray')
+                                ->action('sincronizarPlantillas'),
+                        ]),
+                    ]),
 
-                        Forms\Components\Section::make('Avisos a RRHH')
-                            ->description('Plantilla "Utility" para avisos del sistema (ej. "trabajador no entendió el RIT dos veces") a la empresa que dio opt-in en Mi Empresa → Información de Contacto. El correo de contacto sigue siendo el canal garantizado - esto es un extra.')
-                            ->extraAttributes(['class' => 'rit-hero-section'])
-                            ->schema([
-                                Forms\Components\Select::make('whatsapp_plantilla_alerta_rrhh_nombre')
-                                    ->label('Plantilla de alerta a RRHH')
-                                    ->options(fn () => $this->getOpcionesPlantillas())
-                                    ->searchable()
-                                    ->native(false)
-                                    ->helperText('Debe recibir el nombre del trabajador y su cédula como parámetros {{1}} y {{2}}, en ese orden.')
-                                    ->columnSpanFull(),
-                            ]),
+                Forms\Components\Section::make('Avisos a RRHH')
+                    ->description('Plantilla "Utility" para avisos del sistema (ej. "trabajador no entendió el RIT dos veces") a la empresa que dio opt-in en Mi Empresa → Información de Contacto. El correo de contacto sigue siendo el canal garantizado - esto es un extra.')
+                    ->columnSpan(1)
+                    ->extraAttributes(['class' => 'rit-hero-section'])
+                    ->schema([
+                        Forms\Components\Select::make('whatsapp_plantilla_alerta_rrhh_nombre')
+                            ->label('Plantilla de alerta a RRHH')
+                            ->options(fn () => $this->getOpcionesPlantillas())
+                            ->searchable()
+                            ->native(false)
+                            ->helperText('Debe recibir el nombre del trabajador y su cédula como parámetros {{1}} y {{2}}, en ese orden.')
+                            ->columnSpanFull(),
                     ]),
 
                 // ── Fila 3: Webhook (1 columna completa) ─────────────────────────
                 Forms\Components\Section::make('Webhook')
                     ->description('Configure el webhook en Meta para recibir mensajes y actualizaciones de estado.')
                     ->collapsed()
+                    ->columnSpanFull()
                     ->schema([
                         Forms\Components\Placeholder::make('webhook_token')
                             ->label('Token de verificación del webhook')
@@ -277,6 +288,7 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                             ->columnSpanFull(),
                     ]),
             ])
+            ->columns(['default' => 2])
             ->statePath('data');
     }
 

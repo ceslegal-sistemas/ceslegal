@@ -55,30 +55,7 @@
              "Estado del servicio" (1 solo toggle) quedaba con un hueco vacío
              enorme para igualar la altura de "Credenciales" (4 campos). Cada
              tarjeta toma ahora su alto natural. --}}
-        {{-- 2026-10-20, 3er intento - esta vez verificado con el HTML real
-             renderizado en el propio servidor (el usuario pegó la salida
-             completa de deploy.sh: commit correcto, OPcache reseteado,
-             vistas recompiladas - el despliegue nunca fue el problema). La
-             causa real: extraAttributes(['class' => 'rit-grid-top']) en
-             Forms\Components\Grid NO pone la clase en el <div> que
-             realmente tiene display:grid - Filament envuelve el grid real
-             en OTRO <div> por fuera (ver vendor/filament/forms/resources/views/components/grid.blade.php,
-             que es solo un wrapper con el ID y mis extraAttributes;
-             el grid real con grid-cols-[--cols-default] vive en un <div>
-             HIJO, class="grid ... fi-fo-component-ctn", renderizado aparte
-             por $getChildComponentContainer()). Mi regla anterior le ponía
-             display:grid al wrapper exterior (que de por sí ya solo tiene
-             1 hijo, el grid real) - no tocaba el grid real para nada, daba
-             igual cuántas veces la reforzara.
-             Confirmado con un dump real del HTML:
-               <div class="rit-grid-top">
-                 <div style="--cols-default: repeat(2, minmax(0, 1fr));" class="grid grid-cols-[--cols-default] fi-fo-component-ctn gap-6">
-             Se apunta directo a ese hijo (.fi-fo-component-ctn es un
-             nombre de clase estable que genera el propio Filament, no un
-             valor arbitrario de Tailwind - sirve como selector sin
-             depender de que el build haya compilado nada para él). --}}
-        .rit-form-wrap .rit-grid-top > .fi-fo-component-ctn{display:grid !important;grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:1.5rem !important;align-items:start !important}
-        @media (max-width:640px){.rit-form-wrap .rit-grid-top > .fi-fo-component-ctn{grid-template-columns:1fr !important}}
+        .rit-form-wrap .fi-fo-component-ctn{align-items:start !important}
 
         .rit-viewer{border-radius:1rem;overflow:hidden;margin-top:1.5rem;box-shadow:0 2px 12px rgba(0,0,0,.06)}
         html.dark .rit-viewer{box-shadow:none;border:1px solid rgba(255,255,255,.09)}
