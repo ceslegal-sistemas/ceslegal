@@ -79,6 +79,8 @@ class CreateEmpresa extends CreateRecord
         // La empresa recién creada queda seleccionada como activa (para las herramientas de RIT).
         \App\Support\EmpresaActiva::set($this->record->id);
 
+        $this->persistirLogoSubido();
+
         // Usuario administrador de la empresa (rol cliente) - obligatorio en el onboarding B2B.
         // La contraseña es aleatoria y NUNCA se muestra ni se guarda en ningún lado accesible
         // al bufete (ni en el formulario, ni en logs) - el cliente la configura él mismo con el
@@ -171,6 +173,67 @@ class CreateEmpresa extends CreateRecord
                 ->title('Empresa creada - auditando su RIT')
                 ->body('Estamos revisando el Reglamento Interno y generando la versión mejorada. Aquí mismo verá el resultado y podrá aceptar las sugerencias.')
                 ->send();
+        }
+    }
+
+    /**
+     * Persistir el logo subido (si se subió) - bug real reportado por el
+     * usuario (2026-10-22): se subía al disco temporal pero CreateEmpresa
+     * nunca tenía el código que lo mueve a su ruta permanente y guarda
+     * logo_path, así que al editar la empresa el logo "desaparecía" (nunca
+     * llegó a guardarse). Mismo patrón ya usado en
+     * Register.php::crearCuentaEmpresa() y EditEmpresa::afterSave() - PNG/JPG
+     * SIEMPRE se recodifican a PNG real con GD (nunca un move() plano, que
+     * dejaría un JPG con extensión .png y rompería LogoColorService), SVG se
+     * guarda tal cual (Imagick no disponible). Nunca construir la ruta con
+     * storage_path("app/...") a mano: el disco 'local' tiene su raíz en
+     * storage/app/private (config/filesystems.php).
+     */
+    protected function persistirLogoSubido(): void
+    {
+        $rawLogoPath = $this->data['logo_empresa_temp'] ?? null;
+        $logoPath    = is_array($rawLogoPath) ? (reset($rawLogoPath) ?: null) : $rawLogoPath;
+
+        if (! is_string($logoPath) || $logoPath === '') {
+            return;
+        }
+
+        try {
+            $extension = strtolower(pathinfo($logoPath, PATHINFO_EXTENSION));
+            $origenAbsoluto = Storage::disk('local')->path($logoPath);
+            $rutaPermanente = 'logos/' . $this->record->id . '/logo.png';
+
+            if ($extension === 'svg') {
+                $rutaPermanente = 'logos/' . $this->record->id . '/logo.svg';
+                Storage::disk('local')->move($logoPath, $rutaPermanente);
+            } else {
+                $imagenOrigen = $extension === 'jpg' || $extension === 'jpeg'
+                    ? @imagecreatefromjpeg($origenAbsoluto)
+                    : @imagecreatefrompng($origenAbsoluto);
+
+                if ($imagenOrigen !== false) {
+                    // Sin esto, imagepng() aplana la transparencia de un PNG con
+                    // fondo alfa a un fondo sólido.
+                    imagealphablending($imagenOrigen, false);
+                    imagesavealpha($imagenOrigen, true);
+                    Storage::disk('local')->makeDirectory('logos/' . $this->record->id);
+                    imagepng($imagenOrigen, Storage::disk('local')->path($rutaPermanente));
+                    imagedestroy($imagenOrigen);
+                    Storage::disk('local')->delete($logoPath);
+                }
+            }
+
+            $rutaAbsoluta = Storage::disk('local')->path($rutaPermanente);
+
+            $this->record->update([
+                'logo_path' => $rutaPermanente,
+                'logo_color_acento' => app(\App\Services\LogoColorService::class)->colorDominante($rutaAbsoluta),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al procesar el logo de la empresa al crearla', [
+                'empresa_id' => $this->record->id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

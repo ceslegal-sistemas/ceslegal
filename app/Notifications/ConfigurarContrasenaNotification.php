@@ -4,7 +4,7 @@ namespace App\Notifications;
 
 use App\Models\User;
 use Filament\Facades\Filament;
-use Illuminate\Auth\Contracts\CanResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
