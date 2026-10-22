@@ -31,6 +31,20 @@ class ListBibliotecaLegals extends ListRecords
                     Forms\Components\FileUpload::make('archivos')
                         ->label('Documentos (PDF, DOCX o TXT)')
                         ->multiple()
+                        // Bug real encontrado en producción (2026-10-22): sin
+                        // esto, Filament guarda cada archivo en disco y lo
+                        // convierte a una ruta de texto ANTES de que corra la
+                        // acción de abajo (ver FileUpload::saveUploadedFiles(),
+                        // llamado en beforeStateDehydrated()) - por eso en la
+                        // interfaz se veían "subida completada", pero
+                        // crearDocumentosDesdeArchivosMasivo() esperaba objetos
+                        // TemporaryUploadedFile (para guardarlos él mismo con
+                        // ->store() y leer ->getClientOriginalName()), así que
+                        // el `instanceof` fallaba para TODOS y no se creaba
+                        // ningún documento ("No se importó ningún documento").
+                        // storeFiles(false) deja los archivos sin guardar hasta
+                        // que el propio loop los procese.
+                        ->storeFiles(false)
                         ->acceptedFileTypes([
                             'application/pdf',
                             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
