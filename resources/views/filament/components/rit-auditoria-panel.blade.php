@@ -53,8 +53,9 @@ html:not(.dark) .sl-vb{background:#fafafa}
 .sl-title{font-size:1rem;font-weight:700;color:#f1f5f9;margin:0 0 .25rem}
 html:not(.dark) .sl-title{color:#1c1917}
 .sl-muted{font-size:.8125rem;color:#64748b;line-height:1.6}
-.sl-sec{border-radius:.875rem;padding:1.125rem 1.25rem;border-left:3px solid;margin-bottom:.625rem;background:rgba(255,255,255,.03)}
-html:not(.dark) .sl-sec{background:#fff}
+{{-- Pedido del usuario (2026-10-22): sin franja lateral - borde completo. --}}
+.sl-sec{border-radius:.875rem;padding:1.125rem 1.25rem;border:1px solid rgba(255,255,255,.08);margin-bottom:.625rem;background:rgba(255,255,255,.03)}
+html:not(.dark) .sl-sec{background:#fff;border-color:rgba(0,0,0,.07)}
 .sl-sec-title{font-size:.875rem;font-weight:600;color:#f1f5f9}
 html:not(.dark) .sl-sec-title{color:#1c1917}
 .sl-tag{display:inline-flex;font-size:.65rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:.2rem .6rem;border-radius:.375rem}

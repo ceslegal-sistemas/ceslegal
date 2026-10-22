@@ -161,7 +161,7 @@
 </div>
 
 <style>
-.v6chk-item{border-left:3px solid;border-radius:.5rem;background:rgba(0,0,0,.02);}
+.v6chk-item{border:1px solid rgba(0,0,0,.1);border-radius:.5rem;background:rgba(0,0,0,.02);}
 html.dark .v6chk-item{background:rgba(255,255,255,.03);}
 .v6chk-head{padding:8px 10px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;}
 div.v6chk-head{cursor:default;}

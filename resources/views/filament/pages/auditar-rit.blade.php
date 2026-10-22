@@ -100,11 +100,17 @@ html:not(.dark) .audit-spinner{color:#e11d48}
 @keyframes aspin{to{transform:rotate(360deg)}}
 .audit-step-active-label{color:#fb7185;font-weight:600}
 html:not(.dark) .audit-step-active-label{color:#be123c}
-.audit-sec{border-radius:.875rem;padding:1.125rem 1.25rem;border-left:3px solid;margin-bottom:.625rem;background:rgba(255,255,255,.03)}
-html:not(.dark) .audit-sec{background:#fff}
-.audit-sec-ok{border-color:#22c55e}
-.audit-sec-warn{border-color:#f59e0b}
-.audit-sec-danger{border-color:#ef4444}
+{{-- Pedido del usuario (2026-10-22): sin franja lateral - el color de
+     estado tiñe toda la tarjeta (borde completo + fondo suave), no solo
+     un borde a la izquierda. --}}
+.audit-sec{border-radius:.875rem;padding:1.125rem 1.25rem;border:1px solid rgba(255,255,255,.08);margin-bottom:.625rem;background:rgba(255,255,255,.03)}
+html:not(.dark) .audit-sec{background:#fff;border-color:rgba(0,0,0,.07)}
+.audit-sec-ok{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.06)}
+html:not(.dark) .audit-sec-ok{border-color:rgba(22,163,74,.25);background:rgba(22,163,74,.05)}
+.audit-sec-warn{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.06)}
+html:not(.dark) .audit-sec-warn{border-color:rgba(217,119,6,.25);background:rgba(217,119,6,.05)}
+.audit-sec-danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.06)}
+html:not(.dark) .audit-sec-danger{border-color:rgba(220,38,38,.25);background:rgba(220,38,38,.05)}
 .audit-sec-title{font-size:.875rem;font-weight:600;color:#f1f5f9}
 html:not(.dark) .audit-sec-title{color:#1c1917}
 .audit-tag{display:inline-flex;font-size:.65rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:.2rem .6rem;border-radius:.375rem}

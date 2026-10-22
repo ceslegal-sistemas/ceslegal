@@ -80,4 +80,42 @@ html:not(.dark) .rit-link-input{border-color:rgba(0,0,0,.12);background:#fff;col
 --}}
 .rit-two-col{display:grid;grid-template-columns:1fr;gap:1.25rem}
 @media(min-width:768px){.rit-two-col{grid-template-columns:1fr 1fr}}
+{{--
+    Avisos/notices sin "franja vertical" (2026-10-22): varios componentes
+    del panel (ObligacionRit, auditoría de RIT, validaciones de Emitir
+    Sanción, errores de IA, etc.) reinventaban cada uno su propia tarjeta
+    de aviso con un borde de color sólido a la izquierda (`border-left:
+    3-4px solid`) - pedido explícito del usuario: quitar ese patrón en
+    todo el proyecto y usar el estilo LUPE. En vez de un borde lateral, el
+    tinte de color cubre TODA la tarjeta (fondo + borde completo, sin
+    lado "cortado") - mismo lenguaje visual que ya usan los badges
+    .rit-badge-* de arriba, solo que en formato tarjeta con ícono y texto.
+    Los colores de cada variante son EXACTAMENTE los mismos que sus
+    .rit-badge-* correspondientes (nunca se inventan tonos nuevos).
+--}}
+.rit-notice{display:flex;gap:.7rem;align-items:flex-start;padding:.85rem 1.05rem;border-radius:.85rem;border:1px solid}
+.rit-notice-ico{width:28px;height:28px;flex-shrink:0;margin-top:.05rem}
+.rit-notice h4{margin:0 0 .15rem;font-weight:700;font-size:.8125rem;line-height:1.3}
+.rit-notice p{margin:0;font-size:.78rem;line-height:1.55;color:#57534e}
+html.dark .rit-notice p{color:#d6d3d1}
+.rit-notice-success{background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.22)}
+.rit-notice-success h4{color:#166534}
+html.dark .rit-notice-success{background:rgba(34,197,94,.11);border-color:rgba(34,197,94,.28)}
+html.dark .rit-notice-success h4{color:#86efac}
+.rit-notice-warning{background:rgba(180,83,9,.08);border-color:rgba(217,119,6,.22)}
+.rit-notice-warning h4{color:#b45309}
+html.dark .rit-notice-warning{background:rgba(217,119,6,.13);border-color:rgba(251,191,36,.32)}
+html.dark .rit-notice-warning h4{color:#fbbf24}
+.rit-notice-danger{background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.2)}
+.rit-notice-danger h4{color:#b91c1c}
+html.dark .rit-notice-danger{background:rgba(239,68,68,.13);border-color:rgba(239,68,68,.3)}
+html.dark .rit-notice-danger h4{color:#fca5a5}
+.rit-notice-info{background:rgba(29,78,216,.08);border-color:rgba(37,99,235,.22)}
+.rit-notice-info h4{color:#1d4ed8}
+html.dark .rit-notice-info{background:rgba(37,99,235,.14);border-color:rgba(96,165,250,.32)}
+html.dark .rit-notice-info h4{color:#93c5fd}
+.rit-notice-neutral{background:rgba(100,116,139,.07);border-color:rgba(100,116,139,.2)}
+.rit-notice-neutral h4{color:#475569}
+html.dark .rit-notice-neutral{background:rgba(100,116,139,.1);border-color:rgba(100,116,139,.25)}
+html.dark .rit-notice-neutral h4{color:#94a3b8}
 </style>

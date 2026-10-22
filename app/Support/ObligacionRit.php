@@ -95,8 +95,14 @@ class ObligacionRit
             ],
         };
 
+        // Sin franja lateral (pedido explícito del usuario, 2026-10-22: quitar
+        // ese patrón en todo el proyecto) - el tinte de color cubre toda la
+        // tarjeta, no solo un borde a la izquierda. Mismo lenguaje visual que
+        // .rit-notice de lupe-hero-styles.blade.php (colores idénticos a sus
+        // variantes success/warning/neutral), autocontenido aquí porque esta
+        // clase no es un componente Blade.
         $css = '<style>'
-            . '.obl-rit{display:flex;gap:10px;align-items:center;padding:12px 16px;border-radius:12px;border:1px solid var(--b);border-left:4px solid var(--a);background:var(--bg)}'
+            . '.obl-rit{display:flex;gap:10px;align-items:center;padding:12px 16px;border-radius:12px;border:1px solid var(--b);background:var(--bg)}'
             . '.obl-rit h4{margin:0 0 2px;font-weight:700;font-size:13px;line-height:1.2;color:var(--a)}'
             . '.obl-rit p{margin:0;font-size:12.5px;line-height:1.5;color:#57534e}'
             . 'html.dark .obl-rit p{color:#d6d3d1}'

@@ -20,7 +20,9 @@ html:not(.dark) .gsec-viewer{border-color:rgba(0,0,0,.08);box-shadow:0 2px 12px 
 html:not(.dark) .gsec-vh{background:rgba(0,0,0,.03);border-bottom-color:rgba(0,0,0,.07)}
 .gsec-vl{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
 .gsec-vb{padding:1.25rem 1.5rem}
-.gsec-card{border-radius:.875rem;padding:1.125rem 1.25rem;border-left:3px solid;margin-bottom:.625rem;background:rgba(255,255,255,.03)}
+{{-- Pedido del usuario (2026-10-22): sin franja lateral - borde completo +
+     fondo con el mismo tinte de color (ver $bordRgba/$bgTint abajo). --}}
+.gsec-card{border-radius:.875rem;padding:1.125rem 1.25rem;border:1px solid;margin-bottom:.625rem;background:rgba(255,255,255,.03)}
 html:not(.dark) .gsec-card{background:#fff}
 .gsec-title{font-size:.875rem;font-weight:600;color:#f1f5f9}
 html:not(.dark) .gsec-title{color:#1c1917}
@@ -41,7 +43,7 @@ html:not(.dark) .gsec-item{border-top-color:rgba(0,0,0,.05)}
 .gsec-item:first-of-type{border-top:none;padding-top:.25rem}
 .gsec-item-head{display:flex;align-items:flex-start;gap:.5rem;font-size:.8125rem;color:#e2e8f0}
 html:not(.dark) .gsec-item-head{color:#292524}
-.gsec-item-gap{margin:.375rem 0 .25rem 1.375rem;padding:.5rem .75rem;border-radius:.5rem;background:rgba(245,158,11,.06);border-left:2px solid rgba(245,158,11,.4)}
+.gsec-item-gap{margin:.375rem 0 .25rem 1.375rem;padding:.5rem .75rem;border-radius:.5rem;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.3)}
 html:not(.dark) .gsec-item-gap{background:rgba(217,119,6,.05)}
 .gsec-art{display:inline-block;font-size:.68rem;color:#94a3b8;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:.2rem .55rem;border-radius:.4rem;margin:.15rem .3rem .15rem 0}
 html:not(.dark) .gsec-art{color:#57534e;background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.08)}
@@ -56,12 +58,13 @@ html:not(.dark) .gsec-art{color:#57534e;background:rgba(0,0,0,.03);border-color:
         @foreach($secciones as $clave => $sec)
             @php
                 $calif = $sec['calificacion'] ?? 'Ausente';
-                $bord  = $calif === 'Completo' ? '#22c55e' : ($calif === 'Parcial' ? '#f59e0b' : '#ef4444');
+                $bord  = $calif === 'Completo' ? 'rgba(34,197,94,.35)' : ($calif === 'Parcial' ? 'rgba(245,158,11,.35)' : 'rgba(239,68,68,.35)');
+                $bgTint = $calif === 'Completo' ? 'rgba(34,197,94,.06)' : ($calif === 'Parcial' ? 'rgba(245,158,11,.06)' : 'rgba(239,68,68,.06)');
                 $tag   = $calif === 'Completo' ? 'gsec-tag-ok' : ($calif === 'Parcial' ? 'gsec-tag-warn' : 'gsec-tag-danger');
                 $items = $sec['items'] ?? null;
                 $numCubiertos = is_array($items) ? collect($items)->where('estado', 'cubierto')->count() : null;
             @endphp
-            <div class="gsec-card" style="border-color:{{ $bord }}">
+            <div class="gsec-card" style="border-color:{{ $bord }};background:{{ $bgTint }}">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.5rem">
                     <span class="gsec-title">{{ $sec['titulo'] ?? $clave }}</span>
                     <div style="display:flex;align-items:center;gap:.5rem">

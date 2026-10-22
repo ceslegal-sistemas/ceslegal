@@ -24,8 +24,11 @@
 @endonce
 
 <style>
+    {{-- Pedido del usuario (2026-10-22): sin franja lateral - borde completo
+         + fondo con tinte suave, mismo color de marca. --}}
     .pt-card {
-        border-left: 4px solid #f97316;
+        border: 1px solid rgba(249,115,22,.3);
+        background: rgba(249,115,22,.05);
         border-radius: .75rem;
         padding: 1.125rem 1.25rem 1rem;
         margin-bottom: .25rem;
@@ -36,7 +39,7 @@
     .pt-bullet strong { color: #e2e8f0; font-weight: 600; }
     .pt-footer { margin: 0; font-size: .75rem; color: #64748b; line-height: 1.5; border-top: 1px solid rgba(251,113,133,.18); padding-top: .625rem; }
 
-    html:not(.dark) .pt-card              { border-left-color: #e11d48; }
+    html:not(.dark) .pt-card              { border-color: rgba(225,29,72,.22); background: rgba(225,29,72,.04); }
     html:not(.dark) .pt-title             { color: #111827; }
     html:not(.dark) .pt-body              { color: #374151; }
     html:not(.dark) .pt-bullet            { color: #4b5563; }

@@ -22,7 +22,6 @@ html.dark {
 .iae-card {
     border-radius: 14px;
     border: 1px solid var(--iae-border);
-    border-left: 3px solid #eab308;
     background: linear-gradient(135deg, var(--iae-bg) 0%, transparent 100%);
     overflow: hidden;
     position: relative;

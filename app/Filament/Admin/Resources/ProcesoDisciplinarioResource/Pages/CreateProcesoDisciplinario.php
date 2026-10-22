@@ -217,7 +217,7 @@ class CreateProcesoDisciplinario extends CreateRecord
                                         Forms\Components\Placeholder::make('info_nuevo_trabajador')
                                             ->label('')
                                             ->content(new HtmlString(
-                                                '<div style="background:rgba(225,29,72,.06);border-left:3px solid #e11d48;border-radius:.5rem;padding:.75rem 1rem;font-size:.8125rem;color:var(--fi-color-gray-600,#4b5563);line-height:1.6;">'
+                                                '<div style="background:rgba(225,29,72,.06);border:1px solid rgba(225,29,72,.22);border-radius:.5rem;padding:.75rem 1rem;font-size:.8125rem;color:var(--fi-color-gray-600,#4b5563);line-height:1.6;">'
                                                     . 'Complete los datos básicos del trabajador. El <strong>correo electrónico</strong> es indispensable para enviarle la citación.'
                                                     . '</div>'
                                             )),
@@ -1085,9 +1085,9 @@ class CreateProcesoDisciplinario extends CreateRecord
                             Forms\Components\Placeholder::make('declaracion_citacion_texto')
                                 ->hiddenLabel()
                                 ->content(fn() => new HtmlString(
-                                    '<style>:root{--decl-bg:rgba(0,0,0,0.03);--decl-border:rgba(0,0,0,0.10);--decl-left:rgba(0,0,0,0.15);--decl-label:rgba(0,0,0,0.45);--decl-text:rgba(17,24,39,0.78);}' .
-                                        'html.dark{--decl-bg:rgba(255,255,255,0.04);--decl-border:rgba(255,255,255,0.10);--decl-left:rgba(255,255,255,0.25);--decl-label:rgba(255,255,255,0.38);--decl-text:rgba(255,255,255,0.72);}</style>' .
-                                        '<div style="padding:14px 16px;background:var(--decl-bg);border-radius:12px;border:1px solid var(--decl-border);border-left:3px solid var(--decl-left);">' .
+                                    '<style>:root{--decl-bg:rgba(0,0,0,0.03);--decl-border:rgba(0,0,0,0.10);--decl-label:rgba(0,0,0,0.45);--decl-text:rgba(17,24,39,0.78);}' .
+                                        'html.dark{--decl-bg:rgba(255,255,255,0.04);--decl-border:rgba(255,255,255,0.10);--decl-label:rgba(255,255,255,0.38);--decl-text:rgba(255,255,255,0.72);}</style>' .
+                                        '<div style="padding:14px 16px;background:var(--decl-bg);border-radius:12px;border:1px solid var(--decl-border);">' .
                                         '<p style="font-size:10px;font-weight:700;color:var(--decl-label);text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px;">Declaración de quien cita</p>' .
                                         '<p style="font-size:13px;color:var(--decl-text);line-height:1.6;margin:0;">Al marcar la casilla a continuación, declaro que tengo la potestad para iniciar este proceso disciplinario, que los hechos descritos son ciertos según mi conocimiento, y que autorizo expresamente la citación a descargos del trabajador. Entiendo que esta acción queda registrada con fecha, hora e imagen de verificación como parte del expediente del proceso.</p>' .
                                         '</div>'

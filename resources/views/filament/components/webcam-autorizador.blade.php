@@ -157,14 +157,17 @@ button.wca-btn-secondary:hover {
 }
 /* Tarjeta del consentimiento - mismo lenguaje que "Declaración del
    Autorizador" (el Placeholder nativo justo arriba en este mismo modal:
-   acento de borde izquierdo sutil, etiqueta pequeña en mayúsculas, sin
-   barra de color sólida) - antes tenían 2 estilos de tarjeta distintos
-   uno junto al otro dentro del mismo modal. */
+   etiqueta pequeña en mayúsculas, sin barra de color sólida) - antes
+   tenían 2 estilos de tarjeta distintos uno junto al otro dentro del
+   mismo modal. Pedido del usuario (2026-10-22): sin franja lateral - el
+   acento de marca ahora tiñe el borde completo, no solo el lado
+   izquierdo. */
 .wca-card {
     padding: 14px 16px; border-radius: 12px;
-    background: var(--wca-btn-sec-bg); border: 1px solid var(--wca-btn-sec-bd);
-    border-left: 3px solid var(--wca-brand-solid);
+    background: var(--wca-btn-sec-bg);
+    border: 1px solid rgba(225,29,72,.3);
 }
+html.dark .wca-card { border-color: rgba(251,113,133,.35); }
 .wca-card-label {
     display: flex; align-items: center; gap: .4rem;
     font-size: 10px; font-weight: 700; letter-spacing: .1em;

@@ -18,7 +18,9 @@
     ];
 @endphp
 
-<div class="esa-card" style="margin-bottom:10px;border-left:3px solid #2563eb;">
+{{-- Pedido del usuario (2026-10-22): sin franja lateral - borde completo +
+     fondo con tinte de color, mismos tonos que .rit-notice-info. --}}
+<div class="esa-card" style="margin-bottom:10px;border-radius:.75rem;border:1px solid rgba(37,99,235,.22);background:rgba(37,99,235,.06);">
     <div style="padding:12px 16px;">
         <div style="display:flex;align-items:flex-start;gap:8px;">
             <svg style="width:18px;height:18px;flex-shrink:0;color:#2563eb;margin-top:1px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" /></svg>
@@ -34,7 +36,7 @@
                     <svg style="width:12px;height:12px;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 4.707a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L10.586 10 7.293 6.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
                     Ver la recomendación antes del ajuste
                 </summary>
-                <div style="margin:8px 0 0 17px;padding:8px 10px;border-left:2px solid rgba(0,0,0,.08);font-size:12px;color:var(--esa-muted);line-height:1.55;">
+                <div style="margin:8px 0 0 17px;padding:8px 10px;border-radius:.5rem;background:rgba(0,0,0,.03);font-size:12px;color:var(--esa-muted);line-height:1.55;">
                     @if($estadoOriginal)
                         <p style="margin:0;"><strong style="color:var(--esa-text);">Estado:</strong> {{ ['sancionar' => 'Procede sancionar', 'condicionada' => 'Condicionada a verificación', 'no_sancionar' => 'No sancionar'][$estadoOriginal] ?? $estadoOriginal }}</p>
                     @endif
