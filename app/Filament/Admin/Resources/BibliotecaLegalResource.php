@@ -229,6 +229,47 @@ class BibliotecaLegalResource extends Resource
         }
     }
 
+    /**
+     * Importación masiva (2026-10-22): crea un DocumentoLegal por cada
+     * archivo subido en el modal "Importar varios documentos", con un
+     * título provisional (nombre del archivo) y tipo='otro' - placeholders
+     * válidos para las columnas NOT NULL de la tabla mientras la IA
+     * identifica los datos reales en segundo plano, ver
+     * ProcesarBibliotecaLegalMasivo. No hay formulario por documento: el
+     * abogado solo elige los archivos y la IA hace el resto, documento por
+     * documento.
+     *
+     * @param  \Livewire\Features\SupportFileUploads\TemporaryUploadedFile[] $archivos
+     * @return int Cantidad de documentos creados y encolados.
+     */
+    public static function crearDocumentosDesdeArchivosMasivo(array $archivos): int
+    {
+        $creados = 0;
+
+        foreach ($archivos as $archivo) {
+            if (! $archivo instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                continue;
+            }
+
+            $rutaGuardada   = $archivo->store('biblioteca-legal', 'public');
+            $nombreOriginal = $archivo->getClientOriginalName();
+
+            $documento = DocumentoLegal::create([
+                'titulo'                  => pathinfo($nombreOriginal, PATHINFO_FILENAME),
+                'tipo'                    => 'otro',
+                'archivo_path'            => $rutaGuardada,
+                'archivo_nombre_original' => $nombreOriginal,
+                'estado'                  => 'pendiente',
+                'activo'                  => true,
+            ]);
+
+            \App\Jobs\ProcesarBibliotecaLegalMasivo::dispatch($documento);
+            $creados++;
+        }
+
+        return $creados;
+    }
+
     public static function table(Table $table): Table
     {
         return $table
