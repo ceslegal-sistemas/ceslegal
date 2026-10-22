@@ -293,56 +293,6 @@ class WhatsAppService
     }
 
     /**
-     * Crea en Meta una plantilla "Authentication" para el envío de OTP.
-     * A diferencia de una plantilla Utility/Marketing, Meta genera el texto
-     * del cuerpo automáticamente según el idioma - aquí solo se configuran
-     * las banderas que la propia API de Meta expone para esta categoría
-     * (recomendación de seguridad, minutos de expiración, botón de copiar
-     * código). Queda en estado "PENDING" hasta que Meta la revise - eso
-     * puede tomar desde minutos hasta horas y no se puede acelerar.
-     *
-     * @return array{ok: bool, mensaje?: string, id?: string, estado?: string}
-     */
-    public function crearPlantillaAuthentication(
-        string $nombre,
-        string $idioma = 'es_CO',
-        int $minutosExpiracion = 10,
-        bool $recomendacionSeguridad = true,
-    ): array {
-        if (empty($this->businessAccountId) || empty($this->accessToken)) {
-            return ['ok' => false, 'mensaje' => 'Credenciales incompletas. Ingrese el WABA ID y el Access Token.'];
-        }
-
-        $payload = [
-            'name' => $nombre,
-            'language' => $idioma,
-            'category' => 'AUTHENTICATION',
-            'components' => [
-                [
-                    'type' => 'BODY',
-                    'add_security_recommendation' => $recomendacionSeguridad,
-                ],
-                [
-                    'type' => 'FOOTER',
-                    'code_expiration_minutes' => $minutosExpiracion,
-                ],
-                [
-                    'type' => 'BUTTONS',
-                    'buttons' => [
-                        [
-                            'type' => 'OTP',
-                            'otp_type' => 'COPY_CODE',
-                            'text' => 'Copiar código',
-                        ],
-                    ],
-                ],
-            ],
-        ];
-
-        return $this->crearPlantilla($payload);
-    }
-
-    /**
      * Crea en Meta una plantilla "Utility" genérica con texto de cuerpo
      * libre y parámetros posicionales ({{1}}, {{2}}, ...) - reusable para
      * cualquier aviso de negocio, no solo el de RRHH. Meta exige un valor
@@ -417,9 +367,30 @@ class WhatsAppService
             $response = Http::withToken($this->accessToken)->timeout(15)->post($url, $payload);
 
             if (!$response->successful()) {
-                $error = $response->json('error.message', $response->body());
-                Log::error('WhatsApp error al crear plantilla', ['payload' => $payload, 'error' => $error]);
-                return ['ok' => false, 'mensaje' => $error];
+                $errorBody = $response->json('error', []);
+                $mensaje = $errorBody['message'] ?? $response->body();
+
+                // Para errores de permisos ("Application does not have
+                // permission for this action") el mensaje por sí solo no
+                // dice QUÉ permiso falta - se agrega el código/subcódigo y
+                // el fbtrace_id de Meta, que es lo que realmente sirve para
+                // diagnosticar en Meta Business Manager o con su soporte
+                // (hallazgo real, 2026-10-21: plantilla AUTHENTICATION del
+                // OTP rechazada por permisos mientras las UTILITY sí
+                // pasaron con el mismo token).
+                $detalle = array_filter([
+                    isset($errorBody['type']) ? "tipo={$errorBody['type']}" : null,
+                    isset($errorBody['code']) ? "code={$errorBody['code']}" : null,
+                    isset($errorBody['error_subcode']) ? "subcode={$errorBody['error_subcode']}" : null,
+                    isset($errorBody['fbtrace_id']) ? "fbtrace_id={$errorBody['fbtrace_id']}" : null,
+                ]);
+
+                if ($detalle !== []) {
+                    $mensaje .= ' (' . implode(', ', $detalle) . ')';
+                }
+
+                Log::error('WhatsApp error al crear plantilla', ['payload' => $payload, 'error' => $errorBody]);
+                return ['ok' => false, 'mensaje' => $mensaje];
             }
 
             $data = $response->json();

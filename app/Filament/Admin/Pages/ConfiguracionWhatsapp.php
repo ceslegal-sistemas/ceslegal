@@ -235,20 +235,20 @@ class ConfiguracionWhatsapp extends Page implements HasForms
     }
 
     /**
-     * Crea en Meta la plantilla "Authentication" para el OTP con la
-     * configuración acordada (2026-10-21): es_CO, código expira en 10
-     * minutos, con recomendación de seguridad y botón "Copiar código".
-     * Meta la deja en PENDING hasta revisarla - no se puede acelerar esa
-     * parte desde aquí, solo someterla.
+     * URL de WhatsApp Manager para crear la plantilla AUTHENTICATION del
+     * OTP a mano (2026-10-21, confirmado con el MCP oficial de Meta
+     * "whatsapp-business": las plantillas AUTHENTICATION NO se pueden
+     * crear por la Graph API - ni siquiera la propia herramienta oficial
+     * de Meta lo soporta, devuelve este mismo enlace en vez de crearla.
+     * El intento anterior por API fallaba siempre con "Application does
+     * not have permission for this action" - no era un problema de
+     * permisos del token, es una restricción real del producto).
      */
-    public function crearPlantillaOtp(): void
+    public function getUrlCrearPlantillaOtpEnMeta(): string
     {
-        $nombre = $this->form->getState()['whatsapp_plantilla_otp_nombre']
-            ?: Configuracion::obtener('whatsapp_plantilla_otp_nombre', 'otp_verificacion');
+        $waba = Configuracion::obtener('whatsapp_business_account_id', '');
 
-        $resultado = app(WhatsAppService::class)->crearPlantillaAuthentication($nombre, 'es_CO', 10, true);
-
-        $this->notificarResultadoCreacionPlantilla($resultado, $nombre);
+        return 'https://business.facebook.com/wa/manage/message-templates/?waba_id=' . urlencode((string) $waba);
     }
 
     /**
@@ -386,6 +386,19 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                             ->onIcon('heroicon-m-check')
                             ->offIcon('heroicon-m-x-mark')
                             ->onColor('success'),
+
+                        // Pedido del usuario (2026-10-21): "Sincronizar plantillas"
+                        // es una acción GLOBAL (recarga el cache de plantillas que
+                        // alimenta TODOS los Select de la página, no solo el del
+                        // OTP) - va mejor aquí, junto al estado general del
+                        // servicio, que escondida dentro de una sola tarjeta.
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('sincronizarPlantillas')
+                                ->label('Sincronizar plantillas')
+                                ->icon('heroicon-m-arrow-path')
+                                ->color('gray')
+                                ->action('sincronizarPlantillas'),
+                        ]),
                     ]),
 
                 // ── Fila 2: Credenciales (1 columna completa) ────────────────────
@@ -447,7 +460,7 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                 // ajustara el contenedor. Hace falta pedir expresamente
                 // ->columnSpan(1) en cada Section para anular ese default.
                 Forms\Components\Section::make('Código de verificación (OTP)')
-                    ->description('El código de un solo uso SIEMPRE se envía por una plantilla "Authentication" aprobada por Meta - nunca por texto libre. Pulse "Sincronizar plantillas" para elegir de una lista real en vez de escribir el nombre a mano.')
+                    ->description('El código de un solo uso SIEMPRE se envía por una plantilla "Authentication" aprobada por Meta - nunca por texto libre. Use "Sincronizar plantillas" (arriba, en Estado del servicio) para elegir de una lista real en vez de escribir el nombre a mano.')
                     ->columnSpan(1)
                     ->extraAttributes(['class' => 'rit-hero-section'])
                     ->schema([
@@ -457,27 +470,24 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                             ->searchable()
                             ->native(false)
                             ->helperText(fn () => $this->getOpcionesPlantillas() === []
-                                ? 'Aún no ha sincronizado plantillas - pulse el botón abajo.'
+                                ? 'Aún no ha sincronizado plantillas - use "Sincronizar plantillas" en Estado del servicio, arriba.'
                                 : 'Solo se muestran las que Meta ya sincronizó con esta cuenta.')
                             ->columnSpanFull(),
 
                         Forms\Components\Actions::make([
-                            Forms\Components\Actions\Action::make('sincronizarPlantillas')
-                                ->label('Sincronizar plantillas')
-                                ->icon('heroicon-m-arrow-path')
-                                ->color('gray')
-                                ->action('sincronizarPlantillas'),
-
-                            // Crea la plantilla "Authentication" del OTP en Meta
-                            // (pedido del usuario, 2026-10-21) - queda PENDING
-                            // hasta que Meta la revise, no es instantáneo.
-                            Forms\Components\Actions\Action::make('crearPlantillaOtp')
-                                ->label('Crear plantilla en Meta')
-                                ->icon('heroicon-m-plus-circle')
+                            // Las plantillas AUTHENTICATION no se pueden crear
+                            // por la Graph API (confirmado 2026-10-21 con el MCP
+                            // oficial de Meta: ni su propia herramienta lo
+                            // soporta) - este botón lleva directo a WhatsApp
+                            // Manager en vez de intentar una llamada que
+                            // siempre fallaría con "Application does not have
+                            // permission for this action".
+                            Forms\Components\Actions\Action::make('crearPlantillaOtpEnMeta')
+                                ->label('Crear plantilla en WhatsApp Manager')
+                                ->icon('heroicon-m-arrow-top-right-on-square')
                                 ->color('primary')
-                                ->requiresConfirmation()
-                                ->modalDescription('Se enviará a revisión de Meta la plantilla "otp_verificacion" (es_CO, código expira en 10 minutos, con botón "Copiar código"). Si ya existe una con ese nombre, Meta la rechazará por duplicada.')
-                                ->action('crearPlantillaOtp'),
+                                ->url(fn () => $this->getUrlCrearPlantillaOtpEnMeta())
+                                ->openUrlInNewTab(),
                         ]),
                     ]),
 
