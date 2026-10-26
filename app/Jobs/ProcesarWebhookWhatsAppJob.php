@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -40,6 +41,8 @@ class ProcesarWebhookWhatsAppJob implements ShouldQueue
 
     public function handle(NotificacionService $notificaciones): void
     {
+        $this->reenviarAChatwoot();
+
         foreach ($this->payload['entry'] ?? [] as $entry) {
             foreach ($entry['changes'] ?? [] as $change) {
                 $valor = $change['value'] ?? [];
@@ -160,6 +163,44 @@ class ProcesarWebhookWhatsAppJob implements ShouldQueue
                 ]
             );
             Log::warning('WhatsApp: calidad RED reportada por Meta - envíos apagados automáticamente.');
+        }
+    }
+
+    /**
+     * Relay a Chatwoot (pedido del usuario, 2026-10-26): Meta solo permite
+     * UNA url de webhook activa por app - al conectar Chatwoot, su propio
+     * asistente de configuración sobrescribió la URL del webhook dentro de
+     * esta misma app de Meta con la de Chatwoot, así que este proyecto
+     * dejó de recibir los eventos (no se enteraba de mensajes entrantes,
+     * "STOP" ni confirmaciones de entrega). La solución: Meta vuelve a
+     * apuntar a ESTE webhook (único registrado), y este Job reenvía el
+     * payload crudo, tal cual llegó, a la URL de Chatwoot configurada -
+     * así ambos sistemas siguen recibiendo todo, sin pisarse.
+     *
+     * Fail-open a propósito: si el reenvío falla (Chatwoot caído, URL mal
+     * configurada), el procesamiento normal de este Job sigue de todas
+     * formas - nunca se pierde el procesamiento propio por un problema de
+     * Chatwoot.
+     */
+    private function reenviarAChatwoot(): void
+    {
+        $url = Configuracion::obtener('whatsapp_chatwoot_webhook_url');
+        if (empty($url)) {
+            return;
+        }
+
+        try {
+            $respuesta = Http::timeout(10)->post($url, $this->payload);
+
+            if (!$respuesta->successful()) {
+                Log::warning('WhatsApp: Chatwoot respondió con error al reenviar el webhook', [
+                    'status' => $respuesta->status(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('WhatsApp: no se pudo reenviar el webhook a Chatwoot', [
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }

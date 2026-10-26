@@ -62,6 +62,7 @@ class ConfiguracionWhatsapp extends Page implements HasForms
             'whatsapp_access_token'          => Configuracion::obtener('whatsapp_access_token', ''),
             'whatsapp_plantilla_otp_nombre'  => Configuracion::obtener('whatsapp_plantilla_otp_nombre', config('services.whatsapp.plantilla_otp', 'otp_verificacion')),
             'whatsapp_plantilla_alerta_rrhh_nombre' => Configuracion::obtener('whatsapp_plantilla_alerta_rrhh_nombre', ''),
+            'whatsapp_chatwoot_webhook_url'  => Configuracion::obtener('whatsapp_chatwoot_webhook_url', ''),
         ];
 
         // Fase 3 (2026-10-21): una plantilla configurable por evento del
@@ -590,7 +591,20 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                                     'texto' => rtrim(config('app.url'), '/') . '/whatsapp/webhook',
                                 ])->render()
                             ))
-                            ->helperText('Configure esta URL en Meta for Developers → Webhooks, suscrita a los eventos messages y account_update.')
+                            ->helperText('Configure esta URL en Meta for Developers → Webhooks, suscrita a los eventos messages y account_update. Si antes tenía puesta ahí la URL de Chatwoot, reemplácela por esta - Meta solo permite una URL activa por app, y de lo contrario este proyecto nunca recibe los eventos.')
+                            ->columnSpanFull(),
+
+                        // Relay a Chatwoot (pedido del usuario, 2026-10-26): Meta
+                        // solo admite UNA url de webhook por app. En vez de elegir
+                        // entre este proyecto y Chatwoot, este proyecto reclama el
+                        // webhook de Meta y reenvía cada evento, tal cual, a la URL
+                        // de Chatwoot configurada aquí - ver
+                        // ProcesarWebhookWhatsAppJob::reenviarAChatwoot().
+                        Forms\Components\TextInput::make('whatsapp_chatwoot_webhook_url')
+                            ->label('URL de webhook de Chatwoot (opcional)')
+                            ->url()
+                            ->placeholder('https://su-chatwoot.com/webhooks/whatsapp/xxxxx')
+                            ->helperText('Si también usa Chatwoot para WhatsApp, pegue aquí la URL de webhook que Chatwoot le dio (la misma que antes tenía puesta en Meta). Este proyecto reenviará cada evento recibido a esa URL, para que Chatwoot siga funcionando sin que este proyecto deje de recibir nada. Déjelo vacío si no usa Chatwoot.')
                             ->columnSpanFull(),
                     ]),
             ])
@@ -610,6 +624,7 @@ class ConfiguracionWhatsapp extends Page implements HasForms
             'whatsapp_access_token'          => ['tipo' => 'text'],
             'whatsapp_plantilla_otp_nombre'  => ['tipo' => 'text'],
             'whatsapp_plantilla_alerta_rrhh_nombre' => ['tipo' => 'text'],
+            'whatsapp_chatwoot_webhook_url'  => ['tipo' => 'text'],
         ];
 
         foreach ($this->getDefinicionesPlantillasDescargos() as $definicion) {
