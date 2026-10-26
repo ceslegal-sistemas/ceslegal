@@ -945,59 +945,80 @@ HTML;
     /**
      * Enviar citación por correo electrónico
      */
-    public function enviarCitacionPorEmail(ProcesoDisciplinario $proceso, string $pdfPath, ?string $linkDescargos = null, ?\Carbon\Carbon $fechaAccesoPermitida = null): void
+    /**
+     * $canalesOverride (pedido del usuario, 2026-10-26: "en todas las
+     * partes donde se notifica dar la opción de notificar también por
+     * WhatsApp y correo o ambos"): null (por defecto) conserva el
+     * comportamiento histórico - correo SIEMPRE (canal garantizado) +
+     * WhatsApp si el trabajador dio su opt-in. Cuando se pasa un array
+     * ['email' => bool, 'whatsapp' => bool] (ej. desde el botón "Re-enviar
+     * Citación" del panel), esa elección puntual del administrador manda
+     * SOLO para este envío - no se guarda como preferencia del trabajador.
+     */
+    public function enviarCitacionPorEmail(ProcesoDisciplinario $proceso, string $pdfPath, ?string $linkDescargos = null, ?\Carbon\Carbon $fechaAccesoPermitida = null, ?array $canalesOverride = null): void
     {
         $trabajador = $proceso->trabajador;
         $empresa = $proceso->empresa;
 
-        if (empty($trabajador->email)) {
+        $enviarEmail = $canalesOverride === null || ($canalesOverride['email'] ?? false);
+        $enviarWhatsapp = $canalesOverride === null ? (bool) $trabajador->notificar_por_whatsapp : ($canalesOverride['whatsapp'] ?? false);
+
+        if ($enviarEmail && empty($trabajador->email)) {
             throw new \Exception('El trabajador no tiene correo electrónico registrado');
         }
 
-        // Crear registro de tracking para el correo (hora de Colombia)
-        $tracking = EmailTracking::create([
-            'token' => EmailTracking::generarToken(),
-            'tipo_documento' => 'citacion',
-            'proceso_id' => $proceso->id,
-            'trabajador_id' => $trabajador->id,
-            'email_destinatario' => $trabajador->email,
-            'enviado_en' => Carbon::now('America/Bogota'),
-        ]);
+        if ($enviarEmail) {
+            // Crear registro de tracking para el correo (hora de Colombia)
+            $tracking = EmailTracking::create([
+                'token' => EmailTracking::generarToken(),
+                'tipo_documento' => 'citacion',
+                'proceso_id' => $proceso->id,
+                'trabajador_id' => $trabajador->id,
+                'email_destinatario' => $trabajador->email,
+                'enviado_en' => Carbon::now('America/Bogota'),
+            ]);
 
-        // Detectar la extensión real del archivo
-        $extension = pathinfo($pdfPath, PATHINFO_EXTENSION);
-        $mimeType = $extension === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        $nombreArchivo = 'Citacion_Descargos_' . $proceso->codigo . '.' . $extension;
+            // Detectar la extensión real del archivo
+            $extension = pathinfo($pdfPath, PATHINFO_EXTENSION);
+            $mimeType = $extension === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+            $nombreArchivo = 'Citacion_Descargos_' . $proceso->codigo . '.' . $extension;
 
-        // Nombres de las pruebas aportadas por la empresa. Solo se enumeran en
-        // el correo (no se adjuntan): hasta 5 archivos de 10 MB harían rebotar
-        // el envío en la mayoría de servidores y dejarían material probatorio
-        // en un correo reenviable. El trabajador las abre desde el enlace, que
-        // ya exige código de verificación.
-        $evidenciasEmpleador = collect($proceso->evidencias_empleador ?? [])
-            ->filter()
-            ->map(fn (string $ruta) => basename($ruta))
-            ->values()
-            ->all();
+            // Nombres de las pruebas aportadas por la empresa. Solo se enumeran en
+            // el correo (no se adjuntan): hasta 5 archivos de 10 MB harían rebotar
+            // el envío en la mayoría de servidores y dejarían material probatorio
+            // en un correo reenviable. El trabajador las abre desde el enlace, que
+            // ya exige código de verificación.
+            $evidenciasEmpleador = collect($proceso->evidencias_empleador ?? [])
+                ->filter()
+                ->map(fn (string $ruta) => basename($ruta))
+                ->values()
+                ->all();
 
-        Mail::send('emails.citacion-descargos', [
-            'proceso' => $proceso,
-            'trabajador' => $trabajador,
-            'empresa' => $empresa,
-            'linkDescargos' => $linkDescargos,
-            'fechaAccesoPermitida' => $fechaAccesoPermitida,
-            'trackingToken' => $tracking->token,
-            'evidenciasEmpleador' => $evidenciasEmpleador,
-        ], function ($message) use ($trabajador, $proceso, $pdfPath, $nombreArchivo, $mimeType) {
-            $message->to($trabajador->email, $trabajador->nombre_completo)
-                ->subject('Citación a Audiencia de Descargos - Proceso ' . $proceso->codigo)
-                ->attach($pdfPath, [
-                    'as' => $nombreArchivo,
-                    'mime' => $mimeType,
-                ]);
-        });
+            Mail::send('emails.citacion-descargos', [
+                'proceso' => $proceso,
+                'trabajador' => $trabajador,
+                'empresa' => $empresa,
+                'linkDescargos' => $linkDescargos,
+                'fechaAccesoPermitida' => $fechaAccesoPermitida,
+                'trackingToken' => $tracking->token,
+                'evidenciasEmpleador' => $evidenciasEmpleador,
+            ], function ($message) use ($trabajador, $proceso, $pdfPath, $nombreArchivo, $mimeType) {
+                $message->to($trabajador->email, $trabajador->nombre_completo)
+                    ->subject('Citación a Audiencia de Descargos - Proceso ' . $proceso->codigo)
+                    ->attach($pdfPath, [
+                        'as' => $nombreArchivo,
+                        'mime' => $mimeType,
+                    ]);
+            });
 
-        if ($linkDescargos) {
+            Log::info('Citación enviada con tracking', [
+                'proceso_id' => $proceso->id,
+                'trabajador_email' => $trabajador->email,
+                'tracking_token' => substr($tracking->token, 0, 10) . '...',
+            ]);
+        }
+
+        if ($enviarWhatsapp && $linkDescargos) {
             $this->enviarAvisoWhatsappTrabajador(
                 $trabajador,
                 'whatsapp_plantilla_citacion_nombre',
@@ -1005,12 +1026,6 @@ HTML;
                 basename($linkDescargos),
             );
         }
-
-        Log::info('Citación enviada con tracking', [
-            'proceso_id' => $proceso->id,
-            'trabajador_email' => $trabajador->email,
-            'tracking_token' => substr($tracking->token, 0, 10) . '...',
-        ]);
     }
 
     /**
@@ -1047,9 +1062,11 @@ HTML;
     }
 
     /**
-     * Generar y enviar citación (proceso completo)
+     * Generar y enviar citación (proceso completo). $canalesOverride: ver
+     * el docblock de enviarCitacionPorEmail() - null conserva el
+     * comportamiento histórico.
      */
-    public function generarYEnviarCitacion(ProcesoDisciplinario $proceso): array
+    public function generarYEnviarCitacion(ProcesoDisciplinario $proceso, ?array $canalesOverride = null): array
     {
         try {
             // Generar el PDF
@@ -1137,7 +1154,7 @@ HTML;
             ]);
 
             // Enviar por email (con o sin link según la modalidad)
-            $this->enviarCitacionPorEmail($proceso, $pdfPath, $linkDescargos, $fechaAccesoPermitida);
+            $this->enviarCitacionPorEmail($proceso, $pdfPath, $linkDescargos, $fechaAccesoPermitida, $canalesOverride);
 
             // Notificar (correo informativo aparte, NO un CC tecnico) a
             // quien se haya indicado en "correos_cc" - fail-open: un fallo
