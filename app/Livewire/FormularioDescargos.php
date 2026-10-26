@@ -40,6 +40,15 @@ class FormularioDescargos extends Component
     // Opt-in de WhatsApp (Fase 1, ver docs/superpowers/specs/2026-10-19-whatsapp-fase1-otp-descargos-design.md)
     public bool   $whatsappOptIn = false;
 
+    // Selector explícito de canal de notificación (pedido del usuario,
+    // 2026-10-26): antes el correo era "garantizado" en silencio sin que el
+    // trabajador lo eligiera - ahora se muestra como una preferencia real,
+    // igual que WhatsApp, y puede elegir uno, el otro o ambos. $emailOptIn
+    // arranca en true porque Trabajador::notificar_por_email por defecto ya
+    // es true en la BD (migración 2026_10_19_203000) - aquí solo se refleja
+    // ese valor, no se inventa un default nuevo.
+    public bool   $emailOptIn = true;
+
     protected $listeners = ['respuestaGuardada' => 'refrescarPreguntas'];
 
     public bool $tiempoExpiradoMostrarEvidencias = false;
@@ -63,6 +72,16 @@ class FormularioDescargos extends Component
     public function mount(DiligenciaDescargo $diligencia)
     {
         $this->diligencia = $diligencia;
+
+        // Reflejar la preferencia real ya guardada (si el trabajador ya
+        // había elegido antes, en una diligencia anterior) en vez de
+        // arrancar siempre en los valores por defecto - evita que el
+        // checkbox se vea "desmarcado" cuando en realidad ya estaba activo.
+        $trabajadorPreferencias = $diligencia->proceso->trabajador;
+        if ($trabajadorPreferencias) {
+            $this->emailOptIn = (bool) $trabajadorPreferencias->notificar_por_email;
+            $this->whatsappOptIn = (bool) $trabajadorPreferencias->notificar_por_whatsapp;
+        }
 
         // Si el trabajador ya completó el formulario
         if ($this->diligencia->trabajador_asistio) {
@@ -245,8 +264,10 @@ class FormularioDescargos extends Component
         ]);
 
         // Opt-in de WhatsApp (Fase 1): solo puede ACTIVARSE aquí, nunca
-        // desactivarse desde este checkbox - si el trabajador no lo marca
-        // simplemente no cambia nada (sigue en false, el default).
+        // desactivarse desde este checkbox (requisito de cumplimiento de
+        // Meta: el consentimiento se registra con IP+fecha, no se revoca
+        // en silencio por un checkbox sin marcar) - si el trabajador no lo
+        // marca simplemente no cambia nada (sigue como estaba).
         $trabajador = $this->diligencia->proceso->trabajador;
         if ($this->whatsappOptIn && $trabajador && !empty($trabajador->telefono)) {
             $trabajador->update([
@@ -254,6 +275,17 @@ class FormularioDescargos extends Component
                 'whatsapp_consentimiento_en'  => now(),
                 'whatsapp_consentimiento_ip'  => request()->ip(),
             ]);
+        }
+
+        // Preferencia de correo (pedido del usuario, 2026-10-26): a
+        // diferencia de WhatsApp, el correo no tiene un requisito de
+        // consentimiento tipo Meta - se guarda la elección en ambos
+        // sentidos (puede activarse o desactivarse libremente). enviarOtp()
+        // igual garantiza un correo de respaldo si WhatsApp falla o no fue
+        // elegido, así que el trabajador nunca se queda sin ningún canal
+        // aunque desmarque esta casilla.
+        if ($trabajador) {
+            $trabajador->update(['notificar_por_email' => $this->emailOptIn]);
         }
 
         $this->etapa = 'foto_inicio';

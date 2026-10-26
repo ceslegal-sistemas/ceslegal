@@ -111,17 +111,30 @@ class DocumentGeneratorService
      *
      * @param  array<int, string> $parametros
      */
-    private function enviarAvisoWhatsappEmpresa(\App\Models\Empresa $empresa, array $parametros): void
+    /**
+     * ¿Hay una plantilla de WhatsApp realmente configurada y lista para
+     * usarse con esta empresa? Usado tanto para decidir si se intenta el
+     * envío de WhatsApp como para el selector de canal (2026-10-26): si
+     * la empresa desactivó el correo, solo se respeta esa elección cuando
+     * WhatsApp es una alternativa real - nunca se deja a la empresa sin
+     * ningún aviso.
+     */
+    private function whatsappEmpresaDisponible(\App\Models\Empresa $empresa): bool
     {
         if (!$empresa->notificar_por_whatsapp || empty($empresa->telefono)) {
+            return false;
+        }
+
+        return !empty(\App\Models\Configuracion::obtener('whatsapp_plantilla_aviso_empresa_nombre'));
+    }
+
+    private function enviarAvisoWhatsappEmpresa(\App\Models\Empresa $empresa, array $parametros): void
+    {
+        if (!$this->whatsappEmpresaDisponible($empresa)) {
             return;
         }
 
         $plantilla = \App\Models\Configuracion::obtener('whatsapp_plantilla_aviso_empresa_nombre');
-
-        if (empty($plantilla)) {
-            return;
-        }
 
         try {
             app(\App\Services\WhatsAppService::class)->enviarPlantillaUtility($empresa->telefono, $plantilla, $parametros);
@@ -2883,7 +2896,7 @@ HTML;
         $estadoTexto = match ($estado) {
             'descargos_realizados' => 'Descargos Completados',
             'descargos_no_realizados' => 'Descargos No Realizados',
-            default => ucfirst(str_replace('_', ' ', $estado)),
+            default => ucwords(str_replace('_', ' ', $estado)),
         };
 
         // Determinar asunto del correo
@@ -2950,6 +2963,14 @@ HTML;
             return;
         }
 
+        // Selector de canal (pedido del usuario, 2026-10-26): respeta la
+        // elección de la empresa de no recibir por correo, SOLO si WhatsApp
+        // es una alternativa real configurada - nunca deja a la empresa sin
+        // ningún aviso.
+        if (!($empresa->notificar_por_email ?? true) && $this->whatsappEmpresaDisponible($empresa)) {
+            $usuariosCliente = collect();
+        }
+
         // Determinar asunto del correo
         $asunto = match ($estado) {
             'descargos_realizados' => 'Trabajador Completó Descargos - Proceso ' . $proceso->codigo,
@@ -3004,7 +3025,7 @@ HTML;
         $estadoTextoCorto = match ($estado) {
             'descargos_realizados' => 'Descargos Completados',
             'descargos_no_realizados' => 'Descargos No Realizados',
-            default => ucfirst(str_replace('_', ' ', $estado)),
+            default => ucwords(str_replace('_', ' ', $estado)),
         };
 
         $this->enviarAvisoWhatsappEmpresa($empresa, [
@@ -3040,7 +3061,7 @@ HTML;
                 'terminacion' => 'Terminación de Contrato',
                 'multa' => 'Multa',
                 'no_sancion' => 'Sin Sanción',
-                default => ucfirst(str_replace('_', ' ', $impugnacion->nueva_sancion_tipo)),
+                default => ucwords(str_replace('_', ' ', $impugnacion->nueva_sancion_tipo)),
             };
         }
 
@@ -3051,7 +3072,7 @@ HTML;
             'terminacion' => 'Terminación de Contrato',
             'multa' => 'Multa',
             'no_sancion' => 'Sin Sanción',
-            default => ucfirst(str_replace('_', ' ', $proceso->tipo_sancion ?? 'N/A')),
+            default => ucwords(str_replace('_', ' ', $proceso->tipo_sancion ?? 'N/A')),
         };
 
         // Documento en Legal Design con el membrete de la empresa (logo, marca de agua y
@@ -3113,7 +3134,7 @@ HTML;
                 'suspension' => 'Suspensión Laboral',
                 'terminacion' => 'Terminación de Contrato',
                 'no_sancion' => 'Sin Sanción',
-                default => ucfirst(str_replace('_', ' ', $impugnacion->nueva_sancion_tipo)),
+                default => ucwords(str_replace('_', ' ', $impugnacion->nueva_sancion_tipo)),
             };
         }
 
@@ -3268,6 +3289,17 @@ HTML;
             ];
         }
 
+        // Selector de canal (pedido del usuario, 2026-10-26): respeta la
+        // elección de la empresa de no recibir por correo, SOLO si WhatsApp
+        // es una alternativa real configurada - nunca deja a la empresa sin
+        // ningún aviso. $correoOmitidoPorEleccion evita que el return final
+        // reporte "falla" cuando en realidad fue una elección deliberada
+        // (y el aviso por WhatsApp, más abajo, sí se envía igual).
+        $correoOmitidoPorEleccion = !($empresa->notificar_por_email ?? true) && $this->whatsappEmpresaDisponible($empresa);
+        if ($correoOmitidoPorEleccion) {
+            $clientes = collect();
+        }
+
         $enviados = 0;
         $errores = [];
 
@@ -3329,6 +3361,14 @@ HTML;
                 'success' => true,
                 'mensaje' => "Notificación enviada a {$enviados} destinatario(s)",
                 'enviados' => $enviados,
+            ];
+        }
+
+        if ($correoOmitidoPorEleccion) {
+            return [
+                'success' => true,
+                'mensaje' => 'La empresa eligió no recibir avisos por correo - se envió por WhatsApp.',
+                'enviados' => 0,
             ];
         }
 

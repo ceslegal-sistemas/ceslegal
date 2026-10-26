@@ -97,7 +97,7 @@ class IAResolucionImpugnacionService
             'suspension' => 'Suspensión Laboral' . ($proceso->dias_suspension ? " de {$proceso->dias_suspension} día(s)" : ''),
             'terminacion' => 'Terminación de Contrato',
             'multa' => 'Multa',
-            default => ucfirst(str_replace('_', ' ', $proceso->tipo_sancion ?? 'N/A')),
+            default => ucwords(str_replace('_', ' ', $proceso->tipo_sancion ?? 'N/A')),
         };
 
         // Pruebas que el trabajador adjuntó a la impugnación (solo nombres: el análisis es del texto).

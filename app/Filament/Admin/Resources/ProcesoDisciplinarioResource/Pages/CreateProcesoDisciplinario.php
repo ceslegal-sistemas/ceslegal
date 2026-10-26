@@ -2069,6 +2069,13 @@ class CreateProcesoDisciplinario extends CreateRecord
             $data['empresa_id'] = auth()->user()?->empresa_id;
         }
 
+        // IP de quien genera la citación (pedido del usuario, 2026-10-22,
+        // para trazabilidad probatoria ante una eventual audiencia) - mismo
+        // patrón ya usado en exoneracion_ip/disclaimer_datos_autorizador_ip:
+        // capturado en el momento exacto de la declaración/firma, nunca
+        // escrito a mano por el usuario.
+        $data['citante_ip'] = request()->ip();
+
         // Generación automática de "hechos" si el usuario nunca presionó el
         // botón manual "Generar redacción con IA" (bug real reportado por el
         // usuario, 2026-10-14: creó un proceso escribiendo el hecho crudo en

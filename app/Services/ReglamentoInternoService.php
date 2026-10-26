@@ -298,7 +298,7 @@ class ReglamentoInternoService
                         })(),
                         'terminacion' => 'Terminación del contrato con justa causa',
                         'no_sancion' => 'No aplica sanción',
-                        default => ucfirst(str_replace('_', ' ', (string) $tipo)),
+                        default => ucwords(str_replace('_', ' ', (string) $tipo)),
                     };
                 }
 

@@ -289,7 +289,14 @@ class EquivalenteFuncional extends Page implements HasTable
 
                 Tables\Columns\TextColumn::make('estado')
                     ->label('Estado del proceso')
-                    ->badge(),
+                    ->badge()
+                    ->formatStateUsing(fn(string $state) => ucwords(str_replace('_', ' ', $state))),
+
+                Tables\Columns\TextColumn::make('citante_ip')
+                    ->label('IP de quien citó')
+                    ->toggleable()
+                    ->placeholder('-')
+                    ->copyable(),
 
                 Tables\Columns\IconColumn::make('foto_citante_path')
                     ->label('Foto')

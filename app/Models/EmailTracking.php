@@ -177,7 +177,7 @@ class EmailTracking extends Model
             'recordatorio_descargos'          => 'Recordatorio de Descargos',
             'descargos_no_realizados_empleador' => 'Descargos No Realizados',
             'resolucion_impugnacion'          => 'Resolución de Impugnación',
-            default                           => ucfirst(str_replace('_', ' ', $this->tipo_documento ?? '')),
+            default                           => ucwords(str_replace('_', ' ', $this->tipo_documento ?? '')),
         };
     }
 }

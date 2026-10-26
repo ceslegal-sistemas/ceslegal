@@ -235,6 +235,20 @@
                             </span>
                         </label>
 
+                        {{-- Selector explícito de canal de notificación (pedido del
+                             usuario, 2026-10-26): antes el correo era "garantizado"
+                             en silencio sin que el trabajador lo eligiera - ahora
+                             se muestra como una preferencia real, igual que
+                             WhatsApp, y puede marcar uno, el otro o ambos a la vez
+                             sin ningún problema. --}}
+                        <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                            <input type="checkbox" wire:model="emailOptIn"
+                                class="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 flex-shrink-0" />
+                            <span class="text-sm text-gray-700">
+                                Quiero recibir mi código y la citación por correo electrónico.
+                            </span>
+                        </label>
+
                         @if ($trabajador->telefono)
                             <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
                                 <input type="checkbox" wire:model="whatsappOptIn"

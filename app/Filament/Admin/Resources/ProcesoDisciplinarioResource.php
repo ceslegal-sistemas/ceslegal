@@ -1325,7 +1325,7 @@ class ProcesoDisciplinarioResource extends Resource
         ];
 
         $opciones[$tipoSancionActual] = $etiquetasSancion[$tipoSancionActual]
-            ?? ucfirst(str_replace('_', ' ', $tipoSancionActual));
+            ?? ucwords(str_replace('_', ' ', $tipoSancionActual));
 
         return $opciones;
     }
@@ -3389,7 +3389,7 @@ class ProcesoDisciplinarioResource extends Resource
                             'suspension' => 'Suspensión Laboral' . ($record->dias_suspension ? " de {$record->dias_suspension} día(s)" : ''),
                             'terminacion' => 'Terminación de Contrato',
                             'no_sancion' => 'Sin Sanción',
-                            default => ucfirst(str_replace('_', ' ', $record->tipo_sancion ?? 'N/A')),
+                            default => ucwords(str_replace('_', ' ', $record->tipo_sancion ?? 'N/A')),
                         };
 
                         return [
@@ -4013,30 +4013,38 @@ class ProcesoDisciplinarioResource extends Resource
                         Infolists\Components\TextEntry::make('estado')
                             ->label('Estado')
                             ->badge()
+                            // Bug real encontrado (2026-10-22): este formateador tenía
+                            // claves inventadas ('abierto', 'citado', 'impugnado') que
+                            // NUNCA coinciden con los valores reales que escribe
+                            // EstadoProcesoService::TRANSICIONES_VALIDAS ('apertura',
+                            // 'impugnacion_realizada' - 'citado' no existe en absoluto) -
+                            // cualquier proceso en 'impugnacion_realizada' caía al
+                            // default => ucfirst($state) y se mostraba literalmente
+                            // "Impugnacion_realizada". Alineado con las mismas etiquetas
+                            // ya usadas (y correctas) en la columna de la tabla de este
+                            // mismo Resource, línea ~1443.
                             ->formatStateUsing(fn($state) => match ($state) {
-                                'abierto'                  => 'Abierto',
-                                'citado'                   => 'Citado',
-                                'descargos_pendientes'     => 'Descargos Pendientes',
-                                'descargos_realizados'     => 'Descargos Realizados',
+                                'apertura'                 => 'Apertura',
+                                'descargos_pendientes'     => 'Descargo Pendiente',
+                                'descargos_realizados'     => 'Descargo Realizado',
                                 'descargos_parcial'        => 'Descargo Parcial',
-                                'descargos_no_realizados'  => 'Sin Descargos',
+                                'descargos_no_realizados'  => 'Descargo No Realizado',
                                 'sancion_emitida'          => 'Sanción Emitida',
-                                'impugnado'                => 'Impugnado',
+                                'impugnacion_realizada'    => 'Impugnación Realizada',
                                 'cerrado'                  => 'Cerrado',
                                 'archivado'                => 'Archivado',
-                                default                    => ucfirst($state),
+                                default                    => ucwords(str_replace('_', ' ', (string) $state)),
                             })
                             ->color(fn($state) => match ($state) {
-                                'abierto'                  => 'warning',
-                                'citado'                   => 'info',
+                                'apertura'                 => 'gray',
                                 'descargos_pendientes'     => 'warning',
-                                'descargos_realizados'     => 'success',
+                                'descargos_realizados'     => 'info',
                                 'descargos_parcial'        => 'warning',
                                 'descargos_no_realizados'  => 'danger',
-                                'sancion_emitida'          => 'danger',
-                                'impugnado'                => 'warning',
+                                'sancion_emitida'          => 'primary',
+                                'impugnacion_realizada'    => 'danger',
                                 'cerrado'                  => 'success',
-                                'archivado'                => 'gray',
+                                'archivado'                => 'secondary',
                                 default                    => 'gray',
                             }),
 

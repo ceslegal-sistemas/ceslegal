@@ -318,7 +318,7 @@ class EditEmpresa extends EditRecord
 
                                 Forms\Components\Toggle::make('notificar_por_whatsapp')
                                     ->label('Recibir avisos del sistema por WhatsApp a este número')
-                                    ->helperText('Ej. cuando un trabajador no entiende el Reglamento Interno después de dos intentos. El correo de contacto sigue recibiendo todos los avisos de todas formas.')
+                                    ->helperText('Ej. cuando un trabajador no entiende el Reglamento Interno después de dos intentos.')
                                     ->visible(fn (Get $get) => filled($get('telefono')))
                                     ->columnSpanFull(),
 
@@ -329,6 +329,24 @@ class EditEmpresa extends EditRecord
                                     ->placeholder('contacto@empresa.com')
                                     ->helperText('Correo electrónico principal')
                                     ->suffixIcon('heroicon-o-envelope'),
+
+                                // Selector explícito de canal (pedido del usuario,
+                                // 2026-10-26): antes el correo era "garantizado" en
+                                // silencio sin que la empresa lo eligiera - ahora
+                                // es una preferencia real, igual que WhatsApp,
+                                // puede activar uno, el otro o ambos. Se envía al
+                                // correo de cada usuario cliente de la empresa
+                                // (no a email_contacto - por eso NO se condiciona
+                                // su visibilidad a ese campo). Si desactiva ambos
+                                // (o WhatsApp nunca quedó disponible),
+                                // DocumentGeneratorService sigue enviando el
+                                // correo de todas formas como respaldo - nunca
+                                // deja a la empresa sin ningún aviso.
+                                Forms\Components\Toggle::make('notificar_por_email')
+                                    ->label('Recibir avisos del sistema por correo (a cada usuario de la empresa)')
+                                    ->helperText('Ej. cuando un trabajador no entiende el Reglamento Interno después de dos intentos, o no realiza sus descargos.')
+                                    ->default(true)
+                                    ->columnSpanFull(),
 
                                 Forms\Components\Textarea::make('direccion')
                                     ->label('Dirección')

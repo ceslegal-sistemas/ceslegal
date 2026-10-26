@@ -25,6 +25,7 @@ class Empresa extends Model
         'direccion',
         'telefono',
         'notificar_por_whatsapp',
+        'notificar_por_email',
         'whatsapp_consentimiento_en',
         'whatsapp_consentimiento_ip',
         'email_contacto',
@@ -122,6 +123,7 @@ class Empresa extends Model
         'dias_habiles' => 'array',
         'numero_empleados' => 'integer',
         'notificar_por_whatsapp' => 'boolean',
+        'notificar_por_email' => 'boolean',
         'whatsapp_consentimiento_en' => 'datetime',
     ];
 

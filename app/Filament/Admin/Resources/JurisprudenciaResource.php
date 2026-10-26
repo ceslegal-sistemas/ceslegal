@@ -86,7 +86,10 @@ class JurisprudenciaResource extends Resource
                 Tables\Columns\TextColumn::make('fecha')->label('Fecha')->date('Y-m-d')->sortable()->toggleable(),
                 Tables\Columns\TextColumn::make('estado')->label('Estado')->badge()->colors([
                     'success' => 'procesado', 'warning' => 'procesando', 'danger' => 'error', 'gray' => 'pendiente',
-                ]),
+                ])->formatStateUsing(fn (string $state) => match ($state) {
+                    'pendiente' => 'Pendiente', 'procesando' => 'Procesando', 'procesado' => 'Procesado', 'error' => 'Error',
+                    default => ucfirst($state),
+                }),
                 Tables\Columns\ToggleColumn::make('activo')->label('Activa'),
                 Tables\Columns\TextColumn::make('total_palabras')->label('Palabras')->numeric()->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')->label('Actualizado')->since()->sortable(),

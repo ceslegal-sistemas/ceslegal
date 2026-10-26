@@ -45,6 +45,12 @@ class SolicitudCambioEmpresaResource extends Resource
 
                 Tables\Columns\TextColumn::make('estado')
                     ->badge()
+                    ->formatStateUsing(fn(string $state) => match ($state) {
+                        'pendiente' => 'Pendiente',
+                        'aprobada' => 'Aprobada',
+                        'rechazada' => 'Rechazada',
+                        default => ucfirst($state),
+                    })
                     ->color(fn(string $state) => match ($state) {
                         'pendiente' => 'warning',
                         'aprobada' => 'success',

@@ -11,6 +11,7 @@ use App\Models\Empresa;
 use App\Models\Impugnacion;
 use App\Models\EventoEquivalenteFuncional;
 use App\Models\ProcesoDisciplinario;
+use App\Models\PublicacionReglamentoInterno;
 use App\Models\Trabajador;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -55,6 +56,7 @@ class EquivalenteFuncionalService
         'rit_culminacion' => 'Culminación de la socialización del Reglamento',
         'rit_auditoria' => 'Declaración de autoridad en la auditoría del Reglamento',
         'impugnacion_trabajador' => 'Impugnación presentada por el trabajador',
+        'rit_publicacion' => 'Confirmación de publicación del Reglamento',
     ];
 
     /** Qué significa cada columna d1/d2/d3 según el tipo de evento (null = no se usa). */
@@ -69,6 +71,7 @@ class EquivalenteFuncionalService
         'rit_culminacion' => ['Huella del texto', null, null],
         'rit_auditoria' => ['Documento del responsable', 'Declaró tener autoridad para aceptar', null],
         'impugnacion_trabajador' => ['Radicado', 'Identidad verificada por código (OTP)', null],
+        'rit_publicacion' => ['Huella del texto', null, null],
     ];
 
     public function tipos(): array
@@ -278,6 +281,7 @@ class EquivalenteFuncionalService
                     'fecha' => 'COALESCE(procesos_disciplinarios.foto_citante_en, procesos_disciplinarios.created_at)',
                     'actor_nombre' => 'procesos_disciplinarios.citante_nombre',
                     'actor_cargo' => 'procesos_disciplinarios.citante_cargo',
+                    'ip' => 'procesos_disciplinarios.citante_ip',
                     'tiene_selfie' => $conSelfie('procesos_disciplinarios.foto_citante_path'),
                     'd1' => 'procesos_disciplinarios.estado',
                 ]),
@@ -352,6 +356,40 @@ class EquivalenteFuncionalService
                     'd1' => $this->texto('aceptaciones_reglamento_interno.quiz_resultado'),
                     'd2' => 'aceptaciones_reglamento_interno.texto_rit_hash',
                     'd3' => 'aceptaciones_reglamento_interno.ruta_acta',
+                ],
+            ),
+
+            // Fase 1 (Publicación) del RIT: evidencia LIGERA de que el
+            // trabajador confirmó haber sido informado de la publicación -
+            // distinta de rit_aceptacion (Fase 2, evidencia jurídica
+            // fuerte con quiz/foto/PDF). Pedido explícito del usuario
+            // (2026-10-26): la trazabilidad de la publicación del RIT
+            // faltaba en este reporte - la tabla publicaciones_reglamento_interno
+            // ya existía con hash+IP+user_agent+fecha, solo faltaba
+            // conectarla aquí. Ver App\Models\PublicacionReglamentoInterno.
+            'rit_publicacion' => $this->seleccion(
+                PublicacionReglamentoInterno::query()
+                    ->join('trabajadores as t', 't.id', '=', 'publicaciones_reglamento_interno.trabajador_id')
+                    ->join('reglamentos_internos as r', 'r.id', '=', 'publicaciones_reglamento_interno.reglamento_interno_id')
+                    ->leftJoin('empresas as e', 'e.id', '=', 't.empresa_id')
+                    ->whereIn('publicaciones_reglamento_interno.trabajador_id', $trabajadores()),
+                [
+                    'uid' => $this->concat(["'rit_publicacion-'", 'publicaciones_reglamento_interno.id']),
+                    'tipo' => "'rit_publicacion'",
+                    'id_origen' => 'publicaciones_reglamento_interno.id',
+                    'fecha' => 'publicaciones_reglamento_interno.confirmado_en',
+                    'proceso_clave' => $rit('r'),
+                    'proceso_extra' => $this->concat(["'versión '", 'r.version']),
+                    'ref_trabajador' => 't.id',
+                    'actor_nombre' => $this->concat(['t.nombres', "' '", 't.apellidos']),
+                    'actor_cargo' => 't.cargo',
+                    'sujeto_nombre' => $this->concat(['t.nombres', "' '", 't.apellidos']),
+                    'sujeto_documento' => 't.numero_documento',
+                    'empresa_nombre' => 'e.razon_social',
+                    'ip' => 'publicaciones_reglamento_interno.ip',
+                    'dispositivo' => $this->texto('publicaciones_reglamento_interno.user_agent'),
+                    'tiene_selfie' => '0',
+                    'd1' => 'publicaciones_reglamento_interno.texto_rit_hash',
                 ],
             ),
 

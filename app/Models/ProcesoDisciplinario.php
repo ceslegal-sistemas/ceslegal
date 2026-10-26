@@ -71,6 +71,7 @@ class ProcesoDisciplinario extends Model
         'disclaimer_datos_autorizador_ip',
         'citante_nombre',
         'citante_cargo',
+        'citante_ip',
         'foto_citante_path',
         'foto_citante_en',
         'validaciones_v6_estado',
