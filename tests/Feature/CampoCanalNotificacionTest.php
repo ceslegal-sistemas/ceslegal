@@ -13,12 +13,13 @@ use Tests\TestCase;
 /**
  * Pedido del usuario (2026-10-26): selector de canal (correo/WhatsApp) en
  * los puntos de notificación del proceso disciplinario, vía
- * ProcesoDisciplinarioResource::campoCanalNotificacion() (protected, se
- * invoca por reflexión) - CheckboxList nativo de Filament, sin estilos
- * personalizados (pedido explícito del usuario, 2026-10-27: "hazlo con el
- * checkbox nativo de filament"). Cubre la lógica: opciones según si el
- * trabajador tiene teléfono, y WhatsApp deshabilitado cuando aún no hay
- * plantilla aprobada por Meta - caso real de "Enlace de impugnación".
+ * ProcesoDisciplinarioResource::camposCanalNotificacion() (protected, se
+ * invoca por reflexión). Pedido explícito del usuario, 2026-10-27: "cambia
+ * el checkbox por el toggle de activar o desactivar" - dos Toggle nativos
+ * de Filament ('canal_email'/'canal_whatsapp') en vez de un CheckboxList.
+ * Cubre la lógica: campos según si el trabajador tiene teléfono, y
+ * WhatsApp deshabilitado cuando aún no hay plantilla aprobada por Meta -
+ * caso real de "Enlace de impugnación".
  */
 class CampoCanalNotificacionTest extends TestCase
 {
@@ -55,44 +56,48 @@ class CampoCanalNotificacionTest extends TestCase
         ]);
     }
 
-    private function invocarHelper(ProcesoDisciplinario $proceso, string $label = 'Enviar por', ?string $whatsappPendienteMensaje = null)
+    /** @return array<\Filament\Forms\Components\Toggle> */
+    private function invocarHelper(ProcesoDisciplinario $proceso, string $label = 'Enviar por', ?string $whatsappPendienteMensaje = null): array
     {
-        $metodo = new \ReflectionMethod(ProcesoDisciplinarioResource::class, 'campoCanalNotificacion');
+        $metodo = new \ReflectionMethod(ProcesoDisciplinarioResource::class, 'camposCanalNotificacion');
         $metodo->setAccessible(true);
 
         return $metodo->invoke(null, $proceso, $label, $whatsappPendienteMensaje);
     }
 
-    public function test_helper_arma_las_dos_opciones_de_texto_plano(): void
+    public function test_helper_arma_los_dos_toggles(): void
     {
         $proceso = $this->proceso();
 
-        $campo = $this->invocarHelper($proceso, 'Enviar por');
+        $campos = $this->invocarHelper($proceso, 'Enviar por');
 
-        $this->assertSame(['email', 'whatsapp'], array_keys($campo->getOptions()));
-        $this->assertStringContainsString('carlos@test.com', $campo->getOptions()['email']);
-        $this->assertStringContainsString('3001112233', $campo->getOptions()['whatsapp']);
+        $this->assertCount(2, $campos);
+        $this->assertSame('canal_email', $campos[0]->getName());
+        $this->assertSame('canal_whatsapp', $campos[1]->getName());
+        $this->assertStringContainsString('carlos@test.com', $campos[0]->getHelperText());
+        $this->assertStringContainsString('3001112233', $campos[1]->getHelperText());
+        $this->assertTrue($campos[0]->getDefaultState());
     }
 
     public function test_helper_omite_whatsapp_si_el_trabajador_no_tiene_telefono(): void
     {
         $proceso = $this->proceso(['telefono' => null]);
 
-        $campo = $this->invocarHelper($proceso);
+        $campos = $this->invocarHelper($proceso);
 
-        $this->assertSame(['email'], array_keys($campo->getOptions()));
+        $this->assertCount(1, $campos);
+        $this->assertSame('canal_email', $campos[0]->getName());
     }
 
     public function test_whatsapp_pendiente_queda_visible_pero_deshabilitado(): void
     {
         $proceso = $this->proceso();
 
-        $campo = $this->invocarHelper($proceso, 'Enviar por', 'Pendiente de aprobación en Meta');
+        $campos = $this->invocarHelper($proceso, 'Enviar por', 'Pendiente de aprobación en Meta');
 
-        $this->assertSame(['email', 'whatsapp'], array_keys($campo->getOptions()));
-        $this->assertTrue($campo->isOptionDisabled('whatsapp', 'WhatsApp'));
-        $this->assertFalse($campo->isOptionDisabled('email', 'Correo'));
-        // No se marca por defecto una opción que el usuario no puede usar.
-        $this->assertSame(['email'], array_values($campo->getDefaultState() ?? []));
+        $this->assertCount(2, $campos);
+        $this->assertStringContainsString('Pendiente de aprobación en Meta', $campos[1]->getHelperText());
+        // No se marca activado por defecto un canal que el usuario no puede usar.
+        $this->assertFalse($campos[1]->getDefaultState());
     }
 }

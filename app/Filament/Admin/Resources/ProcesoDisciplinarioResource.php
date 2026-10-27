@@ -1812,11 +1812,9 @@ class ProcesoDisciplinarioResource extends Resource
                             ])
                             ->columns(2),
 
-                        // Selector de canal, con diseño de tarjeta (pedido del usuario,
-                        // 2026-10-26/27).
-                        Forms\Components\Group::make(fn(ProcesoDisciplinario $record) => [
-                            self::campoCanalNotificacion($record),
-                        ]),
+                        // Selector de canal, con toggles nativos de Filament (pedido del
+                        // usuario, 2026-10-26/27).
+                        Forms\Components\Group::make(fn(ProcesoDisciplinario $record) => self::camposCanalNotificacion($record)),
                     ])
                     ->fillForm(function (ProcesoDisciplinario $record): array {
                         $fecha = $record->fecha_descargos_programada;
@@ -1837,8 +1835,8 @@ class ProcesoDisciplinarioResource extends Resource
                         $record->save();
 
                         $canalesOverride = [
-                            'email' => in_array('email', $data['canales'] ?? [], true),
-                            'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                            'email' => (bool) ($data['canal_email'] ?? false),
+                            'whatsapp' => (bool) ($data['canal_whatsapp'] ?? false),
                         ];
 
                         $service = new \App\Services\DocumentGeneratorService();
@@ -1890,13 +1888,11 @@ class ProcesoDisciplinarioResource extends Resource
                         ) .
                             "Se generará la citación a descargos y se enviará al trabajador por el o los canales que elija abajo."
                     )
-                    // Selector de canal, con diseño de tarjeta (pedido del usuario,
-                    // 2026-10-26/27) - precargado con la preferencia guardada del
-                    // trabajador, pero editable solo para este envío puntual (no se
+                    // Selector de canal, con toggles nativos de Filament (pedido del
+                    // usuario, 2026-10-26/27) - precargado con la preferencia guardada
+                    // del trabajador, pero editable solo para este envío puntual (no se
                     // persiste el cambio).
-                    ->form(fn(ProcesoDisciplinario $record) => [
-                        self::campoCanalNotificacion($record),
-                    ])
+                    ->form(fn(ProcesoDisciplinario $record) => self::camposCanalNotificacion($record))
                     ->modalSubmitActionLabel('Generar y Enviar Citación')
                     ->modalCancelActionLabel('Cancelar')
                     ->modalWidth('md')
@@ -1909,8 +1905,8 @@ class ProcesoDisciplinarioResource extends Resource
                     )
                     ->action(function (ProcesoDisciplinario $record, array $data) {
                         $canalesOverride = [
-                            'email' => in_array('email', $data['canales'] ?? [], true),
-                            'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                            'email' => (bool) ($data['canal_email'] ?? false),
+                            'whatsapp' => (bool) ($data['canal_whatsapp'] ?? false),
                         ];
 
                         $service = new \App\Services\DocumentGeneratorService();
@@ -1996,11 +1992,9 @@ class ProcesoDisciplinarioResource extends Resource
                             ])
                             ->columns(2),
 
-                        // Selector de canal, con diseño de tarjeta (pedido del usuario,
-                        // 2026-10-26/27).
-                        Forms\Components\Group::make(fn(ProcesoDisciplinario $record) => [
-                            self::campoCanalNotificacion($record),
-                        ]),
+                        // Selector de canal, con toggles nativos de Filament (pedido del
+                        // usuario, 2026-10-26/27).
+                        Forms\Components\Group::make(fn(ProcesoDisciplinario $record) => self::camposCanalNotificacion($record)),
                     ])
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
@@ -2063,8 +2057,8 @@ class ProcesoDisciplinarioResource extends Resource
 
                         // 5. Re-enviar la citación con el PDF existente (sin regenerar), por el canal elegido
                         $canalesOverride = [
-                            'email' => in_array('email', $data['canales'] ?? [], true),
-                            'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                            'email' => (bool) ($data['canal_email'] ?? false),
+                            'whatsapp' => (bool) ($data['canal_whatsapp'] ?? false),
                         ];
 
                         $emailEnviado = false;
@@ -2649,9 +2643,9 @@ class ProcesoDisciplinarioResource extends Resource
                                 // el error de "requerido" no se mostraría al usuario.
                                 Forms\Components\Hidden::make('foto_autorizador_base64'),
 
-                                // Selector de canal, con diseño de tarjeta (pedido del usuario,
-                                // 2026-10-26/27).
-                                self::campoCanalNotificacion($record, 'Notificar la sanción al trabajador por'),
+                                // Selector de canal, con toggles nativos de Filament (pedido del
+                                // usuario, 2026-10-26/27).
+                                ...self::camposCanalNotificacion($record, 'Notificar la sanción al trabajador por'),
 
                                 // Botones del Paso 3 (Cancelar / Volver a Decisión / Continuar):
                                 // viven DENTRO de este bloque, no en el footer nativo del modal,
@@ -2867,8 +2861,8 @@ class ProcesoDisciplinarioResource extends Resource
                         }
 
                         $canalesOverride = [
-                            'email' => in_array('email', $data['canales'] ?? [], true),
-                            'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                            'email' => (bool) ($data['canal_email'] ?? false),
+                            'whatsapp' => (bool) ($data['canal_whatsapp'] ?? false),
                         ];
 
                         // Sin sanción: generar la constancia de cierre, enviarla al
@@ -2970,11 +2964,11 @@ class ProcesoDisciplinarioResource extends Resource
                                 ])
                                 ->description('Complete la información de la suspensión laboral'),
 
-                            // Selector de canal, con diseño de tarjeta (pedido del usuario,
-                            // 2026-10-26/27): este es el paso final antes de generar y enviar
-                            // la suspensión, tanto si viene de "Emitir Sanción" como de
-                            // "Re-generar Sanción".
-                            self::campoCanalNotificacion($record),
+                            // Selector de canal, con toggles nativos de Filament (pedido del
+                            // usuario, 2026-10-26/27): este es el paso final antes de generar
+                            // y enviar la suspensión, tanto si viene de "Emitir Sanción" como
+                            // de "Re-generar Sanción".
+                            ...self::camposCanalNotificacion($record),
                         ];
                     })
                     ->modalHeading('Confirmar Días de Suspensión')
@@ -2997,8 +2991,8 @@ class ProcesoDisciplinarioResource extends Resource
 
                             // Generar y enviar sanción (en cola, ver GenerarYEnviarSancionJob)
                             $canalesOverride = [
-                                'email' => in_array('email', $data['canales'] ?? [], true),
-                                'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                                'email' => (bool) ($data['canal_email'] ?? false),
+                                'whatsapp' => (bool) ($data['canal_whatsapp'] ?? false),
                             ];
 
                             $record->update(['emision_sancion_estado' => 'procesando']);
@@ -3146,26 +3140,24 @@ class ProcesoDisciplinarioResource extends Resource
                         'limite' => $record->limiteImpugnacion(),
                     ]))
                     ->modalWidth('2xl')
-                    // Selector de canal, con diseño de tarjeta (pedido del usuario,
-                    // 2026-10-27: agregarlo también aquí). WhatsApp queda visible pero
-                    // deshabilitado ("Próximamente") hasta que exista la plantilla
+                    // Selector de canal, con toggles nativos de Filament (pedido del
+                    // usuario, 2026-10-27: agregarlo también aquí). WhatsApp queda visible
+                    // pero deshabilitado ("Próximamente") hasta que exista la plantilla
                     // whatsapp_plantilla_enlace_impugnacion_nombre - configurable en
                     // ConfiguracionWhatsapp una vez Meta la apruebe.
-                    ->form(fn(ProcesoDisciplinario $record) => [
-                        self::campoCanalNotificacion(
-                            $record,
-                            'Enviar por',
-                            empty(\App\Models\Configuracion::obtener('whatsapp_plantilla_enlace_impugnacion_nombre'))
-                                ? 'Pendiente de aprobación en Meta'
-                                : null,
-                        ),
-                    ])
+                    ->form(fn(ProcesoDisciplinario $record) => self::camposCanalNotificacion(
+                        $record,
+                        'Enviar por',
+                        empty(\App\Models\Configuracion::obtener('whatsapp_plantilla_enlace_impugnacion_nombre'))
+                            ? 'Pendiente de aprobación en Meta'
+                            : null,
+                    ))
                     ->modalSubmitActionLabel('Reenviar al trabajador')
                     ->modalCancelActionLabel('Cerrar')
                     ->action(function (ProcesoDisciplinario $record, array $data) {
                         $canalesOverride = [
-                            'email' => in_array('email', $data['canales'] ?? [], true),
-                            'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                            'email' => (bool) ($data['canal_email'] ?? false),
+                            'whatsapp' => (bool) ($data['canal_whatsapp'] ?? false),
                         ];
 
                         try {
@@ -3522,11 +3514,11 @@ class ProcesoDisciplinarioResource extends Resource
                                         ->helperText('Este texto se incluirá en el documento de resolución. Viene precargado con la sugerencia de la IA: revíselo y ajústelo; la decisión es de su empresa.'),
                                 ]),
 
-                            // Selector de canal, con diseño de tarjeta (pedido del usuario,
-                            // 2026-10-26/27). Si la decisión es "modifica_sancion" a
+                            // Selector de canal, con toggles nativos de Filament (pedido del
+                            // usuario, 2026-10-26/27). Si la decisión es "modifica_sancion" a
                             // suspensión, este envío no ocurre aquí sino en "Confirmar Días -
                             // Resolución", que pide el canal ahí mismo.
-                            self::campoCanalNotificacion($record, 'Notificar la resolución al trabajador por'),
+                            ...self::camposCanalNotificacion($record, 'Notificar la resolución al trabajador por'),
                         ];
                     })
                     ->modalHeading('Resolver Impugnación')
@@ -3596,8 +3588,8 @@ class ProcesoDisciplinarioResource extends Resource
                                 ]);
 
                                 $canalesOverride = [
-                                    'email' => in_array('email', $data['canales'] ?? [], true),
-                                    'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                                    'email' => (bool) ($data['canal_email'] ?? false),
+                                    'whatsapp' => (bool) ($data['canal_whatsapp'] ?? false),
                                 ];
 
                                 $documentService->enviarResolucionImpugnacionPorEmail(
@@ -3678,12 +3670,10 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->helperText('Días de suspensión sin remuneración según la gravedad de la falta'),
                             ]),
 
-                        // Selector de canal, con diseño de tarjeta (pedido del usuario,
-                        // 2026-10-26/27): paso final antes de generar y enviar la
+                        // Selector de canal, con toggles nativos de Filament (pedido del
+                        // usuario, 2026-10-26/27): paso final antes de generar y enviar la
                         // resolución con la nueva suspensión.
-                        Forms\Components\Group::make(fn(ProcesoDisciplinario $record) => [
-                            self::campoCanalNotificacion($record, 'Notificar la resolución al trabajador por'),
-                        ]),
+                        Forms\Components\Group::make(fn(ProcesoDisciplinario $record) => self::camposCanalNotificacion($record, 'Notificar la resolución al trabajador por')),
                     ])
                     ->modalHeading('Confirmar Días de Suspensión')
                     ->modalDescription('Seleccione los días de suspensión para completar la resolución de la impugnación')
@@ -3736,8 +3726,8 @@ class ProcesoDisciplinarioResource extends Resource
                                 ]);
 
                                 $canalesOverride = [
-                                    'email' => in_array('email', $data['canales'] ?? [], true),
-                                    'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                                    'email' => (bool) ($data['canal_email'] ?? false),
+                                    'whatsapp' => (bool) ($data['canal_whatsapp'] ?? false),
                                 ];
 
                                 $documentService->enviarResolucionImpugnacionPorEmail(
@@ -3889,11 +3879,11 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->default($recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null)
                                     ->helperText('Seleccione la sanción que considere más apropiada.'),
 
-                                // Selector de canal, con diseño de tarjeta (pedido del usuario,
-                                // 2026-10-26/27). Solo aplica si la sanción elegida no es
-                                // 'suspension' - esa continúa en "Confirmar Días de Suspensión",
-                                // que pide el canal ahí mismo.
-                                self::campoCanalNotificacion($record),
+                                // Selector de canal, con toggles nativos de Filament (pedido del
+                                // usuario, 2026-10-26/27). Solo aplica si la sanción elegida no
+                                // es 'suspension' - esa continúa en "Confirmar Días de
+                                // Suspensión", que pide el canal ahí mismo.
+                                ...self::camposCanalNotificacion($record),
                             ];
                         })
                         ->requiresConfirmation()
@@ -3936,8 +3926,8 @@ class ProcesoDisciplinarioResource extends Resource
                             }
 
                             $canalesOverride = [
-                                'email' => in_array('email', $data['canales'] ?? [], true),
-                                'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                                'email' => (bool) ($data['canal_email'] ?? false),
+                                'whatsapp' => (bool) ($data['canal_whatsapp'] ?? false),
                             ];
 
                             try {
@@ -4413,35 +4403,58 @@ class ProcesoDisciplinarioResource extends Resource
      * - se deja la UI lista para cuando exista, sin tener que rediseñar
      * nada después).
      */
-    protected static function campoCanalNotificacion(
+    /**
+     * @return array<\Filament\Forms\Components\Component>
+     */
+    protected static function camposCanalNotificacion(
         ProcesoDisciplinario $record,
         string $label = 'Enviar por',
         ?string $whatsappPendienteMensaje = null,
-    ): Forms\Components\CheckboxList {
+    ): array {
         $trabajador = $record->trabajador;
         $tieneTelefono = (bool) $trabajador->telefono;
         $whatsappDeshabilitado = $whatsappPendienteMensaje !== null;
 
-        $opciones = [
-            'email' => 'Correo' . ($trabajador->email ? " ({$trabajador->email})" : ' (sin correo registrado)'),
+        // Validación cruzada (pedido del usuario, 2026-10-26: elegir al menos
+        // un canal) - cada toggle revisa el estado del otro al momento de
+        // enviar. Solo tiene sentido cuando existen ambos; si el trabajador
+        // no tiene teléfono, correo es la única opción y no hay nada que
+        // cruzar.
+        $reglaAlMenosUno = function (string $otroCampo) {
+            return function (Forms\Get $get) use ($otroCampo) {
+                return function (string $attribute, $value, \Closure $fail) use ($get, $otroCampo) {
+                    if (!$value && !$get($otroCampo)) {
+                        $fail('Elija al menos un canal de envío.');
+                    }
+                };
+            };
+        };
+
+        $campos = [
+            Forms\Components\Toggle::make('canal_email')
+                ->label($label)
+                ->onIcon('heroicon-m-envelope')
+                ->offIcon('heroicon-m-envelope')
+                ->helperText('Correo' . ($trabajador->email ? " ({$trabajador->email})" : ' (sin correo registrado)'))
+                ->default(true),
         ];
 
         if ($tieneTelefono) {
-            $opciones['whatsapp'] = $whatsappDeshabilitado
-                ? "WhatsApp ({$whatsappPendienteMensaje})"
-                : "WhatsApp ({$trabajador->telefono})";
+            $campos[0]->rule($reglaAlMenosUno('canal_whatsapp'));
+
+            $campos[] = Forms\Components\Toggle::make('canal_whatsapp')
+                ->hiddenLabel()
+                ->onIcon('heroicon-m-chat-bubble-left-right')
+                ->offIcon('heroicon-m-chat-bubble-left-right')
+                ->helperText($whatsappDeshabilitado
+                    ? "WhatsApp - {$whatsappPendienteMensaje}"
+                    : "WhatsApp ({$trabajador->telefono})")
+                ->default($trabajador->notificar_por_whatsapp && !$whatsappDeshabilitado)
+                ->disabled($whatsappDeshabilitado)
+                ->rule($reglaAlMenosUno('canal_email'));
         }
 
-        return Forms\Components\CheckboxList::make('canales')
-            ->label($label)
-            ->options($opciones)
-            ->disableOptionWhen(fn (string $value): bool => $value === 'whatsapp' && $whatsappDeshabilitado)
-            ->default(array_filter([
-                'email',
-                $trabajador->notificar_por_whatsapp && $tieneTelefono && !$whatsappDeshabilitado ? 'whatsapp' : null,
-            ]))
-            ->required()
-            ->validationMessages(['required' => 'Elija al menos un canal de envío.']);
+        return $campos;
     }
 
     protected static function getCargos(): array
