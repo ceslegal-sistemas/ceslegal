@@ -17,7 +17,20 @@ echo "==> 1/8  git pull"
 git pull
 
 echo "==> 2/8  composer install (--no-dev)"
-COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader
+# --no-scripts: este host (Hostinger, tras pasar a PHP 8.5.12 para el parche
+# del CVE-2026-109618/109619) tiene proc_open deshabilitado - cualquier
+# script "@php ..." de composer.json (post-autoload-dump: el mkdir del
+# directorio de filament-notification-sound, package:discover,
+# filament:upgrade) revienta con "The Process class relies on proc_open"
+# porque Composer necesita spawnear un subproceso para ejecutarlos, aunque
+# el comando en sí sea trivial. Se saltan esos scripts y se corren sus
+# equivalentes como pasos normales de este bash script (no via proc_open).
+COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader --no-scripts
+
+echo "    (recreando lo que el post-autoload-dump de composer.json haría)"
+mkdir -p vendor/moataz-01/filament-notification-sound/resources/views
+php artisan package:discover --ansi
+php artisan filament:upgrade
 
 echo "==> 3/8  build de assets (Vite/Tailwind)"
 # Sin esto, public/build/manifest.json no existe - cualquier vista con
@@ -42,8 +55,9 @@ echo "==> 4/8  migraciones"
 php artisan migrate --force
 
 echo "==> 5/8  limpiar y recachear"
-# Salvaguarda: algunos hosts no ejecutan el hook de composer que crea esta carpeta
-# (el paquete filament-notification-sound la necesita o falla el view:cache).
+# Salvaguarda redundante (ya se crea justo después de composer install,
+# paso 2/8) - mkdir -p es gratis y no hace daño repetirlo aquí si algún día
+# se reordena el script.
 mkdir -p vendor/moataz-01/filament-notification-sound/resources/views
 php artisan optimize:clear
 php artisan optimize
