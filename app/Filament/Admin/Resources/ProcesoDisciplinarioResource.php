@@ -4423,27 +4423,18 @@ class ProcesoDisciplinarioResource extends Resource
         $whatsappDeshabilitado = $whatsappPendienteMensaje !== null;
 
         $opciones = [
-            'email' => view('filament.components.canal-opcion-checkbox', [
-                'canal' => 'email',
-                'titulo' => 'Correo',
-                'detalle' => $trabajador->email ?: 'Sin correo registrado',
-            ])->render(),
+            'email' => 'Correo' . ($trabajador->email ? " ({$trabajador->email})" : ' (sin correo registrado)'),
         ];
 
         if ($tieneTelefono) {
-            $opciones['whatsapp'] = view('filament.components.canal-opcion-checkbox', [
-                'canal' => 'whatsapp',
-                'titulo' => 'WhatsApp',
-                'detalle' => $whatsappDeshabilitado ? $whatsappPendienteMensaje : $trabajador->telefono,
-                'pendiente' => $whatsappDeshabilitado,
-            ])->render();
+            $opciones['whatsapp'] = $whatsappDeshabilitado
+                ? "WhatsApp ({$whatsappPendienteMensaje})"
+                : "WhatsApp ({$trabajador->telefono})";
         }
 
         return Forms\Components\CheckboxList::make('canales')
             ->label($label)
             ->options($opciones)
-            ->allowHtml()
-            ->extraAttributes(['class' => 'canal-selector'])
             ->disableOptionWhen(fn (string $value): bool => $value === 'whatsapp' && $whatsappDeshabilitado)
             ->default(array_filter([
                 'email',

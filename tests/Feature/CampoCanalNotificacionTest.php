@@ -11,15 +11,16 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Pedido del usuario (2026-10-27): "hazle diseño, ponlos en checkbox" - el
- * CheckboxList plano de canal (correo/WhatsApp) se reemplaza por tarjetas
- * con icono vía ProcesoDisciplinarioResource::campoCanalNotificacion()
- * (protected, se invoca por reflexión). Cubre: el partial Blade compila sin
- * error, el helper arma las opciones correctas, y WhatsApp se puede marcar
- * "Próximamente" (deshabilitado) cuando aún no hay plantilla aprobada por
- * Meta - caso real de "Enlace de impugnación".
+ * Pedido del usuario (2026-10-26): selector de canal (correo/WhatsApp) en
+ * los puntos de notificación del proceso disciplinario, vía
+ * ProcesoDisciplinarioResource::campoCanalNotificacion() (protected, se
+ * invoca por reflexión) - CheckboxList nativo de Filament, sin estilos
+ * personalizados (pedido explícito del usuario, 2026-10-27: "hazlo con el
+ * checkbox nativo de filament"). Cubre la lógica: opciones según si el
+ * trabajador tiene teléfono, y WhatsApp deshabilitado cuando aún no hay
+ * plantilla aprobada por Meta - caso real de "Enlace de impugnación".
  */
-class CanalNotificacionDisenoTest extends TestCase
+class CampoCanalNotificacionTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -62,40 +63,15 @@ class CanalNotificacionDisenoTest extends TestCase
         return $metodo->invoke(null, $proceso, $label, $whatsappPendienteMensaje);
     }
 
-    public function test_el_partial_de_opcion_compila_y_muestra_icono_y_detalle(): void
-    {
-        $html = view('filament.components.canal-opcion-checkbox', [
-            'canal' => 'whatsapp',
-            'titulo' => 'WhatsApp',
-            'detalle' => '3001112233',
-        ])->render();
-
-        $this->assertStringContainsString('canal-opcion', $html);
-        $this->assertStringContainsString('WhatsApp', $html);
-        $this->assertStringContainsString('3001112233', $html);
-        $this->assertStringContainsString('<svg', $html);
-    }
-
-    public function test_el_partial_muestra_aviso_proximamente_cuando_esta_pendiente(): void
-    {
-        $html = view('filament.components.canal-opcion-checkbox', [
-            'canal' => 'whatsapp',
-            'titulo' => 'WhatsApp',
-            'detalle' => 'Pendiente de aprobación en Meta',
-            'pendiente' => true,
-        ])->render();
-
-        $this->assertStringContainsString('Próximamente', $html);
-    }
-
-    public function test_helper_arma_las_dos_opciones_con_clase_de_diseno(): void
+    public function test_helper_arma_las_dos_opciones_de_texto_plano(): void
     {
         $proceso = $this->proceso();
 
         $campo = $this->invocarHelper($proceso, 'Enviar por');
 
         $this->assertSame(['email', 'whatsapp'], array_keys($campo->getOptions()));
-        $this->assertSame('canal-selector', $campo->getExtraAttributes()['class'] ?? null);
+        $this->assertStringContainsString('carlos@test.com', $campo->getOptions()['email']);
+        $this->assertStringContainsString('3001112233', $campo->getOptions()['whatsapp']);
     }
 
     public function test_helper_omite_whatsapp_si_el_trabajador_no_tiene_telefono(): void

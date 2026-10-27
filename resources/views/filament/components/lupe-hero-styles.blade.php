@@ -118,34 +118,4 @@ html.dark .rit-notice-info h4{color:#93c5fd}
 .rit-notice-neutral h4{color:#475569}
 html.dark .rit-notice-neutral{background:rgba(100,116,139,.1);border-color:rgba(100,116,139,.25)}
 html.dark .rit-notice-neutral h4{color:#94a3b8}
-{{--
-    Selector de canal de notificacion (correo/WhatsApp) - pedido del usuario
-    (2026-10-27). Dos intentos previos NO replicaban el lenguaje visual real
-    de LUPE ("ese rediseño no es nada a lo de lupe legal", feedback directo
-    señalando el card "Comparte el Reglamento con tus trabajadores" de
-    rit-compartir-banner.blade.php). Ese card es la referencia correcta: sus
-    botones de acción (Copiar/Compartir/WhatsApp/Correo/Imprimir) son
-    pastillas .rit-btn - NO tarjetas grandes con borde. Este selector
-    reutiliza exactamente esos mismos valores (.rit-btn-secondary sin marcar,
-    .rit-btn-primary al marcar), mismo radio/padding/tipografía, en vez de
-    inventar una tarjeta nueva. :has() en vez de Alpine x-data porque este
-    selector vive dentro de un CheckboxList nativo de Filament (con
-    wire:model real, validación y multi-valor) - rit-compartir-banner usa
-    $wire.entangle() directo porque son botones de acción, no un campo de
-    formulario con estado persistido.
---}}
-.canal-selector .fi-fo-checkbox-list{gap:.625rem!important;flex-direction:row!important;flex-wrap:wrap}
-.canal-selector .fi-fo-checkbox-list-option-label{cursor:pointer;display:inline-flex;align-items:center;gap:.5rem;padding:.55rem 1.125rem;border-radius:.625rem;border:1px solid;font-size:.8125rem;font-weight:600;transition:opacity .15s,background .15s,border-color .15s;background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1);color:#374151}
-html.dark .canal-selector .fi-fo-checkbox-list-option-label{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15);color:#e2e8f0}
-.canal-selector .fi-fo-checkbox-list-option-label:hover{opacity:.85}
-.canal-selector .fi-fo-checkbox-list-option-label:has(input:checked){background:rgba(225,29,72,.1);border-color:rgba(225,29,72,.25);color:#be123c}
-html.dark .canal-selector .fi-fo-checkbox-list-option-label:has(input:checked){background:rgba(251,113,133,.18);border-color:rgba(251,113,133,.35);color:#fecdd3}
-.canal-selector .fi-fo-checkbox-list-option-label:has(input:disabled){cursor:not-allowed;opacity:.5}
-.canal-selector .fi-fo-checkbox-list-option-label input[type=checkbox]{width:.9rem;height:.9rem;flex-shrink:0;margin-top:0!important;accent-color:#e11d48}
-.canal-opcion{display:inline-flex;align-items:center;gap:.5rem;min-width:0}
-.canal-opcion-ico{width:15px;height:15px;flex-shrink:0}
-.canal-opcion-ico svg{width:15px;height:15px}
-.canal-opcion-titulo{font-weight:600}
-.canal-opcion-detalle{font-weight:400;opacity:.75}
-.canal-opcion-pendiente{display:inline-block;margin-left:.3rem}
 </style>
