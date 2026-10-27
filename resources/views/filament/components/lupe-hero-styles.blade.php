@@ -118,4 +118,38 @@ html.dark .rit-notice-info h4{color:#93c5fd}
 .rit-notice-neutral h4{color:#475569}
 html.dark .rit-notice-neutral{background:rgba(100,116,139,.1);border-color:rgba(100,116,139,.25)}
 html.dark .rit-notice-neutral h4{color:#94a3b8}
+{{--
+    Selector de canal de notificacion (correo/WhatsApp) - pedido del usuario
+    (2026-10-27): el CheckboxList nativo de Filament se veia como una lista
+    plana sin jerarquia. Misma tarjeta que .rit-notice (fondo con tinte
+    completo, sin franja lateral) convertida en opcion seleccionable, usando
+    EXACTAMENTE los mismos tonos de .rit-badge-info (correo) y
+    .rit-badge-sub (WhatsApp) ya establecidos arriba - ningun color nuevo.
+    :has() en vez de JS porque Filament no expone una clase "checked" en el
+    <label> que envuelve el checkbox.
+--}}
+.canal-selector .fi-fo-checkbox-list{gap:.65rem!important}
+.canal-selector .fi-fo-checkbox-list-option-label{cursor:pointer;display:flex;align-items:center;gap:.75rem;padding:.75rem .9rem;border-radius:.85rem;border:1px solid rgba(100,116,139,.22);background:rgba(100,116,139,.05);transition:border-color .15s,background .15s}
+html.dark .canal-selector .fi-fo-checkbox-list-option-label{border-color:rgba(148,163,184,.18);background:rgba(148,163,184,.06)}
+.canal-selector .fi-fo-checkbox-list-option-label:hover{border-color:rgba(100,116,139,.4)}
+.canal-selector .fi-fo-checkbox-list-option-label:has(input[value="email"]:checked){background:rgba(37,99,235,.08);border-color:rgba(37,99,235,.35)}
+html.dark .canal-selector .fi-fo-checkbox-list-option-label:has(input[value="email"]:checked){background:rgba(37,99,235,.14);border-color:rgba(96,165,250,.4)}
+.canal-selector .fi-fo-checkbox-list-option-label:has(input[value="whatsapp"]:checked){background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.32)}
+html.dark .canal-selector .fi-fo-checkbox-list-option-label:has(input[value="whatsapp"]:checked){background:rgba(34,197,94,.13);border-color:rgba(34,197,94,.35)}
+.canal-selector .fi-fo-checkbox-list-option-label:has(input:disabled){cursor:not-allowed;opacity:.55}
+.canal-selector .fi-fo-checkbox-list-option-label input[type=checkbox]{width:1.15rem;height:1.15rem;flex-shrink:0;margin-top:0!important}
+.canal-opcion{display:flex;align-items:center;gap:.65rem;min-width:0}
+.canal-opcion-ico{width:34px;height:34px;flex-shrink:0;border-radius:.6rem;display:flex;align-items:center;justify-content:center}
+.canal-opcion-ico svg{width:18px;height:18px}
+.canal-opcion[data-canal="email"] .canal-opcion-ico{background:rgba(37,99,235,.14);color:#2563eb}
+html.dark .canal-opcion[data-canal="email"] .canal-opcion-ico{background:rgba(96,165,250,.16);color:#93c5fd}
+.canal-opcion[data-canal="whatsapp"] .canal-opcion-ico{background:rgba(22,163,74,.14);color:#16a34a}
+html.dark .canal-opcion[data-canal="whatsapp"] .canal-opcion-ico{background:rgba(34,197,94,.18);color:#86efac}
+.canal-opcion-texto{min-width:0}
+.canal-opcion-titulo{display:block;font-weight:700;font-size:.8125rem;color:#1c1917}
+html.dark .canal-opcion-titulo{color:#f1f5f9}
+.canal-opcion-detalle{display:block;font-size:.72rem;color:#78716c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.dark .canal-opcion-detalle{color:#a8a29e}
+.canal-opcion-pendiente{display:inline-block;margin-left:.4rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#b45309}
+html.dark .canal-opcion-pendiente{color:#fbbf24}
 </style>

@@ -1812,23 +1812,11 @@ class ProcesoDisciplinarioResource extends Resource
                             ])
                             ->columns(2),
 
-                        // Selector de canal (pedido del usuario, 2026-10-26: "en todas
-                        // las partes donde se notifica dar la opción de notificar
-                        // también por WhatsApp y correo o ambos").
-                        Forms\Components\CheckboxList::make('canales')
-                            ->label('Enviar por')
-                            ->options(fn(ProcesoDisciplinario $record) => array_filter([
-                                'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
-                                'whatsapp' => $record->trabajador->telefono
-                                    ? "WhatsApp ({$record->trabajador->telefono})"
-                                    : null,
-                            ]))
-                            ->default(fn(ProcesoDisciplinario $record) => array_filter([
-                                'email',
-                                $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
-                            ]))
-                            ->required()
-                            ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
+                        // Selector de canal, con diseño de tarjeta (pedido del usuario,
+                        // 2026-10-26/27).
+                        Forms\Components\Group::make(fn(ProcesoDisciplinario $record) => [
+                            self::campoCanalNotificacion($record),
+                        ]),
                     ])
                     ->fillForm(function (ProcesoDisciplinario $record): array {
                         $fecha = $record->fecha_descargos_programada;
@@ -1902,26 +1890,12 @@ class ProcesoDisciplinarioResource extends Resource
                         ) .
                             "Se generará la citación a descargos y se enviará al trabajador por el o los canales que elija abajo."
                     )
-                    // Selector de canal (pedido del usuario, 2026-10-26: "en todas
-                    // las partes donde se notifica dar la opción de notificar
-                    // también por WhatsApp y correo o ambos") - precargado con
-                    // la preferencia guardada del trabajador, pero editable solo
-                    // para este envío puntual (no se persiste el cambio).
-                    ->form([
-                        Forms\Components\CheckboxList::make('canales')
-                            ->label('Enviar por')
-                            ->options(fn(ProcesoDisciplinario $record) => array_filter([
-                                'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
-                                'whatsapp' => $record->trabajador->telefono
-                                    ? "WhatsApp ({$record->trabajador->telefono})"
-                                    : null,
-                            ]))
-                            ->default(fn(ProcesoDisciplinario $record) => array_filter([
-                                'email',
-                                $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
-                            ]))
-                            ->required()
-                            ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
+                    // Selector de canal, con diseño de tarjeta (pedido del usuario,
+                    // 2026-10-26/27) - precargado con la preferencia guardada del
+                    // trabajador, pero editable solo para este envío puntual (no se
+                    // persiste el cambio).
+                    ->form(fn(ProcesoDisciplinario $record) => [
+                        self::campoCanalNotificacion($record),
                     ])
                     ->modalSubmitActionLabel('Generar y Enviar Citación')
                     ->modalCancelActionLabel('Cancelar')
@@ -2022,23 +1996,11 @@ class ProcesoDisciplinarioResource extends Resource
                             ])
                             ->columns(2),
 
-                        // Selector de canal (pedido del usuario, 2026-10-26: "en todas
-                        // las partes donde se notifica dar la opción de notificar
-                        // también por WhatsApp y correo o ambos").
-                        Forms\Components\CheckboxList::make('canales')
-                            ->label('Enviar por')
-                            ->options(fn(ProcesoDisciplinario $record) => array_filter([
-                                'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
-                                'whatsapp' => $record->trabajador->telefono
-                                    ? "WhatsApp ({$record->trabajador->telefono})"
-                                    : null,
-                            ]))
-                            ->default(fn(ProcesoDisciplinario $record) => array_filter([
-                                'email',
-                                $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
-                            ]))
-                            ->required()
-                            ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
+                        // Selector de canal, con diseño de tarjeta (pedido del usuario,
+                        // 2026-10-26/27).
+                        Forms\Components\Group::make(fn(ProcesoDisciplinario $record) => [
+                            self::campoCanalNotificacion($record),
+                        ]),
                     ])
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
@@ -2687,23 +2649,9 @@ class ProcesoDisciplinarioResource extends Resource
                                 // el error de "requerido" no se mostraría al usuario.
                                 Forms\Components\Hidden::make('foto_autorizador_base64'),
 
-                                // Selector de canal (pedido del usuario, 2026-10-26: "en todas
-                                // las partes donde se notifica dar la opción de notificar
-                                // también por WhatsApp y correo o ambos").
-                                Forms\Components\CheckboxList::make('canales')
-                                    ->label('Notificar la sanción al trabajador por')
-                                    ->options(fn(ProcesoDisciplinario $record) => array_filter([
-                                        'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
-                                        'whatsapp' => $record->trabajador->telefono
-                                            ? "WhatsApp ({$record->trabajador->telefono})"
-                                            : null,
-                                    ]))
-                                    ->default(fn(ProcesoDisciplinario $record) => array_filter([
-                                        'email',
-                                        $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
-                                    ]))
-                                    ->required()
-                                    ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
+                                // Selector de canal, con diseño de tarjeta (pedido del usuario,
+                                // 2026-10-26/27).
+                                self::campoCanalNotificacion($record, 'Notificar la sanción al trabajador por'),
 
                                 // Botones del Paso 3 (Cancelar / Volver a Decisión / Continuar):
                                 // viven DENTRO de este bloque, no en el footer nativo del modal,
@@ -3022,23 +2970,11 @@ class ProcesoDisciplinarioResource extends Resource
                                 ])
                                 ->description('Complete la información de la suspensión laboral'),
 
-                            // Selector de canal (pedido del usuario, 2026-10-26): este es el
-                            // paso final antes de generar y enviar la suspensión, tanto si
-                            // viene de "Emitir Sanción" como de "Re-generar Sanción".
-                            Forms\Components\CheckboxList::make('canales')
-                                ->label('Enviar por')
-                                ->options(fn(ProcesoDisciplinario $record) => array_filter([
-                                    'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
-                                    'whatsapp' => $record->trabajador->telefono
-                                        ? "WhatsApp ({$record->trabajador->telefono})"
-                                        : null,
-                                ]))
-                                ->default(fn(ProcesoDisciplinario $record) => array_filter([
-                                    'email',
-                                    $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
-                                ]))
-                                ->required()
-                                ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
+                            // Selector de canal, con diseño de tarjeta (pedido del usuario,
+                            // 2026-10-26/27): este es el paso final antes de generar y enviar
+                            // la suspensión, tanto si viene de "Emitir Sanción" como de
+                            // "Re-generar Sanción".
+                            self::campoCanalNotificacion($record),
                         ];
                     })
                     ->modalHeading('Confirmar Días de Suspensión')
@@ -3210,33 +3146,43 @@ class ProcesoDisciplinarioResource extends Resource
                         'limite' => $record->limiteImpugnacion(),
                     ]))
                     ->modalWidth('2xl')
+                    // Selector de canal, con diseño de tarjeta (pedido del usuario,
+                    // 2026-10-27: agregarlo también aquí). WhatsApp queda visible pero
+                    // deshabilitado ("Próximamente") hasta que exista la plantilla
+                    // whatsapp_plantilla_enlace_impugnacion_nombre - configurable en
+                    // ConfiguracionWhatsapp una vez Meta la apruebe.
+                    ->form(fn(ProcesoDisciplinario $record) => [
+                        self::campoCanalNotificacion(
+                            $record,
+                            'Enviar por',
+                            empty(\App\Models\Configuracion::obtener('whatsapp_plantilla_enlace_impugnacion_nombre'))
+                                ? 'Pendiente de aprobación en Meta'
+                                : null,
+                        ),
+                    ])
                     ->modalSubmitActionLabel('Reenviar al trabajador')
                     ->modalCancelActionLabel('Cerrar')
-                    ->action(function (ProcesoDisciplinario $record) {
-                        $email = $record->trabajador?->email;
-                        if (!$email) {
-                            \Filament\Notifications\Notification::make()
-                                ->danger()
-                                ->title('El trabajador no tiene correo registrado')
-                                ->body('Copie el enlace y entréguelo por otro medio, o actualice el correo del trabajador.')
-                                ->send();
-
-                            return;
-                        }
+                    ->action(function (ProcesoDisciplinario $record, array $data) {
+                        $canalesOverride = [
+                            'email' => in_array('email', $data['canales'] ?? [], true),
+                            'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                        ];
 
                         try {
-                            \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\ImpugnacionEnlace($record));
+                            app(\App\Services\DocumentGeneratorService::class)
+                                ->reenviarEnlaceImpugnacion($record, $canalesOverride);
+
                             \Filament\Notifications\Notification::make()
                                 ->success()
                                 ->title('Enlace reenviado')
-                                ->body("Se envió el enlace de impugnación a {$email}.")
+                                ->body('Se reenvió el enlace de impugnación al trabajador por el canal elegido.')
                                 ->send();
                         } catch (\Throwable $e) {
                             report($e);
                             \Filament\Notifications\Notification::make()
                                 ->danger()
-                                ->title('No se pudo enviar el correo')
-                                ->body('Copie el enlace y compártalo por otro medio.')
+                                ->title('No se pudo enviar')
+                                ->body('Copie el enlace y compártalo por otro medio: ' . $e->getMessage())
                                 ->send();
                         }
                     }),
@@ -3576,24 +3522,11 @@ class ProcesoDisciplinarioResource extends Resource
                                         ->helperText('Este texto se incluirá en el documento de resolución. Viene precargado con la sugerencia de la IA: revíselo y ajústelo; la decisión es de su empresa.'),
                                 ]),
 
-                            // Selector de canal (pedido del usuario, 2026-10-26). Si la
-                            // decisión es "modifica_sancion" a suspensión, este envío no
-                            // ocurre aquí sino en "Confirmar Días - Resolución", que pide
-                            // el canal ahí mismo.
-                            Forms\Components\CheckboxList::make('canales')
-                                ->label('Notificar la resolución al trabajador por')
-                                ->options(array_filter([
-                                    'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
-                                    'whatsapp' => $record->trabajador->telefono
-                                        ? "WhatsApp ({$record->trabajador->telefono})"
-                                        : null,
-                                ]))
-                                ->default(array_filter([
-                                    'email',
-                                    $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
-                                ]))
-                                ->required()
-                                ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
+                            // Selector de canal, con diseño de tarjeta (pedido del usuario,
+                            // 2026-10-26/27). Si la decisión es "modifica_sancion" a
+                            // suspensión, este envío no ocurre aquí sino en "Confirmar Días -
+                            // Resolución", que pide el canal ahí mismo.
+                            self::campoCanalNotificacion($record, 'Notificar la resolución al trabajador por'),
                         ];
                     })
                     ->modalHeading('Resolver Impugnación')
@@ -3745,22 +3678,12 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->helperText('Días de suspensión sin remuneración según la gravedad de la falta'),
                             ]),
 
-                        // Selector de canal (pedido del usuario, 2026-10-26): paso final
-                        // antes de generar y enviar la resolución con la nueva suspensión.
-                        Forms\Components\CheckboxList::make('canales')
-                            ->label('Notificar la resolución al trabajador por')
-                            ->options(fn(ProcesoDisciplinario $record) => array_filter([
-                                'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
-                                'whatsapp' => $record->trabajador->telefono
-                                    ? "WhatsApp ({$record->trabajador->telefono})"
-                                    : null,
-                            ]))
-                            ->default(fn(ProcesoDisciplinario $record) => array_filter([
-                                'email',
-                                $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
-                            ]))
-                            ->required()
-                            ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
+                        // Selector de canal, con diseño de tarjeta (pedido del usuario,
+                        // 2026-10-26/27): paso final antes de generar y enviar la
+                        // resolución con la nueva suspensión.
+                        Forms\Components\Group::make(fn(ProcesoDisciplinario $record) => [
+                            self::campoCanalNotificacion($record, 'Notificar la resolución al trabajador por'),
+                        ]),
                     ])
                     ->modalHeading('Confirmar Días de Suspensión')
                     ->modalDescription('Seleccione los días de suspensión para completar la resolución de la impugnación')
@@ -3966,23 +3889,11 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->default($recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null)
                                     ->helperText('Seleccione la sanción que considere más apropiada.'),
 
-                                // Selector de canal (pedido del usuario, 2026-10-26). Solo aplica
-                                // si la sanción elegida no es 'suspension' - esa continúa en
-                                // "Confirmar Días de Suspensión", que pide el canal ahí mismo.
-                                Forms\Components\CheckboxList::make('canales')
-                                    ->label('Enviar por')
-                                    ->options(array_filter([
-                                        'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
-                                        'whatsapp' => $record->trabajador->telefono
-                                            ? "WhatsApp ({$record->trabajador->telefono})"
-                                            : null,
-                                    ]))
-                                    ->default(array_filter([
-                                        'email',
-                                        $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
-                                    ]))
-                                    ->required()
-                                    ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
+                                // Selector de canal, con diseño de tarjeta (pedido del usuario,
+                                // 2026-10-26/27). Solo aplica si la sanción elegida no es
+                                // 'suspension' - esa continúa en "Confirmar Días de Suspensión",
+                                // que pide el canal ahí mismo.
+                                self::campoCanalNotificacion($record),
                             ];
                         })
                         ->requiresConfirmation()
@@ -4487,6 +4398,59 @@ class ProcesoDisciplinarioResource extends Resource
         }
 
         return $opciones;
+    }
+
+    /**
+     * Campo reutilizable del selector de canal (correo/WhatsApp) - pedido del
+     * usuario (2026-10-26/27): dar la opción de notificar por WhatsApp,
+     * correo o ambos en todos los puntos de envío, con diseño de tarjeta
+     * (no la lista plana por defecto de Filament, ver lupe-hero-styles.
+     * blade.php / .canal-selector).
+     *
+     * $whatsappPendienteMensaje !== null muestra la opción de WhatsApp
+     * visible pero deshabilitada con un aviso "Próximamente" (caso real:
+     * "Enlace de impugnación", en espera de que Meta apruebe la plantilla
+     * - se deja la UI lista para cuando exista, sin tener que rediseñar
+     * nada después).
+     */
+    protected static function campoCanalNotificacion(
+        ProcesoDisciplinario $record,
+        string $label = 'Enviar por',
+        ?string $whatsappPendienteMensaje = null,
+    ): Forms\Components\CheckboxList {
+        $trabajador = $record->trabajador;
+        $tieneTelefono = (bool) $trabajador->telefono;
+        $whatsappDeshabilitado = $whatsappPendienteMensaje !== null;
+
+        $opciones = [
+            'email' => view('filament.components.canal-opcion-checkbox', [
+                'canal' => 'email',
+                'titulo' => 'Correo',
+                'detalle' => $trabajador->email ?: 'Sin correo registrado',
+            ])->render(),
+        ];
+
+        if ($tieneTelefono) {
+            $opciones['whatsapp'] = view('filament.components.canal-opcion-checkbox', [
+                'canal' => 'whatsapp',
+                'titulo' => 'WhatsApp',
+                'detalle' => $whatsappDeshabilitado ? $whatsappPendienteMensaje : $trabajador->telefono,
+                'pendiente' => $whatsappDeshabilitado,
+            ])->render();
+        }
+
+        return Forms\Components\CheckboxList::make('canales')
+            ->label($label)
+            ->options($opciones)
+            ->allowHtml()
+            ->extraAttributes(['class' => 'canal-selector'])
+            ->disableOptionWhen(fn (string $value): bool => $value === 'whatsapp' && $whatsappDeshabilitado)
+            ->default(array_filter([
+                'email',
+                $trabajador->notificar_por_whatsapp && $tieneTelefono && !$whatsappDeshabilitado ? 'whatsapp' : null,
+            ]))
+            ->required()
+            ->validationMessages(['required' => 'Elija al menos un canal de envío.']);
     }
 
     protected static function getCargos(): array

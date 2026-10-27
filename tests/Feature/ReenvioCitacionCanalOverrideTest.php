@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Configuracion;
 use App\Models\Empresa;
 use App\Models\EmailTracking;
 use App\Models\ProcesoDisciplinario;
@@ -9,6 +10,7 @@ use App\Models\Trabajador;
 use App\Models\User;
 use App\Services\DocumentGeneratorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
@@ -124,5 +126,42 @@ class ReenvioCitacionCanalOverrideTest extends TestCase
         // (tracking creado) y no se lanzó ninguna excepción al forzar
         // whatsapp=false con un trabajador que tenía notificar_por_whatsapp=true.
         $this->assertSame(1, EmailTracking::where('proceso_id', $proceso->id)->count());
+    }
+
+    public function test_override_whatsapp_manda_aunque_el_trabajador_tenga_la_preferencia_desactivada(): void
+    {
+        // Bug real encontrado al probar el diseño nuevo (2026-10-27):
+        // enviarAvisoWhatsappTrabajador() re-chequeaba internamente
+        // notificar_por_whatsapp sin importar el override, así que elegir
+        // WhatsApp a propósito no hacía nada si el trabajador tenía esa
+        // preferencia desactivada - justo lo contrario de lo que pide el
+        // selector de canal. Se prueba con el request HTTP real, no solo
+        // con el registro de "canales" (ese no detectaba el bug).
+        Http::fake(['graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.1']]], 200)]);
+        Configuracion::updateOrCreate(['clave' => 'whatsapp_habilitado'], ['valor' => '1', 'tipo' => 'boolean', 'categoria' => 'whatsapp', 'editable' => true]);
+        Configuracion::updateOrCreate(['clave' => 'whatsapp_phone_number_id'], ['valor' => '123456', 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => true]);
+        Configuracion::updateOrCreate(['clave' => 'whatsapp_access_token'], ['valor' => 'token-de-prueba', 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => true]);
+        Configuracion::updateOrCreate(
+            ['clave' => 'whatsapp_plantilla_citacion_nombre'],
+            ['valor' => 'citacion_descargos', 'tipo' => 'text', 'categoria' => 'whatsapp', 'editable' => true],
+        );
+
+        $empresa = Empresa::factory()->create(['active' => true]);
+        $trabajador = $this->trabajador($empresa, ['notificar_por_whatsapp' => false]);
+        $proceso = ProcesoDisciplinario::create([
+            'codigo' => 'PD-TEST-0004',
+            'empresa_id' => $empresa->id,
+            'trabajador_id' => $trabajador->id,
+            'hechos' => 'Hechos de prueba.',
+        ]);
+
+        app(DocumentGeneratorService::class)->enviarCitacionPorEmail(
+            $proceso,
+            $this->pdfDummy(),
+            linkDescargos: 'https://ejemplo.test/descargos/abc',
+            canalesOverride: ['email' => false, 'whatsapp' => true],
+        );
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'graph.facebook.com'));
     }
 }

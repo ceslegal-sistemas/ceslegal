@@ -134,6 +134,23 @@ class ConfiguracionWhatsapp extends Page implements HasForms
                 'ejemplo' => ['Juan Pérez', 'PD-2026-0001', 'Sanción Confirmada'],
                 'boton' => null,
             ],
+            // Pedido del usuario (2026-10-27): agregar el canal WhatsApp al botón
+            // "Enlace de impugnación" del panel - la opción queda visible pero
+            // deshabilitada ("Próximamente") hasta que esta plantilla exista aquí
+            // Y Meta la apruebe (ver ProcesoDisciplinarioResource::
+            // campoCanalNotificacion() / enlace_impugnacion).
+            'enlace_impugnacion' => [
+                'clave' => 'whatsapp_plantilla_enlace_impugnacion_nombre',
+                'nombre_defecto' => 'enlace_impugnacion',
+                'label' => 'Reenvío del enlace de impugnación',
+                'texto' => 'Hola {{1}}, este es su enlace personal para presentar la impugnación del proceso {{2}}. El acceso requiere verificación de identidad.',
+                'ejemplo' => ['Juan Pérez', 'PD-2026-0001'],
+                'boton' => [
+                    'texto' => 'Presentar impugnación',
+                    'url' => $dominio . '/impugnar/{{1}}',
+                    'ejemplo_url' => $dominio . '/impugnar/abc123tokenejemplo',
+                ],
+            ],
             'recordatorio' => [
                 'clave' => 'whatsapp_plantilla_recordatorio_nombre',
                 'nombre_defecto' => 'recordatorio_descargos',

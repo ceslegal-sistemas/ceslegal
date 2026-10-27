@@ -68,6 +68,16 @@ class DocumentGeneratorService
      * se registra en el log, nunca interrumpe el flujo que ya completó su
      * envío por correo.
      *
+     * $ignorarPreferencia (pedido del usuario, 2026-10-26/27): cuando un
+     * administrador elige WhatsApp explícitamente en el selector de canal
+     * (canalesOverride !== null en el método que llama aquí), esa elección
+     * puntual manda sobre `trabajador.notificar_por_whatsapp` - de lo
+     * contrario un trabajador con esa preferencia desactivada nunca
+     * recibiría el WhatsApp aunque el administrador lo haya pedido
+     * explícitamente para ESTE envío. Cuando no hay override (null), este
+     * parámetro se deja en false y la preferencia guardada sigue siendo el
+     * único criterio, igual que siempre.
+     *
      * @param  array<int, string> $parametros
      */
     private function enviarAvisoWhatsappTrabajador(
@@ -75,8 +85,9 @@ class DocumentGeneratorService
         string $claveConfiguracion,
         array $parametros,
         ?string $botonUrlSufijo = null,
+        bool $ignorarPreferencia = false,
     ): void {
-        if (!$trabajador->notificar_por_whatsapp || empty($trabajador->telefono)) {
+        if ((!$ignorarPreferencia && !$trabajador->notificar_por_whatsapp) || empty($trabajador->telefono)) {
             return;
         }
 
@@ -99,6 +110,44 @@ class DocumentGeneratorService
                 'plantilla' => $claveConfiguracion,
                 'error' => $e->getMessage(),
             ]);
+        }
+    }
+
+    /**
+     * Re-enviar el enlace personal de impugnación al trabajador (botón
+     * "Enlace de impugnación" del panel). Históricamente solo iba por
+     * correo (`Mail::to()` directo en el Resource) - se traslada aquí para
+     * poder agregar WhatsApp (pedido del usuario, 2026-10-27), con el mismo
+     * canalesOverride ya usado en citación/sanción/resolución. null
+     * conserva el comportamiento histórico (correo únicamente, WhatsApp
+     * nunca existió en este punto). WhatsApp solo se intenta si hay una
+     * plantilla configurada (`whatsapp_plantilla_enlace_impugnacion_nombre`)
+     * - queda visible pero deshabilitada en el selector hasta que Meta la
+     * apruebe y se configure.
+     */
+    public function reenviarEnlaceImpugnacion(ProcesoDisciplinario $proceso, ?array $canalesOverride = null): void
+    {
+        $trabajador = $proceso->trabajador;
+
+        $enviarEmail = $canalesOverride === null || ($canalesOverride['email'] ?? false);
+        $enviarWhatsapp = $canalesOverride !== null && ($canalesOverride['whatsapp'] ?? false);
+
+        if ($enviarEmail) {
+            if (empty($trabajador->email)) {
+                throw new \Exception('El trabajador no tiene correo electrónico registrado');
+            }
+
+            Mail::to($trabajador->email)->send(new \App\Mail\ImpugnacionEnlace($proceso));
+        }
+
+        if ($enviarWhatsapp) {
+            $this->enviarAvisoWhatsappTrabajador(
+                $trabajador,
+                'whatsapp_plantilla_enlace_impugnacion_nombre',
+                [$trabajador->nombre_completo, $proceso->codigo],
+                basename($proceso->urlImpugnacion()),
+                ignorarPreferencia: $canalesOverride !== null,
+            );
         }
     }
 
@@ -1034,6 +1083,7 @@ HTML;
                 'whatsapp_plantilla_citacion_nombre',
                 [$trabajador->nombre_completo, $proceso->codigo],
                 basename($linkDescargos),
+                ignorarPreferencia: $canalesOverride !== null,
             );
         }
     }
@@ -2622,6 +2672,7 @@ HTML;
                 'whatsapp_plantilla_sancion_nombre',
                 [$trabajador->nombre_completo, $nombreSancion, $proceso->codigo],
                 basename($urlImpugnacion),
+                ignorarPreferencia: $canalesOverride !== null,
             );
         }
 
@@ -2688,6 +2739,7 @@ HTML;
                 $trabajador,
                 'whatsapp_plantilla_no_sancion_nombre',
                 [$trabajador->nombre_completo, $proceso->codigo],
+                ignorarPreferencia: $canalesOverride !== null,
             );
         }
 
@@ -3227,6 +3279,7 @@ HTML;
                 $trabajador,
                 'whatsapp_plantilla_resolucion_impugnacion_nombre',
                 [$trabajador->nombre_completo, $proceso->codigo, $decisionTexto],
+                ignorarPreferencia: $canalesOverride !== null,
             );
         }
 
