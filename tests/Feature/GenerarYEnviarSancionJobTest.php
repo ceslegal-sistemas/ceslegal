@@ -67,7 +67,7 @@ class GenerarYEnviarSancionJobTest extends TestCase
         $mock = Mockery::mock(DocumentGeneratorService::class);
         $mock->shouldReceive('generarYEnviarConstanciaNoSancion')
             ->once()
-            ->with(Mockery::on(fn ($p) => $p->is($proceso)));
+            ->with(Mockery::on(fn ($p) => $p->is($proceso)), null);
         $mock->shouldNotReceive('generarYEnviarSancion');
 
         (new GenerarYEnviarSancionJob($proceso, null))->handle($mock);
@@ -82,7 +82,7 @@ class GenerarYEnviarSancionJobTest extends TestCase
         $mock = Mockery::mock(DocumentGeneratorService::class);
         $mock->shouldReceive('generarYEnviarSancion')
             ->once()
-            ->with(Mockery::on(fn ($p) => $p->is($proceso)), 'suspension');
+            ->with(Mockery::on(fn ($p) => $p->is($proceso)), 'suspension', null);
         $mock->shouldNotReceive('generarYEnviarConstanciaNoSancion');
 
         (new GenerarYEnviarSancionJob($proceso, 'suspension'))->handle($mock);

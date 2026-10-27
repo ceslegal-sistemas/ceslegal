@@ -2538,24 +2538,22 @@ HTML;
     /**
      * Enviar documento de sanción por correo
      */
-    public function enviarSancionPorEmail(ProcesoDisciplinario $proceso, string $documentoPath, string $tipoSancion): void
+    public function enviarSancionPorEmail(ProcesoDisciplinario $proceso, string $documentoPath, string $tipoSancion, ?array $canalesOverride = null): void
     {
         $trabajador = $proceso->trabajador;
         $empresa = $proceso->empresa;
 
-        if (empty($trabajador->email)) {
+        // null (por defecto) conserva el comportamiento histórico: correo
+        // SIEMPRE + WhatsApp si hay enlace de impugnación, sin mirar la
+        // preferencia del trabajador (así era antes de este cambio). Un
+        // array ['email' => bool, 'whatsapp' => bool] (ej. desde "Emitir
+        // Sanción"/"Re-generar Sanción") manda solo para este envío.
+        $enviarEmail = $canalesOverride === null || ($canalesOverride['email'] ?? false);
+        $enviarWhatsapp = $canalesOverride === null || ($canalesOverride['whatsapp'] ?? false);
+
+        if ($enviarEmail && empty($trabajador->email)) {
             throw new \Exception('El trabajador no tiene correo electrónico registrado');
         }
-
-        // Crear registro de tracking para el correo (hora de Colombia)
-        $tracking = EmailTracking::create([
-            'token' => EmailTracking::generarToken(),
-            'tipo_documento' => 'sancion',
-            'proceso_id' => $proceso->id,
-            'trabajador_id' => $trabajador->id,
-            'email_destinatario' => $trabajador->email,
-            'enviado_en' => Carbon::now('America/Bogota'),
-        ]);
 
         $extension = pathinfo($documentoPath, PATHINFO_EXTENSION);
         $mimeType = $extension === 'pdf' ? 'application/pdf' : 'text/html';
@@ -2584,24 +2582,41 @@ HTML;
                 );
         }
 
-        Mail::send('emails.sancion-notificacion', [
-            'proceso' => $proceso,
-            'trabajador' => $trabajador,
-            'empresa' => $empresa,
-            'tipoSancion' => $nombreSancion,
-            'trackingToken' => $tracking->token,
-            'urlImpugnacion' => $urlImpugnacion,
-            'limiteImpugnacion' => $limiteImpugnacion,
-        ], function ($message) use ($trabajador, $proceso, $documentoPath, $nombreArchivo, $mimeType, $nombreSancion) {
-            $message->to($trabajador->email, $trabajador->nombre_completo)
-                ->subject('Notificación de ' . $nombreSancion . ' - Proceso ' . $proceso->codigo)
-                ->attach($documentoPath, [
-                    'as' => $nombreArchivo,
-                    'mime' => $mimeType,
-                ]);
-        });
+        $whatsappEnviado = $enviarWhatsapp && $urlImpugnacion;
 
-        if ($urlImpugnacion) {
+        $tracking = EmailTracking::create([
+            'token' => EmailTracking::generarToken(),
+            'tipo_documento' => 'sancion',
+            'proceso_id' => $proceso->id,
+            'trabajador_id' => $trabajador->id,
+            'email_destinatario' => $trabajador->email,
+            'canales' => array_keys(array_filter([
+                'email' => $enviarEmail,
+                'whatsapp' => $whatsappEnviado,
+            ])),
+            'enviado_en' => Carbon::now('America/Bogota'),
+        ]);
+
+        if ($enviarEmail) {
+            Mail::send('emails.sancion-notificacion', [
+                'proceso' => $proceso,
+                'trabajador' => $trabajador,
+                'empresa' => $empresa,
+                'tipoSancion' => $nombreSancion,
+                'trackingToken' => $tracking->token,
+                'urlImpugnacion' => $urlImpugnacion,
+                'limiteImpugnacion' => $limiteImpugnacion,
+            ], function ($message) use ($trabajador, $proceso, $documentoPath, $nombreArchivo, $mimeType, $nombreSancion) {
+                $message->to($trabajador->email, $trabajador->nombre_completo)
+                    ->subject('Notificación de ' . $nombreSancion . ' - Proceso ' . $proceso->codigo)
+                    ->attach($documentoPath, [
+                        'as' => $nombreArchivo,
+                        'mime' => $mimeType,
+                    ]);
+            });
+        }
+
+        if ($whatsappEnviado) {
             $this->enviarAvisoWhatsappTrabajador(
                 $trabajador,
                 'whatsapp_plantilla_sancion_nombre',
@@ -2622,22 +2637,29 @@ HTML;
      * Enviar la constancia de cierre SIN SANCIÓN por correo al trabajador.
      * Usa una plantilla neutral (no punitiva) distinta a la de sanciones.
      */
-    public function enviarConstanciaNoSancionPorEmail(ProcesoDisciplinario $proceso, string $documentoPath): void
+    public function enviarConstanciaNoSancionPorEmail(ProcesoDisciplinario $proceso, string $documentoPath, ?array $canalesOverride = null): void
     {
         $trabajador = $proceso->trabajador;
         $empresa = $proceso->empresa;
 
-        if (empty($trabajador->email)) {
+        $enviarEmail = $canalesOverride === null || ($canalesOverride['email'] ?? false);
+        $enviarWhatsapp = $canalesOverride === null || ($canalesOverride['whatsapp'] ?? false);
+
+        if ($enviarEmail && empty($trabajador->email)) {
             throw new \Exception('El trabajador no tiene correo electrónico registrado');
         }
 
-        // Registro de tracking del correo (hora de Colombia)
+        // Registro de tracking (hora de Colombia)
         $tracking = EmailTracking::create([
             'token' => EmailTracking::generarToken(),
             'tipo_documento' => 'sancion',
             'proceso_id' => $proceso->id,
             'trabajador_id' => $trabajador->id,
             'email_destinatario' => $trabajador->email,
+            'canales' => array_keys(array_filter([
+                'email' => $enviarEmail,
+                'whatsapp' => $enviarWhatsapp,
+            ])),
             'enviado_en' => Carbon::now('America/Bogota'),
         ]);
 
@@ -2645,25 +2667,29 @@ HTML;
         $mimeType = $extension === 'pdf' ? 'application/pdf' : 'text/html';
         $nombreArchivo = 'Constancia_No_Sancion_' . $proceso->codigo . '.' . $extension;
 
-        Mail::send('emails.constancia-no-sancion', [
-            'proceso' => $proceso,
-            'trabajador' => $trabajador,
-            'empresa' => $empresa,
-            'trackingToken' => $tracking->token,
-        ], function ($message) use ($trabajador, $proceso, $documentoPath, $nombreArchivo, $mimeType) {
-            $message->to($trabajador->email, $trabajador->nombre_completo)
-                ->subject('Cierre de proceso disciplinario sin sanción - Proceso ' . $proceso->codigo)
-                ->attach($documentoPath, [
-                    'as' => $nombreArchivo,
-                    'mime' => $mimeType,
-                ]);
-        });
+        if ($enviarEmail) {
+            Mail::send('emails.constancia-no-sancion', [
+                'proceso' => $proceso,
+                'trabajador' => $trabajador,
+                'empresa' => $empresa,
+                'trackingToken' => $tracking->token,
+            ], function ($message) use ($trabajador, $proceso, $documentoPath, $nombreArchivo, $mimeType) {
+                $message->to($trabajador->email, $trabajador->nombre_completo)
+                    ->subject('Cierre de proceso disciplinario sin sanción - Proceso ' . $proceso->codigo)
+                    ->attach($documentoPath, [
+                        'as' => $nombreArchivo,
+                        'mime' => $mimeType,
+                    ]);
+            });
+        }
 
-        $this->enviarAvisoWhatsappTrabajador(
-            $trabajador,
-            'whatsapp_plantilla_no_sancion_nombre',
-            [$trabajador->nombre_completo, $proceso->codigo],
-        );
+        if ($enviarWhatsapp) {
+            $this->enviarAvisoWhatsappTrabajador(
+                $trabajador,
+                'whatsapp_plantilla_no_sancion_nombre',
+                [$trabajador->nombre_completo, $proceso->codigo],
+            );
+        }
 
         Log::info('Constancia de no sanción enviada con tracking', [
             'proceso_id' => $proceso->id,
@@ -2675,10 +2701,10 @@ HTML;
     /**
      * Generar y enviar sanción (proceso completo)
      */
-    public function generarYEnviarSancion(ProcesoDisciplinario $proceso, string $tipoSancion): array
+    public function generarYEnviarSancion(ProcesoDisciplinario $proceso, string $tipoSancion, ?array $canalesOverride = null): array
     {
         // Usar transacción para garantizar atomicidad
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($proceso, $tipoSancion) {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($proceso, $tipoSancion, $canalesOverride) {
             try {
                 // Generar el documento con IA
                 $resultado = $this->generarDocumentoSancion($proceso, $tipoSancion);
@@ -2719,8 +2745,8 @@ HTML;
                     ]
                 );
 
-                // Enviar por email (si falla, se hace rollback de todo)
-                $this->enviarSancionPorEmail($proceso, $documentoPath, $tipoSancion);
+                // Enviar al trabajador (si falla, se hace rollback de todo)
+                $this->enviarSancionPorEmail($proceso, $documentoPath, $tipoSancion, $canalesOverride);
 
                 // SOLO AQUÍ actualizamos el estado del proceso (después de que todo lo anterior fue exitoso)
                 $proceso->tipo_sancion = $tipoSancion;
@@ -2817,9 +2843,9 @@ HTML;
      * (generación, guardado o envío), se hace rollback y el proceso conserva su
      * estado original, evitando que quede "cerrado" sin documento ni correo.
      */
-    public function generarYEnviarConstanciaNoSancion(ProcesoDisciplinario $proceso): array
+    public function generarYEnviarConstanciaNoSancion(ProcesoDisciplinario $proceso, ?array $canalesOverride = null): array
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($proceso) {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($proceso, $canalesOverride) {
             try {
                 // Generar el documento (constancia) con IA
                 $resultado = $this->generarDocumentoSancion($proceso, 'no_sancion');
@@ -2848,8 +2874,8 @@ HTML;
                 // NO se crea registro en `sanciones`: no hubo sanción (y su columna
                 // tipo_sancion es un ENUM que no admite 'no_sancion').
 
-                // Enviar la constancia por email (si falla, rollback de todo)
-                $this->enviarConstanciaNoSancionPorEmail($proceso, $documentoPath);
+                // Enviar la constancia al trabajador (si falla, rollback de todo)
+                $this->enviarConstanciaNoSancionPorEmail($proceso, $documentoPath, $canalesOverride);
 
                 // Cerrar el proceso solo después de que todo lo anterior fue exitoso
                 $proceso->tipo_sancion = 'no_sancion';
@@ -3125,13 +3151,16 @@ HTML;
     /**
      * Enviar resolución de impugnación por correo electrónico
      */
-    public function enviarResolucionImpugnacionPorEmail(ProcesoDisciplinario $proceso, string $documentoPath, string $decision): void
+    public function enviarResolucionImpugnacionPorEmail(ProcesoDisciplinario $proceso, string $documentoPath, string $decision, ?array $canalesOverride = null): void
     {
         $trabajador = $proceso->trabajador;
         $empresa = $proceso->empresa;
         $impugnacion = $proceso->impugnacion;
 
-        if (empty($trabajador->email)) {
+        $enviarEmail = $canalesOverride === null || ($canalesOverride['email'] ?? false);
+        $enviarWhatsapp = $canalesOverride === null || ($canalesOverride['whatsapp'] ?? false);
+
+        if ($enviarEmail && empty($trabajador->email)) {
             throw new \Exception('El trabajador no tiene correo electrónico registrado');
         }
 
@@ -3142,6 +3171,10 @@ HTML;
             'proceso_id' => $proceso->id,
             'trabajador_id' => $trabajador->id,
             'email_destinatario' => $trabajador->email,
+            'canales' => array_keys(array_filter([
+                'email' => $enviarEmail,
+                'whatsapp' => $enviarWhatsapp,
+            ])),
             'enviado_en' => Carbon::now('America/Bogota'),
         ]);
 
@@ -3169,29 +3202,33 @@ HTML;
         $mimeType = $extension === 'pdf' ? 'application/pdf' : 'text/html';
         $nombreArchivo = 'Resolucion_Impugnacion_' . $proceso->codigo . '.' . $extension;
 
-        Mail::send('emails.resolucion-impugnacion', [
-            'proceso' => $proceso,
-            'trabajador' => $trabajador,
-            'empresa' => $empresa,
-            'impugnacion' => $impugnacion,
-            'decision' => $decision,
-            'fundamento' => $impugnacion->fundamento_decision,
-            'nuevaSancion' => $nuevaSancion,
-            'trackingToken' => $tracking->token,
-        ], function ($message) use ($trabajador, $proceso, $documentoPath, $nombreArchivo, $mimeType) {
-            $message->to($trabajador->email, $trabajador->nombre_completo)
-                ->subject('Resolución de Impugnación - Proceso ' . $proceso->codigo)
-                ->attach($documentoPath, [
-                    'as' => $nombreArchivo,
-                    'mime' => $mimeType,
-                ]);
-        });
+        if ($enviarEmail) {
+            Mail::send('emails.resolucion-impugnacion', [
+                'proceso' => $proceso,
+                'trabajador' => $trabajador,
+                'empresa' => $empresa,
+                'impugnacion' => $impugnacion,
+                'decision' => $decision,
+                'fundamento' => $impugnacion->fundamento_decision,
+                'nuevaSancion' => $nuevaSancion,
+                'trackingToken' => $tracking->token,
+            ], function ($message) use ($trabajador, $proceso, $documentoPath, $nombreArchivo, $mimeType) {
+                $message->to($trabajador->email, $trabajador->nombre_completo)
+                    ->subject('Resolución de Impugnación - Proceso ' . $proceso->codigo)
+                    ->attach($documentoPath, [
+                        'as' => $nombreArchivo,
+                        'mime' => $mimeType,
+                    ]);
+            });
+        }
 
-        $this->enviarAvisoWhatsappTrabajador(
-            $trabajador,
-            'whatsapp_plantilla_resolucion_impugnacion_nombre',
-            [$trabajador->nombre_completo, $proceso->codigo, $decisionTexto],
-        );
+        if ($enviarWhatsapp) {
+            $this->enviarAvisoWhatsappTrabajador(
+                $trabajador,
+                'whatsapp_plantilla_resolucion_impugnacion_nombre',
+                [$trabajador->nombre_completo, $proceso->codigo, $decisionTexto],
+            );
+        }
 
         Log::info('Resolución de impugnación enviada', [
             'proceso_id' => $proceso->id,

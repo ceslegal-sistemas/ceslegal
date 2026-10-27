@@ -41,6 +41,12 @@ class GenerarYEnviarSancionJob implements ShouldQueue
         public readonly ProcesoDisciplinario $proceso,
         /** null = constancia de no sanción (sin tipo de sanción). */
         public readonly ?string $tipoSancion,
+        /**
+         * Elección puntual de canal del administrador (pedido del usuario,
+         * 2026-10-26), igual que en GenerarYEnviarCitacionJob: null conserva
+         * el comportamiento histórico.
+         */
+        public readonly ?array $canalesOverride = null,
     ) {
         $this->onQueue('gemini');
     }
@@ -54,9 +60,9 @@ class GenerarYEnviarSancionJob implements ShouldQueue
     {
         try {
             if ($this->tipoSancion === null) {
-                $servicio->generarYEnviarConstanciaNoSancion($this->proceso);
+                $servicio->generarYEnviarConstanciaNoSancion($this->proceso, $this->canalesOverride);
             } else {
-                $servicio->generarYEnviarSancion($this->proceso, $this->tipoSancion);
+                $servicio->generarYEnviarSancion($this->proceso, $this->tipoSancion, $this->canalesOverride);
             }
 
             $this->proceso->update(['emision_sancion_estado' => 'completado']);

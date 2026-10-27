@@ -2687,6 +2687,24 @@ class ProcesoDisciplinarioResource extends Resource
                                 // el error de "requerido" no se mostraría al usuario.
                                 Forms\Components\Hidden::make('foto_autorizador_base64'),
 
+                                // Selector de canal (pedido del usuario, 2026-10-26: "en todas
+                                // las partes donde se notifica dar la opción de notificar
+                                // también por WhatsApp y correo o ambos").
+                                Forms\Components\CheckboxList::make('canales')
+                                    ->label('Notificar la sanción al trabajador por')
+                                    ->options(fn(ProcesoDisciplinario $record) => array_filter([
+                                        'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
+                                        'whatsapp' => $record->trabajador->telefono
+                                            ? "WhatsApp ({$record->trabajador->telefono})"
+                                            : null,
+                                    ]))
+                                    ->default(fn(ProcesoDisciplinario $record) => array_filter([
+                                        'email',
+                                        $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
+                                    ]))
+                                    ->required()
+                                    ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
+
                                 // Botones del Paso 3 (Cancelar / Volver a Decisión / Continuar):
                                 // viven DENTRO de este bloque, no en el footer nativo del modal,
                                 // para que siempre se muestren y se oculten junto con él - el
@@ -2900,13 +2918,18 @@ class ProcesoDisciplinarioResource extends Resource
                             return;
                         }
 
+                        $canalesOverride = [
+                            'email' => in_array('email', $data['canales'] ?? [], true),
+                            'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                        ];
+
                         // Sin sanción: generar la constancia de cierre, enviarla al
                         // trabajador y cerrar el proceso. Es atómico: si falla la
                         // generación o el envío, el proceso conserva su estado original.
                         if ($data['tipo_sancion'] === 'no_sancion') {
                             try {
                                 $record->update(['emision_sancion_estado' => 'procesando']);
-                                \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, null);
+                                \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, null, $canalesOverride);
                                 session()->flash('proceso_disciplinario_generando_sancion', $record->id);
 
                                 \Filament\Notifications\Notification::make()
@@ -2936,7 +2959,7 @@ class ProcesoDisciplinarioResource extends Resource
                         // Si no es suspensión, proceder directamente
                         try {
                             $record->update(['emision_sancion_estado' => 'procesando']);
-                            \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, $data['tipo_sancion']);
+                            \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, $data['tipo_sancion'], $canalesOverride);
                             session()->flash('proceso_disciplinario_generando_sancion', $record->id);
 
                             \Filament\Notifications\Notification::make()
@@ -2998,6 +3021,24 @@ class ProcesoDisciplinarioResource extends Resource
                                         ->helperText('Días sugeridos según el análisis del caso y la legislación colombiana'),
                                 ])
                                 ->description('Complete la información de la suspensión laboral'),
+
+                            // Selector de canal (pedido del usuario, 2026-10-26): este es el
+                            // paso final antes de generar y enviar la suspensión, tanto si
+                            // viene de "Emitir Sanción" como de "Re-generar Sanción".
+                            Forms\Components\CheckboxList::make('canales')
+                                ->label('Enviar por')
+                                ->options(fn(ProcesoDisciplinario $record) => array_filter([
+                                    'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
+                                    'whatsapp' => $record->trabajador->telefono
+                                        ? "WhatsApp ({$record->trabajador->telefono})"
+                                        : null,
+                                ]))
+                                ->default(fn(ProcesoDisciplinario $record) => array_filter([
+                                    'email',
+                                    $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
+                                ]))
+                                ->required()
+                                ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
                         ];
                     })
                     ->modalHeading('Confirmar Días de Suspensión')
@@ -3019,8 +3060,13 @@ class ProcesoDisciplinarioResource extends Resource
                             $record->save();
 
                             // Generar y enviar sanción (en cola, ver GenerarYEnviarSancionJob)
+                            $canalesOverride = [
+                                'email' => in_array('email', $data['canales'] ?? [], true),
+                                'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                            ];
+
                             $record->update(['emision_sancion_estado' => 'procesando']);
-                            \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, 'suspension');
+                            \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, 'suspension', $canalesOverride);
                             session()->flash('proceso_disciplinario_generando_sancion', $record->id);
 
                             // Limpiar sesión
@@ -3529,6 +3575,25 @@ class ProcesoDisciplinarioResource extends Resource
                                         ->placeholder('Escriba el fundamento jurídico de su decisión. Si el análisis con IA ya está listo, aquí aparece precargado.')
                                         ->helperText('Este texto se incluirá en el documento de resolución. Viene precargado con la sugerencia de la IA: revíselo y ajústelo; la decisión es de su empresa.'),
                                 ]),
+
+                            // Selector de canal (pedido del usuario, 2026-10-26). Si la
+                            // decisión es "modifica_sancion" a suspensión, este envío no
+                            // ocurre aquí sino en "Confirmar Días - Resolución", que pide
+                            // el canal ahí mismo.
+                            Forms\Components\CheckboxList::make('canales')
+                                ->label('Notificar la resolución al trabajador por')
+                                ->options(array_filter([
+                                    'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
+                                    'whatsapp' => $record->trabajador->telefono
+                                        ? "WhatsApp ({$record->trabajador->telefono})"
+                                        : null,
+                                ]))
+                                ->default(array_filter([
+                                    'email',
+                                    $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
+                                ]))
+                                ->required()
+                                ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
                         ];
                     })
                     ->modalHeading('Resolver Impugnación')
@@ -3597,10 +3662,16 @@ class ProcesoDisciplinarioResource extends Resource
                                     'fecha_generacion' => now(),
                                 ]);
 
+                                $canalesOverride = [
+                                    'email' => in_array('email', $data['canales'] ?? [], true),
+                                    'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                                ];
+
                                 $documentService->enviarResolucionImpugnacionPorEmail(
                                     $record,
                                     $documentoPath,
-                                    $data['decision_final']
+                                    $data['decision_final'],
+                                    $canalesOverride
                                 );
 
                                 $record->estado = 'cerrado';
@@ -3673,6 +3744,23 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->default(3)
                                     ->helperText('Días de suspensión sin remuneración según la gravedad de la falta'),
                             ]),
+
+                        // Selector de canal (pedido del usuario, 2026-10-26): paso final
+                        // antes de generar y enviar la resolución con la nueva suspensión.
+                        Forms\Components\CheckboxList::make('canales')
+                            ->label('Notificar la resolución al trabajador por')
+                            ->options(fn(ProcesoDisciplinario $record) => array_filter([
+                                'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
+                                'whatsapp' => $record->trabajador->telefono
+                                    ? "WhatsApp ({$record->trabajador->telefono})"
+                                    : null,
+                            ]))
+                            ->default(fn(ProcesoDisciplinario $record) => array_filter([
+                                'email',
+                                $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
+                            ]))
+                            ->required()
+                            ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
                     ])
                     ->modalHeading('Confirmar Días de Suspensión')
                     ->modalDescription('Seleccione los días de suspensión para completar la resolución de la impugnación')
@@ -3724,10 +3812,16 @@ class ProcesoDisciplinarioResource extends Resource
                                     'fecha_generacion' => now(),
                                 ]);
 
+                                $canalesOverride = [
+                                    'email' => in_array('email', $data['canales'] ?? [], true),
+                                    'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                                ];
+
                                 $documentService->enviarResolucionImpugnacionPorEmail(
                                     $record,
                                     $documentoPath,
-                                    $sessionData['decision_final']
+                                    $sessionData['decision_final'],
+                                    $canalesOverride
                                 );
 
                                 $record->estado = 'cerrado';
@@ -3871,6 +3965,24 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->native(false)
                                     ->default($recomendacionFinal['sancion_sugerida'] ?? $analisis['sancion_recomendada'] ?? null)
                                     ->helperText('Seleccione la sanción que considere más apropiada.'),
+
+                                // Selector de canal (pedido del usuario, 2026-10-26). Solo aplica
+                                // si la sanción elegida no es 'suspension' - esa continúa en
+                                // "Confirmar Días de Suspensión", que pide el canal ahí mismo.
+                                Forms\Components\CheckboxList::make('canales')
+                                    ->label('Enviar por')
+                                    ->options(array_filter([
+                                        'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
+                                        'whatsapp' => $record->trabajador->telefono
+                                            ? "WhatsApp ({$record->trabajador->telefono})"
+                                            : null,
+                                    ]))
+                                    ->default(array_filter([
+                                        'email',
+                                        $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
+                                    ]))
+                                    ->required()
+                                    ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
                             ];
                         })
                         ->requiresConfirmation()
@@ -3912,9 +4024,14 @@ class ProcesoDisciplinarioResource extends Resource
                                 return redirect()->to(request()->header('Referer') ?? static::getUrl('index'));
                             }
 
+                            $canalesOverride = [
+                                'email' => in_array('email', $data['canales'] ?? [], true),
+                                'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                            ];
+
                             try {
                                 $record->update(['emision_sancion_estado' => 'procesando']);
-                                \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, $data['tipo_sancion']);
+                                \App\Jobs\GenerarYEnviarSancionJob::dispatch($record, $data['tipo_sancion'], $canalesOverride);
                                 session()->flash('proceso_disciplinario_generando_sancion', $record->id);
 
                                 \Filament\Notifications\Notification::make()
