@@ -1786,10 +1786,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->icon('heroicon-o-paper-airplane')
                     ->color('warning')
                     ->modalHeading('Enviar citación a descargos')
-                    ->modalDescription(
-                        fn(ProcesoDisciplinario $record) =>
-                        'Se generará y enviará la citación al correo: ' . ($record->trabajador?->email ?? '')
-                    )
+                    ->modalDescription('Se generará la citación a descargos y se enviará al trabajador por el o los canales que elija abajo.')
                     ->modalSubmitActionLabel('Generar y enviar citación')
                     ->modalCancelActionLabel('Cancelar')
                     ->modalWidth('md')
@@ -1811,6 +1808,24 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->cancelLabel('Cancelar'),
                             ])
                             ->columns(2),
+
+                        // Selector de canal (pedido del usuario, 2026-10-26: "en todas
+                        // las partes donde se notifica dar la opción de notificar
+                        // también por WhatsApp y correo o ambos").
+                        Forms\Components\CheckboxList::make('canales')
+                            ->label('Enviar por')
+                            ->options(fn(ProcesoDisciplinario $record) => array_filter([
+                                'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
+                                'whatsapp' => $record->trabajador->telefono
+                                    ? "WhatsApp ({$record->trabajador->telefono})"
+                                    : null,
+                            ]))
+                            ->default(fn(ProcesoDisciplinario $record) => array_filter([
+                                'email',
+                                $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
+                            ]))
+                            ->required()
+                            ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
                     ])
                     ->fillForm(function (ProcesoDisciplinario $record): array {
                         $fecha = $record->fecha_descargos_programada;
@@ -1830,8 +1845,13 @@ class ProcesoDisciplinarioResource extends Resource
                             ->setTimeFromTimeString($data['hora_temp']);
                         $record->save();
 
+                        $canalesOverride = [
+                            'email' => in_array('email', $data['canales'] ?? [], true),
+                            'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                        ];
+
                         $service = new \App\Services\DocumentGeneratorService();
-                        $result  = $service->generarYEnviarCitacion($record);
+                        $result  = $service->generarYEnviarCitacion($record, $canalesOverride);
 
                         if ($result['success']) {
                             \Filament\Notifications\Notification::make()
@@ -1949,10 +1969,7 @@ class ProcesoDisciplinarioResource extends Resource
                     ->icon('heroicon-o-calendar')
                     ->color('primary')
                     ->modalHeading('Reprogramar citación a descargos')
-                    ->modalDescription(
-                        fn(ProcesoDisciplinario $record) =>
-                        'Se re-enviará la citación original al correo: ' . ($record->trabajador?->email ?? '') . ' con la nueva fecha seleccionada.'
-                    )
+                    ->modalDescription('Se re-enviará la citación original con la nueva fecha seleccionada, por el o los canales que elija abajo.')
                     ->modalSubmitActionLabel('Reprogramar y re-enviar citación')
                     ->modalCancelActionLabel('Cancelar')
                     ->modalWidth('md')
@@ -2001,6 +2018,24 @@ class ProcesoDisciplinarioResource extends Resource
                                     ->cancelLabel('Cancelar'),
                             ])
                             ->columns(2),
+
+                        // Selector de canal (pedido del usuario, 2026-10-26: "en todas
+                        // las partes donde se notifica dar la opción de notificar
+                        // también por WhatsApp y correo o ambos").
+                        Forms\Components\CheckboxList::make('canales')
+                            ->label('Enviar por')
+                            ->options(fn(ProcesoDisciplinario $record) => array_filter([
+                                'email' => 'Correo' . ($record->trabajador->email ? " ({$record->trabajador->email})" : ' (sin correo registrado)'),
+                                'whatsapp' => $record->trabajador->telefono
+                                    ? "WhatsApp ({$record->trabajador->telefono})"
+                                    : null,
+                            ]))
+                            ->default(fn(ProcesoDisciplinario $record) => array_filter([
+                                'email',
+                                $record->trabajador->notificar_por_whatsapp && $record->trabajador->telefono ? 'whatsapp' : null,
+                            ]))
+                            ->required()
+                            ->validationMessages(['required' => 'Elija al menos un canal de envío.']),
                     ])
                     ->visible(
                         fn(ProcesoDisciplinario $record) =>
@@ -2061,12 +2096,17 @@ class ProcesoDisciplinarioResource extends Resource
                             $fechaAccesoPermitida = \Carbon\Carbon::parse($diligencia->fecha_acceso_permitida);
                         }
 
-                        // 5. Re-enviar el correo con el PDF existente (sin regenerar)
+                        // 5. Re-enviar la citación con el PDF existente (sin regenerar), por el canal elegido
+                        $canalesOverride = [
+                            'email' => in_array('email', $data['canales'] ?? [], true),
+                            'whatsapp' => in_array('whatsapp', $data['canales'] ?? [], true),
+                        ];
+
                         $emailEnviado = false;
                         $emailError   = null;
                         try {
                             $service = new \App\Services\DocumentGeneratorService();
-                            $service->enviarCitacionPorEmail($record, $documento->ruta_archivo, $linkDescargos, $fechaAccesoPermitida);
+                            $service->enviarCitacionPorEmail($record, $documento->ruta_archivo, $linkDescargos, $fechaAccesoPermitida, $canalesOverride);
                             $emailEnviado = true;
                         } catch (\Exception $e) {
                             $emailError = $e->getMessage();
@@ -2091,7 +2131,7 @@ class ProcesoDisciplinarioResource extends Resource
                             \Filament\Notifications\Notification::make()
                                 ->success()
                                 ->title('Citación reprogramada')
-                                ->body('La nueva fecha fue registrada y se re-envió la citación original al correo del trabajador.')
+                                ->body('La nueva fecha fue registrada y se re-envió la citación original al trabajador por el canal elegido.')
                                 ->send();
                         } else {
                             \Filament\Notifications\Notification::make()
