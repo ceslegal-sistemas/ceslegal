@@ -87,10 +87,18 @@ class ReenvioCitacionCanalOverrideTest extends TestCase
         app(DocumentGeneratorService::class)->enviarCitacionPorEmail(
             $proceso,
             $this->pdfDummy(),
+            linkDescargos: 'https://ejemplo.test/descargos/abc',
             canalesOverride: ['email' => false, 'whatsapp' => true],
         );
 
-        $this->assertSame(0, EmailTracking::where('proceso_id', $proceso->id)->count());
+        // Se sigue creando el registro de acuse (pedido del usuario,
+        // 2026-10-27: antes un envío solo por WhatsApp no dejaba ningún
+        // registro y el listado mostraba "No enviado" aunque sí se envió),
+        // pero refleja que el canal real fue WhatsApp, no correo.
+        $tracking = EmailTracking::where('proceso_id', $proceso->id)->first();
+        $this->assertNotNull($tracking);
+        $this->assertSame(['whatsapp'], $tracking->canales);
+        $this->assertSame('Enviado por WhatsApp', $tracking->getEstadoLectura());
     }
 
     public function test_override_solo_correo_no_intenta_whatsapp_aunque_el_trabajador_lo_tenga_activo(): void

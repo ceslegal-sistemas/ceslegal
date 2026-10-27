@@ -15,6 +15,7 @@ class EmailTracking extends Model
         'proceso_id',
         'trabajador_id',
         'email_destinatario',
+        'canales',
         'enviado_en',
         'abierto_en',
         'veces_abierto',
@@ -23,10 +24,54 @@ class EmailTracking extends Model
     ];
 
     protected $casts = [
+        'canales' => 'array',
         'enviado_en' => 'datetime',
         'abierto_en' => 'datetime',
         'veces_abierto' => 'integer',
     ];
+
+    /**
+     * Canales por los que se envió este registro. Null = registros
+     * históricos previos al selector de canal (2026-10-27) - siempre fueron
+     * por correo.
+     */
+    public function getCanalesAttribute($value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && $value !== '') {
+            return json_decode($value, true) ?: ['email'];
+        }
+
+        return ['email'];
+    }
+
+    public function incluyeCanal(string $canal): bool
+    {
+        return in_array($canal, $this->canales, true);
+    }
+
+    /**
+     * Etiqueta legible de los canales usados, para mostrar junto al acuse.
+     */
+    public function getCanalesLabelAttribute(): string
+    {
+        $canales = $this->canales;
+        $tieneEmail = in_array('email', $canales, true);
+        $tieneWhatsapp = in_array('whatsapp', $canales, true);
+
+        if ($tieneEmail && $tieneWhatsapp) {
+            return 'Correo y WhatsApp';
+        }
+
+        if ($tieneWhatsapp) {
+            return 'WhatsApp';
+        }
+
+        return 'Correo';
+    }
 
     /**
      * Generar un token único para el tracking
@@ -77,6 +122,14 @@ class EmailTracking extends Model
      */
     public function getEstadoLectura(): string
     {
+        // El tracking de apertura (pixel) solo existe cuando el correo
+        // realmente se envió - un envío solo por WhatsApp no tiene ese
+        // mecanismo, así que "Pendiente" sería engañoso (sugiere que el
+        // correo todavía no llega, cuando nunca se intentó enviar por ahí).
+        if (!$this->incluyeCanal('email')) {
+            return 'Enviado por WhatsApp';
+        }
+
         if ($this->veces_abierto === 0) {
             return 'Pendiente';
         }
@@ -95,6 +148,10 @@ class EmailTracking extends Model
      */
     public function getColorEstado(): string
     {
+        if (!$this->incluyeCanal('email')) {
+            return 'info';
+        }
+
         if ($this->veces_abierto === 0) {
             return 'gray';
         }

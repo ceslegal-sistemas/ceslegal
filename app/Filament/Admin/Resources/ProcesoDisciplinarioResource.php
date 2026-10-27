@@ -1510,10 +1510,11 @@ class ProcesoDisciplinarioResource extends Resource
                             ->first();
 
                         if (!$tracking) {
-                            return 'No se ha enviado la citación por correo';
+                            return 'No se ha enviado la citación';
                         }
 
                         $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
+                        $info .= "\nCanal: " . $tracking->canales_label;
 
                         if ($tracking->fueEntregado()) {
                             $info .= "\nCorreo Entregado: Sí";
@@ -1566,10 +1567,11 @@ class ProcesoDisciplinarioResource extends Resource
                             ->first();
 
                         if (!$tracking) {
-                            return 'No se ha enviado el acta de descargos por correo';
+                            return 'No se ha enviado el acta de descargos';
                         }
 
                         $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
+                        $info .= "\nCanal: " . $tracking->canales_label;
 
                         if ($tracking->fueEntregado()) {
                             $info .= "\nCorreo Entregado: Sí";
@@ -1622,10 +1624,11 @@ class ProcesoDisciplinarioResource extends Resource
                             ->first();
 
                         if (!$tracking) {
-                            return 'No se ha enviado la sanción por correo';
+                            return 'No se ha enviado la sanción';
                         }
 
                         $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
+                        $info .= "\nCanal: " . $tracking->canales_label;
 
                         if ($tracking->fueEntregado()) {
                             $info .= "\nCorreo Entregado: Sí";

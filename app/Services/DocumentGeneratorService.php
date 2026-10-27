@@ -967,17 +967,27 @@ HTML;
             throw new \Exception('El trabajador no tiene correo electrónico registrado');
         }
 
-        if ($enviarEmail) {
-            // Crear registro de tracking para el correo (hora de Colombia)
-            $tracking = EmailTracking::create([
-                'token' => EmailTracking::generarToken(),
-                'tipo_documento' => 'citacion',
-                'proceso_id' => $proceso->id,
-                'trabajador_id' => $trabajador->id,
-                'email_destinatario' => $trabajador->email,
-                'enviado_en' => Carbon::now('America/Bogota'),
-            ]);
+        // El acuse de recibido necesita saber qué canal(es) se usaron
+        // realmente en ESTE envío - un registro no se crea solo cuando hay
+        // correo, para que "Re-enviar Citación" por WhatsApp-only no quede
+        // mostrando "No enviado" en el listado (bug real reportado por el
+        // usuario, 2026-10-27).
+        $canalesUsados = array_keys(array_filter([
+            'email' => $enviarEmail,
+            'whatsapp' => $enviarWhatsapp && $linkDescargos,
+        ]));
 
+        $tracking = EmailTracking::create([
+            'token' => EmailTracking::generarToken(),
+            'tipo_documento' => 'citacion',
+            'proceso_id' => $proceso->id,
+            'trabajador_id' => $trabajador->id,
+            'email_destinatario' => $trabajador->email,
+            'canales' => $canalesUsados,
+            'enviado_en' => Carbon::now('America/Bogota'),
+        ]);
+
+        if ($enviarEmail) {
             // Detectar la extensión real del archivo
             $extension = pathinfo($pdfPath, PATHINFO_EXTENSION);
             $mimeType = $extension === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
