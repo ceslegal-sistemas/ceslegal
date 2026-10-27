@@ -11,14 +11,9 @@
     <span class="canal-opcion-ico">
         @svg($canal === 'whatsapp' ? 'heroicon-o-chat-bubble-left-right' : 'heroicon-o-envelope')
     </span>
-    <span class="canal-opcion-texto">
-        <span class="canal-opcion-titulo">
-            {{ $titulo }}
-            @if($pendiente ?? false)
-                <span class="canal-opcion-pendiente">Próximamente</span>
-            @endif
-        </span>
-        <span class="canal-opcion-detalle">{{ $detalle }}</span>
-    </span>
-    <span class="canal-opcion-check">Seleccionado</span>
+    <span class="canal-opcion-titulo">{{ $titulo }}</span>
+    <span class="canal-opcion-detalle">({{ $detalle }})</span>
+    @if($pendiente ?? false)
+        <span class="canal-opcion-pendiente rit-badge rit-badge-warning">Próximamente</span>
+    @endif
 </span>
