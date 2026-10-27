@@ -120,36 +120,40 @@ html.dark .rit-notice-neutral{background:rgba(100,116,139,.1);border-color:rgba(
 html.dark .rit-notice-neutral h4{color:#94a3b8}
 {{--
     Selector de canal de notificacion (correo/WhatsApp) - pedido del usuario
-    (2026-10-27): el CheckboxList nativo de Filament se veia como una lista
-    plana sin jerarquia. Misma tarjeta que .rit-notice (fondo con tinte
-    completo, sin franja lateral) convertida en opcion seleccionable, usando
-    EXACTAMENTE los mismos tonos de .rit-badge-info (correo) y
-    .rit-badge-sub (WhatsApp) ya establecidos arriba - ningun color nuevo.
-    :has() en vez de JS porque Filament no expone una clase "checked" en el
-    <label> que envuelve el checkbox.
+    (2026-10-27, corregido el mismo dia tras feedback: "ese rediseño no es
+    nada a lo de lupe legal" - la primera versión usaba azul/verde genérico,
+    inventado, en vez de la paleta real). Replica EXACTAMENTE el patrón ya
+    usado por .rop-card/.lop-card (rit-opcion-cards.blade.php,
+    logo-opcion-cards.blade.php): tarjeta blanca/neutra, borde y sombra rosa
+    de marca (#e11d48) solo en el estado seleccionado, "Seleccionado" en
+    mayúsculas que aparece solo al marcar - mismo rojo/rosa en TODAS las
+    opciones, no un color por canal. :has() en vez de Alpine x-data porque
+    este selector vive dentro de un CheckboxList nativo de Filament (con
+    wire:model real, validación y multi-valor) - esos otros dos componentes
+    usan $wire.entangle() directo porque son botones a mano en un wizard
+    propio, algo que un Table Action de Filament no expone de forma estable.
 --}}
 .canal-selector .fi-fo-checkbox-list{gap:.65rem!important}
-.canal-selector .fi-fo-checkbox-list-option-label{cursor:pointer;display:flex;align-items:center;gap:.75rem;padding:.75rem .9rem;border-radius:.85rem;border:1px solid rgba(100,116,139,.22);background:rgba(100,116,139,.05);transition:border-color .15s,background .15s}
-html.dark .canal-selector .fi-fo-checkbox-list-option-label{border-color:rgba(148,163,184,.18);background:rgba(148,163,184,.06)}
-.canal-selector .fi-fo-checkbox-list-option-label:hover{border-color:rgba(100,116,139,.4)}
-.canal-selector .fi-fo-checkbox-list-option-label:has(input[value="email"]:checked){background:rgba(37,99,235,.08);border-color:rgba(37,99,235,.35)}
-html.dark .canal-selector .fi-fo-checkbox-list-option-label:has(input[value="email"]:checked){background:rgba(37,99,235,.14);border-color:rgba(96,165,250,.4)}
-.canal-selector .fi-fo-checkbox-list-option-label:has(input[value="whatsapp"]:checked){background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.32)}
-html.dark .canal-selector .fi-fo-checkbox-list-option-label:has(input[value="whatsapp"]:checked){background:rgba(34,197,94,.13);border-color:rgba(34,197,94,.35)}
+.canal-selector .fi-fo-checkbox-list-option-label{cursor:pointer;display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;border-radius:1rem;border:1.5px solid rgba(0,0,0,.10);background:#fff;transition:border-color .18s,box-shadow .18s,transform .18s}
+html.dark .canal-selector .fi-fo-checkbox-list-option-label{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.12)}
+.canal-selector .fi-fo-checkbox-list-option-label:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(225,29,72,.10)}
+.canal-selector .fi-fo-checkbox-list-option-label:has(input:checked){border-color:#e11d48;box-shadow:0 8px 26px rgba(225,29,72,.18)}
+html.dark .canal-selector .fi-fo-checkbox-list-option-label:has(input:checked){border-color:#fb7185}
 .canal-selector .fi-fo-checkbox-list-option-label:has(input:disabled){cursor:not-allowed;opacity:.55}
-.canal-selector .fi-fo-checkbox-list-option-label input[type=checkbox]{width:1.15rem;height:1.15rem;flex-shrink:0;margin-top:0!important}
-.canal-opcion{display:flex;align-items:center;gap:.65rem;min-width:0}
-.canal-opcion-ico{width:34px;height:34px;flex-shrink:0;border-radius:.6rem;display:flex;align-items:center;justify-content:center}
+.canal-selector .fi-fo-checkbox-list-option-label:has(input:disabled):hover{transform:none;box-shadow:none}
+.canal-selector .fi-fo-checkbox-list-option-label input[type=checkbox]{width:1.15rem;height:1.15rem;flex-shrink:0;margin-top:0!important;accent-color:#e11d48}
+.canal-opcion{display:flex;align-items:center;gap:.65rem;min-width:0;flex:1}
+.canal-opcion-ico{width:34px;height:34px;flex-shrink:0;border-radius:.6rem;display:flex;align-items:center;justify-content:center;background:rgba(225,29,72,.08);color:#e11d48}
+html.dark .canal-opcion-ico{background:rgba(251,113,133,.14);color:#fb7185}
 .canal-opcion-ico svg{width:18px;height:18px}
-.canal-opcion[data-canal="email"] .canal-opcion-ico{background:rgba(37,99,235,.14);color:#2563eb}
-html.dark .canal-opcion[data-canal="email"] .canal-opcion-ico{background:rgba(96,165,250,.16);color:#93c5fd}
-.canal-opcion[data-canal="whatsapp"] .canal-opcion-ico{background:rgba(22,163,74,.14);color:#16a34a}
-html.dark .canal-opcion[data-canal="whatsapp"] .canal-opcion-ico{background:rgba(34,197,94,.18);color:#86efac}
 .canal-opcion-texto{min-width:0}
-.canal-opcion-titulo{display:block;font-weight:700;font-size:.8125rem;color:#1c1917}
-html.dark .canal-opcion-titulo{color:#f1f5f9}
-.canal-opcion-detalle{display:block;font-size:.72rem;color:#78716c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-html.dark .canal-opcion-detalle{color:#a8a29e}
+.canal-opcion-titulo{display:block;font-weight:700;font-size:.8125rem;color:#0f172a}
+html.dark .canal-opcion-titulo{color:#e2e8f0}
+.canal-opcion-detalle{display:block;font-size:.76rem;line-height:1.4;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.dark .canal-opcion-detalle{color:#94a3b8}
+.canal-opcion-check{flex-shrink:0;font-size:.66rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#be123c;opacity:0;transition:opacity .18s}
+html.dark .canal-opcion-check{color:#fb7185}
+.canal-selector .fi-fo-checkbox-list-option-label:has(input:checked) .canal-opcion-check{opacity:1}
 .canal-opcion-pendiente{display:inline-block;margin-left:.4rem;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#b45309}
 html.dark .canal-opcion-pendiente{color:#fbbf24}
 </style>

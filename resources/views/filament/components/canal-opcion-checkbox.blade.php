@@ -20,4 +20,5 @@
         </span>
         <span class="canal-opcion-detalle">{{ $detalle }}</span>
     </span>
+    <span class="canal-opcion-check">Seleccionado</span>
 </span>
