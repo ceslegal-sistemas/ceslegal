@@ -1714,7 +1714,7 @@ HTML;
             [
                 'numero' => 'XIV', 'titulo' => 'COMITÉ DE CONVIVENCIA LABORAL Y PREVENCIÓN DE ACOSO',
                 'query_rag' => 'acoso laboral sexual comité convivencia modalidades procedimiento queja denuncia prevención protocolo',
-                'temas' => ['Acoso laboral y comité de convivencia', 'Acoso sexual laboral'],
+                'temas' => ['Acoso laboral y comité de convivencia'],
                 'codigos_obligatorios' => [
                     // Ley 1010/2006 - artículos clave de acoso laboral
                     'Art. 1 Ley 1010', 'Art. 2 Ley 1010', 'Art. 6 Ley 1010', 'Art. 7 Ley 1010',
@@ -1743,14 +1743,7 @@ HTML;
                     '   5) Informe final del Comité con las medidas correctivas, plazos y responsables.',
                     '   6) Seguimiento trimestral por parte del Comité para verificar el cumplimiento de las medidas.',
                     '   7) Si no hay acuerdo o la conducta persiste, remisión a la autoridad competente (Inspector del Trabajo, Procuraduría, Fiscalía).',
-                    'E. PREVENCIÓN DEL ACOSO SEXUAL - ARTÍCULO AUTÓNOMO con mínimo 120 palabras:',
-                    '   a) Definición de acoso sexual en el contexto laboral: toda conducta de naturaleza sexual no consentida, solicitudes de favores sexuales, comentarios o actos de connotación sexual que afecten la dignidad del trabajador.',
-                    '   b) Tipos de conductas constitutivas: verbales (comentarios, insinuaciones, proposiciones), físicas (contacto no deseado, proximidad invasiva), digitales o virtuales (mensajes, imágenes, videos).',
-                    '   c) Canal confidencial y exclusivo para denuncias de acoso sexual, separado del canal general de quejas.',
-                    '   d) Protocolo de respuesta: recepción de la denuncia, investigación imparcial y confidencial, medidas de protección inmediata para la víctima, decisión motivada.',
-                    '   e) Garantía absoluta de confidencialidad de la identidad de la víctima durante la investigación.',
-                    '   f) Prohibición expresa de represalias contra la persona que denuncia.',
-                    'F. SANCIONES POR ACOSO - artículo expreso: la conducta de acoso laboral o acoso sexual se califica como falta MUY GRAVE y puede dar lugar a terminación del contrato con justa causa, sin perjuicio de las acciones penales y administrativas a que haya lugar.',
+                    'F. SANCIONES POR ACOSO LABORAL - artículo expreso: la conducta de acoso laboral se califica como falta MUY GRAVE y puede dar lugar a terminación del contrato con justa causa, sin perjuicio de las acciones penales y administrativas a que haya lugar. El acoso sexual se trata en capítulo separado de este reglamento.',
                 ]),
             ],
             [
