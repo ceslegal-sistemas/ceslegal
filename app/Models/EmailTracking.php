@@ -16,6 +16,10 @@ class EmailTracking extends Model
         'trabajador_id',
         'email_destinatario',
         'canales',
+        'whatsapp_message_id',
+        'whatsapp_estado',
+        'whatsapp_entregado_en',
+        'whatsapp_leido_en',
         'enviado_en',
         'abierto_en',
         'veces_abierto',
@@ -28,6 +32,8 @@ class EmailTracking extends Model
         'enviado_en' => 'datetime',
         'abierto_en' => 'datetime',
         'veces_abierto' => 'integer',
+        'whatsapp_entregado_en' => 'datetime',
+        'whatsapp_leido_en' => 'datetime',
     ];
 
     /**
@@ -124,10 +130,16 @@ class EmailTracking extends Model
     {
         // El tracking de apertura (pixel) solo existe cuando el correo
         // realmente se envió - un envío solo por WhatsApp no tiene ese
-        // mecanismo, así que "Pendiente" sería engañoso (sugiere que el
-        // correo todavía no llega, cuando nunca se intentó enviar por ahí).
+        // mecanismo, usa en cambio el acuse de lectura real de WhatsApp
+        // (webhook de Meta, ver ProcesarWebhookWhatsAppJob::procesarStatus()
+        // y whatsapp_estado, pedido del usuario 2026-10-27).
         if (!$this->incluyeCanal('email')) {
-            return 'Enviado por WhatsApp';
+            return match ($this->whatsapp_estado) {
+                'leido' => 'Leído por WhatsApp',
+                'entregado' => 'Entregado por WhatsApp',
+                'fallido' => 'Falló el envío por WhatsApp',
+                default => 'Enviado por WhatsApp',
+            };
         }
 
         if ($this->veces_abierto === 0) {
@@ -149,7 +161,12 @@ class EmailTracking extends Model
     public function getColorEstado(): string
     {
         if (!$this->incluyeCanal('email')) {
-            return 'info';
+            return match ($this->whatsapp_estado) {
+                'leido' => 'success',
+                'fallido' => 'danger',
+                'entregado' => 'warning',
+                default => 'info',
+            };
         }
 
         if ($this->veces_abierto === 0) {
@@ -161,6 +178,28 @@ class EmailTracking extends Model
         }
 
         return 'success';
+    }
+
+    /**
+     * Línea de acuse de WhatsApp lista para un tooltip (pedido del usuario,
+     * 2026-10-27) - null si este registro no se envió por WhatsApp en
+     * absoluto, para que el llamador decida si agregarla o no.
+     */
+    public function getWhatsappAcuseLineaAttribute(): ?string
+    {
+        if (!$this->incluyeCanal('whatsapp')) {
+            return null;
+        }
+
+        $texto = match ($this->whatsapp_estado) {
+            'leido' => 'Leído' . ($this->whatsapp_leido_en ? ' el ' . $this->whatsapp_leido_en->format('d/m/Y H:i') : ''),
+            'entregado' => 'Entregado' . ($this->whatsapp_entregado_en ? ' el ' . $this->whatsapp_entregado_en->format('d/m/Y H:i') : ''),
+            'fallido' => 'No se pudo entregar',
+            'enviado' => 'Enviado, esperando confirmación de entrega',
+            default => 'Enviado',
+        };
+
+        return "WhatsApp: {$texto}";
     }
 
     /**

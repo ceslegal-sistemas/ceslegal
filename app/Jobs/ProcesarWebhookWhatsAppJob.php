@@ -107,14 +107,69 @@ class ProcesarWebhookWhatsAppJob implements ShouldQueue
         ]);
     }
 
+    /**
+     * Acuse de entrega/lectura de WhatsApp (pedido del usuario, 2026-10-27:
+     * "necesito que haya un acuse de que el trabajador ya leyó el mensaje
+     * enviado por whatsapp") - correlaciona el wamid que Meta reporta aquí
+     * con el whatsapp_message_id guardado al enviar (ver
+     * DocumentGeneratorService::enviarAvisoWhatsappTrabajador()). Mismo
+     * mecanismo que el "doble check azul" nativo de WhatsApp: si el
+     * trabajador tiene desactivados los acuses de lectura en su privacidad,
+     * Meta nunca reporta "read" y este acuse se queda en "Entregado" - no
+     * hay forma de forzarlo, igual que con los checks azules normales.
+     */
     private function procesarStatus(array $status): void
     {
+        $messageId = $status['id'] ?? null;
+        $estadoMeta = $status['status'] ?? null;
+
         Log::info('WhatsApp: status recibido', [
-            'message_id' => $status['id'] ?? null,
-            'status' => $status['status'] ?? null,
+            'message_id' => $messageId,
+            'status' => $estadoMeta,
             'destinatario' => $status['recipient_id'] ?? null,
             'error' => $status['errors'][0]['title'] ?? null,
         ]);
+
+        if (!$messageId || !$estadoMeta) {
+            return;
+        }
+
+        $tracking = \App\Models\EmailTracking::where('whatsapp_message_id', $messageId)->first();
+        if (!$tracking) {
+            // No todos los envíos de WhatsApp quedan ligados a un
+            // EmailTracking (ej. recordatorio automático) - nada que
+            // actualizar, no es un error.
+            return;
+        }
+
+        // Idempotente a propósito (igual que el resto de este Job): Meta
+        // puede reentregar eventos desordenados, pero "leído" es el estado
+        // terminal que interesa - nunca se pisa por un "delivered" tardío
+        // que llegue después.
+        if ($tracking->whatsapp_estado === 'leido') {
+            return;
+        }
+
+        $timestamp = isset($status['timestamp'])
+            ? \Carbon\Carbon::createFromTimestamp((int) $status['timestamp'])
+            : now();
+
+        match ($estadoMeta) {
+            'delivered' => $tracking->update([
+                'whatsapp_estado' => 'entregado',
+                'whatsapp_entregado_en' => $tracking->whatsapp_entregado_en ?? $timestamp,
+            ]),
+            'read' => $tracking->update([
+                'whatsapp_estado' => 'leido',
+                'whatsapp_entregado_en' => $tracking->whatsapp_entregado_en ?? $timestamp,
+                'whatsapp_leido_en' => $timestamp,
+            ]),
+            'failed' => $tracking->update(['whatsapp_estado' => 'fallido']),
+            'sent' => $tracking->whatsapp_estado
+                ? null
+                : $tracking->update(['whatsapp_estado' => 'enviado']),
+            default => null,
+        };
     }
 
     private function procesarCalidad(array $valor, NotificacionService $notificaciones): void

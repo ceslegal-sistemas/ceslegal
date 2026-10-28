@@ -78,6 +78,16 @@ class DocumentGeneratorService
      * parámetro se deja en false y la preferencia guardada sigue siendo el
      * único criterio, igual que siempre.
      *
+     * $tracking (pedido del usuario, 2026-10-27: "necesito que haya un
+     * acuse de que el trabajador ya leyó el mensaje enviado por whatsapp"):
+     * cuando se pasa, se guarda ahí el wamid que Meta devuelve al enviar
+     * (whatsapp_message_id) - eso es lo que permite a
+     * ProcesarWebhookWhatsAppJob::procesarStatus() correlacionar el
+     * callback de estado (sent/delivered/read) con este envío puntual y
+     * marcar whatsapp_leido_en. Sin $tracking (ej. recordatorio automático,
+     * que no tiene un EmailTracking propio) el envío sigue funcionando
+     * igual, solo que sin acuse de lectura.
+     *
      * @param  array<int, string> $parametros
      */
     private function enviarAvisoWhatsappTrabajador(
@@ -86,6 +96,7 @@ class DocumentGeneratorService
         array $parametros,
         ?string $botonUrlSufijo = null,
         bool $ignorarPreferencia = false,
+        ?\App\Models\EmailTracking $tracking = null,
     ): void {
         if ((!$ignorarPreferencia && !$trabajador->notificar_por_whatsapp) || empty($trabajador->telefono)) {
             return;
@@ -98,12 +109,20 @@ class DocumentGeneratorService
         }
 
         try {
-            app(\App\Services\WhatsAppService::class)->enviarPlantillaUtility(
+            $resultado = app(\App\Services\WhatsAppService::class)->enviarPlantillaUtility(
                 $trabajador->telefono,
                 $plantilla,
                 $parametros,
                 $botonUrlSufijo,
             );
+
+            $messageId = $resultado['data']['messages'][0]['id'] ?? null;
+            if ($tracking && $messageId) {
+                $tracking->update([
+                    'whatsapp_message_id' => $messageId,
+                    'whatsapp_estado' => 'enviado',
+                ]);
+            }
         } catch (\Throwable $e) {
             Log::warning('DocumentGeneratorService: fallo al enviar aviso de WhatsApp al trabajador', [
                 'trabajador_id' => $trabajador->id,
@@ -1084,6 +1103,7 @@ HTML;
                 [$trabajador->nombre_completo, $proceso->codigo],
                 basename($linkDescargos),
                 ignorarPreferencia: $canalesOverride !== null,
+                tracking: $tracking,
             );
         }
     }
@@ -2673,6 +2693,7 @@ HTML;
                 [$trabajador->nombre_completo, $nombreSancion, $proceso->codigo],
                 basename($urlImpugnacion),
                 ignorarPreferencia: $canalesOverride !== null,
+                tracking: $tracking,
             );
         }
 
@@ -2740,6 +2761,7 @@ HTML;
                 'whatsapp_plantilla_no_sancion_nombre',
                 [$trabajador->nombre_completo, $proceso->codigo],
                 ignorarPreferencia: $canalesOverride !== null,
+                tracking: $tracking,
             );
         }
 
@@ -3280,6 +3302,7 @@ HTML;
                 'whatsapp_plantilla_resolucion_impugnacion_nombre',
                 [$trabajador->nombre_completo, $proceso->codigo, $decisionTexto],
                 ignorarPreferencia: $canalesOverride !== null,
+                tracking: $tracking,
             );
         }
 

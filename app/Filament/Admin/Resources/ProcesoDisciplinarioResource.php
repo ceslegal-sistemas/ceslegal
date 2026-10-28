@@ -1516,6 +1516,10 @@ class ProcesoDisciplinarioResource extends Resource
                         $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
                         $info .= "\nCanal: " . $tracking->canales_label;
 
+                        if ($tracking->whatsapp_acuse_linea) {
+                            $info .= "\n" . $tracking->whatsapp_acuse_linea;
+                        }
+
                         if ($tracking->fueEntregado()) {
                             $info .= "\nCorreo Entregado: Sí";
                         }
@@ -1573,6 +1577,10 @@ class ProcesoDisciplinarioResource extends Resource
                         $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
                         $info .= "\nCanal: " . $tracking->canales_label;
 
+                        if ($tracking->whatsapp_acuse_linea) {
+                            $info .= "\n" . $tracking->whatsapp_acuse_linea;
+                        }
+
                         if ($tracking->fueEntregado()) {
                             $info .= "\nCorreo Entregado: Sí";
                         }
@@ -1629,6 +1637,10 @@ class ProcesoDisciplinarioResource extends Resource
 
                         $info = "Enviado: " . $tracking->enviado_en->format('d/m/Y H:i');
                         $info .= "\nCanal: " . $tracking->canales_label;
+
+                        if ($tracking->whatsapp_acuse_linea) {
+                            $info .= "\n" . $tracking->whatsapp_acuse_linea;
+                        }
 
                         if ($tracking->fueEntregado()) {
                             $info .= "\nCorreo Entregado: Sí";
