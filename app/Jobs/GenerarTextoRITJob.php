@@ -20,8 +20,8 @@ class GenerarTextoRITJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** Generación capítulo por capítulo: 16 caps × ~30s = hasta 480s. */
-    public int $timeout = 600;
+    /** Generación capítulo por capítulo: 22 caps × ~30s = hasta 660s. Margen a 900s. */
+    public int $timeout = 900;
 
     /** Sin reintentos automáticos: el cascade de modelos maneja la redundancia. */
     public int $tries = 1;
