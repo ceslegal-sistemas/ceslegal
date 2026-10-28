@@ -114,7 +114,6 @@ class RitGoldStandard
             'Conformación y funciones del Comité de Convivencia Laboral',
             'Restricción a la conformación del Comité: no puede integrarlo quien haya sido víctima o presunto acosador en un caso',
             'Definición y modalidades del acoso laboral',
-            'Prevención y atención del acoso sexual, con campañas o acciones colectivas de prevención dirigidas a todo el personal',
             'Procedimiento confidencial de queja y su trámite: el Comité informa a la alta dirección y el trabajador puede acudir directamente a las autoridades competentes en cualquier momento',
             'Medidas de protección para quien denuncia',
         ],
@@ -124,6 +123,43 @@ class RitGoldStandard
             'Protección y ajustes razonables para personas con discapacidad',
             'Labores prohibidas o restringidas (embarazadas, menores de edad)',
             'No discriminación de grupos de especial protección',
+        ],
+        'XVI' => [
+            'Naturaleza especial del contrato de aprendizaje (no es contrato de trabajo)',
+            'Etapas lectiva y práctica',
+            'Cuota de aprendizaje según número de trabajadores',
+            'Apoyo de sostenimiento y afiliación a seguridad social durante la etapa práctica',
+            'Causales de terminación propias de esta modalidad',
+        ],
+        'XVII' => [
+            'Definición de trabajador accidental o transitorio',
+            'Diferencias de régimen frente al trabajador ordinario',
+            'Formalidades para distinguirlo de una vinculación ordinaria disfrazada',
+        ],
+        'XVIII' => [
+            'Control de acceso de personal y visitantes',
+            'Política de videovigilancia con finalidad y proporcionalidad explícitas',
+            'Condiciones para requisas o inspecciones',
+            'Orden, limpieza y señalización de seguridad del lugar de trabajo',
+        ],
+        'XIX' => [
+            'Declaración voluntaria de relaciones sentimentales sin sanción por el solo hecho de la relación',
+            'Manejo del conflicto de interés y de jerarquía derivado',
+            'Prohibición de trato discriminatorio o de favoritismo asociado a la relación',
+        ],
+        'XX' => [
+            'Obligación y plazo de reportar la incapacidad al empleador',
+            'Validación interna del certificado antes de tramitarlo',
+            'Trámite ante EPS/ARL para el reconocimiento económico',
+            'Tratamiento del pago al trabajador mientras se tramita el reconocimiento',
+        ],
+        'XXI' => [
+            'Definición y modalidades de acoso sexual',
+            'Prevención y atención del acoso sexual, con campañas o acciones colectivas de prevención dirigidas a todo el personal',
+            'Canal confidencial de denuncia independiente del Comité de Convivencia',
+            'Protocolo de investigación con medidas de protección a la víctima',
+            'Prohibición expresa de represalias contra quien denuncia',
+            'Derecho a acudir directamente a autoridades competentes',
         ],
         'XXII' => [
             'Vigencia y fecha de entrada en vigor del reglamento',
@@ -144,7 +180,7 @@ class RitGoldStandard
         'salario'           => ['V'],
         'disciplina'        => ['VIII', 'IX', 'X'],
         'sst'               => ['XII'],
-        'acoso'             => ['XIV'],
+        'acoso'             => ['XIV', 'XXI'],
         'grupos_protegidos' => ['XV'],
     ];
 

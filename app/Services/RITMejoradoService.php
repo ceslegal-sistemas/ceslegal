@@ -46,6 +46,12 @@ class RITMejoradoService
         'XIII' => [],
         'XIV'  => ['acoso'],
         'XV'   => ['grupos_protegidos'],
+        'XVI'   => [],
+        'XVII'  => [],
+        'XVIII' => [],
+        'XIX'   => [],
+        'XX'    => [],
+        'XXI'   => ['acoso'],
         'XXII' => [],
     ];
 
@@ -279,6 +285,12 @@ class RITMejoradoService
         'XIII' => ['uniformes', 'dotacion', 'equipos', 'bienes de la empresa', 'herramientas'],
         'XIV'  => ['convivencia', 'acoso', 'comite de convivencia'],
         'XV'   => ['proteccion de sujetos', 'sujetos de especial', 'mujeres y menores', 'labores prohibidas', 'discapacidad', 'fuero', 'estabilidad reforzada'],
+        'XVI'   => ['contrato de aprendizaje', 'aprendiz sena', 'cuota de aprendizaje'],
+        'XVII'  => ['trabajador accidental', 'trabajador transitorio', 'trabajador ocasional'],
+        'XVIII' => ['prescripciones de orden', 'videovigilancia', 'camaras de seguridad', 'control de acceso'],
+        'XIX'   => ['relaciones sentimentales', 'relaciones de pareja en el trabajo'],
+        'XX'    => ['incapacidad medica', 'incapacidades medicas', 'tramite de incapacidades'],
+        'XXI'   => ['acoso sexual'],
         'XXII' => ['disposiciones finales', 'publicacion y vigencia', 'clausulas ineficaces', 'vigencia del presente'],
     ];
 
