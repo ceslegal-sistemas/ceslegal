@@ -1766,7 +1766,7 @@ HTML;
                 ]),
             ],
             [
-                'numero' => 'XVI', 'titulo' => 'DISPOSICIONES FINALES',
+                'numero' => 'XXII', 'titulo' => 'DISPOSICIONES FINALES',
                 'query_rag' => 'disposiciones finales vigencia reglamento interno trabajo depósito Ministerio Trabajo publicación modificaciones',
                 'codigos_obligatorios' => [],
                 'datos_empresa_keys'   => ['domicilio'],

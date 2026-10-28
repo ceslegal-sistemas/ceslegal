@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
  *
  * Flujo:
  * 1. Obtiene el texto del RIT auditado.
- * 2. Parsea el texto original en sus 16 capítulos.
+ * 2. Parsea el texto original en sus 22 capítulos.
  * 3. Por cada capítulo: incorpora artículos del scraper + RAG + hallazgos de auditoría.
  * 4. Llama a Gemini capítulo por capítulo (cascade flash → flash-lite).
  * 5. Ensambla el texto completo y crea un nuevo ReglamentoInterno (version+1).
@@ -46,7 +46,7 @@ class RITMejoradoService
         'XIII' => [],
         'XIV'  => ['acoso'],
         'XV'   => ['grupos_protegidos'],
-        'XVI'  => [],
+        'XXII' => [],
     ];
 
     private string $modeloUsado = 'gemini-2.5-flash';
@@ -279,7 +279,7 @@ class RITMejoradoService
         'XIII' => ['uniformes', 'dotacion', 'equipos', 'bienes de la empresa', 'herramientas'],
         'XIV'  => ['convivencia', 'acoso', 'comite de convivencia'],
         'XV'   => ['proteccion de sujetos', 'sujetos de especial', 'mujeres y menores', 'labores prohibidas', 'discapacidad', 'fuero', 'estabilidad reforzada'],
-        'XVI'  => ['disposiciones finales', 'publicacion y vigencia', 'clausulas ineficaces', 'vigencia del presente'],
+        'XXII' => ['disposiciones finales', 'publicacion y vigencia', 'clausulas ineficaces', 'vigencia del presente'],
     ];
 
     /**

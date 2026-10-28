@@ -125,7 +125,7 @@ class RitGoldStandard
             'Labores prohibidas o restringidas (embarazadas, menores de edad)',
             'No discriminación de grupos de especial protección',
         ],
-        'XVI' => [
+        'XXII' => [
             'Vigencia y fecha de entrada en vigor del reglamento',
             'Publicación y divulgación a los trabajadores',
             'Mecanismo para modificar el reglamento',
