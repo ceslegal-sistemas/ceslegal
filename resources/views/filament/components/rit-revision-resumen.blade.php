@@ -92,24 +92,9 @@
         'vigilancia_guardias' => 'Vigilancia / guardias',
         'personalizado' => 'Personalizado',
     ];
-    $capitulosRIT = [
-        'I' => 'Denominación y Objeto',
-        'II' => 'Admisión y Período de Prueba',
-        'III' => 'Jornada Ordinaria',
-        'IV' => 'Trabajo Suplementario y Festivos',
-        'V' => 'Remuneración y Forma de Pago',
-        'VI' => 'Vacaciones y Permisos',
-        'VII' => 'Licencias Especiales',
-        'VIII' => 'Régimen Disciplinario',
-        'IX' => 'Escala de Sanciones',
-        'X' => 'Reclamos y Procedimientos',
-        'XI' => 'Conducta y Comportamiento',
-        'XII' => 'Seguridad y Salud (SG-SST)',
-        'XIII' => 'Equipos y Bienes',
-        'XIV' => 'Comité de Convivencia / Acoso',
-        'XV' => 'Protección de Sujetos Especiales',
-        'XVI' => 'Disposiciones Finales',
-    ];
+    $capitulosRIT = collect(\App\Services\RITGeneratorService::getCapitulos())
+        ->mapWithKeys(fn(array $cap) => [$cap['numero'] => \Illuminate\Support\Str::title(mb_strtolower($cap['titulo']))])
+        ->all();
 
     /* Embers (modo claro) - chispas de fuego que suben desde la base */
     $emberColors = ['200,60,5', '230,90,10', '255,130,20', '180,45,0', '240,110,15', '210,70,5'];
@@ -334,8 +319,8 @@
         <div class="rg-stats">
             <div class="rg-stat"><b>{{ $num_trabajadores ?: '?' }}</b><span>Trabaj.</span></div>
             <div class="rg-stat"><b>{{ $totalCargos ?: '-' }}</b><span>Cargos</span></div>
-            <div class="rg-stat"><b>16</b><span>Capít.</span></div>
-            <div class="rg-stat"><b>~80</b><span>Artíc.</span></div>
+            <div class="rg-stat"><b>{{ count($capitulosRIT) }}</b><span>Capít.</span></div>
+            <div class="rg-stat"><b>~115</b><span>Artíc.</span></div>
         </div>
 
         <div class="rg-notes">
@@ -432,7 +417,7 @@
     {{-- Capítulos (colapsable) --}}
     <details class="rg-glass rg-caps rg-a3">
         <summary>
-            <span class="rg-disp">Capítulos que generará la IA <span class="rg-caps-count">16</span></span>
+            <span class="rg-disp">Capítulos que generará la IA <span class="rg-caps-count">{{ count($capitulosRIT) }}</span></span>
             <svg class="rg-chev" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
         </summary>
         <div class="rg-caps-body">
