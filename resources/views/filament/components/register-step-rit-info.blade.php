@@ -46,7 +46,7 @@
                     data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                     style="width:20px;height:20px;flex-shrink:0">
                 </lord-icon>
-                <span><strong>No lo tengo:</strong> la IA lo redacta completo (16 capítulos) tras el registro. Recomendado.</span>
+                <span><strong>No lo tengo:</strong> la IA lo redacta completo (22 capítulos) tras el registro. Recomendado.</span>
             </div>
 
             <div class="pt-bullet">

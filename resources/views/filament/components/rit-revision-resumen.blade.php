@@ -313,7 +313,7 @@
         <h2 class="rg-title rg-disp">Reglamento Interno de Trabajo</h2>
         <p class="rg-lead">
             Verifique que todo sea correcto. Use <span class="rg-em">Anterior</span> para cambiar algo;
-            al pulsar <span class="rg-em">Crear</span>, la IA redactará los 16 capítulos conforme al Art. 105 CST.
+            al pulsar <span class="rg-em">Crear</span>, la IA redactará los 22 capítulos conforme al Art. 105 CST.
         </p>
 
         <div class="rg-stats">

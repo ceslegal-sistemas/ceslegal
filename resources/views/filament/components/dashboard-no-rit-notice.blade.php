@@ -44,7 +44,7 @@ html:not(.dark) .norit-footer-divider { border-top-color: rgba(0,0,0,.08); }
                     data-pt-light="primary:#e11d48,secondary:#f97316,tertiary:#fecdd3"
                     style="width:20px;height:20px;flex-shrink:0;margin-top:1px">
                 </lord-icon>
-                <span class="rit-sub" style="margin:0">Nuestro asistente de IA construye el RIT completo con <strong>16 capítulos</strong> en minutos, listo para presentar al Ministerio.</span>
+                <span class="rit-sub" style="margin:0">Nuestro asistente de IA construye el RIT completo con <strong>22 capítulos</strong> en minutos, listo para presentar al Ministerio.</span>
             </div>
         </div>
 
