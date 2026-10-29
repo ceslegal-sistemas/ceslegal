@@ -3010,12 +3010,18 @@ HTML;
         }
 
         // Crear registro de tracking para el correo
+        $enviarWhatsapp = $trabajador->notificar_por_whatsapp && !empty($trabajador->telefono);
+
         $tracking = EmailTracking::create([
             'token' => EmailTracking::generarToken(),
             'tipo_documento' => 'estado_descargos',
             'proceso_id' => $proceso->id,
             'trabajador_id' => $trabajador->id,
             'email_destinatario' => $trabajador->email,
+            'canales' => array_keys(array_filter([
+                'email' => true,
+                'whatsapp' => $enviarWhatsapp,
+            ])),
             'enviado_en' => Carbon::now('America/Bogota'),
         ]);
 
@@ -3056,6 +3062,7 @@ HTML;
             $trabajador,
             'whatsapp_plantilla_estado_descargos_nombre',
             [$trabajador->nombre_completo, $proceso->codigo, $estadoTexto],
+            tracking: $tracking,
         );
 
         Log::info('Notificación de estado de descargos enviada', [
